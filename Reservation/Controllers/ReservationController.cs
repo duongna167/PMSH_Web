@@ -2396,7 +2396,6 @@ namespace Reservation.Controllers
         }
         #endregion
 
-
         #region DatVP __ registration card
         [HttpGet]
         public async Task<IActionResult> GetRegistrationCard()
@@ -2412,7 +2411,6 @@ namespace Reservation.Controllers
             }
         }
         #endregion
-
 
         #region DatVP __ Reservation: Accompanying
         [HttpGet]
@@ -2506,7 +2504,6 @@ namespace Reservation.Controllers
             }
         }
         #endregion
-
 
         #region DatVP __ Reservation : check in
         [HttpPost]
@@ -2639,7 +2636,6 @@ namespace Reservation.Controllers
         }
         #endregion
 
-
         #region DatVP __ reservation billing
         [HttpGet]
         public async Task<IActionResult> GetFolioDetailByFolioID(int mode, int folioNo)
@@ -2693,7 +2689,6 @@ namespace Reservation.Controllers
         }
 
         #endregion
-
 
         #region DatVP __ Reservation: fixed charges
         [HttpGet]
@@ -6079,7 +6074,6 @@ namespace Reservation.Controllers
             }
         }
         #endregion
-
 
         #region DatVP __ Reservation: Reservation Item Inventory
         [HttpGet]
