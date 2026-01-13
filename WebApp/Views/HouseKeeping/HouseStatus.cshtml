@@ -1,923 +1,1046 @@
-﻿@{
-    Layout = null;
+﻿﻿@using DevExpress.XtraReports.UI
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
     ViewBag.Title = ViewBag.ReportHeader;
     var zoneList = ViewBag.ZoneList;
     var roomtypeList = ViewBag.RoomTypeList;
 }
 
+@* <link asp-append-version="true" href="~/css/reservation.css" rel="stylesheet" /> *@
 <style>
-    #modalHouseStatus .modal-body {
-        background-color: #f0f2f5;
-        padding: 15px;
-        max-height: 85vh;
-        overflow-y: auto;
+    /*  #logGridContainer .dx-datagrid-rowsview .dx-selection {
+                background-color: #005f87 !important;
+                color: white !important;
+            }
+
+                #logGridContainer .dx-datagrid-rowsview .dx-selection * {
+                    color: white !important;
+                }
+
+            #logGridContainer .dx-datagrid-rowsview .dx-row > td {
+                padding-top: 2px !important;
+                padding-bottom: 2px !important;
+                font-size: 12px !important;
+                line-height: 24px !important;
+            }
+
+            #logGridContainer .dx-datagrid-headers {
+                background-color: #3b9ac6 !important;
+                color: white !important;
+            }
+
+                #logGridContainer .dx-datagrid-headers .dx-header-row > td {
+                    padding-top: 12px !important;
+                    padding-bottom: 12px !important;
+                    font-size: 12px !important;
+                    background-color: #3b9ac6 !important;
+                    color: white !important;
+                    font-weight: bold;
+                    border-right: 1px solid #ddd !important;
+                    text-align: center !important;
+                }
+
+                #logGridContainer .dx-datagrid-rowsview td,
+                #logGridContainer .dx-datagrid-headers td {
+                    border-right: 1px solid #ddd !important;
+                }
+
+
+                #logGridContainer .dx-datagrid-rowsview tr td:last-child,
+                #logGridContainer .dx-datagrid-headers tr td:last-child {
+                    border-right: none !important;
+                }
+
+            #logGridContainer .dx-datagrid-rowsview .dx-selection {
+                background-color: #01579b !important;
+                color: white !important;
+            }
+
+                #logGridContainer .dx-datagrid-rowsview .dx-selection * {
+                    color: white !important;
+                }
+
+            #logGridContainer .dx-datagrid-filter-row td .dx-datebox {
+                height: 24px !important;
+                min-height: 24px !important;
+            }
+
+                #logGridContainer .dx-datagrid-filter-row td .dx-datebox input {
+                    font-size: 12px !important;
+                    height: 24px !important;
+                }
+
+            #logGridContainer .dx-datagrid-filter-row td .dx-editor-with-menu,
+            #logGridContainer .dx-datagrid-filter-row td .dx-texteditor input {
+                height: 24px !important;
+                line-height: 24px !important;
+                padding: 2px 6px !important;
+                font-size: 12px !important;
+                box-sizing: border-box;
+            }
+
+            #logGridContainer .dx-datagrid-filter-row td .dx-datebox,
+            #logGridContainer .dx-datagrid-filter-row td .dx-dropdowneditor {
+                height: 26px !important;
+                min-height: 26px !important;
+                font-size: 12px !important;
+            } */
+    .containerhs {
+        display: flex;
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 20px;
+        gap: 20px;
+        justify-content: center;
     }
 
-    .pos-card {
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-        padding: 12px 15px;
-        height: 100%;
-        border: 1px solid #e1e4e8;
+    .column-left {
+        width: 37%;
+        padding: 0 15px;
+        box-sizing: border-box;
         display: flex;
         flex-direction: column;
+        gap: 20px;
     }
 
-    .pos-card-header {
-        font-size: 0.95rem;
-        font-weight: 700;
-        text-transform: uppercase;
+    .column-right {
+        width: 40%;
+        padding: 0 15px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    fieldset {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 15px 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: box-shadow 0.3s ease;
+    }
+
+        fieldset:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+    legend {
+        font-weight: 600;
+        font-size: 1.1rem;
         color: #333;
-        margin-bottom: 12px;
-        padding-bottom: 8px;
-        border-bottom: 2px solid #f0f2f5;
-        display: block;
+        padding: 0 10px;
     }
 
     .form-row {
         display: flex;
         align-items: center;
-        margin-bottom: 6px;
-        font-size: 0.85rem;
+        margin-bottom: 10px;
+        gap: 10px;
     }
 
         .form-row label {
-            flex: 1;
-            color: #495057;
-            font-weight: 600;
-            margin-bottom: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            width: 160px;
+            font-size: 0.9rem;
+            color: #444;
+            font-weight: 500;
+            flex-shrink: 0;
         }
 
-        .form-row input[disabled], .form-row input[readonly] {
-            background-color: #f8f9fa;
-            border: 1px solid #ced4da;
-            color: #212529;
-            font-weight: 700;
-            text-align: right;
-            padding: 2px 8px;
-            border-radius: 4px;
-            height: 28px;
-            width: 70px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-    .form-control-pos {
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        padding: 4px 8px;
-        height: 32px;
-        font-size: 0.9rem;
+    #roomAVG {
+        right: 81px;
+        position: relative;
     }
 
-    .status-input {
-        color: #fff !important;
-        border: none !important;
-    }
-
-    .green {
-        background-color: #28a745 !important;
-    }
-
-    .red {
-        background-color: #dc3545 !important;
-    }
-
-    .pink {
-        background-color: #ff00ff !important;
-    }
-
-    .gray {
-        background-color: #6c757d !important;
-    }
-
-    .ellipsis-icon {
-        color: #3b9ac6;
-        cursor: pointer;
-        margin-left: 6px;
-        width: 16px;
-        text-align: center;
-        transition: color 0.2s;
-    }
-
-        .ellipsis-icon:hover {
-            color: #0056b3;
-            transform: scale(1.2);
-        }
-
-    .grid-header-row {
-        display: flex;
-        margin-bottom: 8px;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 4px;
-    }
-
-        .grid-header-row label {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #6c757d;
-            text-align: center;
-        }
-
-    .col-label {
-        flex: 1;
-        text-align: left !important;
-        font-weight: 600;
+    .form-row input,
+    .form-row select {
+        width: 80px;
+        padding: 6px 8px;
         font-size: 0.85rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .col-val {
-        width: 70px; /* Tăng nhẹ độ rộng để chứa đủ số */
-        flex-shrink: 0;
-        text-align: center;
-        height: 28px; /* Cố định chiều cao bằng với input */
-        line-height: 28px; /* Căn giữa chữ theo chiều dọc cho label và span */
-        display: block;
-    }
-
-    /* Đồng nhất kiểu dáng cho cả input và các span giữ chỗ */
-    .form-row input.col-val,
-    .form-row span.col-val {
-        padding: 2px 5px;
-        font-size: 0.8rem;
+        border: 1px solid #ddd;
         border-radius: 4px;
-    }
-
-    .form-row input.col-val {
-        border: 1px solid #ced4da;
+        box-sizing: border-box;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        height: 30px;
         text-align: right;
     }
 
-    /* Span giữ chỗ không màu, không biên nhưng phải có đúng width */
-    .form-row span.col-val {
-        border: 1px solid transparent; /* Quan trọng: để width bằng với input có border */
-        background: transparent;
-    }
-    .col-icon {
-        width: 22px;
+        .form-row input:focus,
+        .form-row select:focus {
+            border-color: #3b9ac6;
+            box-shadow: 0 0 5px rgba(59, 154, 198, 0.3);
+            outline: none;
+        }
+
+        .form-row input[disabled] {
+            cursor: not-allowed;
+        }
+
+    .form-row.triple-input input {
+        width: 80px;
+        flex: 0 0 80px;
     }
 
-    .filter-bar {
-        background: #fff;
-        padding: 10px 15px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        display: flex;
-        gap: 15px;
-        align-items: center;
-        flex-wrap: wrap;
+    .form-row.triple-input span {
+        width: 80px;
+        flex: 0 0 80px;
     }
 
-    #popupLogGrid {
-        z-index: 1100 !important;
-    }
-
-    #loadingSpinnerHouseStatus {
-        z-index: 1200 !important;
-    }
-
-    #modalHouseStatus .row.g-3 {
-        --bs-gutter-x: 3px;
-        --bs-gutter-y: 3px;
-    }
-
-    #modalHouseStatus .d-flex.flex-column.gap-3 {
-        gap: 3px !important;
-    }
-
-    #modalHouseStatus .modal-body {
-        padding: 4px;
-    }
-
-    #modalHouseStatus .filter-bar {
-        margin-bottom: 4px;
-        padding: 4px 6px;
-        gap: 6px;
-    }
-
-    #modalHouseStatus .pos-card {
-        padding: 4px 6px;
+    .status-box {
+        text-align: center;
+        font-weight: 600;
+        color: white;
         border-radius: 4px;
-    }
-
-    #modalHouseStatus .pos-card-header {
-        margin-bottom: 2px;
-        padding-bottom: 3px;
+        padding: 6px 0;
         font-size: 0.8rem;
     }
 
-    #modalHouseStatus .form-row {
-        margin-bottom: 1px;
-        min-height: 26px;
+    .green {
+        background-color: #28a745;
     }
 
-    #modalHouseStatus hr.my-2 {
-        margin: 3px 0;
+    .red {
+        background-color: #dc3545;
     }
 
+    .pink {
+        background-color: #ff00ff;
+    }
+
+    .gray {
+        background-color: #6c757d;
+    }
+
+    button {
+        padding: 8px 20px;
+        margin-top: 12px;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: white;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+
+    .tomselect-custom {
+        width: 120px;
+        min-height: 30px;
+        font-size: 0.85rem;
+        border-radius: 4px;
+    }
+
+    .text-center {
+        text-align: center;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #222;
+        margin-bottom: 20px;
+    }
+
+    .form-row .form-row-header {
+        font-weight: bold;
+        width: 160px;
+    }
+
+    .form-row.header-row label {
+        font-weight: bold;
+        font-size: 0.85rem;
+        color: #222;
+    }
+
+        .form-row.header-row label:first-child {
+            width: 160px;
+            /* khớp với label của dòng input */
+            flex-shrink: 0;
+        }
+
+        .form-row.header-row label:not(:first-child) {
+            width: 80px;
+            /* khớp với input 3 cột */
+            text-align: center;
+        }
+
+    .popup-overlay {
+        display: none;
+        /* Ẩn mặc định */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        /* Nền mờ */
+        z-index: 1000;
+    }
+
+    .popup-content {
+        background-color: white;
+        width: auto;
+        max-width: fit-content;
+        margin: 10% auto;
+        padding: 20px;
+        border-radius: 10px;
+        position: relative;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .close-btn {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 24px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .popup-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
 </style>
 
-<div class="modal fade" id="modalHouseStatus" aria-labelledby="houseStatusLabel" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header py-2">
-                <h5 class="modal-title fw-bold">House Status </h5>
+
+<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="">
+    <button id="btnPrint" class="mui-button mui-button-new"><i class="fa-solid fa-eye"></i>View</button>
+    @*     <button  id="btnPrintGrid" class="mui-button mui-button-new" type="button">
+        <i class="fa-solid fa-print"></i> Print
+    </button> *@
+
+</div>
+<div class="containerhs">
+
+    <!-- LEFT COLUMN -->
+    <div class="column-left">
+        <!-- Room Summary -->
+        <fieldset>
+            <legend>Room Summary</legend>
+
+            <div class="form-row">
+                <label for="totalRoom">Total Physical Room:</label>
+                <input type="text" id="totalRoom" disabled>
+            </div>
+            <div class="form-row">
+                <label for="outOfOrder">Out of Order:</label>
+                <input type="text" id="outOfOrder" class="status-box pink" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+            </div>
+            <div class="form-row">
+                <label for="roomToSell">Total Room to Sell:</label>
+                <input type="text" id="roomToSell" disabled>
+            </div>
+            <div class="form-row">
+                <label for="outOfService">Out of Service:</label>
+                <input type="text" id="outOfService" class="status-box gray" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+            </div>
+        </fieldset>
+
+        <!-- End of Day Projection -->
+        <fieldset>
+            <legend>End of Day Projection</legend>
+
+            <div class="form-row  header-row" style="font-weight: bold;">
+                <label style="width: 150px;"></label>
+                <label style="width: 80px;">Rooms</label>
+                <label style="width: 80px;">Persons</label>
+                <label style="width: 80px;">VIP</label>
             </div>
 
-            <div class="modal-body">
-                <div class="filter-bar">
-                    <div class="d-flex align-items-center">
-                        <label class="me-2 mb-0 fw-bold">Date:</label>
-                        <input type="date" id="datebunisess" class="form-control-pos" style="width: 135px;">
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <label class="me-2 mb-0 fw-bold">Room Type:</label>
-                        <select id="roomtype" class="form-control-pos" style="width: 110px;">
-                            <option value="">--ALL--</option>
-                            @foreach (var item in roomtypeList)
-                            {
-                                <option value="@item.ID">@item.Code</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <label class="me-2 mb-0 fw-bold">Zone:</label>
-                        <select id="zone" class="form-control-pos" style="width: 100px;">
-                            @foreach (var item in zoneList)
-                            {
-                                <option value="@item.ID">@item.Code</option>
-                            }
-                        </select>
-                    </div>
-
-                    <div class="ms-auto d-flex gap-2">
-                        <button id="btnViewHS" class="mui-button mui-button-view"> View</button>
-                        @* <button id="btnPrintGrid" class="mui-button mui-button-export" type="button"> Print</button> *@
-                        <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
-
-                <div class="row g-3">
-
-                    <div class="col-lg-4 col-md-12">
-                        <div class="d-flex flex-column gap-3 h-100">
-                            <div class="pos-card">
-                                <span class="pos-card-header">Room Summary</span>
-                                <div class="form-row">
-                                    <label>Total Physical Room:</label>
-                                    <input type="text" id="totalRoom" disabled>
-                                </div>
-                                <div class="form-row">
-                                    <label>Total Room to Sell:</label>
-                                    <input type="text" id="roomToSell" disabled>
-                                </div>
-                                <div class="form-row mt-2">
-                                    <label>Out of Order:</label>
-                                    <input type="text" id="outOfOrder" class="status-input pink" disabled>
-                                    <i class="fas fa-ellipsis-h ellipsis-icon"></i>
-                                </div>
-                                <div class="form-row">
-                                    <label>Out of Service:</label>
-                                    <input type="text" id="outOfService" class="status-input gray" disabled>
-                                    <i class="fas fa-ellipsis-h ellipsis-icon"></i>
-                                </div>
-                            </div>
-
-                            <div class="pos-card">
-                                <span class="pos-card-header">Housekeeping Room Status</span>
-                                <div class="grid-header-row">
-                                    <label class="col-label"></label>
-                                    <label class="col-val">Vacant</label>
-                                    <label class="col-icon"></label>
-                                    <label class="col-val">Occupied</label>
-                                    <label class="col-icon"></label>
-                                    <label class="col-val">Total</label>
-                                </div>
-
-                                <div class="form-row">
-                                    <label class="col-label">Clean</label>
-                                    <input id="cleanVacant" type="text" class="status-input green col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="cleanOccupied" type="text" class="status-input green col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="cleanTotal" type="text" class="col-val" disabled>
-                                </div>
-
-                                <div class="form-row">
-                                    <label class="col-label">Clean (NC)</label>
-                                    <input id="cleannonVacant" type="text" class="col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="cleannonOccupied" type="text" class="col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="cleannonTotal" type="text" class="col-val" disabled>
-                                </div>
-
-                                <div class="form-row">
-                                    <label class="col-label">Dirty</label>
-                                    <input id="dirtyVacant" type="text" class="status-input red col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="dirtyOccupied" type="text" class="status-input red col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="dirtyTotal" type="text" class="col-val" disabled>
-                                </div>
-
-                                <div class="form-row">
-                                    <label class="col-label">Due Out</label>
-                                    <span class="col-val"></span>
-                                    <span class="col-icon"></span>
-                                    <input id="doeoutOccupied" type="text" class="col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <span class="col-val"></span>
-                                </div>
-                                <hr class="my-2">
-                                <div class="form-row">
-                                    <label class="col-label fw-bold">TOTAL</label>
-                                    <input id="totalVacant" type="text" class="col-val fw-bold" disabled>
-                                    <span class="col-icon"></span>
-                                    <input id="totalOccupied" type="text" class="col-val fw-bold" disabled>
-                                    <span class="col-icon"></span>
-                                    <span class="col-val"></span>
-                                </div>
-
-                                <div class="form-row mt-2">
-                                    <label class="col-label">OOO / OOS</label>
-                                    <input id="outoforderVacant" type="text" class="status-input pink col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="outofserviveOccupied" type="text" class="status-input gray col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="outofserviveVacant" type="text" class=" status-input gray col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-4 col-md-6">
-                        
-                        <div class="d-flex flex-column h-100 gap-2">
-                            <div class="pos-card">
-                                <span class="pos-card-header">Activity</span>
-
-                                <div class="grid-header-row">
-                                    <label class="col-label"></label>
-                                    <label class="col-val">Rooms</label>
-                                    <label class="col-icon"></label>
-                                    <label class="col-val">Perssons</label>
-                                    <label class="col-val">VIP</label>
-                                </div>
-
-                                <div class="form-row">
-                                    <label class="col-label">Stayovers</label>
-                                    <input id="stayoverRoom" type="text" class="col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="stayoverPerson" type="text" class="col-val" disabled>
-                                    <input id="stayoverVip" type="text" class="col-val" disabled>
-                                </div>
-
-                                <div class="form-row">
-                                    <label class="col-label">Dep. Expected</label>
-                                    <input id="depExpectedRoom" type="text" class="col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="depExpectedPerson" type="text" class="col-val" disabled>
-                                    <input id="depExpectedVip" type="text" class="col-val" disabled>
-                                </div>
-
-                                <div class="form-row">
-                                    <label class="col-label">Dep. Actual</label>
-                                    <input id="actualRoom" type="text" class="col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="actualPerson" type="text" class="col-val" disabled>
-                                    <input id="actualVip" type="text" class="col-val" disabled>
-                                </div>
-
-                                <div class="form-row">
-                                    <label class="col-label">Arr. Expected</label>
-                                    <input id="arrivalExpectedRoom" type="text" class="col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="arrivalExpectedPerson" type="text" class="col-val" disabled>
-                                    <input id="arrivalExpectedVip" type="text" class="col-val" disabled>
-                                </div>
-
-                                <div class="form-row">
-                                    <label class="col-label">Arr. Actual</label>
-                                    <input id="arrivalActualRoom" type="text" class="col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="arrivalActualPerson" type="text" class="col-val" disabled>
-                                    <input id="arrivalActualVip" type="text" class="col-val" disabled>
-                                </div>
-
-                                <div class="form-row">
-                                    <label class="col-label">Extended Stays</label>
-                                    <input id="extendedStaysRoom" type="text" class="col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="extendedStaysPerson" type="text" class="col-val" disabled>
-                                    <input id="extendedStaysVip" type="text" class="col-val" disabled>
-                                </div>
-
-                                <div class="form-row">
-                                    <label class="col-label">Early Dep.</label>
-                                    <input id="earlyDeparturesRoom" type="text" class="col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="earlyDeparturesPerson" type="text" class="col-val" disabled>
-                                    <input id="earlyDeparturesVip" type="text" class="col-val" disabled>
-                                </div>
-
-                                <div class="form-row">
-                                    <label class="col-label">Day Use</label>
-                                    <input id="dayUseRoom" type="text" class="col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="dayUsePerson" type="text" class="col-val" disabled>
-                                    <input id="dayUseVip" type="text" class="col-val" disabled>
-                                </div>
-
-                                <div class="form-row">
-                                    <label class="col-label">Walk In</label>
-                                    <input id="walkinRoom" type="text" class="col-val" disabled>
-                                    <span class="col-icon"><i class="fas fa-ellipsis-h ellipsis-icon"></i></span>
-                                    <input id="walkinPerson" type="text" class="col-val" disabled>
-                                    <input id="walkinVip" type="text" class="col-val" disabled>
-                                </div>
-                            </div>
-                            <div class="pos-card" style="margin-top: auto;">
-                                <span class="pos-card-header">Print Options</span>
-                                <div class="d-flex flex-column gap-2 py-1">
-                                    <div class="form-check d-flex align-items-center gap-2">
-                                        <input class="form-check-input" type="radio" name="printType" id="radioFast" checked style="margin-top:0">
-                                        <label class="form-check-label small fw-bold" for="radioFast">Save File and Print</label>
-                                    </div>
-                                    <div class="form-check d-flex align-items-center gap-2">
-                                        <input class="form-check-input" type="radio" name="printType" id="radioSave" style="margin-top:0">
-                                        <label class="form-check-label small fw-bold" for="radioSave">Fast Print</label>
-                                    </div>
-                                    <button id="btnExecutePrint" class="mui-button mui-button-export w-100 mt-1">
-                                        Print
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-4 col-md-6">
-                        <div class="pos-card">
-                            <span class="pos-card-header">End Of Day Projection</span>
-
-                            <div class="grid-header-row">
-                                <label class="col-label"></label>
-                                <label class="col-val">Rooms</label>
-                                <label class="col-val">Pers</label>
-                                <label class="col-val">VIP</label>
-                            </div>
-
-                            <div class="form-row">
-                                <label class="col-label">Occupancy</label>
-                                <input id="occupancyRoom" type="text" class="col-val" disabled>
-                                <input id="occupancyPersons" type="text" class="col-val" disabled>
-                                <input id="occupancyvVip" type="text" class="col-val" disabled>
-                            </div>
-
-                            <div class="form-row">
-                                <label class="col-label">% Occupancy</label>
-                                <input id="occupancyPercent" type="text" class="col-val" disabled>
-                                <span class="col-val"></span> <span class="col-val"></span>
-                            </div>
-
-                            <div class="form-row">
-                                <label class="col-label">Max Occ Tonight</label>
-                                <input id="maxaccRoom" type="text" class="col-val" disabled>
-                                <input id="maxaccPerson" type="text" class="col-val" disabled>
-                                <input id="maxaccVip" type="text" class="col-val" disabled>
-                            </div>
-
-                            <div class="form-row">
-                                <label class="col-label">Max % Occ</label>
-                                <input id="maxpercentonight" type="text" class="col-val" disabled>
-                                <span class="col-val"></span>
-                                <span class="col-val"></span>
-                            </div>
-
-                            <div class="form-row">
-                                <label class="col-label">Min Available</label>
-                                <input id="minAvail" type="text" class="col-val" disabled>
-                                <span class="col-val"></span>
-                                <span class="col-val"></span>
-                            </div>
-
-                            <hr class="my-1">
-
-                            <div class="form-row">
-                                <label class="col-label">Individuals</label>
-                                <input id="individualsRoom" type="text" class="col-val" disabled>
-                                <input id="individualsPerson" type="text" class="col-val" disabled>
-                                <input id="individualsVip" type="text" class="col-val" disabled>
-                            </div>
-
-                            <div class="form-row">
-                                <label class="col-label">Groups</label>
-                                <input id="groupRoom" type="text" class="col-val" disabled>
-                                <input id="groupPerson" type="text" class="col-val" disabled>
-                                <input id="groupVip" type="text" class="col-val" disabled>
-                            </div>
-
-                            <div class="form-row">
-                                <label class="col-label">Comp & HU</label>
-                                <input id="compGroup" type="text" class="col-val" disabled>
-                                <input id="compPerson" type="text" class="col-val" disabled>
-                                <input id="compVip" type="text" class="col-val" disabled>
-                            </div>
-
-                            <hr class="my-1">
-
-                            <div class="form-row">
-                                <label class="col-label fw-bold">Room Revenue</label>
-                                <input id="roomRevennue" type="text" style="width: 133px;" disabled>
-                            </div>
-                            <div class="form-row">
-                                <label class="col-label fw-bold">AVG Rate</label>
-                                <input id="roomAVG" type="text" style="width: 133px;" disabled>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
+            <div class="form-row triple-input">
+                <label>Occupancy:</label>
+                <input id="occupancyRoom" type="text" disabled>
+                <input id="occupancyPersons" type="text" disabled>
+                <input id="occupancyvVip" type="text" disabled>
             </div>
-        </div>
+
+            <div class="form-row">
+                <label>% Occupancy:</label>
+                <input id="occupancyPercent" type="text" disabled>
+
+            </div>
+
+            <div class="form-row">
+                <label>Min Available Tonight:</label>
+                <input id="minAvail" type="text" disabled>
+
+            </div>
+
+            <div class="form-row triple-input">
+                <label>Max Occ Tonight:</label>
+                <input id="maxaccRoom" type="text" disabled>
+                <input id="maxaccPerson" type="text" disabled>
+                <input id="maxaccVip" type="text" disabled>
+            </div>
+
+            <div class="form-row triple-input">
+                <label>Max % Occ Tonight:</label>
+                <input id="maxpercentonight" type="text" disabled>
+
+            </div>
+
+            <div class="form-row triple-input">
+                <label>Individuals:</label>
+                <input id="individualsRoom" type="text" disabled>
+                <input id="individualsPerson" type="text" disabled>
+                <input id="individualsVip" type="text" disabled>
+            </div>
+
+            <div class="form-row triple-input">
+                <label>Groups:</label>
+                <input id="groupRoom" type="text" disabled>
+                <input id="groupPerson" type="text" disabled>
+                <input id="groupVip" type="text" disabled>
+            </div>
+
+            <div class="form-row triple-input">
+                <label>Comp and HU:</label>
+                <input id="compGroup" type="text" disabled>
+                <input id="compPerson" type="text" disabled>
+                <input id="compVip" type="text" disabled>
+            </div>
+
+            <div class="form-row triple-input">
+                <label>Room Revenue:</label>
+                <input id="roomRevennue" type="text" disabled>
+                <label>AVG:</label>
+                <input id="roomAVG" type="text" disabled>
+            </div>
+
+
+        </fieldset>
+
+
+        <!-- Search -->
+        <fieldset>
+            <legend>Search</legend>
+
+            <div class="form-row">
+                <label for="roomType">Room Type:</label>
+                <select id="roomtype" name="roomtype" class="tomselect-custom">
+                    <option value="">--ALL--</option>
+                    @foreach (var item in roomtypeList)
+                    {
+                        <option value="@item.ID">@item.Code</option>
+                    }
+                </select>
+            </div>
+            <div class="form-row">
+                <label for="date">Date:</label>
+                <input type="date" style="width: 122px;" id="datebunisess">
+            </div>
+            <div class="form-row">
+                <label for="zone">Zone:</label>
+                <select id="zone" name="zone" class="tomselect-custom">
+                    @foreach (var item in zoneList)
+                    {
+                        <option value="@item.ID">@item.Code</option>
+                    }
+                </select>
+            </div>
+
+
+        </fieldset>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="column-right">
+
+        <!-- Activity -->
+        <fieldset>
+            <legend>Activity</legend>
+
+            <div class="form-row header-row" style="font-weight: bold;">
+                <label style="width: 150px;"></label>
+                <label style="width: 80px;margin-right: 21px;">Rooms</label>
+                <label style="width: 80px;">Persons</label>
+                <label style="width: 80px;">VIP</label>
+            </div>
+
+            <div class="form-row triple-input">
+                <label for="stayover">Stayovers</label>
+                <input id="stayoverRoom" type="text">
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="stayoverPerson" type="text">
+                <input id="stayoverVip" type="text">
+            </div>
+            <div class="form-row triple-input">
+                <label for="depExpected">Departures Expected</label>
+                <input id="depExpectedRoom" type="text" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="depExpectedPerson" type="text" disabled>
+                <input id="depExpectedVip" type="text" disabled>
+            </div>
+            <div class="form-row triple-input">
+                <label for="depActual">Departures Actual</label>
+                <input id="actualRoom" type="text" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="actualPerson" type="text" disabled>
+                <input id="actualVip" type="text" disabled>
+            </div>
+            <div class="form-row triple-input">
+                <label for="arrExpected">Arrival Expected</label>
+                <input id="arrivalExpectedRoom" type="text" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="arrivalExpectedPerson" type="text" disabled>
+                <input id="arrivalExpectedVip" type="text" disabled>
+            </div>
+            <div class="form-row triple-input">
+                <label for="arrActual">Arrival Actual</label>
+                <input id="arrivalActualRoom" type="text" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="arrivalActualPerson" type="text" disabled>
+                <input id="arrivalActualVip" type="text" disabled>
+            </div>
+            <div class="form-row triple-input">
+                <label for="extStay">Extended Stays</label>
+                <input id="extendedStaysRoom" type="text" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="extendedStaysPerson" type="text" disabled>
+                <input id="extendedStaysVip" type="text" disabled>
+            </div>
+            <div class="form-row triple-input">
+                <label for="earlyDep">Early Departures</label>
+                <input id="earlyDeparturesRoom" type="text" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="earlyDeparturesPerson" type="text" disabled>
+                <input id="earlyDeparturesVip" type="text" disabled>
+            </div>
+            <div class="form-row triple-input">
+                <label for="dayUse">Day Use Rooms</label>
+                <input id="dayUseRoom" type="text" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="dayUsePerson" type="text" disabled>
+                <input id="dayUseVip" type="text" disabled>
+            </div>
+            <div class="form-row triple-input">
+                <label for="walkIn">Walk In</label>
+                <input id="walkinRoom" type="text" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="walkinPerson" type="text" disabled>
+                <input id="walkinVip" type="text" disabled>
+            </div>
+        </fieldset>
+
+
+        <!-- Housekeeping Room Status -->
+        <fieldset>
+            <legend>House Keeping Room Status</legend>
+
+            <!-- Header Row -->
+            <div class="form-row header-row">
+                <label></label>
+                <label style="margin-right: 21px;">Vacant</label>
+                <label>Occupied</label>
+                <label>Total</label>
+            </div>
+
+
+            <!-- Row: Clean -->
+            <div class="form-row triple-input">
+                <label>Clean</label>
+                <input id="cleanVacant" type="text" class=" green" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="cleanOccupied" type="text" class=" green" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="cleanTotal" type="text" disabled>
+            </div>
+
+            <!-- Row: Clean Non-Checked -->
+            <div class="form-row  triple-input">
+                <label>Clean Non-Checked</label>
+                <input id="cleannonVacant" type="text" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="cleannonOccupied" type="text" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="cleannonTotal" type="text" disabled>
+            </div>
+
+            <!-- Row: Dirty -->
+            <div class="form-row triple-input">
+                <label>Dirty</label>
+                <input id="dirtyVacant" type="text" class=" red" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="dirtyOccupied" type="text" class=" red" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="dirtyTotal" type="text" disabled>
+            </div>
+
+            <!-- Row: Due Out -->
+            <div class="form-row triple-input">
+                <label style="margin-right: 24px;">Due Out</label>
+                <span></span> <!-- ô Vacant trống -->
+                <input id="doeoutOccupied" type="text" disabled> <!-- ô Occupied -->
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <span></span> <!-- ô Total trống -->
+            </div>
+            <!-- Row: Total -->
+            <div class="form-row">
+                <label>Total</label>
+                <input id="totalVacant" type="text" disabled>
+                <input id="totalOccupied" type="text" disabled>
+
+            </div>
+
+            <!-- Row: Out of Order -->
+            <div class="form-row">
+                <label>Out of Order</label>
+                <input id="outoforderVacant" type="text" class=" pink" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+
+            </div>
+
+            <!-- Row: Out of Service -->
+            <div class="form-row">
+                <label>Out of Service</label>
+                <input id="outofserviveVacant" type="text" class=" gray" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+                <input id="outofserviveOccupied" type="text" class=" gray" disabled>
+                <i class="fas fa-ellipsis-h ellipsis-icon" style="cursor:pointer;"></i>
+
+            </div>
+        </fieldset>
+
     </div>
 </div>
-
 <div id="popupLogGrid"
-     style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; z-index: 1100; box-shadow: 0 0 10px rgba(0,0,0,0.3); width: fit-content; max-width: 90vw; max-height: 600px; overflow-y: auto;">
-    <div class="d-flex justify-content-start mb-2">
-        <button id="btnExportExcel" class="mui-button mui-button-export" type="button"> Excel</button>
-        <button onclick="$('#popupLogGrid').hide()" class="mui-button mui-button-close ms-2">Close</button>
+     style=" display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; z-index: 1050; box-shadow: 0 0 10px rgba(0,0,0,0.3); width: fit-content; max-width: 90vw; max-height: 600px; overflow-y: auto; ">
+
+    <div class="d-flex justify-content-between mb-2">
+        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">
+            <i class="fa-solid fa-file-excel"></i> Excel
+        </button>
+        <button onclick="$('#popupLogGrid').hide()" class="mui-button mui-button-close ">
+            <i class="fa-solid fa-xmark me-1"></i> Close
+        </button>
     </div>
     <div id="logGridContainer" class="gridContainer mt-2"></div>
 </div>
 
-<div id="loadingSpinnerHouseStatus"
-     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1200;">
-    <i class="fa-solid fa-spinner fa-spin" style="font-size: 35px; color: #3b9ac6;"></i>
+<div id="loadingSpinner"
+     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+    <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-    var getHouseStatusToken = function() {
-        // Ưu tiên lấy token nằm trong modalHouseStatus, nếu không có mới tìm toàn trang
-        var token = $('#modalHouseStatus input[name="__RequestVerificationToken"]').val();
-        if (!token) {
-            token = $('input[name="__RequestVerificationToken"]').val();
-        }
-        return token;
-    };
 
-    // Hàm format số tiền/số liệu Việt Nam
-    var hs_formatVN = (val, fraction = 0) => {
-        return (val || 0).toLocaleString('vi-VN', { maximumFractionDigits: fraction });
-    };
-
-    function initHouseStatusData() {
-        console.log("House Status Initialized");
-
-        hs_getBusinessDate();
-
-        hs_bindHouseStatusEvents();
-    }
-
-    // Hàm gọi AJAX chung (để tái sử dụng)
-    var hs_callAjax  = (url, data) => {
-        return $.ajax({
-            url: url,
-            type: 'GET',
-            data: data,
-            cache: false, 
-            headers: { "X-CSRF-TOKEN-HEADERNAME": getHouseStatusToken() }
-        });
-    };
-
+    let parsedBusinessDate = null;
     $(document).ready(function () {
-        initHouseStatusData();
+        getBusinessDate();
+
+
+
     });
-
-    function hs_bindHouseStatusEvents() {
-        // Xử lý sự kiện click icon lấy chi tiết
-        $(document).off("click", ".ellipsis-icon").on("click", ".ellipsis-icon", function () {
-                            var inputId = $(this).closest(".form-row").find("input").attr("id");
-
-                            hs_callAjax ('/HouseKeeping/DataHSdetail', {
-                                datebunisess: $("#datebunisess").val(),
-                                roomtype: $("#roomtype").val(),
-                                zone: $("#zone").val(),
-                                inputId: inputId,
-                            }).done(result => {
-                                if (Array.isArray(result)) {
-                                    initializeLogStatusGrid(result, inputId);
-                                    $("#popupLogGrid").show();
-                                } else {
-                                    alert("Dữ liệu không đúng định dạng!");
-                                }
-                            });
-                        });
-
-        // Xử lý nút View dữ liệu tổng quát
-        $(document).off("click", "#btnViewHS").on("click", "#btnViewHS", function () {
-                            var $spinner = $("#loadingSpinnerHouseStatus");
-                            $spinner.show();
-
-                            hs_callAjax ('/HouseKeeping/HouseStatusData', {
-                                datebunisess: $("#datebunisess").val(),
-                                roomtype: $("#roomtype").val(),
-                                zone: $("#zone").val(),
-                            }).done(result => {
-                                // --- 1. Thực hiện các tính toán logic (Giữ nguyên logic cũ) ---
-                                var totalRoom = parseInt(result.totalPhysicalRoom[0]?.totalPhysicalRoom) || 0;
-                                var outOfOrder = parseInt(result.outOfOrder[0]?.outOfOrder) || 0;
-                                var roomToSell = totalRoom - outOfOrder;
-
-                                var stayOverRoom = parseInt(result.stayOver[0]?.totalRooms) || 0;
-                                var depExpRoom = parseInt(result.departureExpected[0]?.totalRooms) || 0;
-                                var occupancyRoom = stayOverRoom + depExpRoom;
-                                var occupancyPercent = roomToSell > 0 ? ((occupancyRoom * 100) / roomToSell) : 0;
-
-                                var maxaccRoom = parseInt(result.endOfDayMaxOccTonight[0]?.totalRooms) || 0;
-                                var maxOccPercent = roomToSell > 0 ? ((maxaccRoom * 100) / roomToSell) : 0;
-
-                                var amount = parseFloat(result.endOfDayRoomRevenue[0]?.amount) || 0;
-                                var avgRate = maxaccRoom > 0 ? (amount / maxaccRoom) : 0;
-
-                                var vIns = parseInt(result.hkInspected[0]?.vacant) || 0;
-                                var oIns = parseInt(result.hkInspected[0]?.occ) || 0;
-                                var vHk = parseInt(result.hkClean[0]?.vacant) || 0;
-                                var oHk = parseInt(result.hkClean[0]?.occ) || 0;
-                                var vHkD = parseInt(result.hkDirty[0]?.vacant) || 0;
-                                var oHkD = parseInt(result.hkDirty[0]?.occ) || 0;
-                                var txtDO = result.roomzone?.length || 0;
-
-                                // --- 2. Ánh xạ dữ liệu vào Form (Mapping để tối ưu dòng code) ---
-                                var dataMap = {
-                                    '#totalRoom': totalRoom,
-                                    '#outOfOrder': outOfOrder,
-                                    '#roomToSell': roomToSell,
-                                    '#outOfService': result.outOfService[0]?.outOfService,
-                                    '#occupancyRoom': occupancyRoom,
-                                    '#occupancyPercent': occupancyPercent.toFixed(2),
-                                    '#minAvail': roomToSell - maxaccRoom,
-                                    '#occupancyPersons': (parseInt(result.stayOver[0]?.totalPersons) || 0) + (parseInt(result.departureExpected[0]?.totalPersons) || 0),
-                                    '#occupancyvVip': result.arrivalActualVIP[0]?.vip,
-                                    '#maxaccRoom': maxaccRoom,
-                                    '#maxpercentonight': maxOccPercent.toFixed(2),
-                                    '#maxaccPerson': result.endOfDayMaxOccTonight[0]?.totalPersons,
-                                    '#maxaccVip': result.endOfDayMaxOccTonightVIP[0]?.vip,
-                                    '#individualsRoom': result.endOfDayIndividual[0]?.totalRooms,
-                                    '#individualsPerson': result.endOfDayIndividual[0]?.totalPersons,
-                                    '#individualsVip': result.endOfDayIndividualVIP[0]?.vip,
-                                    '#groupRoom': result.endOfDayGroupAndBlock[0]?.totalRooms,
-                                    '#groupPerson': result.endOfDayGroupAndBlock[0]?.totalPersons,
-                                    '#groupVip': result.endOfDayGroupAndBlockVIP[0]?.vip,
-                                    '#compGroup': result.endOfDayCHU[0]?.totalRooms,
-                                    '#compPerson': result.endOfDayCHU[0]?.totalPersons,
-                                    '#compVip': result.endOfDayCHUVIP[0]?.vip,
-                                    '#roomRevennue': hs_formatVN(amount),
-                                    '#roomAVG': avgRate > 0 ? hs_formatVN(avgRate) : '0.000',
-                                    '#stayoverRoom': result.stayOver[0]?.totalRooms,
-                                    '#stayoverPerson': result.stayOver[0]?.totalPersons,
-                                    '#stayoverVip': result.stayOverVIP[0]?.vip,
-                                    '#depExpectedRoom': result.departureExpected[0]?.totalRooms,
-                                    '#depExpectedPerson': result.departureExpected[0]?.totalPersons,
-                                    '#depExpectedVip': result.departureExpectedVIP[0]?.vip,
-                                    '#actualRoom': result.departureActual[0]?.totalRooms,
-                                    '#actualPerson': result.departureActual[0]?.totalPersons,
-                                    '#actualVip': result.departureActualVIP[0]?.vip,
-                                    '#arrivalExpectedRoom': result.arrivalExpected[0]?.totalRooms,
-                                    '#arrivalExpectedPerson': result.arrivalExpected[0]?.totalPersons,
-                                    '#arrivalExpectedVip': result.arrivalExpectedVIP[0]?.vip,
-                                    '#arrivalActualRoom': result.arrivalActual[0]?.totalRooms,
-                                    '#arrivalActualPerson': result.arrivalActual[0]?.totalPersons,
-                                    '#arrivalActualVip': result.arrivalActualVIP[0]?.vip,
-                                    '#extendedStaysRoom': result.extendedStay[0]?.totalRooms,
-                                    '#extendedStaysPerson': result.extendedStay[0]?.totalPersons,
-                                    '#extendedStaysVip': result.extendedStayVIP[0]?.vip,
-                                    '#earlyDeparturesRoom': result.earlyDeparture[0]?.totalRooms,
-                                    '#earlyDeparturesPerson': result.earlyDeparture[0]?.totalPersons,
-                                    '#earlyDeparturesVip': result.earlyDepartureVIP[0]?.vip,
-                                    '#dayUseRoom': result.dayUseRoom[0]?.totalRooms,
-                                    '#dayUsePerson': result.dayUseRoom[0]?.totalPersons,
-                                    '#dayUseVip': result.dayUseRoomVIP[0]?.vip,
-                                    '#walkinRoom': result.walkInRoom[0]?.totalRooms,
-                                    '#walkinPerson': result.walkInRoom[0]?.totalPersons,
-                                    '#walkinVip': result.wakeInRoomVIP[0]?.vip,
-                                    '#cleanVacant': vIns,
-                                    '#cleanOccupied': oIns,
-                                    '#cleanTotal': vIns + oIns,
-                                    '#cleannonVacant': vHk,
-                                    '#cleannonOccupied': oHk,
-                                    '#cleannonTotal': vHk + oHk,
-                                    '#dirtyVacant': vHkD,
-                                    '#dirtyOccupied': oHkD,
-                                    '#dirtyTotal': vHkD + oHkD,
-                                    '#doeoutOccupied': txtDO,
-                                    '#totalVacant': vIns + vHk + vHkD,
-                                    '#totalOccupied': oIns + oHk + oHkD + txtDO,
-                                    '#outoforderVacant': result.hkOutOfOrder[0]?.vacant,
-                                    '#outofserviveVacant': result.hkOutOfService[0]?.vacant,
-                                    '#outofserviveOccupied': result.hkOutOfService[0]?.occ
-                                };
-
-                                // Thực hiện gán hàng loạt
-                                $.each(dataMap, (selector, value) => {
-                                    $(selector).val(value);
-                                });
-
-                            }).fail(() => {
-                                alert("Error loading House Status Data");
-                            }).always(() => {
-                                $spinner.hide();
-                            });
-                        });
-
-        $(document).off("click", "#btnExecutePrint").on("click", "#btnExecutePrint", function () {
-            var modalElement = document.querySelector("#modalHouseStatus .modal-content");
-            var isSaveFile = document.getElementById("radioSave").checked;
-            $("#loadingSpinnerHouseStatus").show();
-            html2canvas(modalElement, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: "#f0f2f5"
-            }).then(canvas => {
-                var imageData = canvas.toDataURL("image/png");
-                if (isSaveFile) {
-                    var link = document.createElement('a');
-                    link.href = imageData;
-                    link.download = `HouseStatus_${new Date().getTime()}.png`;
-                    link.click();
-                } else {
-                    var printWindow = window.open('', '_blank');
-                    printWindow.document.write(`
-                        <html>
-                        <head><title>Print House Status</title></head>
-                        <body style="margin:0; display:flex; justify-content:center;">
-                        <img src="${imageData}" style="max-width:100%;">
-                        <script>window.onload = function() { window.print(); window.close(); }<\/script>
-                        </body>
-                        </html>
-                    `);
-                    printWindow.document.close();
-                }
-                $("#loadingSpinnerHouseStatus").hide();
-            }).catch(err => {
-                console.error("Snapshot error:", err);
-                $("#loadingSpinnerHouseStatus").hide();
-            });
-        });
-
-        $("#btnExportExcel").click(function () {
-                            var grid = $("#logGridContainer").dxDataGrid("instance");
-                            var selectedReport = 'Detail House Status';
-                            if (!selectedReport) {
-                                alert("Vui lòng chọn báo cáo trước khi xuất Excel.");
-                                return;
-                            }
-
-                            var workbook = new ExcelJS.Workbook(); var companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-                            var worksheet = workbook.addWorksheet("Sheet 1");
-
-                            // === Tạo header công ty (dòng 1) ===
-                            worksheet.addRow([companyName]);
-                            worksheet.mergeCells('A1:E1');
-                            worksheet.getRow(1).font = { bold: true };
-                            worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-                            // === Dòng 2: Thời gian xuất (phải) ===
-                            var now = new Date();
-                            var exportDate = now.toLocaleString("vi-VN");
-                            worksheet.addRow(['', '', '', '', ' ' + exportDate]);
-                            worksheet.mergeCells('E2:H2');
-                            worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-                            // === Dòng 3–4: Trống
-                            worksheet.addRow([]);
-                            worksheet.addRow([]);
-
-                            // === Dòng 5: Tên báo cáo ở giữa ===
-                            var reportRow = worksheet.addRow(['', '', selectedReport]);
-                            worksheet.mergeCells('C5:F5');
-                            reportRow.font = { bold: true, size: 14 };
-                            reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-                            // === Dòng 6: Trống trước khi xuất dữ liệu
-                            worksheet.addRow([]);
-
-                            // === Export dữ liệu từ DevExtreme (bắt đầu từ dòng 7)
-                            DevExpress.excelExporter.exportDataGrid({
-                                component: grid,
-                                worksheet: worksheet,
-                                autoFilterEnabled: true,
-                                topLeftCell: { row: 7, column: 1 } // dữ liệu bắt đầu từ dòng 7
-                            }).then(function () {
-                                // Footer
-                                var lastRow = worksheet.lastRow.number + 2;
-
-                                worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
-                                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-                                worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-                                // Ghi file
-                                let fileName = selectedReport + ".xlsx";
-                                workbook.xlsx.writeBuffer().then(function (buffer) {
-                                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
-                                });
-                            });
-        });
-    }
-
-    function hs_getBusinessDate() {
-        $.ajax({
+    function getBusinessDate() {
+        return $.ajax({
             url: '/Reservation/GetBusinessDate',
             type: 'get',
             dataType: 'json',
             crossDomain: false,
-            // Sửa: Lấy token từ hàm helper
-            headers: { "X-CSRF-TOKEN-HEADERNAME": getHouseStatusToken() },
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                if(result && result.indexOf('T') > -1) {
-                    $('#datebunisess').val(result.split('T')[0]);
-                } else {
-                    var now = new Date();
-                    var day = ("0" + now.getDate()).slice(-2);
-                    var month = ("0" + (now.getMonth() + 1)).slice(-2);
-                    $('#datebunisess').val(now.getFullYear()+"-"+(month)+"-"+(day));
-                }
 
-                $("#btnViewHS").trigger("click");
+
+                // Gán vào input type="date"
+                $('#datebunisess').val(result.split('T')[0]);
+                $("#btnPrint").trigger("click");
             },
-            error: function (xhr) {
+            error: function (xhr, statusText, err) {
                 if (xhr.status == 401) {
-                    alert("Session expired");
+                    sessionTimeout();
                 }
             }
         });
     }
+    function formatDate(date) {
+        let year = date.getFullYear();
+        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
+        let day = date.getDate().toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
+        return `${year}-${month}-${day}`;
+    }
 
-    // Cấu hình Grid
-    var GRID_CONFIGS = {
-            outOfService: [
+    $(document).off("click", ".ellipsis-icon").on("click", ".ellipsis-icon", function () {
+
+        var inputId = $(this).closest(".form-row").find("input").attr("id"); // lấy id của input
+
+        console.log("ID input:", inputId)
+        $.ajax({
+            url: '/HouseKeeping/DataHSdetail',
+            type: 'GET',
+            data: {
+                datebunisess: $("#datebunisess").val(),
+                roomtype: $("#roomtype").val(),
+                zone: $("#zone").val(),
+                inputId: inputId,
+            },
+            headers: {
+                "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val()
+            },
+            success: function (result) {
+                if (Array.isArray(result)) {
+
+                    initializeLogStatusGrid(result, inputId);
+                    $("#popupLogGrid").show();
+                } else {
+                    console.error("Dữ liệu trả về không hợp lệ:", result);
+                    alert("Dữ liệu không đúng định dạng!");
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Lỗi khi tải dữ liệu chi tiết:", error);
+            }
+        });
+    });
+
+
+    function initializeLogStatusGrid(data, inputId) {
+        const columnWidth = 130;
+        let columns = [
+
+        ];
+        if (inputId === "outOfService") {
+            columns.push(
                 { dataField: "roomName", caption: "Room Name", width: "30%" },
                 { dataField: "roomType", caption: "Room Type", width: "30%" },
-                { dataField: "direction", caption: "Direction", width: "40%" }
-            ],
-            outOfOrder: [
+                {
+                    dataField: "direction",
+                    caption: "Direction",
+                    width: "40%"
+                }
+            );
+        } else if (inputId === "outOfOrder") {
+            columns.push(
                 { dataField: "roomName", caption: "Room Name", width: "30%" },
                 { dataField: "roomType", caption: "Room Type", width: "30%" },
-                { dataField: "fromDate", caption: "From Date", dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "toDate", caption: "To Date", dataType: "date", format: "dd/MM/yyyy" }
-            ],
-            // Các nhóm dùng chung cột Reservation
-            reservationGroup: [
+                {
+                    dataField: "fromDate",
+                    caption: "From Date",
+                    width: "20%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                },
+                {
+                    dataField: "toDate",
+                    caption: "To Date",
+                    width: "20%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                }
+            );
+        } else if (inputId === "stayoverRoom") {
+            columns.push(
                 { dataField: "reservationNumber", caption: "Reservation Number", width: "10%" },
                 { dataField: "roomNo", caption: "Room No", width: "10%" },
                 { dataField: "roomType", caption: "Room Type", width: "20%" },
                 { dataField: "guest", caption: "Guest", width: "20%" },
-                { dataField: "arrivalDate", caption: "Arrival Date", dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "departureDate", caption: "Departure Date", dataType: "date", format: "dd/MM/yyyy" }
-            ],
-            // Các nhóm dùng chung cột Housekeeping
-            hkGroup: [
+                {
+                    dataField: "arrivalDate",
+                    caption: "Arrival Date",
+                    width: "20%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                },
+                {
+                    dataField: "departureDate",
+                    caption: "Departure Date",
+                    width: "20%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                }
+            );
+        }
+        else if (inputId === "depExpectedRoom") {
+            columns.push(
+                { dataField: "reservationNumber", caption: "Reservation Number", width: "10%" },
+                { dataField: "roomNo", caption: "Room No", width: "10%" },
+                { dataField: "roomType", caption: "Room Type", width: "20%" },
+                { dataField: "guest", caption: "Guest", width: "20%" },
+                {
+                    dataField: "arrivalDate",
+                    caption: "Arrival Date",
+                    width: "20%",
+                    dataType: "date", format: "dd/MM/yyyy"
+                },
+                {
+                    dataField: "departureDate",
+                    caption: "Departure Date",
+                    width: "20%",
+                    dataType: "date", format: "dd/MM/yyyy"
+                }
+            );
+        }
+        else if (inputId === "actualRoom") {
+            columns.push(
+                { dataField: "reservationNumber", caption: "Reservation Number", width: "10%" },
+                { dataField: "roomNo", caption: "Room No", width: "10%" },
+                { dataField: "roomType", caption: "Room Type", width: "20%" },
+                { dataField: "guest", caption: "Guest", width: "20%" },
+                {
+                    dataField: "arrivalDate",
+                    caption: "Arrival Date",
+                    width: "20%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                },
+                {
+                    dataField: "departureDate",
+                    caption: "Departure Date",
+                    width: "20%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                }
+            );
+        }
+        else if (inputId === "arrivalExpectedRoom") {
+            columns.push(
+                { dataField: "reservationNumber", caption: "Reservation Number", width: "10%" },
+                { dataField: "roomNo", caption: "Room No", width: "10%" },
+                { dataField: "roomType", caption: "Room Type", width: "10%" },
+                { dataField: "guest", caption: "Guest", width: "10%" },
+                { dataField: "adult", caption: "Adult", width: "10%" },
+                { dataField: "child", caption: "Child", width: "10%" },
+                {
+                    dataField: "arrivalDate",
+                    caption: "Arrival Date",
+                    width: "20%",
+                    dataType: "date", format: "dd/MM/yyyy"
+                },
+                {
+                    dataField: "departureDate",
+                    caption: "Departure Date",
+                    width: "20%",
+                    dataType: "date", format: "dd/MM/yyyy"
+                }
+            );
+        }
+        else if (inputId === "arrivalActualRoom") {
+            columns.push(
+                { dataField: "reservationNumber", caption: "Reservation Number", width: "10%" },
+                { dataField: "roomNo", caption: "Room No", width: "10%" },
+                { dataField: "roomType", caption: "Room Type", width: "10%" },
+                { dataField: "guest", caption: "Guest", width: "10%" },
+                { dataField: "adult", caption: "Adult", width: "20%" },
+                { dataField: "child", caption: "Child", width: "10%" },
+                { dataField: "employeeCI", caption: "Employee CI", width: "10%" },
+                {
+                    dataField: "arrivalDate",
+                    caption: "Arrival Date",
+                    width: "10%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                },
+                {
+                    dataField: "departureDate",
+                    caption: "Departure Date",
+                    width: "10%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                }
+            );
+        } else if (inputId === "extendedStaysRoom") {
+            columns.push(
+                { dataField: "reservationNumber", caption: "Reservation Number", width: "10%" },
+                { dataField: "roomNo", caption: "Room No", width: "10%" },
+                { dataField: "roomType", caption: "Room Type", width: "20%" },
+                { dataField: "guest", caption: "Guest", width: "10%" },
+                { dataField: "adult", caption: "Adult", width: "10%" },
+                { dataField: "child", caption: "Child", width: "20%" },
+
+                {
+                    dataField: "arrivalDate",
+                    caption: "Arrival Date",
+                    width: "10%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                },
+                {
+                    dataField: "departureDate",
+                    caption: "Departure Date",
+                    width: "10%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                }
+            );
+        }
+        else if (inputId === "earlyDeparturesRoom") {
+            columns.push(
+                { dataField: "reservationNumber", caption: "Reservation Number", width: "10%" },
+                { dataField: "roomNo", caption: "Room No", width: "10%" },
+
+                { dataField: "guest", caption: "Guest", width: "40%" },
+
+                {
+                    dataField: "arrivalDate",
+                    caption: "Arrival Date",
+                    width: "20%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                },
+                {
+                    dataField: "departureDate",
+                    caption: "Departure Date",
+                    width: "20%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                }
+            );
+        } else if (inputId === "dayUseRoom") {
+            columns.push(
+                { dataField: "reservationNumber", caption: "Reservation Number", width: "10%" },
+                { dataField: "roomNo", caption: "Room No", width: "10%" },
+                { dataField: "roomType", caption: "Room Type", width: "20%" },
+                { dataField: "guest", caption: "Guest", width: "20%" },
+
+                {
+                    dataField: "arrivalDate",
+                    caption: "Arrival Date",
+                    width: "20%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                },
+                {
+                    dataField: "departureDate",
+                    caption: "Departure Date",
+                    width: "20%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                }
+            );
+        } else if (inputId === "walkinRoom") {
+            columns.push(
+                { dataField: "reservationNumber", caption: "Reservation Number", width: "10%" },
+                { dataField: "roomNo", caption: "Room No", width: "10%" },
+                { dataField: "roomType", caption: "Room Type", width: "20%" },
+                { dataField: "guest", caption: "Guest", width: "20%" },
+
+                {
+                    dataField: "arrivalDate",
+                    caption: "Arrival Date",
+                    width: "20%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                },
+                {
+                    dataField: "departureDate",
+                    caption: "Departure Date",
+                    width: "20%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                }
+            );
+        }
+        else if (inputId === "cleanVacant") {
+            columns.push(
                 { dataField: "roomName", caption: "Room Name", width: "20%" },
                 { dataField: "roomType", caption: "Room Type", width: "20%" },
-                { dataField: "zone", caption: "Zone", width: "60%" }
-            ]
-        };
-    
-    function initializeLogStatusGrid(data, inputId) {
-    let columns = [];
-        // Logic chọn bộ cột dựa trên ID
-        var resIds = ["stayoverRoom", "depExpectedRoom", "actualRoom", "arrivalExpectedRoom", "arrivalActualRoom",
-        "extendedStaysRoom", "earlyDeparturesRoom", "dayUseRoom", "walkinRoom", "doeoutOccupied"];
-
-        if (GRID_CONFIGS[inputId]) {
-            columns = GRID_CONFIGS[inputId];
-        } else if (resIds.includes(inputId)) {
-            columns = GRID_CONFIGS.reservationGroup;
-        } else {
-            columns = GRID_CONFIGS.hkGroup;
+                { dataField: "zone", caption: "Zone", width: "60%" },
+            );
         }
+        else if (inputId === "cleanOccupied") {
+            columns.push(
+                { dataField: "roomName", caption: "Room Name", width: "20%" },
+                { dataField: "roomType", caption: "Room Type", width: "20%" },
+                { dataField: "zone", caption: "Zone", width: "60%" },
+            );
+        }
+        else if (inputId === "cleannonVacant") {
+            columns.push(
+                { dataField: "roomName", caption: "Room Name", width: "20%" },
+                { dataField: "roomType", caption: "Room Type", width: "20%" },
+                { dataField: "zone", caption: "Zone", width: "60%" },
+            );
+        }
+        else if (inputId === "cleannonOccupied") {
+            columns.push(
+                { dataField: "roomName", caption: "Room Name", width: "20%" },
+                { dataField: "roomType", caption: "Room Type", width: "20%" },
+                { dataField: "zone", caption: "Zone", width: "60%" },
+            );
+        }
+        else if (inputId === "doeoutOccupied") {
+            columns.push(
+                { dataField: "reservationNumber", caption: "Reservation Number", width: "10%" },
+                { dataField: "roomNo", caption: "Room No", width: "10%" },
+                { dataField: "roomType", caption: "Room Type", width: "20%" },
+                { dataField: "guest", caption: "Guest", width: "20%" },
 
+                {
+                    dataField: "arrivalDate",
+                    caption: "Arrival Date",
+                    width: "20%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                },
+                {
+                    dataField: "departureDate",
+                    caption: "Departure Date",
+                    width: "20%",
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                }
+            );
+        }
+        else if (inputId === "dirtyVacant") {
+            columns.push(
+                { dataField: "roomName", caption: "Room Name", width: "20%" },
+                { dataField: "roomType", caption: "Room Type", width: "20%" },
+                { dataField: "zone", caption: "Zone", width: "60%" },
+            );
+        }
+        else if (inputId === "dirtyOccupied") {
+            columns.push(
+                { dataField: "roomName", caption: "Room Name", width: "20%" },
+                { dataField: "roomType", caption: "Room Type", width: "20%" },
+                { dataField: "zone", caption: "Zone", width: "60%" },
+            );
+        }
+        else if (inputId === "outoforderVacant") {
+            columns.push(
+                { dataField: "roomName", caption: "Room Name", width: "20%" },
+                { dataField: "roomType", caption: "Room Type", width: "20%" },
+                { dataField: "zone", caption: "Zone", width: "60%" },
+            );
+        }
+        else if (inputId === "outofserviveVacant") {
+            columns.push(
+                { dataField: "roomName", caption: "Room Name", width: "20%" },
+                { dataField: "roomType", caption: "Room Type", width: "20%" },
+                { dataField: "zone", caption: "Zone", width: "60%" },
+            );
+        }
+        else if (inputId === "outofserviveOccupied") {
+            columns.push(
+                { dataField: "roomName", caption: "Room Name", width: "20%" },
+                { dataField: "roomType", caption: "Room Type", width: "20%" },
+                { dataField: "zone", caption: "Zone", width: "60%" },
+            );
+        }
         $("#logGridContainer").dxDataGrid({
             dataSource: data,
             allowColumnResizing: true,
             columnAutoWidth: true,
             showBorders: true,
+            // width: "100%",
             height: 500,
             columns: columns,
             paging: { pageSize: 25 },
-            scrolling: { useNative: true, showScrollbar: "always" },
+            scrolling: {
+                useNative: true,
+                showScrollbar: "always"
+            },
             pager: {
                 visible: true,
                 allowedPageSizes: [25, 50, 'all'],
@@ -927,12 +1050,266 @@
             },
             filterRow: { visible: true, applyFilter: "auto" },
             headerFilter: { visible: true },
+            selection: { mode: "multiple", showCheckBoxesMode: "none" },
             onRowPrepared: function (e) {
                 if (e.rowType === "data" && e.data?.isTotal) {
-                    e.rowElement.css({ "font-weight": "bold", "background-color": "#f6f6f6" });
+                    e.rowElement.css({
+                        "font-weight": "bold",
+                        "background-color": "#f6f6f6"
+                    });
                 }
             }
         });
     }
-        
+
+
+    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+        $("#loadingSpinner").show();
+        $.ajax({
+            url: '/HouseKeeping/HouseStatusData',
+            type: 'GET',
+            data: {
+                datebunisess: $("#datebunisess").val(),
+                roomtype: $("#roomtype").val(),
+                zone: $("#zone").val(),
+            },
+            traditional: true,
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+                console.log(result);
+                const totalRoom = parseInt(result.totalPhysicalRoom[0].totalPhysicalRoom) || 0;
+                const outOfOrder = parseInt(result.outOfOrder[0].outOfOrder) || 0;
+
+                // Gán giá trị tổng phòng
+                $('#totalRoom').val(totalRoom);
+
+                // Gán giá trị phòng Out Of Order
+                $('#outOfOrder').val(outOfOrder);
+
+                // Tính số phòng có thể bán
+                const roomToSell = totalRoom - outOfOrder;
+                $('#roomToSell').val(roomToSell);
+
+                let stayOverdepartureExpected = parseInt(result.departureExpected[0].totalRooms) || 0;
+
+                let occupancyPersonsstayOver = parseInt(result.stayOver[0].totalPersons) || 0;
+                let occupancyPersonsdepartureExpected = parseInt(result.departureExpected[0].totalPersons) || 0;
+
+                let occupancyRoomstayOver = parseInt(result.stayOver[0].totalRooms) || 0;
+                $('#outOfService').val(result.outOfService[0].outOfService);
+                const occupancyRoom = occupancyRoomstayOver + stayOverdepartureExpected;
+                $('#occupancyRoom').val(occupancyRoom);
+                let occupancyPercent = 0;
+                if (roomToSell > 0) {
+                    occupancyPercent = (occupancyRoom * 100) / roomToSell;
+                    occupancyPercent = parseFloat(occupancyPercent.toFixed(2));// làm tròn 2 chữ số thập phân
+                }
+
+                $('#occupancyPercent').val(occupancyPercent.toFixed(2));
+
+                let maxaccRoom = parseInt(result.endOfDayMaxOccTonight[0].totalRooms) || 0;
+                $('#minAvail').val(roomToSell - maxaccRoom);
+
+                $('#occupancyPersons').val(occupancyPersonsstayOver + occupancyPersonsdepartureExpected);
+                $('#occupancyvVip').val(result.arrivalActualVIP[0].vip);
+                $('#maxaccRoom').val(maxaccRoom);
+                let maxoccupancyPercent = 0;
+
+                maxoccupancyPercent = (maxaccRoom * 100) / roomToSell;
+                maxoccupancyPercent = parseFloat(maxoccupancyPercent.toFixed(2));  // làm tròn 2 chữ số thập phân
+
+
+                $('#maxpercentonight').val(maxoccupancyPercent.toFixed(2));
+                $('#maxaccPerson').val(result.endOfDayMaxOccTonight[0].totalPersons);
+                $('#maxaccVip').val(result.endOfDayMaxOccTonightVIP[0].vip);
+
+                $('#individualsRoom').val(result.endOfDayIndividual[0].totalRooms);
+                $('#individualsPerson').val(result.endOfDayIndividual[0].totalPersons);
+                $('#individualsVip').val(result.endOfDayIndividualVIP[0].vip);
+
+                $('#groupRoom').val(result.endOfDayGroupAndBlock[0].totalRooms);
+                $('#groupPerson').val(result.endOfDayGroupAndBlock[0].totalPersons);
+                $('#groupVip').val(result.endOfDayGroupAndBlockVIP[0].vip);
+
+                $('#compGroup').val(result.endOfDayCHU[0].totalRooms);
+                $('#compPerson').val(result.endOfDayCHU[0].totalPersons);
+                $('#compVip').val(result.endOfDayCHUVIP[0].vip);
+
+                const amount = parseFloat(result.endOfDayRoomRevenue[0].amount) || 0;
+
+                // Làm tròn xuống số nguyên
+                const roundedAmount = Math.round(amount);
+
+                // Định dạng tiền theo kiểu Việt Nam: 1.234.567
+                const formattedAmount = roundedAmount.toLocaleString('vi-VN');
+
+                $('#roomRevennue').val(formattedAmount);
+
+                var roomCount = parseFloat(maxaccRoom) || 0;
+                console.log(amount);
+                if (roomCount > 0) {
+                    var avg = amount / roomCount;
+                    var formattedAvg = avg.toLocaleString('vi-VN', { maximumFractionDigits: 0 });
+
+                    $('#roomAVG').val(formattedAvg);
+                } else {
+                    $('#roomAVG').val('0.000'); // hoặc để trống nếu bạn muốn
+                }
+
+
+                $('#stayoverRoom').val(result.stayOver[0].totalRooms);
+                $('#stayoverPerson').val(result.stayOver[0].totalPersons);
+                $('#stayoverVip').val(result.stayOverVIP[0].vip);
+
+                $('#depExpectedRoom').val(result.departureExpected[0].totalRooms);
+                $('#depExpectedPerson').val(result.departureExpected[0].totalPersons);
+                $('#depExpectedVip').val(result.departureExpectedVIP[0].vip);
+
+                $('#actualRoom').val(result.departureActual[0].totalRooms);
+                $('#actualPerson').val(result.departureActual[0].totalPersons);
+                $('#actualVip').val(result.departureActualVIP[0].vip);
+
+                $('#arrivalExpectedRoom').val(result.arrivalExpected[0].totalRooms);
+                $('#arrivalExpectedPerson').val(result.arrivalExpected[0].totalPersons);
+                $('#arrivalExpectedVip').val(result.arrivalExpectedVIP[0].vip);
+
+                $('#arrivalActualRoom').val(result.arrivalActual[0].totalRooms);
+                $('#arrivalActualPerson').val(result.arrivalActual[0].totalPersons);
+                $('#arrivalActualVip').val(result.arrivalActualVIP[0].vip);
+
+                $('#extendedStaysRoom').val(result.extendedStay[0].totalRooms);
+                $('#extendedStaysPerson').val(result.extendedStay[0].totalPersons);
+                $('#extendedStaysVip').val(result.extendedStayVIP[0].vip);
+
+                $('#earlyDeparturesRoom').val(result.earlyDeparture[0].totalRooms);
+                $('#earlyDeparturesPerson').val(result.earlyDeparture[0].totalPersons);
+                $('#earlyDeparturesVip').val(result.earlyDepartureVIP[0].vip);
+
+                $('#dayUseRoom').val(result.dayUseRoom[0].totalRooms);
+                $('#dayUsePerson').val(result.dayUseRoom[0].totalPersons);
+                $('#dayUseVip').val(result.dayUseRoomVIP[0].vip)
+
+                $('#walkinRoom').val(result.walkInRoom[0].totalRooms);
+                $('#walkinPerson').val(result.walkInRoom[0].totalPersons);
+                $('#walkinVip').val(result.wakeInRoomVIP[0].vip)
+
+                $('#cleanVacant').val(result.hkInspected[0].vacant);
+                $('#cleanOccupied').val(result.hkInspected[0].occ);
+
+                // Tính tổng và gán vào cleanTotal
+                let vacantIns = parseInt(result.hkInspected[0].vacant) || 0;
+                let occIns = parseInt(result.hkInspected[0].occ) || 0;
+                $('#cleanTotal').val(vacantIns + occIns);
+
+                $('#cleannonVacant').val(result.hkClean[0].vacant);
+                $('#cleannonOccupied').val(result.hkClean[0].occ);
+
+                // Tính tổng và gán vào cleanTotal
+                let vacanthk = parseInt(result.hkClean[0].vacant) || 0;
+                let occhk = parseInt(result.hkClean[0].occ) || 0;
+                $('#cleannonTotal').val(vacanthk + occhk);
+
+
+                $('#dirtyVacant').val(result.hkDirty[0].vacant);
+                $('#dirtyOccupied').val(result.hkDirty[0].occ);
+
+                // Tính tổng và gán vào cleanTotal
+                let vacanthkD = parseInt(result.hkDirty[0].vacant) || 0;
+                let occhkD = parseInt(result.hkDirty[0].occ) || 0;
+                let txtDO = parseInt(result.roomzone.length) || 0;
+
+                $('#dirtyTotal').val(vacanthkD + occhkD);
+
+
+                $('#doeoutOccupied').val(result.roomzone ? result.roomzone.length : 0);
+
+
+                //  let vacantIns = parseInt(result.hkInspected[0].vacant) || 0;
+                //  let occIns = parseInt(result.hkInspected[0].occ) || 0;
+                //   let vacanthk = parseInt(result.hkClean[0].vacant) || 0;
+                // let occhk = parseInt(result.hkClean[0].occ) || 0;
+                //         let vacanthkD = parseInt(result.hkDirty[0].vacant) || 0;
+                // let occhkD = parseInt(result.hkDirty[0].occ) || 0;
+
+                $('#totalVacant').val(vacantIns + vacanthk + vacanthkD);
+                $('#totalOccupied').val(occIns + occhk + occhkD + txtDO);
+
+                $('#outoforderVacant').val(result.hkOutOfOrder[0].vacant);
+                $('#outofserviveVacant').val(result.hkOutOfService[0].vacant);
+                $('#outofserviveOccupied').val(result.hkOutOfService[0].occ);
+                $("#loadingSpinner").hide();
+            },
+            error: function () {
+                alert("Eror");
+                $("#loadingSpinner").hide();
+            }
+        });
+    });
+
+    $("#btnExportExcel").click(function () {
+        const grid = $("#logGridContainer").dxDataGrid("instance");
+        var selectedReport = 'Detail House Status';
+        if (!selectedReport) {
+            alert("Vui lòng chọn báo cáo trước khi xuất Excel.");
+            return;
+        }
+
+        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+        const worksheet = workbook.addWorksheet("Sheet 1");
+
+        // === Tạo header công ty (dòng 1) ===
+        worksheet.addRow([companyName]);
+        worksheet.mergeCells('A1:E1');
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+        // === Dòng 2: Thời gian xuất (phải) ===
+        const now = new Date();
+        const exportDate = now.toLocaleString("vi-VN");
+        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
+        worksheet.mergeCells('E2:H2');
+        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
+
+        // === Dòng 3–4: Trống
+        worksheet.addRow([]);
+        worksheet.addRow([]);
+
+        // === Dòng 5: Tên báo cáo ở giữa ===
+        const reportRow = worksheet.addRow(['', '', selectedReport]);
+        worksheet.mergeCells('C5:F5');
+        reportRow.font = { bold: true, size: 14 };
+        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        // === Dòng 6: Trống trước khi xuất dữ liệu
+        worksheet.addRow([]);
+
+        // === Export dữ liệu từ DevExtreme (bắt đầu từ dòng 7)
+        DevExpress.excelExporter.exportDataGrid({
+            component: grid,
+            worksheet: worksheet,
+            autoFilterEnabled: true,
+            topLeftCell: { row: 7, column: 1 } // dữ liệu bắt đầu từ dòng 7
+        }).then(function () {
+            // Footer
+            const lastRow = worksheet.lastRow.number + 2;
+
+            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
+            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+            worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+            // Ghi file
+            let fileName = selectedReport + ".xlsx";
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+            });
+        });
+    });
+
+
+
 </script>
+
+
+
+

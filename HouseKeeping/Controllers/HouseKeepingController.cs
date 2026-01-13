@@ -892,7 +892,7 @@ namespace HouseKeeping.Controllers
             ViewBag.RoomTypeList = listrt;
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
             ViewBag.BusinessDate = businessDateModel[0].BusinessDate;
-            return PartialView("HouseStatus");
+            return View();
         }
         [HttpGet]
         public IActionResult HouseStatusData(DateTime datebunisess, string roomtype, string zone)
