@@ -294,7 +294,6 @@ namespace Profile.Controllers
             }
         }
 
-
         //get all membertype
         [HttpGet]
         public async Task<IActionResult> GetAllMemberType()
@@ -401,7 +400,6 @@ namespace Profile.Controllers
             return Json(list);
 
         }
-
 
         //get all room by room type
         [HttpGet]

@@ -26,7 +26,8 @@ namespace BaseBusiness.BO
 
         public static List<FolioModel> GetFolioNo(int reservationID)
         {
-            string query = $"select * from Folio where ReservationID = {reservationID}";
+            string query = $@"SELECT * FROM FOLIO WITH (NOLOCK) 
+                         WHERE ReservationID={reservationID} order by FolioNo asc";
             return instance.GetList<FolioModel>(query);
         }
 
