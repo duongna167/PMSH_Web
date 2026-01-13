@@ -57,11 +57,11 @@ namespace BaseBusiness.BO
             string safeZone = zone?.Replace("'", "''") ?? "";
             if (suffix == "-A")
             {
-                condition = "CONVERT(Int, RoomNo) < 40000";
+                condition = "CONVERT(Int, RoomNo) < 020000";
             }
             else
             {
-                condition = "CONVERT(Int, RoomNo) > 39999";
+                condition = "CONVERT(Int, RoomNo) > 019999";
             }
 
             string query = $@"

@@ -284,10 +284,13 @@
                 </div>
                 <div class="d-flex align-items-center me-3">
                     <label class="me-2 mb-0">Attendant ID:</label>
-                    <select id="attendant" name="attendant" class="tomselect-custom" >
+                    <select id="attendant" name="attendant" class="tomselect-custom" multiple>
                         @foreach (var item in listatt)
                         {
-                            <option value="@item.ID">@item.Name</option>
+                           
+                                <option value="@item.ID">@item.Name</option>
+                            
+                            
                         }
                     </select>
 
@@ -299,10 +302,13 @@
                 </div>
                 <div class="d-flex align-items-center me-1">
                     <label class="me-2 mb-0">Zone:</label>
-                    <select id="zone" name="zone" class="tomselect-custom" >
+                    <select id="zone" name="zone" class="tomselect-custom" multiple>
                         @foreach (var item in zoneList)
                         {
-                            <option value="@item.Code">@item.Code</option>
+                         
+                                <option value="@item.Code">@item.Code</option>
+                            
+                           
                         }
                     </select>
 
@@ -322,28 +328,47 @@
 
     </div>
 </div>
-<div id="overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999;"></div>
 
-<div id="popupNewGrid" style="display: none; position: fixed; top: 50%; left: 50%;
-    transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px;
-    z-index: 1050; box-shadow: 0 0 10px rgba(0,0,0,0.3); min-width: 400px; max-height: 600px; overflow-y: auto;">
+<div class="modal fade" id="popupNewGrid" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
 
-    <div class="d-flex justify-content-between mb-2">
-        <h5 id="attendantPointTitle" class="mb-0">Report</h5>
+        <div class="modal-content">
 
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="attendantPointTitle">Report</h5>
+              
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body">
+
+                <!-- Action buttons -->
+                <div class="d-flex justify-content-start mb-3 gap-2">
+                    <button id="btnExportpopExcel"
+                            class="mui-button mui-button-new"
+                            type="button">
+                        Excel
+                    </button>
+
+                    <button 
+                            id="btnClosePopup"
+                            class="mui-button mui-button-new"
+                            data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+
+                <!-- Grid container -->
+                <div id="logGridContainer" class="gridContainer mt-2">
+                    <!-- Grid render here -->
+                </div>
+
+            </div>
+        </div>
     </div>
-    <div class="d-flex justify-content-start mb-3 gap-2">
-        <button id="btnExportpopExcel" class="mui-button mui-button-new" type="button">   Excel</button>
-
-        <button onclick="$('#popupNewGrid').hide()" id="btnClosePopup" class="btn btn-sm btn-danger">
-             Close
-        </button>
-    </div>
-
-
-
-    <div id="logGridContainer" class="gridContainer mt-2"></div>
 </div>
+
 
 <div class="mui-card">
     <div id="gridContainer" class="gridContainer mt-2"></div>
@@ -398,12 +423,12 @@
     }
     $("#btnReport").on("click", function () {
 
-        $('#overlay').fadeIn(200);
-        $('#popupNewGrid').fadeIn(200);
+
+        $('#popupNewGrid').modal("show");
     });
-    $('#btnClosePopup, #overlay').click(function () {
-        $('#popupNewGrid').fadeOut(200);
-        $('#overlay').fadeOut(200);
+    $('#btnClosePopup').click(function () {
+        $('#popupNewGrid').modal("hide");
+ 
 
     });
     function initializeTomSelectszone() {
@@ -425,6 +450,8 @@
                 persist: false,
                 render: {
                     option: function (data, escape) {
+                       
+
                         return `<div>${escape(data.text)}</div>`;
                     }
                 }
@@ -450,6 +477,7 @@
                 persist: false,
                 render: {
                     option: function (data, escape) {
+                       
                         return `<div>${escape(data.text)}</div>`;
                     }
                 }
@@ -466,7 +494,7 @@
             data: {
                 fromDate: $("#fromDate").val(),
                 toDate: $("#toDate").val(),
-                attendant: $("#attendant").val(),
+                attendant: $("#attendant").val().join(","),
                 room: $("#room").val(),
                 zone: $("#zone").val().join(",")
             },
@@ -495,17 +523,18 @@
             dataSource: data,
             allowColumnResizing: true,
             columnAutoWidth: true,
+            height :500,
             columns: [
-                { dataField: "colIndex", caption: "No", width: columnWidth - 20, dataType: "number", format: "#,##0" },
+                { dataField: "colIndex", caption: "No", width: columnWidth - 70 },
                 { dataField: "roomNo", caption: "RoomNo", width: columnWidth},
                 { dataField: "roomType", caption: "RoomType", width: columnWidth },
                 { dataField: "hkstatusID", caption: "Room Status", width: columnWidth },
                 { dataField: "fostatus", caption: "FOStatus", width: columnWidth },
                 { dataField: "attendant", caption: "Attendant", width: columnWidth },
                 { dataField: "taskDate", caption: "Task Date", width: columnWidth, dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "timeIn", caption: "TimeIn", width: columnWidth  },
-                { dataField: "timeOut", caption: "Time Out", width: columnWidth  },
-                { dataField: "complete", caption: "Status", width: columnWidth }
+                { dataField: "timeIn", caption: "TimeIn", width: columnWidth+20  },
+                { dataField: "timeOut", caption: "Time Out", width: columnWidth +20 },
+                { dataField: "complete", caption: "Status", width: columnWidth +20}
             ],
 
 
@@ -550,17 +579,18 @@
             dataSource: data,
             allowColumnResizing: true,
             columnAutoWidth: true,
+            height:500,
             columns: [
-                { dataField: "colIndex", caption: "No", width: columnWidth - 20, dataType: "number", format: "#,##0" },
+                { dataField: "colIndex", caption: "No", width: columnWidth - 70 },
                 { dataField: "roomNo", caption: "RoomNo", width: columnWidth },
                 { dataField: "roomType", caption: "RoomType", width: columnWidth },
                 { dataField: "hkstatusID", caption: "Room Status", width: columnWidth },
                 { dataField: "fostatus", caption: "FOStatus", width: columnWidth },
                 { dataField: "attendant", caption: "Attendant", width: columnWidth, groupIndex: 0, visible: false }, // <-- Group theo Attendant
                 { dataField: "taskDate", caption: "Task Date", width: columnWidth, dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "timeIn", caption: "Time In", width: columnWidth },
-                { dataField: "timeOut", caption: "Time Out", width: columnWidth },
-                { dataField: "complete", caption: "Status", width: columnWidth }
+                { dataField: "timeIn", caption: "Time In", width: columnWidth+20 },
+                { dataField: "timeOut", caption: "Time Out", width: columnWidth +20},
+                { dataField: "complete", caption: "Status", width: columnWidth+20 }
             ],
 
             grouping: {

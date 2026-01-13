@@ -60,6 +60,7 @@ namespace HouseKeeping.Controllers
         {
             try
             {
+                zone = FormatIdList(zone);
                 DataTable dataTable = _iHouseKeepingService.RoomControlPanelData(fromDate, toDate, zone);
 
                 // Tạo danh sách các ngày trong khoảng fromDate -> toDate
@@ -119,8 +120,9 @@ namespace HouseKeeping.Controllers
         {
             try
             {
+                zone = FormatIdList(zone);
                 DataTable dataTable = _iHouseKeepingService.RoomFacilityForecastData(fromDate, toDate, zone);
-
+               
                 // Tạo danh sách các ngày trong khoảng fromDate -> toDate
                 var dateRange = Enumerable.Range(0, (toDate - fromDate).Days + 1)
                                           .Select(offset => fromDate.AddDays(offset))
@@ -1296,305 +1298,257 @@ namespace HouseKeeping.Controllers
             {
                 List<object> result = new List<object>();
 
+                string DateOnly(DataRow d, string col)
+                    => d.Field<DateTime?>(col)?.ToString("yyyy-MM-dd") ?? "";
+
                 if (inputId == "outOfService")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusSummaryOutOfServiceDetail(datebunisess, roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  RoomName = d["Room Name"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-                                  Direction = d["Direction"]?.ToString() ?? "",
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusSummaryOutOfServiceDetail(datebunisess, roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        RoomName = d["Room Name"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        Direction = d["Direction"]?.ToString() ?? ""
+                    }).ToList<object>();
                 }
                 else if (inputId == "outOfOrder")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusSummaryOutOfOrderDetail(datebunisess, roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  RoomName = d["Room Name"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-
-                                  FromDate = d["From Date"]?.ToString() ?? "",
-                                  ToDate = d["To Date"]?.ToString() ?? ""
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusSummaryOutOfOrderDetail(datebunisess, roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        RoomName = d["Room Name"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        FromDate = DateOnly(d, "From Date"),
+                        ToDate = DateOnly(d, "To Date")
+                    }).ToList<object>();
                 }
                 else if (inputId == "stayoverRoom")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusActivityStayOverDetail(datebunisess, roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  Guest = d["Guest"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-
-                                  ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
-                                  RoomNo = d["Room No"]?.ToString() ?? "",
-                                  ArrivalDate = d.Field<DateTime?>("Arrival Date"),
-                                  DepartureDate = d.Field<DateTime?>("Departure Date"),
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusActivityStayOverDetail(datebunisess, roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        Guest = d["Guest"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
+                        RoomNo = d["Room No"]?.ToString() ?? "",
+                        ArrivalDate = DateOnly(d, "Arrival Date"),
+                        DepartureDate = DateOnly(d, "Departure Date")
+                    }).ToList<object>();
                 }
                 else if (inputId == "depExpectedRoom")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusActivityDepartureExpectedDetail(datebunisess, roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  Guest = d["Guest"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-
-                                  ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
-                                  RoomNo = d["Room No"]?.ToString() ?? "",
-                                  ArrivalDate = d.Field<DateTime?>("Arrival Date"),
-                                  DepartureDate = d.Field<DateTime?>("Departure Date"),
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusActivityDepartureExpectedDetail(datebunisess, roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        Guest = d["Guest"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
+                        RoomNo = d["Room No"]?.ToString() ?? "",
+                        ArrivalDate = DateOnly(d, "Arrival Date"),
+                        DepartureDate = DateOnly(d, "Departure Date")
+                    }).ToList<object>();
                 }
                 else if (inputId == "actualRoom")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusActivityDepartureActualDetail(datebunisess, roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  Guest = d["Guest"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-
-                                  ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
-                                  RoomNo = d["Room No"]?.ToString() ?? "",
-                                  ArrivalDate = d.Field<DateTime?>("Arrival Date"),
-                                  DepartureDate = d.Field<DateTime?>("Departure Date"),
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusActivityDepartureActualDetail(datebunisess, roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        Guest = d["Guest"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
+                        RoomNo = d["Room No"]?.ToString() ?? "",
+                        ArrivalDate = DateOnly(d, "Arrival Date"),
+                        DepartureDate = DateOnly(d, "Departure Date")
+                    }).ToList<object>();
                 }
                 else if (inputId == "arrivalExpectedRoom")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusActivityArrivalExpectedDetail(datebunisess, roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  Guest = d["Guest"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-
-                                  ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
-                                  RoomNo = d["Room No"]?.ToString() ?? "",
-                                  ArrivalDate = d.Field<DateTime?>("Arrival Date"),
-                                  DepartureDate = d.Field<DateTime?>("Departure Date"),
-                                  Adult = d["Adult"]?.ToString() ?? "",
-                                  Child = d["Child"]?.ToString() ?? "",
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusActivityArrivalExpectedDetail(datebunisess, roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        Guest = d["Guest"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
+                        RoomNo = d["Room No"]?.ToString() ?? "",
+                        ArrivalDate = DateOnly(d, "Arrival Date"),
+                        DepartureDate = DateOnly(d, "Departure Date"),
+                        Adult = d["Adult"]?.ToString() ?? "",
+                        Child = d["Child"]?.ToString() ?? ""
+                    }).ToList<object>();
                 }
                 else if (inputId == "arrivalActualRoom")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusActivityArrivalActualDetail(datebunisess, roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  Guest = d["Guest"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-
-                                  ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
-                                  RoomNo = d["Room No"]?.ToString() ?? "",
-                                  ArrivalDate = d.Field<DateTime?>("Arrival Date"),
-                                  DepartureDate = d.Field<DateTime?>("Departure Date"),
-                                  Adult = d["Adult"]?.ToString() ?? "",
-                                  Child = d["Child"]?.ToString() ?? "",
-                                  EmployeeCI = d["Employee CI"]?.ToString() ?? "",
-
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusActivityArrivalActualDetail(datebunisess, roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        Guest = d["Guest"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
+                        RoomNo = d["Room No"]?.ToString() ?? "",
+                        ArrivalDate = DateOnly(d, "Arrival Date"),
+                        DepartureDate = DateOnly(d, "Departure Date"),
+                        Adult = d["Adult"]?.ToString() ?? "",
+                        Child = d["Child"]?.ToString() ?? "",
+                        EmployeeCI = d["Employee CI"]?.ToString() ?? ""
+                    }).ToList<object>();
                 }
                 else if (inputId == "extendedStaysRoom")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusActivityExtendedStayDetail(datebunisess, roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  Guest = d["Guest"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-
-                                  ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
-                                  RoomNo = d["Room No"]?.ToString() ?? "",
-                                  ArrivalDate = d.Field<DateTime?>("Arrival Date"),
-                                  DepartureDate = d.Field<DateTime?>("Departure Date"),
-                                  Adult = d["Adult"]?.ToString() ?? "",
-                                  Child = d["Child"]?.ToString() ?? "",
-
-
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusActivityExtendedStayDetail(datebunisess, roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        Guest = d["Guest"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
+                        RoomNo = d["Room No"]?.ToString() ?? "",
+                        ArrivalDate = DateOnly(d, "Arrival Date"),
+                        DepartureDate = DateOnly(d, "Departure Date"),
+                        Adult = d["Adult"]?.ToString() ?? "",
+                        Child = d["Child"]?.ToString() ?? ""
+                    }).ToList<object>();
                 }
                 else if (inputId == "earlyDeparturesRoom")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusActivityEarlyDepartureDetail(datebunisess, roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  Guest = d["Guest"]?.ToString() ?? "",
-
-
-                                  ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
-                                  RoomNo = d["Room No"]?.ToString() ?? "",
-                                  ArrivalDate = d.Field<DateTime?>("Arrival Date"),
-                                  DepartureDate = d.Field<DateTime?>("Departure Date"),
-
-
-
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusActivityEarlyDepartureDetail(datebunisess, roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        Guest = d["Guest"]?.ToString() ?? "",
+                        ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
+                        RoomNo = d["Room No"]?.ToString() ?? "",
+                        ArrivalDate = DateOnly(d, "Arrival Date"),
+                        DepartureDate = DateOnly(d, "Departure Date")
+                    }).ToList<object>();
                 }
                 else if (inputId == "dayUseRoom")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusActivityDayUseRoomDetail(datebunisess, roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  Guest = d["Guest"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-
-                                  ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
-                                  RoomNo = d["Room No"]?.ToString() ?? "",
-                                  ArrivalDate = d.Field<DateTime?>("Arrival Date"),
-                                  DepartureDate = d.Field<DateTime?>("Departure Date"),
-
-
-
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusActivityDayUseRoomDetail(datebunisess, roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        Guest = d["Guest"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
+                        RoomNo = d["Room No"]?.ToString() ?? "",
+                        ArrivalDate = DateOnly(d, "Arrival Date"),
+                        DepartureDate = DateOnly(d, "Departure Date")
+                    }).ToList<object>();
                 }
                 else if (inputId == "walkinRoom")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusActivityWalkInRoomDetail(datebunisess, roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  Guest = d["Guest"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-
-                                  ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
-                                  RoomNo = d["Room No"]?.ToString() ?? "",
-                                  ArrivalDate = d.Field<DateTime?>("Arrival Date"),
-                                  DepartureDate = d.Field<DateTime?>("Departure Date"),
-
-
-
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusActivityWalkInRoomDetail(datebunisess, roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        Guest = d["Guest"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
+                        RoomNo = d["Room No"]?.ToString() ?? "",
+                        ArrivalDate = DateOnly(d, "Arrival Date"),
+                        DepartureDate = DateOnly(d, "Departure Date")
+                    }).ToList<object>();
                 }
                 else if (inputId == "cleanVacant")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusHKVacantCleanDetail(roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-
-                                  RoomName = d["Room Name"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-                                  Zone = d["Zone"]?.ToString() ?? "",
-
-
-
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusHKVacantCleanDetail(roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        RoomName = d["Room Name"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        Zone = d["Zone"]?.ToString() ?? ""
+                    }).ToList<object>();
                 }
                 else if (inputId == "cleanOccupied")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusHKInspectedOCCDetail(roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  RoomName = d["Room Name"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-                                  Zone = d["Zone"]?.ToString() ?? "",
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusHKInspectedOCCDetail(roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        RoomName = d["Room Name"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        Zone = d["Zone"]?.ToString() ?? ""
+                    }).ToList<object>();
                 }
                 else if (inputId == "cleannonVacant")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusHKVCNDetail(roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  RoomName = d["Room Name"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-                                  Zone = d["Zone"]?.ToString() ?? "",
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusHKVCNDetail(roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        RoomName = d["Room Name"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        Zone = d["Zone"]?.ToString() ?? ""
+                    }).ToList<object>();
                 }
                 else if (inputId == "cleannonOccupied")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusHKCleanOCCDetail(roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  RoomName = d["Room Name"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-                                  Zone = d["Zone"]?.ToString() ?? "",
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusHKCleanOCCDetail(roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        RoomName = d["Room Name"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        Zone = d["Zone"]?.ToString() ?? ""
+                    }).ToList<object>();
                 }
                 else if (inputId == "doeoutOccupied")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusActivityDueOutDetail(roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  Guest = d["Guest"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-
-                                  ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
-                                  RoomNo = d["Room No"]?.ToString() ?? "",
-                                  ArrivalDate = d.Field<DateTime?>("Arrival Date"),
-                                  DepartureDate = d.Field<DateTime?>("Departure Date"),
-
-
-
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusActivityDueOutDetail(roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        Guest = d["Guest"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        ReservationNumber = d["Reservation Number"]?.ToString() ?? "",
+                        RoomNo = d["Room No"]?.ToString() ?? "",
+                        ArrivalDate = DateOnly(d, "Arrival Date"),
+                        DepartureDate = DateOnly(d, "Departure Date")
+                    }).ToList<object>();
                 }
                 else if (inputId == "dirtyVacant")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusHKVacantDirtyDetail(roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  RoomName = d["Room Name"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-                                  Zone = d["Zone"]?.ToString() ?? "",
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusHKVacantDirtyDetail(roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        RoomName = d["Room Name"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        Zone = d["Zone"]?.ToString() ?? ""
+                    }).ToList<object>();
                 }
                 else if (inputId == "dirtyOccupied")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusHKDirtyOCCDetail(roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  RoomName = d["Room Name"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-                                  Zone = d["Zone"]?.ToString() ?? "",
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusHKDirtyOCCDetail(roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        RoomName = d["Room Name"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        Zone = d["Zone"]?.ToString() ?? ""
+                    }).ToList<object>();
                 }
                 else if (inputId == "outoforderVacant")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusHKOutOfOrderVacantDetail(roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  RoomName = d["Room Name"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-                                  Zone = d["Zone"]?.ToString() ?? "",
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusHKOutOfOrderVacantDetail(roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        RoomName = d["Room Name"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        Zone = d["Zone"]?.ToString() ?? ""
+                    }).ToList<object>();
                 }
                 else if (inputId == "outofserviveVacant")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusHKOutOfServiceVacantDetail(roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  RoomName = d["Room Name"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-                                  Zone = d["Zone"]?.ToString() ?? "",
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusHKOutOfServiceVacantDetail(roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        RoomName = d["Room Name"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        Zone = d["Zone"]?.ToString() ?? ""
+                    }).ToList<object>();
                 }
                 else if (inputId == "outofserviveOccupied")
                 {
-                    DataTable dataTable = _iHouseKeepingService.StatusHKOutOfServiceOCCDetail(roomtype, zone);
-                    result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  RoomName = d["Room Name"]?.ToString() ?? "",
-                                  RoomType = d["Room Type"]?.ToString() ?? "",
-                                  Zone = d["Zone"]?.ToString() ?? "",
-                              }).ToList<object>();
+                    DataTable dt = _iHouseKeepingService.StatusHKOutOfServiceOCCDetail(roomtype, zone);
+                    result = dt.AsEnumerable().Select(d => new
+                    {
+                        RoomName = d["Room Name"]?.ToString() ?? "",
+                        RoomType = d["Room Type"]?.ToString() ?? "",
+                        Zone = d["Zone"]?.ToString() ?? ""
+                    }).ToList<object>();
                 }
+
                 return Json(result);
             }
             catch (Exception ex)
@@ -1945,8 +1899,12 @@ namespace HouseKeeping.Controllers
         {
             attendant = attendant ?? "";
             room = room ?? "";
+            zone = zone ?? "";
+
             try
             {
+                attendant = FormatIdList(attendant);
+                zone = FormatIdList(zone);
                 DataTable dataTable = _iHouseKeepingService.TaskSheetStatusData(fromDate, toDate, attendant, room, zone);
 
                 var result = (from d in dataTable.AsEnumerable()
@@ -2915,35 +2873,13 @@ namespace HouseKeeping.Controllers
             List<FloorModel> listfloor = PropertyUtils.ConvertToList<FloorModel>(FloorBO.Instance.FindAll());
             ViewBag.RoomList = filteredRoomList;
             ViewBag.FloorList = listfloor;
-            ViewBag.cboNationality = ListItemHelper.GetNationalityProvider();
-            ViewBag.cboTitle = ListItemHelper.GetTitleProvider();
-            ViewBag.cboCity = ListItemHelper.GetCityProvider();
-            ViewBag.cboVIP = ListItemHelper.GetVIPProvider();
-            ViewBag.cboMemberType = ListItemHelper.GetMemberTypeProvider();
-            ViewBag.cboProfileAgent = ListItemHelper.GetProfileAgentProvider();
-            ViewBag.cboProfileCompany = ListItemHelper.GetProfileCompanyProvider();
-            ViewBag.cboProfileContact = ListItemHelper.GetProfileContactProvider();
-            ViewBag.cboRoomType = ListItemHelper.GetRoomTyeProvider();
-            ViewBag.cboCurrency = ListItemHelper.GetCurrencyProvider();
-            ViewBag.cboPackage = ListItemHelper.GetPackagesProvider();
-            ViewBag.cboReason = ListItemHelper.GetReasonProvider();
-            ViewBag.cboReservationType = ListItemHelper.GetReservationTypeProvider();
-            ViewBag.cboSource = ListItemHelper.GetSourceProvider();
-            ViewBag.cboMarket = ListItemHelper.GetMarketProvider();
-            ViewBag.cboProfile = ListItemHelper.GetProfileProvider();
-            ViewBag.cboAllotmentType = ListItemHelper.GetAllotmentTypeProvider();
-            ViewBag.cboPersonInCharge = ListItemHelper.GetPersonInChargeProvider();
-            ViewBag.cboPaymentMethod = ListItemHelper.GetPaymentMethodProvider();
-            ViewBag.cboPromotion = ListItemHelper.GetPromotionProvider();
-            ViewBag.cboGroupPreferenceProvider = ListItemHelper.GetGroupPreferenceProvider();
-            ViewBag.cboTransportType = ListItemHelper.GetTransportTypeProvider();
-            ViewBag.cboItem = ListItemHelper.GetItemInventoryProvider();
+         
             List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
             ViewBag.ZoneList = listzo;
             return View();
         }
         [HttpGet]
-        public IActionResult GuestServiceStatusData(string servicestatsu, string room, string roomStatus, string zone)
+        public IActionResult GuestServiceStatusData(int  servicestatsu, string room, string roomStatus, string zone)
         {
             try
             {
