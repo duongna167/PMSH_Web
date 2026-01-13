@@ -161,6 +161,7 @@ namespace HouseKeeping.Controllers
             }
         }
         #endregion
+
         #region RoomAvailability
         public IActionResult RoomAvailability()
         {
@@ -650,6 +651,7 @@ namespace HouseKeeping.Controllers
             }
         }
         #endregion
+
         private string[] getParaDate(DateTime fromDate, DateTime toDate)
         {
             string paraDate = "";
@@ -670,6 +672,7 @@ namespace HouseKeeping.Controllers
             result[1] = paraDateConvert;
             return result;
         }
+        
         #region RoomStatus
         public IActionResult RoomStatus()
         {
@@ -889,7 +892,7 @@ namespace HouseKeeping.Controllers
             ViewBag.RoomTypeList = listrt;
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
             ViewBag.BusinessDate = businessDateModel[0].BusinessDate;
-            return View();
+            return PartialView("HouseStatus");
         }
         [HttpGet]
         public IActionResult HouseStatusData(DateTime datebunisess, string roomtype, string zone)
@@ -1601,7 +1604,7 @@ namespace HouseKeeping.Controllers
         }
 
 
-        #endregion
+        #endregion  
 
         #region RoomPlan
         public IActionResult RoomPlan()
@@ -1705,6 +1708,7 @@ namespace HouseKeeping.Controllers
             }
         }
         #endregion
+        
         #region FloorPlan
         public IActionResult FloorPlan()
         {
@@ -1819,6 +1823,7 @@ namespace HouseKeeping.Controllers
             }
         }
         #endregion
+
         #region AttendantPoint
         public IActionResult AttendantPoint()
         {
@@ -2108,6 +2113,7 @@ namespace HouseKeeping.Controllers
 
 
         #endregion
+
         #region RoomAttendentDailyWorksheet
         public IActionResult RoomAttendentDailyWorksheet(bool isPopup = false, string tasksheetnew = null)
         {
@@ -2241,7 +2247,6 @@ namespace HouseKeeping.Controllers
         }
 
         #endregion
-
 
         #region  TurndownTasksheet
         public IActionResult TurndownTasksheet()
@@ -2897,9 +2902,6 @@ namespace HouseKeeping.Controllers
 
         #endregion
 
-
-
-
         #region GuestServiceStatus
         public IActionResult GuestServiceStatus()
         {
@@ -3001,9 +3003,6 @@ namespace HouseKeeping.Controllers
         }
 
         #endregion
-
-
-
 
         private IActionResult ProcessSourceAutoMakeupServiceRoom(DataTable Source, int _secID, string attendantauto, DateTime taskdateauto, string userName, string taskcodeauto, string maxcreditauto)
         {
@@ -3205,7 +3204,6 @@ namespace HouseKeeping.Controllers
                 return Json(ex.Message);
             }
         }
-
 
 
 
@@ -4103,8 +4101,6 @@ namespace HouseKeeping.Controllers
             modelH.TableName = tableName;
             RoomStatusHistoryBO.Instance.Insert(modelH);
         }
-
-
 
         [HttpGet]
         public IActionResult GetLostAndFound(DateTime fromDate, DateTime toDate)

@@ -1,0 +1,125 @@
+﻿@{
+
+}
+
+<div class="mui-card p-3 mb-2">
+    <div class="row g-2">
+        <div class="col-md-2">
+            <label class="small">Code</label>
+            <input type="text" id="srcCode" class="form-control form-control-sm" />
+        </div>
+        <div class="col-md-2">
+            <label class="small">Account/Name</label>
+            <input type="text" id="srcAccount" class="form-control form-control-sm" />
+        </div>
+        <div class="col-md-2">
+            <label class="small">First Name</label>
+            <input type="text" id="srcFirstName" class="form-control form-control-sm" />
+        </div>
+        <div class="col-md-2">
+            <label class="small">Keyword</label>
+            <input type="text" id="srcKeyword" class="form-control form-control-sm" />
+        </div>
+        <div class="col-md-2">
+            <label class="small">City</label>
+            <select id="srcCity" name="srcCity" class="form-control form-control-sm ">
+                <option value="">--Select city--</option>
+                @foreach (var sg in ViewBag.CityList)
+                {
+                    <option value="@sg.ID" data-code="@sg.Code">@sg.Code - @sg.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="small">Type</label>
+            <select id="srcType" class="form-select form-select-sm">
+                <option value="" selected="">View by All</option>
+                <option value="0">Travel Agent</option>
+                <option value="1">Company</option>
+                <option value="2">Source</option>
+                <option value="3">Individual</option>
+                <option value="4">Group</option>
+                <option value="5">Contact</option>
+            </select>
+        </div>
+    </div>
+    <div class="d-flex align-items-center mt-2 gap-3">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="srcSaleInCharge">
+            <label class="form-check-label small" for="srcSaleInCharge">Show Sale In Charge Only</label>
+        </div>
+        <div class="ms-auto">
+            <button id="btnView" class="mui-button mui-button-view">View</button>
+            <button class="mui-button mui-button-export">Excel</button>
+        </div>
+    </div>
+</div>
+
+<div id="gridProfile" class="shadow-sm gridContainer"></div>
+
+<script>
+          $(document).ready(function () {
+        var profileStore = new DevExpress.data.CustomStore({
+            key: "_profileID",
+            load: function (loadOptions) {
+                var d = $.Deferred();
+                var params = {
+                    skip: loadOptions.skip || 0,
+                    take: loadOptions.take || 20,
+                    code: $('#srcCode').val(),
+                    account: $('#srcAccount').val(),
+                    firstName: $('#srcFirstName').val(),
+                    keyword: $('#srcKeyword').val(),
+                    city: $('#srcCity').val(),
+                    type: $('#srcType').val(),
+                    showSaleInCharge: $('#srcSaleInCharge').is(':checked') ? "1" : ""
+                };
+
+                $.getJSON("/Administration/SearchProfileTest", params)
+                    .done(function (res) {
+                        if (res.error) {
+                            alert(res.error);
+                            d.reject(res.error);
+                        } else {
+                            d.resolve(res.data, { totalCount: res.totalCount });
+                        }
+                    })
+                    .fail(function () { d.reject("Load error"); });
+                return d.promise();
+            }
+        });
+
+        var grid = $("#gridProfile").dxDataGrid({
+            dataSource: profileStore,
+            remoteOperations: { paging: true },
+            showBorders: true,
+            height: 550, 
+            paging: { pageSize: 20 },
+            pager: {
+                visible: true,
+                showPageSizeSelector: true,
+                allowedPageSizes: [20, 50, 100,1000],
+                showInfo: true
+            },
+            columns: [
+                { dataField: "code", caption: "Profile Code", width: 120 },
+                { dataField: "account", caption: "Account Name" },
+                { dataField: "vip", caption: "VIP", width: 80, alignment: "center" },
+                { dataField: "city", caption: "City" },
+                { dataField: "nationality", caption: "Nation" },
+                { dataField: "email", caption: "Email" },
+                { dataField: "stayNo", caption: "Stays", width: 70 },   
+                {
+                    dataField: "isBlackList",
+                    caption: "B.L",
+                    dataType: "boolean",
+                    width: 60
+                }
+            ]
+        }).dxDataGrid("instance");
+
+        $("#btnView").click(function() {
+            grid.refresh();
+        });
+    });
+</script>
