@@ -5016,39 +5016,39 @@ namespace Administration.Controllers
 
         #region ItemCategory/GroupOwner
 
-        //public IActionResult GroupOwner()
-        //{
-        //    return View("ItemCategory/GroupOwner");
-        //}
-        //[HttpGet]
-        //public IActionResult GetGroupOwner()
-        //{
-        //    try
-        //    {
-        //        DataTable dt = TextUtils.Select(@"SELECT * From GroupOwner with (nolock) Order by ID'");
-        //        var result = (from r in dt.AsEnumerable()
-        //                      select new
-        //                      {
-        //                          ID = !string.IsNullOrEmpty(r["ID"].ToString()) ? r["ID"] : "",
-        //                          GroupOwnerName = !string.IsNullOrEmpty(r["GroupOwnerName"].ToString()) ? r["GroupOwnerName"] : "",
-        //                          GroupOwnerCode = !string.IsNullOrEmpty(r["GroupOwnerCode"].ToString()) ? r["GroupOwnerCode"] : "",
-        //                          Description = !string.IsNullOrEmpty(r["Description"].ToString()) ? r["Description"] : "",
-        //                          Contact = !string.IsNullOrEmpty(r["Contact"].ToString()) ? r["Contact"] : "",
-        //                          Address= !string.IsNullOrEmpty(r["Address"].ToString()) ? r["Address"] : "",
-        //                          Email = !string.IsNullOrEmpty(r["Email"].ToString()) ? r["Email"] : "",
-        //                          Telephone = !string.IsNullOrEmpty(r["Telephone"].ToString()) ? r["Telephone"] : "",
-        //                          CreatedDate = !string.IsNullOrEmpty(r["CreatedDate"].ToString()) ? r["CreatedDate"] : "",
-        //                          CreatedBy = !string.IsNullOrEmpty(r["CreatedBy"].ToString()) ? r["CreatedBy"] : "",
-        //                          UpdatedDate = !string.IsNullOrEmpty(r["UpdatedDate"].ToString()) ? r["UpdatedDate"] : "",
-        //                          UpdatedBy = !string.IsNullOrEmpty(r["UpdatedBy"].ToString()) ? r["UpdatedBy"] : "",
-        //                      }).ToList();
-        //        return Json(result);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return Json(ex.Message);
-        //    }
-        //}
+        public IActionResult GroupOwner()
+        {
+            return View("ItemCategory/GroupOwner");
+        }
+        [HttpGet]
+        public IActionResult GetGroupOwner()
+        {
+            try
+            {
+                DataTable dt = TextUtils.Select(@"SELECT * From GroupOwner with (nolock) Order by ID");
+                var result = (from r in dt.AsEnumerable()
+                              select new
+                              {
+                                  ID = !string.IsNullOrEmpty(r["ID"].ToString()) ? r["ID"] : "",
+                                  GroupOwnerName = !string.IsNullOrEmpty(r["GroupOwnerName"].ToString()) ? r["GroupOwnerName"] : "",
+                                  GroupOwnerCode = !string.IsNullOrEmpty(r["GroupOwnerCode"].ToString()) ? r["GroupOwnerCode"] : "",
+                                  Description = !string.IsNullOrEmpty(r["Description"].ToString()) ? r["Description"] : "",
+                                  Contact = !string.IsNullOrEmpty(r["Contact"].ToString()) ? r["Contact"] : "",
+                                  Address = !string.IsNullOrEmpty(r["Address"].ToString()) ? r["Address"] : "",
+                                  Email = !string.IsNullOrEmpty(r["Email"].ToString()) ? r["Email"] : "",
+                                  Telephone = !string.IsNullOrEmpty(r["Telephone"].ToString()) ? r["Telephone"] : "",
+                                  CreatedDate = !string.IsNullOrEmpty(r["CreatedDate"].ToString()) ? r["CreatedDate"] : "",
+                                  CreatedBy = !string.IsNullOrEmpty(r["CreatedBy"].ToString()) ? r["CreatedBy"] : "",
+                                  UpdatedDate = !string.IsNullOrEmpty(r["UpdatedDate"].ToString()) ? r["UpdatedDate"] : "",
+                                  UpdatedBy = !string.IsNullOrEmpty(r["UpdatedBy"].ToString()) ? r["UpdatedBy"] : "",
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
         //[HttpPost]
         //public IActionResult GroupOwnerSave([FromBody] GroupOwnerModel model)
         //{

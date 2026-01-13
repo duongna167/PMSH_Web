@@ -1,14 +1,8 @@
 ﻿@{
     //
 }
-<style>
-    /* CSS để khi hover vào hàng đã tô màu, màu không bị đè bởi màu hover mặc định (tùy chọn) */
-    .dx-datagrid-rowsview .dx-row.dx-data-row:hover:not(.dx-selection) > td {
-        filter: brightness(95%);
-    }
-</style>
 
-<div class="text-center" style="font-size: 20px">Occupancy Config</div>
+<div class="text-center" style="font-size: 20px">Group Owner</div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
     <div class="mt-2">
         <button id="btnNew" class="mui-button mui-button-new"> New</button>
@@ -17,8 +11,9 @@
     </div>
 
 </div>
+
 <div class="mui-card">
-    <div id="gridContainerRateCode" class="mt-2 gridContainer"></div>
+    <div id="gridContainerRateCode" class="gridContainer"></div>
 </div>
 <!-- Modal Popup for New Item -->
 <div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel" aria-hidden="true">
@@ -96,7 +91,6 @@
 </div>
 
 <script>
-    DevExpress.localization.locale("vi");
     var selectedRowData = null;
 
     $(document).ready(function () {
@@ -113,91 +107,30 @@
         });
     });
 
-    function hexToArgbInt(hex) {
-        hex = hex.replace("#", "");
-        const r = parseInt(hex.substr(0, 2), 16);
-        const g = parseInt(hex.substr(2, 2), 16);
-        const b = parseInt(hex.substr(4, 2), 16);
-        const a = 255;
-        return (a << 24) | (r << 16) | (g << 8) | b;
-    }
-
-    // Helper: Convert ARGB Int → Hex String
-    function argbIntToHex(argb) {
-        let unsigned = argb >>> 0;
-        let r = (unsigned >> 16) & 0xFF;
-        let g = (unsigned >> 8) & 0xFF;
-        let b = unsigned & 0xFF;
-        return "#" +
-            r.toString(16).padStart(2, '0') +
-            g.toString(16).padStart(2, '0') +
-            b.toString(16).padStart(2, '0');
-    }
-
-    // Helper: Tính độ sáng màu để chọn màu chữ (Đen/Trắng) cho dễ đọc
-    function getContrastColor(hexColor) {
-        const r = parseInt(hexColor.substr(1, 2), 16);
-        const g = parseInt(hexColor.substr(3, 2), 16);
-        const b = parseInt(hexColor.substr(5, 2), 16);
-        const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-        return (yiq >= 128) ? 'black' : 'white';
-    }
-
-    // Color Picker
-    $("#colorPicker").on("input", function() {
-        $("#colorDisplay").val(hexToArgbInt($(this).val()));
-    });
-
-    $("#btnClearColor").on("click", function() {
-        $("#colorDisplay").val("");
-        $("#colorPicker").val("#ffffff");
-    });
-
     function loadGrid(data) {
         $("#gridContainerRateCode").dxDataGrid({
             dataSource: data,
-            height: 500,
+            height: 550,
             width: "100%",
-            columnAutoWidth: false,
             allowColumnResizing: true,
             columnResizingMode: "widget",
             selection: { mode: "single" },
             hoverStateEnabled: true,
             columns: [
-            {
-                caption: "STT",
-                width: "5%",
-                alignment: "right",
-                cellTemplate: function (container, options) {
-                    const grid = options.component;
-                    const pageIndex = grid.pageIndex();
-                    const pageSize = grid.pageSize();
-                    const stt = pageIndex * pageSize + options.rowIndex + 1;
-                    container.text(stt);
-                }
-            },
-            { dataField: "id", caption: "ID", visible: false },
-            { dataField: "type", caption: "Type", width: "10%" },
-            { dataField: "occupancylevel", caption: "Occ. Level", width: "8%"},
-            { dataField: "title", caption: "Title", width: "12%" },
-            { dataField: "email", caption: "Email", width: "15%" },
-            { dataField: "description", caption: "Description", width: "20%" },
-            { dataField: "color", caption: "Color", visible: false },
-            { dataField: "createBy", caption: "CreateBy", width: "5%" },
-            { dataField: "createDate", caption: "CreateDate", dataType: "date", format: "dd/MM/yyyy", width: "10%" },
-            { dataField: "updateBy", caption: "UpdateBy", width: "5%" },
-            { dataField: "updateDate", caption: "UpdateDate", dataType: "date", format: "dd/MM/yyyy", width: "10%" },
+                { dataField: "id", caption: "ID", visible: false },
+                { dataField: "groupOwnerCode", caption: "Group Owner Code", width: "12%" }, 
+                { dataField: "groupOwnerName", caption: "Group Owner Name", width: "7%" },  
+                { dataField: "description", caption: "Description", width: "12%" },
+                { dataField: "contact", caption: "Contact", width: "10%" },
+                { dataField: "address", caption: "Address", width: "15%" },                
+                { dataField: "email", caption: "Email", width: "12%" },                     
+                { dataField: "telephone", caption: "Telephone", width: "8%" },             
+
+                { dataField: "createdBy", caption: "Create By", width: "5%" },
+                { dataField: "createdDate", caption: "Create Date", dataType: "date", format: "dd/MM/yyyy", width: "7%" },
+                { dataField: "updatedBy", caption: "Update By", width: "5%" },
+                { dataField: "updatedDate", caption: "Update Date", dataType: "date", format: "dd/MM/yyyy", width: "7%" }
             ],
-
-            onRowPrepared: function(e) {
-                if (e.rowType === "data" && e.data.color) {
-                    const colorHex = argbIntToHex(e.data.color);
-                    e.rowElement.css("background-color", colorHex);
-                    const textColor = getContrastColor(colorHex);
-                    e.rowElement.css("color", textColor);
-                }
-            },
-
             filterRow: { visible: true, applyFilter: "auto" },
             paging: { pageSize: 20 },
             pager: {
@@ -219,8 +152,9 @@
         $("#loadingSpinnerRateCode").show();
 
         $.ajax({
-            url: "/Administration/GetOccupancy",
+            url: "/Administration/GetGroupOwner",
             type: 'GET',
+            cache: false,
             success: function(data){
                 loadGrid(data);
                 $("#loadingSpinnerRateCode").hide();
@@ -239,30 +173,6 @@
         $("#itemModalLabel").text("Add Occupancy");
         $("#itemModal").modal("show");
         clearForm();
-    });
-
-    // --- NÚT Update ---
-    $("#btnUpdate").click(function () {
-        if (!selectedRowData) {
-            showToast("Warning", "Select one row to edit please.", false);
-            return;
-        }
-        $("#itemModal").modal("show");
-        $("#occLevelInput").val(selectedRowData.occupancylevel);
-        $("#titleInput").val(selectedRowData.title);
-        $("#emailInput").val(selectedRowData.email);
-        $("#descriptionInput").val(selectedRowData.description);
-        $("#id").val(selectedRowData.id);
-        $("#itemModalLabel").text("Edit Occupancy Config");
-        if (selectedRowData.color) {
-            const hex = argbIntToHex(selectedRowData.color);
-            $("#colorPicker").val(hex);
-            $("#colorDisplay").val(selectedRowData.color);
-        } else {
-            $("#colorPicker").val("#ffffff");
-            $("#colorDisplay").val("");
-        }
-
     });
 
     // --- NÚT SAVE ---
@@ -325,19 +235,6 @@
         // Reset color
         $("#colorPicker").val("#ffffff");
         $("#colorDisplay").val("");
-    }
-
-    function argbIntToHex(argb) {
-        let unsigned = argb >>> 0; // convert int âm → unsigned 32-bit
-
-        let r = (unsigned >> 16) & 0xFF;
-        let g = (unsigned >> 8) & 0xFF;
-        let b = unsigned & 0xFF;
-
-        return "#" +
-            r.toString(16).padStart(2, '0') +
-            g.toString(16).padStart(2, '0') +
-            b.toString(16).padStart(2, '0');
     }
 
     $("#btnDelete").click(function () {
