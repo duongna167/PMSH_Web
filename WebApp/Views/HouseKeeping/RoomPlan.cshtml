@@ -14,16 +14,16 @@
 <link asp-append-version="true" href="~/css/reservation.css" rel="stylesheet" /> *@
 
 <style>
-    #gridContainer .dx-datagrid-rowsview .dx-selection {
+/*     #gridContainer .dx-datagrid-rowsview .dx-selection {
         background-color: #005f87 !important;
-        /* màu xanh ngọc */
+     
         color: white !important;
-        /* chữ trắng */
+
     }
 
     #gridContainer .dx-datagrid-rowsview .dx-selection * {
         color: white !important;
-    }
+    } */
 
     .dx-datagrid-headers .dx-header-row td {
         white-space: pre-line !important;
@@ -41,7 +41,7 @@
         max-width: 400px;
         font-size: 14px;
     }
-
+/* 
     #gridContainer .dx-datagrid-rowsview .dx-row>td {
         padding-top: 2px !important;
         padding-bottom: 2px !important;
@@ -51,9 +51,9 @@
 
     #gridContainer .dx-datagrid-headers {
         background-color: #3b9ac6 !important;
-        /* Màu xanh dương */
+    
         color: white !important;
-        /* Chữ trắng cho dễ đọc */
+       
     }
 
     #gridContainer .dx-datagrid-headers .dx-header-row>td {
@@ -75,7 +75,7 @@
         border-right: 1px solid #ddd !important;
     }
 
-    /* Loại bỏ viền phải ở cột cuối cùng (tùy chọn) */
+    
     #gridContainer .dx-datagrid-rowsview tr td:last-child,
     #gridContainer .dx-datagrid-headers tr td:last-child {
         border-right: none !important;
@@ -117,7 +117,7 @@
         font-size: 12px !important;
     }
 
-
+ */
     .filter_wrapper {
         /*     background-color: #ececec; */
         /*   margin: 0px 8px 14px 8px; */
@@ -125,9 +125,9 @@
         border-radius: 8px;
     }
 
-    .gridContainer {
+ /*    .gridContainer {
         margin: 0px 8px;
-    }
+    } */
 
     .button_wrapper {
         display: flex;
@@ -144,18 +144,18 @@
         /* Màu xanh */
         color: white;
     }
-
+/* 
     #gridContainer .dx-datagrid-rowsview .dx-selection {
         background-color: #01579b !important;
-        /* màu xanh ngọc */
+      
         color: white !important;
-        /* chữ trắng */
+       
     }
 
     #gridContainer .dx-datagrid-rowsview .dx-selection * {
         color: white !important;
     }
-
+ */
     .filter-panel {
         font-size: 12px;
     }
@@ -218,6 +218,9 @@
         width: 30%;
         min-width: 250px;
         /* Tránh quá nhỏ nếu màn hình nhỏ */
+        padding-top: 65px;
+        position: relative;
+        left: 10px;
     }
 
     #schedulerWrapper {
@@ -305,6 +308,39 @@
         padding-left: 8px !important;
         /* hoặc bất kỳ giá trị nào bạn muốn */
     }
+    /* ===== RESERVATION ===== */
+    .resv-pending {
+        background-color: gold !important;
+    }
+
+    .resv-checkin {
+        background-color: #4CAF50 !important;
+    }
+
+    .resv-checkout {
+        background-color: #ffffff !important;
+        color: #000 !important;
+    }
+
+    .resv-dueout {
+        background-color: violet !important;
+    }
+
+    /* ===== OOOS ===== */
+    .ooo-order {
+        background-color: indianred !important;
+    }
+
+    .ooo-service {
+        background-color: orangered !important;
+    }
+
+    .ooo-default {
+        background-color: #a82f19 !important;
+    }
+
+
+
 </style>
 <div class="text-center" id="reportTitle" style="font-size: 20px"></div>
 
@@ -546,7 +582,7 @@
 
     <div id="scrollWrapper">
         <div class="mui-card" id="gridWrapper">
-            <div id="gridContainer"></div>
+            <div class="gridContainer" id="gridContainer"></div>
         </div>
         <div class="mui-card" id="schedulerWrapper">
             <div id="schedulerContainer"></div>
@@ -630,6 +666,34 @@
         initializeRoomListTomSelect();
         initializeZoneListTomSelect();
         initializeRoomTypeListTomSelect();
+         const DAY_RANGE = 30;
+
+        const parseDate = (val) => {
+            if (!val) return null;
+            return new Date(val + 'T00:00:00');
+        };
+
+        const formatDate = (d) => d.toISOString().split('T')[0];
+
+        $('#fromDate').on('change', function () {
+            const fromDate = parseDate(this.value);
+            if (!fromDate) return;
+
+            const toDate = new Date(fromDate);
+            toDate.setDate(toDate.getDate() + DAY_RANGE);
+
+            $('#toDate').val(formatDate(toDate));
+        });
+
+        $('#toDate').on('change', function () {
+            const toDate = parseDate(this.value);  
+            if (!toDate) return;
+
+            const fromDate = new Date(toDate);
+            fromDate.setDate(fromDate.getDate() - DAY_RANGE);
+
+            $('#fromDate').val(formatDate(fromDate));
+        });
     });
     function initializeZoneListTomSelect() {
         const el = document.querySelector("#zone");
@@ -744,6 +808,17 @@
             }
         });
     }
+        function parseVNDateOnly(str) {
+        if (!str) return null;
+
+        // "23/03/2025 00:00:00" → "23/03/2025"
+        const datePart = str.split(" ")[0];
+        const [dd, MM, yyyy] = datePart.split("/").map(Number);
+
+        if (!dd || !MM || !yyyy) return null;
+
+        return new Date(yyyy, MM - 1, dd); // 00:00:00
+    }
 
 
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
@@ -785,7 +860,7 @@
     });
     let roomNorl, roomtypeid, idReservationrl, roomIDrl;
     let originalAppointmentData = null;
-    function initializeRoomScheduler(schedulerData, fromDate, toDate) {
+          function initializeRoomScheduler(schedulerData, fromDate, toDate) {
         if (!schedulerData || !schedulerData.length) return;
 
         const startDate = new Date(fromDate);
@@ -804,40 +879,63 @@
         ];
 
         const validRoomIDs = new Set(roomGroups.map(g => g.id));
+           const from = new Date(fromDate);
+        from.setHours(0, 0, 0, 0);
 
-        const appointments = schedulerData
-            .filter(d =>
-                d.lastName &&
-                d.roomID &&
-                validRoomIDs.has(d.roomID.toString()) &&
-                (!d.roomNo || d.roomNo.trim() === "") &&
-                d.arrivalDate && d.departureDate && // Thêm điều kiện kiểm tra không rỗng
-                d.arrivalDate.trim() !== '' && d.departureDate.trim() !== '' && // Kiểm tra chuỗi không rỗng
-                !isNaN(Date.parse(d.arrivalDate)) && !isNaN(Date.parse(d.departureDate)) // Kiểm tra ngày hợp lệ
-            )
-            .map(d => {
-                return {
-                    text: d.lastName,
-                    startDate: new Date(d.arrivalDate),
-                    endDate: new Date(d.departureDate),
-                    roomID: d.roomID.toString(),
-                    type: d.type || "", // 👈 Thêm type vào
-                    reservationStatus: d.reservationStatus || "",
-                    reservationID: d.reservationID || "",
-                    roomTypeCode: d.roomTypeCode || "",
-                    oooStatus: d.oooStatus || "",
-                    roomNumber: d.roomNumber || "",
-                    tooltipData: {
-                        company: d.company,
-                        agent: d.agent,
-                        paymentMethod: d.paymentMethod,
-                        comment: d.comment,
-                        confirmationNo: d.confirmationNo,
-                        code: d.code,
-                    }
-                };
-            });
+        const to = new Date(toDate);
+        to.setHours(0, 0, 0, 0);
 
+
+    const appointments = schedulerData
+      .filter(d => {
+
+          const arrival = parseVNDateOnly(d.arrivalDate);
+          const departure = parseVNDateOnly(d.departureDate);
+
+          if (
+              !d.roomID ||
+              !validRoomIDs.has(d.roomID.toString()) ||
+              !arrival ||
+              !departure
+          ) {
+              return false;
+          }
+
+          // ⭐ SO SÁNH THEO NGÀY
+          return arrival <= to && departure >= from;
+      })
+      .map(d => {
+          const arrival = parseVNDateOnly(d.arrivalDate);
+          const departure = parseVNDateOnly(d.departureDate);
+
+          return {
+              text: d.lastName || "",
+
+              // ⭐ CLAMP THEO NGÀY
+              startDate: arrival < from ? from : arrival,
+              endDate: departure > to ? to : departure,
+
+              roomID: d.roomID.toString(),
+              type: d.type || "",
+              reservationStatus: d.reservationStatus || "",
+             reservationID: !d.reservationID || String(d.reservationID) === "0" ? d.oooid : d.reservationID,
+              roomTypeCode: d.roomTypeCode || "",
+              oooStatus: d.oooStatus || "",
+              roomNumber: d.roomNumber || "",
+              tooltipData: {
+                  company: d.company,
+                  agent: d.agent,
+                  paymentMethod: d.paymentMethod,
+                  comment: d.comment,
+                  confirmationNo: d.confirmationNo,
+                  code: d.code
+              }
+          };
+      });
+
+
+
+            console.log(appointments);
         $("#schedulerContainer").dxScheduler({
             dataSource: appointments,
             views: [{
@@ -862,7 +960,7 @@
             onAppointmentRendered: function (e) {
                 const el = $(e.appointmentElement);
                 const data = e.appointmentData;
-
+                console.log(data);
                 const tooltipData = data.tooltipData || {};
                 const lastName = data.text;
 
@@ -888,41 +986,70 @@
                 }
 
                 // 🎯 Màu theo type
-                if (data.type === "Reservation") {
-                    const resvStatus = data.reservationStatus;
+             if (data.type === "Reservation") {
+                const resvStatus = String(data.reservationStatus);
 
-                    if (resvStatus === "0" || resvStatus === "5" || resvStatus === "8") {
-                        el.css("background-color", "gold"); // Chưa check in
-                    } else if (resvStatus === "1") {
-                        el.css("background-color", "#4CAF50"); // Đã check in
-                    } else if (resvStatus === "2") {
-                        el.css("background-color", "white"); // Đã check out
-                    } else if (resvStatus === "6") {
-                        el.css("background-color", "violet"); // Due out
-                    } else {
-                        el.css("background-color", "#4CAF50"); // Mặc định nếu không trúng mã nào
-                    }
-                } else if (data.type === "OOOS") {
-                    const oooStatus = data.oooStatus;
+                switch (resvStatus) {
+                    case "0":
+                    case "5":
+                    case "8":
+                        // Chưa check-in
+                        el.addClass("resv-pending");
+                        break;
 
-                    if (oooStatus === "1") {
-                        el.css("background-color", "indianred"); // Out Of Order
-                        // el.text(el.text() + " (Out Of Order)");
-                        el.attr("title", el.attr("title") + " (Out Of Order)");
-                    } else if (oooStatus === "2") {
-                        el.css("background-color", "orangered"); // Out Of Service
-                        // el.text(el.text() + " (Out Of Service)");
-                        el.attr("title", el.attr("title") + " (Out Of Service)");
-                    } else {
-                        el.css("background-color", "#a82f19"); // Mặc định đỏ nâu
-                    }
+                    case "1":
+                        // Đã check-in
+                        el.addClass("resv-checkin");
+                        break;
+
+                    case "2":
+                        // Đã check-out
+                        el.addClass("resv-checkout");
+                        break;
+
+                    case "6":
+                        // Due out
+                        el.addClass("resv-dueout");
+                        break;
+
+                    default:
+                        // Mặc định
+                        el.addClass("resv-checkin");
+                        break;
                 }
-                const start = new Date(data.startDate);
-                const end = new Date(data.endDate);
-                const from = new Date(fromDate);
-                const to = new Date(toDate);
 
-                if (start <= to && end >= from) {
+            } else if (data.type === "OOOS") {
+                const oooStatus = String(data.oooStatus || "");
+
+                if (oooStatus === "1") {
+                    // Out Of Order
+                    el.addClass("ooo-order");
+
+                    const currentTitle = el.attr("title") || "";
+                    el.attr("title", currentTitle + " (Out Of Order)");
+
+                } else if (oooStatus === "2") {
+                    // Out Of Service
+                    el.addClass("ooo-service");
+
+                    const currentTitle = el.attr("title") || "";
+                    el.attr("title", currentTitle + " (Out Of Service)");
+
+                } else {
+                    // Mặc định OOOS
+                    el.addClass("ooo-default");
+                }
+            }
+                    const start = new Date(data.startDate);
+            start.setHours(0,0,0,0);
+
+            const end = new Date(data.endDate);
+            end.setHours(0,0,0,0);
+
+            const from = new Date(fromDate);
+            from.setHours(0,0,0,0);
+
+                if (from >= start && from <= end) {
                     el.css({
                         "position": "absolute",
                         "left": "100px",
@@ -1005,8 +1132,19 @@
                                 e.newData.roomID = oldData.roomID;
                                 return;
                             } else {
-
-                                goUpdate(idReservationrl, newData.startDate, newData.endDate, roomNorl, roomtypeid, roomIDrl);
+                                if (oldData.type === "OOOS") {
+                                        goReview(idReservationrl);
+                                } else {
+                                    goUpdate(
+                                        idReservationrl,
+                                        newData.startDate,
+                                        newData.endDate,
+                                        roomNorl,
+                                        roomtypeid,
+                                        roomIDrl
+                                    );
+                                }
+                                // goUpdate(idReservationrl, newData.startDate, newData.endDate, roomNorl, roomtypeid, roomIDrl);
                             }
                         }
                     }
@@ -1044,7 +1182,7 @@
                 });
             }
         }, 200);
-    }
+    }     
     function goUpdate(idReservationrl, startDate, endDate, roomNorl, roomtypeid, roomIDrl) {
          var modal = $('#newReservationModal');
 
