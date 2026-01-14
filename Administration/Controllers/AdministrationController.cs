@@ -5016,39 +5016,39 @@ namespace Administration.Controllers
 
         #region ItemCategory/GroupOwner
 
-        //public IActionResult GroupOwner()
-        //{
-        //    return View("ItemCategory/GroupOwner");
-        //}
-        //[HttpGet]
-        //public IActionResult GetGroupOwner()
-        //{
-        //    try
-        //    {
-        //        DataTable dt = TextUtils.Select(@"SELECT * From GroupOwner with (nolock) Order by ID'");
-        //        var result = (from r in dt.AsEnumerable()
-        //                      select new
-        //                      {
-        //                          ID = !string.IsNullOrEmpty(r["ID"].ToString()) ? r["ID"] : "",
-        //                          GroupOwnerName = !string.IsNullOrEmpty(r["GroupOwnerName"].ToString()) ? r["GroupOwnerName"] : "",
-        //                          GroupOwnerCode = !string.IsNullOrEmpty(r["GroupOwnerCode"].ToString()) ? r["GroupOwnerCode"] : "",
-        //                          Description = !string.IsNullOrEmpty(r["Description"].ToString()) ? r["Description"] : "",
-        //                          Contact = !string.IsNullOrEmpty(r["Contact"].ToString()) ? r["Contact"] : "",
-        //                          Address= !string.IsNullOrEmpty(r["Address"].ToString()) ? r["Address"] : "",
-        //                          Email = !string.IsNullOrEmpty(r["Email"].ToString()) ? r["Email"] : "",
-        //                          Telephone = !string.IsNullOrEmpty(r["Telephone"].ToString()) ? r["Telephone"] : "",
-        //                          CreatedDate = !string.IsNullOrEmpty(r["CreatedDate"].ToString()) ? r["CreatedDate"] : "",
-        //                          CreatedBy = !string.IsNullOrEmpty(r["CreatedBy"].ToString()) ? r["CreatedBy"] : "",
-        //                          UpdatedDate = !string.IsNullOrEmpty(r["UpdatedDate"].ToString()) ? r["UpdatedDate"] : "",
-        //                          UpdatedBy = !string.IsNullOrEmpty(r["UpdatedBy"].ToString()) ? r["UpdatedBy"] : "",
-        //                      }).ToList();
-        //        return Json(result);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return Json(ex.Message);
-        //    }
-        //}
+        public IActionResult GroupOwner()
+        {
+            return View("ItemCategory/GroupOwner");
+        }
+        [HttpGet]
+        public IActionResult GetGroupOwner()
+        {
+            try
+            {
+                DataTable dt = TextUtils.Select(@"SELECT * From GroupOwner with (nolock) Order by ID");
+                var result = (from r in dt.AsEnumerable()
+                              select new
+                              {
+                                  ID = !string.IsNullOrEmpty(r["ID"].ToString()) ? r["ID"] : "",
+                                  GroupOwnerName = !string.IsNullOrEmpty(r["GroupOwnerName"].ToString()) ? r["GroupOwnerName"] : "",
+                                  GroupOwnerCode = !string.IsNullOrEmpty(r["GroupOwnerCode"].ToString()) ? r["GroupOwnerCode"] : "",
+                                  Description = !string.IsNullOrEmpty(r["Description"].ToString()) ? r["Description"] : "",
+                                  Contact = !string.IsNullOrEmpty(r["Contact"].ToString()) ? r["Contact"] : "",
+                                  Address = !string.IsNullOrEmpty(r["Address"].ToString()) ? r["Address"] : "",
+                                  Email = !string.IsNullOrEmpty(r["Email"].ToString()) ? r["Email"] : "",
+                                  Telephone = !string.IsNullOrEmpty(r["Telephone"].ToString()) ? r["Telephone"] : "",
+                                  CreatedDate = !string.IsNullOrEmpty(r["CreatedDate"].ToString()) ? r["CreatedDate"] : "",
+                                  CreatedBy = !string.IsNullOrEmpty(r["CreatedBy"].ToString()) ? r["CreatedBy"] : "",
+                                  UpdatedDate = !string.IsNullOrEmpty(r["UpdatedDate"].ToString()) ? r["UpdatedDate"] : "",
+                                  UpdatedBy = !string.IsNullOrEmpty(r["UpdatedBy"].ToString()) ? r["UpdatedBy"] : "",
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
         //[HttpPost]
         //public IActionResult GroupOwnerSave([FromBody] GroupOwnerModel model)
         //{
@@ -5107,87 +5107,6 @@ namespace Administration.Controllers
         //}
         #endregion
 
-        #region SearhText
-        public IActionResult SearchTest()
-        {
-            List<CityModel> listctry = PropertyUtils.ConvertToList<CityModel>(CityBO.Instance.FindAll());
-            ViewBag.CityList = listctry;
-            return View("ItemCategory/SearchTest");
-        }
-
-        [HttpGet]
-        public IActionResult SearchProfileTest(string code, string account, string firstName, string keyword, string city, string type, string showSaleInCharge, int skip = 0, int take = 20)
-        {
-            
-            try
-            {
-                // 
-                code = (code ?? "").Trim().Replace("'", "''");
-                account = (account ?? "").Trim().Replace("'", "''");
-                firstName = (firstName ?? "").Trim().Replace("'", "''");
-                keyword = (keyword ?? "").Trim().Replace("'", "''");
-                city = (city ?? "").Trim().Replace("'", "''");
-
-                // 
-                string where = $" WHERE a.Code LIKE '%{code}%' ";
-                if (!string.IsNullOrEmpty(type))
-                {
-                    if (type != "5") where += $" AND a.Type = '{type}' ";
-                    else where += " AND (a.Type = 5 OR a.Contact = 1) ";
-                }
-                if (!string.IsNullOrEmpty(account)) where += $" AND a.Account LIKE N'%{account}%' ";
-                if (!string.IsNullOrEmpty(firstName)) where += $" AND a.Firstname LIKE N'%{firstName}%' ";
-                if (!string.IsNullOrEmpty(keyword)) where += $" AND a.Keyword LIKE N'%{keyword}%' ";
-                if (!string.IsNullOrEmpty(city)) where += $" AND a.City LIKE N'%{city}%' ";
-                if (!string.IsNullOrEmpty(showSaleInCharge)) where += " AND a.PersonInChargeID > 0 ";
-
-                // 
-                string sqlCount = $"SELECT COUNT(1) FROM dbo.Profile a WITH (NOLOCK) {where}";
-                int totalCount = Convert.ToInt32(TextUtils.Select(sqlCount).Rows[0][0]);
-
-                // 
-                string sqlData = $@"
-            SELECT 
-                a.ID AS _ProfileID, a.Code, d.Code AS VIP, a.Account, a.City, 
-                c.Code AS Nationality, a.Email, a.StayNo, a.IsBlackList
-            FROM dbo.Profile a WITH (NOLOCK) 
-            LEFT JOIN dbo.Nationality c ON a.NationalityID = c.ID 
-            LEFT JOIN dbo.VIP d ON a.VIPID = d.ID
-            {where}
-            ORDER BY a.ID DESC
-            OFFSET {skip} ROWS FETCH NEXT {take} ROWS ONLY";
-
-                DataTable dt = TextUtils.Select(sqlData);
-
-                var listData = dt.AsEnumerable().Select(r => new {
-                    _profileID = r["_ProfileID"],
-                    code = r["Code"]?.ToString(),
-                    vip = r["VIP"]?.ToString(),
-                    account = r["Account"]?.ToString(),
-                    city = r["City"]?.ToString(),
-                    passport = r["PassPort"]?.ToString(),
-                    identityCard = r["IdentityCard"]?.ToString(),
-                    address = r["Address"]?.ToString(),
-                    nationality = r["Nationality"]?.ToString(),
-
-                    handPhone = r["HandPhone"]?.ToString(),
-                    telephone = r["Telephone"]?.ToString(),
-                    email = r["Email"]?.ToString(),
-                    keyword = r["Keyword"]?.ToString(),
-                    postalCode = r["PostalCode"]?.ToString(),
-                    stayNo = r["StayNo"],
-                    isBlackList = r["IsBlackList"] != DBNull.Value ? Convert.ToBoolean(r["IsBlackList"]) : false
-                }).ToList();
-
-                return Json(new { data = listData, totalCount = totalCount });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
-
-        #endregion      
 
     }
 }
