@@ -427,6 +427,7 @@ namespace Profile.Controllers
 
             return View();
         }
+
         [HttpGet]
         public async Task<IActionResult> GetAllProfiles(string code, string account, string firstName, string keyWord, string city, string type, bool showSaleInCharge)
         {
@@ -473,6 +474,62 @@ namespace Profile.Controllers
                 return Json(ex.Message);
             }
         }
+
+        public async Task<IActionResult> GetAllProfileTest(string code, string account, string firstName, string keyWord, string city, string type, bool showSaleInCharge, int skip = 0, int take = 20)
+        {
+            try
+            {
+                DataTable myData = ProfileBO.GetAllProfileTest(code, account, firstName, keyWord, city, type, showSaleInCharge,skip, take);
+                int totalCount = 0;
+                if (myData.Rows.Count > 0)
+                {
+                    totalCount = Convert.ToInt32(myData.Rows[0]["TotalCount"]);
+                }
+
+                var result = (from d in myData.AsEnumerable()
+                              select new
+                              {
+                                  ID = int.Parse(d["_ProfileID"].ToString()),
+                                  Code = !string.IsNullOrEmpty(d["Code"].ToString()) ? d["Code"] : "",
+                                  VIP = !string.IsNullOrEmpty(d["VIP"].ToString()) ? d["VIP"] : "",
+                                  Account = !string.IsNullOrEmpty(d["Account"].ToString()) ? d["Account"] : "",
+                                  PassPort = !string.IsNullOrEmpty(d["PassPort"].ToString()) ? d["PassPort"] : "",
+                                  IdentityCard = !string.IsNullOrEmpty(d["IdentityCard"].ToString()) ? d["IdentityCard"] : "",
+                                  Address = !string.IsNullOrEmpty(d["Address"].ToString()) ? d["Address"] : "",
+                                  City = !string.IsNullOrEmpty(d["City"].ToString()) ? d["City"] : "",
+                                  Nationality = !string.IsNullOrEmpty(d["Nationality"].ToString()) ? d["Nationality"] : "",
+                                  HandPhone = !string.IsNullOrEmpty(d["HandPhone"].ToString()) ? d["HandPhone"] : "",
+                                  Telephone = !string.IsNullOrEmpty(d["Telephone"].ToString()) ? d["Telephone"] : "",
+                                  Email = !string.IsNullOrEmpty(d["Email"].ToString()) ? d["Email"] : "",
+                                  Keyword = !string.IsNullOrEmpty(d["Keyword"].ToString()) ? d["Keyword"] : "",
+                                  PostalCode = !string.IsNullOrEmpty(d["PostalCode"].ToString()) ? d["PostalCode"] : "",
+                                  ReturnGuest = !string.IsNullOrEmpty(d["ReturnGuest"].ToString()) ? d["ReturnGuest"] : "",
+                                  StayNo = !string.IsNullOrEmpty(d["StayNo"].ToString()) ? d["StayNo"] : "",
+                                  Type = !string.IsNullOrEmpty(d["Type"].ToString()) ? d["Type"] : "",
+                                  TaxCode = !string.IsNullOrEmpty(d["TaxCode"].ToString()) ? d["TaxCode"] : "",
+                                  FullAccount = !string.IsNullOrEmpty(d["FullAccount"].ToString()) ? d["FullAccount"] : "",
+                                  HomeAddress = !string.IsNullOrEmpty(d["HomeAddress"].ToString()) ? d["HomeAddress"] : "",
+                                  ARNo = !string.IsNullOrEmpty(d["ARNo"].ToString()) ? d["ARNo"] : "",
+                                  Website = !string.IsNullOrEmpty(d["Website"].ToString()) ? d["Website"] : "",
+                                  DateOfBirth = !string.IsNullOrEmpty(d["DateOfBirth"].ToString()) ? d["DateOfBirth"] : "",
+                                  AcctContact = !string.IsNullOrEmpty(d["AcctContact"].ToString()) ? d["AcctContact"] : "",
+                                  Description = !string.IsNullOrEmpty(d["Description"].ToString()) ? d["Description"] : "",
+                                  AcctIsBlackListContact = !string.IsNullOrEmpty(d["IsBlackList"].ToString()) ? d["IsBlackList"] : "",
+                                  PersonInChargeID = !string.IsNullOrEmpty(d["PersonInChargeID"].ToString()) ? d["PersonInChargeID"] : "",
+
+                              }).ToList();
+                return Json(new
+                {
+                    data = result,
+                    total = totalCount
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+
         [HttpGet]
         public ActionResult GetProfileByID(int id)
         {

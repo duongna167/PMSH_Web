@@ -127,17 +127,12 @@
 <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
 <div class="text-center" id="reportTitle" style="font-size: 20px">Item Inventory Available</div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-        <!-- From Date -->
-        <div class="d-flex flex-column ">
+    <div class="">
+        <button style="border-radius: 4px;  margin-right: 6px; " id="btnPrint" class="mui-button mui-button-new">View</button>
+        <button style="border-radius: 4px;  margin-right: 6px; " id="btnDetail" class="mui-button mui-button-new" type="button">  Detail</button>
 
-            <div class="d-flex align-items-center">
-                <div class="d-flex align-items-center me-3">
-                    <label class="me-2 mb-0">Date:</label>
-                    <input type="date" id="firstDate" name="firstDate" class="form-control form-control-sm w-auto" />
-                </div>
-            </div>
-        </div>
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">Item Group:</label>
             <select id="groupId" name="groupId" class="form-control form-control-sm w-auto">
@@ -149,17 +144,24 @@
                 <option value="5">Room</option>
             </select>
         </div>
+        <!-- From Date -->
+        <div class="d-flex flex-column ">
+
+            <div class="d-flex align-items-center">
+                <div class="d-flex align-items-center me-3">
+                    <label class="me-2 mb-0">Date:</label>
+                    <input type="date" id="firstDate" name="firstDate" class="form-control form-control-sm w-auto" />
+                </div>
+            </div>
+        </div>
+       
         <div style="display:flex; gap:5px;">
             <button id="btnMinus15" type="button" class="btn btn-outline-secondary btn-mini">- 15 days</button>
             <button id="btnPlus15" type="button" class="btn btn-outline-secondary btn-mini">+ 15 days</button>
         </div>
 
     </div>
-    <div class="">
-        <button style="border-radius: 4px;  margin-right: 6px; " id="btnPrint" class="mui-button mui-button-new">View</button>
-        <button style="border-radius: 4px;  margin-right: 6px; " id="btnDetail" class="mui-button mui-button-new" type="button">  Detail</button>
-
-    </div>
+   
 </div>
 
 <div class="mui-card">
@@ -171,8 +173,28 @@
 <div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
-<div class="gridContainer"  id="popupShiftDetail">
+<div class="modal fade" id="popupShiftDetail" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Item Reservation</h5>
+                @* <button type="button" class="btn-close" data-bs-dismiss="modal"></button> *@
+            </div>
+
+            <div class="modal-body">
+                <div class="mui-card shift-header mb-2"></div>
+                <div class="gridContainer"  id="gridShiftDetail"></div>
+            </div>
+
+            <div class="modal-footer">
+               @*  <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">
+                    Close
+                </button> *@
+            </div>
+        </div>
+    </div>
 </div>
+
 
 <script>
     // Biến toàn cục lưu dòng của ô được click
@@ -240,21 +262,22 @@
             },
             columns: [
                 { dataField: "itemName", caption: "Item Name" },
-                { dataField: "firstDate1", caption: dynamicCaptions[0], wordWrapEnabled: true },
-                { dataField: "secondDate1", caption: dynamicCaptions[1], wordWrapEnabled: true },
-                { dataField: "thirthDate1", caption: dynamicCaptions[2], wordWrapEnabled: true },
-                { dataField: "fourthDate1", caption: dynamicCaptions[3], wordWrapEnabled: true },
-                { dataField: "fifthDate1", caption: dynamicCaptions[4], wordWrapEnabled: true },
-                { dataField: "sixthDate1", caption: dynamicCaptions[5], wordWrapEnabled: true },
-                { dataField: "seventhDate1", caption: dynamicCaptions[6], wordWrapEnabled: true },
-                { dataField: "eighthDate1", caption: dynamicCaptions[7], wordWrapEnabled: true },
-                { dataField: "ninthDate1", caption: dynamicCaptions[8], wordWrapEnabled: true },
-                { dataField: "tenthDate1", caption: dynamicCaptions[9], wordWrapEnabled: true },
-                { dataField: "eleventhDate1", caption: dynamicCaptions[10], wordWrapEnabled: true },
-                { dataField: "twelvethDate1", caption: dynamicCaptions[11], wordWrapEnabled: true },
-                { dataField: "thirtheenDate1", caption: dynamicCaptions[12], wordWrapEnabled: true },
-                { dataField: "fourtheenDate1", caption: dynamicCaptions[13], wordWrapEnabled: true },
-                { dataField: "fiftheenDate1", caption: dynamicCaptions[14], wordWrapEnabled: true },
+                { dataField: "firstDate1",     caption: dynamicCaptions[0],  dataType: "number", wordWrapEnabled: true },
+                { dataField: "secondDate1",    caption: dynamicCaptions[1],  dataType: "number", wordWrapEnabled: true },
+                { dataField: "thirthDate1",    caption: dynamicCaptions[2],  dataType: "number", wordWrapEnabled: true },
+                { dataField: "fourthDate1",    caption: dynamicCaptions[3],  dataType: "number", wordWrapEnabled: true },
+                { dataField: "fifthDate1",     caption: dynamicCaptions[4],  dataType: "number", wordWrapEnabled: true },
+                { dataField: "sixthDate1",     caption: dynamicCaptions[5],  dataType: "number", wordWrapEnabled: true },
+                { dataField: "seventhDate1",   caption: dynamicCaptions[6],  dataType: "number", wordWrapEnabled: true },
+                { dataField: "eighthDate1",    caption: dynamicCaptions[7],  dataType: "number", wordWrapEnabled: true },
+                { dataField: "ninthDate1",     caption: dynamicCaptions[8],  dataType: "number", wordWrapEnabled: true },
+                { dataField: "tenthDate1",     caption: dynamicCaptions[9],  dataType: "number", wordWrapEnabled: true },
+                { dataField: "eleventhDate1",  caption: dynamicCaptions[10], dataType: "number", wordWrapEnabled: true },
+                { dataField: "twelvethDate1",  caption: dynamicCaptions[11], dataType: "number", wordWrapEnabled: true },
+                { dataField: "thirtheenDate1", caption: dynamicCaptions[12], dataType: "number", wordWrapEnabled: true },
+                { dataField: "fourtheenDate1", caption: dynamicCaptions[13], dataType: "number", wordWrapEnabled: true },
+                { dataField: "fiftheenDate1",  caption: dynamicCaptions[14], dataType: "number", wordWrapEnabled: true }
+
             ],
             scrolling: {
                 mode: "standard",
@@ -280,56 +303,97 @@
         });
     }
 
-    // Popup chi tiết
-    $("#popupShiftDetail").dxPopup({
-        title: "Item Reservation",
-        width: "85%",
-        height: "90%",
-        encodeHtml: false,
-        showCloseButton: true,
-        visible: false,
-        contentTemplate: function (container) {
-            container.append(`
-                <div class="mui-card shift-header mb-1"></div>
-                <div id="gridShiftDetail"></div>
-            `);
+      let gridShiftDetailInstance = null;
 
-            $("#gridShiftDetail").dxDataGrid({
-                dataSource: [],
-                showBorders: true,
-                height: "90%",
-                width: "100%",
-                columnAutoWidth: true,
-                columns: [
-                    { dataField: "confirmationNo", caption: "Confirmation No", dataType: "number" },
-                    { dataField: "name", caption: "Name" },
-                    { dataField: "roomNo", caption: "Room No", dataType: "number" },
-                    { dataField: "reservedFrom", caption: "Reserved From", dataType: "date", format: "dd/MM/yyyy" },
-                    { dataField: "reservedTo", caption: "Reserved To", dataType: "date", format: "dd/MM/yyyy"},
-                    { dataField: "qty", caption: "Qty", dataType: "number", format: "#,##0.00" },
-                ],
-                scrolling: {
-                    mode: "standard",
-                    showScrollbar: "always",
-                    scrollByContent: true
-                },
-                paging: {
-                    pageSize: 20
-                },
-                pager: {
-                    visible: true,
-                    allowedPageSizes: [20, 40, 'all'],
-                    showPageSizeSelector: true,
-                    showInfo: true,
-                    showNavigationButtons: true
+    function initShiftDetailGrid() {
+        if (gridShiftDetailInstance) return;
+
+        gridShiftDetailInstance = $("#gridShiftDetail").dxDataGrid({
+            dataSource: [],
+            showBorders: true,
+            height: "60vh",
+            width: "100%",
+            columnAutoWidth: true,
+            selection: {
+                mode: "single"
+            },
+            columns: [
+                  { dataField: "id", caption: "id", dataType: "number", visible: false },
+                { dataField: "confirmationNo", caption: "Confirmation No", dataType: "number" },
+                { dataField: "name", caption: "Name" },
+                { dataField: "roomNo", caption: "Room No", dataType: "number" },
+                { dataField: "reservedFrom", caption: "Reserved From", dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "reservedTo", caption: "Reserved To", dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "qty", caption: "Qty", dataType: "number", format: "#,##0.00" }
+            ],
+            scrolling: {
+                mode: "standard",
+                showScrollbar: "always",
+                scrollByContent: true
+            },
+            paging: { pageSize: 20 },
+            pager: {
+                visible: true,
+                allowedPageSizes: [20, 40, "all"],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            }
+        }).dxDataGrid("instance");
+    }
+    function goReview(idReservation) {
+        var modal = $('#newReservationModal');
+
+        // Luôn hiển thị loading
+        modal.find('.modal-body').html(`
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3">Loading reservation...</p>
+            </div>
+        `);
+
+        modal.modal('show');
+
+        $.ajax({
+            url: '/Reservation/EncryptId',
+            type: 'POST',
+            data: { id: idReservation },
+            success: function (response) {
+                if (response.success) {
+                    $.ajax({
+                        url: '/Reservation/NewReservation',
+                        type: 'GET',
+                        data: { key: response.encryptedId },
+                        cache: false,
+                        success: function (html) {
+                            modal.find('.modal-body').html(html);
+
+                        },
+                        error: function () {
+                            modal.find('.modal-body').html(`
+                                <div class="alert alert-danger m-4">
+                                    <strong>Lỗi!</strong> Không thể tải thông tin đặt chỗ.
+                                </div>
+                            `);
+                        }
+                    });
+                } else {
+                    modal.modal('hide');
+                    alert('Lỗi khi mã hóa ID');
                 }
-            });
-        }
-    });
+            },
+            error: function () {
+                modal.modal('hide');
+                alert('Lỗi kết nối server');
+            }
+        });
+    }
 
     $("#btnDetail").on("click", function () {
         if (!selectedCellData || !selectedColumn) {
-            DevExpress.ui.notify("Vui lòng chọn một ô hợp lệ trước", "warning", 2000);
+                 showToast('Warning', "Select 1 row, please!", true);
             return;
         }
         showShiftDetail(selectedCellData, selectedColumn);
@@ -344,77 +408,116 @@
         const ss = String(date.getSeconds()).padStart(2, '0');
         return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
     }
-    function showShiftDetail(rowData, columnDataField) {
-        const popup = $("#popupShiftDetail").dxPopup("instance");
-        const dateField = columnDataField;
+     function showShiftDetail(rowData, columnDataField) {
         const itemID = rowData.id;
-        const grid = $("#gridContainer").dxDataGrid("instance");
-        const columnIndex = grid.columnOption(columnDataField, "index");
+        if (!itemID || !columnDataField) return;
 
-        // Lấy caption của cột
+        const grid = $("#gridContainer").dxDataGrid("instance");
+
         const firstDateVal = $("#firstDate").val();
         const year = new Date(firstDateVal).getFullYear();
 
-        const caption = grid.columnOption(columnDataField, "caption"); // ví dụ "28-Aug\n(Sat)\nCW 35"
-        const dayMonth = caption.split('\n')[0]; // "28-Aug"
-        const dateStr = `${dayMonth}-${year}`;   // "28-Aug-2025"
-        const selectedDate = new Date(dateStr);
+        const caption = grid.columnOption(columnDataField, "caption");
+        const dayMonth = caption.split('\n')[0];        // ví dụ: 28-Aug
+        const selectedDate = new Date(`${dayMonth}-${year}`);
 
-        if (!selectedDate || !itemID) {
-            alert("Không đủ dữ liệu để hiển thị chi tiết");
+        if (isNaN(selectedDate)) {
+            alert("Ngày không hợp lệ");
             return;
         }
 
-        popup.option("onShown", function () {
-            $(".shift-header").html(`
-            
-            <div class="d-flex align-items-center mb-2">
-                <button style="border-radius: 4px; background-color: green;" id="btnDetailpopup" class="mui-button mui-button-new" type="button">
-                     Detail
+        // Header
+        $(".shift-header").html(`
+            <div class="d-flex align-items-center">
+                <button id="btnDetailpopup"
+                        class="mui-button mui-button-new"
+                       >
+                    Detail
                 </button>
-                <div class="flex-grow-1 text-center">
-                    <i>Item Name</i>: <b>${rowData.itemName}</b>
-                </div>               
+                <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+               <div class="d-flex align-items-center me-4 ps-3">
+                    <label class="me-2 mb-0">Item Name:</label>
+                    <input type="text"
+                           class="form-control form-control-sm w-auto"
+                           value="${rowData.itemName}" />
+                </div>
+
             </div>
-       
         `);
 
-            const gridDetail = $("#gridShiftDetail").dxDataGrid("instance");
+        // Init grid nếu chưa có
+        initShiftDetailGrid();
 
-            gridDetail.option("dataSource", new DevExpress.data.DataSource({
-                load: function () {
-                    return $.ajax({
-                        url: `/RoomManagement/GetItemResvDetail`,
-                        data: {
-                            itemID: itemID,
-                            day: formatDateTimeToSQL(selectedDate),
-                        },
-                        dataType: "json"
-                    }).then(res => {
-                        let arr = Array.isArray(res) ? res : Object.values(res);
-                        arr = arr.filter(x => x != null);
-                        if (Array.isArray(arr[0])) {
-                            arr = arr[0];
-                        }
-                        return arr;
-                    });
-                }
-            }));
-        });
+        // Load data
+        gridShiftDetailInstance.option("dataSource", new DevExpress.data.DataSource({
+            load: function () {
+                return $.ajax({
+                    url: "/RoomManagement/GetItemResvDetail",
+                    data: {
+                        itemID: itemID,
+                        day: formatDateTimeToSQL(selectedDate)
+                    },
+                    dataType: "json"
+                }).then(res => {
+                    let arr = Array.isArray(res) ? res : Object.values(res);
+                    arr = arr.filter(x => x != null);
+                    if (Array.isArray(arr[0])) arr = arr[0];
+                    return arr;
+                });
+            }
+        }));
 
-        popup.show();
+        // Show Bootstrap modal
+        const modal = new bootstrap.Modal(document.getElementById("popupShiftDetail"));
+        modal.show();
     }
+
+     $(document).on("click", "#btnDetailpopup", function () {
+        const grid = $("#gridShiftDetail").dxDataGrid("instance");
+        const selectedRows = grid.getSelectedRowsData();
+
+        if (!selectedRows || selectedRows.length === 0) {
+            showToast("Warning", "Please select one reservation!", true);
+            return;
+        }
+
+        const idReservation = selectedRows[0].id;
+
+        if (!idReservation) {
+            showToast("Error", "Reservation ID not found!", true);
+            return;
+        }
+
+        // Gọi hàm review
+        goReview(idReservation);
+    });
 
     // Khởi tạo ngày mặc định và tự động load grid khi bấm Load
     $(document).ready(function () {
-        const today = new Date();
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        const formattedFirstDay = formatDate(firstDayOfMonth);
-        $("#firstDate").val(formattedFirstDay);
-
-        $("#btnPrint").trigger("click");
+      getBusinessDate();
     });
+    function getBusinessDate() {
+        return $.ajax({
+            url: '/Reservation/GetBusinessDate',
+            type: 'get',
+            dataType: 'json',
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
 
+
+                // Gán vào input type="date"
+                $('#firstDate').val(result.split('T')[0]);
+               
+               $("#btnPrint").trigger("click");
+            },
+            error: function (xhr, statusText, err) {
+                if (xhr.status == 401) {
+                    sessionTimeout();
+                }
+            }
+        });
+    }
     // Button -15 ngày
     $("#btnMinus15").on("click", function () {
         let dateInput = $("#firstDate");

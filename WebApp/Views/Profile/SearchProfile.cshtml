@@ -1,8 +1,7 @@
-﻿@{
+﻿﻿@{
     ViewData["Title"] = "Search Profile";
 }
 
-@* <link href="~/css/pages/reservation.css" rel="stylesheet" asp-append-version="true" /> *@
 <style>
     .note-textarea {
         height: 160px;
@@ -13,10 +12,6 @@
         padding: 0px 0px 0px 5px !important;
     }
 
-    .nav-link {
-        color: #027C75 !important;
-    }
-
     /* Ensure modals scroll correctly */
     .gridContainer {
         min-height: 200px;
@@ -24,21 +19,6 @@
 
     .mui-card {
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1) !important;
-        min-height: 50vh;
-        padding: 10px;
-    }
-
-    .modal-body {
-        padding: 0 12px 0 12px !important;
-    }
-
-    .modal-body .tab-content .tab-pane {
-        padding: 0px;
-    }
-
-    .my-2 {
-        margin-top: 0rem !important;
-        margin-bottom: 0rem !important;
     }
 </style>
 <div id="loadingSpinner"
@@ -50,7 +30,7 @@
     <div class="header" style="justify-content:center;border:none">
         <h3 id="content-title">Search Profile</h3>
     </div>
-    <div class="search-filter">
+    <div class="functions-pane mb-2 row">
         <div class=" col-md-10">
             <button class="mui-button mui-button-new" onclick="getAllProfiles();">Search</button>
 
@@ -62,6 +42,8 @@
             <button class="mui-button mui-button-new"
                 onclick="window.location.href='@Url.Action("Index", "Home")'">Close</button>
         </div>
+    </div>
+    <div class="container ms-1">
         <!-- HÀNG 1: Select và Checkbox -->
         <div class="row g-3">
             <!-- View By -->
@@ -96,7 +78,7 @@
             <div class="col-md-3 d-flex align-items-center">
                 <div class="form-check ms-4">
                     <label class="col-form-label me-2 text-end" for="txtShowSaleInCharge">Show Sale In Charge</label>
-                    <input type="checkbox" id="txtShowSaleInCharge" checked>
+                    <input type="checkbox" id="txtShowSaleInCharge">
                 </div>
             </div>
         </div>
@@ -128,7 +110,8 @@
             </div>
         </div>
     </div>
-    <div class="mui-card">
+
+    <div class="mui-card mt-2">
         <div id="gridContainer" class="gridContainer"></div>
 
     </div>
@@ -250,6 +233,8 @@
         getCurrency2();
         getMarketType2();
         getPersonInCharge2();
+        // grid profile
+        initializeDataGrid();
     });
     function openModalOption() {
         $('#modalOption').modal('show');
@@ -279,45 +264,18 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
+                    informBox(TOAST_STATUS.DANGER, "Lỗi tải chi tiết danh sách danh mục dịch vụ hoặc bạn không có quyền tải");
                 }
             }
         });
     }
-    function getAllProfiles() {
-        $("#loadingSpinner").show(); // 👉 Show spinner
-
-        $.ajax({
-            url: '/Profile/GetAllProfiles',
-            type: 'get',
-            dataType: 'json',
-            data: {
-                code: $('#txtCode').val(),
-                account: $('#txtAccount').val(),
-                firstName: $('#txtFirstName').val(),
-                keyWord: $('#txtKeyword').val(),
-                city: $('#txtCity').val(),
-                type: $('#txtType').val(),
-                showSaleInCharge: $("#txtShowSaleInCharge").is(":checked"),
-            },
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                listProfiles = result;
-                console.log(result);
-                initializeDataGrid(result);
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                } else {
-                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
-                }
-            },
-            complete: function () {
-                $("#loadingSpinner").hide(); // 👉 Hide spinner sau khi hoàn tất
-            }
-        });
+     function getAllProfiles() {
+        $("#loadingSpinner").show();
+        if (gridInstance) {
+            gridInstance.refresh();
+        } else {
+            initializeDataGrid();
+        }
     }
     function clearSearchForm() {
 
@@ -350,11 +308,49 @@
 
     var profileType = 0;
     var profileName = "";
-    function initializeDataGrid(data) {
+    var gridInstance;
+
+    function initializeDataGrid() {
+        var dataSource = new DevExpress.data.CustomStore({
+            key: "id",
+            load: function (loadOptions) {
+                var d = $.Deferred();
+
+                var params = {
+                    skip: loadOptions.skip || 0,
+                    take: loadOptions.take || 15,
+                    code: $('#txtCode').val(),
+                    account: $('#txtAccount').val(),
+                    firstName: $('#txtFirstName').val(),
+                    keyWord: $('#txtKeyword').val(),
+                    city: $('#txtCity').val(),
+                    type: $('#txtType').val(),
+                    showSaleInCharge: $("#txtShowSaleInCharge").is(":checked")
+                };
+
+                $.ajax({
+                    url: '/Profile/GetAllProfileTest',
+                    type: 'GET',
+                    dataType: 'json',
+                    data: params,
+                    cache: false,
+                    success: function (result) {
+                        // Backend trả về Object { data: [...], totalCount: 500000 }
+                        d.resolve(result.data, {
+                            totalCount: result.total
+                        });
+                    },
+                    error: function () {
+                        d.reject("Lỗi tải dữ liệu từ máy chủ");
+                    }
+                });
+                return d.promise();
+            }
+        });
+
         var columnWidth = 150;
         var typeValue = $("#txtType").val();
 
-        // 👉 Khai báo cột Tax Code riêng
         var taxCodeColumn = {
             dataField: "taxCode",
             caption: "Tax Code",
@@ -444,32 +440,40 @@
             }
         ]);
 
-        // 👉 Init grid
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
+        // phân trang với Remote Operations
+        gridInstance = $("#gridContainer").dxDataGrid({
+            dataSource: dataSource,
+            remoteOperations: {
+                paging: true, // Để Grid biết việc phân trang thực hiện ở Server
+                filtering: false,
+                sorting: false
+            },
             columns: columns,
             allowColumnResizing: true,
+            columnResizingMode: "widget",
+            selection: { mode: "single" },
+            hoverStateEnabled: true,
             paging: { pageSize: 15 },
-            scrolling: { rowRenderingMode: 'virtual' },
-            height: "500px",
             pager: {
                 visible: true,
-                allowedPageSizes: [15, 30, 90, 150, 500, 1000],
                 showPageSizeSelector: true,
+                allowedPageSizes: [15, 20, 50],
                 showInfo: true,
                 showNavigationButtons: true
             },
-            selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "none"
+            scrolling: {
+                mode: "standard", // Dùng standard cho remote paging
+                showScrollbar: "always"
             },
-            showBorders: false,
             onRowClick: function (e) {
                 profileID = e.data.id;
                 profileType = e.data.type;
                 profileName = e.data.account;
+            },
+            onContentReady: function() {
+                $("#loadingSpinner").hide();
             }
-        });
+        }).dxDataGrid("instance");
     }
 
     $('#txtFullNameIndividual').on('blur', function () {
@@ -833,7 +837,7 @@
             "#txtAddressIndividual", "#txtSalutationIndividual",
             "#txtPrefRoomIndividual", "#txtOtherIndividual",
             "#txtPassportIndividual", "#txtCardIndividual",
-            "#txtKeywordIndividual",
+            "#txtDobIndividual", "#txtKeywordIndividual",
             "#txtCompanyIndividual", "#txtCompany2Individual",
             "#txtTaxIndividual", "#txtBusAddressIndividual",
             "#txtTelephoneIndividual", "#txtHandPhoneIndividual",
@@ -847,7 +851,6 @@
                 $(id).val("");
             }
         });
-        $("#txtDobIndividual").val(getAllBusinessDate());
 
         const individualCheckboxes = [
             "#txtActiveIndividual", "#txtContactIndividual",
@@ -1699,7 +1702,7 @@
         var grid = $("#gridContainer").dxDataGrid("instance");
         var selectedRowsData = grid.getSelectedRowsData();
         if (selectedRowsData.length < 1) {
-            showToast("Warning", "Please choose 1 profile to reservation", false);
+            informBox(TOAST_STATUS.DANGER, "Please choose 1 profile to reservation");
             return;
         }
         $.ajax({

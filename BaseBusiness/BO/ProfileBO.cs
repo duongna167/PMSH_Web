@@ -108,6 +108,90 @@ namespace BaseBusiness.BO
             return myTable;
         }
 
+        public static DataTable GetAllProfileTest(string code, string account, string firstName, string keyWord, string city, string type, bool showSaleInCharge, int skip, int take)
+        {
+            if (string.IsNullOrEmpty(code))
+            {
+                code = "";
+            }
+            if (string.IsNullOrEmpty(account))
+            {
+                account = "";
+            }
+            if (string.IsNullOrEmpty(firstName))
+            {
+                firstName = "";
+            }
+            if (string.IsNullOrEmpty(keyWord))
+            {
+                keyWord = "";
+            }
+            if (string.IsNullOrEmpty(city))
+            {
+                city = "";
+            }
+
+            string typeS = "";
+            if (type == "0")
+            {
+                typeS = "1";
+            }
+            if (string.IsNullOrEmpty(type))
+            {
+                typeS = "";
+            }
+            //Company
+            else if (type == "1")
+            {
+                typeS = "2";
+            }
+            //Source
+            else if (type == "2")
+            {
+                typeS = "3";
+            }
+            //Individual
+            else if (type == "3")
+            {
+                typeS = "0";
+            }
+            //Group
+            else if (type == "4")
+            {
+                typeS = "4";
+            }
+            //Contact
+            else if (type == "5")
+            {
+                typeS = "5";
+            }
+            //All
+            else if (type == "6")
+            {
+                typeS = "";
+            }
+            string _saleincharge = "";
+            if (showSaleInCharge == true)
+                _saleincharge = "true";
+
+            //string _saleincharge = showSaleInCharge ? "1" : "";
+
+            SqlParameter[] param = new SqlParameter[]
+                         {
+                    new SqlParameter("@Code", code),
+                    new SqlParameter("@Account", account),
+                    new SqlParameter("@FirstName", firstName),
+                    new SqlParameter("@Keyword", keyWord),
+                    new SqlParameter("@City", city),
+                    new SqlParameter("@Type", typeS),
+                    new SqlParameter("@ShowSaleInCharge", _saleincharge),
+                    new SqlParameter("@Skip", skip),
+                    new SqlParameter("@Take", take)
+            };
+            DataTable myTable = DataTableHelper.getTableData("spProfileSearch_Test", param);
+            return myTable;
+        }
+
         public static (DataTable, int) GetAllProfile2(string code, string account, string firstName, string keyWord, string city, int type, bool showSaleInCharge, int page, int pageSize)
         {
             code = code ?? "";
@@ -148,6 +232,8 @@ namespace BaseBusiness.BO
             int totalCount = Convert.ToInt32(dataSet.Tables[1].Rows[0][0]);
             return (myTable, totalCount);
         }
+
+
 
         public static List<ProfileModel> GetListProfileByBOD(DateTime fromDate, DateTime toDate)
         {
