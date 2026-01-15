@@ -12,6 +12,10 @@
         padding: 0px 0px 0px 5px !important;
     }
 
+    .nav-tabs .nav-link {
+        color: #027C75 !important;
+    }
+
     /* Ensure modals scroll correctly */
     .gridContainer {
         min-height: 200px;
@@ -19,6 +23,21 @@
 
     .mui-card {
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1) !important;
+        min-height: 50vh;
+        padding: 10px;
+    }
+
+    .modal-body {
+        padding: 0 12px 0 12px !important;
+    }
+
+    .modal-body .tab-content .tab-pane {
+        padding: 0px;
+    }
+
+    .my-2 {
+        margin-top: 0rem !important;
+        margin-bottom: 0rem !important;
     }
 </style>
 <div id="loadingSpinner"
@@ -30,7 +49,7 @@
     <div class="header" style="justify-content:center;border:none">
         <h3 id="content-title">Search Profile</h3>
     </div>
-    <div class="functions-pane mb-2 row">
+    <div class="search-filter">
         <div class=" col-md-10">
             <button class="mui-button mui-button-new" onclick="getAllProfiles();">Search</button>
 
@@ -42,8 +61,6 @@
             <button class="mui-button mui-button-new"
                 onclick="window.location.href='@Url.Action("Index", "Home")'">Close</button>
         </div>
-    </div>
-    <div class="container ms-1">
         <!-- HÀNG 1: Select và Checkbox -->
         <div class="row g-3">
             <!-- View By -->
@@ -110,8 +127,7 @@
             </div>
         </div>
     </div>
-
-    <div class="mui-card mt-2">
+    <div class="mui-card">
         <div id="gridContainer" class="gridContainer"></div>
 
     </div>
@@ -196,6 +212,7 @@
     </div>
 </div>
 
+
 @await Html.PartialAsync("Options/Membership")
 @await Html.PartialAsync("Options/Changes")
 @await Html.PartialAsync("Options/Future")
@@ -236,6 +253,15 @@
         // grid profile
         initializeDataGrid();
     });
+
+    function clearFromProfile() {
+        resetForm();
+        applyValidationErrors([], "#profile_individual");
+        applyValidationErrors([], "#profile_com_ta_source");
+        applyValidationErrors([], "#profile_group");
+        applyValidationErrors([], "#profile_contact");
+    }
+
     function openModalOption() {
         $('#modalOption').modal('show');
     }
@@ -269,7 +295,7 @@
             }
         });
     }
-     function getAllProfiles() {
+    function getAllProfiles() {
         $("#loadingSpinner").show();
         if (gridInstance) {
             gridInstance.refresh();
@@ -449,6 +475,7 @@
                 sorting: false
             },
             columns: columns,
+            height: "500px",
             allowColumnResizing: true,
             columnResizingMode: "widget",
             selection: { mode: "single" },
@@ -470,7 +497,7 @@
                 profileType = e.data.type;
                 profileName = e.data.account;
             },
-            onContentReady: function() {
+            onContentReady: function () {
                 $("#loadingSpinner").hide();
             }
         }).dxDataGrid("instance");
@@ -837,7 +864,7 @@
             "#txtAddressIndividual", "#txtSalutationIndividual",
             "#txtPrefRoomIndividual", "#txtOtherIndividual",
             "#txtPassportIndividual", "#txtCardIndividual",
-            "#txtDobIndividual", "#txtKeywordIndividual",
+            "#txtKeywordIndividual",
             "#txtCompanyIndividual", "#txtCompany2Individual",
             "#txtTaxIndividual", "#txtBusAddressIndividual",
             "#txtTelephoneIndividual", "#txtHandPhoneIndividual",
@@ -851,6 +878,8 @@
                 $(id).val("");
             }
         });
+
+        $("#txtDobIndividual").val(getAllBusinessDate());
 
         const individualCheckboxes = [
             "#txtActiveIndividual", "#txtContactIndividual",
@@ -959,6 +988,58 @@
                 $(id)[0].tomselect.clear();
             }
         });
+        //Contact
+        const contactInputs = [
+            "#txtCodeContact", "#txtFullNameContact", "#txtFirstNameContact",
+            "#txtLastContact", "#txtMiddleNameContact", "#txtPositionContact",
+            "#txtDeptContact", "#txtSalulationContact", "#txtAddressContact",
+            "#txtHomeAddressContact", "#txtPostalCodeContact", "#txtARContact",
+            "#txtTelephoneContact", "#txtFaxContact", "#txtEmailContact",
+            "#txtWebsiteContact", "#txtHandPhoneContact"
+        ];
+
+        contactInputs.forEach(id => {
+            if ($(id).length) {
+                $(id).val("");
+            }
+        });
+
+        // 2. Xử lý Date of Birth (Set về ngày hệ thống/kinh doanh)
+        if (typeof getAllBusinessDate === "function") {
+            $("#txtDobContact").val(getAllBusinessDate());
+        }
+
+        // 3. Danh sách các Checkbox
+        const contactCheckboxes = [
+            "#txtActiveContact"
+        ];
+
+        contactCheckboxes.forEach(id => {
+            if ($(id).length) {
+                $(id).prop("checked", false);
+            }
+        });
+
+        // Riêng checkbox điều khiển disable của DOB thường mặc định là checked (để disable input)
+        if ($("#txtCheckboxDobContact").length) {
+            $("#txtCheckboxDobContact").prop("checked", true);
+            $("#txtDobContact").prop("disabled", true);
+        }
+
+        // 4. Danh sách các TomSelect (Dựa trên biến tomSelectInstances của bạn)
+        const contactTomSelects = [
+            "#txtLanguageContact", "#txtTitleContact", "#txtCityContact",
+            "#txtStateContact", "#txtCountryContact", "#txtOwnerContact",
+            "#txtTerritoryContact"
+        ];
+
+        contactTomSelects.forEach(id => {
+            // Kiểm tra instance trong object tomSelectInstances mà bạn đã khai báo ở script trên
+            if (tomSelectInstances && tomSelectInstances[id]) {
+                tomSelectInstances[id].clear();
+            }
+        });
+
     }
 
 
