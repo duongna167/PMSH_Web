@@ -206,29 +206,47 @@ namespace RoomManagement.Controllers
             return View();
         }
 
-        [HttpPost("UpdateItemInventory")]
-        public IActionResult UpdateItemInventory([FromBody] InventoryUpdateRequest model)
+        [HttpPost]
+        public IActionResult UpdateItemInventory(int ItemID, DateTime Date, DateTime MatchDate,int Quantity,int UserID)
         {
-            if (model == null)
+            if (ItemID == null)
                 return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ" });
 
             try
             {
-                var userId = HttpContext.Session.GetInt32("UserID") ?? 0;
-                if (userId == 0)
+
+
+                _logger.LogInformation($"UpdateItemInventory called with ItemID={ItemID}, Date={Date}, Quantity={Quantity}, UserID={UserID}");
+                List<ItemInventoryModel> listzo = PropertyUtils.ConvertToList<ItemInventoryModel>(ItemInventoryBO.Instance.FindAll()).Where(x => x.ItemID == ItemID && x.Date.Date == MatchDate.Date).ToList();
+
+                var listitem = listzo[0];
+                listitem.ItemID = ItemID;
+
+                // Thông tin người dùng
+                listitem.Date = Date;
+                listitem.Quantity = Quantity;
+                listitem.UserUpdateID = UserID;
+                listitem.UpdateDate = DateTime.Now;
+                try
                 {
-                    return Unauthorized(new { success = false, message = "User chưa đăng nhập" });
+                    ItemInventoryBO.Instance.Update(listitem);
+
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "Inventory updated successfully"
+                    });
                 }
-                model.UserID = userId;
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error updating inventory");
 
-                _logger.LogInformation($"UpdateItemInventory called with ItemID={model.ItemID}, Date={model.Date}, Quantity={model.Quantity}, UserID={model.UserID}");
-
-                bool success = _iRoomManagementService.UpdateItemInventory(model);
-
-                if (success)
-                    return Ok(new { success = true, message = "Cập nhật thành công" });
-                else
-                    return NotFound(new { success = false, message = "Không tìm thấy dữ liệu phù hợp" });
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Failed to update inventory"
+                    });
+                }
             }
             catch (Exception ex)
             {
