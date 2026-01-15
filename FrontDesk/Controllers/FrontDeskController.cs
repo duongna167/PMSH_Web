@@ -17,11 +17,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using BaseBusiness.util; 
 using Microsoft.Data.SqlClient;
-using DevExpress.XtraPrinting.Export.Pdf;
 using Org.BouncyCastle.Asn1;
 using System.ServiceModel.Channels;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using DevExpress.Data.ODataLinq;
+using System.Net.NetworkInformation;
 namespace FrontDesk.Controllers
 {
     public class FrontDeskController : Controller
@@ -47,23 +47,32 @@ namespace FrontDesk.Controllers
             List<TelephoneBookCategoryModel> tlplist = PropertyUtils.ConvertToList<TelephoneBookCategoryModel>(TelephoneBookCategoryBO.Instance.FindAll());
             var sortedList = tlplist.OrderBy(x => x.Name).ToList();
             ViewBag.TelephoneBookCategoryList = sortedList;
+            DataTable dataTable = _iFrontDeskService.TelephoneBook("","","");
+            var result = (from d in dataTable.AsEnumerable()
+                          select new
+                          {
+                              id = d["id"]?.ToString(),
+                              name = d["name"]?.ToString(),
+
+                          }).ToList();
+            ViewBag.TelephoneSelect = result;
             return View();
         }
         [HttpGet]
-        public JsonResult GetTelephoneBook(int? categoryId = null)
+        public JsonResult GetTelephoneBook(string CategoryCode,string BookCode)
         {
+            CategoryCode = CategoryCode ?? "";
+            BookCode = BookCode ?? "";
             try
             {
-                var list = TelephoneBookBO.Instance.FindAll();
-                var result = list.Cast<TelephoneBookModel>().ToList();
-                List<TelephoneBookCategoryModel> tlplist = PropertyUtils.ConvertToList<TelephoneBookCategoryModel>(TelephoneBookCategoryBO.Instance.FindAll());
-                bool hasAllCategory = tlplist.Any(c => c.Name != null && c.Name.Trim() == "--All--");
+                DataTable dataTable = _iFrontDeskService.TelephoneBook("", CategoryCode, BookCode);
+                var result = (from d in dataTable.AsEnumerable()
+                              select new
+                              {
+                                  id = d["id"]?.ToString(),
+                                  name = d["name"]?.ToString(),
 
-                // Nếu có "--All--" thì hiển thị hết, không lọc
-                if (!hasAllCategory && categoryId.HasValue && categoryId.Value > 0)
-                {
-                    result = result.Where(x => x.TelephoneBookCategoryID == categoryId.Value).ToList();
-                }
+                              }).ToList();
 
                 return Json(result);
             }
@@ -74,12 +83,23 @@ namespace FrontDesk.Controllers
         }
 
         [HttpGet]
-        public JsonResult GetTelephoneById(int id)
+        public JsonResult GetTelephoneDetail(int id)
         {
             try
             {
-                var obj = (TelephoneBookModel)TelephoneBookBO.Instance.FindByPrimaryKey(id);
-                return Json(obj);
+                string sql = @"SELECT ID, Name, Telephone, Address, Remark, Color
+               FROM TelephoneBook
+               WHERE ID > 0";
+
+                if (id != 0)
+                {
+                    sql += " AND TelephoneBookCategoryID = " + id;
+                }
+
+                sql += " ORDER BY Name";
+
+                DataTable dt = TextUtils.Select(sql);
+                return Json(dt);
             }
             catch (Exception ex)
             {
