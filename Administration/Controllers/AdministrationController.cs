@@ -1,22 +1,24 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using Administration.Services.Implements;
+﻿using Administration.Services.Implements;
 using Administration.Services.Interfaces;
 using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using DevExpress.CodeParser;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Net;
+using System.Security.Policy;
+using System.Text;
+using System.Threading.Tasks;
 using static BaseBusiness.util.ValidationUtils;
 namespace Administration.Controllers
 {
@@ -1023,10 +1025,10 @@ namespace Administration.Controllers
         }
 
         [HttpGet]
-        public IActionResult PersonInChargeData( string code, string description, string group, string zone,string  isActive)
+        public IActionResult PersonInChargeData( string code, string name, string group, string zone,string  isActive)
         {
             code = code ?? "";
-            description = description ?? "";
+            name = name?? "";
             group = group ?? "";
             zone = zone ?? "";
             isActive = isActive ?? "";
@@ -1037,7 +1039,7 @@ namespace Administration.Controllers
 
             try
             {
-                DataTable dataTable = _iAdministrationService.PersonInChargeData(code, description, group, zone, isActive);
+                DataTable dataTable = _iAdministrationService.PersonInChargeData(code, name, group, zone, isActive);
                 var result = (from d in dataTable.AsEnumerable()
                               select new
                               {
@@ -1161,6 +1163,136 @@ namespace Administration.Controllers
             }
         }
         #endregion
+
+        #region PersonInCharge
+        [HttpGet]
+        public IActionResult GetPersonInCharge(string code, string name, string group, string zone, string isActive)
+        {
+            try
+            {
+                DataTable dataTable = _iAdministrationService.PersonInChargeData(code, name, group, zone, isActive);
+                var result = (from d in dataTable.AsEnumerable()
+                              select new
+                              {
+                                  ID = d["ID"] != DBNull.Value ? Convert.ToInt32(d["ID"]) : 0,
+                                  Code = d["Code"]?.ToString() ?? "",
+                                  Name = d["Name"]?.ToString() ?? "",
+                                  TelePhone = d["TelePhone"]?.ToString() ?? "",
+                                  Mobile = d["Mobile"]?.ToString() ?? "",
+                                  Email = d["Email"]?.ToString() ?? "",
+                                  Description = d["Description"]?.ToString() ?? "",
+                                  ZoneID = d["ZoneID"] != DBNull.Value ? Convert.ToInt32(d["ZoneID"]) : 0,
+                                  GroupID = d["GroupID"] != DBNull.Value ? Convert.ToInt32(d["GroupID"]) : 0,
+                                  CreatedBy = d["CreatedBy"]?.ToString() ?? "",
+                                  CreatedDate = d["CreatedDate"] != DBNull.Value ? Convert.ToDateTime(d["CreatedDate"]).ToString("yyyy-MM-dd HH:mm:ss") : "",
+                                  UpdatedBy = d["UpdatedBy"]?.ToString() ?? "",
+                                  UpdatedDate = d["UpdatedDate"] != DBNull.Value ? Convert.ToDateTime(d["UpdatedDate"]).ToString("yyyy-MM-dd HH:mm:ss") : "",
+                                  Inactive = d["Inactive"]?.ToString() ?? "",
+
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+        [HttpPost]
+        public IActionResult PersonInChargeSave([FromBody] List<PropertyPermissionModel> listModels)
+        {
+            var listErrors = GetErrors(
+                Check(listModels, "general", "No data received."),
+                Check(listModels != null && listModels.Count == 0, "general", "No data received.")
+            );
+
+            if (listErrors.Count > 0)
+            {
+                return Json(new { success = false, errors = listErrors });
+            }
+
+            try
+            {
+                int rowIndex = 1;
+                int successCount = 0;
+
+                foreach (var model in listModels)
+                {
+                    var rowErrors = GetErrors(
+                        Check(model.UserID, "chooseUser", $"Row {rowIndex}: User is not blank."),
+                        Check(model.PropertyID, "choosePropertyType", $"Row {rowIndex}: Property is not blank.")
+                    );
+
+                    if (rowErrors.Count > 0)
+                    {
+                        return Json(new
+                        {
+                            success = false,
+                            message = rowErrors[0].Message,
+                            errors = rowErrors
+                        });
+                    }
+
+                    if (model.ID == 0)
+                    {
+                        model.CreatedDate = DateTime.Now;
+                        model.UpdatedDate = DateTime.Now;
+                        PropertyPermissionBO.Instance.Insert(model);
+                    }
+                    else
+                    {
+                        var oldData = (PropertyPermissionModel)PropertyPermissionBO.Instance.FindByPrimaryKey(model.ID);
+                        if (oldData != null)
+                        {
+                            model.CreatedBy = oldData.CreatedBy;
+                            model.CreatedDate = oldData.CreatedDate;
+                        }
+                        model.UpdatedDate = DateTime.Now;
+                        PropertyPermissionBO.Instance.Update(model);
+                    }
+
+                    successCount++;
+                    rowIndex++;
+                }
+
+                return Json(new { success = true, message = $"Successfully saved {successCount} permissions!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error: " + ex.Message });
+            }
+        }
+        [HttpPost]
+        public IActionResult DeletePersonInCharge([FromBody] List<int> ids)
+        {
+            string message = "";
+            int successCount = 0;
+
+            try
+            {
+                if (ids == null || ids.Count == 0)
+                {
+                    return Json(new { success = false, message = "No items selected to delete." });
+                }
+
+                foreach (var id in ids)
+                {
+                    if (id > 0)
+                    {
+                        PropertyPermissionBO.Instance.Delete(id);
+                        successCount++;
+                    }
+                }
+
+                message = $"Successfully deleted {successCount} items!";
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+
+            return Json(new { success = true, message });
+        }
+        #endregion 
 
         #region PersonInChargeGroup
         public ActionResult PersonInChargeGroup()

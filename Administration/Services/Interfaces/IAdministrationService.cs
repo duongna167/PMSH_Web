@@ -52,7 +52,7 @@ namespace Administration.Services.Interfaces
                 public DataTable PersonInChargeGroupData(string code, string name, string isActive);
                 public DataTable PersonInChargeZoneData(string code, string name, string isActive);
                 public DataTable ApproveListData(string code, string name, string isActive);
-                public DataTable PersonInChargeData(string code, string description, string group, string zone, string isActive);
+                public DataTable PersonInChargeData(string code, string name, string group, string zone, string isActive);
                 public DataTable RateCategory(string code, string name, int inactive);
                 public DataTable DepositRule(string code, string description);
                 public DataTable CancellationRule(string code, string description);

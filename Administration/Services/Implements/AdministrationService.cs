@@ -511,12 +511,12 @@ namespace Administration.Services.Implements
             return myTable;
         }
 
-        public DataTable PersonInChargeData(string code, string description, string group, string zone, string isActive)
+        public DataTable PersonInChargeData(string code, string name, string group, string zone, string isActive)
         {
             SqlParameter[] param = new SqlParameter[]
             {
                 new SqlParameter("@Code", code),
-                new SqlParameter("@Name", description),
+                new SqlParameter("@Name", name),
                 new SqlParameter("@GroupID", group),
                 new SqlParameter("@ZoneID",zone),
                 new SqlParameter("@Inactive", isActive)
