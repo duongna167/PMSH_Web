@@ -33,7 +33,7 @@
                         <a href="#" onclick="openModalPaymentBilling();"> Payment</a>
                         <a href="#" onclick="openModalEditPosting();"> Deposit</a>
 
-                        <a href="#" class="" id="toggleFunctionMenu">Show Func.</a>
+                        @* <a href="#" class="" id="toggleFunctionMenu">Show Func.</a> *@
                         <a href="#" class="" data-bs-dismiss="modal" id="btn-close"> Close</a>
                     </div>
 
@@ -179,8 +179,8 @@
                     <textarea class="form-control form-control-sm" id="descriptionDeletionReason" rows="3"></textarea>
                 </div>
                 <div class="d-flex justify-content-end gap-2">
-                    <button class="mui-button mui-button-option border" onclick="closeModalConfirmTransaction();"> Close</button>
-                    <button class="mui-button mui-button-delete border" onclick="confirmDelete();">Confirm Delete</button>
+                    <button class="mui-button mui-button-option" onclick="closeModalConfirmTransaction();"> Close</button>
+                    <button class="mui-button mui-button-delete" onclick="confirmDelete();">Confirm Delete</button>
                 </div>
             </div>
         </div>
@@ -202,17 +202,16 @@
 
 <script>
     $(document).ready(function() {
-        // Toggle Option Menu
-        $("#toggleFunctionMenu").on("click", function(e) {
-            e.stopPropagation(); 
-            $("#functionMenu").toggle();
-        });
 
-        // Ẩn menu khi click ra ngoài
-        $(document).on("click", function(e) {
-            if (!$(e.target).closest("#toggleFunctionMenu, #functionMenu").length) {
+        $(document).on("mousedown", function(e) {
+            if (!$(e.target).closest("#functionMenu").length) {
                 $("#functionMenu").hide();
             }
+        });
+
+        // Ngăn chặn menu bị ẩn khi click vào các dropdown bên trong nó
+        $("#functionMenu").on("click", function(e) {
+            e.stopPropagation();
         });
 
         getDeletionReason();
@@ -255,7 +254,7 @@
          });
     }
     invoiceNoPosting = 0;
-    var listFolioNoID = [];
+
     function getFolioNo() {
         if(typeof lastname !== 'undefined' && typeof idReservation !== 'undefined'){
              if(folioNoID === 0) {
@@ -371,6 +370,7 @@
     function getTotalAmount(data) {
         return data.reduce((total, item) => total + (parseFloat(item.amount) || 0), 0);
     }
+
     var folioDetailID = 0;
     var transCodeBilling = "";
     
@@ -541,8 +541,16 @@
 
                     if (component.isRowSelected(key)) {
                         component.deselectRows([key]);
+                        $("#functionMenu").hide();
+
                     } else {
                         component.selectRows([key], true);
+                        const menu = $("#functionMenu");
+                        menu.css({
+                            display: "block",
+                            left: e.event.pageX + 5 + "px", // Cách con trỏ 5px
+                            top: e.event.pageY + 5 + "px"
+                        });
                     }
                 }
             },
@@ -560,6 +568,10 @@
                     selectedRows.forEach(function(item) {
                         totalSelected += (parseFloat(item.amount) || 0);
                     });
+                }
+
+                if (selectedRows.length === 0) {
+                    $("#functionMenu").hide(); 
                 }
 
                 $('#totalBillingMaster').text(totalSelected.toLocaleString('vi-VN'));
@@ -653,7 +665,7 @@
     var subGroupTransaction = [];
     var transactionList = [];
     var articleList = [];
-        var groupTransactionSelectOption = [];
+    var groupTransactionSelectOption = [];
     var subGroupTransactionSelectOption = [];
     var transactionListSelectOption = [];
 
@@ -1186,6 +1198,5 @@
 
         window.open(doc.output("bloburl"), "_blank");
     }
-    // end function print
-
+    // end print
 </script>

@@ -108,7 +108,7 @@ namespace BaseBusiness.BO
             return myTable;
         }
 
-        public static DataTable GetAllProfileTest(string code, string account, string firstName, string keyWord, string city, string type, bool showSaleInCharge, int skip, int take)
+        public static (DataTable, int) GetAllProfileTest(string code, string account, string firstName, string keyWord, string city, string type, bool showSaleInCharge, int skip, int take)
         {
             if (string.IsNullOrEmpty(code))
             {
@@ -188,8 +188,10 @@ namespace BaseBusiness.BO
                     new SqlParameter("@Skip", skip),
                     new SqlParameter("@Take", take)
             };
-            DataTable myTable = DataTableHelper.getTableData("spProfileSearch_Test", param);
-            return myTable;
+            DataSet ds = DataTableHelper.GetDataSet("spProfileSearch_Test", param);
+            DataTable myTable = ds.Tables[0];
+            int totalCount = Convert.ToInt32(ds.Tables[1].Rows[0][0]);
+            return (myTable, totalCount);
         }
 
         public static (DataTable, int) GetAllProfile2(string code, string account, string firstName, string keyWord, string city, int type, bool showSaleInCharge, int page, int pageSize)

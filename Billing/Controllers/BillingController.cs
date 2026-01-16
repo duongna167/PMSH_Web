@@ -2560,6 +2560,8 @@ namespace Billing.Controllers
                             item.RoomTypeID = roomTypeInfo.ID;
                         }
                     }
+
+                    #region Lưu transaction vào folio detail
                     item.CreateDate = DateTime.Now;
                     item.UpdateDate = DateTime.Now;
                     item.TransactionDate = DateTime.Now.Date;
@@ -2578,6 +2580,30 @@ namespace Billing.Controllers
                     item.IsTransfer = false;
 
                     FolioDetailBO.Instance.Insert(item);
+                    #endregion
+
+                    #region lưu posting history
+
+                    PostingHistoryModel postingHistory = new PostingHistoryModel();
+                    postingHistory.ActionType = 0;
+                    postingHistory.ActionText = $"[POST_GEN] - {item.TransactionCode} - {item.Description}";
+                    postingHistory.ActionDate = DateTime.Now;
+                    postingHistory.ActionUser = item.UserName;
+                    postingHistory.Amount = item.Amount;
+                    postingHistory.InvoiceNo = item.InvoiceNo;
+                    postingHistory.Supplement = "";
+                    postingHistory.Code = item.TransactionCode;
+                    postingHistory.Description = item.Description;
+                    postingHistory.TransactionDate = item.TransactionDate;
+                    postingHistory.ReasonCode = "";
+                    postingHistory.ReasonText = "";
+                    postingHistory.Terminal = "";
+                    postingHistory.Machine = Environment.MachineName;
+                    postingHistory.Action_FolioID = postingHistory.AfterAction_FolioID = item.FolioID;
+                    postingHistory.Property = "PMS";
+                    PostingHistoryBO.Instance.Insert(postingHistory);
+                    #endregion
+
                 }
 
                 return Ok(new { success = true, message = "Posting successful!", invoiceNo = batchInvoiceNo });

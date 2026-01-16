@@ -511,12 +511,12 @@ namespace Administration.Services.Implements
             return myTable;
         }
 
-        public DataTable PersonInChargeData(string code, string description, string group, string zone, string isActive)
+        public DataTable PersonInChargeData(string code, string name, string group, string zone, string isActive)
         {
             SqlParameter[] param = new SqlParameter[]
             {
                 new SqlParameter("@Code", code),
-                new SqlParameter("@Name", description),
+                new SqlParameter("@Name", name),
                 new SqlParameter("@GroupID", group),
                 new SqlParameter("@ZoneID",zone),
                 new SqlParameter("@Inactive", isActive)
@@ -525,36 +525,36 @@ namespace Administration.Services.Implements
             DataTable myTable = DataTableHelper.getTableData("spPersonInChargeSearch", param);
             return myTable;
         }
-        public DataTable PersonInChargeGroupData(string code, string description, string isActive)
+        public DataTable PersonInChargeGroupData(string code, string name, string isActive)
         {
             SqlParameter[] param = new SqlParameter[]
             {
                 new SqlParameter("@Code", code),
-                new SqlParameter("@Name", description),
+                new SqlParameter("@Name", name),
                 new SqlParameter("@Inactive", isActive)
             };
 
             DataTable myTable = DataTableHelper.getTableData("spFrmPersonInChargeGroupSearch", param);
             return myTable;
         }
-        public DataTable PersonInChargeZoneData(string code, string description, string isActive)
+        public DataTable PersonInChargeZoneData(string code, string name, string isActive)
         {
             SqlParameter[] param = new SqlParameter[]
             {
                 new SqlParameter("@Code", code),
-                new SqlParameter("@Name", description),
+                new SqlParameter("@Name", name),
                 new SqlParameter("@Inactive", isActive)
             };
 
             DataTable myTable = DataTableHelper.getTableData("spFrmPersonInChargeZoneSearch", param);
             return myTable;
         }
-        public DataTable ApproveListData(string code, string description, string isActive)
+        public DataTable ApproveListData(string code, string name, string isActive)
         {
             SqlParameter[] param = new SqlParameter[]
             {
                 new SqlParameter("@Code", code),
-                new SqlParameter("@Name", description),
+                new SqlParameter("@Name", name),
                 new SqlParameter("@Inactive", isActive)
             };
 

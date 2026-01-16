@@ -5,93 +5,6 @@
     var selectedReport = @ViewBag.ReportHeader;
 
 }
-<style>
-    .dx-datagrid-headers .dx-header-row td {
-        white-space: pre-line !important;
-        text-align: center;
-        font-size: 11px;
-    }
-
-
-    .dx-datagrid .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default,
-    .dx-datagrid-container .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default {
-        display: none;
-    }
-
-
-    .filter_wrapper {
-        /*     background-color: #ececec; */
-        /*   margin: 0px 8px 14px 8px; */
-        padding: 18px 0px 0px 14px;
-        border-radius: 8px;
-    }
-
-    .gridContainer {
-        margin: 0px 8px;
-    }
-
-    .button_wrapper {
-        display: flex;
-        column-gap: 12px;
-        margin: 0px 8px;
-    }
-
-    .button_wrapper .fa-solid {
-        margin-right: 5px;
-    }
-
-    .selected {
-        background-color: #4CAF50;
-        /* Màu xanh */
-        color: white;
-    }
-
-
-
-    .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
-    }
-
-    .sticky-header label[class*="me-"] {
-        margin-right: .5rem !important;
-    }
-
-
-    .sticky-header input[type="date"].form-control-sm {
-        font-size: 12px !important;
-        /* dúng 12?px */
-        height: calc(1.1em + .2rem + 2px);
-        /* gi? cùng chi?u cao */
-    }
-
-    .sticky-header label {
-        font-size: 12px !important;
-        line-height: 1.2;
-    }
-
-    .tomselect-custom {
-        width: 250px;
-        min-height: 30px;
-        /* ho?c tùy theo chi?u cao b?n mu?n */
-        font-size: 0.65rem;
-    }
-
-    .sort-select {
-        max-width: 130px;
-        /* ho?c 100px n?u mu?n nh? hon */
-        font-size: 12px;
-        padding: 0.15rem 0.5rem;
-    }
-
-    .sort-select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-image: none !important;
-        padding-right: 10px !important;
-    }
-</style>
 
 <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
@@ -100,11 +13,11 @@
     <div class="">
         <button id="btnPrint" class="mui-button button-report-view"> View</button>
         <button id="btnNew" class="mui-button mui-button-new"> New</button>
-        <button id="btnUpdate" class="mui-button mui-button-edit">  Edit</button>
-        <button id="btnDelete" class="mui-button button-report-delete"> 
+        <button id="btnUpdate" class="mui-button mui-button-edit"> Edit</button>
+        <button id="btnDelete" class="mui-button button-report-delete">
             Delete</button>
-        <button id="btnResolve" class="mui-button mui-button-resolve">  Resolve</button>
-        <button id="btnUnsolve" class="mui-button mui-button-unsolve"> 
+        <button id="btnResolve" class="mui-button mui-button-resolve"> Resolve</button>
+        <button id="btnUnsolve" class="mui-button mui-button-unsolve">
             Unsolve</button>
         <button id="btnExportExcel" class="mui-button mui-button-export" type="button"> Excel</button>
 
@@ -115,104 +28,107 @@
     <div id="gridContainer" class="gridContainer mt-2"></div>
 </div>
 <div id="overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999;"></div>
-<div id="popupNewArtraces" style="display: none; position: fixed; top: 50%; left: 50%;
-    transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px;
-    z-index: 1050; box-shadow: 0 0 10px rgba(0,0,0,0.3); min-width: 400px; max-height: 600px; overflow-y: auto;">
 
-    <div class="d-flex justify-content-between mb-2">
-        <h5 id="textPopup" class="mb-0"> AR Trace New</h5>
+<div class="modal fade" id="popupNewArtraces" tabindex="-1" aria-labelledby="popupNewArtracesLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
 
-    </div>
-    <div class="d-flex justify-content-start mb-3 gap-2">
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnSearchAuto" class="mui-button mui-button-advance"
-            type="button"> Search</button>
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnOkAuto" class="mui-button mui-button-advance"
-            type="button"> Ok</button>
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnOkAutoUpdate"
-            class="mui-button mui-button-advance" type="button"> Ok</button>
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnSaveAuto" class="mui-button mui-button-new"
-            type="button"> Save</button>
-        <button onclick="$('#popupNewArtraces').hide()" id="btnClosePopup" class="btn btn-sm mui-button-close"
-            style=" border-radius: 4px;">
-             Close
-        </button>
-    </div>
-    <div class="sticky-header bg-white p-2 shadow-sm z-3">
-        <div class="d-flex flex-wrap align-items-center gap-2 mb-1 filter-panel">
-            <div class="d-flex align-items-center flex-wrap mb-2">
-
-                <div class="d-flex align-items-start mb-3">
-                    <!-- Trace Time -->
-                    <div class="d-flex align-items-center me-4">
-                        @*           <label for="tracetime" class="me-2 mb-0">Account name:</label> *@
-                        <div id="gridSelectedAccount" class="gridContainer mt-2"></div>
-                    </div>
-
-                </div>
-                <div class="d-flex align-items-start mb-3">
-                    <input type="text" id="idselectedRowData" name="idselectedRowData" style="display:none !important"
-                        class="form-control form-control-sm w-auto" />
-                    <div class="d-flex align-items-center me-4">
-                        <label for="tracetime" class="me-2 mb-0">Created By:</label>
-                        <input readonly id="createdBy" name="tracetime" class="form-control form-control-sm w-auto" />
-                    </div>
-                    <div class="d-flex align-items-center me-4">
-                        <label for="tracetime" class="me-2 mb-0">Created At:</label>
-                        <input readonly type="datetime-local" id="createdDate" name="tracetime"
-                            class="form-control form-control-sm w-auto" />
-                    </div>
-                </div>
-                <div class="d-flex align-items-start mb-3">
-                    <!-- Trace Time -->
-                    <div class="d-flex align-items-center me-4">
-                        <label for="tracetime" class="me-2 mb-0">Trace Time:</label>
-                        <input type="datetime-local" id="tracetime" name="tracetime"
-                            class="form-control form-control-sm w-auto" />
-                    </div>
-
-                    <!-- Trace Text -->
-                    <div class="d-flex align-items-start">
-                        <label for="tracetext" class="me-2 mt-1">Trace Text:</label>
-                        <textarea id="tracetext" name="tracetext" class="form-control form-control-sm" rows="3"
-                            style="width:300px; height:200px;"></textarea>
-                    </div>
-
-                </div>
-
-
-
-
-
-
+            <!-- Header -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="popupNewArtracesLabel">
+                    <span id="textPopup">AR Trace New</span>
+                </h5>
             </div>
+
+            <!-- Body -->
+            <div class="modal-body">
+
+                <!-- Action buttons -->
+                <div class="d-flex justify-content-start gap-2 flex-wrap">
+                    <button id="btnSearchAuto" class="mui-button mui-button-advance" type="button">
+                        Search
+                    </button>
+                    <button id="btnOkAutoUpdate" class="mui-button mui-button-advance" type="button">
+                        Save
+                    </button>
+                    <button id="btnSaveAuto" class="mui-button mui-button-new" type="button">
+                        Save
+                    </button>
+                    <button id="btnClosePopup" class="mui-button mui-button-new" data-bs-dismiss="modal" type="button">
+                        Close
+                    </button>
+                </div>
+
+                <!-- Sticky content -->
+                <div class="sticky-top bg-white p-2 shadow-sm">
+
+                    <!-- Selected account -->
+                    <div class="mb-3">
+                        <div id="gridSelectedAccount" class="gridContainer"></div>
+                    </div>
+
+                    <!-- Hidden id -->
+                    <input type="text" id="idselectedRowData" name="idselectedRowData"
+                        style="display:none !important" />
+
+                    <!-- Trace info -->
+                    <div class="d-flex flex-wrap mb-3">
+                        <div class="d-flex align-items-center me-4 mb-2">
+                            <label class="me-2 mb-0">Trace Time:</label>
+                            <input type="date" id="tracetime" class="form-control form-control-sm w-auto"
+                                data-business-date />
+                        </div>
+
+                        <div class="d-flex align-items-start mb-2">
+                            <label class="me-2 mt-1">Trace Text:</label>
+                            <textarea id="traceText" class="form-control form-control-sm" rows="4"
+                                style="width:320px; height: 50px;"></textarea>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
         </div>
-
     </div>
 </div>
 
-<div id="popupSearchArtraces" style="display: none; position: fixed; top: 50%; left: 50%;
-    transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px;
-    z-index: 1050; box-shadow: 0 0 10px rgba(0,0,0,0.3); min-width: 400px; height: 688px; overflow-y: auto;">
 
-    <div class="d-flex justify-content-between mb-2">
-        <h5 class="mb-0"> AR Trace - Select Account</h5>
+<div class="modal fade" id="popupSearchArtraces" tabindex="-1" role="dialog" aria-labelledby="popupSearchArtracesLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
 
-    </div>
-    <div class="d-flex justify-content-start mb-3 gap-2">
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnOkSelect" class="mui-button mui-button-advance"
-            type="button"> Ok</button>
-        <button onclick="$('#popupSearchArtraces').hide()" id="btnClosepSearchArtracesPopup"
-            class="btn btn-sm mui-button-close" style=" border-radius: 4px;">
-             Close
-        </button>
-    </div>
-    <div class="mui-card">
+            <!-- Header -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="popupSearchArtracesLabel">
+                    AR Trace - Select Account
+                </h5>
+                </button>
+            </div>
 
-        <div id="gridContainerSelectAccount" class="gridContainer mt-2"></div>
+            <!-- Body -->
+            <div class="modal-body">
+                <div class="d-flex justify-content-start gap-2">
+                    <button id="btnOkSelect" class="mui-button mui-button-advance" type="button">
+                        Ok
+                    </button>
 
+                    <button id="btnClosepSearchArtracesPopup" class="mui-button mui-button-new" data-bs-dismiss="modal"
+                        type="button">
+                        Close
+                    </button>
+                </div>
 
+                <div class="mui-card">
+                    <div id="gridContainerSelectAccount" class="gridContainer mt-2"></div>
+                </div>
+            </div>
+
+        </div>
     </div>
 </div>
+
 
 <div id="loadingSpinner"
     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
@@ -220,46 +136,28 @@
 </div>
 
 <script>
-
     $(document).ready(function () {
         $("#btnResolve").hide();
         $("#btnUnsolve").hide();
         $("#btnPrint").trigger("click");
-
-        var businessDateStr = '@ViewBag.BusinessDate'; // ví dụ: '8/29/2024 12:00:00 AM'
-        console.log("Raw BusinessDate:", businessDateStr);
-
-        // Tách phần ngày
-        var parts = businessDateStr.split(' ');
-        var dateParts = parts[0].split('/'); // ['8','29','2024']
-
-        // Lấy giờ hiện tại
-        var now = new Date();
-        var currentHour = now.getHours();
-        var currentMinute = now.getMinutes();
-
-        // Tạo đối tượng Date mới với NGÀY từ businessDateStr và GIỜ hiện tại
-        var parsedBusinessDate = new Date(dateParts[2], dateParts[0] - 1, dateParts[1], currentHour, currentMinute);
-
-        // Hàm format theo chuẩn datetime-local: "YYYY-MM-DDTHH:mm"
-        function formatDateTimeLocal(date) {
-            const pad = (num) => num.toString().padStart(2, '0');
-            return (
-                date.getFullYear() +
-                '-' + pad(date.getMonth() + 1) +
-                '-' + pad(date.getDate()) +
-                'T' + pad(date.getHours()) +
-                ':' + pad(date.getMinutes())
-            );
-        }
-
-        // Gán vào input
-        $('#tracetime').val(formatDateTimeLocal(parsedBusinessDate));
-
-        console.log("Formatted:", formatDateTimeLocal(parsedBusinessDate));
     });
 
+    function toDateOnly(value) {
+        if (!value) return '';
+        return value.substring(0, 10);
+    }
 
+    async function initializegridSelectedAccount(data) {
+        // Hiển thị danh sách đã chọn ở bảng thứ 2
+        $("#gridSelectedAccount").dxDataGrid({
+            dataSource: data,
+            showBorders: true,
+            height: "300px",
+            columns: [
+                { dataField: "accountName", caption: "Account Name", width: 466 }
+            ]
+        });
+    }
 
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
         $("#loadingSpinner").show();
@@ -296,17 +194,27 @@
                 allowedPageSizes: [20, 50, 100],
                 showInfo: true
             },
+            width: "100%",
+            height: "500px",
             filterRow: { visible: true },
             columns: [
-                { dataField: "id", caption: "ID", width: 80, visible: false },
-                { dataField: "name", caption: "Name", width: 200 },
-                { dataField: "traceAt", caption: "Trace Time", dataType: "date", format: "dd/MM/yyyy HH:mm", width: 160 },
-                { dataField: "resolvedAt", caption: "Resolved At", width: 120 },
-                { dataField: "resolvedBy", caption: "Resolved By", width: 120 },
-                { dataField: "createdBy", caption: "Created By", width: 120 },
-                { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy HH:mm", width: 160 },
-                { dataField: "updatedBy", caption: "Updated By", width: 120 },
-                { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy HH:mm", width: 160 },
+                { dataField: "id", caption: "ID", visible: false },
+
+                { dataField: "name", caption: "Name", width: "18%" },
+
+                { dataField: "traceAt", caption: "Trace Time", dataType: "date", format: "dd/MM/yyyy", width: "14%" },
+
+                { dataField: "resolvedAt", caption: "Resolved At", dataType: "date", format: "dd/MM/yyyy", width: "12%" },
+
+                { dataField: "resolvedBy", caption: "Resolved By", width: "9%" },
+
+                { dataField: "createdBy", caption: "Created By", width: "9%" },
+
+                { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy", width: "14%" },
+
+                { dataField: "updatedBy", caption: "Updated By", width: "8%" },
+
+                { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy", width: "16%" }
             ],
             scrolling: {
                 mode: "standard", // Không dùng virtual để footer hiển thị đúng
@@ -344,74 +252,74 @@
         });
     }
     $("#btnNew").on("click", function () {
+        $("#gridSelectedAccount").show();
+        initializegridSelectedAccount([]);
+        $("#btnOkAutoUpdate").hide();
+        $("#btnSearchAuto, #btnSaveAuto").show();
+
         if (!selectedRowDatasa || selectedRowDatasa.length === 0) {
-
             $("#btnSearchAuto").trigger("click");
-            $("#gridSelectedAccount").show();
-            $("#btnSearchAuto").show();
-            $("#btnOkAuto").show();
-            $("#btnSaveAuto").show();
-        }
-        else {
-            $("#gridSelectedAccount").show();
 
-            $("#btnSearchAuto").show();
-            $("#btnOkAuto").show();
-            $("#btnSaveAuto").show();
-            $("#createdBy").hide();
+            $("#createdDate").closest('.d-flex').hide();
+        } else {
             $("#createdDate").hide();
-            $('#overlay').fadeIn(200);
-            $('#popupNewArtraces').fadeIn(200);
         }
+
         $("#textPopup").text("AR Trace New");
+
+        $('#popupNewArtraces').modal('show');
     });
+
     $("#btnUpdate").on("click", function () {
+        $("#btnOkAutoUpdate").show();
+        $("#gridSelectedAccount").hide();
         $("#textPopup").text("AR Trace Edit");
-        if (selectedRowData.length === 0) {
+        if (!selectedRowData || selectedRowData.length === 0) {
             showToast('Error', "Please select at least one account!", false);
             return;
         }
-        $("#gridSelectedAccount").hide();
+        console.log('selectedRowData', selectedRowData);
+
         $("#btnSearchAuto").hide();
-        $("#btnOkAuto").hide();
         $("#btnSaveAuto").hide();
         $("#idselectedRowData").val(selectedRowData.id);
-        $("#tracetime").val(selectedRowData.traceAt);
-        $("#tracetext").val(selectedRowData.traceText);
-        $("#createdDate").val(selectedRowData.createdDate);
-        $("#createdBy").val(selectedRowData.createdBy);
-        $('#overlay').fadeIn(200);
-        $('#popupNewArtraces').fadeIn(200);
+        $("#tracetime").val(toDateOnly(selectedRowData.traceAt));
+        $("#traceText").val(selectedRowData.traceText);
+        $('#popupNewArtraces').modal('show');
 
     });
 
     $("#btnSearchAuto").on("click", function () {
 
-
-        $('#overlay').fadeIn(200);
-        $('#popupSearchArtraces').fadeIn(200);
+        // Hiển thị loading (nếu có)
         $("#loadingSpinner").show();
+
+        // Mở modal đúng cách
+        const modalEl = document.getElementById('popupSearchArtraces');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+
         $.ajax({
             url: '/Accounting/ARAccountReceivableSearch',
             type: 'GET',
-            data: {
-
-            },
+            data: {},
             traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            headers: {
+                "X-CSRF-TOKEN-HEADERNAME":
+                    $("input[name='__RequestVerificationToken']").val()
+            },
             success: function (result) {
-
                 console.log(result);
                 initializeARAccountReceivableSearchGrid(result);
                 $("#loadingSpinner").hide();
             },
             error: function () {
-                alert("Không th? t?i báo cáo.");
+                alert("Không thể tải dữ liệu.");
                 $("#loadingSpinner").hide();
             }
         });
     });
+
     var selectedRowDatasa = [];
 
     function initializeARAccountReceivableSearchGrid(data) {
@@ -468,7 +376,7 @@
 
     $("#btnOkAutoUpdate").on("click", function () {
 
-        if (selectedRowData.length === 0) {
+        if (!selectedRowData || selectedRowData.length === 0) {
             showToast('Error', "Please select at least one account!", false);
             return;
         }
@@ -480,7 +388,7 @@
             data: {
                 idselectedRowData: $("#idselectedRowData").val(),
                 tracetime: $("#tracetime").val(),
-                tracetext: $("#tracetext").val(),
+                traceText: $("#traceText").val(),
                 user: localStorage.getItem("Loginname")
 
             },
@@ -490,49 +398,7 @@
             success: function (result) {
                 if (result.success) {
                     showToast('Success', result.message, true);
-                    $('#popupNewArtraces').fadeOut(200);
-                    $('#overlay').fadeOut(200);
-                    $("#btnPrint").trigger("click");
-                    clearNewArtraces();
-                } else {
-                    showToast('Error', 'Please select before saving.', false);
-                }
-                console.log(result);
-
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-    $("#btnOkAuto").on("click", function () {
-
-        if (selectedRowDatasa.length === 0) {
-            showToast('Error', "Please select at least one account!", false);
-            return;
-        }
-
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/Accounting/ARTraceSave',
-            type: 'POST',
-            contentType: "application/json; charset=utf-8", // ✅ gửi JSON chuẩn
-            data: JSON.stringify({
-                tracetime: $("#tracetime").val(),
-                tracetext: $("#tracetext").val(),
-                user: localStorage.getItem("Loginname"),
-                selectedAccounts: selectedRowDatasa // ✅ gửi mảng sang server
-            }),
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if (result.success) {
-                    showToast('Success', result.message, true);
-                    $('#popupNewArtraces').fadeOut(200);
-                    $('#overlay').fadeOut(200);
+                    $('#popupNewArtraces').modal("hide");
                     $("#btnPrint").trigger("click");
                     clearNewArtraces();
                 } else {
@@ -562,7 +428,7 @@
             contentType: "application/json; charset=utf-8", // ✅ gửi JSON chuẩn
             data: JSON.stringify({
                 tracetime: $("#tracetime").val(),
-                tracetext: $("#tracetext").val(),
+                traceText: $("#traceText").val(),
                 user: localStorage.getItem("Loginname"),
                 selectedAccounts: selectedRowDatasa // ✅ gửi mảng sang server
             }),
@@ -571,6 +437,7 @@
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
                 if (result.success) {
+                    $('#popupNewArtraces').modal("hide");
                     showToast('Success', result.message, true);
                     clearNewArtraces();
                     $("#btnPrint").trigger("click");
@@ -663,19 +530,19 @@
     });
     function clearNewArtraces() {
 
-        $("#tracetext").val("");
-        $("#createdBy").val("");
+        $("#traceText").val("");
+        initializegridSelectedAccount([]);
+        selectedRowDatasa = null;
     }
     $('#btnClosePopup, #overlay').click(function () {
-        $('#popupNewArtraces').fadeOut(200);
-        $('#popupSearchArtraces').fadeOut(200);
-        $('#overlay').fadeOut(200);
+        $('#popupNewArtraces').modal('hide');
+        $('#popupSearchArtraces').modal('hide');
+        clearNewArtraces();
     });
 
     $('#btnClosepSearchArtracesPopup, #overlay').click(function () {
 
-        $('#popupSearchArtraces').fadeOut(200);
-        $('#overlay').fadeOut(200);
+        $('#popupSearchArtraces').modal('hide');
     });
 
     $("#btnOkSelect").on("click", function () {
@@ -684,22 +551,14 @@
             showToast('Error', "Please select at least one account!", false);
             return;
         }
-        $('#popupSearchArtraces').fadeOut(200);
-        $('#popupNewArtraces').fadeIn(200);
+        $('#popupSearchArtraces').modal('hide');
+        $('#popupNewArtraces').modal('show');
         // Tạo dữ liệu hiển thị cho bảng Selected
         const selectedAccounts = selectedRowDatasa.map(item => ({
             accountName: item.accountName
         }));
 
-        // Hiển thị danh sách đã chọn ở bảng thứ 2
-        $("#gridSelectedAccount").dxDataGrid({
-            dataSource: selectedAccounts,
-            showBorders: true,
-            height: 100,
-            columns: [
-                { dataField: "accountName", caption: "Account Name", width: 300 }
-            ]
-        });
+        initializegridSelectedAccount(selectedAccounts);
 
         console.log("Đã chọn:", selectedAccounts);
     });

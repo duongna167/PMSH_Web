@@ -1,4 +1,4 @@
-﻿@{
+﻿﻿@{
     ViewData["Title"] = "Search Profile";
 }
 
@@ -12,6 +12,10 @@
         padding: 0px 0px 0px 5px !important;
     }
 
+    .nav-tabs .nav-link {
+        color: #027C75 !important;
+    }
+
     /* Ensure modals scroll correctly */
     .gridContainer {
         min-height: 200px;
@@ -19,6 +23,21 @@
 
     .mui-card {
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1) !important;
+        min-height: 50vh;
+        padding: 10px;
+    }
+
+    .modal-body {
+        padding: 0 12px 0 12px !important;
+    }
+
+    .modal-body .tab-content .tab-pane {
+        padding: 0px;
+    }
+
+    .my-2 {
+        margin-top: 0rem !important;
+        margin-bottom: 0rem !important;
     }
 </style>
 <div id="loadingSpinner"
@@ -30,7 +49,7 @@
     <div class="header" style="justify-content:center;border:none">
         <h3 id="content-title">Search Profile</h3>
     </div>
-    <div class="functions-pane mb-2 row">
+    <div class="search-filter">
         <div class=" col-md-10">
             <button class="mui-button mui-button-new" onclick="getAllProfiles();">Search</button>
 
@@ -42,8 +61,6 @@
             <button class="mui-button mui-button-new"
                 onclick="window.location.href='@Url.Action("Index", "Home")'">Close</button>
         </div>
-    </div>
-    <div class="container ms-1">
         <!-- HÀNG 1: Select và Checkbox -->
         <div class="row g-3">
             <!-- View By -->
@@ -110,8 +127,7 @@
             </div>
         </div>
     </div>
-
-    <div class="mui-card mt-2">
+    <div class="mui-card">
         <div id="gridContainer" class="gridContainer"></div>
 
     </div>
@@ -196,6 +212,7 @@
     </div>
 </div>
 
+
 @await Html.PartialAsync("Options/Membership")
 @await Html.PartialAsync("Options/Changes")
 @await Html.PartialAsync("Options/Future")
@@ -236,6 +253,15 @@
         // grid profile
         initializeDataGrid();
     });
+
+    function clearFromProfile() {
+        resetForm();
+        applyValidationErrors([], "#profile_individual");
+        applyValidationErrors([], "#profile_com_ta_source");
+        applyValidationErrors([], "#profile_group");
+        applyValidationErrors([], "#profile_contact");
+    }
+
     function openModalOption() {
         $('#modalOption').modal('show');
     }
@@ -264,12 +290,12 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải chi tiết danh sách danh mục dịch vụ hoặc bạn không có quyền tải");
+                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
                 }
             }
         });
     }
-     function getAllProfiles() {
+    function getAllProfiles() {
         $("#loadingSpinner").show();
         if (gridInstance) {
             gridInstance.refresh();
@@ -310,6 +336,8 @@
     var profileName = "";
     var gridInstance;
 
+
+
     function initializeDataGrid() {
         var dataSource = new DevExpress.data.CustomStore({
             key: "id",
@@ -335,13 +363,13 @@
                     data: params,
                     cache: false,
                     success: function (result) {
-                        // Backend trả về Object { data: [...], totalCount: 500000 }
-                        d.resolve(result.data, {
-                            totalCount: result.total
+                        d.resolve({
+                            data: result.data,
+                            totalCount: result.totalCount
                         });
                     },
                     error: function () {
-                        d.reject("Lỗi tải dữ liệu từ máy chủ");
+                        d.reject("Error loading data from the server.");
                     }
                 });
                 return d.promise();
@@ -357,7 +385,6 @@
             width: columnWidth - 30
         };
 
-        // 👉 Khởi tạo mảng columns ban đầu
         var columns = [
             { dataField: "id", caption: "ID", width: columnWidth - 80, visible: false },
             { dataField: "code", caption: "Code", width: columnWidth - 50 },
@@ -370,12 +397,10 @@
             { dataField: "account", caption: "Account", width: columnWidth * 2 },
         ];
 
-        // 👉 Nếu type = 1 → Tax Code đứng vị trí thứ 3
         if (typeValue === "1") {
             columns.push(taxCodeColumn);
         }
 
-        // 👉 Các cột còn lại
         columns = columns.concat([
 
             {
@@ -388,7 +413,6 @@
                 calculateCellValue: function (data) {
                     if (!data.dateOfBirth) return null;
 
-                    // value: "22.12.2025"
                     const parts = data.dateOfBirth.split(".");
                     return new Date(parts[2], parts[1] - 1, parts[0]);
                 }
@@ -407,7 +431,6 @@
             { dataField: "website", caption: "Website", width: columnWidth }
         ]);
 
-        // 👉 Nếu type ≠ 1 → Tax Code giữ vị trí cũ (sau Website)
         if (typeValue !== "1") {
             columns.push(taxCodeColumn);
         }
@@ -449,6 +472,7 @@
                 sorting: false
             },
             columns: columns,
+            height: 500,
             allowColumnResizing: true,
             columnResizingMode: "widget",
             selection: { mode: "single" },
@@ -465,66 +489,77 @@
                 mode: "standard", // Dùng standard cho remote paging
                 showScrollbar: "always"
             },
+            loadPanel: {
+                enabled: false
+            },
             onRowClick: function (e) {
                 profileID = e.data.id;
                 profileType = e.data.type;
                 profileName = e.data.account;
             },
-            onContentReady: function() {
+            onContentReady: function () {
                 $("#loadingSpinner").hide();
             }
         }).dxDataGrid("instance");
     }
 
+    function checkFullName(options) {
+        return new Promise(function (resolve, reject) {
+            const { fullNameSelector, firstNameSelector, middleNameSelector, lastNameSelector, salutationSelector, titleSelector, idForm } = options;
+            const $fullName = $(fullNameSelector);
+            if (!$fullName.length) { resolve(true); return; }
+            const input = $fullName.val().trim();
+            if (input === '') { resolve(true); return; }
+
+            $.ajax({
+                url: '/Profile/FullNameChange',
+                type: 'POST',
+                dataType: 'json',
+                headers: { "X-CSRF-TOKEN-HEADERNAME": $('input[name="__RequestVerificationToken"]').val() },
+                data: { fullName: input },
+                success: function (res) {
+                    if (res && res.success) {
+                        $fullName.val(res.fullName);
+                        if (firstNameSelector) $(firstNameSelector).val(res.firstName || '');
+                        if (middleNameSelector) $(middleNameSelector).val(res.middleName || '');
+                        if (lastNameSelector) $(lastNameSelector).val(res.lastName || '');
+                        if (salutationSelector) $(salutationSelector).val(res.salutation || '');
+                        if (res.titleID && titleSelector) {
+                            let select = $(titleSelector)[0]?.tomselect;
+                            if (select) select.setValue(res.titleID);
+                        }
+                        resolve(true);
+                    } else {
+                        applyValidationErrors(res.errors, idForm);
+                        resolve(false);
+                    }
+                },
+                error: function () { reject(false); }
+            });
+        });
+    }
+
+    // Bind blurs
     $('#txtFullNameIndividual').on('blur', function () {
-        var input = $(this).val().trim();
-
-        if (input === '') return;
-
-        $.ajax({
-            url: '/Profile/FullNameChange',
-            type: 'POST',
-            dataType: 'json',
-            crossDomain: false,
-            headers: {
-                "X-CSRF-TOKEN-HEADERNAME": $('input[name="__RequestVerificationToken"]').val()
-            },
-            data: {
-                fullName: input
-            },
-            success: function (res) {
-                console.log(res);
-                if (res && res.success) {
-
-                    // Full name đã chuẩn hóa
-                    if (res.FullName) {
-                        $('#txtFullNameIndividual').val(res.fullName);
-                    }
-
-                    // Các field khác (nếu có)
-                    if ($('#txtFirstNameIndividual').length)
-                        $('#txtFirstNameIndividual').val(res.firstName);
-
-                    if ($('#txtMiddleNameIndividual').length)
-                        $('#txtMiddleNameIndividual').val(res.middleName);
-
-                    if ($('#txtLastNameIndividual').length)
-                        $('#txtLastNameIndividual').val(res.lastName);
-
-                    if ($('#txtSalutationIndividual').length)
-                        $('#txtSalutationIndividual').val(res.salutation);
-
-
-                    // Title (nếu có dropdown)
-                    if (res.titleID) {
-                        let selectTitle = $('#txtTitleIndividual')[0].tomselect;
-                        selectTitle.setValue(res.titleID);
-                    }
-                }
-            },
-            error: function (xhr) {
-                console.error('FullNameChange API error', xhr);
-            }
+        checkFullName({
+            fullNameSelector: '#txtFullNameIndividual',
+            firstNameSelector: '#txtFirstNameIndividual',
+            middleNameSelector: '#txtMiddleNameIndividual',
+            lastNameSelector: '#txtLastNameIndividual',
+            salutationSelector: '#txtSalutationIndividual',
+            titleSelector: '#txtTitleIndividual',
+            idForm: "#profile_individual"
+        });
+    });
+    $('#txtFullNameContact').on('blur', function () {
+        checkFullName({
+            fullNameSelector: '#txtFullNameContact',
+            firstNameSelector: '#txtFirstNameContact',
+            middleNameSelector: '#txtMiddleNameContact',
+            lastNameSelector: '#txtLastContact',
+            salutationSelector: '#txtSalulationContact',
+            titleSelector: '#txtTitleContact',
+            idForm: "#profile_contact"
         });
     });
 
@@ -540,7 +575,7 @@
         if (mode === 'NEW') {
 
             resetForm();          // clear toàn bộ form
-            if ($('#txtType').val() == 1 || $('#txtType').val() === '') {
+            if ($('#txtType').val() == 0 || $('#txtType').val() === '') {
                 $('#modalProfileIndividual').modal('show');
                 $('#btnView').hide();
                 $('#changeTypeIN').hide();
@@ -584,6 +619,7 @@
                     }
                     else {
                         if (result.profile.type == 0) {
+                            $("#idIndividual").val(result.profile.id);
                             $("#txtCodeIndividual").val(result.profile.code);
                             $("#txtFullNameIndividual").val(result.profile.account);
                             $("#txtLastNameIndividual").val(result.profile.lastName);
@@ -651,6 +687,7 @@
                             $('#changeTypeIN').hide();
                         }
                         else if (result.profile.type == 1 || result.profile.type == 2 || result.profile.type == 3) {
+                            $("#idCOM").val(result.profile.id);
                             $("#txtCodeCOM").val(result.profile.code);
                             //$("#txtCityCOM").val(result.profile.city);
                             $("#txtAccountCOM").val(result.profile.account);
@@ -725,6 +762,7 @@
                             $('#changeTypeCOM').hide();
                         }
                         else if (result.profile.type == 4) {
+                            $("#idGroup").val(result.profile.id);
                             $("#txtCodeGroup").val(result.profile.code);
                             //$("#txtCityCOM").val(result.profile.city);
                             $("#txtGroupName").val(result.profile.account);
@@ -777,8 +815,68 @@
                             $('#modalProfileGroup').modal('show');
                             $('#changeTypeGR').hide();
                         }
-                        else {
+                        else if (result.profile.type == 5) {
+                            $("#idContact").val(result.profile.id);
+                            // ===== Address Information =====
+                            $("#txtCodeContact").val(result.profile.code);
+                            $("#txtFullNameContact").val(result.profile.account);
+                            $("#txtFirstNameContact").val(result.profile.firstname);
+                            $("#txtLastContact").val(result.profile.lastName);
+                            $("#txtMiddleNameContact").val(result.profile.middleName);
 
+                            $("#txtPositionContact").val(result.profile.position);
+                            $("#txtDeptContact").val(result.profile.department);
+
+                            let selectLanguageContact = $('#txtLanguageContact')[0].tomselect;
+                            selectLanguageContact.setValue(result.profile.languageID);
+
+                            let selectTitleContact = $('#txtTitleContact')[0].tomselect;
+                            selectTitleContact.setValue(result.profile.titleID);
+
+                            $("#txtSalulationContact").val(result.profile.salutation);
+
+                            $("#txtAddressContact").val(result.profile.address);
+                            $("#txtHomeAddressContact").val(result.profile.homeAddress);
+
+                            let selectCityContact = $('#txtCityContact')[0].tomselect;
+                            selectCityContact.setValue(result.profile.cityID);
+
+                            $("#txtPostalCodeContact").val(result.profile.postalCode);
+
+                            let selectCountryContact = $('#txtCountryContact')[0].tomselect;
+                            selectCountryContact.setValue(result.profile.countryID);
+
+                            let selectStateContact = $('#txtStateContact')[0].tomselect;
+                            selectStateContact.setValue(result.profile.stateID);
+
+                            // ===== Other Information =====
+                            let selectOwnerContact = $('#txtOwnerContact')[0].tomselect;
+                            selectOwnerContact.setValue(result.profile.ownerID);
+
+                            let selectTerritoryContact = $('#txtTerritoryContact')[0].tomselect;
+                            selectTerritoryContact.setValue(result.profile.territoryID);
+
+                            $("#txtARContact").val(result.profile.arNo);
+
+                            if (result.profile.dateOfBirth) {
+                                $("#txtDobContact").val(result.profile.dateOfBirth);
+                                $("#txtCheckboxDobContact").prop("checked", true);
+                            } else {
+                                $("#txtDobContact").val("");
+                                $("#txtCheckboxDobContact").prop("checked", false);
+                            }
+
+                            $("#txtActiveContact").prop("checked", result.profile.active === true);
+
+                            $("#txtTelephoneContact").val(result.profile.telephone);
+                            $("#txtFaxContact").val(result.profile.fax);
+                            $("#txtEmailContact").val(result.profile.email);
+                            $("#txtWebsiteContact").val(result.profile.website);
+                            $("#txtHandPhoneContact").val(result.profile.handPhone);
+
+                            // ===== UI =====
+                            $('#modalProfileContact').modal('show');
+                            $('#changeTypeCON').hide(); // nếu có nút đổi type
                         }
                     }
                 },
@@ -827,7 +925,6 @@
 
     function resetForm() {
 
-
         const individualInputs = [
             "#txtCodeIndividual", "#txtFullNameIndividual",
             "#txtLastNameIndividual", "#txtFirstNameIndividual",
@@ -837,13 +934,13 @@
             "#txtAddressIndividual", "#txtSalutationIndividual",
             "#txtPrefRoomIndividual", "#txtOtherIndividual",
             "#txtPassportIndividual", "#txtCardIndividual",
-            "#txtDobIndividual", "#txtKeywordIndividual",
+            "#txtKeywordIndividual",
             "#txtCompanyIndividual", "#txtCompany2Individual",
             "#txtTaxIndividual", "#txtBusAddressIndividual",
             "#txtTelephoneIndividual", "#txtHandPhoneIndividual",
             "#txtFaxIndividual", "#txtEmailIndividual",
             "#txtWebsiteIndividual", "#txtBusinessTitleIndividual",
-            "#blackListIndividual", "#txtNoteIndividual"
+            "#blackListIndividual", "#txtNoteIndividual", "#idIndividual"
         ];
 
         individualInputs.forEach(id => {
@@ -851,6 +948,8 @@
                 $(id).val("");
             }
         });
+
+        $("#txtDobIndividual").val(getAllBusinessDate());
 
         const individualCheckboxes = [
             "#txtActiveIndividual", "#txtContactIndividual",
@@ -888,7 +987,7 @@
             "#txtEmailCOM", "#txtWebsiteCOM",
             "#txtHandPhoneCOM", "#txtCompany2COM",
             "#txtBusTitleCOM", "#txtKeywordCOM",
-            "#txtARCOM", "#blackListCOM", "#txtNoteCOM"
+            "#txtARCOM", "#blackListCOM", "#txtNoteCOM", "#idCOM"
         ];
 
         companyInputs.forEach(id => {
@@ -930,7 +1029,7 @@
             "#txtHandPhoneGroup", "#txtAcctContact", "#txtFax",
             "#txtCurrencyGroup", "#txtAccountGroup",
             "#txtVipGroup", "#txtVipReasonGroup",
-            "#txtNotesGroup"
+            "#txtNotesGroup", "#idGroup"
         ];
 
         groupInputs.forEach(id => {
@@ -959,6 +1058,58 @@
                 $(id)[0].tomselect.clear();
             }
         });
+        //Contact
+        const contactInputs = [
+            "#txtCodeContact", "#txtFullNameContact", "#txtFirstNameContact",
+            "#txtLastContact", "#txtMiddleNameContact", "#txtPositionContact",
+            "#txtDeptContact", "#txtSalulationContact", "#txtAddressContact",
+            "#txtHomeAddressContact", "#txtPostalCodeContact", "#txtARContact",
+            "#txtTelephoneContact", "#txtFaxContact", "#txtEmailContact",
+            "#txtWebsiteContact", "#txtHandPhoneContact", "#idContact"
+        ];
+
+        contactInputs.forEach(id => {
+            if ($(id).length) {
+                $(id).val("");
+            }
+        });
+
+        // 2. Xử lý Date of Birth (Set về ngày hệ thống/kinh doanh)
+        if (typeof getAllBusinessDate === "function") {
+            $("#txtDobContact").val(getAllBusinessDate());
+        }
+
+        // 3. Danh sách các Checkbox
+        const contactCheckboxes = [
+            "#txtActiveContact"
+        ];
+
+        contactCheckboxes.forEach(id => {
+            if ($(id).length) {
+                $(id).prop("checked", false);
+            }
+        });
+
+        // Riêng checkbox điều khiển disable của DOB thường mặc định là checked (để disable input)
+        if ($("#txtCheckboxDobContact").length) {
+            $("#txtCheckboxDobContact").prop("checked", true);
+            $("#txtDobContact").prop("disabled", true);
+        }
+
+        // 4. Danh sách các TomSelect (Dựa trên biến tomSelectInstances của bạn)
+        const contactTomSelects = [
+            "#txtLanguageContact", "#txtTitleContact", "#txtCityContact",
+            "#txtStateContact", "#txtCountryContact", "#txtOwnerContact",
+            "#txtTerritoryContact"
+        ];
+
+        contactTomSelects.forEach(id => {
+            // Kiểm tra instance trong object tomSelectInstances mà bạn đã khai báo ở script trên
+            if (tomSelectInstances && tomSelectInstances[id]) {
+                tomSelectInstances[id].clear();
+            }
+        });
+
     }
 
 
@@ -995,7 +1146,7 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải danh sách ngôn ngữ hoặc bạn không có quyền tải");
+                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
                 }
             }
         });
@@ -1024,7 +1175,7 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải danh sách tiêu đề hoặc bạn không có quyền tải");
+                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
                 }
             }
         });
@@ -1053,7 +1204,7 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải danh sách tiêu đề hoặc bạn không có quyền tải");
+                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
                 }
             }
         });
@@ -1095,7 +1246,7 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải danh sách tiêu đề hoặc bạn không có quyền tải");
+                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
                 }
             }
         });
@@ -1155,7 +1306,7 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải danh sách tiêu đề hoặc bạn không có quyền tải");
+                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
                 }
             }
         });
@@ -1192,7 +1343,7 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải danh sách tiêu đề hoặc bạn không có quyền tải");
+                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
                 }
             }
         });
@@ -1245,7 +1396,7 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải danh sách tiêu đề hoặc bạn không có quyền tải");
+                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
                 }
             }
         });
@@ -1282,7 +1433,7 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải danh sách tiêu đề hoặc bạn không có quyền tải");
+                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
                 }
             }
         });
@@ -1329,7 +1480,7 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải danh sách tiêu đề hoặc bạn không có quyền tải");
+                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
                 }
             }
         });
@@ -1363,7 +1514,7 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải danh sách tiêu đề hoặc bạn không có quyền tải");
+                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
                 }
             }
         });
@@ -1418,7 +1569,7 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải danh sách tiêu đề hoặc bạn không có quyền tải");
+                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
                 }
             }
         });
@@ -1469,7 +1620,7 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải danh sách tiêu đề hoặc bạn không có quyền tải");
+                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
                 }
             }
         });
@@ -1504,7 +1655,7 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải danh sách tiêu đề hoặc bạn không có quyền tải");
+                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
                 }
             }
         });
@@ -1543,18 +1694,35 @@
                 if (xhr.status == 401) {
                     sessionTimeout();
                 } else {
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải danh sách tiêu đề hoặc bạn không có quyền tải");
+                    showToast("Error", "Error downloading service list details or you do not have permission to download", false);
                 }
             }
         });
     }
-    function saveProfile() {
+    async function saveProfile() {
         var formData = new FormData();
         var grid = $("#gridContainer").dxDataGrid("instance");
-        var txtType = Number($('#txtType').val());
-        var selectedRowsData = grid.getSelectedRowsData();
-        if (txtType === "" || txtType === "0") {
-            formData.append('ID', selectedRowsData[0]?.id);
+
+        if (!grid) {
+            console.error("Grid instance not found");
+            return;
+        }
+        var typeValue = grid.getSelectedRowsData()?.[0]?.type ?? $('#txtType').val();
+        console.log('typeValue', typeValue);
+        var id = grid.getSelectedRowsData()?.[0]?.id ?? 0;
+
+        if (typeValue === "" || typeValue === "0") {
+            const individualValid = await checkFullName({
+                fullNameSelector: '#txtFullNameIndividual',
+                firstNameSelector: '#txtFirstNameIndividual',
+                middleNameSelector: '#txtMiddleNameIndividual',
+                lastNameSelector: '#txtLastNameIndividual',
+                salutationSelector: '#txtSalutationIndividual',
+                titleSelector: '#txtTitleIndividual',
+                idForm: "#profile_individual" // Note: This ID exists inside the modal
+            });
+            if (!individualValid) return;
+            formData.append('ID', $("#idIndividual").val());
             formData.append('CodeIndividual', $("#txtCodeIndividual").val());
             formData.append('AccountIndividual', $("#txtFullNameIndividual").val());
             formData.append('LastNameIndivdual', $("#txtLastNameIndividual").val());
@@ -1596,10 +1764,10 @@
             formData.append('BlackListIndividual', $("#txtBlackListIndividual").is(":checked"));
             formData.append('BlackListReasonIndividual', $("#blackListIndividual").val());
             formData.append('NoteIndividual', $("#txtNoteIndividual").val());
-            formData.append('Type', txtType);
+            formData.append('Type', typeValue);
         }
-        else if (txtType === 2 || txtType === 3 || txtType === 1) {
-            formData.append('ID', selectedRowsData[0]?.id);
+        else if (typeValue === "1" || typeValue === "2" || typeValue === "3") {
+            formData.append('ID', $("#idCOM").val());
             formData.append('CodeCOM', $("#txtCodeCOM").val());
             formData.append('AccountCOM', $("#txtAccountCOM").val());
             formData.append('CountryCOM', $("#txtCountryCOM").val());
@@ -1634,10 +1802,10 @@
             formData.append('SaleInChargeCOM', $("#txtSaleInChargeCOM").val());
             formData.append('MarketCOM', $("#txtMarketCOM").val());
 
-            formData.append('Type', txtType);
+            formData.append('Type', typeValue);
         }
-        else if (txtType === 4) {
-            formData.append('ID', selectedRowsData[0]?.id);
+        else if (typeValue === "4") {
+            formData.append('ID', $("#idContact").val());
             formData.append('CodeGroup', $("#txtCodeGroup").val());
             formData.append('GroupName', $("#txtGroupName").val());
             formData.append('LanguageGroup', $("#txtLanguageGroup").val());
@@ -1662,8 +1830,51 @@
             formData.append('VipGroup', $("#txtVipGroup").val());
             formData.append('NotesGroup', $("#txtNotesGroup").val());
             formData.append('Fax', $("#txtFax").val());
-            formData.append('Type', txtType);
+            formData.append('Type', typeValue);
         }
+        else if (typeValue === "5") { // Contact
+            const individualValid = await checkFullName({
+                fullNameSelector: '#txtFullNameContact',
+                firstNameSelector: '#txtFirstNameContact',
+                middleNameSelector: '#txtMiddleNameContact',
+                lastNameSelector: '#txtLastContact',
+                salutationSelector: '#txtSalulationContact',
+                titleSelector: '#txtTitleContact',
+                idForm: "#profile_contact"
+            });
+            if (!individualValid) return;
+            formData.append('ID', $("#idContact").val());
+
+            // ===== Address Information =====
+            formData.append('CodeContact', $("#txtCodeContact").val());
+            formData.append('AccountContact', $("#txtFullNameContact").val());
+            formData.append('LastNameContact', $("#txtLastContact").val());
+            formData.append('FirstNameContact', $("#txtFirstNameContact").val());
+            formData.append('MiddleNameContact', $("#txtMiddleNameContact").val());
+            formData.append('LanguageContact', $("#txtLanguageContact").val());
+            formData.append('PositionContact', $("#txtPositionContact").val());
+            formData.append('DeptContact', $("#txtDeptContact").val());
+            formData.append('TitleContact', $("#txtTitleContact").val());
+            formData.append('SalutationContact', $("#txtSalulationContact").val());
+            formData.append('AddressContact', $("#txtAddressContact").val());
+            formData.append('HomeAddressContact', $("#txtHomeAddressContact").val());
+            formData.append('CityContact', $("#txtCityContact").val());
+            formData.append('PostalContact', $("#txtPostalCodeContact").val());
+            formData.append('CountryContact', $("#txtCountryContact").val());
+            formData.append('StateContact', $("#txtStateContact").val());
+            formData.append('OwnerContact', $("#txtOwnerContact").val());
+            formData.append('TerritoryContact', $("#txtTerritoryContact").val());
+            formData.append('ARNoContact', $("#txtARNoContact").val());
+            formData.append('DobContact', $("#txtDobContact").val());
+            formData.append('TelephoneContact', $("#txtTelephoneContact").val());
+            formData.append('FaxContact', $("#txtFaxContact").val());
+            formData.append('EmailContact', $("#txtEmailContact").val());
+            formData.append('WebsiteContact', $("#txtWebsiteContact").val());
+            formData.append('HandPhoneContact', $("#txtHandPhoneContact").val());
+            // ===== Common =====
+            formData.append('Type', typeValue);
+        }
+
         $.ajax({
             url: '/Profile/SaveProfile',
             type: 'POST',
@@ -1673,15 +1884,20 @@
             data: formData,
             success: function (res) {
                 if (res.success) {
-                    closeFormProfile();
                     getAllProfiles();
-                    resetForm();
                     showToast("Success", res.message, true);
                     var form = res.type;
                     if (form == 0) applyValidationErrors([], "#profile_individual");
                     else if (form == 1 || form == 2 || form == 3) applyValidationErrors([], "#profile_com_ta_source");
                     else if (form == 4) applyValidationErrors([], "#profile_group");
                     else applyValidationErrors([], "#profile_contact");
+                    closeFormProfile();
+                    $('.profile-modal').modal('hide'); // ✅ đóng modal
+                    const gridInstance = $("#gridContainer").dxDataGrid("instance");
+                    if (gridInstance) {
+                        gridInstance.clearSelection();
+                    }
+
                 } else {
                     var form = res.type;
                     if (form == 0) applyValidationErrors(res.errors, "#profile_individual");
@@ -1702,7 +1918,7 @@
         var grid = $("#gridContainer").dxDataGrid("instance");
         var selectedRowsData = grid.getSelectedRowsData();
         if (selectedRowsData.length < 1) {
-            informBox(TOAST_STATUS.DANGER, "Please choose 1 profile to reservation");
+            showToast("Error", "Please choose 1 profile to reservation", false);
             return;
         }
         $.ajax({
@@ -1716,7 +1932,7 @@
             },
             success: function (result) {
                 if (result.code != 0) {
-                    informBox(TOAST_STATUS.DANGER, result.msg);
+                    showToast("Error", result.msg, false);
                     return;
                 }
                 else {
