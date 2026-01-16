@@ -477,7 +477,7 @@ namespace Profile.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllProfileTest(string code, string account, string firstName, string keyWord, string city, string type, bool showSaleInCharge, int skip = 0, int take = 20)
+        public async Task<IActionResult> GetAllProfileTest(string code, string account, string firstName, string keyWord, string city, string type, bool showSaleInCharge, int skip = 0, int take = 15)
         {
             try
             {
