@@ -1,454 +1,287 @@
-﻿@using DevExpress.XtraReports.UI
-
-
-@{
-    var selectedReport = @ViewBag.ReportHeader;
-
+﻿@{
+    //
 }
-<style>
-
-
-    .dx-datagrid-headers .dx-header-row td {
-        white-space: pre-line !important;
-        text-align: center;
-        font-size: 11px;
-    }
-
-
-    .dx-datagrid .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default, .dx-datagrid-container .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default {
-        display: none;
-    }
-
-
-    .filter_wrapper {
-        /*     background-color: #ececec; */
-        /*   margin: 0px 8px 14px 8px; */
-        padding: 18px 0px 0px 14px;
-        border-radius: 8px;
-    }
-
-    .gridContainer {
-        margin: 0px 8px;
-    }
-
-    .button_wrapper {
-        display: flex;
-        column-gap: 12px;
-        margin: 0px 8px;
-    }
-
-        .button_wrapper .fa-solid {
-            margin-right: 5px;
-        }
-
-    .selected {
-        background-color: #4CAF50; /* Màu xanh */
-        color: white;
-    }
-
-
-
-    .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
-    }
-
-    .sticky-header label[class*="me-"] {
-        margin-right: .5rem !important;
-    }
-
-
-    .sticky-header input[type="date"].form-control-sm {
-        font-size: 12px !important; /* dúng 12?px */
-        height: calc(1.1em + .2rem + 2px); /* gi? cùng chi?u cao */
-    }
-
-    .sticky-header label {
-        font-size: 12px !important;
-        line-height: 1.2;
-    }
-
-    .tomselect-custom {
-        width: 250px;
-        min-height: 30px; /* ho?c tùy theo chi?u cao b?n mu?n */
-        font-size: 0.65rem;
-    }
-
-    .sort-select {
-        max-width: 130px; /* ho?c 100px n?u mu?n nh? hon */
-        font-size: 12px;
-        padding: 0.15rem 0.5rem;
-    }
-
-    .sort-select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-image: none !important;
-        padding-right: 10px !important;
-    }
-
-</style>
-
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px">Person In Charge Zone</div>
+<div class="text-center" style="font-size: 20px">Person InCharge Zone</div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1 filter-panel">
-        <!-- From Date -->
-
+    <div class="d-flex align-items-center gap-3 p-2">
         <div class="d-flex flex-column ">
-
             <div class="d-flex align-items-center">
-      
                 <div class="d-flex align-items-center me-4">
                     <label for="tracetime" class="me-2 mb-0">Code:</label>
-                    <input type="text" id="code" name="code"
+                    <input type="text" id="codeInput"
                            class="form-control form-control-sm w-auto" />
                 </div>
                 <div class="d-flex align-items-center me-4">
                     <label for="tracetime" class="me-2 mb-0">Name:</label>
-                    <input type="text" id="name" name="name" class="form-control form-control-sm w-auto" />
+                    <input type="text" id="nameInput" class="form-control form-control-sm w-auto" />
                 </div>
+
                 <div class="d-flex align-items-center me-3">
-
-
-                    <!-- Clean Uncheck -->
-                    <div class="form-check me-3">
+                    <div class="form-check d-flex align-items-center gap-2">
                         <span class="status-color-box color-clean-uncheck"></span>
-                        <input class="form-check-input" type="checkbox" id="isActive" name="includeOptions" value="1" checked>
-                        <label class="form-check-label" for="cleanUncheck">Show Inactive</label>
+                        <input class="form-check-input" type="checkbox" id="chkshowInactive" name="chkshowInactive">
+                        <label class="form-check-label mb-0" for="chkshowInactive">Show Inactive</label>
                     </div>
-
                 </div>
             </div>
         </div>
-
-
-
-
     </div>
-    <div class="">
-        <button id="btnPrint" class="mui-button button-report-view"> View</button>
+    <div class="mt-2">
+        <button id="btnView" class="mui-button mui-button-search"> View</button>
         <button id="btnNew" class="mui-button mui-button-new"> New</button>
-        <button id="btnUpdate" class="mui-button mui-button-edit">  Edit</button>
-        <button id="btnDelete" class="mui-button button-report-delete">  Delete</button>
-        <button id="btnExportExcel" class="mui-button mui-button-export" type="button">  Excel</button>
-
+        <button id="btnEdit" class="mui-button mui-button-edit">  Edit</button>
+        <button id="btnDelete" class="mui-button mui-button-delete">  Delete</button>
+        <button id="btnExportExcel" class="mui-button mui-button-export">  Excel</button>
     </div>
-
 </div>
+
 <div class="mui-card">
-    @*     <div style="font-size: 20px;" class="mt-1" id="reportTitle"></div> *@
-    <div id="gridContainer" class="gridContainer mt-2"></div>
+    <div id="gridContainerRateCode" class="mt-2 gridContainer"></div>
 </div>
-<div id="overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999;"></div>
-<div id="popupNewPersonInCharge" style="display: none; position: fixed; top: 50%; left: 50%;
-    transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px;
-    z-index: 1050; box-shadow: 0 0 10px rgba(0,0,0,0.3); min-width: 400px; max-height: 600px; overflow-y: auto;">
-
-    <div class="d-flex justify-content-between mb-2">
-        <h5 class="mb-0">Person In Charge Zone Screen</h5>
-
-    </div>
-    <div class="d-flex justify-content-start mb-3 gap-2">
-
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnOkAuto" class="mui-button mui-button-advance" type="button"> Ok</button>
-
-        <button onclick="$('#popupNewPersonInCharge').hide()" id="btnClosePopup" class="btn btn-sm mui-button-close" style=" border-radius: 4px;">
-             Close
-        </button>
-    </div>
-    <div class="sticky-header bg-white p-2 shadow-sm z-3">
-        <div class="d-flex flex-wrap align-items-center gap-2 mb-1 filter-panel">
-            <div class="d-flex align-items-center flex-wrap mb-2">
-                <div class="d-flex align-items-start mb-3">
-                    <!-- Trace Time -->
-                    <input type="text" id="idselectedRowDatasa" name="idselectedRowDatasa" style="display:none !important" class="form-control form-control-sm w-auto" />
-                    <div class="d-flex align-items-center me-4">
-                        <label for="tracetime" class="me-2 mb-0">Code:</label>
-                        <input type="text" id="codenew" name="codenew"
-                               class="form-control form-control-sm w-auto" />
-                    </div>
-
-                    <div class="d-flex align-items-center me-4">
-                        <label for="tracetext" class="me-2 mt-1">Name:</label>
-                        <input type="text" id="namenew" name="namenew"
-                               class="form-control form-control-sm w-auto" />
-
-                    </div>
-                    <div class="d-flex align-items-center me-4">
-                        <label for="tracetext" class="me-2 mt-1">Description:</label>
-                        <input type="text" id="descriptionnew" name="descriptionnew"
-                               class="form-control form-control-sm w-auto" />
-
-                    </div>
-
-                    <div class="form-check me-3">
-                        <span class="status-color-box color-clean-uncheck"></span>
-                        <input class="form-check-input" type="checkbox" id="isActivenew" name="includeOptions" value="1" checked>
-                        <label class="form-check-label" for="cleanUncheck"> Inactive</label>
-                    </div>
-                </div>
-
-
+<!-- Modal Popup for New Item -->
+<div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="itemModalLabel">PersonInChargeZone</h5>
             </div>
-
-
-
-
+            <div class="modal-footer justify-content-start">
+                <button type="button" id="btnSaveItem" class="mui-button mui-button-save"> Save</button>
+                <button type="button" data-bs-dismiss="modal" class="mui-button mui-button-close"> Close</button>
+            </div>
+            <div class="modal-body">
+                <form id="formContainer">
+                    <div class="container-fluid">
+                        <div class="row mb-1 align-items-center">
+                            <div class="col-auto">
+                                <label for="code" class="form-label mb-0">Code</label>
+                                <input type="text" id="txtcode" name="code" class="form-control form-control-sm" />
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-auto d-flex align-items-center">
+                                <input type="checkbox" id="inactive" name="inactive" class="form-check-input me-2" />
+                                <label for="inactive" class="form-check-label text-danger mb-0">Inactive</label>
+                            </div>
+                        </div>
+                        <div class="row mb-1">
+                            <div class="col">
+                                <label for="name" class="form-label">Name</label>
+                                <input type="text" id="txtname" name="name" class="form-control" />
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="row mb-1">
+                            <div class="col">
+                                <label for="txtdescription" class="form-label">Description</label>
+                                <textarea id="txtdescription" name="txtdescription" class="form-control" rows="4"
+                                          style="height:100px"></textarea>
+                            </div>
+                        </div>
+                        <input type="hidden" id="id" name="id" value="0" />
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-
 </div>
 
-
-
-<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
+<div id="loadingSpinnerRateCode" style="display: none; text-align: center; padding: 20px;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
 </div>
 
 <script>
+    DevExpress.localization.locale("vi");
+    var selectedRowData = null;
 
-       $(document).ready(function () {
-
-        $("#btnPrint").trigger("click");
-
-    });
-
-
-
-
-     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-              let isActive  = $("#isActive").is(":checked") ? 1 : 0;
-            $("#loadingSpinner").show();
-            $.ajax({
-                url: '/Administration/PersonInChargeZoneData',
-                type: 'GET',
-                data: {
-                          code: $("#code").val(),
-                           name: $("#name").val(),
-                           isActive: isActive
-                },
-                traditional: true,
-                  crossDomain: false,
-                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-                success: function (result) {
-
-                console.log(result);
-            initializePersonInChargeGroupGrid(result);
-                        $("#loadingSpinner").hide();
-                },
-                error: function () {
-                    alert("Không th? t?i báo cáo.");
-                    $("#loadingSpinner").hide();
-                }
-            });
-        });
-        var selectedRowData=null;
-     function initializePersonInChargeGroupGrid(data) {
-
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            showBorders: true,
-            selection: { mode: "single" },
-            paging: { pageSize: 20 },
-            height: 500,
-            pager: {
-                showPageSizeSelector: true,
-                allowedPageSizes: [20, 50, 100],
-                showInfo: true
-            },
-            filterRow: { visible: true },
-            columns: [
-                { dataField: "id", caption: "ID", width: 80, visible: false },
-                { dataField: "code", caption: "Code", width: 120 },
-                { dataField: "name", caption: "Name", width: 120 },
-                { dataField: "description", caption: "Description", width: 120 },
-                { dataField: "inactiveText", caption: "Inactive", width: 120 },
-                { dataField: "updatedBy", caption: "Updated By", width: 120 },
-                { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy HH:mm", width: 160 },
-                { dataField: "createdBy", caption: "Created By", width: 120 },
-                { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy HH:mm", width: 160 }
-            ],
-            groupPanel: {
-                visible: false // ✅ Cho phép người dùng kéo thả để group thêm
-            },
-            scrolling: {
-                    mode: "standard", // Không dùng virtual để footer hiển thị đúng
-                    showScrollbar: "always",
-                    scrollByContent: true
-                },
-                paging: {
-                    pageSize: 50
-                },
-                pager: {
-                    visible: true,
-                    allowedPageSizes: [50, 100, 'all'],
-                    showPageSizeSelector: true,
-                    showInfo: true,
-                    showNavigationButtons: true
-                },
-                    filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            // 🔥 Quan trọng: gán selectedRowData khi click chọn
-             onRowClick: function (e) {
-                selectedRowData = e.data; // 🔥 lấy data của row vừa click
-                console.log("Selected Row (RowClick):", selectedRowData);
-
+    $(document).ready(function () {
+        $("#formContainer").on("input change", "input, select, textarea", function () {
+            if ($(this).hasClass("is-invalid")) {
+                $(this).removeClass("is-invalid");
+                $(this).next(".invalid-feedback").text("");
             }
         });
-     }
-    $("#btnNew").on("click", function () {
 
-       clearPersonInCharge();
-            $('#overlay').fadeIn(200);
-            $('#popupNewPersonInCharge').fadeIn(200);
+        $('#itemModal').on('hidden.bs.modal', function () {
+             applyValidationErrors([], "#formContainer");
+        });
+        $("#btnView").trigger("click");
 
     });
 
+    $("#btnNew").click(function () {
+        $("#formContainer")[0].reset();
+        $("#id").val("0");
+        $("#itemModalLabel").text("Add Person InCharge Zone");
+        $("#itemModal").modal("show");
+    });
 
-         $("#btnOkAuto").on("click", function () {
-                         let isActive  = $("#isActivenew").is(":checked") ? 1 : 0;
-            let codeNew = $("#codenew").val().trim();
-            let nameNew = $("#namenew").val().trim();
+    $("#btnSaveItem").click(function () {
 
-            // ✅ Kiểm tra rỗng
-            if (codeNew === "") {
-                showToast('Error', "Code cannot be blank.", false);
-                $("#codenew").focus();
-                return;
-            }
-            if (nameNew === "") {
-                showToast('Error', "Name cannot be blank.", false);
-                $("#facilityCategory").focus();
-                return;
-            }
+        const id = parseInt($("#id").val()) || 0;
+        let loginName = (localStorage.getItem("Loginname") || "")
+            .trim()
+            .replace(/^"(.*)"$/, '$1');
+        const loginUser = parseInt(localStorage.getItem("userID")) || 0;
+        const model = {
+              ID: id,
+              Code: $("#txtcode").val(),
+              Name: $("#txtname").val(),
+              Description: $("#txtdescription").val(),
+              Inactive: $("#inactive").prop("checked"),
+              CreatedBy: loginName,
+              UpdatedBy: loginName,
+              UserInsertID: loginUser,
+              UserUpdateID: loginUser
+        };
 
+        $.ajax({
+            url: "/Administration/PersonInChargeZoneSave",
+            type: "POST",
+            contentType: "application/json",
+            cache: false,
+            data: JSON.stringify(model),
+            traditional: true,
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (res) {
+                if (res.success) {
+                    showToast("Success", res.message, true);
+                    $("#itemModal").modal("hide");
+                    $("#btnView").trigger("click");
+                } else {
+                    if (res.errors && res.errors.length > 0) {
+                        applyValidationErrors(res.errors, "#formContainer");
+                        let generalError = res.errors.find(x => x.field === "general");
+                        let toastMessage = generalError ? generalError.message : "Please check input fields.";
 
-          $("#loadingSpinner").show();
-            $.ajax({
-                url: '/Administration/PersonInChargeZoneSave',
-                type: 'POST',
-                 data: {
-                      id: $("#idselectedRowDatasa").val(),
-                    codenew: $("#codenew").val(),
-
-                    namenew: $("#namenew").val(),
-                    descriptionnew: $("#descriptionnew").val(),
-
-                    user: localStorage.getItem("Loginname"),
-                    isActive: isActive
-                },
-                traditional: true,
-                  crossDomain: false,
-                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-                success: function (result) {
-                        if (result.success) {
-                                showToast('Success', result.message, true);
-                                $('#popupNewPersonInCharge').fadeOut(200);
-                                 $('#overlay').fadeOut(200);
-                                   $("#btnPrint").trigger("click");
-                                    clearPersonInCharge();
-                       } else {
-                                showToast('Error', 'Please select before saving.', false);
-                       }
-                console.log(result);
-
-                        $("#loadingSpinner").hide();
-                },
-                error: function () {
-                    alert("Không th? t?i báo cáo.");
-                    $("#loadingSpinner").hide();
+                        showToast("Warning", toastMessage, false);
+                    } else {
+                        showToast("Error", res.message || "Save failed", false);
+                    }
                 }
-            });
-     });
-
-
-    $("#btnUpdate").on("click", function () {
-
-            if (selectedRowData.length === 0) {
-                    showToast('Error', "Please select !", false);
-                return;
+            },
+            error: function (xhr) {
+                showToast("Error", "Request error!", false);
+                $("#itemModal").modal("hide");
             }
-
-
-            $("#idselectedRowDatasa").val(selectedRowData.id);
-              $("#codenew").val(selectedRowData.code || "");
-           $("#namenew").val(selectedRowData.name || "");
-              $("#descriptionnew").val(selectedRowData.description || "");
-
-              // Checkbox Inactive
-              if (selectedRowData.inactive === "True") {
-                  $("#isActivenew").prop("checked", true);
-              } else {
-                  $("#isActivenew").prop("checked", false);
-              }
-                  $("#popupNewPersonInCharge").fadeIn(200);
-                     $('#overlay').fadeIn(200);
+        });
     });
 
+    function editMember(data) {
+        $("#id").val(data.id);
+        $("#txtcode").val(data.code);
+        $("#txtname").val(data.name);
+        $("#txtdescription").val(data.description);
+        $("#inactive").prop("checked", data.inactive);
 
-
-    $('#btnClosePopup, #overlay').click(function () {
-            $('#popupNewPersonInCharge').fadeOut(200);
-                         $("#btnOkAuto").show();
-            $('#overlay').fadeOut(200);
-    });
-           function clearPersonInCharge() {
-        $("#idselectedRowDatasa").val("");
-        $("#codenew").val("");
-        $("#descriptionnew").val("");
-        $("#isActivenew").prop("checked", false); // bỏ chọn checkbox
+        $("#itemModalLabel").text("Update Person InCharge Zone");
+        $("#itemModal").modal("show");
     }
 
+    $("#btnEdit").on("click", function () {
+        if (!selectedRowData) {
+            showToast("Warning","Please select a row first!", true);
+            return;
+        }
+        editMember(selectedRowData);
+    });
 
+    function loadGrid(data) {
+        $("#gridContainerRateCode").dxDataGrid({
+            dataSource: data,
+            height: 500,
+            width: "100%",
+            allowColumnResizing: true,
+            columnResizingMode: "widget",
+            selection: { mode: "single" },
+            hoverStateEnabled: true,
+            columns: [
+                { dataField: "id", visible: false },
+                { dataField: "code", caption: "Code", width: "10%"  },
+                { dataField: "name", caption: "Name", width: "20%"  },
+                { dataField: "description", caption: "Description", width: "30%"  },
+                { dataField: "inactive", caption: "Inactive", width: "6%"  },
+                { dataField: "createdBy", caption: "Created By", width: "8%"  },
+                { dataField: "createdDate", caption: "Created Date", dataType: "date", width: "9%"  },
+                { dataField: "updatedBy", caption: "Updated By", width: "8%"  },
+                { dataField: "updatedDate", caption: "Updated Date", dataType: "date", width: "9%"  },
+            ],
+            filterRow: { visible: true, applyFilter: "auto" },
+            paging: { pageSize: 20 },
+            pager: {
+                visible: true,
+                allowedPageSizes: [20, 50, 'all'],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            },
+            scrolling: { mode: "standard", showScrollbar: "always" },
+              onSelectionChanged: function(e){
+                  selectedRowData = e.selectedRowsData.length > 0 ? e.selectedRowsData[0] : null;
+            }
+        });
+    }
 
+    $(document).off("click", "#btnView").on("click", "#btnView", function () {
+          $("#loadingSpinnerRateCode").show();
+          $.ajax({
+              url: "/Administration/GetPersonInChargeZone",
+              type: "GET",
+              cache: false,
+              data: {
+                 code: $("#codeInput").val(),
+                 name: $("#nameInput").val(),
+                 inactive: $("#chkshowInactive").prop("checked") ? 1 : 0
+              },
+              traditional: true,
+              crossDomain: false,
+              headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+              success: function(data){
+                  loadGrid(data);
+                  $("#loadingSpinnerRateCode").hide();
+              },
+              error: function(xhr, status, error){
+                 showToast("Error", "Unable to load data", false);
+                 $("#loadingSpinnerRateCode").hide();
+              }
+             });
+    });
 
+    $("#btnDelete").click(function () {
+           if (!selectedRowData || selectedRowData.id === 0) {
+               showToast('Warning', "Select 1 row, please!", true);
 
-         $(document).off("click", "#btnDelete").on("click", "#btnDelete", function () {
-            if (!selectedRowData) {
-                    showToast('Error', 'Please select 1 row to delete.', false);
+               return;
+           }
+           if (!confirm("Are you sure you want to delete this record? This action cannot be undone.")) {
                 return;
             }
-            if (!confirm("Are you sure you want to delete item?")) {
-                return; // Nếu chọn Cancel thì dừng
-            }
-            $.ajax({
-                url: '/Administration/PersonInChargeZoneDelete',
-                type: 'POST',
-                data: {
-                       id:selectedRowData.id
-
-
-                },
-                traditional: true,
-                  crossDomain: false,
-                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-                success: function (result) {
-                     if (result.success) {
-
-                              $("#btnPrint").trigger("click");
-                     } else {
-                              showToast('Error', result.message, false);
-                     }
-
-                },
-                error: function () {
-                    alert("Không th? t?i báo cáo.");
+           $.ajax({
+               url: `/Administration/DeletePersonInChargeZone/`+ selectedRowData.id,
+               type: "POST",
+               traditional: true,
+               crossDomain: false,
+               headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+               success: function(result){
+                    if(result.success){
+                        $("#btnView").trigger("click");
+                        showToast("Success","Delete Successfully!",true);
+                    } else {
+                        showToast("Error",result.message,false);
+                    }
+               },
+               error: function(){
+                   console.log("delete "+ selectedRowData.id);
+                    showToast("Error","Delete failed!" ,false);
                     $("#loadingSpinner").hide();
-                }
-            });
+               },
+           });
+       });
 
-
-        });
-
-
-
-       $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance");   // 🔥 khai báo grid
+    $("#btnExportExcel").click(function () {
+        const grid = $("#gridContainerRateCode").dxDataGrid("instance");
 
         const workbook = new ExcelJS.Workbook();
         const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
@@ -500,4 +333,5 @@
             });
         });
     });
+
 </script>
