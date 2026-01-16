@@ -525,12 +525,12 @@ namespace Administration.Services.Implements
             DataTable myTable = DataTableHelper.getTableData("spPersonInChargeSearch", param);
             return myTable;
         }
-        public DataTable PersonInChargeGroupData(string code, string description, string isActive)
+        public DataTable PersonInChargeGroupData(string code, string name, string isActive)
         {
             SqlParameter[] param = new SqlParameter[]
             {
                 new SqlParameter("@Code", code),
-                new SqlParameter("@Name", description),
+                new SqlParameter("@Name", name),
                 new SqlParameter("@Inactive", isActive)
             };
 
