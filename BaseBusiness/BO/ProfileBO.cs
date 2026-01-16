@@ -185,7 +185,7 @@ namespace BaseBusiness.BO
                     new SqlParameter("@City", city),
                     new SqlParameter("@Type", typeS),
                     new SqlParameter("@ShowSaleInCharge", _saleincharge),
-                    new SqlParameter("@Skip", skip+1),
+                    new SqlParameter("@Skip", skip),
                     new SqlParameter("@Take", take)
             };
             DataSet ds = DataTableHelper.GetDataSet("spProfileSearch_Test", param);
