@@ -1,16 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.SqlClient;
-using System.Linq;
-using System.Net;
-using System.Security.Principal;
-using System.ServiceModel.Channels;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
-using BaseBusiness.BO;
+﻿using BaseBusiness.BO;
 using BaseBusiness.Contants;
 using BaseBusiness.Model;
 using BaseBusiness.util;
@@ -23,6 +11,19 @@ using Microsoft.Extensions.Logging;
 using Profile.Commons.Helpers;
 using Profile.DTO;
 using Profile.Services.Interfaces;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Net;
+using System.Security.Principal;
+using System.ServiceModel.Channels;
+using System.Text;
+using System.Threading.Tasks;
+using System.Xml;
+using static DevExpress.XtraPrinting.Native.PageSizeInfo;
 namespace Profile.Controllers
 {
     public class ProfileController : Controller
@@ -475,17 +476,12 @@ namespace Profile.Controllers
             }
         }
 
-        public async Task<IActionResult> GetAllProfileTest(string code, string account, string firstName, string keyWord, string city, string type, bool showSaleInCharge, int skip = 0, int take = 20)
+        [HttpGet]
+        public async Task<IActionResult> GetAllProfileTest(string code, string account, string firstName, string keyWord, string city, string type, bool showSaleInCharge, int skip = 0, int take = 15)
         {
             try
             {
-                DataTable myData = ProfileBO.GetAllProfileTest(code, account, firstName, keyWord, city, type, showSaleInCharge,skip, take);
-                int totalCount = 0;
-                if (myData.Rows.Count > 0)
-                {
-                    totalCount = Convert.ToInt32(myData.Rows[0]["TotalCount"]);
-                }
-
+                (DataTable myData, int totalCount) = ProfileBO.GetAllProfileTest(code, account, firstName, keyWord, city, type, showSaleInCharge, skip, take);
                 var result = (from d in myData.AsEnumerable()
                               select new
                               {
@@ -521,7 +517,7 @@ namespace Profile.Controllers
                 return Json(new
                 {
                     data = result,
-                    total = totalCount
+                    totalCount = totalCount
                 });
             }
             catch (Exception ex)
