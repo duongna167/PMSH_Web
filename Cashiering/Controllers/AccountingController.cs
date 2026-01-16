@@ -1118,15 +1118,15 @@ namespace Cashiering.Controllers
             }
         }
         [HttpPost]
-        public IActionResult ARTraceUpdate(int idselectedRowData, DateTime tracetime, string tracetext, string user)
+        public IActionResult ARTraceUpdate(int idselectedRowData, DateTime tracetime, string traceText, string user)
         {
             try
             {
                 user = user?.Replace("\"", "").Trim();
                 ARTraceModel model = (ARTraceModel)ARTraceBO.Instance.FindByPrimaryKey(idselectedRowData);
                 List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
-                tracetext = model.TraceText;
-                tracetime = model.TraceAt;
+                model.TraceText = traceText;
+                model.TraceAt = tracetime;
                 model.UpdatedBy = user;
                 model.UpdatedDate = businessDateModel[0].BusinessDate;
                 // Gọi Business Object để lưu
