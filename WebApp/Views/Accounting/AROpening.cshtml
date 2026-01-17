@@ -7,99 +7,15 @@
 
     var currencylist = ViewBag.CurrencyList;
 }
-<style>
-
-
-    .dx-datagrid-headers .dx-header-row td {
-        white-space: pre-line !important;
-        text-align: center;
-        font-size: 11px;
-    }
-
-
-    .dx-datagrid .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default, .dx-datagrid-container .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default {
-        display: none;
-    }
-
-
-    .filter_wrapper {
-        /*     background-color: #ececec; */
-        /*   margin: 0px 8px 14px 8px; */
-        padding: 18px 0px 0px 14px;
-        border-radius: 8px;
-    }
-
-    .gridContainer {
-        margin: 0px 8px;
-    }
-
-    .button_wrapper {
-        display: flex;
-        column-gap: 12px;
-        margin: 0px 8px;
-    }
-
-        .button_wrapper .fa-solid {
-            margin-right: 5px;
-        }
-
-    .selected {
-        background-color: #4CAF50; /* Màu xanh */
-        color: white;
-    }
-
-
-
-    .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
-    }
-
-    .sticky-header label[class*="me-"] {
-        margin-right: .5rem !important;
-    }
-
-
-    .sticky-header input[type="date"].form-control-sm {
-        font-size: 12px !important; /* dúng 12?px */
-        height: calc(1.1em + .2rem + 2px); /* gi? cùng chi?u cao */
-    }
-
-    .sticky-header label {
-        font-size: 12px !important;
-        line-height: 1.2;
-    }
-
-    .tomselect-custom {
-        width: 250px;
-        min-height: 30px; /* ho?c tùy theo chi?u cao b?n mu?n */
-        font-size: 0.65rem;
-    }
-
-    .sort-select {
-        max-width: 130px; /* ho?c 100px n?u mu?n nh? hon */
-        font-size: 12px;
-        padding: 0.15rem 0.5rem;
-    }
-
-    .sort-select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-image: none !important;
-        padding-right: 10px !important;
-    }
-
-</style>
 
 <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px">Account Type</div>
+<div class="text-center" id="reportTitle" style="font-size: 20px">AR - Balance brought forward</div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
     <div class="">
-   <button id="btnPrint" class="mui-button mui-button-new" style="display: none;">
+        <button id="btnPrint" class="mui-button mui-button-new" style="display: none;">
 
-</button>
+        </button>
         <button id="btnOkAuto" class="mui-button mui-button-new"> Ok</button>
     </div>
 </div>
@@ -111,17 +27,18 @@
 
 
 
-<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+<div id="loadingSpinner"
+    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 
 <script>
-    
+
     $(document).ready(function () {
-      $("#btnPrint").trigger("click");
+        $("#btnPrint").trigger("click");
 
     });
-      function sortObjectKeysAlphabetically(dataArray) {
+    function sortObjectKeysAlphabetically(dataArray) {
         return dataArray.map(obj => {
             const newObj = {};
             Object.keys(obj)
@@ -135,175 +52,179 @@
     }
 
 
-     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-            $("#loadingSpinner").show();
-            $.ajax({
-                url: '/Accounting/AROpeningData',
-                type: 'GET',
-                data: {
+    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+        $("#loadingSpinner").show();
+        $.ajax({
+            url: '/Accounting/AROpeningData',
+            type: 'GET',
+            data: {
 
-                },
-                traditional: true,
-                  crossDomain: false,
-                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-                success: function (result) {
-                    // $("#reportViewerContainer").html(result);
-                    // $("#loadingSpinner").hide();
+            },
+            traditional: true,
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+                // $("#reportViewerContainer").html(result);
+                // $("#loadingSpinner").hide();
                 console.log(result);
-                    if (result) {
-                        const sortedKeysData = sortObjectKeysAlphabetically(result);
-                          const sortedByAccountName = sortedKeysData.sort((a, b) =>
-                                (a.accountName || "").localeCompare(b.accountName || "")
-                            );
+                if (result) {
+                    const sortedKeysData = sortObjectKeysAlphabetically(result);
+                    const sortedByAccountName = sortedKeysData.sort((a, b) =>
+                        (a.accountName || "").localeCompare(b.accountName || "")
+                    );
 
-        
 
-                // B3: Hiển thị lưới
-                initializeAROpeningGrid(sortedByAccountName);
-                    }
-                        $("#loadingSpinner").hide();
-                },
-                error: function () {
-                    alert("Không th? t?i báo cáo.");
-                    $("#loadingSpinner").hide();
+
+                    // B3: Hiển thị lưới
+                    initializeAROpeningGrid(sortedByAccountName);
                 }
-            });
+                $("#loadingSpinner").hide();
+            },
+            error: function () {
+                alert("Không th? t?i báo cáo.");
+                $("#loadingSpinner").hide();
+            }
         });
-        var selectedRowData=null;
-function initializeAROpeningGrid(data) {
-    var currencyList = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.CurrencyList ?? new List<object>()));
+    });
+    var selectedRowData = null;
+    function initializeAROpeningGrid(data) {
+        var currencyList = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.CurrencyList ?? new List<object>()));
 
-    console.log(currencyList);
+        console.log(currencyList);
 
-    $("#gridContainer").dxDataGrid({
-        dataSource: data,
-        showBorders: true,
-        selection: { mode: "single" },
-        paging: { pageSize: 20 },
-        pager: {
-            showPageSizeSelector: true,
-            allowedPageSizes: [20, 50, 100],
-            showInfo: true
-        },
-        filterRow: { visible: true },
-        columns: [
-            { dataField: "id", caption: "ID", visible: false, allowEditing: false },
-            { dataField: "accountName", caption: "Account Name", width: 220, allowEditing: false },
-            { dataField: "city", caption: "City", width: 120, allowEditing: false },
-            { dataField: "balance", caption: "Balance", width: 120, format: "#,##0.##", allowEditing: false },
+        $("#gridContainer").dxDataGrid({
+            dataSource: data,
+            showBorders: true,
+            selection: { mode: "single" },
+            paging: { pageSize: 20 },
+            width: "100%",
+            pager: {
+                showPageSizeSelector: true,
+                allowedPageSizes: [20, 50, 100],
+                showInfo: true
+            },
+            filterRow: { visible: true },
+            columns: [
+                { dataField: "id", caption: "ID", visible: false },
 
-            // ✅ Cột duy nhất cho phép chỉnh sửa
-            {
-                dataField: "currencyID",
-                caption: "Currency",
-                width: 140,
-                allowEditing: true, // chỉ cột này có thể sửa
-                lookup: {
-                    dataSource: currencyList,
-                    valueExpr: "ID",
-                    displayExpr: "ID"
-                },
-                setCellValue: function (rowData, value) {
-                    rowData.currencyID = value || null;
+                { dataField: "accountName", caption: "Account Name", width: "18%", allowEditing: false },
+                { dataField: "city", caption: "City", width: "8%", allowEditing: false },
+                { dataField: "balance", caption: "Balance", width: "8%", format: "#,##0.##", allowEditing: false },
 
-                    // ✅ Cập nhật selectedRowData nếu trùng
-                    if (selectedRowData && selectedRowData.id === rowData.id) {
-                        selectedRowData.currencyID = value || null;
+                // ✅ Editable column
+                {
+                    dataField: "currencyID",
+                    caption: "Currency",
+                    width: "7%",
+                    allowEditing: true,
+                    lookup: {
+                        dataSource: currencyList,
+                        valueExpr: "ID",
+                        displayExpr: "ID"
+                    },
+                    setCellValue: function (rowData, value) {
+                        rowData.currencyID = value || null;
+
+                        if (selectedRowData && selectedRowData.id === rowData.id) {
+                            selectedRowData.currencyID = value || null;
+                        }
                     }
+                },
 
-                    console.log("Updated row:", rowData);
-                    console.log("Selected row after edit:", selectedRowData);
-                }
+                { dataField: "contactName", caption: "Contact Name", width: "15%", allowEditing: false },
+                { dataField: "type", caption: "Type", width: "5%", allowEditing: false },
+                { dataField: "accountNo", caption: "Account No", width: "10%", allowEditing: false },
+
+                { dataField: "createdBy", caption: "Created By", width: "6%", allowEditing: false },
+                { dataField: "createdDate", caption: "Created Date", width: "7%", dataType: "date", format: "dd/MM/yyyy", allowEditing: false },
+
+                { dataField: "updatedBy", caption: "Updated By", width: "6%", allowEditing: false },
+                { dataField: "updatedDate", caption: "Updated Date", width: "7%", dataType: "date", format: "dd/MM/yyyy", allowEditing: false },
+
+                { dataField: "arid", caption: "ARID", width: "5%", allowEditing: false }
+            ],
+
+            editing: {
+                mode: "cell",
+                allowUpdating: true,
+                allowAdding: false,
+                allowDeleting: false
             },
 
-            { dataField: "contactName", caption: "Contact Name", width: 220, allowEditing: false },
-            { dataField: "type", caption: "Type", width: 80, allowEditing: false },
-            { dataField: "accountNo", caption: "Account No", width: 150, allowEditing: false },
-            { dataField: "createdBy", caption: "Created By", width: 120, allowEditing: false },
-            { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy", width: 120, allowEditing: false },
-            { dataField: "updatedBy", caption: "Updated By", width: 120, allowEditing: false },
-            { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy", width: 120, allowEditing: false },
-            { dataField: "arid", caption: "ARID", width: 100, allowEditing: false }
-        ],
+            scrolling: {
+                mode: "standard",
+                showScrollbar: "always",
+                scrollByContent: true
+            },
+            pager: {
+                visible: true,
+                allowedPageSizes: [50, 100, 'all'],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            },
+            onRowClick: function (e) {
+                selectedRowData = e.data;
 
-        editing: {
-            mode: "cell",
-            allowUpdating: true,
-            allowAdding: false,
-            allowDeleting: false
-        },
-
-        scrolling: {
-            mode: "standard",
-            showScrollbar: "always",
-            scrollByContent: true
-        },
-        pager: {
-            visible: true,
-            allowedPageSizes: [50, 100, 'all'],
-            showPageSizeSelector: true,
-            showInfo: true,
-            showNavigationButtons: true
-        },
-        onRowClick: function (e) {
-            selectedRowData = e.data;
-  
-        }
-    });
-}
-
-
-
-      $(document).off("click", "#btnOkAuto").on("click", "#btnOkAuto", function () {
-        
-                    console.log("Selected Row:", selectedRowData);
-            $("#loadingSpinner").show();
-            $.ajax({
-                url: '/Accounting/AROpeningSave',
-                type: 'POST',
-                data: {
-                    accountName: selectedRowData.accountName,
-                    accountNo: selectedRowData.accountNo,
-                    arid: selectedRowData.arid,
-                    balance: selectedRowData.balance,
-                    city: selectedRowData.city,
-                    contactName: selectedRowData.contactName,
-                    createdBy: selectedRowData.createdBy,
-                    createdDate: selectedRowData.createdDate,
-                    currencyID: selectedRowData.currencyID,
-                    id: selectedRowData.id,
-                    type: selectedRowData.type,
-                    updatedBy: selectedRowData.updatedBy,
-                    updatedDate: selectedRowData.updatedDate,  
-                       user: localStorage.getItem("Loginname")
-
-                },
-                traditional: true,
-                  crossDomain: false,
-                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-                success: function (result) {
-                     if (result.success) {
-                              showToast('Success', result.message, true);
-                               $("#loadingSpinner").hide();
-                                    $("#btnPrint").trigger("click");
-                          
-                     } else {
-                              showToast('Error', 'Please select a Task Code before saving.', false);
-                     }
-
-                },
-                error: function () {
-                    alert("Không th? t?i báo cáo.");
-                    $("#loadingSpinner").hide();
-                }
-            });
+            }
         });
+    }
 
 
-       
+
+    $(document).off("click", "#btnOkAuto").on("click", "#btnOkAuto", function () {
+        if (!selectedRowData) {
+            showToast("Warning", "Please select 1 row .", false);
+            return;
+        }
+        console.log("Selected Row:", selectedRowData);
+        $("#loadingSpinner").show();
+        $.ajax({
+            url: '/Accounting/AROpeningSave',
+            type: 'POST',
+            data: {
+                accountName: selectedRowData.accountName,
+                accountNo: selectedRowData.accountNo,
+                arid: selectedRowData.arid,
+                balance: selectedRowData.balance,
+                city: selectedRowData.city,
+                contactName: selectedRowData.contactName,
+                createdBy: selectedRowData.createdBy,
+                createdDate: selectedRowData.createdDate,
+                currencyID: selectedRowData.currencyID,
+                id: selectedRowData.id,
+                type: selectedRowData.type,
+                updatedBy: selectedRowData.updatedBy,
+                updatedDate: selectedRowData.updatedDate,
+                user: localStorage.getItem("Loginname")
+
+            },
+            traditional: true,
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+                if (result.success) {
+                    showToast('Success', result.message, true);
+                    $("#loadingSpinner").hide();
+                    $("#btnPrint").trigger("click");
+
+                } else {
+                    showToast('Error', 'Please select a Task Code before saving.', false);
+                }
+
+            },
+            error: function () {
+                alert("Không th? t?i báo cáo.");
+                $("#loadingSpinner").hide();
+            }
+        });
+    });
 
 
-       $("#btnExportExcel").click(function () {
+
+
+
+    $("#btnExportExcel").click(function () {
         const grid = $("#gridContainer").dxDataGrid("instance");   // 🔥 khai báo grid
 
         const workbook = new ExcelJS.Workbook();

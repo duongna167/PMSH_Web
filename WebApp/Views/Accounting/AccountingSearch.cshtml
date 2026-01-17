@@ -2,14 +2,14 @@
     <h3 id="content-title">Accounting Search</h3>
 </div>
 <div class="mb-2">
+    <button class="mui-button mui-button-new" id="btnSearch">Search</button>
     <button class="mui-button mui-button-new" onclick="openModalNew()">New</button>
     <button class="mui-button mui-button-new" onclick="openModalMaintenance()">AR</button>
-
-    <button class="submit-button-new-reservation" onclick="GetAccountAvailableByID()">Edit</button>
+    <button class="mui-button mui-button-new" onclick="GetAccountAvailableByID()">Edit</button>
 </div>
 <div class="mb-2">
     <div class="mui-card">
-        <div id="filter" class="tab-pane ">
+        <div id="filter" class="tab-pane">
             <div class="row">
                 <div class="form-group-new-reservation col-md-1">
                     <label>Account Name</label>
@@ -173,6 +173,9 @@
     $(document).ready(async function () {
         searchReservation();
     });
+    $(document).off("click", "#btnSearch").on("click", "#btnSearch", function () {
+        searchReservation();
+    });
 
     function searchReservation() {
 
@@ -190,6 +193,8 @@
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
                 initializeDataGridBilling(result);
+                console.log('result', result);
+
             },
             error: function (xhr, statusText, err) {
                 if (xhr.status == 401) {
@@ -205,7 +210,9 @@
         $("#gridContainer").dxDataGrid({
             dataSource: data,
             allowColumnResizing: true,
-
+            columnAutoWidth: false,
+            width: "100%",
+            height: "500px",
             paging: { pageSize: 15 },
             scrolling: {
                 rowRenderingMode: 'virtual'
@@ -225,6 +232,142 @@
                 mode: "multiple",
                 showCheckBoxesMode: "always"
             },
+            columns: [
+
+                /* ===== Technical ===== */
+                {
+                    dataField: "ID",
+                    caption: "ID",
+                    visible: false
+                },
+
+                /* ===== Core Account ===== */
+                {
+                    dataField: "AccountName",
+                    caption: "Account Name",
+                    width: 260
+                },
+                {
+                    dataField: "AccountNo",
+                    caption: "Account No",
+                    width: 180
+                },
+                {
+                    dataField: "AccountTypeID",
+                    caption: "Type",
+                    width: 80
+                },
+
+                /* ===== Financial ===== */
+                {
+                    dataField: "CurrencyID",
+                    caption: "Currency",
+                    width: 90
+                },
+                {
+                    dataField: "CreditLimit",
+                    caption: "Credit Limit",
+                    width: 140,
+                    alignment: "right"
+                },
+                {
+                    dataField: "BalanceVND",
+                    caption: "Balance (VND)",
+                    width: 150,
+                    alignment: "right"
+                },
+                {
+                    dataField: "BalanceUSD",
+                    caption: "Balance (USD)",
+                    width: 150,
+                    alignment: "right"
+                },
+                {
+                    dataField: "PaymentDueDays",
+                    caption: "Due Days",
+                    width: 100,
+                    alignment: "center"
+                },
+
+                /* ===== Contact ===== */
+                {
+                    dataField: "ContactName",
+                    caption: "Contact Name",
+                    width: 200
+                },
+                {
+                    dataField: "TelePhone",
+                    caption: "Telephone",
+                    width: 140
+                },
+                {
+                    dataField: "Fax",
+                    caption: "Fax",
+                    width: 120
+                },
+                {
+                    dataField: "Email",
+                    caption: "Email",
+                    width: 220
+                },
+
+                /* ===== Address ===== */
+                {
+                    dataField: "Address1",
+                    caption: "Address",
+                    width: 280
+                },
+
+                /* ===== Status / Flags ===== */
+                {
+                    dataField: "Check",
+                    caption: "Check",
+                    width: 80
+                },
+                {
+                    dataField: "StatusFlagged",
+                    caption: "Flagged",
+                    width: 100
+                },
+                {
+                    dataField: "StatusInactive",
+                    caption: "Inactive",
+                    width: 100
+                },
+
+                /* ===== Other ===== */
+                {
+                    dataField: "Description",
+                    caption: "Description",
+                    width: 260
+                },
+
+                /* ===== Audit ===== */
+                {
+                    dataField: "CreatedBy",
+                    caption: "Created By",
+                    width: 120
+                },
+                {
+                    dataField: "CreatedDate",
+                    caption: "Created Date",
+                    width: 160,
+                    dataType: "datetime",
+                    format: "dd/MM/yyyy"
+                },
+                {
+                    dataField: "UpdatedBy",
+                    caption: "Updated By",
+                    width: 120
+                },
+                {
+                    dataField: "UpdatedDate",
+                    caption: "Updated Date",
+                    width: 160,
+                    dataType: "datetime",
+                    format: "dd/MM/yyyy"
+                }
+            ],
             onRowClick: function (e) {
                 const grid = $("#gridContainer").dxDataGrid("instance");
                 grid.selectRows([e.key], false);
