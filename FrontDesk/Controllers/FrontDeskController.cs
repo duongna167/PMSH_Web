@@ -83,15 +83,15 @@ namespace FrontDesk.Controllers
         }
 
         [HttpGet]
-        public JsonResult GetTelephoneDetail(int id)
+        public IActionResult GetTelephoneDetail(int id, string name)
         {
             try
             {
                 string sql = @"SELECT ID, Name, Telephone, Address, Remark, Color
-               FROM TelephoneBook
-               WHERE ID > 0";
+                       FROM TelephoneBook
+                       WHERE ID > 0";
 
-                if (id != 0)
+                if (name != "--All--")
                 {
                     sql += " AND TelephoneBookCategoryID = " + id;
                 }
@@ -99,14 +99,41 @@ namespace FrontDesk.Controllers
                 sql += " ORDER BY Name";
 
                 DataTable dt = TextUtils.Select(sql);
-                return Json(dt);
+                var result = (from d in dt.AsEnumerable()
+                              select new
+                              {
+                                  ID = d["ID"]?.ToString(),
+                                  Name = d["Name"]?.ToString(),
+                                  Telephone = d["Telephone"]?.ToString(),
+                                  Address = d["Address"]?.ToString(),
+                                  Remark = d["Remark"]?.ToString(),
+                                  Color = d["Color"]?.ToString(),
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        [HttpGet]
+        public JsonResult GetTelephoneById(int id)
+        {
+            try
+            {
+                var obj = (TelephoneBookModel)TelephoneBookBO.Instance.FindByPrimaryKey(id);
+                return Json(obj);
             }
             catch (Exception ex)
             {
                 return Json(new { success = false, message = ex.Message });
             }
         }
-
         [HttpPost]
         public JsonResult InsertTelephoneBook(string name, string telephone, string address, string remark, string webAddress, int categoryId, int color)
         {

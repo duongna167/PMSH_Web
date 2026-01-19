@@ -36,7 +36,7 @@ namespace Profile.Services.Implements
 
                 if (errors.Count != 0)
                     return ValidationFail(errors, dto.Type);
-                
+
                 // Update Profile
                 if (dto.ID > 0)
                 {
@@ -140,7 +140,7 @@ namespace Profile.Services.Implements
             if (dto.BlackListIndividual && string.IsNullOrWhiteSpace(dto.BlackListReasonIndividual))
                 errors.Add(new ValidationErrorDto { Field = "blackListReasonIndividual", Message = "Reason Black list not blank" });
 
-            errors.AddRange(ValidateCodeLength(dto.CodeIndividual, "codeIndividual",dto.ID));
+            errors.AddRange(ValidateCodeLength(dto.CodeIndividual, "codeIndividual", dto.ID));
 
             return errors;
         }
@@ -154,7 +154,7 @@ namespace Profile.Services.Implements
             if (string.IsNullOrWhiteSpace(dto.FirstNameContact))
                 errors.Add(new ValidationErrorDto { Field = "firstNameContact", Message = "First name not blank" });
 
-            errors.AddRange(ValidateCodeLength(dto.CodeIndividual, "CodeContact",dto.ID));
+            errors.AddRange(ValidateCodeLength(dto.CodeContact, "CodeContact", dto.ID));
 
             return errors;
         }
@@ -172,7 +172,7 @@ namespace Profile.Services.Implements
             if (dto.BlackListCOM && string.IsNullOrWhiteSpace(dto.BlackListReasonCOM))
                 errors.Add(new ValidationErrorDto { Field = "blackListReasonCOM", Message = "Reason Black list not blank" });
 
-            errors.AddRange(ValidateCodeLength(dto.CodeCOM, "codeCOM",dto.ID));
+            errors.AddRange(ValidateCodeLength(dto.CodeCOM, "codeCOM", dto.ID));
 
             return errors;
         }
@@ -184,12 +184,12 @@ namespace Profile.Services.Implements
             if (string.IsNullOrWhiteSpace(dto.GroupNameGroup))
                 errors.Add(new ValidationErrorDto { Field = "groupNameGroup", Message = "Group Name not blank" });
 
-            errors.AddRange(ValidateCodeLength(dto.CodeGroup, "codeGroup",dto.ID));
+            errors.AddRange(ValidateCodeLength(dto.CodeGroup, "codeGroup", dto.ID));
 
             return errors;
         }
 
-        private static List<ValidationErrorDto> ValidateCodeLength(string code, string field,int id)
+        private static List<ValidationErrorDto> ValidateCodeLength(string code, string field, int id)
         {
             var errors = new List<ValidationErrorDto>();
 

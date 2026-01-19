@@ -79,9 +79,16 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="popupLabel">Telephone Book</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+               
             </div>
             <div class="modal-body">
+                <div class="d-flex justify-content-start mb-3 gap-2">
+                   
+                    <button type="button" class="mui-button mui-button-edit" id="btnSavePopup">
+                        Save
+                    </button>
+                    <button type="button" class="mui-button mui-button-edit" data-bs-dismiss="modal">Cancel</button>
+                </div>
                 <form id="popupForm">
                     <div class="row d-flex align-items-center">
                         <div class="col-md-6 ">
@@ -122,11 +129,7 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="btnSavePopup">
-                    Save</button>
-            </div>
+          
         </div>
     </div>
 </div>
@@ -156,7 +159,7 @@
         const selected = grid.getSelectedRowsData();
 
         if (selected.length === 0) {
-            alert("Vui lòng chọn 1 đối tượng để cập nhật.");
+            showToast('Warning', 'Please select a row to delete.', false);
             return;
         }
 
@@ -171,7 +174,7 @@
                 $("#popupAddress").val(data.address);
                 $("#popupRemark").val(data.remark);
                 $("#popupWeb").val(data.webAddress);
-                $("#popupColor").val("#" + (data.color.toString(16).padStart(6, "0")));
+                 $("#popupColor").val(signedIntToHexColor(data.color));
 
                 // Lưu tạm id để khi Save biết update
                 $("#popupForm").data("edit-id", data.id);
@@ -180,13 +183,39 @@
             }
         });
     });
+        function signedIntToHexColor(argbInt) {
+        // ép về unsigned 32-bit
+        let uint32 = argbInt >>> 0;
+
+        // bỏ alpha (8 bit đầu), lấy RGB
+        let hex = (uint32 & 0x00FFFFFF).toString(16).padStart(6, "0");
+
+        return "#" + hex;
+    }
+
+   function hexToSignedInt(hex) {
+        hex = hex.replace("#", "");
+
+        // thêm alpha FF (ARGB)
+        let argb = "FF" + hex;
+
+        // parse thành số 32-bit
+        let intVal = parseInt(argb, 16);
+
+        // ép về signed int 32-bit
+        if (intVal > 0x7FFFFFFF) {
+            intVal = intVal - 0x100000000;
+        }
+
+        return intVal;
+    }
 
     // Khi Save
     $("#btnSavePopup").click(function () {
         const phone = $("#popupPhone").val();
 
         if (!isValidVietnamPhone(phone)) {
-            alert("❌ Số điện thoại không hợp lệ!");
+            showToast('Error', 'The phone number is not valid.', false);
             return;
         }
         let editId = $("#popupForm").data("edit-id");
@@ -198,17 +227,17 @@
             remark: $("#popupRemark").val(),
             webAddress: $("#popupWeb").val(),
             categoryId: $("#popupCategory").val(),
-            color: parseInt($("#popupColor").val().replace("#", ""), 16)
-        };
+              color: hexToSignedInt($("#popupColor").val())
+         };
 
         if (editId) {
             // Update
             postData.id = editId;
             $.post("/FrontDesk/UpdateTelephoneBook", postData, function (res) {
                 if (res.success) {
-                    alert("Cập nhật thành công!");
+                    showToast('Success', 'Updated successfully.', true);
                     $("#telephonePopup").modal("hide");
-                    $("#btnView").click();
+                       loadTelephoneDetail(row.id,row.name);
                 } else {
                     alert("Lỗi: " + res.message);
                 }
@@ -217,9 +246,10 @@
             // Insert
             $.post("/FrontDesk/InsertTelephoneBook", postData, function (res) {
                 if (res.success) {
-                    alert("Thêm thành công!");
+                    showToast('Success', 'Added successfully.', true);
                     $("#telephonePopup").modal("hide");
-                    $("#btnView").click();
+                      $("#btnView").trigger("click");
+                         loadTelephoneDetail(row.id,row.name);
                 } else {
                     alert("Lỗi: " + res.message);
                 }
@@ -231,17 +261,19 @@
         const selected = grid.getSelectedRowsData();
 
         if (selected.length === 0) {
-            alert("Vui lòng chọn 1 dòng để xóa.");
+              showToast('Warning', 'Please select a row to delete.', false);
+
             return;
         }
 
         let row = selected[0];
 
-        if (confirm("Bạn có chắc chắn muốn xóa: " + row.name + " ?")) {
+        if (confirm("Are you sure you want to delete \"" + row.name + "\"?")) {
             $.post("/FrontDesk/DeleteTelephoneBook", { id: row.id }, function (res) {
                 if (res.success) {
-                    alert("Xóa thành công!");
-                    $("#btnView").click(); // reload lại grid
+                  showToast('Success', 'Deleted successfully.', true);
+                   $("#btnView").trigger("click"); // reload lại grid
+                      loadTelephoneDetail(row.id,row.name);
                 } else {
                     alert("Lỗi: " + res.message);
                 }
@@ -272,7 +304,7 @@
         });
     });
 
-    function loadTelephoneGrid(data) {
+       function loadTelephoneGrid(data) {
 
         $("#gridContainer").dxDataGrid({
             dataSource: data,
@@ -280,17 +312,20 @@
             height: 400,
             allowColumnResizing: true,
             selection: { mode: "single" },
+
             columns: [
                 { dataField: "name", caption: "Name" },
                 { dataField: "telephone", caption: "Telephone" },
                 { dataField: "address", caption: "Address" },
                 { dataField: "remark", caption: "Remark" }
             ],
+
             scrolling: {
-                mode: "standard", // Không dùng virtual để footer hiển thị đúng
+                mode: "standard",
                 showScrollbar: "always",
                 scrollByContent: true
             },
+
             paging: {
                 pageSize: 20
             },
@@ -301,14 +336,31 @@
                 showInfo: true,
                 showNavigationButtons: true
             },
+
             filterRow: {
                 visible: true,
                 applyFilter: "auto"
             },
-            showBorders: true
+
+            showBorders: true,
+
+            // ✅ SET MÀU BACKGROUND CHO ROW
+            onRowPrepared: function (e) {
+                if (e.rowType === "data" && e.data.color !== null && e.data.color !== undefined) {
+                    let bgColor = signedIntToHexColor(e.data.color);
+
+                       e.rowElement[0].style.setProperty(
+                            "background-color",
+                            bgColor,
+                            "important"
+                        );
+
+                }
+            }
         });
     }
 
+        let  row="";
     function loadTelephoneSelect(data) {
 
         $("#gridWrapper").dxDataGrid({
@@ -343,35 +395,42 @@
             onSelectionChanged: function (e) {
                 if (!e.selectedRowsData || e.selectedRowsData.length === 0) return;
 
-                var row = e.selectedRowsData[0];
+                 row = e.selectedRowsData[0];
 
                 // Ví dụ: gọi ajax khác
-                loadTelephoneDetail(row.id);
+                loadTelephoneDetail(row.id,row.name);
             }
         });
     }
 
-    function loadTelephoneDetail(telephoneId) {
+    function loadTelephoneDetail(telephoneId, name) {
         $("#loadingSpinner").show();
 
         $.ajax({
             url: '/FrontDesk/GetTelephoneDetail',
             type: 'GET',
             data: {
-                id: telephoneId
+                id: telephoneId,
+                name: name
             },
-            success: function (res) {
-                console.log("Chi tiết:", res);
-               loadTelephoneGrid(res);
+             traditional: true,
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+
+            
+                loadTelephoneGrid(result);
             },
-            error: function () {
-                alert("Không thể tải chi tiết");
+            error: function (xhr) {
+                console.error(xhr.responseText);
+                alert("Lỗi kết nối server");
             },
             complete: function () {
                 $("#loadingSpinner").hide();
             }
         });
     }
+
 
     $("#btnExportExcel").click(function () {
         const grid = $("#gridContainer").dxDataGrid("instance");   // 🔥 khai báo grid
