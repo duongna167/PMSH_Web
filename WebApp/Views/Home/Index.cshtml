@@ -1,5 +1,5 @@
 ﻿﻿@{
-ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Home Page";
 }
 <div class="layout-wrapper">
 
@@ -241,59 +241,59 @@ ViewData["Title"] = "Home Page";
 
 @* <script src="https://code.highcharts.com/highcharts.js"></script> *@
 <script>
-            function formatDate(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
 
-        $(document).ready(function () {
-            var parsedBusinessDate = JSON.parse(localStorage.getItem("businessDate")); // "29/08/2024 00:00:00"
+    $(document).ready(function () {
+        var parsedBusinessDate = JSON.parse(localStorage.getItem("businessDate")); // "29/08/2024 00:00:00"
 
-            var dateOnly = parsedBusinessDate.split(' ')[0]; // "29/08/2024"
-            var dateParts = dateOnly.split('/'); // ["29", "08", "2024"]
+        var dateOnly = parsedBusinessDate.split(' ')[0]; // "29/08/2024"
+        var dateParts = dateOnly.split('/'); // ["29", "08", "2024"]
 
-            var businessDate =  new Date(dateParts[2], dateParts[0] - 1, dateParts[1]);// new Date(2024, 7, 29)
+        var businessDate = new Date(dateParts[2], dateParts[0] - 1, dateParts[1]);// new Date(2024, 7, 29)
 
-             var parsedBusinessDate =  formatDate(businessDate);
-                 $("#loadingSpinner").show();
-             $.ajax({
-                url: '/Report/DashBoard',
-                type: 'GET',
-                data: {
-                    businessDate: parsedBusinessDate,
-                },
-                headers: {
-                    "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
-                },
-                success: function (data) {
+        var parsedBusinessDate = formatDate(businessDate);
+        $("#loadingSpinner").show();
+        $.ajax({
+            url: '/Report/DashBoard',
+            type: 'GET',
+            data: {
+                businessDate: parsedBusinessDate,
+            },
+            headers: {
+                "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
+            },
+            success: function (data) {
 
-                   console.log(data);
-                       $("#dueInCheckedInCount").text(data.totalDueinCheckedint);
-                        $("#checkedOutCount").text(data.totaCheckedoutint);
-                        $("#dueoutCount").text(data.totalDueoutint);
-                        $("#guestInHouseCount").text(data.guestInHouseCount);
-                        $("#rsvCount").text(data.rsvCount);
-                        $("#totalA").text(data.totalA);
-                        $("#totalC").text(data.totalC);
-                        $("#occupancyPercent").text(data.occupancyPercent + "%");
+                console.log(data);
+                $("#dueInCheckedInCount").text(data.totalDueinCheckedint);
+                $("#checkedOutCount").text(data.totaCheckedoutint);
+                $("#dueoutCount").text(data.totalDueoutint);
+                $("#guestInHouseCount").text(data.guestInHouseCount);
+                $("#rsvCount").text(data.rsvCount);
+                $("#totalA").text(data.totalA);
+                $("#totalC").text(data.totalC);
+                $("#occupancyPercent").text(data.occupancyPercent + "%");
 
-                                    renderHighchartBar(data.chartStatus);
-                                    renderHighchartPie(data.chartStatus);
+                renderHighchartBar(data.chartStatus);
+                renderHighchartPie(data.chartStatus);
 
 
-                    $("#loadingSpinner").hide();
-                },
-                error: function () {
-                    alert("Không thể tải dữ liệu.");
                 $("#loadingSpinner").hide();
-                }
-            });
-
-
+            },
+            error: function () {
+                alert("Không thể tải dữ liệu.");
+                $("#loadingSpinner").hide();
+            }
         });
-          function renderHighchartBar(data) {
+
+
+    });
+    function renderHighchartBar(data) {
         const filteredData = data.filter(x => x.label !== 'Total' && x.label !== 'OOO');
 
         const categories = filteredData.map(x => x.label);
@@ -327,104 +327,104 @@ ViewData["Title"] = "Home Page";
     }
 
 
-         // Hàm hiển thị biểu đồ tròn (Pie Chart) bằng Highcharts
-        function renderHighchartPie(data) {
-            const totalObj = data.find(x => x.label === 'Total');
-            const total = totalObj ? parseInt(totalObj.value) : 0;
+    // Hàm hiển thị biểu đồ tròn (Pie Chart) bằng Highcharts
+    function renderHighchartPie(data) {
+        const totalObj = data.find(x => x.label === 'Total');
+        const total = totalObj ? parseInt(totalObj.value) : 0;
 
-            // Tính phần trăm thực tế chưa làm tròn
-            let items = data
-                .filter(x => x.label !== 'Total')
-                .map(x => {
-                    const y = parseInt(x.value);
-                    const rawPercent = total > 0 ? (y / total) * 100 : 0;
-                    return {
-                        label: x.label,
-                        y: y,
-                        rawPercent: rawPercent
-                    };
-                });
-
-            // Làm tròn phần trăm
-            let roundedPercents = items.map(x => Math.round(x.rawPercent * 10) / 10);
-            let sumPercent = roundedPercents.reduce((a, b) => a + b, 0);
-
-            // Tính chênh lệch do làm tròn
-            let diff = +(100.0 - sumPercent).toFixed(1);
-
-            // Nếu có chênh lệch thì điều chỉnh mục có giá trị lớn nhất
-            if (Math.abs(diff) > 0.0) {
-                let maxIndex = items.reduce((maxIdx, item, idx, arr) => {
-                    return arr[idx].y > arr[maxIdx].y ? idx : maxIdx;
-                }, 0);
-
-                roundedPercents[maxIndex] = +(roundedPercents[maxIndex] + diff).toFixed(1);
-            }
-
-            // Tạo dữ liệu cho Highcharts
-            const chartData = items.map((x, i) => {
+        // Tính phần trăm thực tế chưa làm tròn
+        let items = data
+            .filter(x => x.label !== 'Total')
+            .map(x => {
+                const y = parseInt(x.value);
+                const rawPercent = total > 0 ? (y / total) * 100 : 0;
                 return {
-                    name: `${x.label} (${roundedPercents[i]}%)`,
-                    y: x.y
+                    label: x.label,
+                    y: y,
+                    rawPercent: rawPercent
                 };
             });
 
-            Highcharts.chart('highchartPie', {
-                chart: {
-                    type: 'pie'
-                },
-                title: {
-                    text: ''
-                },
-                tooltip: {
-                    pointFormat: '{series.name}: <b>{point.y}</b>'
-                },
-                accessibility: {
-                    point: {
-                        valueSuffix: '%'
-                    }
-                },
-                legend: {
-                    enabled: true,
-                    align: 'center',
-                    verticalAlign: 'bottom',
-                    layout: 'horizontal'
-                },
-                plotOptions: {
-                    pie: {
-                        allowPointSelect: true,
-                        cursor: 'pointer',
-                        dataLabels: {
-                            enabled: true,
-                            format: '{point.name}: {point.y}'
-                        },
-                        showInLegend: true
-                    }
-                },
-                series: [{
-                    name: 'Total',
-                    colorByPoint: true,
-                    data: chartData
-                }],
-                credits: {
-                    enabled: false
-                }
-            });
+        // Làm tròn phần trăm
+        let roundedPercents = items.map(x => Math.round(x.rawPercent * 10) / 10);
+        let sumPercent = roundedPercents.reduce((a, b) => a + b, 0);
+
+        // Tính chênh lệch do làm tròn
+        let diff = +(100.0 - sumPercent).toFixed(1);
+
+        // Nếu có chênh lệch thì điều chỉnh mục có giá trị lớn nhất
+        if (Math.abs(diff) > 0.0) {
+            let maxIndex = items.reduce((maxIdx, item, idx, arr) => {
+                return arr[idx].y > arr[maxIdx].y ? idx : maxIdx;
+            }, 0);
+
+            roundedPercents[maxIndex] = +(roundedPercents[maxIndex] + diff).toFixed(1);
         }
 
+        // Tạo dữ liệu cho Highcharts
+        const chartData = items.map((x, i) => {
+            return {
+                name: `${x.label} (${roundedPercents[i]}%)`,
+                y: x.y
+            };
+        });
 
-
-
-        // Chart toggle logic
-        $('input[name="chartType"]').on('change', function () {
-            const selected = $(this).val();
-            if (selected === 'bar') {
-                $('#highchartBar').show();
-                $('#highchartPie').hide();
-            } else {
-                $('#highchartBar').hide();
-                $('#highchartPie').show();
+        Highcharts.chart('highchartPie', {
+            chart: {
+                type: 'pie'
+            },
+            title: {
+                text: ''
+            },
+            tooltip: {
+                pointFormat: '{series.name}: <b>{point.y}</b>'
+            },
+            accessibility: {
+                point: {
+                    valueSuffix: '%'
+                }
+            },
+            legend: {
+                enabled: true,
+                align: 'center',
+                verticalAlign: 'bottom',
+                layout: 'horizontal'
+            },
+            plotOptions: {
+                pie: {
+                    allowPointSelect: true,
+                    cursor: 'pointer',
+                    dataLabels: {
+                        enabled: true,
+                        format: '{point.name}: {point.y}'
+                    },
+                    showInLegend: true
+                }
+            },
+            series: [{
+                name: 'Total',
+                colorByPoint: true,
+                data: chartData
+            }],
+            credits: {
+                enabled: false
             }
         });
+    }
+
+
+
+
+    // Chart toggle logic
+    $('input[name="chartType"]').on('change', function () {
+        const selected = $(this).val();
+        if (selected === 'bar') {
+            $('#highchartBar').show();
+            $('#highchartPie').hide();
+        } else {
+            $('#highchartBar').hide();
+            $('#highchartPie').show();
+        }
+    });
 
 </script>
