@@ -4,6 +4,7 @@ using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using DevExpress.CodeParser;
+using DocumentFormat.OpenXml.EMMA;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -18,6 +19,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Policy;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using static BaseBusiness.util.ValidationUtils;
 namespace Administration.Controllers
@@ -39,6 +41,7 @@ namespace Administration.Controllers
             _httpContextAccessor = httpContextAccessor;
 
         }
+
 
         #region MemberList
         [HttpGet]
@@ -1023,174 +1026,73 @@ namespace Administration.Controllers
             ViewBag.PersonInChargeZoneList = listzone;
             return View();
         }
-
-        [HttpGet]
-        public IActionResult PersonInChargeData( string code, string name, string group, string zone,string  isActive)
-        {
-            code = code ?? "";
-            name = name?? "";
-            group = group ?? "";
-            zone = zone ?? "";
-            isActive = isActive ?? "";
-            if (isActive == "1")
-            {
-                isActive = "";
-            }
-
-            try
-            {
-                DataTable dataTable = _iAdministrationService.PersonInChargeData(code, name, group, zone, isActive);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  ID = d["ID"] != DBNull.Value ? Convert.ToInt32(d["ID"]) : 0,
-                                  Code = d["Code"]?.ToString() ?? "",
-                                  Name = d["Name"]?.ToString() ?? "",
-                                  TelePhone = d["TelePhone"]?.ToString() ?? "",
-                                  Mobile = d["Mobile"]?.ToString() ?? "",
-                                  Email = d["Email"]?.ToString() ?? "",
-                                  Description = d["Description"]?.ToString() ?? "",
-                                  ZoneID = d["ZoneID"] != DBNull.Value ? Convert.ToInt32(d["ZoneID"]) : 0,
-                                  GroupID = d["GroupID"] != DBNull.Value ? Convert.ToInt32(d["GroupID"]) : 0,
-                                  CreatedBy = d["CreatedBy"]?.ToString() ?? "",
-                                  CreatedDate = d["CreatedDate"] != DBNull.Value ? Convert.ToDateTime(d["CreatedDate"]).ToString("yyyy-MM-dd HH:mm:ss") : "",
-                                  UpdatedBy = d["UpdatedBy"]?.ToString() ?? "",
-                                  UpdatedDate = d["UpdatedDate"] != DBNull.Value ? Convert.ToDateTime(d["UpdatedDate"]).ToString("yyyy-MM-dd HH:mm:ss") : "",
-                                  Inactive = d["Inactive"]?.ToString() ?? "",
-
-                              }).ToList();
-                return Json(result);
-            }
-            catch (Exception ex)
-            {
-                return Json(ex.Message);
-            }
-           
-        }
-        [HttpPost]
-        public IActionResult PersonInChargeSave(int id, string codenew, string telephonenew, string handphonenew, string emailnew, string namenew, string descriptionnew, string group, string zone, int isActive, string user)
-        {
-            var pt = new ProcessTransactions();
-            try
-            {
-                pt.OpenConnection();
-                pt.BeginTransaction();
-
-                user = (user ?? string.Empty).Replace("\"", "").Trim();
-
-                var businessDates = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
-                var businessDate = businessDates[0].BusinessDate;
-
-                PersonInChargeModel model;
-                bool isNew = (id == 0);
-
-                if (isNew)
-                {
-                    model = new PersonInChargeModel
-                    {
-                        Code = codenew?.Trim(),
-                        Name = namenew?.Trim(),
-                        Description = descriptionnew?.Trim(),
-                        Inactive = (isActive == 1),
-                        Telephone= telephonenew,
-                        MobilePhone= handphonenew,
-                        Email= emailnew,
-                        CreatedBy = user,
-                        PersonInChargeGroupID = int.Parse(group),
-                        PersonInChargeZoneID = int.Parse(zone),
-                        CreatedDate = businessDate,
-                        UpdatedBy = user,
-                        UpdatedDate = businessDate
-                    };
-
-                    PersonInChargeBO.Instance.Insert(model);
-                }
-                else
-                {
-                    model = (PersonInChargeModel)PersonInChargeBO.Instance.FindByPrimaryKey(id);
-                    if (model == null)
-                    {
-                        throw new Exception($"Không tìm thấy lafZone có ID = {id}");
-                    }
-
-                    model.Code = codenew?.Trim();
-                    model.Name = namenew?.Trim();
-                    model.Description = descriptionnew?.Trim();
-                    model.Inactive = (isActive == 1);
-                    model.Telephone = telephonenew;
-                    model.MobilePhone = handphonenew;
-                    model.Email = emailnew;
-
-                    model.PersonInChargeGroupID = int.Parse(group);
-                    model.PersonInChargeZoneID = int.Parse(zone);
-                    model.UpdatedBy = user;
-                    model.UpdatedDate = businessDate;
-
-                    PersonInChargeBO.Instance.Update(model);
-                }
-
-                pt.CommitTransaction();
-
-                return Json(new
-                {
-                    success = true,
-                    message = isNew ? "Insert success!" : "Update success!"
-                });
-            }
-            catch (Exception ex)
-            {
-                pt.RollBack();
-                return BadRequest(new { success = false, message = ex.Message });
-            }
-            finally
-            {
-                pt.CloseConnection();
-            }
-        }
-        [HttpPost]
-        public IActionResult PersonInChargelete(int id)
-        {
-            try
-            {
-
-                PersonInChargeBO.Instance.Delete(id);
-
-                return Json(new { success = true, message = "Success Delete!" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { success = false, message = ex.Message });
-            }
-        }
-        #endregion
-
-        #region PersonInCharge
         [HttpGet]
         public IActionResult GetPersonInCharge(string code, string name, string group, string zone, string isActive)
         {
+            code = code?.Trim() ?? "";
+            name = name?.Trim() ?? "";
+            //group = SanitizeCsv(group);
+            //zone = SanitizeCsv(zone);
+
+            var groupIds = !string.IsNullOrEmpty(group)
+             ? group.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)).ToList()
+             : new List<string> { "" };
+
+            var zoneIds = !string.IsNullOrEmpty(zone)
+                ? zone.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)).ToList()
+                : new List<string> { "" };
+
+            DataTable combinedTable = null;
+
             try
             {
-                DataTable dataTable = _iAdministrationService.PersonInChargeData(code, name, group, zone, isActive);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  ID = d["ID"] != DBNull.Value ? Convert.ToInt32(d["ID"]) : 0,
-                                  Code = d["Code"]?.ToString() ?? "",
-                                  Name = d["Name"]?.ToString() ?? "",
-                                  TelePhone = d["TelePhone"]?.ToString() ?? "",
-                                  Mobile = d["Mobile"]?.ToString() ?? "",
-                                  Email = d["Email"]?.ToString() ?? "",
-                                  Description = d["Description"]?.ToString() ?? "",
-                                  ZoneID = d["ZoneID"] != DBNull.Value ? Convert.ToInt32(d["ZoneID"]) : 0,
-                                  GroupID = d["GroupID"] != DBNull.Value ? Convert.ToInt32(d["GroupID"]) : 0,
-                                  CreatedBy = d["CreatedBy"]?.ToString() ?? "",
-                                  CreatedDate = d["CreatedDate"] != DBNull.Value ? Convert.ToDateTime(d["CreatedDate"]).ToString("yyyy-MM-dd HH:mm:ss") : "",
-                                  UpdatedBy = d["UpdatedBy"]?.ToString() ?? "",
-                                  UpdatedDate = d["UpdatedDate"] != DBNull.Value ? Convert.ToDateTime(d["UpdatedDate"]).ToString("yyyy-MM-dd HH:mm:ss") : "",
-                                  Inactive = d["Inactive"]?.ToString() ?? "",
+                foreach (var gId in groupIds)
+                {
+                    foreach (var zId in zoneIds)
+                    {
+                        // Gọi SP cho từng ID đơn lẻ
+                        DataTable dt = _iAdministrationService.PersonInChargeData(code, name, gId, zId, isActive);
 
-                              }).ToList();
+                        if (combinedTable == null)
+                        {
+                            combinedTable = dt.Clone();
+                        }
+
+                        if (dt != null && dt.Rows.Count > 0)
+                        {
+                            foreach (DataRow row in dt.Rows)
+                            {
+                                combinedTable.ImportRow(row);
+                            }
+                        }
+                    }
+                }
+
+                if (combinedTable == null || combinedTable.Rows.Count == 0)
+                {
+                    return Json(new List<object>());
+                }
+                var result = combinedTable.AsEnumerable()
+                    .GroupBy(r => r["ID"].ToString())
+                    .Select(g => g.First())
+                    .Select(d => new {
+                        ID = d["ID"],
+                        Code = d["Code"]?.ToString() ?? "",
+                        Name = d["Name"]?.ToString() ?? "",
+                        TelePhone = d["TelePhone"]?.ToString() ?? "",
+                        Mobile = d["Mobile"]?.ToString() ?? "",
+                        Email = d["Email"]?.ToString() ?? "",
+                        Description = d["Description"]?.ToString() ?? "",
+                        ZoneID = d["ZoneID"],
+                        GroupID = d["GroupID"],
+                        CreatedBy = d["CreatedBy"]?.ToString() ?? "",
+                        CreatedDate = d["CreatedDate"]?.ToString() ?? "",
+                        UpdatedBy = d["UpdatedBy"]?.ToString() ?? "",
+                        UpdatedDate = d["UpdatedDate"]?.ToString() ?? "",
+                        Inactive = d["Inactive"]?.ToString() ?? ""
+                    }).ToList();
                 return Json(result);
+
             }
             catch (Exception ex)
             {
@@ -1198,99 +1100,68 @@ namespace Administration.Controllers
             }
         }
         [HttpPost]
-        public IActionResult PersonInChargeSave([FromBody] List<PropertyPermissionModel> listModels)
+        public IActionResult PersonInChargeSave([FromBody] PersonInChargeModel model)
         {
+            string message = "";
             var listErrors = GetErrors(
-                Check(listModels, "general", "No data received."),
-                Check(listModels != null && listModels.Count == 0, "general", "No data received.")
+                Check(model, "general", "Invalid data"),
+
+                Check(model?.Name, "txtname", "Name cannot be blank."),
+                Check(model.PersonInChargeZoneID, "personInChargeZoneId", "Zone cannot be blank.")
             );
 
             if (listErrors.Count > 0)
             {
                 return Json(new { success = false, errors = listErrors });
             }
-
             try
             {
-                int rowIndex = 1;
-                int successCount = 0;
-
-                foreach (var model in listModels)
+                if (model.ID == 0)
                 {
-                    var rowErrors = GetErrors(
-                        Check(model.UserID, "chooseUser", $"Row {rowIndex}: User is not blank."),
-                        Check(model.PropertyID, "choosePropertyType", $"Row {rowIndex}: Property is not blank.")
-                    );
+                    model.CreatedDate = DateTime.Now;
+                    model.UpdatedDate = DateTime.Now;
 
-                    if (rowErrors.Count > 0)
+                    PersonInChargeBO.Instance.Insert(model);
+                    message = "Insert successfully!";
+                }
+                else
+                {
+                    var oldData = (PersonInChargeModel)PersonInChargeBO.Instance.FindByPrimaryKey(model.ID);
+
+                    if (oldData != null)
                     {
-                        return Json(new
-                        {
-                            success = false,
-                            message = rowErrors[0].Message,
-                            errors = rowErrors
-                        });
+                        model.CreatedBy = oldData.CreatedBy;
+                        model.CreatedDate = oldData.CreatedDate ;
                     }
 
-                    if (model.ID == 0)
-                    {
-                        model.CreatedDate = DateTime.Now;
-                        model.UpdatedDate = DateTime.Now;
-                        PropertyPermissionBO.Instance.Insert(model);
-                    }
-                    else
-                    {
-                        var oldData = (PropertyPermissionModel)PropertyPermissionBO.Instance.FindByPrimaryKey(model.ID);
-                        if (oldData != null)
-                        {
-                            model.CreatedBy = oldData.CreatedBy;
-                            model.CreatedDate = oldData.CreatedDate;
-                        }
-                        model.UpdatedDate = DateTime.Now;
-                        PropertyPermissionBO.Instance.Update(model);
-                    }
+                    model.UpdatedDate = DateTime.Now;
 
-                    successCount++;
-                    rowIndex++;
+                    SeasonBO.Instance.Update(model);
+                    message = "Update successfully!";
                 }
 
-                return Json(new { success = true, message = $"Successfully saved {successCount} permissions!" });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Error: " + ex.Message });
-            }
-        }
-        [HttpPost]
-        public IActionResult DeletePersonInCharge([FromBody] List<int> ids)
-        {
-            string message = "";
-            int successCount = 0;
-
-            try
-            {
-                if (ids == null || ids.Count == 0)
-                {
-                    return Json(new { success = false, message = "No items selected to delete." });
-                }
-
-                foreach (var id in ids)
-                {
-                    if (id > 0)
-                    {
-                        PropertyPermissionBO.Instance.Delete(id);
-                        successCount++;
-                    }
-                }
-
-                message = $"Successfully deleted {successCount} items!";
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message });
+                message = ex.Message;
+                return Json(new { success = false, message });
             }
 
             return Json(new { success = true, message });
+        }
+        [HttpPost]
+        public IActionResult DeletePersonInCharge(int id)
+        {
+            try
+            {
+                PersonInChargeBO.Instance.Delete(id);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, ex.Message });
+            }
+
+            return Json( new { success = true});
         }
         #endregion 
 

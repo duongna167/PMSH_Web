@@ -31,24 +31,80 @@ function getAllBusinessDate(callback) {
  * @param {string} formSelector - selector của form/modal
  */
 function applyValidationErrors(errors, formSelector) {
-  // Reset các lỗi cũ
-  $(
-    `${formSelector} .form-control, ${formSelector} select, ${formSelector} textarea`
-  ).removeClass("is-invalid");
-  $(`${formSelector} .invalid-feedback`).text("");
 
-  if (!errors || errors.length === 0) return;
+    const $form = $(formSelector);
 
-  errors.forEach(function (err) {
-    // Tìm input/select/textarea theo name
-    let $field = $(`${formSelector} [name='${err.field}']`);
-    if ($field.length) {
-      $field.addClass("is-invalid");
-      // Gán nội dung vào invalid-feedback ngay sau field
-      $field.siblings(".invalid-feedback").text(err.message);
+    // Reset lỗi cũ
+    $form.find(".is-invalid").removeClass("is-invalid");
+    $form.find(".invalid-feedback").text("").hide();
+
+    if (!errors || !errors.length) return;
+
+    let firstInvalidElement = null;
+
+    errors.forEach(err => {
+
+        const $field = $form.find(`[name='${err.field}']`);
+        if (!$field.length) return;
+
+        let $errorTarget = null; // element add is-invalid
+        let $feedback = null;    // nơi hiển thị message
+
+        //  TomSelect
+        if ($field[0].tomselect) {
+            $errorTarget = $field.next(".ts-wrapper");
+            $feedback = findFeedback($errorTarget);
+        }
+        //  Input / textarea / select thường
+        else {
+            $errorTarget = $field;
+            $feedback = findFeedback($field);
+        }
+
+        if ($errorTarget) {
+            $errorTarget.addClass("is-invalid");
+
+            if (!firstInvalidElement) {
+                firstInvalidElement = $errorTarget;
+            }
+        }
+
+        if ($feedback) {
+            $feedback.text(err.message).show();
+        }
+    });
+
+    //  Focus field lỗi đầu tiên
+    if (firstInvalidElement) {
+        focusElement(firstInvalidElement);
     }
-  });
 }
+
+// Tìm invalid-feedback gần nhất, KHÔNG phụ thuộc bootstrap
+function findFeedback($el) {
+    // Ưu tiên: sibling → parent → gần nhất trong form
+    return (
+        $el.siblings(".invalid-feedback").first().length
+            ? $el.siblings(".invalid-feedback").first()
+            : $el.closest("[class]").find(".invalid-feedback").first()
+    );
+}
+
+// Focus đúng element (kể cả TomSelect)
+function focusElement($el) {
+    if ($el.hasClass("ts-wrapper")) {
+        // TomSelect
+        const select = $el.prev("select")[0];
+        if (select && select.tomselect) {
+            select.tomselect.focus();
+        }
+    } else {
+        $el.focus();
+    }
+}
+
+
+
 $(document).ready(function () {
   getAllBusinessDate();
   var tooltipTriggerList = [].slice.call(

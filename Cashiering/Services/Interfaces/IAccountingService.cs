@@ -1,4 +1,6 @@
-﻿using DevExpress.Charts.Native;
+﻿using BaseBusiness.Contants;
+using Cashiering.Dto;
+using DevExpress.Charts.Native;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -53,5 +55,9 @@ namespace Cashiering.Services.Interfaces
         DataTable AROpeningData();
         DataTable ARTracesData();
         DataTable ARAccountReceivableSearch();
+        // Tuan:ADd
+        ApiResponseAddError<ValidationErrorDto> SaveARAccount(SaveARAccountRequestDto dto);
     }
+
+
 }
