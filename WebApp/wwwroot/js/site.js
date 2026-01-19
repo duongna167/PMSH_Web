@@ -4,26 +4,52 @@
 // Write your JavaScript code.
 // Hàm gọi để lấy business-date
 
-function getAllBusinessDate(callback) {
+function formatDate(date, format = "DD/MM/YYYY") {
+  if (!date) return "";
+
+  const d = new Date(date);
+  if (isNaN(d)) return "";
+
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+
+  return format.replace("DD", day).replace("MM", month).replace("YYYY", year);
+}
+
+function getAllBusinessDate(callback, displayFormat = "DD/MM/YYYY") {
   return $.ajax({
     url: "/Reservation/GetBusinessDate",
     type: "get",
     dataType: "json",
     success: function (result) {
-      const businessDate = result.split("T")[0];
+      const businessDateISO = result.split("T")[0]; // YYYY-MM-DD
+      const businessDateFormatted = formatDate(businessDateISO, displayFormat);
+
       $("[data-business-date]").each(function () {
-        $(this).val(businessDate);
+        // Set cho input type="date" → luôn dùng ISO
+        if (this.type === "date") {
+          $(this).val(businessDateISO);
+        } else {
+          // Input text / span / label
+          $(this).val?.(businessDateFormatted);
+          $(this).text?.(businessDateFormatted);
+        }
       });
 
       if (typeof callback === "function") {
-        callback(businessDate);
+        callback({
+          iso: businessDateISO,
+          formatted: businessDateFormatted,
+        });
       }
     },
     error: function (xhr) {
-      console.error(" AJAX ERROR", xhr.status);
+      console.error("AJAX ERROR", xhr.status);
     },
   });
 }
+
 //Hàm validation
 /**
  * Áp dụng lỗi JSON vào form bất kỳ với Bootstrap validation
@@ -31,9 +57,17 @@ function getAllBusinessDate(callback) {
  * @param {string} formSelector - selector của form/modal
  */
 function applyValidationErrors(errors, formSelector) {
+  // --- Hàm bổ trợ lấy ngày từ Server ---
+  function getBusinessDateFromServer() {
+    return $.ajax({
+      url: "/Reservation/GetBusinessDate",
+      type: "get",
+      dataType: "json",
+    });
+  }
   // Reset các lỗi cũ
   $(
-    `${formSelector} .form-control, ${formSelector} select, ${formSelector} textarea`
+    `${formSelector} .form-control, ${formSelector} select, ${formSelector} textarea`,
   ).removeClass("is-invalid");
   $(`${formSelector} .invalid-feedback`).text("");
 
@@ -49,12 +83,142 @@ function applyValidationErrors(errors, formSelector) {
     }
   });
 }
+
+//Init Input Date
+(function () {
+  async function getBusinessDateFromServer() {
+    return await $.ajax({
+      url: "/Reservation/GetBusinessDate",
+      type: "get",
+      dataType: "json",
+    });
+  }
+
+  class DateInput {
+    constructor(root) {
+      this.$root = $(root); // Thẻ CHA
+      this.$ui = this.$root.find(".date-ui"); // Thẻ CON
+      // Kiểm tra nếu thẻ cha có thuộc tính business-date
+      this.isBusinessDate = this.$root.is("[business-date]");
+
+      // TỰ ĐỘNG THÊM CLASS KHI KHỞI TẠO
+      this.$root.addClass("date-input-group"); // Ví dụ class cho cha
+      this.$ui.addClass("ms-input "); // Ví dụ class cho con
+
+      this.name = this.$root.data("name");
+      this.format = (this.$root.data("format") || "dd/mm/yyyy").toLowerCase();
+      this.defaultISO = this.$root.data("default");
+      // 1. Thêm class cho cha để làm mốc căn tọa độ
+      this.$root.addClass("ms-input-wrap");
+
+      // 2. Chèn SVG của bạn vào cuối thẻ cha
+      const svgIcon = `
+        <div class="ms-svg">
+            <svg xmlns="http://www.w3.org/2000/svg" enable-background="new 0 0 24 24" height="20px" viewBox="0 0 24 24" width="20px" fill="currentColor">
+                <g><rect fill="none" height="24" width="24"></rect></g>
+                <g><path d="M17,2c-0.55,0-1,0.45-1,1v1H8V3c0-0.55-0.45-1-1-1S6,2.45,6,3v1H5C3.89,4,3.01,4.9,3.01,6L3,20c0,1.1,0.89,2,2,2h14 c1.1,0,2-0.9,2-2V6c0-1.1-0.9-2-2-2h-1V3C18,2.45,17.55,2,17,2z M19,20H5V10h14V20z M11,13c0-0.55,0.45-1,1-1s1,0.45,1,1 s-0.45,1-1,1S11,13.55,11,13z M7,13c0-0.55,0.45-1,1-1s1,0.45,1,1s-0.45,1-1,1S7,13.55,7,13z M15,13c0-0.55,0.45-1,1-1s1,0.45,1,1 s-0.45,1-1,1S15,13.55,15,13z M11,17c0-0.55,0.45-1,1-1s1,0.45,1,1s-0.45,1-1,1S11,17.55,11,17z M7,17c0-0.55,0.45-1,1-1 s1,0.45,1,1s-0.45,1-1,1S7,17.55,7,17z M15,17c0-0.55,0.45-1,1-1s1,0.45,1,1s-0.45,1-1,1S15,17.55,15,17z"></path></g>
+            </svg>
+        </div>`;
+      this.$root.append(svgIcon);
+      // Tạo input hidden để lưu giá trị YYYY-MM-DD
+      this.$hidden = $('<input type="hidden">')
+        .attr("name", this.name)
+        .appendTo(this.$root);
+
+      this.initCalendar();
+
+      // LOGIC TỰ ĐỘNG CHÈN NGÀY
+      if (this.isBusinessDate) {
+        this.loadAndSetBusinessDate();
+      } else if (this.defaultISO) {
+        this.setISO(this.defaultISO);
+      }
+    }
+
+    initCalendar() {
+      const self = this;
+
+      // Khởi tạo thư viện (Sẽ sinh ra HTML có class .datepicker-container)
+      this.$ui.datepicker({
+        autoHide: true,
+        format: self.format,
+        zIndex: 2048,
+
+        // Thêm class tạm thời vào CHA khi đang mở lịch
+        show: function () {
+          self.$root.addClass("datepicker-active");
+        },
+        hide: function () {
+          self.$root.removeClass("datepicker-active");
+        },
+
+        // Khi người dùng click chọn ngày (li.picked)
+        pick: function (e) {
+          const date = e.date;
+          const y = date.getFullYear();
+          const m = String(date.getMonth() + 1).padStart(2, "0");
+          const d = String(date.getDate()).padStart(2, "0");
+
+          self.$hidden.val(`${y}-${m}-${d}`);
+        },
+      });
+      // BẮT SỰ KIỆN CLICK VÀO ICON ĐỂ MỞ LỊCH
+      this.$root.find(".ms-svg").on("click", function (e) {
+        e.stopPropagation();
+
+        // KIỂM TRA: Nếu input có thuộc tính disabled hoặc readonly thì không làm gì cả
+        if (self.$ui.is(":disabled") || self.$ui.prop("readonly")) {
+            return;
+        }
+
+        self.$ui.datepicker("show");
+      });
+
+      // Chống đóng lịch khi click vào input (nổi bọt)
+      this.$ui.on("click", (e) => e.stopPropagation());
+    }
+
+    async loadAndSetBusinessDate() {
+      try {
+        const result = await getBusinessDateFromServer();
+        const businessDateISO = result.split("T")[0];
+        console.log(
+          `[BusinessDate] Autoload cho ${this.name}: ${businessDateISO}`,
+        );
+        this.setISO(businessDateISO);
+      } catch (err) {
+        console.error("Không thể lấy Business Date:", err);
+      }
+    }
+
+    setISO(iso) {
+      if (!iso) return;
+      const parts = iso.split("-");
+      if (parts.length === 3) {
+        const date = new Date(parts[0], parts[1] - 1, parts[2]);
+        this.$ui.datepicker("setDate", date);
+        this.$hidden.val(iso);
+      }
+    }
+  }
+
+  window.initDateInputs = function (root) {
+    const $root = root ? $(root) : $(document);
+    $root.find("[data-date-input]").each(function () {
+      if ($(this).data("date-initialized")) return;
+      new DateInput(this);
+      $(this).data("date-initialized", true);
+    });
+  };
+})();
+
 $(document).ready(function () {
   getAllBusinessDate();
   var tooltipTriggerList = [].slice.call(
-    document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    document.querySelectorAll('[data-bs-toggle="tooltip"]'),
   );
   var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl);
   });
+  window.initDateInputs();
 });
