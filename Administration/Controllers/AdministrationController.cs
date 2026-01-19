@@ -1050,7 +1050,6 @@ namespace Administration.Controllers
                 {
                     foreach (var zId in zoneIds)
                     {
-                        // Gọi SP cho từng ID đơn lẻ
                         DataTable dt = _iAdministrationService.PersonInChargeData(code, name, gId, zId, isActive);
 
                         if (combinedTable == null)
@@ -1096,8 +1095,12 @@ namespace Administration.Controllers
             }
             catch (Exception ex)
             {
-                return Json(ex.Message);
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
             }
+
         }
         [HttpPost]
         public IActionResult PersonInChargeSave([FromBody] PersonInChargeModel model)
