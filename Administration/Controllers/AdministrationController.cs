@@ -1106,6 +1106,7 @@ namespace Administration.Controllers
         public IActionResult PersonInChargeSave([FromBody] PersonInChargeModel model)
         {
             string message = "";
+
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
@@ -1121,6 +1122,16 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
+                    string sql = @"
+                        SELECT 
+                            RIGHT('000000' + CAST(ISNULL(MAX(CAST(Code AS INT)), 0) + 1 AS VARCHAR(6)), 6)
+                        FROM PersonInCharge WITH (UPDLOCK, HOLDLOCK)
+                    ";
+                    DataTable dt = TextUtils.Select(sql);
+                    if (dt == null || dt.Rows.Count == 0)
+                        throw new Exception("Cannot generate Person In Charge code.");
+
+                    model.Code = dt.Rows[0][0].ToString();
                     model.CreatedDate = DateTime.Now;
                     model.UpdatedDate = DateTime.Now;
 
