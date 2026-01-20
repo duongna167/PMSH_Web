@@ -57,14 +57,6 @@ function getAllBusinessDate(callback, displayFormat = "DD/MM/YYYY") {
  * @param {string} formSelector - selector của form/modal
  */
 function applyValidationErrors(errors, formSelector) {
-  // --- Hàm bổ trợ lấy ngày từ Server ---
-  function getBusinessDateFromServer() {
-    return $.ajax({
-      url: "/Reservation/GetBusinessDate",
-      type: "get",
-      dataType: "json",
-    });
-  }
   // Reset các lỗi cũ
   $(
     `${formSelector} .form-control, ${formSelector} select, ${formSelector} textarea`,
@@ -222,9 +214,11 @@ function applyValidationErrors(errors, formSelector) {
     const $root = root ? $(root) : $(document);
     $root.find("[data-date-input]").each(function () {
       if ($(this).data("date-initialized")) return;
-      new DateInput(this);
+      const instance = new DateInput(this);
+      this.dateInput = instance; // native DOM
+      $(this).data("dateInput", instance); // jQuery-safe
       $(this).data("date-initialized", true);
-    });
+      });
   };
 })();
 
