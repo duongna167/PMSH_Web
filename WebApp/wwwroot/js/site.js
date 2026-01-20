@@ -1,4 +1,4 @@
-﻿﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
+﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
 // for details on configuring this project to bundle and minify static web assets.
 
 // Write your JavaScript code.
@@ -123,6 +123,7 @@ function applyValidationErrors(errors, formSelector) {
       // Tạo input hidden để lưu giá trị YYYY-MM-DD
       this.$hidden = $('<input type="hidden">')
         .attr("name", this.name)
+        .attr("id", this.name)
         .appendTo(this.$root);
 
       this.initCalendar();
@@ -192,12 +193,27 @@ function applyValidationErrors(errors, formSelector) {
     }
 
     setISO(iso) {
-      if (!iso) return;
-      const parts = iso.split("-");
+      if (!iso || typeof iso !== "string") return; // Đảm bảo iso là chuỗi
+
+      const datePart = iso.split("T")[0]; // Lấy "2025-10-25"
+      const parts = datePart.split("-");
+
       if (parts.length === 3) {
-        const date = new Date(parts[0], parts[1] - 1, parts[2]);
-        this.$ui.datepicker("setDate", date);
-        this.$hidden.val(iso);
+        // Tạo đối tượng ngày tháng chuẩn
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1;
+        const day = parseInt(parts[2]);
+        const dateObj = new Date(year, month, day);
+
+        if (!isNaN(dateObj.getTime())) {
+          // Cập nhật Plugin (Hiển thị text)
+          this.$ui.datepicker("setDate", dateObj);
+
+          // Cập nhật Hidden Input (Giá trị để submit)
+          if (this.$hidden) {
+            this.$hidden.val(datePart);
+          }
+        }
       }
     }
   }
