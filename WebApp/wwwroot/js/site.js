@@ -1,4 +1,4 @@
-﻿﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
+﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
 // for details on configuring this project to bundle and minify static web assets.
 
 // Write your JavaScript code.
@@ -50,6 +50,32 @@ function getAllBusinessDate(callback, displayFormat = "DD/MM/YYYY") {
   });
 }
 
+//Hàm validation
+/**
+ * Áp dụng lỗi JSON vào form bất kỳ với Bootstrap validation
+ * @param {Array} errors - Array {field, message} từ backend
+ * @param {string} formSelector - selector của form/modal
+ */
+function applyValidationErrors(errors, formSelector) {
+  // Reset các lỗi cũ
+  $(
+    `${formSelector} .form-control, ${formSelector} select, ${formSelector} textarea`,
+  ).removeClass("is-invalid");
+  $(`${formSelector} .invalid-feedback`).text("");
+
+  if (!errors || errors.length === 0) return;
+
+  errors.forEach(function (err) {
+    // Tìm input/select/textarea theo name
+    let $field = $(`${formSelector} [name='${err.field}']`);
+    if ($field.length) {
+      $field.addClass("is-invalid");
+      // Gán nội dung vào invalid-feedback ngay sau field
+      $field.siblings(".invalid-feedback").text(err.message);
+    }
+  });
+}
+
 //Init Input Date
 (function () {
   async function getBusinessDateFromServer() {
@@ -89,6 +115,7 @@ function getAllBusinessDate(callback, displayFormat = "DD/MM/YYYY") {
       // Tạo input hidden để lưu giá trị YYYY-MM-DD
       this.$hidden = $('<input type="hidden">')
         .attr("name", this.name)
+        .attr("id", this.name)
         .appendTo(this.$root);
 
       this.initCalendar();
@@ -158,12 +185,27 @@ function getAllBusinessDate(callback, displayFormat = "DD/MM/YYYY") {
     }
 
     setISO(iso) {
-      if (!iso) return;
-      const parts = iso.split("-");
+      if (!iso || typeof iso !== "string") return; // Đảm bảo iso là chuỗi
+
+      const datePart = iso.split("T")[0]; // Lấy "2025-10-25"
+      const parts = datePart.split("-");
+
       if (parts.length === 3) {
-        const date = new Date(parts[0], parts[1] - 1, parts[2]);
-        this.$ui.datepicker("setDate", date);
-        this.$hidden.val(iso);
+        // Tạo đối tượng ngày tháng chuẩn
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1;
+        const day = parseInt(parts[2]);
+        const dateObj = new Date(year, month, day);
+
+        if (!isNaN(dateObj.getTime())) {
+          // Cập nhật Plugin (Hiển thị text)
+          this.$ui.datepicker("setDate", dateObj);
+
+          // Cập nhật Hidden Input (Giá trị để submit)
+          if (this.$hidden) {
+            this.$hidden.val(datePart);
+          }
+        }
       }
     }
   }
@@ -172,7 +214,9 @@ function getAllBusinessDate(callback, displayFormat = "DD/MM/YYYY") {
     const $root = root ? $(root) : $(document);
     $root.find("[data-date-input]").each(function () {
       if ($(this).data("date-initialized")) return;
-      new DateInput(this);
+      const instance = new DateInput(this);
+      this.dateInput = instance; // native DOM
+      $(this).data("dateInput", instance); // jQuery-safe
       $(this).data("date-initialized", true);
     });
   };
@@ -196,75 +240,70 @@ $(document).ready(function () {
  * @param {string} formSelector - selector của form/modal
  */
 function applyValidationErrors(errors, formSelector) {
+  const $form = $(formSelector);
 
-    const $form = $(formSelector);
+  // Reset lỗi cũ
+  $form.find(".is-invalid").removeClass("is-invalid");
+  $form.find(".invalid-feedback").text("").hide();
 
-    // Reset lỗi cũ
-    $form.find(".is-invalid").removeClass("is-invalid");
-    $form.find(".invalid-feedback").text("").hide();
+  if (!errors || !errors.length) return;
 
-    if (!errors || !errors.length) return;
+  let firstInvalidElement = null;
 
-    let firstInvalidElement = null;
+  errors.forEach((err) => {
+    const $field = $form.find(`[name='${err.field}']`);
+    if (!$field.length) return;
 
-    errors.forEach(err => {
+    let $errorTarget = null; // element add is-invalid
+    let $feedback = null; // nơi hiển thị message
 
-        const $field = $form.find(`[name='${err.field}']`);
-        if (!$field.length) return;
-
-        let $errorTarget = null; // element add is-invalid
-        let $feedback = null;    // nơi hiển thị message
-
-        //  TomSelect
-        if ($field[0].tomselect) {
-            $errorTarget = $field.next(".ts-wrapper");
-            $feedback = findFeedback($errorTarget);
-        }
-        //  Input / textarea / select thường
-        else {
-            $errorTarget = $field;
-            $feedback = findFeedback($field);
-        }
-
-        if ($errorTarget) {
-            $errorTarget.addClass("is-invalid");
-
-            if (!firstInvalidElement) {
-                firstInvalidElement = $errorTarget;
-            }
-        }
-
-        if ($feedback) {
-            $feedback.text(err.message).show();
-        }
-    });
-
-    //  Focus field lỗi đầu tiên
-    if (firstInvalidElement) {
-        focusElement(firstInvalidElement);
+    //  TomSelect
+    if ($field[0].tomselect) {
+      $errorTarget = $field.next(".ts-wrapper");
+      $feedback = findFeedback($errorTarget);
     }
+    //  Input / textarea / select thường
+    else {
+      $errorTarget = $field;
+      $feedback = findFeedback($field);
+    }
+
+    if ($errorTarget) {
+      $errorTarget.addClass("is-invalid");
+
+      if (!firstInvalidElement) {
+        firstInvalidElement = $errorTarget;
+      }
+    }
+
+    if ($feedback) {
+      $feedback.text(err.message).show();
+    }
+  });
+
+  //  Focus field lỗi đầu tiên
+  if (firstInvalidElement) {
+    focusElement(firstInvalidElement);
+  }
 }
 
 // Tìm invalid-feedback gần nhất, KHÔNG phụ thuộc bootstrap
 function findFeedback($el) {
-    // Ưu tiên: sibling → parent → gần nhất trong form
-    return (
-        $el.siblings(".invalid-feedback").first().length
-            ? $el.siblings(".invalid-feedback").first()
-            : $el.closest("[class]").find(".invalid-feedback").first()
-    );
+  // Ưu tiên: sibling → parent → gần nhất trong form
+  return $el.siblings(".invalid-feedback").first().length
+    ? $el.siblings(".invalid-feedback").first()
+    : $el.closest("[class]").find(".invalid-feedback").first();
 }
 
 // Focus đúng element (kể cả TomSelect)
 function focusElement($el) {
-    if ($el.hasClass("ts-wrapper")) {
-        // TomSelect
-        const select = $el.prev("select")[0];
-        if (select && select.tomselect) {
-            select.tomselect.focus();
-        }
-    } else {
-        $el.focus();
+  if ($el.hasClass("ts-wrapper")) {
+    // TomSelect
+    const select = $el.prev("select")[0];
+    if (select && select.tomselect) {
+      select.tomselect.focus();
     }
-
+  } else {
+    $el.focus();
+  }
 }
