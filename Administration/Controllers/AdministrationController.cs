@@ -42,7 +42,6 @@ namespace Administration.Controllers
 
         }
 
-
         #region MemberList
         [HttpGet]
         public IActionResult GetMemberList(string code, string name, int inactive)
