@@ -1106,6 +1106,7 @@ namespace Administration.Controllers
         public IActionResult PersonInChargeSave([FromBody] PersonInChargeModel model)
         {
             string message = "";
+
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
@@ -1121,6 +1122,16 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
+                    string sql = @"
+                        SELECT 
+                            RIGHT('000000' + CAST(ISNULL(MAX(CAST(Code AS INT)), 0) + 1 AS VARCHAR(6)), 6)
+                        FROM PersonInCharge WITH (UPDLOCK, HOLDLOCK)
+                    ";
+                    DataTable dt = TextUtils.Select(sql);
+                    if (dt == null || dt.Rows.Count == 0)
+                        throw new Exception("Cannot generate Person In Charge code.");
+
+                    model.Code = dt.Rows[0][0].ToString();
                     model.CreatedDate = DateTime.Now;
                     model.UpdatedDate = DateTime.Now;
 
@@ -1133,13 +1144,14 @@ namespace Administration.Controllers
 
                     if (oldData != null)
                     {
+                        model.Code = oldData.Code;
                         model.CreatedBy = oldData.CreatedBy;
                         model.CreatedDate = oldData.CreatedDate ;
                     }
 
                     model.UpdatedDate = DateTime.Now;
 
-                    SeasonBO.Instance.Update(model);
+                    PersonInChargeBO.Instance.Update(model);
                     message = "Update successfully!";
                 }
 
@@ -4978,6 +4990,139 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [HttpPost]
+        public IActionResult GroupOwnerSave([FromBody] GroupOwnerModel model)
+        {
+            string message = "";
+
+            var listErrors = GetErrors(
+                Check(model, "general", "Invalid data"),
+                Check(model?.GroupOwnerCode, "code", "Code is not blank."),
+                Check(model?.GroupOwnerName, "name", "Name is not blank.")
+            );
+
+            if (listErrors.Count > 0)
+            {
+                return Json(new { success = false, errors = listErrors });
+            }
+            try
+            {
+                if (model.ID == 0)
+                {
+                    model.CreatedDate = DateTime.Now;
+                    model.UpdatedDate = DateTime.Now;
+                    GroupOwnerBO.Instance.Insert(model);
+                    message = "Insert successfully.";
+                }
+                else
+                {
+                    var oldData = (GroupOwnerModel)GroupOwnerBO.Instance.FindByPrimaryKey(model.ID);
+                    if (oldData != null)
+                    {
+                        model.GroupOwnerCode = oldData.GroupOwnerCode;
+                        model.CreatedBy = oldData.CreatedBy;
+                        model.CreatedDate = oldData.CreatedDate;
+                    }
+                    model.UpdatedDate = DateTime.Now;
+                    GroupOwnerBO.Instance.Update(model);
+                    message = "Update successfully.";
+                }
+                return Json(new { success = true, message = message });
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+        [HttpPost]
+        public IActionResult GroupOwnerDelete(int id)
+        {
+
+            try
+            {
+                GroupOwnerBO.Instance.Delete(id);
+                return Json(new { success = true, message = "Delete successfully." });
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+        #endregion
+
+        #region ItemCategory/GroupAndOwner
+
+        public IActionResult GroupAndOwner()
+        {
+            return View("ItemCategory/GroupOwner");
+        }
+        [HttpGet]
+        public IActionResult GetGroupAndOwner()
+        {
+            try
+            {
+                DataTable dt = TextUtils.Select(@"SELECT * From GroupOwner with (nolock) Order by ID");
+                var result = (from r in dt.AsEnumerable()
+                              select new
+                              {
+                                  ID = !string.IsNullOrEmpty(r["ID"].ToString()) ? r["ID"] : "",
+                                  GroupOwnerName = !string.IsNullOrEmpty(r["GroupOwnerName"].ToString()) ? r["GroupOwnerName"] : "",
+                                  GroupOwnerCode = !string.IsNullOrEmpty(r["GroupOwnerCode"].ToString()) ? r["GroupOwnerCode"] : "",
+                                  Description = !string.IsNullOrEmpty(r["Description"].ToString()) ? r["Description"] : "",
+                                  Contact = !string.IsNullOrEmpty(r["Contact"].ToString()) ? r["Contact"] : "",
+                                  Address = !string.IsNullOrEmpty(r["Address"].ToString()) ? r["Address"] : "",
+                                  Email = !string.IsNullOrEmpty(r["Email"].ToString()) ? r["Email"] : "",
+                                  Telephone = !string.IsNullOrEmpty(r["Telephone"].ToString()) ? r["Telephone"] : "",
+                                  CreatedDate = !string.IsNullOrEmpty(r["CreatedDate"].ToString()) ? r["CreatedDate"] : "",
+                                  CreatedBy = !string.IsNullOrEmpty(r["CreatedBy"].ToString()) ? r["CreatedBy"] : "",
+                                  UpdatedDate = !string.IsNullOrEmpty(r["UpdatedDate"].ToString()) ? r["UpdatedDate"] : "",
+                                  UpdatedBy = !string.IsNullOrEmpty(r["UpdatedBy"].ToString()) ? r["UpdatedBy"] : "",
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+        
+        #endregion
+
+        #region ItemCategory/GroupAndOwner
+
+        public IActionResult RoomOwnerProfile()
+        {
+            return View("ItemCategory/GroupOwner");
+        }
+        [HttpGet]
+        public IActionResult GetRoomOwnerProfile()
+        {
+            try
+            {
+                DataTable dt = TextUtils.Select(@"SELECT * From GroupOwner with (nolock) Order by ID");
+                var result = (from r in dt.AsEnumerable()
+                              select new
+                              {
+                                  ID = !string.IsNullOrEmpty(r["ID"].ToString()) ? r["ID"] : "",
+                                  GroupOwnerName = !string.IsNullOrEmpty(r["GroupOwnerName"].ToString()) ? r["GroupOwnerName"] : "",
+                                  GroupOwnerCode = !string.IsNullOrEmpty(r["GroupOwnerCode"].ToString()) ? r["GroupOwnerCode"] : "",
+                                  Description = !string.IsNullOrEmpty(r["Description"].ToString()) ? r["Description"] : "",
+                                  Contact = !string.IsNullOrEmpty(r["Contact"].ToString()) ? r["Contact"] : "",
+                                  Address = !string.IsNullOrEmpty(r["Address"].ToString()) ? r["Address"] : "",
+                                  Email = !string.IsNullOrEmpty(r["Email"].ToString()) ? r["Email"] : "",
+                                  Telephone = !string.IsNullOrEmpty(r["Telephone"].ToString()) ? r["Telephone"] : "",
+                                  CreatedDate = !string.IsNullOrEmpty(r["CreatedDate"].ToString()) ? r["CreatedDate"] : "",
+                                  CreatedBy = !string.IsNullOrEmpty(r["CreatedBy"].ToString()) ? r["CreatedBy"] : "",
+                                  UpdatedDate = !string.IsNullOrEmpty(r["UpdatedDate"].ToString()) ? r["UpdatedDate"] : "",
+                                  UpdatedBy = !string.IsNullOrEmpty(r["UpdatedBy"].ToString()) ? r["UpdatedBy"] : "",
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
         //[HttpPost]
         //public IActionResult GroupOwnerSave([FromBody] GroupOwnerModel model)
         //{
@@ -5035,7 +5180,6 @@ namespace Administration.Controllers
         //    }
         //}
         #endregion
-
 
     }
 }

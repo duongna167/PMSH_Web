@@ -96,9 +96,10 @@
         <button id="btnNew" class="mui-button mui-button-new"> New</button>
         <button id="btnEdit" class="mui-button mui-button-edit">  Edit</button>
         <button id="btnDelete" class="mui-button mui-button-delete">  Delete</button>
+        <button id="btnExportExcel" class="mui-button mui-button-export">  Excel</button>
         <button id="btnRefresh" class="mui-button mui-button-search">  Refresh</button>
     </div>
-    <div class="row g-3 align-items-end">
+    <div class="row g-3 align-items-end py-1">
         <div class="col-auto">
             <div class="d-flex align-items-center gap-3">
                 <div class="d-flex align-items-center">
@@ -329,11 +330,6 @@
         });
     });
 
-    function generatePicCode(lastCode) {
-        let next = parseInt(lastCode || "0", 10) + 1;
-        return next.toString().padStart(6, '0');
-    }
-
     function initializeTomSelects() {
         const selectors = ["#personInchargeGroupId", "#personInchargeZoneId"];
         selectors.forEach(selector => {
@@ -479,7 +475,8 @@
         $("#txtEmail").val(data.email);
         $("#txtTelePhone").val(data.telephone);
         $("#txtMobilePhone").val(data.mobile);
-        $("#inactive").prop("checked", data.inactive);
+       
+        $("#inactive").prop("checked", data.inactive === "True");
 
         $("#personInChargeGroupId").val(data.groupID);
         $("#personInChargeZoneId").val(data.zoneID);
@@ -581,5 +578,59 @@
                },
            });
        });
+
+    $("#btnExportExcel").click(function () {
+        const grid = $("#gridContainerRateCode").dxDataGrid("instance");
+
+        const workbook = new ExcelJS.Workbook();
+        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+        const worksheet = workbook.addWorksheet("Sheet 1");
+
+        // === Dòng 1: Tên công ty (merge theo 4 cột) ===
+        worksheet.addRow([companyName]);
+        worksheet.mergeCells('A1:D1');
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+        // === Dòng 2: Ngày giờ xuất (bên phải) ===
+        const now = new Date();
+        const exportDate = now.toLocaleString("vi-VN");
+        worksheet.addRow(['', '', '', exportDate]);
+        worksheet.mergeCells('D2:D2');  // cột D thôi
+        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
+
+        // === Dòng 3–4: trống
+        worksheet.addRow([]);
+        worksheet.addRow([]);
+
+        // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
+        const reportRow = worksheet.addRow(['Person In Charge']);
+        worksheet.mergeCells('A5:D5');
+        reportRow.font = { bold: true, size: 14 };
+        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        // === Dòng 6: trống
+        worksheet.addRow([]);
+
+        // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
+        DevExpress.excelExporter.exportDataGrid({
+            component: grid,
+            worksheet: worksheet,
+            autoFilterEnabled: true,
+            topLeftCell: { row: 7, column: 1 }
+        }).then(function () {
+            // Footer (sau cùng)
+            const lastRow = worksheet.lastRow.number + 2;
+            worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
+            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+            worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+            // Ghi file
+            let fileName = "PersonInCharge.xlsx";
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+            });
+        });
+    });
 
 </script>
