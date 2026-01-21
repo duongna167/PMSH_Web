@@ -224,7 +224,7 @@
     }
 
     #schedulerWrapper {
-        width: 70%;
+        width: 100%;
 
         min-width: 600px;
         margin-top: -50px;
@@ -264,6 +264,13 @@
         height: 100%;
     }
 
+    .room-label {
+        position: relative;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        top: -9px;
+    }
     /*     .dx-scheduler-appointment-empty.dx-scheduler-appointment-horizontal {
         position: absolute !important; 
         left:100px;
@@ -581,9 +588,9 @@
 <div style="display:flex">
 
     <div id="scrollWrapper">
-        <div class="mui-card" id="gridWrapper">
+    @*     <div class="mui-card" id="gridWrapper">
             <div class="gridContainer" id="gridContainer"></div>
-        </div>
+        </div> *@
         <div class="mui-card" id="schedulerWrapper">
             <div id="schedulerContainer"></div>
         </div>
@@ -839,8 +846,8 @@
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (data) {
 
-                console.log(data);
-                initializeRoomPlanGrid(data);
+                // console.log(data);
+                // initializeRoomPlanGrid(data);
 
                 const fromDate = $("#fromDate").val();
                 const toDate = $("#toDate").val();
@@ -884,6 +891,15 @@
 
         const to = new Date(toDate);
         to.setHours(0, 0, 0, 0);
+            const roomInfoMap = {};
+    schedulerData.forEach(d => {
+        if (d.roomID && !roomInfoMap[d.roomID]) {
+            roomInfoMap[d.roomID] = {
+                roomNo: d.roomNo,
+                roomTypeCode: d.roomTypeCode
+            };
+        }
+    });
 
 
     const appointments = schedulerData
@@ -950,7 +966,31 @@
             endDayHour: 24,
             cellDuration: 1440,
             groups: ["roomID"],
-            crossScrollingEnabled: true,
+            dataCellTemplate: function (cellData, index, cellElement) {
+
+                const cellDate = new Date(cellData.startDate);
+                cellDate.setHours(0,0,0,0);
+
+                const from = new Date(fromDate);
+                from.setHours(0,0,0,0);
+
+                // 👉 CHỈ render ở cột ngày đầu tiên
+                if (cellDate.getTime() === from.getTime()) {
+
+                    const roomID = cellData.groups.roomID;
+                    const roomInfo = roomInfoMap[roomID];
+
+                    if (roomInfo) {
+                        cellElement.append(`
+                            <div class="room-label">
+                                <div class="room-no">${roomInfo.roomNo}</div>
+                                <div class="room-type">-${roomInfo.roomTypeCode || ""}</div>
+                            </div>
+                        `);
+                    }
+                }
+            },
+                    crossScrollingEnabled: true,
             resources: [{
                 fieldExpr: "roomID",
                 dataSource: roomGroups,

@@ -5,8 +5,6 @@
 }
 
 <!-- Thư viện Highcharts -->
-<script src="https://code.highcharts.com/highcharts.js"></script>
-
 <style>
     .filter_wrapper {
         padding: 18px 0px 0px 14px;
@@ -49,22 +47,6 @@
         margin-right: .5rem !important;
     }
 
-    #gridContainer .dx-datagrid-headers .dx-header-row > td {
-        padding: 5px !important;
-        height: 24px !important;
-        font-size: 12px !important;
-        line-height: 1.1 !important;
-    }
-
-    .tomselect-custom {
-        width: 200px;
-        min-height: 30px; /* hoặc tùy theo chiều cao bạn muốn */
-        font-size: 0.65rem;
-    }
-
-        .tomselect-custom .ts-control {
-            padding-left: 8px !important; /* hoặc bất kỳ giá trị nào bạn muốn */
-        }
 
 </style>
 <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
@@ -83,16 +65,24 @@
         </div>
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">Zone:</label>
-            <select id="zone" name="zone" class="tomselect-custom" style="width: 70px;" multiple>
+            <select id="zone" name="zone" class="tomselect-custom" multiple>
                 @foreach (var item in zoneList)
                 {
-                    <option value="@item.Code">@item.Code</option>
+
+                    if (item == zoneList[0])
+                    {
+                        <option value="@item.Code" selected>@item.Code</option>
+                    }
+                    else
+                    {
+                        <option value="@item.Code">@item.Code</option>
+                    }
                 }
             </select>
         </div>
     </div>
     <div class="">
-        <button style="border-radius: 4px; margin-right: 6px; background-color: #3b9ac6;" id="btnPrint" class="mui-button mui-button-new"> View</button>
+        <button  id="btnPrint" class="mui-button mui-button-new"> View</button>
     </div>
 </div>
 
@@ -113,14 +103,44 @@
     }
 
     $(document).ready(function () {
-        document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
-        const today = new Date();
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        $('#fromDate').val(formatDate(firstDay));
-        $('#toDate').val(formatDate(lastDay));
+    getBusinessDate();
+
          initializeTomSelects();
     });
+    function getBusinessDate() {
+        return $.ajax({
+            url: '/Reservation/GetBusinessDate',
+            type: 'get',
+            dataType: 'json',
+            crossDomain: false,
+            headers: {
+                "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val()
+            },
+            success: function (result) {
+
+                // result dạng: 2026-01-19T00:00:00
+                var businessDate = new Date(result);
+
+                // toDate = businessDate
+                var toDateStr = businessDate.toISOString().split('T')[0];
+                $('#toDate').val(toDateStr);
+
+                // fromDate = businessDate - 1 tháng
+                var fromDate = new Date(businessDate);
+                fromDate.setMonth(fromDate.getMonth() - 1);
+
+                var fromDateStr = fromDate.toISOString().split('T')[0];
+                $('#fromDate').val(fromDateStr);
+            },
+            error: function (xhr, statusText, err) {
+                if (xhr.status === 401) {
+                    sessionTimeout();
+                }
+            }
+        });
+    }
+
+
     function initializeTomSelects() {
         const selectors = ["#zone"];
 
@@ -155,7 +175,7 @@
             data: {
                 fromDate: $("#fromDate").val(),
                 toDate: $("#toDate").val(),
-                zone: $("#zone").val().map(r => r.replace( "''")).join("','") + "",
+                zone: $("#zone").val().join(","),
             },
             headers: {
                 "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val()
