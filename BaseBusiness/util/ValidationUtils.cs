@@ -66,20 +66,9 @@ namespace BaseBusiness.util
             return input;
         }
 
-        // ========= DUPLICATE CODE =========
-        public static ValidationError? CheckDuplicateCode(
-            string? code,
-            int currentId,
-            Func<string, int, bool> isDuplicateFunc,
-            string field,
-            string message)
-        {
-            if (string.IsNullOrWhiteSpace(code))
-                return null; 
-
-            bool isDuplicate = isDuplicateFunc(code, currentId);
-            return Check(isDuplicate, field, message);
-        }
+        // ========= DUPLICATE CHECK =========
+        public static ValidationError? CheckDuplicate(bool isDuplicate, string field, string message)
+            => Check(isDuplicate, field, message);
 
     }
 

@@ -42,15 +42,12 @@ namespace Administration.Controllers
 
         }
 
-
         #region MemberList
         [HttpGet]
         public IActionResult GetMemberList(string code, string name, int inactive)
         {
             try
             {
-
-
                 DataTable dataTable = _iAdministrationService.MemberList(code, name, inactive);
                 var result = (from d in dataTable.AsEnumerable()
                               select new
@@ -998,12 +995,6 @@ namespace Administration.Controllers
             {
                 return Json(ex.Message);
             }
-            //  report.DataSource = dataTable;
-
-            // Không cần gán parameter
-            // report.RequestParameters = false;
-
-            // return PartialView("_ReportViewerPartial", report);
         }
         public ActionResult PostingHistory()
         {
@@ -1112,6 +1103,8 @@ namespace Administration.Controllers
 
                 Check(model?.Name, "txtname", "Name cannot be blank."),
                 Check(model.PersonInChargeZoneID, "personInChargeZoneId", "Zone cannot be blank.")
+                //Check(PersonInChargeBO.Instance.IsDuplicate("Code", model.Code, model.ID),
+                //     "code", "This code already exists.")
             );
 
             if (listErrors.Count > 0)
@@ -1221,6 +1214,8 @@ namespace Administration.Controllers
                 Check(model, "general", "Invalid data"),
 
                 Check(model?.Code, "code", "Code is not blank."),
+                Check(PersonInChargeGroupBO.Instance.IsDuplicate("Code", model.Code, model.ID),
+                    "code", "This code already exists."),
                 Check(model?.Name, "name", "Name is not blank.")
             );
 
@@ -1325,6 +1320,8 @@ namespace Administration.Controllers
                 Check(model, "general", "Invalid data"),
 
                 Check(model?.Code, "code", "Code is not blank."),
+                 Check(PersonInChargeZoneBO.Instance.IsDuplicate("Code", model.Code, model.ID),
+                        "code", "This code already exists."),
                 Check(model?.Name, "name", "Name is not blank.")
             );
 
@@ -1429,6 +1426,8 @@ namespace Administration.Controllers
                 Check(model, "general", "Invalid data"),
 
                 Check(model?.Code, "code", "Code is not blank."),
+                Check(ApprovedbyBO.Instance.IsDuplicate("Code", model.Code, model.ID),
+                        "code", "This code already exists."),
                 Check(model?.Name, "name", "Name is not blank.")
             );
 
@@ -4998,7 +4997,9 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
                 Check(model?.GroupOwnerCode, "code", "Code is not blank."),
-                Check(model?.GroupOwnerName, "name", "Name is not blank.")
+                Check(model?.GroupOwnerName, "name", "Name is not blank."),
+                Check(GroupOwnerBO.Instance.IsDuplicate("GroupOwnerCode", model.GroupOwnerCode, model.ID),
+                     "code", "This code already exists.")
             );
 
             if (listErrors.Count > 0)
