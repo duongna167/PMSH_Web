@@ -1266,8 +1266,34 @@ namespace BaseBusiness.bc
                 throw new FacadeException("DeleteStringId failed: " + ex.Message);
             }
         }
+        public bool CheckDuplicate(string field, object value, long excludeId = 0)
+        {
+            string sql = $"SELECT TOP 1 {field} FROM {tableName} WHERE {field} = @Value AND ID <> @ExcludeId";
 
+            using (SqlConnection conn = new SqlConnection(strcon))
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.CommandType = CommandType.Text;
+                cmd.CommandTimeout = 6000;
 
+                cmd.Parameters.AddWithValue("@Value", value ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@ExcludeId", excludeId);
+
+                try
+                {
+                    conn.Open();
+                    using (SqlDataReader reader = cmd.ExecuteReader(CommandBehavior.CloseConnection))
+                    {
+                        return reader.HasRows;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Error($"{sql} (Value: {value}) => Error: {ex.Message}");
+                    throw new Exception(ex.Message);
+                }
+            }
+        }
 
     }
 }

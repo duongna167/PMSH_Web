@@ -20,13 +20,19 @@
         <div class="d-flex flex-column ">
             <div class="d-flex align-items-center">
                 <div class="d-flex align-items-center me-2">
-                    <label class="me-2 mb-0">From Date:</label>
-                    <input type="date" id="fromDate" name="fromDate" class="form-control form-control-sm w-auto" />
+                    <label class="me-2 mb-0" for="fromDate">From Date:</label>
+                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
+                        <input type="text" class="date-ui form-control form-control-sm w-auto" placeholder="dd/mm/yyyy"
+                            autocomplete="off" />
+                    </div>
                 </div>
 
                 <div class="d-flex align-items-center me-2">
                     <label class="me-2 mb-0">To Date:</label>
-                    <input type="date" id="toDate" name="toDate" class="form-control form-control-sm w-auto" />
+                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="toDate">
+                        <input type="text" class="date-ui form-control form-control-sm w-auto" placeholder="dd/mm/yyyy"
+                            autocomplete="off" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -44,9 +50,9 @@
                 class="form-control form-control-sm" />
         </div>
 
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="isDelete">
-            <label class="form-check-label text-primary" for="isDelete" style="cursor:pointer;">
+        <div class="d-flex align-items-center gap-1">
+            <input class="" type="checkbox" id="isDelete">
+            <label class="text-success" for="isDelete" style="cursor:pointer;">
                 Include Delete
             </label>
         </div>
@@ -68,34 +74,30 @@
 <script>
     let selectedRowData = null;
     DevExpress.localization.locale("vi");
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        let day = date.getDate().toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        return `${year}-${month}-${day}`;
-    }
-    $(document).ready(function () {
-
-        const today = new Date();
-
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        // Lấy ngày cuối cùng của tháng
-        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-        // Định dạng theo local time
-        const formattedFirstDay = formatDate(firstDayOfMonth);
-        const formattedLastDay = formatDate(lastDayOfMonth);
-
-        console.log(formattedFirstDay); // Kiểm tra giá trị đúng chưa
-        console.log(formattedLastDay); // Kiểm tra giá trị đúng chưa
-        // Gán giá trị cho input date
-        document.getElementById('fromDate').value = formattedFirstDay;
-        document.getElementById('toDate').value = formattedLastDay;
-        loadTelephoneGrid([]);
+    $(document).ready(async function () {
+        await window.initDateInputs();
+        await reloadGrid(isInitial = true);
     });
 
     $(document).off("click", "#btnView").on("click", "#btnView", function () {
+    });
+    async function reloadGrid(isInitial = false) {
         $("#loadingSpinner").show();
+        let fromDateISO = $("#fromDate").val() || '';
+        let toDateISO = $("#toDate").val() || '';
+
+        // Nếu là load lần đầu (initial) và fromDate chưa có → bắt buộc chờ business date
+        if (isInitial && (!fromDateISO || !toDateISO)) {
+            fromDateISO = await waitForBusinessDate("fromDate", 10000); // timeout 10s để an toàn
+            toDateISO = await waitForBusinessDate("toDate", 10000); // timeout 10s để an toàn
+        }
+
+        // Nếu vẫn rỗng sau khi chờ → báo lỗi hoặc fallback (tùy yêu cầu)
+        if (!fromDateISO || !toDateISO) {
+            console.log("Không tải được ngày mặc định. Vui lòng chọn From Date thủ công.");
+            $("#loadingSpinner").hide();
+            return;
+        }
 
         $.ajax({
             url: '/Cashiering/GetExchangeCurrency',
@@ -104,8 +106,8 @@
                 account: $("#account").val(),
                 passPort: $("#passPort").val(),
                 roomNo: $("#roomNo").val(),
-                fromDate: $("#fromDate").val(),
-                toDate: $("#toDate").val(),
+                fromDate: fromDateISO,
+                toDate: toDateISO,
                 isDelete: $("#isDelete").is(":checked") ? 1 : 0
             },
             success: function (data) {
@@ -120,7 +122,7 @@
                 $("#loadingSpinner").hide();
             }
         });
-    });
+    }
 
     function loadTelephoneGrid(data) {
         $("#gridContainer").dxDataGrid({

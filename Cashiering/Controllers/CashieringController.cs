@@ -338,7 +338,7 @@ namespace Cashiering.Controllers
                                    TransactionCode = d["TransactionCode"]?.ToString() ?? "",
                                    Description = d["Description"]?.ToString() ?? "",
                                    Amount = d["Amount"]?.ToString() ?? "",
-                                   TransactionDate = d["TransactionDate"]?.ToString() ?? "",
+                                   TransactionDate = d.Field<DateTime?>("TransactionDate"),
                                    Reference = d["Reference"]?.ToString() ?? "",
                                    Supplement = d["Supplement"]?.ToString() ?? "",
                                    FolioID = d["FolioID"]?.ToString() ?? "",

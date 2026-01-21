@@ -1,4 +1,4 @@
-﻿﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
+﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
 // for details on configuring this project to bundle and minify static web assets.
 
 // Write your JavaScript code.
@@ -57,14 +57,6 @@ function getAllBusinessDate(callback, displayFormat = "DD/MM/YYYY") {
  * @param {string} formSelector - selector của form/modal
  */
 function applyValidationErrors(errors, formSelector) {
-  // --- Hàm bổ trợ lấy ngày từ Server ---
-  function getBusinessDateFromServer() {
-    return $.ajax({
-      url: "/Reservation/GetBusinessDate",
-      type: "get",
-      dataType: "json",
-    });
-  }
   // Reset các lỗi cũ
   $(
     `${formSelector} .form-control, ${formSelector} select, ${formSelector} textarea`,
@@ -123,6 +115,7 @@ function applyValidationErrors(errors, formSelector) {
       // Tạo input hidden để lưu giá trị YYYY-MM-DD
       this.$hidden = $('<input type="hidden">')
         .attr("name", this.name)
+        .attr("id", this.name)
         .appendTo(this.$root);
 
       this.initCalendar();
@@ -192,33 +185,172 @@ function applyValidationErrors(errors, formSelector) {
     }
 
     setISO(iso) {
-      if (!iso) return;
-      const parts = iso.split("-");
+      if (!iso || typeof iso !== "string") return; // Đảm bảo iso là chuỗi
+
+      const datePart = iso.split("T")[0]; // Lấy "2025-10-25"
+      const parts = datePart.split("-");
+
       if (parts.length === 3) {
-        const date = new Date(parts[0], parts[1] - 1, parts[2]);
-        this.$ui.datepicker("setDate", date);
-        this.$hidden.val(iso);
+        // Tạo đối tượng ngày tháng chuẩn
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1;
+        const day = parseInt(parts[2]);
+        const dateObj = new Date(year, month, day);
+
+        if (!isNaN(dateObj.getTime())) {
+          // Cập nhật Plugin (Hiển thị text)
+          this.$ui.datepicker("setDate", dateObj);
+
+          // Cập nhật Hidden Input (Giá trị để submit)
+          if (this.$hidden) {
+            this.$hidden.val(datePart);
+          }
+        }
       }
     }
   }
 
   window.initDateInputs = function (root) {
     const $root = root ? $(root) : $(document);
+    const tasks = [];
+
     $root.find("[data-date-input]").each(function () {
       if ($(this).data("date-initialized")) return;
-      new DateInput(this);
+      const instance = new DateInput(this);
+      this.dateInput = instance; // native DOM
+      $(this).data("dateInput", instance); // jQuery-safe
       $(this).data("date-initialized", true);
     });
   };
 })();
 
-$(document).ready(function () {
-  getAllBusinessDate();
+/**
+ * Reload Business Date cho tất cả hoặc 1 date input cụ thể
+ * @param {string|null} name - name của date input (hidden input)
+ */
+window.reloadBusinessDate = async function (name = null) {
+  const $targets = name
+    ? $(`[data-date-input][data-name="${name}"]`)
+    : $("[data-date-input]");
+
+  if (!$targets.length) {
+    console.warn("[reloadBusinessDate] Không tìm thấy date input");
+    return;
+  }
+
+  for (const el of $targets) {
+    const instance = $(el).data("dateInput");
+    if (instance && typeof instance.loadAndSetBusinessDate === "function") {
+      await instance.loadAndSetBusinessDate();
+    }
+  }
+};
+
+//Hàm validation
+/**
+ * Áp dụng lỗi JSON vào form bất kỳ với Bootstrap validation
+ * @param {Array} errors - Array {field, message} từ backend
+ * @param {string} formSelector - selector của form/modal
+ */
+function applyValidationErrors(errors, formSelector) {
+  const $form = $(formSelector);
+
+  // Reset lỗi cũ
+  $form.find(".is-invalid").removeClass("is-invalid");
+  $form.find(".invalid-feedback").text("").hide();
+
+  if (!errors || !errors.length) return;
+
+  let firstInvalidElement = null;
+
+  errors.forEach((err) => {
+    const $field = $form.find(`[name='${err.field}']`);
+    if (!$field.length) return;
+
+    let $errorTarget = null; // element add is-invalid
+    let $feedback = null; // nơi hiển thị message
+
+    //  TomSelect
+    if ($field[0].tomselect) {
+      $errorTarget = $field.next(".ts-wrapper");
+      $feedback = findFeedback($errorTarget);
+    }
+    //  Input / textarea / select thường
+    else {
+      $errorTarget = $field;
+      $feedback = findFeedback($field);
+    }
+
+    if ($errorTarget) {
+      $errorTarget.addClass("is-invalid");
+
+      if (!firstInvalidElement) {
+        firstInvalidElement = $errorTarget;
+      }
+    }
+
+    if ($feedback) {
+      $feedback.text(err.message).show();
+    }
+  });
+
+  //  Focus field lỗi đầu tiên
+  if (firstInvalidElement) {
+    focusElement(firstInvalidElement);
+  }
+}
+
+// Tìm invalid-feedback gần nhất, KHÔNG phụ thuộc bootstrap
+function findFeedback($el) {
+  // Ưu tiên: sibling → parent → gần nhất trong form
+  return $el.siblings(".invalid-feedback").first().length
+    ? $el.siblings(".invalid-feedback").first()
+    : $el.closest("[class]").find(".invalid-feedback").first();
+}
+
+// Focus đúng element (kể cả TomSelect)
+function focusElement($el) {
+  if ($el.hasClass("ts-wrapper")) {
+    // TomSelect
+    const select = $el.prev("select")[0];
+    if (select && select.tomselect) {
+      select.tomselect.focus();
+    }
+  } else {
+    $el.focus();
+  }
+}
+
+// Thêm helper này (có thể đặt ở global scope hoặc trong file chính)
+function waitForBusinessDate(name = "fromDate", timeoutMs = 8000) {
+  return new Promise((resolve, reject) => {
+    const $hidden = $(`input[type=hidden][name="${name}"]`);
+
+    if ($hidden.val() && /^\d{4}-\d{2}-\d{2}$/.test($hidden.val())) {
+      return resolve($hidden.val());
+    }
+
+    const start = Date.now();
+    const interval = setInterval(() => {
+      const val = $hidden.val();
+      if (val && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+        clearInterval(interval);
+        resolve(val);
+      }
+      if (Date.now() - start > timeoutMs) {
+        clearInterval(interval);
+        reject(new Error(`Timeout chờ business date cho ${name}`));
+      }
+    }, 100);
+  });
+}
+
+$(document).ready(async function () {
   var tooltipTriggerList = [].slice.call(
     document.querySelectorAll('[data-bs-toggle="tooltip"]'),
   );
   var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl);
   });
-  window.initDateInputs();
+  await window.initDateInputs();
 });

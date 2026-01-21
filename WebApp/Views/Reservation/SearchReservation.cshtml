@@ -35,15 +35,23 @@
                             </label>
                             <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
                                 <input type="checkbox" id="chooseFromDate" checked class="col-md-2">
-
-                                <input type="date" id="arrivalForm" class="col-md-10">
+                                <div class="col-md-10" data-date-input data-format="DD/MM/YYYY" business-date
+                                    data-name="arrivalForm">
+                                    <input type="text" class="date-ui form-control" placeholder="dd/mm/yyyy"
+                                        autocomplete="off" />
+                                </div>
                             </div>
                         </div>
                         <div class="form-group-new-reservation col-md-6">
                             <label>Arr.To</label>
                             <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
                                 <input type="checkbox" id="chooseToDate" checked class="col-md-2">
-                                <input type="date" id="departureForm" class="col-md-10">
+                                <div class="col-md-10" data-date-input data-format="DD/MM/YYYY" business-date
+                                    data-name="departureForm">
+                                    <input type="text" class="date-ui form-control" placeholder="dd/mm/yyyy"
+                                        autocomplete="off" />
+                                </div>
+
                             </div>
                         </div>
                         <div class="form-group-new-reservation col-md-6" style="display:none">
@@ -239,7 +247,7 @@
                     <div class="box-function" onclick="toggleLeftMenu();" id="toggleLeftWrapper">
                         <i class="fa-solid fa-filter-circle-xmark" id="toggleLeftMenu"></i>
                     </div>
-                     <div class="box-function" onclick="openVisibleColumns();"><i class="fa-solid fa-gear"></i></div>
+                    <div class="box-function" onclick="openVisibleColumns();"><i class="fa-solid fa-gear"></i></div>
                     <div class="box-function" onclick="exportExcel();"><i class="fa-solid fa-file-excel"></i></div>
 
 
@@ -428,13 +436,14 @@
     }
     $(document).ready(async function () {
         setupDefaultCaret();
-        searchReservation();
+        await window.initDateInputs();
+        await searchReservation(isInitial = true);
         await setTomSelect();
         $('#listFunction').hide();
-        $('#searchType, #name, #firstName, #resvHolder, #confirmationNo, #crsNo, #roomNo, #roomType, #package, #zone, #arrivalForm, #departureForm, #roomShare, #owner').on('keypress', function (e) {
+        $('#searchType, #name, #firstName, #resvHolder, #confirmationNo, #crsNo, #roomNo, #roomType, #package, #zone, #arrivalForm, #departureForm, #roomShare, #owner').on('keypress', async function (e) {
             if (e.which === 13) {
                 e.preventDefault();
-                searchReservation();
+                await searchReservation();
             }
         });
     });
@@ -478,15 +487,28 @@
         });
     }
 
-    function searchReservation() {
+    async function searchReservation(isInitial = false) {
         $('#cmt_wrapper').hide();
         $("#loadingSpinnerForm").show();
 
         const checkboxValue = $('#roomShare').is(':checked') ? $('#roomShare').val() : '';
 
         // Kiểm tra xem các trường ngày có giá trị hợp lệ hay không
-        const arrivalDate = $('#arrivalForm').val();
-        const departureDate = $('#departureForm').val();
+        let arrivalDate = $('#arrivalForm').val() || '';
+        let departureDate = $('#departureForm').val() || '';
+        // Nếu là load lần đầu (initial) và fromDate chưa có → bắt buộc chờ business date
+        if (isInitial && (!arrivalDate || !departureDate)) {
+            arrivalDate = await waitForBusinessDate("arrivalForm", 10000); // timeout 10s để an toàn
+            departureDate = await waitForBusinessDate("departureForm", 10000); // timeout 10s để an toàn
+        }
+
+        // Nếu vẫn rỗng sau khi chờ → báo lỗi hoặc fallback (tùy yêu cầu)
+        if (!arrivalDate || !departureDate) {
+            console.log("Không tải được ngày mặc định. Vui lòng chọn From Date thủ công.");
+            $("#loadingSpinnerRateCode").hide();
+            return;
+        }
+
         const isValidDate = (dateStr) => {
             return dateStr && !isNaN(Date.parse(dateStr));
         };

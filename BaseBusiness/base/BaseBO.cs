@@ -1,10 +1,11 @@
-using System;
-using System.Collections;
-using Microsoft.Data.SqlClient;
-using System.Reflection;
 using BaseBusiness.exception;
 using BaseBusiness.util;
+using Dapper;
+using Microsoft.Data.SqlClient;
+using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace BaseBusiness.bc
 {
@@ -530,7 +531,11 @@ namespace BaseBusiness.bc
                 throw new BOException("Could not delete from database: " + ex.Message);
             }
         }
-
+        public bool IsDuplicate(string field, object value, long id = 0)
+        {
+            if (baseFacade == null) return false;
+            return baseFacade.CheckDuplicate(field, value, id);
+        }
 
     }
 }

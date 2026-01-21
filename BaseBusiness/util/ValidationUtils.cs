@@ -65,6 +65,11 @@ namespace BaseBusiness.util
 
             return input;
         }
+
+        // ========= DUPLICATE CHECK =========
+        public static ValidationError? CheckDuplicate(bool isDuplicate, string field, string message)
+            => Check(isDuplicate, field, message);
+
     }
 
 }
