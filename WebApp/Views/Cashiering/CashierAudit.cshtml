@@ -40,6 +40,16 @@
         overflow-y: auto !important;
         /* Không cuộn dọc ô chọn */
     }
+
+    .modal-body {
+        padding: 0 12px 0 12px !important;
+    }
+
+    .mui-card {
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1) !important;
+        min-height: 50vh;
+        padding: 10px;
+    }
 </style>
 
 <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
@@ -55,13 +65,19 @@
         <div class="d-flex flex-column ">
             <div class="d-flex align-items-center">
                 <div class="d-flex align-items-center me-2">
-                    <label class="me-2 mb-0">From Date:</label>
-                    <input type="date" id="fromDate" name="fromDate" class="form-control form-control-sm w-auto" />
+                    <label class="me-2 mb-0" for="fromDate">From Date:</label>
+                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
+                        <input type="text" class="date-ui form-control form-control-sm w-auto" placeholder="dd/mm/yyyy"
+                            autocomplete="off" />
+                    </div>
                 </div>
 
                 <div class="d-flex align-items-center me-2">
                     <label class="me-2 mb-0">To Date:</label>
-                    <input type="date" id="toDate" name="toDate" class="form-control form-control-sm w-auto" />
+                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="toDate">
+                        <input type="text" class="date-ui form-control form-control-sm w-auto" placeholder="dd/mm/yyyy"
+                            autocomplete="off" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -109,62 +125,83 @@
     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
-<div id="popupShiftDetail">
+<div class="modal fade" id="modaldetailGrid" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header py-2">
+                <h6 class="modal-title">Transactions Shift Detail</h6>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-2 mt-1">
+                    <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+                <!-- HEADER INFO -->
+                <div class="row g-2 mb-2">
+
+                    <!-- Cashier No -->
+                    <div class="col-lg-4 col-md-4 col-8 d-flex align-items-center">
+                        <label class="col-5 me-2 text-end">Cashier No</label>
+                        <input id="m-cashierNo" class="form-control form-control-sm flex-grow-1" readonly />
+                    </div>
+
+                    <!-- Shift No -->
+                    <div class="col-lg-4 col-md-4 col-8 d-flex align-items-center">
+                        <label class="col-5 me-2 text-end">Shift No</label>
+                        <input id="m-shiftNo" class="form-control form-control-sm flex-grow-1" readonly />
+                    </div>
+
+                    <!-- Shift Date -->
+                    <div class="col-lg-4 col-md-4 col-8 d-flex align-items-center">
+                        <label class="col-5 me-2 text-end">Shift Date</label>
+
+                        <div data-date-input data-format="DD/MM/YYYY" data-name="m-shiftDate" class="flex-grow-1">
+                            <input type="text" id="m-shiftDate" class="date-ui form-control form-control-sm"
+                                placeholder="dd/mm/yyyy" autocomplete="off" disabled />
+                        </div>
+                    </div>
+
+                    <!-- User Name -->
+                    <div class="col-lg-4 col-md-4 col-8 d-flex align-items-center">
+                        <label class="col-5 me-2 text-end">User Name</label>
+                        <input id="m-userName" class="form-control form-control-sm flex-grow-1" readonly />
+                    </div>
+
+                    <!-- Login Time -->
+                    <div class="col-lg-4 col-md-4 col-8 d-flex align-items-center">
+                        <label class="col-5 me-2 text-end">Login Time</label>
+                        <input id="m-loginTime" class="form-control form-control-sm flex-grow-1" readonly />
+                    </div>
+
+                    <!-- Full Name -->
+                    <div class="col-lg-4 col-md-4 col-8 d-flex align-items-center">
+                        <label class="col-5 me-2 text-end">Full Name</label>
+                        <input id="m-fullName" class="form-control form-control-sm flex-grow-1" readonly />
+                    </div>
+
+                </div>
+
+
+                <!-- DETAIL GRID -->
+                <div class="mui-card">
+                    <div id="gridShiftDetail" class="gridContainer" style="height:420px"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
 <script>
-    DevExpress.localization.locale("vi");
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        let day = date.getDate().toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        return `${year}-${month}-${day}`;
-    }
-    function formatDatedetail(date) {
-        if (!date) return ""; // null hoặc undefined thì trả về rỗng
-
-        // Nếu truyền vào là string, convert sang Date
-        if (!(date instanceof Date)) {
-            date = new Date(date);
-        }
-
-        if (isNaN(date.getTime())) return ""; // nếu vẫn invalid thì trả về rỗng
-
-        let day = String(date.getDate()).padStart(2, '0');
-        let month = String(date.getMonth() + 1).padStart(2, '0');
-        let year = date.getFullYear();
-
-        return `${day}-${month}-${year}`; // nhớ dùng backtick
-    }
-
-    $(document).ready(function () {
-        getBusinessDate();
-
+    $(document).ready(async function () {
         initializeTomSelects();
-        loadPostingJournalGrid([]);
-
+        await window.initDateInputs();
+        loadPostingJournal(isInitial = true);
     });
-    function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
 
-                const fromDateStr = result.split('T')[0];
+    var selectedRowData = null;
+    var detailGridInstance = null;
 
-
-                $('#fromDate').val(fromDateStr);
-                $('#toDate').val(fromDateStr);
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-            }
-        });
-    }
 
     function initializeTomSelects() {
         const selectors = ["#userName"];
@@ -191,131 +228,136 @@
 
         }
     }
-    $("#popupShiftDetail").dxPopup({
-        title: "Transactions Shift Detail",
-        width: "85%",
-        height: "90%",
-        encodeHtml: false,
-        showCloseButton: true,
-        visible: false,
-        contentTemplate: function (container) {
-            container.append(`
-                <div class="mui-card shift-header mb-1"></div>
-                <div id="gridShiftDetail"></div>
-            `);
 
-            // Khởi tạo grid ngay ở đây, datasource trống
-            $("#gridShiftDetail").dxDataGrid({
-                dataSource: [],
-                showBorders: true,
-                height: "90%",
-                width: "100%",
-                grouping: { autoExpandAll: true },
-                groupPanel: { visible: false },
-                columns: [
-                    { dataField: "paymentType", caption: "Payment", groupIndex: 0 },
-                    { dataField: "currencyID", caption: "Currency", groupIndex: 1 },
-                    { dataField: "transactionCode", caption: "Trans. Code" },
-                    { dataField: "description", caption: "Description" },
-                    { dataField: "amount", caption: "Amount", dataType: "number", format: "#,##0.00" },
-                    { dataField: "transactionDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy" },
-                    { dataField: "transactionDate", caption: "Time", dataType: "datetime", format: "HH:mm:ss" },
-                    { dataField: "reference", caption: "Reference" },
-                    { dataField: "supplement", caption: "Supplement" },
-                    { dataField: "folioID", caption: "FolioNo" },
-                    { dataField: "roomNo", caption: "Room" },
-                    { dataField: "account", caption: "Account" }
-                ]
-            });
-        }
-    });
+    function initializeDetailGrid() {
 
-    function showShiftDetail() {
-        const grid = $("#gridContainer").dxDataGrid("instance");
-        const selectedRow = grid.getSelectedRowsData()[0];
-        if (!selectedRow) {
-            showToast("Warning", "Please select 1 row .", false);
-            return;
-        }
+        if (detailGridInstance) return;
 
-        const shiftID = selectedRow.shiftNo;
-        const popup = $("#popupShiftDetail").dxPopup("instance");
-
-        popup.option("onShown", function () {
-            $(".shift-header").html(`
-                <div class="row">
-                    <div><i>Cashier No</i>: <b>${selectedRow.cashierNo}</b></div>
-                    <div><i>Shift.No</i>: <b>${selectedRow.shiftNo}</b></div>
-                    <div><i>Shift Date</i>: <b>${formatDatedetail(selectedRow.date)}</b></div>
-                </div>
-                <div class="row">
-                    <div><i>User Name</i>: <b>${selectedRow.userName}</b></div>
-                    <div><i>Login Time</i>: <b>${selectedRow.loginTime}</b></div>
-                    <div><i>Logout Time</i>: <b>${selectedRow.logoutTime}</b></div>
-                </div>
-                <div class="row">
-                    <div><i>Full Name</i>: <b>${selectedRow.fullName}</b></div>
-                </div>
-            `);
-
-            const gridDetail = $("#gridShiftDetail").dxDataGrid("instance");
-
-            gridDetail.option("dataSource", new DevExpress.data.DataSource({
-                load: function () {
-                    return $.ajax({
-                        url: `/Cashiering/GetShiftDetail`,
-                        data: { shiftID: shiftID, type: 0 },
-                        dataType: "json"
-                    }).then(res => {
-                        console.log("ShiftDetail raw:", res);
-
-                        // convert sang mảng chuẩn
-                        let arr = Array.isArray(res) ? res : Object.values(res);
-                        arr = arr.filter(x => x != null);
-                        if (Array.isArray(arr[0])) {
-                            arr = arr[0];
-                        }
-
-                        console.log("ShiftDetail parsed:", arr);
-                        return arr;
-                    });
-                }
-            }));
-        });
-
-        popup.show();
+        detailGridInstance = $("#gridShiftDetail").dxDataGrid({
+            dataSource: [],
+            showBorders: true,
+            height: "500px",
+            grouping: { autoExpandAll: true },
+            columns: [
+                { dataField: "paymentType", caption: "Payment", groupIndex: 0 },
+                { dataField: "currencyID", caption: "Currency", groupIndex: 1 },
+                { dataField: "transactionCode", caption: "Trans. Code" },
+                { dataField: "description", caption: "Description" },
+                { dataField: "amount", caption: "Amount", dataType: "number", format: "#,##0.00" },
+                { dataField: "transactionDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy" },
+                {
+                    caption: "Time",
+                    dataType: "datetime",
+                    format: "HH:mm:ss",
+                    calculateCellValue: row => new Date(row.transactionDate)
+                },
+                { dataField: "reference", caption: "Reference" },
+                { dataField: "supplement", caption: "Supplement" },
+                { dataField: "folioID", caption: "FolioNo" },
+                { dataField: "roomNo", caption: "Room" },
+                { dataField: "account", caption: "Account" }
+            ]
+        }).dxDataGrid("instance");
     }
 
-
-
     $("#btnDetail").on("click", function () {
-        showShiftDetail();
+        if (!selectedRowData) {
+            showToast("Warning", "Please select 1 row to update.", false);
+            return;
+        }
+        const id = selectedRowData.shiftNo;
+        loadGetShiftDetail(id);
     });
+
+
     let originalData = [];
-    function loadPostingJournal() {
+    async function loadPostingJournal(isInitial = false) {
+        try {
+            let fromDateISO = $("#fromDate").val() || '';
+            let toDateISO = $("#toDate").val() || '';
+
+            // Nếu là load lần đầu (initial) và fromDate chưa có → bắt buộc chờ business date
+            if (isInitial && !fromDateISO || !toDateISO) {
+                fromDateISO = await waitForBusinessDate("fromDate", 10000); // timeout 10s để an toàn
+                toDateISO = await waitForBusinessDate("toDate", 10000); // timeout 10s để an toàn
+            }
+
+            // Nếu vẫn rỗng sau khi chờ → báo lỗi hoặc fallback (tùy yêu cầu)
+            if (!fromDateISO || !toDateISO) {
+                console.log("Không tải được ngày mặc định. Vui lòng chọn From Date thủ công.");
+                $("#loadingSpinner").hide();
+                return;
+            }
+
+            $.ajax({
+                url: "/Cashiering/GetCashierAudit",
+                type: "GET",
+                data: {
+                    userName: $("#userName").val()?.map(r => r.replace("''", "'")).join("','") || "",
+                    fromDate: fromDateISO,   // YYYY-MM-DD an toàn
+                    toDate: toDateISO,
+                    shiftID: $("#shiftID").val() || "",
+                },
+                success: function (data) {
+                    console.log("Data loaded:", data);
+                    originalData = data;
+                    applyFilterAndReload();
+                    $("#loadingSpinner").hide();
+                },
+                error: function (xhr, status, error) {
+                    console.error("Lỗi tải dữ liệu:", status, error);
+                    alert("Không thể tải dữ liệu. Vui lòng thử lại.");
+                    $("#loadingSpinner").hide();
+                }
+            });
+
+        } catch (err) {
+            console.error("Lỗi khi chờ business date hoặc gọi API:", err);
+            $("#loadingSpinner").hide();
+        }
+    }
+
+    function loadGetShiftDetail(id) {
 
         $.ajax({
-            url: "/Cashiering/GetCashierAudit",
+            url: "/Cashiering/GetShiftDetail",
             type: "GET",
-            data: {
-                userName: $("#userName").val()?.map(r => r.replace("''")).join("','") || "",
-                fromDate: $("#fromDate").val(),
-                toDate: $("#toDate").val(),
-                shiftID: $("#shiftID").val(),
-
-            },
+            data: { shiftID: id, type: 0 },
             success: function (data) {
-                console.log("Data loaded:", data);
-                originalData = data; // lưu lại data gốc
-                applyFilterAndReload(); // chỉ gọi 1 lần
-                $("#loadingSpinner").hide();
+
+                // 1️⃣ Init grid nếu chưa có
+                initializeDetailGrid();
+
+                // 2️⃣ Set datasource
+                detailGridInstance.option("dataSource", data.details || []);
+
+                $('#m-cashierNo').val(selectedRowData.cashierNo ?? '');
+                $('#m-shiftNo').val(selectedRowData.shiftNo ?? '');
+                const iso = selectedRowData.date?.split("T")[0];
+
+                const dateInput = document
+                    .querySelector('[data-name="m-shiftDate"]')
+                    ?.dateInput;
+
+                console.log('date', dateInput);
+
+
+                dateInput?.setISO(selectedRowData.date);
+
+                $('#m-userName').val(selectedRowData.userName ?? '');
+                $('#m-loginTime').val(selectedRowData.loginTime ?? '');
+                $('#m-fullName').val(selectedRowData.fullName ?? '');
+
+
+                // 3️⃣ Mở modal
+                new bootstrap.Modal("#modaldetailGrid").show();
             },
             error: function () {
-                alert("Không thể tải dữ liệu");
-                $("#loadingSpinner").hide();
+                alert("Không thể tải dữ liệu chi tiết");
             }
         });
     }
+
     function applyFilterAndReload() {
         let option = $("input[name='optionFilter']:checked").val();
         let filteredData = [];
@@ -339,7 +381,7 @@
     function loadPostingJournalGrid(data) {
         $("#gridContainer").dxDataGrid({
             dataSource: data,
-            height: 400,
+            height: "500px",
             allowColumnResizing: true,
             selection: { mode: "single" },
 
@@ -419,6 +461,11 @@
                 if (e.data && e.data.isGrandTotal) {
                     e.rowElement.css({ "font-weight": "bold" });
                 }
+            },
+            onRowClick: function (e) {
+                selectedRowData = e.data;
+                console.log('onRowClick:', selectedRowData);
+
             }
         });
     }
