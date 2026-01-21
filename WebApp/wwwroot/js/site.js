@@ -212,6 +212,8 @@ function applyValidationErrors(errors, formSelector) {
 
   window.initDateInputs = function (root) {
     const $root = root ? $(root) : $(document);
+    const tasks = [];
+
     $root.find("[data-date-input]").each(function () {
       if ($(this).data("date-initialized")) return;
       const instance = new DateInput(this);
@@ -222,16 +224,27 @@ function applyValidationErrors(errors, formSelector) {
   };
 })();
 
-$(document).ready(function () {
-  getAllBusinessDate();
-  var tooltipTriggerList = [].slice.call(
-    document.querySelectorAll('[data-bs-toggle="tooltip"]'),
-  );
-  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-    return new bootstrap.Tooltip(tooltipTriggerEl);
-  });
-  window.initDateInputs();
-});
+/**
+ * Reload Business Date cho tất cả hoặc 1 date input cụ thể
+ * @param {string|null} name - name của date input (hidden input)
+ */
+window.reloadBusinessDate = async function (name = null) {
+  const $targets = name
+    ? $(`[data-date-input][data-name="${name}"]`)
+    : $("[data-date-input]");
+
+  if (!$targets.length) {
+    console.warn("[reloadBusinessDate] Không tìm thấy date input");
+    return;
+  }
+
+  for (const el of $targets) {
+    const instance = $(el).data("dateInput");
+    if (instance && typeof instance.loadAndSetBusinessDate === "function") {
+      await instance.loadAndSetBusinessDate();
+    }
+  }
+};
 
 //Hàm validation
 /**
@@ -307,3 +320,37 @@ function focusElement($el) {
     $el.focus();
   }
 }
+
+// Thêm helper này (có thể đặt ở global scope hoặc trong file chính)
+function waitForBusinessDate(name = "fromDate", timeoutMs = 8000) {
+  return new Promise((resolve, reject) => {
+    const $hidden = $(`input[type=hidden][name="${name}"]`);
+
+    if ($hidden.val() && /^\d{4}-\d{2}-\d{2}$/.test($hidden.val())) {
+      return resolve($hidden.val());
+    }
+
+    const start = Date.now();
+    const interval = setInterval(() => {
+      const val = $hidden.val();
+      if (val && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+        clearInterval(interval);
+        resolve(val);
+      }
+      if (Date.now() - start > timeoutMs) {
+        clearInterval(interval);
+        reject(new Error(`Timeout chờ business date cho ${name}`));
+      }
+    }, 100);
+  });
+}
+
+$(document).ready(async function () {
+  var tooltipTriggerList = [].slice.call(
+    document.querySelectorAll('[data-bs-toggle="tooltip"]'),
+  );
+  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
+  await window.initDateInputs();
+});
