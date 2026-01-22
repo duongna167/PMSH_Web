@@ -5224,7 +5224,7 @@ namespace Administration.Controllers
 
             if (model != null && listErrors.Count == 0)
             {
-                bool isExisted = RoomOwnerProfileBO.Instance.CheckExist(model.RoomID, model.ID);
+                bool isExisted = RoomOwnerProfileBO.Instance.CheckExist(model.RoomNo, model.ID);
                 if (isExisted)
                 {
                     listErrors.Add(new ValidationError
