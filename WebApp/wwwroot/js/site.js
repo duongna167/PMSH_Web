@@ -308,11 +308,11 @@ function findFeedback($el) {
 function focusElement($el) {
   if ($el.hasClass("ts-wrapper")) {
     // TomSelect
-    const select = $el.prev("select")[0];
-    if (select && select.tomselect) {
-      select.tomselect.focus();
-    }
-  } else {
+  //  const select = $el.prev("select")[0];
+  //  if (select && select.tomselect) {
+  //    select.tomselect.focus();
+  //  }
+  //} else {
     $el.focus();
   }
 }

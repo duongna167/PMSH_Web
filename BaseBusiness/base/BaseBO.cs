@@ -1,6 +1,7 @@
 using BaseBusiness.exception;
 using BaseBusiness.util;
 using Dapper;
+using DevExpress.Xpo.DB.Helpers;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections;
@@ -12,8 +13,7 @@ namespace BaseBusiness.bc
 	public class BaseBO
 	{
 		protected BaseFacade baseFacade = null;
-
-		protected BaseBO()
+        protected BaseBO()
 		{
 		}
 
@@ -531,11 +531,8 @@ namespace BaseBusiness.bc
                 throw new BOException("Could not delete from database: " + ex.Message);
             }
         }
-        public bool IsDuplicate(string field, object value, long id = 0)
-        {
-            if (baseFacade == null) return false;
-            return baseFacade.CheckDuplicate(field, value, id);
-        }
+
+
 
     }
 }

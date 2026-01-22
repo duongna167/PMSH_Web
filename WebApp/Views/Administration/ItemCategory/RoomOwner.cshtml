@@ -58,14 +58,26 @@
         padding-right: 30px !important;
     }
 
-    /* Hiển thị feedback khi TomSelect wrapper bị lỗi */
+    /* Hiển thị dòng thông báo lỗi khi wrapper của TomSelect bị đánh dấu invalid */
     .ts-wrapper.is-invalid ~ .invalid-feedback {
-        display: block;
+        display: block !important;
     }
 
-    /* Viền đỏ cho TomSelect khi không hợp lệ */
+    /* Tô đỏ viền khung TomSelect khi có lỗi */
     .ts-wrapper.is-invalid .ts-control {
         border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25) !important;
+    }
+
+    /* Chỉ hiển thị feedback khi có class is-invalid */
+    .ts-wrapper:not(.is-invalid) ~ .invalid-feedback {
+        display: none !important;
+    }
+
+    /* Trả lại màu viền mặc định khi không còn lỗi */
+    .ts-wrapper:not(.is-invalid) .ts-control {
+        border-color: #ced4da !important;
+        box-shadow: none !important;
     }
 
     /* Quan trọng: Sửa lỗi che khuất dropdown trong Modal */
@@ -185,7 +197,7 @@
             if (el) {
                 if (el.tomselect) el.tomselect.destroy();
 
-                new TomSelect(el, {
+                const ts = new TomSelect(el, {
                     plugins: {
                         // 'remove_button': { title: 'Bỏ chọn' },
                         'dropdown_input': {}, // Hiện ô search trong dropdown
@@ -205,6 +217,11 @@
                             return `<div title="${escape(data.text)}">${escape(data.text)}</div>`;
                         }
                     }
+                });
+                ts.on('clear', function() {
+                    const $wrapper = $(ts.control).closest('.ts-wrapper');
+                    $wrapper.removeClass("is-invalid");
+                    $wrapper.siblings(".invalid-feedback").hide().text("");
                 });
             }
         });
@@ -237,7 +254,7 @@
             height: 550,
             width: "100%",
             columnAutoWidth: true,
-            allowColumnResizing: true,
+            allowColumnResizing: true,  
             selection: { mode: "single" },
             hoverStateEnabled: true,
             columns: [
@@ -330,11 +347,6 @@
         const roomData = window.getRoomValue();
         const ownerData = window.getOwnerValue();
 
-        if (!roomData || !ownerData) {
-            showToast("Warning", "Select owner and room no, please !", false);
-            return;
-        }
-
         const model = {
             ID: id,
             RoomID: roomData ? roomData.roomID : 0,
@@ -361,11 +373,17 @@
                     reloadGrid();
                 } else {
                     if (res.errors && res.errors.length > 0) {
-                        applyValidationErrors(res.errors, "#formContainer");
-                        let generalError = res.errors.find(x => x.field === "general");
-                        let toastMessage = generalError ? generalError.message : "Please check input fields.";
+                        // applyValidationErrors(res.errors, "#formContainer");
+                        // let generalError = res.errors.find(x => x.field === "general");
+                        // let toastMessage = generalError ? generalError.message : "Please check input fields.";
 
-                        showToast("Warning", toastMessage, false);
+                        // showToast("Warning", toastMessage, false);
+
+                        applyValidationErrors(res.errors, "#formContainer");
+
+                    // Chỉ hiện Toast cho lỗi "general" nếu có
+                    let genErr = res.errors.find(x => x.field === "general");
+                    if (genErr) showToast("Warning", genErr.message, false)
                     } else {
                         showToast("Error", res.message || "Save failed", false);
                     }

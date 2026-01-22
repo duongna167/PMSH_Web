@@ -54,10 +54,10 @@
         padding-right: 35px !important;
     }
 
-    /* Fix lỗi modal che dropdown */
     #itemModal .modal-content, #itemModal .modal-body {
         overflow: visible !important;
     }
+
 </style>
 <div class="text-center" style="font-size: 20px">Property Permission</div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
@@ -109,7 +109,7 @@
                                         <option value="@sg.ID">@sg.LoginName - @sg.FirstName</option>
                                     }
                                 </select>
-                                <div class="invalid-feedback">Please select at least one user.</div>
+                                <div class="invalid-feedback"></div>
                             </div>
                         </div>
                         <div class="row mb-1">
@@ -121,7 +121,7 @@
                                         <option value="@sg.ID">@sg.PropertyCode - @sg.PropertyName</option>
                                     }
                                 </select>
-                                <div class="invalid-feedback" id="propertyError">Please select at least one property.</div>
+                                <div class="invalid-feedback"></div>
                             </div>
                         </div>
                         <input type="hidden" id="id" name="id" value="0" />
@@ -207,7 +207,19 @@
             const el = document.querySelector(selector);
             if (el) {
                 if (el.tomselect) el.tomselect.destroy();
-                new TomSelect(el, commonConfig);
+                const ts = new TomSelect(el, commonConfig);
+
+                ts.on('change', function() {
+                    const $wrapper = $(ts.control).closest('.ts-wrapper');
+                    $wrapper.removeClass("is-invalid");
+                    $wrapper.siblings(".invalid-feedback").hide();
+                });
+
+                ts.on('clear', function() {
+                    const $wrapper = $(ts.control).closest('.ts-wrapper');
+                    $wrapper.removeClass("is-invalid");
+                    $wrapper.siblings(".invalid-feedback").hide();
+                });
             }
         });
     }
@@ -228,54 +240,35 @@
     });
 
     $("#btnSaveItem").click(function () {
-        $(".is-invalid").removeClass("is-invalid");
-        
         const id = parseInt($("#id").val()) || 0;
         let loginName = (localStorage.getItem("Loginname") || "").replace(/^"(.*)"$/, '$1');
-        const loginUser = parseInt(localStorage.getItem("userID")) || 0;
 
-        // Lấy mảng ID từ TomSelect
-        const selectedUsers = $("#chooseUser").val();      
-        const selectedProperties = $("#choosePropertyType").val();
-
-        let isValid = true;
-        if (!selectedUsers || selectedUsers.length === 0) {
-            $("#chooseUser").next(".ts-wrapper").addClass("is-invalid");
-            $("#chooseUser").parent().find(".invalid-feedback").show();
-            isValid = false;
-        }
-        if (!selectedProperties || selectedProperties.length === 0) {
-            $("#choosePropertyType").next(".ts-wrapper").addClass("is-invalid");
-            $("#choosePropertyType").parent().find(".invalid-feedback").show();
-            isValid = false;
-        }
-        if (!isValid) return;
+        const selectedUsers = $("#chooseUser").val() || [];
+        const selectedProperties = $("#choosePropertyType").val() || [];
 
         let listDataToSend = [];
 
-        selectedUsers.forEach(function(uID) {
-
-            selectedProperties.forEach(function(pID) {
-
-                let item = {
-                    ID: id, 
-                    UserID: parseInt(uID),     
-                    PropertyID: parseInt(pID), 
-                    CreatedBy: loginName,
-                    UpdatedBy: loginName
-                };
-
-                listDataToSend.push(item);
+        if (selectedUsers.length === 0 || selectedProperties.length === 0) {
+            listDataToSend.push({ ID: id, UserID: 0, PropertyID: 0, CreatedBy: loginName });
+        } else {
+            selectedUsers.forEach(uID => {
+                selectedProperties.forEach(pID => {
+                    listDataToSend.push({
+                        ID: id,
+                        UserID: parseInt(uID),
+                        PropertyID: parseInt(pID),
+                        CreatedBy: loginName,
+                        UpdatedBy: loginName
+                    });
+                });
             });
-        });
+        }
 
         $.ajax({
             url: "/Administration/PropertyPermissionSave",
             type: "POST",
-            contentType: "application/json", 
-            cache: false,
-            data: JSON.stringify(listDataToSend), 
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            contentType: "application/json",
+            data: JSON.stringify(listDataToSend),
             success: function (res) {
                 if (res.success) {
                     showToast("Success", res.message, true);
@@ -284,13 +277,12 @@
                 } else {
                     if (res.errors && res.errors.length > 0) {
                         applyValidationErrors(res.errors, "#formContainer");
-                        showToast("Warning", "Please check input fields.", false);
                     } else {
                         showToast("Error", res.message || "Save failed", false);
                     }
                 }
             },
-            error: function (xhr) {
+            error: function () {
                 showToast("Error", "Request error!", false);
             }
         });

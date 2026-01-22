@@ -1214,8 +1214,8 @@ namespace Administration.Controllers
                 Check(model, "general", "Invalid data"),
 
                 Check(model?.Code, "code", "Code is not blank."),
-                Check(PersonInChargeGroupBO.Instance.IsDuplicate("Code", model.Code, model.ID),
-                    "code", "This code already exists."),
+                //Check(PersonInChargeGroupBO.Instance.IsDuplicate("Code", model.Code, model.ID),
+                //    "code", "This code already exists."),
                 Check(model?.Name, "name", "Name is not blank.")
             );
 
@@ -1320,8 +1320,8 @@ namespace Administration.Controllers
                 Check(model, "general", "Invalid data"),
 
                 Check(model?.Code, "code", "Code is not blank."),
-                 Check(PersonInChargeZoneBO.Instance.IsDuplicate("Code", model.Code, model.ID),
-                        "code", "This code already exists."),
+                 //Check(PersonInChargeZoneBO.Instance.IsDuplicate("Code", model.Code, model.ID),
+                 //       "code", "This code already exists."),
                 Check(model?.Name, "name", "Name is not blank.")
             );
 
@@ -1426,8 +1426,8 @@ namespace Administration.Controllers
                 Check(model, "general", "Invalid data"),
 
                 Check(model?.Code, "code", "Code is not blank."),
-                Check(ApprovedbyBO.Instance.IsDuplicate("Code", model.Code, model.ID),
-                        "code", "This code already exists."),
+                //Check(ApprovedbyBO.Instance.IsDuplicate("Code", model.Code, model.ID),
+                //        "code", "This code already exists."),
                 Check(model?.Name, "name", "Name is not blank.")
             );
 
@@ -4651,6 +4651,7 @@ namespace Administration.Controllers
             ViewBag.UsersList = listuser;
             return View("ItemCategory/PropertyPermission");
         }
+
         [HttpPost]
         public IActionResult PropertyPermissionSave([FromBody] List<PropertyPermissionModel> listModels)
         {
@@ -4660,32 +4661,57 @@ namespace Administration.Controllers
             );
 
             if (listErrors.Count > 0)
-            {
                 return Json(new { success = false, errors = listErrors });
-            }
 
             try
             {
                 int rowIndex = 1;
-                int successCount = 0;
 
                 foreach (var model in listModels)
                 {
+                    // VALIDATE REQUIRED TRƯỚC
                     var rowErrors = GetErrors(
-                        Check(model.UserID, "chooseUser", $"Row {rowIndex}: User is not blank."),
-                        Check(model.PropertyID, "choosePropertyType", $"Row {rowIndex}: Property is not blank.")
+                        Check(model.UserID == 0, "chooseUser", $"Row {rowIndex}: User is required."),
+                        Check(model.PropertyID == 0, "choosePropertyType", $"Row {rowIndex}: Property is required.")
                     );
 
                     if (rowErrors.Count > 0)
                     {
+                        return Json(new { success = false, errors = rowErrors });
+                    }
+
+                    // CHỈ KHI DỮ LIỆU HỢP LỆ MỚI CHECK DUPLICATE
+                    bool isDuplicate = PropertyPermissionBO.Instance
+                        .IsDuplicatePermission(model.UserID, model.PropertyID, model.ID);
+
+                    if (isDuplicate)
+                    {
+                        UsersModel userLogin =
+                            (UsersModel)UsersBO.Instance.FindByPrimaryKey(model.UserID);
+
+                        string userName = !string.IsNullOrEmpty(userLogin?.LoginName)
+                            ? $"User '{userLogin.LoginName}'"
+                            : "This user";
+
                         return Json(new
                         {
                             success = false,
-                            message = rowErrors[0].Message,
-                            errors = rowErrors
+                            errors = new[]
+                            {
+                        new {
+                            field = "choosePropertyType",
+                            message = $"Row {rowIndex}: {userName} already has this property."
+                        }
+                    }
                         });
                     }
 
+                    rowIndex++;
+                }
+
+                // ================= SAVE =================
+                foreach (var model in listModels)
+                {
                     if (model.ID == 0)
                     {
                         model.CreatedDate = DateTime.Now;
@@ -4694,27 +4720,28 @@ namespace Administration.Controllers
                     }
                     else
                     {
-                        var oldData = (PropertyPermissionModel)PropertyPermissionBO.Instance.FindByPrimaryKey(model.ID);
+                        var oldData = (PropertyPermissionModel)
+                            PropertyPermissionBO.Instance.FindByPrimaryKey(model.ID);
+
                         if (oldData != null)
                         {
                             model.CreatedBy = oldData.CreatedBy;
                             model.CreatedDate = oldData.CreatedDate;
                         }
+
                         model.UpdatedDate = DateTime.Now;
                         PropertyPermissionBO.Instance.Update(model);
                     }
-
-                    successCount++;
-                    rowIndex++;
                 }
 
-                return Json(new { success = true, message = $"Successfully saved {successCount} permissions!" });
+                return Json(new { success = true, message = "Successfully saved permissions!" });
             }
             catch (Exception ex)
             {
                 return Json(new { success = false, message = "Error: " + ex.Message });
             }
         }
+
         [HttpPost]
         public IActionResult DeletePropertyPermission([FromBody] List<int> ids)
         {
@@ -4997,9 +5024,9 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
                 Check(model?.GroupOwnerCode, "code", "Code is not blank."),
-                Check(model?.GroupOwnerName, "name", "Name is not blank."),
-                Check(GroupOwnerBO.Instance.IsDuplicate("GroupOwnerCode", model.GroupOwnerCode, model.ID),
-                     "code", "This code already exists.")
+                Check(model?.GroupOwnerName, "name", "Name is not blank.")
+                //Check(GroupOwnerBO.Instance.IsDuplicate("GroupOwnerCode", model.GroupOwnerCode, model.ID),
+                //     "code", "This code already exists.")
             );
 
             if (listErrors.Count > 0)
@@ -5222,18 +5249,18 @@ namespace Administration.Controllers
                 Check(model?.OwnerCode, "ownerCode", "Please select Owner.")
             );
 
-            if (model != null && listErrors.Count == 0)
-            {
-                bool isExisted = RoomOwnerProfileBO.Instance.CheckExist(model.RoomNo, model.ID);
-                if (isExisted)
-                {
-                    listErrors.Add(new ValidationError
-                    {
-                        Field = "roomID",
-                        Message = "This room already has an owner assigned."
-                    });
-                }
-            }
+            //if (listErrors.Count == 0 && model != null)
+            //{
+            //    // Truyền vào field: "RoomID", giá trị: model.RoomID, và ID hiện tại để loại trừ (nếu là Edit)
+            //    bool isDuplicate = RoomOwnerProfileBO.Instance.IsDuplicate("RoomID", model.RoomID, model.ID);
+
+            //    var duplicateError = CheckDuplicate(isDuplicate, "roomID", "This room is already occupied..");
+
+            //    if (duplicateError != null)
+            //    {
+            //        listErrors.Add(duplicateError);
+            //    }
+            //}
 
             if (listErrors.Count > 0)
             {
