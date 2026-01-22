@@ -37,18 +37,7 @@
         margin-right: .5rem !important;
     }
 
-    #gridContainer .dx-datagrid-headers .dx-header-row > td {
-        padding: 5px !important;
-        height: 24px !important;
-        font-size: 12px !important;
-        line-height: 1.1 !important;
-    }
 
-    .tomselect-custom {
-        width: 200px;
-        min-height: 30px; /* hoặc tùy theo chiều cao bạn muốn */
-        font-size: 0.65rem;
-    }
 </style>
 <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
@@ -75,20 +64,35 @@
             <div class="d-flex align-items-center me-1">
                 <label class="fw-bold me-3">Filter:</label>
                 <label class="me-2 mb-0">Room Type:</label>
-                <select id="roomType" class="tomselect-custom" style="width: 70px;" multiple>
+                <select id="roomType" class="tomselect-custom"  multiple>
                     @foreach (var rt in rtList)
                     {
-                        <option value="@rt.Code">@rt.Code</option>
+                        if (rt == rtList[0])
+                        {
+                            <option value="@rt.Code" selected>@rt.Code</option>
+                        }
+                        else
+                        {
+                            <option value="@rt.Code">@rt.Code</option>
+                        }
                     }
                 </select>
             </div>
             <div class="d-flex align-items-center">
                 <div class="d-flex align-items-center me-3">
                     <label class="me-2 mb-0">Zone:</label>
-                    <select id="zone" class="tomselect-custom" style="width: 70px;" multiple>
-                        @foreach (var z in zoneList)
+                    <select id="zone" class="tomselect-custom" multiple>
+                        @foreach (var item in zoneList)
                         {
-                            <option value="@z.Code">@z.Code</option>
+
+                            if (item == zoneList[0])
+                            {
+                                <option value="@item.Code" selected>@item.Code</option>
+                            }
+                            else
+                            {
+                                <option value="@item.Code">@item.Code</option>
+                            }
                         }
                     </select>
                 </div>
@@ -143,8 +147,6 @@
 <div class="mui-card chart-container">
     <div id="revenuePieChart" class="chart-fixed-size"></div>
 </div>
-
-<script src="https://code.highcharts.com/highcharts.js"></script>
 <script>
     function formatDate(date) {
         let year = date.getFullYear();
@@ -154,16 +156,35 @@
     }
 
     $(document).ready(function () {
-        const today = new Date();
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
-        $('#fromDate').val(formatDate(firstDayOfMonth));
-        $('#toDate').val(formatDate(lastDayOfMonth));
+      getBusinessDate();
          initializeTomSelects();
     });
+    function getBusinessDate() {
+        return $.ajax({
+            url: '/Reservation/GetBusinessDate',
+            type: 'get',
+            dataType: 'json',
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+
+                 const fromDateStr = result.split('T')[0];
+                $('#fromDate').val(fromDateStr);
+               $('#toDate').val(fromDateStr);
+    
+
+
+            },
+            error: function (xhr, statusText, err) {
+                if (xhr.status == 401) {
+                    sessionTimeout();
+                }
+            }
+        });
+    }
+
     function initializeTomSelects() {
-        const selectors = ["#roomType", "#zone"];
+        const selectors = ["#roomType","#zone"];
 
         for (const id of selectors) {
             const el = document.querySelector(id);
@@ -196,8 +217,8 @@
                 fromDate: $("#fromDate").val(),
                 toDate: $("#toDate").val(),
                 reservation: $("#reservation").val(),
-                roomType: $("#roomType").val().map(r => r.replace( "''")).join("','") + "",
-                zone: $("#zone").val().map(r => r.replace( "''")).join("','") + "",
+                roomType: $("#roomType").val().join(","),
+                zone: $("#zone").val().join(","),
                 sortOrder: $("#sortOrder").val(),
                 viewBy: $("#viewBy").val(),
             },

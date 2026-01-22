@@ -53,8 +53,7 @@
     <div class="d-flex flex-wrap align-items-center gap-3 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
         <div class="d-flex align-items-center">
             <label class="me-2 mb-0">Date:</label>
-            <input id="fromDate" type="date" class="form-control form-control-sm w-auto"
-                   max='@DateTime.Now:yyyy-MM-dd' />
+            <input id="fromDate" type="date" class="form-control form-control-sm w-auto"/>
         </div>
         <div class="radio_wrapper">
             <label class="me-2">Type:</label>
@@ -66,7 +65,7 @@
     </div>
 
     <div class="">
-        <button id="btnPrint" class="mui-button mui-button-new" style="background:#3b9ac6">
+        <button id="btnPrint" class="mui-button mui-button-new">
              View
         </button>
       
@@ -79,8 +78,6 @@
              transform:translate(-50%,-50%); z-index:1000;">
     <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
 </div>
-
-<script src="https://code.highcharts.com/highcharts.js"></script>
 <script>
     function formatDate(date) {
         let year = date.getFullYear();
@@ -90,12 +87,35 @@
     }
 
     $(document).ready(function () {
-        const today = new Date();
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        $('#fromDate').val(formatDate(firstDayOfMonth));
+    
 
         document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
 
+    getBusinessDate()
+    });
+       function getBusinessDate() {
+        return $.ajax({
+            url: '/Reservation/GetBusinessDate',
+            type: 'get',
+            dataType: 'json',
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+
+                 const fromDateStr = result.split('T')[0];
+                $('#fromDate').val(fromDateStr);
+
+
+
+
+            },
+            error: function (xhr, statusText, err) {
+                if (xhr.status == 401) {
+                    sessionTimeout();
+                }
+            }
+        });
+    }
         $("#btnPrint").click(function () {
             $("#loadingSpinner").show();
 
@@ -106,7 +126,7 @@
                     fromDate: $("#fromDate").val(),
                     type: $("input[name='reportType']:checked").val()
                 },
-                success: function (result) {              
+                success: function (result) {
 
                     const grand = result.reduce((tot, itm) => {
                         tot.amountBeForeTax  += +itm.amountBeForeTax   || 0;
@@ -132,8 +152,6 @@
                 }
             });
         });
-    });
-
     function drawBarChart(g) {
         const categories = ['DAY Net', 'DAY Gross', 'MONTH Net', 'MONTH Gross', 'YEAR Net', 'YEAR Gross'];
         const seriesData = [

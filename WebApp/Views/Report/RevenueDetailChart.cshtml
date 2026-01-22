@@ -44,12 +44,6 @@
         margin-right: .5rem !important;
     }
 
-    #gridContainer .dx-datagrid-headers .dx-header-row > td {
-        padding: 5px !important;
-        height: 24px !important;
-        font-size: 12px !important;
-        line-height: 1.1 !important;
-    }
 </style>
 
 <div class="text-center" id="reportTitle" style="font-size: 20px"></div>
@@ -61,7 +55,7 @@
         </div>
     </div>
     <div class="">
-        <button id="btnView" class="mui-button mui-button-new" style="border-radius: 4px; background-color: #3b9ac6;">
+        <button id="btnView" class="mui-button mui-button-new" >
              View
         </button>
     </div>
@@ -75,7 +69,6 @@
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 
-<script src="https://code.highcharts.com/highcharts.js"></script>
 <script>
     function formatDate(date) {
         let year = date.getFullYear();
@@ -85,9 +78,36 @@
 
     $(document).ready(function () {
         document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
-        const today = new Date();
-        $("#monthPicker").val(formatDate(today));
+       getBusinessDate();
     });
+           function getBusinessDate() {
+        return $.ajax({
+            url: '/Reservation/GetBusinessDate',
+            type: 'get',
+            dataType: 'json',
+            crossDomain: false,
+            headers: {
+                "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val()
+            },
+            success: function (result) {
+                // result ví dụ: 2026-01-19T00:00:00
+                var businessDate = new Date(result);
+
+                var year = businessDate.getFullYear();
+                var month = String(businessDate.getMonth() + 1).padStart(2, '0'); // 01–12
+
+                // Định dạng YYYY-MM
+                var monthYearStr = year + '-' + month;
+
+                $('#monthPicker').val(monthYearStr);
+            },
+            error: function (xhr) {
+                if (xhr.status === 401) {
+                    sessionTimeout();
+                }
+            }
+        });
+    }
 
     $("#btnView").on("click", function () {
         $("#loadingSpinner").show();

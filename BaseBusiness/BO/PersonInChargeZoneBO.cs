@@ -1,4 +1,4 @@
-﻿using BaseBusiness.bc;
+using BaseBusiness.bc;
 using BaseBusiness.Facade;
 using System;
 using System.Collections.Generic;
@@ -22,5 +22,7 @@ namespace BaseBusiness.BO
         {
             get { return instance; }
         }
+
+
     }
 }

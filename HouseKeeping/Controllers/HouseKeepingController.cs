@@ -4440,7 +4440,49 @@ namespace HouseKeeping.Controllers
             }
 
         }
+        #region HKPStatusData
+        public IActionResult HKPStatus()
+        {
+        
+            return View();
+        }
 
+        [HttpGet]
+        public IActionResult HKPStatusData()
+        {
+            try
+            {
+                string sql = @"SELECT  [Room Status] = [dbo].[fnGetHkpStatus](r.HKStatusID),z.Code, r.* FROM Room r WITH (NOLOCK) left JOIN Zone z WITH (NOLOCK) ON r.ZoneID = z.ID WHERE r.HKStatusID IN (1,2,3,4)";
+
+              
+
+                DataTable dt = TextUtils.Select(sql);
+                var result = (from d in dt.AsEnumerable()
+                              select new
+                              {
+                                  ID = d["ID"]?.ToString(),
+                                  RoomNo = d["RoomNo"]?.ToString(),
+                                  RoomName = d["RoomName"]?.ToString(),
+                                  Floor = d["Floor"]?.ToString(),
+                                  RoomTypeCode = d["RoomTypeCode"]?.ToString(),
+                                  FOStatus = !string.IsNullOrEmpty(d["FOStatus"].ToString()) ? d["FOStatus"].ToString() : "",
+                                  HKStatusID = !string.IsNullOrEmpty(d["HKStatusID"].ToString()) ? d["HKStatusID"].ToString() : "",
+                                  CreatedDate = d["CreateDate"] == DBNull.Value ? "" : Convert.ToDateTime(d["CreateDate"]).ToString("dd/MM/yyyy"),
+                                  UpdatedDate = d["UpdateDate"] == DBNull.Value ? "" : Convert.ToDateTime(d["UpdateDate"]).ToString("dd/MM/yyyy"),
+                                  RoomStatus = !string.IsNullOrEmpty(d["Room Status"].ToString()) ? d["Room Status"].ToString() : "",
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+        #endregion
     }
 }
 

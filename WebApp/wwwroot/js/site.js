@@ -50,12 +50,7 @@ function getAllBusinessDate(callback, displayFormat = "DD/MM/YYYY") {
   });
 }
 
-//Hàm validation
-/**
- * Áp dụng lỗi JSON vào form bất kỳ với Bootstrap validation
- * @param {Array} errors - Array {field, message} từ backend
- * @param {string} formSelector - selector của form/modal
- */
+/*
 function applyValidationErrors(errors, formSelector) {
   // Reset các lỗi cũ
   $(
@@ -75,6 +70,7 @@ function applyValidationErrors(errors, formSelector) {
     }
   });
 }
+*/
 
 //Init Input Date
 (function () {
@@ -312,11 +308,11 @@ function findFeedback($el) {
 function focusElement($el) {
   if ($el.hasClass("ts-wrapper")) {
     // TomSelect
-    const select = $el.prev("select")[0];
-    if (select && select.tomselect) {
-      select.tomselect.focus();
-    }
-  } else {
+  //  const select = $el.prev("select")[0];
+  //  if (select && select.tomselect) {
+  //    select.tomselect.focus();
+  //  }
+  //} else {
     $el.focus();
   }
 }
