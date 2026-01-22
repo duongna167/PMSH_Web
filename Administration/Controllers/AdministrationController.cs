@@ -5038,7 +5038,6 @@ namespace Administration.Controllers
         [HttpPost]
         public IActionResult GroupOwnerDelete(int id)
         {
-
             try
             {
                 GroupOwnerBO.Instance.Delete(id);
@@ -5053,32 +5052,46 @@ namespace Administration.Controllers
 
         #region ItemCategory/GroupAndOwner
 
-        public IActionResult GroupAndOwner()
+        public IActionResult GroupAndRoom()
         {
-            return View("ItemCategory/GroupOwner");
+            return View("ItemCategory/GroupAndRoom");
         }
         [HttpGet]
         public IActionResult GetGroupAndOwner()
         {
             try
             {
-                DataTable dt = TextUtils.Select(@"SELECT * From GroupOwner with (nolock) Order by ID");
+                DataTable dt = TextUtils.Select(@"
+                    SELECT 
+                        gao.ID,
+                        gao.GroupOwnerID,
+                        go.Name AS GroupOwnerName,
+                        gao.RoomOwnerID,
+                        r.RoomNo,
+                        gao.CreatedDate,
+                        gao.CreatedBy,
+                        gao.UpdatedDate,
+                        gao.UpdatedBy
+                    FROM GroupAndOwner gao WITH (NOLOCK)
+                    LEFT JOIN GroupOwner go WITH (NOLOCK) ON gao.GroupOwnerID = go.ID
+                    LEFT JOIN RoomOwner r WITH (NOLOCK) ON gao.RoomOwnerID = r.ID
+                    ORDER BY gao.ID
+                ");
+
                 var result = (from r in dt.AsEnumerable()
                               select new
                               {
-                                  ID = !string.IsNullOrEmpty(r["ID"].ToString()) ? r["ID"] : "",
-                                  GroupOwnerName = !string.IsNullOrEmpty(r["GroupOwnerName"].ToString()) ? r["GroupOwnerName"] : "",
-                                  GroupOwnerCode = !string.IsNullOrEmpty(r["GroupOwnerCode"].ToString()) ? r["GroupOwnerCode"] : "",
-                                  Description = !string.IsNullOrEmpty(r["Description"].ToString()) ? r["Description"] : "",
-                                  Contact = !string.IsNullOrEmpty(r["Contact"].ToString()) ? r["Contact"] : "",
-                                  Address = !string.IsNullOrEmpty(r["Address"].ToString()) ? r["Address"] : "",
-                                  Email = !string.IsNullOrEmpty(r["Email"].ToString()) ? r["Email"] : "",
-                                  Telephone = !string.IsNullOrEmpty(r["Telephone"].ToString()) ? r["Telephone"] : "",
-                                  CreatedDate = !string.IsNullOrEmpty(r["CreatedDate"].ToString()) ? r["CreatedDate"] : "",
-                                  CreatedBy = !string.IsNullOrEmpty(r["CreatedBy"].ToString()) ? r["CreatedBy"] : "",
-                                  UpdatedDate = !string.IsNullOrEmpty(r["UpdatedDate"].ToString()) ? r["UpdatedDate"] : "",
-                                  UpdatedBy = !string.IsNullOrEmpty(r["UpdatedBy"].ToString()) ? r["UpdatedBy"] : "",
+                                  id = r["ID"]?.ToString(),
+                                  groupOwnerID = r["GroupOwnerID"]?.ToString(),
+                                  groupOwnerName = r["GroupOwnerName"]?.ToString(),
+                                  roomOwnerID = r["RoomOwnerID"]?.ToString(),
+                                  roomNo = r["RoomNo"]?.ToString(),
+                                  createdDate = r["CreatedDate"],
+                                  createdBy = r["CreatedBy"]?.ToString(),
+                                  updatedDate = r["UpdatedDate"],
+                                  updatedBy = r["UpdatedBy"]?.ToString()
                               }).ToList();
+
                 return Json(result);
             }
             catch (Exception ex)
@@ -5086,32 +5099,106 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
-        
+        [HttpPost]
+        public IActionResult GroupAndOwnerSave([FromBody] GroupAndOwnerModel model)
+        {
+            string message = "";
+
+            var listErrors = GetErrors(
+                Check(model, "general", "Invalid data"),
+                Check(model?.GroupOwnerID, "groupOwnerID", "Please select group owner."),
+                Check(model?.RoomOwnerID, "roomOwnerID", "Please select room owner.")
+            );
+
+            if (listErrors.Count > 0)
+            {
+                return Json(new { success = false, errors = listErrors });
+            }
+            try
+            {
+                if (model.ID == 0)
+                {
+                    model.CreatedDate = DateTime.Now;
+                    model.UpdatedDate = DateTime.Now;
+                    GroupAndOwnerBO.Instance.Insert(model);
+                    message = "Insert successfully.";
+                }
+                else
+                {
+                    var oldData = (GroupAndOwnerModel)GroupAndOwnerBO.Instance.FindByPrimaryKey(model.ID);
+                    if (oldData != null)
+                    {
+                        model.RoomOwnerID = oldData.RoomOwnerID;
+                        model.CreatedBy = oldData.CreatedBy;
+                        model.CreatedDate = oldData.CreatedDate;
+                    }
+                    model.UpdatedDate = DateTime.Now;
+                    GroupAndOwnerBO.Instance.Update(model);
+                    message = "Update successfully.";
+                }
+                return Json(new { success = true, message = message });
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        public IActionResult GroupAndOwnerDelete(int id)
+        {
+            try
+            {
+                GroupAndOwnerBO.Instance.Delete(id);
+                return Json(new { success = true, message = "Delete successfully." });
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
         #endregion
 
-        #region ItemCategory/GroupAndOwner
+        #region ItemCategory/RoomOwner
 
-        public IActionResult RoomOwnerProfile()
+        public IActionResult RoomOwner()
         {
-            return View("ItemCategory/GroupOwner");
+            List<RoomModel> rooms = PropertyUtils.ConvertToList<RoomModel>(RoomBO.Instance.FindAll());
+            ViewBag.RoomList = rooms;
+
+            List<OwnerModel> owners = PropertyUtils.ConvertToList<OwnerModel>(OwnerBO.Instance.FindAll());
+            ViewBag.OwnerList = owners;
+
+            return View("ItemCategory/RoomOwner");
         }
         [HttpGet]
         public IActionResult GetRoomOwnerProfile()
         {
             try
             {
-                DataTable dt = TextUtils.Select(@"SELECT * From GroupOwner with (nolock) Order by ID");
+                DataTable dt = TextUtils.Select(@"
+                    SELECT 
+                        ro.ID,
+                        ro.OwnerName,
+                        ro.OwnerCode,
+                        r.ID AS RoomID,
+                        r.RoomNo,
+                        ro.CreatedDate,
+                        ro.CreatedBy,
+                        ro.UpdatedDate,
+                        ro.UpdatedBy
+                    FROM RoomOwnerProfile ro WITH (NOLOCK)
+                    LEFT JOIN Room r WITH (NOLOCK) ON ro.RoomID = r.ID
+                    ORDER BY ro.ID 
+                ");
                 var result = (from r in dt.AsEnumerable()
                               select new
                               {
                                   ID = !string.IsNullOrEmpty(r["ID"].ToString()) ? r["ID"] : "",
-                                  GroupOwnerName = !string.IsNullOrEmpty(r["GroupOwnerName"].ToString()) ? r["GroupOwnerName"] : "",
-                                  GroupOwnerCode = !string.IsNullOrEmpty(r["GroupOwnerCode"].ToString()) ? r["GroupOwnerCode"] : "",
-                                  Description = !string.IsNullOrEmpty(r["Description"].ToString()) ? r["Description"] : "",
-                                  Contact = !string.IsNullOrEmpty(r["Contact"].ToString()) ? r["Contact"] : "",
-                                  Address = !string.IsNullOrEmpty(r["Address"].ToString()) ? r["Address"] : "",
-                                  Email = !string.IsNullOrEmpty(r["Email"].ToString()) ? r["Email"] : "",
-                                  Telephone = !string.IsNullOrEmpty(r["Telephone"].ToString()) ? r["Telephone"] : "",
+                                  OwnerName = !string.IsNullOrEmpty(r["OwnerName"].ToString()) ? r["OwnerName"] : "",
+                                  OwnerCode = !string.IsNullOrEmpty(r["OwnerCode"].ToString()) ? r["OwnerCode"] : "",
+                                  RoomNo = !string.IsNullOrEmpty(r["RoomNo"].ToString()) ? r["RoomNo"] : "",
+                                  RoomID = !string.IsNullOrEmpty(r["RoomID"].ToString()) ? r["RoomID"] : "",
                                   CreatedDate = !string.IsNullOrEmpty(r["CreatedDate"].ToString()) ? r["CreatedDate"] : "",
                                   CreatedBy = !string.IsNullOrEmpty(r["CreatedBy"].ToString()) ? r["CreatedBy"] : "",
                                   UpdatedDate = !string.IsNullOrEmpty(r["UpdatedDate"].ToString()) ? r["UpdatedDate"] : "",
@@ -5124,62 +5211,78 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
-        //[HttpPost]
-        //public IActionResult GroupOwnerSave([FromBody] GroupOwnerModel model)
-        //{
-        //    var listErrors = GetErrors(
-        //        Check(model, "general", "Invalid data"),
-        //        Check(model?.Gro, "code", "Code is not blank."),
-        //        Check(model?.Name, "name", "Description is not blank.")
-        //    );
+        [HttpPost]
+        public IActionResult RoomOwnerProfileSave([FromBody] RoomOwnerProfileModel model)
+        {
+            string message = "";
 
-        //    if (listErrors.Count > 0)
-        //    {
-        //        return Json(new { success = false, errors = listErrors });
-        //    }
-        //    string message;
-        //    try
-        //    {
-        //        if (model.ID == 0)
-        //        {
-        //            model.CreateDate = DateTime.Now;
-        //            model.UpdateDate = DateTime.Now;
-        //            OccupancyBO.Instance.Insert(model);
-        //            message = "Insert successfully.";
-        //        }
-        //        else
-        //        {
-        //            var oldData = (OccupancyModel)OccupancyBO.Instance.FindByPrimaryKey(model.ID);
-        //            if (oldData != null)
-        //            {
-        //                model.CreateBy = oldData.CreateBy;
-        //                model.CreateDate = oldData.CreateDate;
-        //            }
-        //            model.UpdateDate = DateTime.Now;
-        //            OccupancyBO.Instance.Update(model);
-        //            message = "Update successfully.";
-        //        }
-        //        return Json(new { success = true, message = message });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return Json(ex.Message);
-        //    }
-        //}
-        //[HttpPost]
-        //public IActionResult GroupOwnerDelete(int id)
-        //{
+            var listErrors = GetErrors(
+                Check(model, "general", "Invalid data"),
+                Check(model?.RoomID, "roomID", "Please select Room."),
+                Check(model?.OwnerCode, "ownerCode", "Please select Owner.")
+            );
 
-        //    try
-        //    {
-        //        OccupancyBO.Instance.Delete(id);
-        //        return Json(new { success = true, message = "Delete successfully." });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return Json(ex.Message);
-        //    }
-        //}
+            if (model != null && listErrors.Count == 0)
+            {
+                bool isExisted = RoomOwnerProfileBO.Instance.CheckExist(model.RoomID, model.ID);
+                if (isExisted)
+                {
+                    listErrors.Add(new ValidationError
+                    {
+                        Field = "roomID",
+                        Message = "This room already has an owner assigned."
+                    });
+                }
+            }
+
+            if (listErrors.Count > 0)
+            {
+                return Json(new { success = false, errors = listErrors });
+            }
+            try
+            {
+                if (model.ID == 0)
+                {
+                    model.CreatedDate = DateTime.Now;
+                    model.UpdatedDate = DateTime.Now;
+                    RoomOwnerProfileBO.Instance.Insert(model);
+                    message = "Insert successfully.";
+                }
+                else
+                {
+                    var oldData = (RoomOwnerProfileModel)RoomOwnerProfileBO.Instance.FindByPrimaryKey(model.ID);
+                    if (oldData != null)
+                    {
+                        model.RoomNo = oldData.RoomNo;
+                        model.RoomID = oldData.RoomID;
+                        model.CreatedBy = oldData.CreatedBy;
+                        model.CreatedDate = oldData.CreatedDate;
+                    }
+                    model.UpdatedDate = DateTime.Now;
+                    RoomOwnerProfileBO.Instance.Update(model);
+                    message = "Update successfully.";
+                }
+                return Json(new { success = true, message = message });
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        public IActionResult RoomOwnerProfileDelete(int id)
+        {
+            try
+            {
+                RoomOwnerProfileBO.Instance.Delete(id);
+                return Json(new { success = true, message = "Delete successfully." });
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
         #endregion
 
     }

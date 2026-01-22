@@ -1,0 +1,95 @@
+﻿@{
+    //
+}
+
+<div class="text-center" style="font-size: 20px">Group and Room</div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+
+    <div class="mt-2">
+        <button id="btnNew" class="mui-button mui-button-new"> New</button>
+        <button id="btnUpdate" class="mui-button mui-button-edit"> Edit</button>
+        <button id="btnDelete" class="mui-button mui-button-delete"> Delete</button>
+    </div>
+
+</div>
+
+<div class="mui-card">
+    <div id="gridContainerRateCode" class="mt-2 gridContainer"></div>
+</div>
+
+
+<div id="loadingSpinnerRateCode" style="display: none; text-align: center; padding: 20px;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+
+<script>
+    var selectedRowData = null;
+
+    $(document).ready(function () {
+        reloadGrid();
+
+        $("#formContainer").on("input change", "input, select, textarea", function () {
+            if ($(this).hasClass("is-invalid")) {
+                $(this).removeClass("is-invalid");
+                $(this).next(".invalid-feedback").text("");
+            }
+        });
+        $('#itemModal').on('hidden.bs.modal', function () {
+             applyValidationErrors([], "#formContainer");
+        });
+    });
+
+    function loadGrid(data) {
+        const dataSource = data || [];
+        $("#gridContainerRateCode").dxDataGrid({
+            dataSource: dataSource,
+            height: 550,
+            width: "100%",
+            columnAutoWidth: true,
+            allowColumnResizing: true,
+            selection: { mode: "single" },
+            hoverStateEnabled: true,
+            columns: [
+              { dataField: "id", visible: false },
+              { dataField: "groupOwnerID", visible: false },
+              { dataField: "groupOwnerName", caption: "Group Owner", width: "30%" },
+              { dataField: "roomOwnerID", visible: false },
+              { dataField: "roomNo", caption: "Room No", width: "20%" },
+              { dataField: "createdBy", caption: "Created By", width: "10%" },
+              { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy", width: "15%" },
+              { dataField: "updatedBy", caption: "Updated By", width: "10%" },
+              { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy", width: "15%" }
+            ],
+            scrolling: { mode: "standard", showScrollbar: "always" },
+            filterRow: { visible: true, applyFilter: "auto" },
+            paging: { pageSize: 20 },
+            pager: { showPageSizeSelector: true, visible:true, allowedPageSizes: [20, 50, 'all'], showInfo: true,showNavigationButtons: true },
+            onSelectionChanged: function (e) {
+                selectedRowData = e.selectedRowsData.length > 0 ? e.selectedRowsData[0] : null;
+            }
+        });
+    }
+
+    function reloadGrid() {
+        $("#loadingSpinnerRateCode").show();
+
+        $.ajax({
+            url: "/Administration/GetGroupOwner",
+            type: 'GET',
+            cache: false,
+            success: function(data){
+                loadGrid(data);
+                $("#loadingSpinnerRateCode").hide();
+            },
+            error: function(xhr, status, error){
+                alert("Unable to load data");
+                $("#loadingSpinnerRateCode").hide();
+            }
+        });
+    }
+
+
+
+</script>

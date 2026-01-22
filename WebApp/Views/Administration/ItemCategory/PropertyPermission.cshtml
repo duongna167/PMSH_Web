@@ -2,16 +2,16 @@
     //
 }
 <style>
+    /* Base TomSelect control */
     .ts-control {
         min-height: 38px;
-        border-radius: 0.375rem; 
+        border-radius: 0.375rem;
         border: 1px solid #ced4da;
         padding: 0.375rem 0.75rem;
         font-size: 1rem;
-        transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
-        /* Xử lý scroll khi chọn nhiều */
-        max-height: 85px; /* Giới hạn khoảng 2 dòng */
-        overflow-y: auto; /* Hiện thanh cuộn dọc */
+        transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+        max-height: 85px;
+        overflow-y: auto;
     }
 
     .ts-wrapper.focus .ts-control {
@@ -20,68 +20,45 @@
         outline: 0;
     }
 
-    .ts-wrapper.is-invalid .ts-control {
-        border-color: #dc3545;
-        padding-right: calc(1.5em + 0.75rem);
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
-        background-repeat: no-repeat;
-        background-position: right calc(0.375em + 0.1875rem) center;
-        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
-    }
-
-    .ts-control::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .ts-control::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 4px;
-    }
-
-    .ts-control::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 4px;
-    }
-
-        .ts-control::-webkit-scrollbar-thumb:hover {
-            background: #63af90 !important;
-        }
-
+    /* Style cho Dropdown bám sát modal */
     .ts-dropdown {
         border-radius: 0.375rem;
         box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
         border: 1px solid rgba(0,0,0,.15);
-        z-index: 1056; /* Cao hơn modal Bootstrap một chút */
-    }
-
-    /* Tùy chỉnh nút X xóa nhanh (Clear Button) */
-    .tomselect-custom .ts-control {
-        padding-right: 2.5rem !important;
-        margin-right: 2.5rem !important;
+        z-index: 2000 !important;
+        position: absolute !important;
     }
 
     .tomselect-custom .clear-button {
         position: absolute;
-        right: 10px;
+        right: 8px;
         top: 50%;
         transform: translateY(-50%);
-        border-radius: 0.575rem;
         cursor: pointer;
-        font-size: 1.2rem;
-        color: #dc3545 !important;
-        font-weight: bold;
+        font-size: 1rem;
+        color: #999 !important;
+        font-weight: normal;
         z-index: 10;
-        transition: color 0.2s;
         line-height: 1;
-        background-color: #d3e8df !important;
+        transition: all 0.2s ease;
+        background-color: transparent !important;
+        padding: 2px 5px;
     }
 
-    .tomselect-custom .clear-button:hover {
-            color: #d3e8df !important;
-            background-color: #dc3545 !important;
+        .tomselect-custom .clear-button:hover {
+            color: #dc3545 !important;
+            opacity: 0.8;
+        }
+
+    .tomselect-custom .ts-control {
+        padding-right: 35px !important;
+    }
+
+    /* Fix lỗi modal che dropdown */
+    #itemModal .modal-content, #itemModal .modal-body {
+        overflow: visible !important;
     }
 </style>
-
 <div class="text-center" style="font-size: 20px">Property Permission</div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
     <div class="mb-2">
@@ -203,33 +180,34 @@
         });
     });
 
-    function initializeTomSelects() {
-        const selectors = ["#user", "#choosePropertyType", "#chooseUser"];
-        selectors.forEach(selector => {
+        function initializeTomSelects() {
+        const commonConfig = {
+            plugins: {
+                'remove_button': { title: 'Bỏ chọn' },
+                'dropdown_input': {}, 
+                'clear_button': { title: 'Xóa hết' },
+            },
+            create: false,
+            maxItems: null, 
+            valueField: 'value',
+            labelField: 'text',
+            searchField: ['text'],
+            placeholder: 'Select or search...',
+            render: {
+                option: (data, escape) => `<div class="p-2">${escape(data.text)}</div>`,
+                item: (data, escape) => `<div title="${escape(data.text)}">${escape(data.text)}</div>`
+            },
+            // Đảm bảo tính toán lại vị trí khi mở dropdown
+            onDropdownOpen: function() {
+                this.positionDropdown();
+            }
+        };
+
+        ["#user", "#choosePropertyType", "#chooseUser"].forEach(selector => {
             const el = document.querySelector(selector);
             if (el) {
-                 if (el.tomselect) el.tomselect.destroy();
-                    new TomSelect(el, {
-                        plugins: {
-                        'remove_button': { title: 'Bỏ chọn mục này' },
-                        'dropdown_input': {},
-                        'clear_button': { title: 'Clear all' },
-                    },
-                    create: false,
-                    maxItems: null,
-                    valueField: 'value',
-                    labelField: 'text',
-                    searchField: ['text'],
-                    placeholder: ' Enter or select options...',
-                    render: {
-                        option: function(data, escape) {
-                            return '<div class="p-2">' + escape(data.text) + '</div>';
-                        },
-                        item: function(data, escape) {
-                            return '<div title="' + escape(data.text) + '">' + escape(data.text) + '</div>';
-                        }
-                    }
-                });
+                if (el.tomselect) el.tomselect.destroy();
+                new TomSelect(el, commonConfig);
             }
         });
     }
@@ -237,8 +215,8 @@
     $("#btnNew").click(function () {
         $("#formContainer")[0].reset();
         $("#id").val("0");
-        const tsUser = document.querySelector("#chooseUser").tomselect;
-        const tsProp = document.querySelector("#choosePropertyType").tomselect;
+        const tsUser = document.querySelector("#chooseUser")?.tomselect;
+        const tsProp = document.querySelector("#choosePropertyType")?.tomselect;
         if( tsUser){tsUser.clear()};
         if( tsProp){tsProp.clear()};
 
