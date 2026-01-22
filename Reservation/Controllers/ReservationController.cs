@@ -127,6 +127,7 @@ namespace Reservation.Controllers
             ViewBag.cboSource = ListItemHelper.GetSourceProvider();
             ViewBag.cboMarket = ListItemHelper.GetMarketProvider();
             ViewBag.cboAllotmentType = ListItemHelper.GetAllotmentTypeProvider();
+            ViewBag.cboZone = ListItemHelper.GetZoneProvider();
             ViewBag.cboPersonInCharge = ListItemHelper.GetPersonInChargeProvider();
             ViewBag.cboPaymentMethod = ListItemHelper.GetPaymentMethodProvider();
             ViewBag.cboPromotion = ListItemHelper.GetPromotionProvider();
@@ -491,7 +492,7 @@ namespace Reservation.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllotmentSearch(string code, string marketID, string allotmentTypeID, string profileID, string isDefault)
+        public async Task<IActionResult> GetAllotmentSearch(string code, string marketID, string allotmentTypeID, string profileID, string zone, string isDefault)
         {
             try
             {
@@ -499,11 +500,11 @@ namespace Reservation.Controllers
                 {
                     code = "";
                 }
-                if (string.IsNullOrEmpty(marketID))
+                if (string.IsNullOrEmpty(marketID) || marketID == "0")
                 {
                     marketID = "";
                 }
-                if (string.IsNullOrEmpty(allotmentTypeID))
+                if (string.IsNullOrEmpty(allotmentTypeID) || allotmentTypeID == "0")
                 {
                     allotmentTypeID = "";
                 }
@@ -511,18 +512,25 @@ namespace Reservation.Controllers
                 {
                     profileID = "";
                 }
+                if (string.IsNullOrEmpty(zone))
+                {
+                    zone = "";
+                }
                 if (string.IsNullOrEmpty(isDefault))
                 {
                     isDefault = "";
                 }
-                DataTable myData = _iReservationService.GetAllotment(code, marketID, profileID, isDefault, allotmentTypeID);
+                DataTable myData = _iReservationService.GetAllotment(code, marketID, profileID, isDefault, zone, allotmentTypeID);
                 List<MarketModel> listMarketType = PropertyUtils.ConvertToList<MarketModel>(MarketBO.Instance.FindByAttribute("Inactive", 0));
+                List<ProfileModel> listProfile = PropertyUtils.ConvertToList<ProfileModel>(ProfileBO.Instance.FindByAttribute("Active", "false"));
                 List<AllotmentTypeModel> listAllotmentType = PropertyUtils.ConvertToList<AllotmentTypeModel>(AllotmentTypeBO.Instance.FindByAttribute("Inactive", 0));
 
                 var result = (from d in myData.AsEnumerable()
                               let marketIDs = d["MarketID"].ToString()
+                              let profileIDs = d["MarketID"].ToString()
                               let allotmentTypeIDs = d["AllotmentTypeID"].ToString()
-                              let matchedMarket = listMarketType.FirstOrDefault(m => m.ID.ToString() == marketID)
+                              let matchedMarket = listMarketType.FirstOrDefault(m => m.ID.ToString() == marketIDs)
+                              let matchedProfile = listProfile.FirstOrDefault(m => m.ID.ToString() == profileIDs)
                               let allotmentType = listAllotmentType.FirstOrDefault(m => m.ID.ToString() == allotmentTypeIDs)
 
                               select new
@@ -533,6 +541,7 @@ namespace Reservation.Controllers
                                   AccountName = d["AccountName"].ToString(),
                                   MarketID = d["MarketID"].ToString(),
                                   Market = matchedMarket != null ? matchedMarket.Code : "",
+                                  Profile = matchedProfile != null ? matchedProfile.LastName : "",
                                   AllotmentType = allotmentType != null ? allotmentType.Code : "",
                                   CuttOfDay = d["CuttOfDay"].ToString(),
                                   CuttOfDate = d["CuttOfDate"].ToString(),
@@ -560,13 +569,21 @@ namespace Reservation.Controllers
             try
             {
                 List<RoomTypeModel> roomTypeModels = PropertyUtils.ConvertToList<RoomTypeModel>(RoomTypeBO.Instance.FindByAttribute("Inactive", 0));
-                string allCodes = string.Join(",", roomTypeModels.Select(x => x.Code));
+                string allCodes = string.Join(
+                    ",",
+                    roomTypeModels.Select(x => $"[{x.Code}]")
+                );
                 DateTime date = new DateTime(1900, 1, 1);
                 DataTable myData = _iReservationService.GetAllotmentDetail(allotmentID, allCodes, date);
 
                 var result = (from d in myData.AsEnumerable()
                               select d.Table.Columns.Cast<DataColumn>()
-                                  .Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
+                                  .Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag"
+                                  && col.ColumnName != "Total" && col.ColumnName != "From Date" && col.ColumnName != "To Date"
+                                  && myData.AsEnumerable().Any(r =>
+                                    !r.IsNull(col) && !string.IsNullOrWhiteSpace(r[col].ToString()))
+
+                                    )
                                   .ToDictionary(
                                       col => col.ColumnName,
                                       col => d[col.ColumnName]?.ToString()
@@ -6152,7 +6169,7 @@ namespace Reservation.Controllers
         //            if (_MainGuest == false && ReservationBO.CheckCheckIn(shareRoom) == 1)
         //            {
         //                return Json(new { code = 1, msg = "Main guest must be check in before Room sharer." });
-                       
+
         //            }
         //            #endregion
 
@@ -6182,7 +6199,7 @@ namespace Reservation.Controllers
         //            if (_Status == 1 || _Status == 2 || _Status == 3 || _Status == 4 || _Status == 6 || _Status == 7)
         //            {
         //                return Json(new { code = 1, msg = "This room checked in, checked out or cancelled. Not check in" });
-                       
+
         //            }
         //            #endregion
 
@@ -6212,7 +6229,7 @@ namespace Reservation.Controllers
         //                {
         //                    return Json(new { code = 1, msg = "Split first reservation. Please!" });
 
-                     
+
         //                }
         //            }
         //            #endregion
@@ -6307,7 +6324,7 @@ namespace Reservation.Controllers
         //}
 
         //#endregion
-        
-    
+
+
     }
 }

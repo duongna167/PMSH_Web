@@ -216,7 +216,7 @@ namespace Reservation.Services.Implements
         /// <param name="isDefault">isDefault</param>
         /// <param name="allotmentTypeID">id allotmentType</param
         /// <returns>Data table chứa danh sách allotment</returns>
-        public DataTable GetAllotment(string code, string marketID, string profileID, string isDefault, string allotmentTypeID)
+        public DataTable GetAllotment(string code, string marketID, string profileID, string isDefault, string zone, string allotmentTypeID)
         {
             try
             {
@@ -227,6 +227,7 @@ namespace Reservation.Services.Implements
                     new SqlParameter("@AllotmentTypeID", allotmentTypeID),
                     new SqlParameter("@ProfileID", profileID),
                     new SqlParameter("@IsDefault", isDefault),
+                    new SqlParameter("@Zone", zone),
 
                 };
 
