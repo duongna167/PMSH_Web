@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Asn1.X509;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -4453,7 +4454,7 @@ namespace Administration.Controllers
         public IActionResult PropertyTypeSave([FromBody] PropertyTypeModel model)
         {
             var listErrors = GetErrors(
-                Check(model, "general", "Invalid data"),
+                Check(model == null, "general", "Invalid data"),
 
                 Check(model?.Code, "code", "Code is not blank."),
                 Check(model.Sequence < 0, "seq", "Sequence must be >= 0")
@@ -4671,8 +4672,8 @@ namespace Administration.Controllers
                 {
                     // VALIDATE REQUIRED TRƯỚC
                     var rowErrors = GetErrors(
-                        Check(model.UserID == 0, "chooseUser", $"Row {rowIndex}: User is required."),
-                        Check(model.PropertyID == 0, "choosePropertyType", $"Row {rowIndex}: Property is required.")
+                        Check(model.UserID == 0, "chooseUser", "User is required."),
+                        Check(model.PropertyID == 0, "choosePropertyType", "Property is required.")
                     );
 
                     if (rowErrors.Count > 0)
@@ -4700,7 +4701,7 @@ namespace Administration.Controllers
                             {
                         new {
                             field = "choosePropertyType",
-                            message = $"Row {rowIndex}: {userName} already has this property."
+                            message = $"{userName} already has this property."
                         }
                     }
                         });
@@ -5025,9 +5026,24 @@ namespace Administration.Controllers
                 Check(model, "general", "Invalid data"),
                 Check(model?.GroupOwnerCode, "code", "Code is not blank."),
                 Check(model?.GroupOwnerName, "name", "Name is not blank.")
-                //Check(GroupOwnerBO.Instance.IsDuplicate("GroupOwnerCode", model.GroupOwnerCode, model.ID),
-                //     "code", "This code already exists.")
             );
+
+            if (listErrors.Count == 0 && model != null)
+            {
+                bool isDuplicate = GroupOwnerBO.Instance
+                    .IsDuplicateCode(model.GroupOwnerCode, model.ID);
+
+                var duplicateError = CheckDuplicate(
+                    isDuplicate,
+                    "code",
+                    $"This code already exists: [{model.GroupOwnerCode}]"
+                );
+
+                if (duplicateError != null)
+                {
+                    listErrors.Add(duplicateError);
+                }
+            }
 
             if (listErrors.Count > 0)
             {
@@ -5081,6 +5097,11 @@ namespace Administration.Controllers
 
         public IActionResult GroupAndRoom()
         {
+            List<RoomOwnerProfileModel> rooms = PropertyUtils.ConvertToList<RoomOwnerProfileModel>(RoomOwnerProfileBO.Instance.FindAll());
+            ViewBag.RoomOwnerList = rooms;
+
+            List<GroupOwnerModel> groups = PropertyUtils.ConvertToList<GroupOwnerModel>(GroupOwnerBO.Instance.FindAll());
+            ViewBag.GroupOwnerList = groups;
             return View("ItemCategory/GroupAndRoom");
         }
         [HttpGet]
@@ -5092,16 +5113,16 @@ namespace Administration.Controllers
                     SELECT 
                         gao.ID,
                         gao.GroupOwnerID,
-                        go.Name AS GroupOwnerName,
+                        go.GroupOwnerName AS GroupOwnerName,
                         gao.RoomOwnerID,
-                        r.RoomNo,
+                        r.RoomNo AS RoomNo,
                         gao.CreatedDate,
                         gao.CreatedBy,
                         gao.UpdatedDate,
                         gao.UpdatedBy
                     FROM GroupAndOwner gao WITH (NOLOCK)
                     LEFT JOIN GroupOwner go WITH (NOLOCK) ON gao.GroupOwnerID = go.ID
-                    LEFT JOIN RoomOwner r WITH (NOLOCK) ON gao.RoomOwnerID = r.ID
+                    LEFT JOIN RoomOwnerProfile r WITH (NOLOCK) ON gao.RoomOwnerID = r.ID
                     ORDER BY gao.ID
                 ");
 
@@ -5136,6 +5157,31 @@ namespace Administration.Controllers
                 Check(model?.GroupOwnerID, "groupOwnerID", "Please select group owner."),
                 Check(model?.RoomOwnerID, "roomOwnerID", "Please select room owner.")
             );
+
+            if(listErrors.Count == 0 && model != null)
+            {
+                bool isDuplicate = GroupAndOwnerBO.Instance.IsDuplicatGroupAndOwner(model.RoomOwnerID,model.ID);
+                if(isDuplicate)
+                {
+                    var groupAndOwner = GroupAndOwnerBO.Instance
+                       .FindByAttribute("RoomOwnerID", model.RoomOwnerID)
+                       .Cast<GroupAndOwnerModel>()
+                       .FirstOrDefault(x => x.ID != model.ID);
+
+                    string groupOwnerName = "another group";
+
+                    if (groupAndOwner != null)
+                    {
+                        groupOwnerName = GroupOwnerBO.Instance
+                            .FindByPrimaryKey(groupAndOwner.GroupOwnerID)
+                            is GroupOwnerModel gr
+                                ? gr.GroupOwnerName
+                                : groupOwnerName;
+                    }
+                    var duplicateError = CheckDuplicate(isDuplicate, "roomOwnerID", $"This room already was GroupOwner: [" + groupOwnerName + "].");
+                    if (duplicateError != null) { listErrors.Add(duplicateError); }
+                }    
+            }    
 
             if (listErrors.Count > 0)
             {
@@ -5249,18 +5295,25 @@ namespace Administration.Controllers
                 Check(model?.OwnerCode, "ownerCode", "Please select Owner.")
             );
 
-            //if (listErrors.Count == 0 && model != null)
-            //{
-            //    // Truyền vào field: "RoomID", giá trị: model.RoomID, và ID hiện tại để loại trừ (nếu là Edit)
-            //    bool isDuplicate = RoomOwnerProfileBO.Instance.IsDuplicate("RoomID", model.RoomID, model.ID);
+            if (listErrors.Count == 0 && model != null)
+            {
+                bool isDuplicate = RoomOwnerProfileBO.Instance
+                    .IsDuplicateRoomOwner(model.RoomID, model.ID);
 
-            //    var duplicateError = CheckDuplicate(isDuplicate, "roomID", "This room is already occupied..");
+                if (isDuplicate)
+                {
+                    var owners = RoomOwnerProfileBO.Instance
+                        .FindByAttribute("RoomID", model.RoomID)
+                        .Cast<RoomOwnerProfileModel>()
+                        .Where(x => x.ID != model.ID)  
+                        .ToList();
 
-            //    if (duplicateError != null)
-            //    {
-            //        listErrors.Add(duplicateError);
-            //    }
-            //}
+                    string ownerName = owners.FirstOrDefault()?.OwnerName ?? "another owner";
+
+                    var duplicateError = CheckDuplicate(isDuplicate, "roomID", $"This room already was Owner: [" + ownerName + "]."); 
+                    if (duplicateError != null) { listErrors.Add(duplicateError); }
+                }
+            }
 
             if (listErrors.Count > 0)
             {
@@ -5309,6 +5362,212 @@ namespace Administration.Controllers
             {
                 return Json(ex.Message);
             }
+        }
+        #endregion
+
+        #region ItemCategory/Priority
+        [HttpGet]
+        public IActionResult GetPriority(string code, string name, int inactive)
+        {
+            try
+            {
+                DataTable dataTable = _iAdministrationService.Priority(code, name, inactive);
+                var result = (from d in dataTable.AsEnumerable()
+                              select new
+                              {
+                                  Code = !string.IsNullOrEmpty(d["Code"].ToString()) ? d["Code"] : "",
+                                  Name = !string.IsNullOrEmpty(d["Name"].ToString()) ? d["Name"] : "",
+                                  Description = !string.IsNullOrEmpty(d["Description"].ToString()) ? d["Description"] : "",
+                                  InactiveText = !string.IsNullOrEmpty(d["InactiveText"].ToString()) ? d["InactiveText"] : "",
+                                  CreatedBy = !string.IsNullOrEmpty(d["CreatedBy"].ToString()) ? d["CreatedBy"] : "",
+                                  CreatedDate = !string.IsNullOrEmpty(d["CreatedDate"].ToString()) ? d["CreatedDate"] : "",
+                                  UpdatedBy = !string.IsNullOrEmpty(d["UpdatedBy"].ToString()) ? d["UpdatedBy"] : "",
+                                  UpdatedDate = !string.IsNullOrEmpty(d["UpdatedDate"].ToString()) ? d["UpdatedDate"] : "",
+                                  ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"] : "",
+                                  Inactive = !string.IsNullOrEmpty(d["Inactive"].ToString()) ? d["Inactive"] : "",
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+        public IActionResult Priority()
+        {
+            return View("ItemCategory/Priority");
+        }
+        [HttpPost]
+        public IActionResult PrioritySave([FromBody] PriorityModel model)
+        {
+            string message = "";
+            var listErrors = GetErrors(
+                Check(model, "general", "Invalid data"),
+
+                Check(model?.Code, "code", "Code is not blank."),
+                Check(model?.Name, "name", "Name is not blank.")
+            );
+
+            if (listErrors.Count > 0)
+            {
+                return Json(new { success = false, errors = listErrors });
+            }
+            try
+            {
+                if (model.ID == 0)
+                {
+                    model.CreateDate = DateTime.Now;
+                    model.CreatedDate = DateTime.Now;
+                    model.UpdateDate = DateTime.Now;
+                    model.UpdatedDate = DateTime.Now;
+
+                    PriorityBO.Instance.Insert(model);
+                    message = "Insert successfully!";
+                }
+                else
+                {
+                    var oldData = (PriorityModel)PriorityBO.Instance.FindByPrimaryKey(model.ID);
+
+                    if (oldData != null)
+                    {
+                        model.UserInsertID = oldData.UserInsertID;
+                        model.CreatedBy = oldData.CreatedBy;
+                        model.CreateDate = oldData.CreatedDate;
+                        model.CreatedDate = oldData.CreatedDate;
+                    }
+
+                    model.UpdateDate = DateTime.Now;
+                    model.UpdatedDate = DateTime.Now;
+
+                    PriorityBO.Instance.Update(model);
+                    message = "Update successfully!";
+                }
+
+            }
+            catch (Exception ex)
+            {
+                message = ex.Message;
+                return Json(new { success = false, message });
+            }
+
+            return Json(new { success = true, message });
+        }
+        [HttpPost]
+        public IActionResult DeletePriority(int id)
+        {
+            try
+            {
+                PriorityBO.Instance.Delete(id);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, ex.Message });
+            }
+
+            return Json(new { success = true });
+        }
+        #endregion
+
+        #region ItemCategory/Promotion
+        [HttpGet]
+        public IActionResult GetPromotion(string code, string name, int inactive)
+        {
+            try
+            {
+                DataTable dataTable = _iAdministrationService.Promotion(code, name, inactive);
+                var result = (from d in dataTable.AsEnumerable()
+                              select new
+                              {
+                                  Code = !string.IsNullOrEmpty(d["Code"].ToString()) ? d["Code"] : "",
+                                  Name = !string.IsNullOrEmpty(d["Name"].ToString()) ? d["Name"] : "",
+                                  Description = !string.IsNullOrEmpty(d["Description"].ToString()) ? d["Description"] : "",
+                                  InactiveText = !string.IsNullOrEmpty(d["InactiveText"].ToString()) ? d["InactiveText"] : "",
+                                  CreatedBy = !string.IsNullOrEmpty(d["CreatedBy"].ToString()) ? d["CreatedBy"] : "",
+                                  CreatedDate = !string.IsNullOrEmpty(d["CreatedDate"].ToString()) ? d["CreatedDate"] : "",
+                                  UpdatedBy = !string.IsNullOrEmpty(d["UpdatedBy"].ToString()) ? d["UpdatedBy"] : "",
+                                  UpdatedDate = !string.IsNullOrEmpty(d["UpdatedDate"].ToString()) ? d["UpdatedDate"] : "",
+                                  ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"] : "",
+                                  Inactive = !string.IsNullOrEmpty(d["Inactive"].ToString()) ? d["Inactive"] : "",
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+        public IActionResult Promotion()
+        {
+            return View("ItemCategory/Promotion");
+        }
+        [HttpPost]
+        public IActionResult PromotionSave([FromBody] PromotionModel model)
+        {
+            string message = "";
+            var listErrors = GetErrors(
+                Check(model, "general", "Invalid data"),
+
+                Check(model?.Code, "code", "Code is not blank."),
+                Check(model?.Name, "name", "Name is not blank.")
+            );
+
+            if (listErrors.Count > 0)
+            {
+                return Json(new { success = false, errors = listErrors });
+            }
+            try
+            {
+                if (model.ID == 0)
+                {
+                    model.CreateDate = DateTime.Now;
+                    model.CreatedDate = DateTime.Now;
+                    model.UpdateDate = DateTime.Now;
+                    model.UpdatedDate = DateTime.Now;
+
+                    PromotionBO.Instance.Insert(model);
+                    message = "Insert successfully!";
+                }
+                else
+                {
+                    var oldData = (PromotionModel)PromotionBO.Instance.FindByPrimaryKey(model.ID);
+
+                    if (oldData != null)
+                    {
+                        model.UserInsertID = oldData.UserInsertID;
+                        model.CreatedBy = oldData.CreatedBy;
+                        model.CreateDate = oldData.CreatedDate;
+                        model.CreatedDate = oldData.CreatedDate;
+                    }
+
+                    model.UpdateDate = DateTime.Now;
+                    model.UpdatedDate = DateTime.Now;
+
+                    PromotionBO.Instance.Update(model);
+                    message = "Update successfully!";
+                }
+
+            }
+            catch (Exception ex)
+            {
+                message = ex.Message;
+                return Json(new { success = false, message });
+            }
+
+            return Json(new { success = true, message });
+        }
+        [HttpPost]
+        public IActionResult DeletePromotion(int id)
+        {
+            try
+            {
+                PromotionBO.Instance.Delete(id);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, ex.Message });
+            }
+
+            return Json(new { success = true });
         }
         #endregion
 

@@ -63,9 +63,21 @@ namespace Cashiering.Controllers
                                       select d.Table.Columns.Cast<DataColumn>()
                                           //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
                                           .ToDictionary(
-                                              col => col.ColumnName,
-                                              col => d[col.ColumnName]?.ToString()
-                                          )).ToList();
+                col => col.ColumnName,
+                col =>
+                {
+                    var value = d[col.ColumnName];
+                    if (value == DBNull.Value) return null;
+
+                    // CreatedDate: KHÔNG ToString
+                    if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate")
+                        return value;
+
+                    // Các field khác: ToString
+                    return value.ToString();
+                }
+            )
+                                          ).ToList();
                 return Json(resultExchange);
             }
             catch (Exception ex)
@@ -165,11 +177,20 @@ namespace Cashiering.Controllers
                 var result2 = (from d in data2.AsEnumerable()
                                select d.Table.Columns.Cast<DataColumn>()
                                    .ToDictionary(
-                                       col => col.ColumnName,
-                                       col => d[col.ColumnName]?.ToString()
-                                   )).ToList();
+                                        col => col.ColumnName,
+                                        col =>
+                                        {
+                                            var value = d[col.ColumnName];
+                                            if (value == DBNull.Value) return null;
 
+                                            // CreatedDate: KHÔNG ToString
+                                            if (col.ColumnName == "ArrivalDate" || col.ColumnName == "DepartureDate")
+                                                return value;
 
+                                            // Các field khác: ToString
+                                            return value.ToString();
+                                        }
+                                    )).ToList();
 
                 sqlCommand = $"SELECT AccountName,AccountNo FROM dbo.ARAccountReceivable WITH (NOLOCK) WHERE ID = {arID}";
                 var data3 = _iAccountingService.SearchByCommmand(sqlCommand);
@@ -211,10 +232,21 @@ namespace Cashiering.Controllers
                 var data = _iAccountingService.InvoiceSearch(folioID, 0);
                 var result = (from d in data.AsEnumerable()
                               select d.Table.Columns.Cast<DataColumn>()
-                                  .ToDictionary(
-                                      col => col.ColumnName,
-                                      col => d[col.ColumnName]?.ToString()
-                                  )).ToList();
+                              .ToDictionary(
+                                    col => col.ColumnName,
+                                    col =>
+                                    {
+                                        var value = d[col.ColumnName];
+                                        if (value == DBNull.Value) return null;
+
+                                        // CreatedDate: KHÔNG ToString
+                                        if (col.ColumnName == "Date" || col.ColumnName == "Time")
+                                            return value;
+
+                                        // Các field khác: ToString
+                                        return value.ToString();
+                                    }
+                                )).ToList();
 
                 return Json(new
                 {

@@ -1,4 +1,4 @@
-﻿using BaseBusiness.Model;
+using BaseBusiness.Model;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -28,6 +28,8 @@ namespace Administration.Services.Interfaces
                 public DataTable TransportType(string code, string name, int inactive);
                 public DataTable Reason(string code, string name, int inactive);
                 public DataTable Origin(string code, string name, int inactive);
+                public DataTable Priority(string code, string name, int inactive);
+                public DataTable Promotion(string code, string name, int inactive);
                 public DataTable Source(string code, string name, int inactive);
                 public DataTable AlertsSetup(string code, string name, int inactive);
                 public DataTable Comment(string code, string name, int inactive);

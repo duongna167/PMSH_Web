@@ -231,7 +231,8 @@ namespace Cashiering.Services.Implements
                 if (errors.Any()) return ValidationFail(errors);
 
                 // 2. Tìm Profile gốc (Bắt buộc phải có Profile mới tạo được AR)
-                ProfileModel profile = (ProfileModel)ProfileBO.Instance.FindByPrimaryKey(dto.ProfileId);
+                ProfileModel profile = (ProfileModel)ProfileBO.Instance.FindByPrimaryKey(dto.Profile);
+                Console.WriteLine($"Profile: {dto.Profile}");
                 if (profile == null || profile.ID == 0)
                     return ValidationFailNotFound("Profile");
 
@@ -304,7 +305,7 @@ namespace Cashiering.Services.Implements
         {
             var errors = new List<ValidationErrorDto>();
 
-            if (dto.ProfileId <= 0)
+            if (dto.Profile <= 0)
                 errors.Add(new ValidationErrorDto { Field = "profileAddText", Message = "Please select a Profile" });
 
             if (string.IsNullOrWhiteSpace(dto.AccountNumber))
