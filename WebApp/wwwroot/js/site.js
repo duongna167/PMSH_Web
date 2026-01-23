@@ -72,6 +72,81 @@ function applyValidationErrors(errors, formSelector) {
 }
 */
 
+//Hàm validation
+/**
+ * Áp dụng lỗi JSON vào form bất kỳ với Bootstrap validation
+ * @param {Array} errors - Array {field, message} từ backend
+ * @param {string} formSelector - selector của form/modal
+ */
+function applyValidationErrors(errors, formSelector) {
+  const $form = $(formSelector);
+
+  // Reset lỗi cũ
+  $form.find(".is-invalid").removeClass("is-invalid");
+  $form.find(".invalid-feedback").text("").hide();
+
+  if (!errors || !errors.length) return;
+
+  let firstInvalidElement = null;
+
+  errors.forEach((err) => {
+    const $field = $form.find(`[name='${err.field}']`);
+    if (!$field.length) return;
+
+    let $errorTarget = null; // element add is-invalid
+    let $feedback = null; // nơi hiển thị message
+
+    //  TomSelect
+    if ($field[0].tomselect) {
+      $errorTarget = $field.next(".ts-wrapper");
+      $feedback = findFeedback($errorTarget);
+    }
+    //  Input / textarea / select thường
+    else {
+      $errorTarget = $field;
+      $feedback = findFeedback($field);
+    }
+
+    if ($errorTarget) {
+      $errorTarget.addClass("is-invalid");
+
+      if (!firstInvalidElement) {
+        firstInvalidElement = $errorTarget;
+      }
+    }
+
+    if ($feedback) {
+      $feedback.text(err.message).show();
+    }
+  });
+
+  //  Focus field lỗi đầu tiên
+  if (firstInvalidElement) {
+    focusElement(firstInvalidElement);
+  }
+}
+
+// Tìm invalid-feedback gần nhất, KHÔNG phụ thuộc bootstrap
+function findFeedback($el) {
+  // Ưu tiên: sibling → parent → gần nhất trong form
+  return $el.siblings(".invalid-feedback").first().length
+    ? $el.siblings(".invalid-feedback").first()
+    : $el.closest("[class]").find(".invalid-feedback").first();
+}
+
+// Focus đúng element (kể cả TomSelect)
+function focusElement($el) {
+  if ($el.hasClass("ts-wrapper")) {
+    // TomSelect
+    //  const select = $el.prev("select")[0];
+    //  if (select && select.tomselect) {
+    //    select.tomselect.focus();
+    //  }
+    //} else {
+    $el.focus();
+  }
+}
+
 //Init Input Date
 (function () {
   async function getBusinessDateFromServer() {
@@ -87,6 +162,8 @@ function applyValidationErrors(errors, formSelector) {
       this.$root = $(root); // Thẻ CHA
       this.$ui = this.$root.find(".date-ui"); // Thẻ CON
       // Kiểm tra nếu thẻ cha có thuộc tính business-date
+      this.source = this.$root.data("source") || "default";
+
       this.isBusinessDate = this.$root.is("[business-date]");
 
       // TỰ ĐỘNG THÊM CLASS KHI KHỞI TẠO
@@ -242,81 +319,6 @@ window.reloadBusinessDate = async function (name = null) {
   }
 };
 
-//Hàm validation
-/**
- * Áp dụng lỗi JSON vào form bất kỳ với Bootstrap validation
- * @param {Array} errors - Array {field, message} từ backend
- * @param {string} formSelector - selector của form/modal
- */
-function applyValidationErrors(errors, formSelector) {
-  const $form = $(formSelector);
-
-  // Reset lỗi cũ
-  $form.find(".is-invalid").removeClass("is-invalid");
-  $form.find(".invalid-feedback").text("").hide();
-
-  if (!errors || !errors.length) return;
-
-  let firstInvalidElement = null;
-
-  errors.forEach((err) => {
-    const $field = $form.find(`[name='${err.field}']`);
-    if (!$field.length) return;
-
-    let $errorTarget = null; // element add is-invalid
-    let $feedback = null; // nơi hiển thị message
-
-    //  TomSelect
-    if ($field[0].tomselect) {
-      $errorTarget = $field.next(".ts-wrapper");
-      $feedback = findFeedback($errorTarget);
-    }
-    //  Input / textarea / select thường
-    else {
-      $errorTarget = $field;
-      $feedback = findFeedback($field);
-    }
-
-    if ($errorTarget) {
-      $errorTarget.addClass("is-invalid");
-
-      if (!firstInvalidElement) {
-        firstInvalidElement = $errorTarget;
-      }
-    }
-
-    if ($feedback) {
-      $feedback.text(err.message).show();
-    }
-  });
-
-  //  Focus field lỗi đầu tiên
-  if (firstInvalidElement) {
-    focusElement(firstInvalidElement);
-  }
-}
-
-// Tìm invalid-feedback gần nhất, KHÔNG phụ thuộc bootstrap
-function findFeedback($el) {
-  // Ưu tiên: sibling → parent → gần nhất trong form
-  return $el.siblings(".invalid-feedback").first().length
-    ? $el.siblings(".invalid-feedback").first()
-    : $el.closest("[class]").find(".invalid-feedback").first();
-}
-
-// Focus đúng element (kể cả TomSelect)
-function focusElement($el) {
-  if ($el.hasClass("ts-wrapper")) {
-    // TomSelect
-  //  const select = $el.prev("select")[0];
-  //  if (select && select.tomselect) {
-  //    select.tomselect.focus();
-  //  }
-  //} else {
-    $el.focus();
-  }
-}
-
 // Thêm helper này (có thể đặt ở global scope hoặc trong file chính)
 function waitForBusinessDate(name = "fromDate", timeoutMs = 8000) {
   return new Promise((resolve, reject) => {
@@ -341,6 +343,66 @@ function waitForBusinessDate(name = "fromDate", timeoutMs = 8000) {
   });
 }
 
+/**
+ * UI.setHiddenDate
+ * ----------------
+ * Set giá trị cho input hidden (YYYY-MM-DD) và tự động đồng bộ
+ * lại input hiển thị (datepicker UI) nếu đã được khởi tạo.
+ *
+ * Mục đích:
+ * - Dùng cho dữ liệu ngày trả về từ AJAX / API
+ * - Không phụ thuộc vào DateInput instance
+ * - Gọi được trước hoặc sau khi datepicker init
+ *
+ * @param {string} name
+ *   Tên của date input (trùng với:
+ *   - data-name="..."
+ *   - name="..."
+ *   - id="..." của input hidden)
+ *
+ * @param {string} iso
+ *   Chuỗi ngày dạng:
+ *   - "YYYY-MM-DD"
+ *   - "YYYY-MM-DDTHH:mm:ss"
+ *
+ * @example
+ *   UI.setHiddenDate("arrivalInvoice", "2022-11-04T00:00:00");
+ *   UI.setHiddenDate("departureInvoice", "2022-11-05");
+ */
+window.UI = window.UI || {};
+
+UI.setHiddenDate = function (name, iso) {
+  if (!name || !iso || typeof iso !== "string") return;
+
+  // 1. Chuẩn hóa ISO → yyyy-mm-dd
+  const datePart = iso.split("T")[0];
+  const parts = datePart.split("-");
+
+  if (parts.length !== 3) return;
+
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+
+  const dateObj = new Date(year, month, day);
+  if (isNaN(dateObj.getTime())) return;
+
+  // 2. Set giá trị cho input hidden
+  const $hidden = $(`input[type="hidden"][name="${name}"]`);
+  if (!$hidden.length) return;
+
+  $hidden.val(datePart);
+
+  // 3. Đồng bộ lại UI datepicker nếu đã init
+  const $wrapper = $hidden.closest("[data-date-input]");
+  const $ui = $wrapper.find(".date-ui");
+
+  if ($ui.length && $ui.data("datepicker")) {
+    $ui.datepicker("setDate", dateObj);
+  }
+};
+
+// Hàm nào cần hãy gọi để luôn sẵn sàng
 $(document).ready(async function () {
   var tooltipTriggerList = [].slice.call(
     document.querySelectorAll('[data-bs-toggle="tooltip"]'),

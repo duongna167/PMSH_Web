@@ -1,113 +1,222 @@
 ﻿<div class="modal fade" id="modalTransfer" tabindex="-1" aria-labelledby="transactionModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content" style="border: 1px solid #bcbcbc">
+        <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" >Search Info AR</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title">Search Info AR</h5>
             </div>
-            <div class="button-group">
-                <button type="button" class="mui-button mui-button-search" onclick="searchTransfer();">Search</button>
-                <button type="button" class="mui-button mui-button-search" onclick="TransferTransaction();">OK</button>
+            <div class="modal-body">
+                <div class="search-filter">
+                    <div>
+                        <button type="button" class="mui-button mui-button-search"
+                            onclick="searchTransfer();">Search</button>
+                        <button type="button" class="mui-button mui-button-search"
+                            onclick="TransferTransaction();">OK</button>
 
-                <button type="button" class="mui-button mui-button-clear" data-bs-dismiss="modal">Close</button>
-            </div>
-            <div class="modal-body row">
-                <div class="form- group-new-reservation col-md-3">
-                    <label>Account Name</label>
-                    <input type="text" id="accountNameTransfer">
-                </div>
-                <div class="form- group-new-reservation col-md-3">
-                    <label>Account No</label>
-                    <input type="text" id="accountNoTransfer">
-                </div>
-                <div class="form- group-new-reservation col-md-3">
-                    <label>Folio No</label>
-                    <input type="text" id="folioNoTransfer">
-                </div>
-                <div class="form- group-new-reservation col-md-3">
-                    <label>Active</label>
-                    <input type="checkbox" id="activeTransfer">
-                </div>
-                <hr class="hr">
-                
-            </div>
-            <div id="gridContainerIransfer" class="gridContainer mt-2"></div>
+                        <button type="button" class="mui-button mui-button-clear" data-bs-dismiss="modal">Close</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
 
+                            <!-- Account Name -->
+                            <div class="col-12 col-md-5 mt-2">
+                                <div class="row g-2">
+                                    <label class="col-12 col-md-4 col-form-label text-md-end">
+                                        Account Name
+                                    </label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" class="form-control" id="accountNameTransfer">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Account No -->
+                            <div class="col-12 col-md-5 mt-2">
+                                <div class="row g-2">
+                                    <label class="col-12 col-md-4 col-form-label text-md-end">
+                                        Account No
+                                    </label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" class="form-control" id="accountNoTransfer">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Folio No -->
+                            <div class="col-12 col-md-5 mt-2">
+                                <div class="row g-2">
+                                    <label class="col-12 col-md-4 col-form-label text-md-end">
+                                        Folio No
+                                    </label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" class="form-control" id="folioNoTransfer">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Active -->
+                            <div class="col-12 col-md-3 mt-2">
+                                <div class="row g-2">
+                                    <label class="col-12 col-md-4 col-form-label text-md-end">
+                                        Active
+                                    </label>
+                                    <div class="col-12 col-md-8 d-flex align-items-center">
+                                        <input type="checkbox" class="form-check-input" id="activeTransfer">
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <div id="gridContainerIransfer" class="gridContainer mt-2"></div>
+            </div>
         </div>
     </div>
 </div>
 <script>
-    function openModalTransfer(){
-        searchTransfer();
+    function openModalTransfer() {
+        if (!searchTransfer()) return;
         $('#modalTransfer').modal('show');
     }
-    function closeModalTransfer(){
+    function closeModalTransfer() {
         $('#modalTransfer').modal('hide');
 
     }
     function searchTransfer() {
-         var grid = $("#gridContainerMaintenance").dxDataGrid("instance");
-         var selectedRows = grid.getSelectedRowsData();
-         var selectedIds = selectedRows.map(row => row.FolioID);
+        var grid = $("#gridContainerMaintenance").dxDataGrid("instance");
+        var selectedRows = grid.getSelectedRowsData();
+        if (!selectedRows || selectedRows.length === 0) {
+            showToast("Warning", "Please select at least 1  row.", false);
+            return false;
+        }
+
+        var selectedIds = selectedRows.map(row => row.FolioID);
         const activeTransfer = document.getElementById('activeTransfer');
         const value = activeTransfer.checked ? 1 : 0;
-         $.ajax({
-             url: '/Accounting/SearchARInfo',
-             type: 'get',
-             dataType: 'json',
-             data: {
-                 accountName: $('#accountNameTransfer').val(),
-                 accountNo: $('#accountNoTransfer').val(),
-                 folioNo:$('#folioNoTransfer').val(),
-                 isActive:value,
-                 folioID: selectedIds[0],
+        $.ajax({
+            url: '/Accounting/SearchARInfo',
+            type: 'get',
+            dataType: 'json',
+            data: {
+                accountName: $('#accountNameTransfer').val(),
+                accountNo: $('#accountNoTransfer').val(),
+                folioNo: $('#folioNoTransfer').val(),
+                isActive: value,
+                folioID: selectedIds[0],
 
-             },
-             crossDomain: false,
-             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-             success: function (result) {
-                 initializeDataGridTransfer(result);
-             },
-             error: function (xhr, statusText, err) {
-                 if (xhr.status == 401) {
-                     sessionTimeout();
-                 }
-             },
+            },
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+                initializeDataGridTransfer(result);
+            },
+            error: function (xhr, statusText, err) {
+                if (xhr.status == 401) {
+                    sessionTimeout();
+                }
+            },
 
-         });
+        });
+        return true;
+
 
     }
     function initializeDataGridTransfer(data) {
 
         $("#gridContainerIransfer").dxDataGrid({
             dataSource: data,
+            keyExpr: "FolioID",
+
+            height: 500,                   // ✅ FIX HEIGHT
+            showBorders: true,
+
+            // ===== LAYOUT =====
+            columnAutoWidth: true,
             allowColumnResizing: true,
+            columnResizingMode: "widget",
+
+            // ===== SCROLLING =====
+            scrolling: {
+                mode: "standard",          // cho phép scroll ngang
+                useNative: true
+            },
 
             paging: { pageSize: 15 },
-            scrolling: {
-                rowRenderingMode: 'virtual'
-            },
             pager: {
                 visible: true,
-                allowedPageSizes: [15, 20, 'all'],
+                allowedPageSizes: [15, 20, "all"],
                 showPageSizeSelector: true,
                 showInfo: true,
                 showNavigationButtons: true
             },
+
             filterRow: {
                 visible: true,
                 applyFilter: "auto"
             },
+
             selection: {
                 mode: "multiple",
                 showCheckBoxesMode: "always"
             },
+
+            columns: [
+                {
+                    dataField: "AccountNo",
+                    caption: "Account No",
+                    minWidth: 160
+                },
+                {
+                    dataField: "AccountName",
+                    caption: "Account Name",
+                    minWidth: 220
+                },
+                {
+                    dataField: "FolioID",
+                    caption: "Folio",
+                    width: 90
+                },
+                {
+                    dataField: "Amount",
+                    caption: "Amount",
+                    alignment: "right",
+                    minWidth: 120
+                },
+                {
+                    dataField: "Paid",
+                    caption: "Paid",
+                    alignment: "right",
+                    minWidth: 120
+                },
+                {
+                    dataField: "Balance",
+                    caption: "Balance",
+                    alignment: "right",
+                    minWidth: 120
+                },
+                {
+                    dataField: "CurrencyID",
+                    caption: "Currency",
+                    width: 90
+                },
+                {
+                    dataField: "IsActive",
+                    caption: "Active",
+                    width: 80
+                },
+                {
+                    dataField: "ReservationID",
+                    caption: "Reservation",
+                    width: 120
+                }
+            ],
+
             onRowClick: function (e) {
-                const grid = $("#gridContainerInvoice").dxDataGrid("instance");
-                grid.selectRows([e.key], false);
-            },
+                e.component.selectRows([e.key], false);
+            }
         });
     }
+
 
     function TransferTransaction() {
         const userName = JSON.parse(localStorage.getItem("Loginname"));
