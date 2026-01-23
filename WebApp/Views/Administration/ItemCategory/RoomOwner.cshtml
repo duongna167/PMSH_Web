@@ -1,0 +1,423 @@
+﻿@{
+    var roomList = ViewBag.RoomList;
+    var ownerList = ViewBag.OwnerList;
+}
+<style>
+    /* ===== TomSelect Base (Bắt chước ví dụ) ===== */
+    .ts-control {
+        min-height: 38px;
+        border-radius: 0.375rem;
+        border: 1px solid #ced4da;
+        padding: 0.375rem 0.75rem;
+        font-size: 1rem;
+        transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+        max-height: 85px; /* Giới hạn khoảng 2 dòng */
+        overflow-y: auto;
+    }
+
+    .ts-wrapper.focus .ts-control {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        outline: 0;
+    }
+
+    /* Dropdown hiển thị đúng tầng z-index */
+    .ts-dropdown {
+        border-radius: 0.375rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(0,0,0,.15);
+        z-index: 1056 !important; /* Cao hơn modal Bootstrap (1055) */
+    }
+
+    /* Tùy chỉnh nút xóa X (Clear Button) trông tự nhiên hơn */
+    .tomselect-custom .clear-button {
+        position: absolute;
+        right: 8px; /* Đẩy sát lề phải hơn một chút */
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        font-size: 1rem; /* Kích thước nhỏ gọn hơn */
+        color: #999 !important; /* Màu xám nhẹ nhàng, không gây chú ý quá mức */
+        font-weight: normal;
+        z-index: 10;
+        line-height: 1;
+        transition: all 0.2s ease;
+        background-color: transparent !important; /* Bỏ màu nền xanh */
+        padding: 2px 5px;
+    }
+
+        /* Hiệu ứng khi di chuột vào nút xóa */
+        .tomselect-custom .clear-button:hover {
+            color: #dc3545 !important; /* Đổi sang màu đỏ khi muốn xóa */
+            background-color: transparent !important; /* Vẫn giữ nền trong suốt */
+            opacity: 0.8;
+        }
+
+    /* Đảm bảo chữ trong select không đè lên nút xóa */
+    .tomselect-custom .ts-control {
+        padding-right: 30px !important;
+    }
+
+    /* Hiển thị dòng thông báo lỗi khi wrapper của TomSelect bị đánh dấu invalid */
+    .ts-wrapper.is-invalid ~ .invalid-feedback {
+        display: block !important;
+    }
+
+    /* Tô đỏ viền khung TomSelect khi có lỗi */
+    .ts-wrapper.is-invalid .ts-control {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25) !important;
+    }
+
+    /* Chỉ hiển thị feedback khi có class is-invalid */
+    .ts-wrapper:not(.is-invalid) ~ .invalid-feedback {
+        display: none !important;
+    }
+
+    /* Trả lại màu viền mặc định khi không còn lỗi */
+    .ts-wrapper:not(.is-invalid) .ts-control {
+        border-color: #ced4da !important;
+        box-shadow: none !important;
+    }
+
+    /* Quan trọng: Sửa lỗi che khuất dropdown trong Modal */
+    #itemModal .modal-content,
+    #itemModal .modal-body {
+        overflow: visible !important;
+    }
+</style>
+<div class="text-center" style="font-size: 20px">Room Owner</div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+
+    <div class="mt-2">
+        <button id="btnNew" class="mui-button mui-button-new"> New</button>
+        <button id="btnUpdate" class="mui-button mui-button-edit"> Edit</button>
+        <button id="btnDelete" class="mui-button mui-button-delete"> Delete</button>
+    </div>
+
+</div>
+
+<div class="mui-card">
+    <div id="gridContainerRateCode" class="mt-2 gridContainer"></div>
+</div>
+
+<!-- Modal Popup for New Item -->
+<div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title fs-6" id="itemModalLabel">Room Owner</h5>
+            </div>
+
+            <div class="modal-footer justify-content-start">
+                <button type="button" id="btnSaveItem" class="mui-button mui-button-save px-3">Save</button>
+                <button type="button" data-bs-dismiss="modal" class="mui-button mui-button-close">Close</button>
+            </div>
+
+            <div class="modal-body py-3">
+                <form id="formContainer">
+                    <div class="container-fluid p-0">
+                        
+                        <div class="row mb-3 align-items-center">
+                            <label for="roomID" class="col-3 col-form-label text-end pe-3">Room No:</label>
+                            <div class="col-9">
+                                <select id="roomID" name="roomID" class="tomselect-custom">
+                                    @foreach (var r in roomList)
+                                    {
+                                        <option value="@r.ID" data-roomno="@r.RoomNo">@r.RoomNo</option>
+                                    }
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3 align-items-center">
+                            <label for="ownerCode" class="col-3 col-form-label text-end pe-3">Owner:</label>
+                            <div class="col-9">
+                                <select id="ownerCode" name="ownerCode" class="tomselect-custom">
+                                    @foreach (var o in ownerList)
+                                    {
+                                        <option value="@o.Code" data-name="@o.Name">@o.Code - @o.Name</option>
+                                    }
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+
+                        <input type="hidden" id="id" name="id" value="0" />
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div id="loadingSpinnerRateCode" style="display: none; text-align: center; padding: 20px;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+
+<script>
+    var selectedRowData = null;
+
+    $(document).ready(function () {
+        reloadGrid();
+
+        $(".tomselect-custom").on("change", function() {
+        const val = $(this).val();
+        const wrapper = $(this).next(".ts-wrapper");
+            if (val && val.length > 0) {
+                wrapper.removeClass("is-invalid");
+                wrapper.parent().find(".invalid-feedback").hide();
+            }
+        });
+
+        $("#formContainer").on("input change", "input, select, textarea", function () {
+            if ($(this).hasClass("is-invalid")) {
+                $(this).removeClass("is-invalid");
+                $(this).next(".invalid-feedback").text("");
+            }
+        });
+        $('#itemModal').on('hidden.bs.modal', function () {
+             applyValidationErrors([], "#formContainer");
+             $(".ts-wrapper").removeClass("is-invalid");
+             $(".invalid-feedback").hide();
+        });
+
+        initializeTomSelects();
+    });
+
+    function initializeTomSelects() {
+        const selectors = ["#roomID", "#ownerCode"];
+
+        selectors.forEach(selector => {
+            const el = document.querySelector(selector);
+            if (el) {
+                if (el.tomselect) el.tomselect.destroy();
+
+                const ts = new TomSelect(el, {
+                    plugins: {
+                        // 'remove_button': { title: 'Bỏ chọn' },
+                        'dropdown_input': {}, // Hiện ô search trong dropdown
+                        'clear_button': { title: 'Xóa hết' },
+                    },
+                    create: false,
+                    maxItems: 1, // số phần tử muốn chọn trong tomselect
+                    valueField: 'value',
+                    labelField: 'text',
+                    searchField: ['text'],
+                    placeholder: ' Enter or select options...',
+                    render: {
+                        option: function(data, escape) {
+                            return `<div class="p-2">${escape(data.text)}</div>`;
+                        },
+                        item: function(data, escape) {
+                            return `<div title="${escape(data.text)}">${escape(data.text)}</div>`;
+                        }
+                    }
+                });
+                ts.on('clear', function() {
+                    const $wrapper = $(ts.control).closest('.ts-wrapper');
+                    $wrapper.removeClass("is-invalid");
+                    $wrapper.siblings(".invalid-feedback").hide().text("");
+                });
+            }
+        });
+
+        window.getRoomValue = function () {
+            const el = document.querySelector("#roomID").tomselect;
+            const val = el.getValue();
+            return val ? { roomID: val, roomNo: el.options[val].text } : null;
+        };
+
+        window.getOwnerValue = function () {
+            const el = document.querySelector("#ownerCode").tomselect;
+            const val = el.getValue();
+
+            if (val) {
+                const fullText = el.options[val].text;
+                // Regex này sẽ lấy tất cả ký tự phía sau dấu " - " đầu tiên tìm thấy
+                const nameOnly = fullText.replace(/^[^-]*-\s*/, '').trim();
+
+                return { ownerCode: val, ownerName: nameOnly };
+            }
+            return null;
+        };
+    }
+
+    function loadGrid(data) {
+        const dataSource = data || [];
+        $("#gridContainerRateCode").dxDataGrid({
+            dataSource: dataSource,
+            height: 550,
+            width: "100%",
+            columnAutoWidth: true,
+            allowColumnResizing: true,  
+            selection: { mode: "single" },
+            hoverStateEnabled: true,
+            columns: [
+                { dataField: "id", visible: false },
+                { dataField: "ownerCode", caption: "Owner Code", width: "14%" },
+                { dataField: "ownerName", caption: "Owner Name", width: "23%" },
+                { dataField: "roomNo", caption: "Room No", width: "14%" },
+                { dataField: "roomID", visible: false },
+                { dataField: "createdBy", caption: "Create By", width: "9%" },
+                {
+                    dataField: "createdDate",
+                    caption: "Create Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    width: "12%"
+                },
+                { dataField: "updatedBy", caption: "Update By", width: "9%" },
+                {
+                    dataField: "updatedDate",
+                    caption: "Update Date",
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    width: "12%"
+                }
+            ],
+            scrolling: { mode: "standard", showScrollbar: "always" },
+            filterRow: { visible: true, applyFilter: "auto" },
+            paging: { pageSize: 20 },
+            pager: { showPageSizeSelector: true, visible:true, allowedPageSizes: [20, 50, 'all'], showInfo: true,showNavigationButtons: true },
+            onSelectionChanged: function (e) {
+                selectedRowData = e.selectedRowsData.length > 0 ? e.selectedRowsData[0] : null;
+            }
+        });
+    }
+
+    function reloadGrid() {
+        $("#loadingSpinnerRateCode").show();
+
+        $.ajax({
+            url: "/Administration/GetRoomOwnerProfile",
+            type: 'GET',
+            cache: false,
+            success: function(data){
+                loadGrid(data);
+                $("#loadingSpinnerRateCode").hide();
+            },
+            error: function(xhr, status, error){
+                alert("Unable to load data");
+                $("#loadingSpinnerRateCode").hide();
+            }
+        });
+    }
+
+    $("#btnNew").click(function (){
+        $("#formContainer")[0].reset();
+        $("#id").val("0");
+        document.querySelector("#roomID").tomselect.clear();
+        document.querySelector("#ownerCode").tomselect.clear();
+        $("#itemModalLabel").text("Add Room Owner");
+        $("#itemModal").modal("show");
+    });
+
+    $("#btnUpdate").click(function () {
+        if (!selectedRowData) {
+            showToast("Warning", "Please select a data row to edit.!", false);
+            return;
+        }
+
+        $("#formContainer")[0].reset();
+
+        $("#id").val(selectedRowData.id);
+
+        if (document.querySelector("#roomID").tomselect) {
+            document.querySelector("#roomID").tomselect.setValue(selectedRowData.roomID);
+        }
+
+        if (document.querySelector("#ownerCode").tomselect) {
+            document.querySelector("#ownerCode").tomselect.setValue(selectedRowData.ownerCode);
+        }
+
+        $("#itemModalLabel").text("Update Room Owner");
+        $("#itemModal").modal("show");
+    });
+   
+    $("#btnSaveItem").click(function (){
+        const id = parseInt($("#id").val()) || 0;
+        const loginName = (localStorage.getItem("Loginname") || "")
+                .trim().replace(/^"(.*)"$/,'$1');
+        const loginUser = parseInt(localStorage.getItem("userID")) || 0;
+        const roomData = window.getRoomValue();
+        const ownerData = window.getOwnerValue();
+
+        const model = {
+            ID: id,
+            RoomID: roomData ? roomData.roomID : 0,
+            OwnerCode: ownerData ? ownerData.ownerCode : "",
+            OwnerName: ownerData ? ownerData.ownerName : "",
+            RoomNo: roomData ? roomData.roomNo : "",
+            CreatedBy: loginName,
+            UpdatedBy: loginName
+        };
+
+        $.ajax({
+            url: "/Administration/RoomOwnerProfileSave",
+            type: "POST",
+            contentType: "application/json",
+            cache: false,
+            data: JSON.stringify(model),
+            traditional: true,
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (res) {
+                if (res.success) {
+                    showToast("Success", res.message, true);
+                    $("#itemModal").modal("hide");
+                    reloadGrid();
+                } else {
+                    if (res.errors && res.errors.length > 0) {
+                        // applyValidationErrors(res.errors, "#formContainer");
+                        // let generalError = res.errors.find(x => x.field === "general");
+                        // let toastMessage = generalError ? generalError.message : "Please check input fields.";
+
+                        // showToast("Warning", toastMessage, false);
+
+                        applyValidationErrors(res.errors, "#formContainer");
+
+                    // Chỉ hiện Toast cho lỗi "general" nếu có
+                    let genErr = res.errors.find(x => x.field === "general");
+                    if (genErr) showToast("Warning", genErr.message, false)
+                    } else {
+                        showToast("Error", res.message || "Save failed", false);
+                    }
+                }
+            },
+            error: function (xhr) {
+                showToast("Error", "Request error!", false);
+                $("#itemModal").modal("hide");
+            }
+
+        });
+    });
+
+    $("#btnDelete").click(function () {
+        if (!selectedRowData) {
+            showToast("Warning", "Please select the line you want to delete!", false);
+            return;
+        }
+
+        if (confirm("Are you sure you want to remove the owner of this room?")) {
+            $.ajax({
+                url: "/Administration/RoomOwnerProfileDelete",
+                type: "POST",
+                data: { id: selectedRowData.id },
+                success: function (res) {
+                    if (res.success) {
+                        showToast("Success", "Deleted successfully!", true);
+                        reloadGrid();
+                    } else {
+                        showToast("Error", res.message || "Error while deleting", false);
+                    }
+                }
+            });
+        }
+    });
+
+</script>

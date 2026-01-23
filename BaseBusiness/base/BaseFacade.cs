@@ -1,11 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Reflection;
-using System.Transactions;
-using System.Xml;
 using BaseBusiness.exception;
 using BaseBusiness.util;
 using BaseBusiness.Utils;
@@ -13,6 +5,15 @@ using Dapper;
 using log4net;
 using Microsoft.Data.SqlClient;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Transactions;
+using System.Xml;
 
 namespace BaseBusiness.bc
 {
@@ -1266,34 +1267,33 @@ namespace BaseBusiness.bc
                 throw new FacadeException("DeleteStringId failed: " + ex.Message);
             }
         }
-        public bool CheckDuplicate(string field, object value, long excludeId = 0)
+
+        public bool Exists(string table, Dictionary<string, object> conditions, long id = 0)
         {
-            string sql = $"SELECT TOP 1 {field} FROM {tableName} WHERE {field} = @Value AND ID <> @ExcludeId";
+            var sql = new StringBuilder($"SELECT TOP 1 1 FROM {table} WHERE 1=1 ");
+            var param = new DynamicParameters();
 
-            using (SqlConnection conn = new SqlConnection(strcon))
-            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            foreach (var item in conditions)
             {
-                cmd.CommandType = CommandType.Text;
-                cmd.CommandTimeout = 6000;
+                if (item.Value == null) continue;
 
-                cmd.Parameters.AddWithValue("@Value", value ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@ExcludeId", excludeId);
+                sql.Append($" AND {item.Key} = @{item.Key}");
+                param.Add("@" + item.Key, item.Value);
+            }
 
-                try
-                {
-                    conn.Open();
-                    using (SqlDataReader reader = cmd.ExecuteReader(CommandBehavior.CloseConnection))
-                    {
-                        return reader.HasRows;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Error($"{sql} (Value: {value}) => Error: {ex.Message}");
-                    throw new Exception(ex.Message);
-                }
+            if (id > 0)
+            {
+                sql.Append(" AND ID <> @ID");
+                param.Add("@ID", id);
+            }
+
+            using (var conn = new SqlConnection(strcon))
+            {
+                conn.Open();
+                return conn.ExecuteScalar<int?>(sql.ToString(), param) != null;
             }
         }
+
 
     }
 }

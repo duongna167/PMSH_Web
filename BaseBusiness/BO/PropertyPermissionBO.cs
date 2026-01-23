@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,6 +24,23 @@ namespace BaseBusiness.BO
         {
             get { return instance; }
         }
+
+        public bool IsDuplicatePermission(long userID, long propertyID, long id = 0)
+        {
+            if (userID <= 0 || propertyID <= 0)
+                return false;
+
+            return facade.Exists(
+             "PropertyPermission",
+             new Dictionary<string, object>
+             {
+                { "UserID", userID },
+                { "PropertyID", propertyID }
+             },
+             id
+         );
+        }
+
     }
 
 }

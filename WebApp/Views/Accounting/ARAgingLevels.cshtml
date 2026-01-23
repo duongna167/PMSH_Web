@@ -1,213 +1,135 @@
-﻿@using DevExpress.XtraReports.UI
-
-
-@{
-    var selectedReport = @ViewBag.ReportHeader;
-
-    var agingLevelsList = ViewBag.ARAgingLevels;
-}
-<style>
-
-
-    .dx-datagrid-headers .dx-header-row td {
-        white-space: pre-line !important;
-        text-align: center;
-        font-size: 11px;
+﻿<style>
+    .modal-body {
+        padding: 0 12px 0 12px !important;
     }
-
-
-    .dx-datagrid .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default, .dx-datagrid-container .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default {
-        display: none;
-    }
-
-
-    .filter_wrapper {
-        /*     background-color: #ececec; */
-        /*   margin: 0px 8px 14px 8px; */
-        padding: 18px 0px 0px 14px;
-        border-radius: 8px;
-    }
-
-    .gridContainer {
-        margin: 0px 8px;
-    }
-
-    .button_wrapper {
-        display: flex;
-        column-gap: 12px;
-        margin: 0px 8px;
-    }
-
-        .button_wrapper .fa-solid {
-            margin-right: 5px;
-        }
-
-    .selected {
-        background-color: #4CAF50; /* Màu xanh */
-        color: white;
-    }
-
-
-
-    .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
-    }
-
-    .sticky-header label[class*="me-"] {
-        margin-right: .5rem !important;
-    }
-
-
-    .sticky-header input[type="date"].form-control-sm {
-        font-size: 12px !important; /* dúng 12?px */
-        height: calc(1.1em + .2rem + 2px); /* gi? cùng chi?u cao */
-    }
-
-    .sticky-header label {
-        font-size: 12px !important;
-        line-height: 1.2;
-    }
-
-    .tomselect-custom {
-        width: 250px;
-        min-height: 30px; /* ho?c tùy theo chi?u cao b?n mu?n */
-        font-size: 0.65rem;
-    }
-
-    .sort-select {
-        max-width: 130px; /* ho?c 100px n?u mu?n nh? hon */
-        font-size: 12px;
-        padding: 0.15rem 0.5rem;
-    }
-
-    .sort-select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-image: none !important;
-        padding-right: 10px !important;
-    }
-
-    .label-fixed {
-        width: 50px; /* chỉnh theo nhu cầu */
-        text-align: right; /* căn phải cho đẹp */
-    }
-
 </style>
 
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px">AR Aging Levels</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="">
-        <button id="btnOk" class="mui-button mui-button-new"> Ok</button>
-
-    </div>
-    <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mb-1 filter-panel">
-        <!-- From Date -->
-        <div class="d-flex flex-column align-items-center">
-            <div class="d-flex align-items-center gap-2">
-                <label class="label-fixed mb-0">Up to :</label>
-                <input type="text" id="level1" name="level1"
-                       value="@(agingLevelsList != null && agingLevelsList.Count > 0 ? agingLevelsList[0].AgingValue.ToString() : "")"
-                       class="form-control form-control-sm w-auto" />
-                <label class="mb-0">Level 1</label>
+<div class="modal fade" id="agingLevelsModal" tabindex="-1" aria-labelledby="agingLevelsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title w-100 text-center" id="agingLevelsModalLabel">AR Aging Levels</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-
-            <div class="d-flex align-items-center gap-2">
-                <label class="label-fixed mb-0">31-:</label>
-                <input type="text" id="level2" name="level2"
-                       value="@(agingLevelsList != null && agingLevelsList.Count > 1 ? agingLevelsList[1].AgingValue.ToString() : "")"
-                       class="form-control form-control-sm w-auto" />
-                <label class="mb-0">Level 2</label>
+            <div class="modal-body">
+                <div class="mt-1 mb-2 search-filter">
+                    <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="btnOk" class="mui-button mui-button-new">Ok</button>
+                </div>
+                <form id="agingForm" class="mui-card">
+                    <div class="container-fluid">
+                        @{
+                            var levels = new[] { "Up to", "31-", "61-", "91-", "121-" };
+                            for (int i = 0; i < 5; i++)
+                            {
+                                <div class="row align-items-center mb-2">
+                                    <div class="col-4 text-end">
+                                        <label class="form-label mb-0">@levels[i] :</label>
+                                    </div>
+                                    <div class="col-5">
+                                        <input type="number" id="level@(i + 1)" name="level@(i + 1)"
+                                            class="form-control form-control-sm aging-input" />
+                                    </div>
+                                    <div class="col-3">
+                                        <span class="text-muted small">Level @(i + 1)</span>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12 text-center">
+                            <small class="text-danger fw-bold">* Insert -1 for unlimited age</small>
+                        </div>
+                    </div>
+                </form>
             </div>
-
-            <div class="d-flex align-items-center gap-2">
-                <label class="label-fixed mb-0">61-</label>
-                <input type="text" id="level3" name="level3"
-                       value="@(agingLevelsList != null && agingLevelsList.Count > 2 ? agingLevelsList[2].AgingValue.ToString() : "")"
-                       class="form-control form-control-sm w-auto" />
-                <label class="mb-0">Level 3</label>
-            </div>
-
-            <div class="d-flex align-items-center gap-2">
-                <label class="label-fixed mb-0">91-</label>
-                <input type="text" id="level4" name="level4"
-                       value="@(agingLevelsList != null && agingLevelsList.Count > 3 ? agingLevelsList[3].AgingValue.ToString() : "")"
-                       class="form-control form-control-sm w-auto" />
-                <label class="mb-0">Level 4</label>
-            </div>
-
-            <div class="d-flex align-items-center gap-2">
-                <label class="label-fixed mb-0">121-</label>
-                <input type="text" id="level5" name="level5"
-                       value="@(agingLevelsList != null && agingLevelsList.Count > 4 ? agingLevelsList[4].AgingValue.ToString() : "")"
-                       class="form-control form-control-sm w-auto" />
-                <label class="mb-0">Level 5</label>
-            </div>
-            <label class="mb-0 mt-3">* Insert -1 for unlimited age</label>
 
         </div>
-
-
     </div>
- 
-</div>
-<div class="mui-card">
-    @*     <div style="font-size: 20px;" class="mt-1" id="reportTitle"></div> *@
-    <div id="gridContainer" class="gridContainer mt-2"></div>
 </div>
 
 
 
-<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+<div id="loadingSpinner"
+    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 
 <script>
 
     $(document).ready(function () {
-   
-    });
-   
-        $(document).off("click", "#btnOk").on("click", "#btnOk", function () {
-         
-            $("#loadingSpinner").show();
-            $.ajax({
-                url: '/Accounting/ARAgingLevelsSave',
-                type: 'POST',
-                data: {
-                       level1: $("#level1").val(),
-                       level2: $("#level2").val(),
-                        level3: $("#level3").val(),
-                           level4: $("#level4").val(),
-                        level5: $("#level5").val(),
-                            user: localStorage.getItem("Loginname")
-
-                },
-                traditional: true,
-                  crossDomain: false,
-                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-                success: function (result) {
-                     if (result.success) {
-                              showToast('Success', result.message, true);
-                            $("#loadingSpinner").hide();
-                               setTimeout(function () {
-                                location.reload();
-                            }, 1500);
-                     } else {
-                              showToast('Error', 'Please select a Task Code before saving.', false);
-                     }
-
-                },
-                error: function () {
-                    alert("Không th? t?i báo cáo.");
-                    $("#loadingSpinner").hide();
-                }
-            });
+        $('#agingLevelsModal').on('show.bs.modal', async function () {
+            await loadARAgingLevels();
         });
+    });
 
-    
-  
+    $(document).off("click", "#btnOk").on("click", "#btnOk", function () {
+
+        $("#loadingSpinner").show();
+        $.ajax({
+            url: '/Accounting/ARAgingLevelsSave',
+            type: 'POST',
+            data: {
+                level1: $("#level1").val(),
+                level2: $("#level2").val(),
+                level3: $("#level3").val(),
+                level4: $("#level4").val(),
+                level5: $("#level5").val(),
+                user: localStorage.getItem("Loginname")
+
+            },
+            traditional: true,
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+                if (result.success) {
+                    showToast('Success', result.message, true);
+                    $("#loadingSpinner").hide();
+                    setTimeout(function () {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showToast('Error', 'Please select a Task Code before saving.', false);
+                }
+
+            },
+            error: function () {
+                alert("Không th? t?i báo cáo.");
+                $("#loadingSpinner").hide();
+            }
+        });
+    });
+
+    // Function dùng để lấy dữ liệu từ Server và đổ vào Form
+    async function loadARAgingLevels() {
+        // Hiển thị hiệu ứng loading (nếu có class placeholder)
+        $('.aging-input').prop('disabled', true).addClass('opacity-50');
+
+        try {
+            const response = await $.ajax({
+                url: '/Accounting/GetARAgingLevelsData',
+                type: 'GET',
+                cache: false
+            });
+
+            if (response.success && response.data) {
+                // Duyệt và điền dữ liệu
+                response.data.forEach((item, index) => {
+                    const input = $(`#level${index + 1}`);
+                    if (input.length) {
+                        input.val(item.agingValue);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error("Lỗi nạp dữ liệu Aging Levels:", error);
+            if (typeof showToast === "function") {
+                showToast('Error', 'Could not load aging levels data.', false);
+            }
+        } finally {
+            // Gỡ bỏ hiệu ứng loading dù thành công hay thất bại
+            $('.aging-input').prop('disabled', false).removeClass('opacity-50');
+        }
+    }
 </script>
