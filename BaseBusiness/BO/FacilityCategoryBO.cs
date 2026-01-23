@@ -22,5 +22,20 @@ namespace BaseBusiness.BO
         {
             get { return instance; }
         }
+
+        public bool IsDuplicateCode(string code, long id = 0)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                return false;
+
+            return facade.Exists(
+                "hkpFacilityCategory",
+                new Dictionary<string, object>
+                {
+            { "Code", code.Trim() }
+                },
+                id
+            );
+        }
     }
 }

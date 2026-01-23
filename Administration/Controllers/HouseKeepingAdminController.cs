@@ -226,6 +226,23 @@ namespace Administration.Controllers
                 Check(model?.FacilityCategoryID, "facilityCategoryID", "Please select a facility category. ")
             );
 
+            if (listErrors.Count == 0 && model != null)
+            {
+                bool isDuplicate = hkpFacilityCodeBO.Instance
+                    .IsDuplicateCode(model.Code, model.ID);
+
+                var duplicateError = CheckDuplicate(
+                    isDuplicate,
+                    "code",
+                    $"This code already exists: [{model.Code}]"
+                );
+
+                if (duplicateError != null)
+                {
+                    listErrors.Add(duplicateError);
+                }
+            }
+
             if (listErrors.Count > 0)
             {
                 return Json(new { success = false, errors = listErrors });
@@ -332,6 +349,23 @@ namespace Administration.Controllers
                 Check(model?.Code, "code", "Code is not blank."),
                 Check(model?.Name, "name", "Name is not blank.")
             );
+
+            if (listErrors.Count == 0 && model != null)
+            {
+                bool isDuplicate = FacilityCategoryBO.Instance
+                    .IsDuplicateCode(model.Code, model.ID);
+
+                var duplicateError = CheckDuplicate(
+                    isDuplicate,
+                    "code",
+                    $"This code already exists: [{model.Code}]"
+                );
+
+                if (duplicateError != null)
+                {
+                    listErrors.Add(duplicateError);
+                }
+            }
 
             if (listErrors.Count > 0)
             {
