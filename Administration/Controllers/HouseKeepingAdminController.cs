@@ -18,6 +18,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static BaseBusiness.util.ValidationUtils;
 
 namespace Administration.Controllers
 {
@@ -158,21 +159,21 @@ namespace Administration.Controllers
             }
         }
         #endregion
+
         #region FacilityCode
         public IActionResult FacilityCode()
         {
-            List<hkpFacilityCodeModel> hkpFacilityCode = PropertyUtils.ConvertToList<hkpFacilityCodeModel>(hkpFacilityCodeBO.Instance.FindAll());
-            ViewBag.hkpFacilityCode = hkpFacilityCode;
+            List<hkpFacilityCategoryModel> facilityCategory = PropertyUtils.ConvertToList<hkpFacilityCategoryModel>(FacilityCategoryBO.Instance.FindAll());
+            ViewBag.FacilityCategory = facilityCategory;
             return View("~/Views/Administration/HouseKeepingAdmin/FacilityCode.cshtml");
         }
         [HttpGet]
-        public IActionResult FacilityCodeData(string code,string description,int isActive)
+        public IActionResult FacilityCodeData(string code,int isActive)
         {
             code = code ?? "";
-            description = description ?? "";
             try
             {
-                DataTable dataTable = _iHouseKeepingAdminService.FacilityCodeData(code, description, isActive);
+                DataTable dataTable = _iHouseKeepingAdminService.FacilityCodeData(code, isActive);
 
                 var result = (from d in dataTable.AsEnumerable()
                               select new
@@ -195,62 +196,92 @@ namespace Administration.Controllers
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
-        [HttpPost]
-        public IActionResult FacilityCodeSave(int id, string codenew, int facilityCategory, string descriptionnew, int sequence, int isActive, string user)
+
+        [HttpGet]
+        public IActionResult GetFacilityCodeById(int id)
         {
-            ProcessTransactions pt = new ProcessTransactions();
-            pt.OpenConnection();
-            pt.BeginTransaction();
+            var data = (hkpFacilityCodeModel)hkpFacilityCodeBO.Instance.FindByPrimaryKey(id);
 
-            user = user?.Replace("\"", "").Trim();
-            List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
+            if (data == null)
+            {
+                return Json(new { inactive = 0, facilityCategoryID = 0, sequence = 0 });
+            }
 
+            return Json(new
+            {
+                inactive = data.Inactive,
+                facilityCategoryID = data.FacilityCategoryID,
+                sequence = data.Sequence
+            });
+        }
+
+        [HttpPost]
+        public IActionResult FacilityCodeSave([FromBody] hkpFacilityCodeModel model)
+        {
+            string message = "";
+            var listErrors = GetErrors(
+                Check(model == null, "general", "Invalid data"),
+                Check(model?.Sequence < 0, "sequence", "Sequence must be >= 0"),
+                Check(model?.Code, "code", "Code is not blank."),
+                Check(model?.FacilityCategoryID, "facilityCategoryID", "Please select a facility category. ")
+            );
+
+            if (listErrors.Count == 0 && model != null)
+            {
+                bool isDuplicate = hkpFacilityCodeBO.Instance
+                    .IsDuplicateCode(model.Code, model.ID);
+
+                var duplicateError = CheckDuplicate(
+                    isDuplicate,
+                    "code",
+                    $"This code already exists: [{model.Code}]"
+                );
+
+                if (duplicateError != null)
+                {
+                    listErrors.Add(duplicateError);
+                }
+            }
+
+            if (listErrors.Count > 0)
+            {
+                return Json(new { success = false, errors = listErrors });
+            }
             try
             {
-                // Lấy model
-                hkpFacilityCodeModel model = new hkpFacilityCodeModel();
 
-                if (id > 0)
+                if (model.ID == 0)
                 {
-                    var existing = hkpFacilityCodeBO.Instance.FindByPrimaryKey(id);
-                    if (existing != null)
-                        model = (hkpFacilityCodeModel)existing;
-                }
+                    model.CreatedDate = DateTime.Now;
+                    model.UpdatedDate = DateTime.Now;
 
-                // Gán dữ liệu
-                model.Code = codenew;
-                model.FacilityCategoryID = facilityCategory;
-                model.Description = descriptionnew;
-                model.Sequence = sequence;
-                model.Inactive = (isActive == 1);
-                model.UpdatedBy = user;
-                model.UpdatedDate = businessDateModel[0].BusinessDate;
-
-                // Thêm mới hoặc cập nhật
-                if (id == 0)
-                {
-                    model.CreatedBy = model.UpdatedBy;
-                    model.CreatedDate = model.UpdatedDate;
                     hkpFacilityCodeBO.Instance.Insert(model);
+                    message = "Insert successfully!";
                 }
                 else
                 {
+                    var oldData = (hkpFacilityCodeModel)hkpFacilityCodeBO.Instance.FindByPrimaryKey(model.ID);
+
+                    if (oldData != null)
+                    {
+                        model.CreatedBy = oldData.CreatedBy;
+                        model.CreatedDate = oldData.CreatedDate;
+                    }
+
+                    model.UpdatedDate = DateTime.Now;
+
                     hkpFacilityCodeBO.Instance.Update(model);
+                    message = "Update successfully!";
                 }
 
-                pt.CommitTransaction();
-
-                return Json(new { success = true, message = "Insert success!" });
             }
             catch (Exception ex)
             {
-                pt.RollBack();
-                return BadRequest(new { success = false, message = ex.Message });
+                message = ex.Message;
+                return Json(new { success = false, message });
             }
-            finally
-            {
-                pt.CloseConnection();
-            }
+
+            return Json(new { success = true, message });
         }
 
         [HttpPost]
@@ -265,7 +296,7 @@ namespace Administration.Controllers
                     return Json(new { success = false, message = "FacilityCode exist in TaskSheetFacility. You can not delete!" });
 
                 }
-                hkpFacilityTaskBO.Instance.Delete(id);
+                hkpFacilityCodeBO.Instance.Delete(id);
 
                 return Json(new { success = true, message = "Success Delete!" });
             }
@@ -275,42 +306,118 @@ namespace Administration.Controllers
             }
         }
         #endregion
-        #region  FacilityCategory
 
-        public IActionResult FacilityCategory()
-        {
-           
-            return View("~/Views/Administration/HouseKeepingAdmin/FacilityCategory.cshtml");
-        }
+        #region FacilityCategory
         [HttpGet]
-        public IActionResult FacilityCategoryData(string code, string description, int isActive)
+        public IActionResult GetFacilityCategory(string code, string name, int inactive)
         {
-            code = code ?? "";
-            description = description ?? "";
             try
             {
-                DataTable dataTable = _iHouseKeepingAdminService.FacilityCategoryData(code, description, isActive);
-
+                DataTable dataTable = _iHouseKeepingAdminService.FacilityCategoryData(code, name, inactive);
                 var result = (from d in dataTable.AsEnumerable()
                               select new
                               {
-                                  ID = d["ID"]?.ToString() ?? "",
-                                  Code = d["Code"]?.ToString() ?? "",
-                                  Description = d["Description"]?.ToString() ?? "",
-                                  InactiveText = d["InactiveText"]?.ToString() ?? "",
-                                  CreatedBy = d["CreatedBy"]?.ToString() ?? "",
-                                  CreatedDate = d["CreatedDate"] == DBNull.Value ? null : Convert.ToDateTime(d["CreatedDate"]).ToString("yyyy-MM-dd HH:mm:ss"),
-                                  UpdatedBy = d["UpdatedBy"]?.ToString() ?? "",
-                                  UpdatedDate = d["UpdatedDate"] == DBNull.Value ? null : Convert.ToDateTime(d["UpdatedDate"]).ToString("yyyy-MM-dd HH:mm:ss"),
-                                  Inactive = d["Inactive"]?.ToString() ?? ""
-
+                                  Code = !string.IsNullOrEmpty(d["Code"].ToString()) ? d["Code"] : "",
+                                  Name = !string.IsNullOrEmpty(d["Name"].ToString()) ? d["Name"] : "",
+                                  Description = !string.IsNullOrEmpty(d["Description"].ToString()) ? d["Description"] : "",
+                                  InactiveText = !string.IsNullOrEmpty(d["InactiveText"].ToString()) ? d["InactiveText"] : "",
+                                  CreatedBy = !string.IsNullOrEmpty(d["CreatedBy"].ToString()) ? d["CreatedBy"] : "",
+                                  CreatedDate = !string.IsNullOrEmpty(d["CreatedDate"].ToString()) ? d["CreatedDate"] : "",
+                                  UpdatedBy = !string.IsNullOrEmpty(d["UpdatedBy"].ToString()) ? d["UpdatedBy"] : "",
+                                  UpdatedDate = !string.IsNullOrEmpty(d["UpdatedDate"].ToString()) ? d["UpdatedDate"] : "",
+                                  ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"] : "",
+                                  Inactive = !string.IsNullOrEmpty(d["Inactive"].ToString()) ? d["Inactive"] : "",
                               }).ToList();
                 return Json(result);
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return Json(ex.Message);
             }
+        }
+        public IActionResult FacilityCategory()
+        {
+            return View("~/Views/Administration/HouseKeepingAdmin/FacilityCategory.cshtml");
+        }
+        [HttpPost]
+        public IActionResult FacilityCategorySave([FromBody] hkpFacilityCategoryModel model)
+        {
+            string message = "";
+            var listErrors = GetErrors(
+                Check(model, "general", "Invalid data"),
+
+                Check(model?.Code, "code", "Code is not blank."),
+                Check(model?.Name, "name", "Name is not blank.")
+            );
+
+            if (listErrors.Count == 0 && model != null)
+            {
+                bool isDuplicate = FacilityCategoryBO.Instance
+                    .IsDuplicateCode(model.Code, model.ID);
+
+                var duplicateError = CheckDuplicate(
+                    isDuplicate,
+                    "code",
+                    $"This code already exists: [{model.Code}]"
+                );
+
+                if (duplicateError != null)
+                {
+                    listErrors.Add(duplicateError);
+                }
+            }
+
+            if (listErrors.Count > 0)
+            {
+                return Json(new { success = false, errors = listErrors });
+            }
+            try
+            {
+                if (model.ID == 0)
+                {
+                    model.CreatedDate = DateTime.Now;
+                    model.UpdatedDate = DateTime.Now;
+
+                    FacilityCategoryBO.Instance.Insert(model);
+                    message = "Insert successfully!";
+                }
+                else
+                {
+                    var oldData = (hkpFacilityCategoryModel)FacilityCategoryBO.Instance.FindByPrimaryKey(model.ID);
+
+                    if (oldData != null)
+                    {
+                        model.CreatedBy = oldData.CreatedBy;
+                        model.CreatedDate = oldData.CreatedDate;
+                    }
+
+                    model.UpdatedDate = DateTime.Now;
+
+                    FacilityCategoryBO.Instance.Update(model);
+                    message = "Update successfully!";
+                }
+                return Json(new { success = true, message });
+
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+
+        }
+        [HttpPost]
+        public IActionResult DeleteFacilityCategory(int id)
+        {
+            try
+            {
+                FacilityCategoryBO.Instance.Delete(id);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, ex.Message });
+            }
+
+            return Json(new { success = true });
         }
         #endregion
 

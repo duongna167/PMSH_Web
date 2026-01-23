@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -279,6 +279,30 @@ namespace Administration.Services.Implements
             };
 
             DataTable myTable = DataTableHelper.getTableData("spFrmZoneSearch", param);
+            return myTable;
+        }
+        public DataTable Priority(string code, string name, int inactive)
+        {
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@Code", code ?? ""),
+                new SqlParameter("@Name", name ?? ""),
+                new SqlParameter("@Inactive", inactive)
+            };
+
+            DataTable myTable = DataTableHelper.getTableData("spFrmPrioritySearch", param);
+            return myTable;
+        }
+        public DataTable Promotion(string code, string name, int inactive)
+        {
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@Code", code ?? ""),
+                new SqlParameter("@Name", name ?? ""),
+                new SqlParameter("@Inactive", inactive)
+            };
+
+            DataTable myTable = DataTableHelper.getTableData("spFrmPromotionSearch", param);
             return myTable;
         }
         public DataTable Department(string code, string name, int inactive)

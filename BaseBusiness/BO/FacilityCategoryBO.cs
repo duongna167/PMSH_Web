@@ -8,17 +8,17 @@ using System.Threading.Tasks;
 
 namespace BaseBusiness.BO
 {
-    public class hkpFacilityCodeBO : BaseBO
+    public class FacilityCategoryBO : BaseBO
     {
-        private hkpFacilityCodeFacade facade = hkpFacilityCodeFacade.Instance;
-        protected static hkpFacilityCodeBO instance = new hkpFacilityCodeBO();
+        private hkpFacilityCategoryFacade facade = hkpFacilityCategoryFacade.Instance;
+        protected static FacilityCategoryBO instance = new FacilityCategoryBO();
 
-        protected hkpFacilityCodeBO()
+        protected FacilityCategoryBO()
         {
             this.baseFacade = facade;
         }
 
-        public static hkpFacilityCodeBO Instance
+        public static FacilityCategoryBO Instance
         {
             get { return instance; }
         }
@@ -29,7 +29,7 @@ namespace BaseBusiness.BO
                 return false;
 
             return facade.Exists(
-                "hkpFacilityCode",
+                "hkpFacilityCategory",
                 new Dictionary<string, object>
                 {
             { "Code", code.Trim() }

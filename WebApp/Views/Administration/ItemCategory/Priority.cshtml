@@ -1,7 +1,7 @@
 ﻿@{
-    // var listctry = ViewBag.CountryList;
+    //
 }
-<div class="text-center" style="font-size: 20px">Facility Category</div>
+<div class="text-center" style="font-size: 20px">Priority</div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
     <div class="mb-2">
         <button id="btnView" class="mui-button mui-button-search"> View</button>
@@ -44,7 +44,7 @@
     <div class="modal-dialog modal-md">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="itemModalLabel">Facility Category</h5>
+                <h5 class="modal-title" id="itemModalLabel">Priority</h5>
             </div>
             <div class="modal-footer justify-content-start">
                 <button type="button" id="btnSaveItem" class="mui-button mui-button-save"> Save</button>
@@ -52,11 +52,11 @@
             </div>
             <div class="modal-body">
                 <form id="formContainer">
-                    <div class="container-fluid">
+                    <div class="container-fluid" >
                         <div class="row mb-1 align-items-center">
                             <div class="col-auto">
                                 <label for="code" class="form-label mb-0">Code</label>
-                                <input type="text" id="code" name="code" class="form-control form-control-sm" />
+                                <input type="text" id="txtcode" name="code" class="form-control form-control-sm" />
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="col-auto d-flex align-items-center">
@@ -67,15 +67,14 @@
                         <div class="row mb-1">
                             <div class="col">
                                 <label for="name" class="form-label">Name</label>
-                                <input type="text" id="name" name="name" class="form-control" />
+                                <input type="text" id="txtname" name="name" class="form-control" />
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
-      
                         <div class="row mb-1">
                             <div class="col">
-                                <label for="description" class="form-label">Description</label>
-                                <textarea id="description" name="description" class="form-control" rows="4"
+                                <label for="txtdescription" class="form-label">Description</label>
+                                <textarea id="txtdescription" name="txtdescription" class="form-control" rows="4"
                                           style="height:100px"></textarea>
                             </div>
                         </div>
@@ -115,7 +114,7 @@
     $("#btnNew").click(function () {
         $("#formContainer")[0].reset();
         $("#id").val("0");
-        $("#itemModalLabel").text("Add Facility Category");
+        $("#itemModalLabel").text("Add Priority");
         $("#itemModal").modal("show");
     });
 
@@ -125,19 +124,21 @@
         let loginName = (localStorage.getItem("Loginname") || "")
             .trim()
             .replace(/^"(.*)"$/, '$1');
-        // const loginUser = parseInt(localStorage.getItem("userID")) || 0;
+        const loginUser = parseInt(localStorage.getItem("userID")) || 0;
         const model = {
               ID: id,
-              Code: $("#code").val(),
-              Name: $("#name").val(),
-              Description: $("#description").val(),
+              Code: $("#txtcode").val(),
+              Name: $("#txtname").val(),
+              Description: $("#txtdescription").val(),
               Inactive: $("#inactive").prop("checked"),
               CreatedBy: loginName,
-              UpdatedBy: loginName
+              UpdatedBy: loginName,
+              UserInsertID: loginUser,
+              UserUpdateID: loginUser
         };
 
         $.ajax({
-            url: "/HouseKeepingAdmin/FacilityCategorySave",
+            url: "/Administration/PrioritySave",
             type: "POST",
             contentType: "application/json",
             cache: false,
@@ -153,8 +154,10 @@
                 } else {
                     if (res.errors && res.errors.length > 0) {
                         applyValidationErrors(res.errors, "#formContainer");
-                    let genErr = res.errors.find(x => x.field === "general");
-                    if (genErr) showToast("Warning", genErr.message, false)
+                        let generalError = res.errors.find(x => x.field === "general");
+                        let toastMessage = generalError ? generalError.message : "Please check input fields.";
+
+                        showToast("Warning", toastMessage, false);
                     } else {
                         showToast("Error", res.message || "Save failed", false);
                     }
@@ -169,12 +172,12 @@
 
     function editMember(data) {
         $("#id").val(data.id);
-        $("#code").val(data.code);
-        $("#name").val(data.name);
-        $("#description").val(data.description);
+        $("#txtcode").val(data.code);
+        $("#txtname").val(data.name);
+        $("#txtdescription").val(data.description);
         $("#inactive").prop("checked", data.inactive);
 
-        $("#itemModalLabel").text("Update Facility Category");
+        $("#itemModalLabel").text("Update Priority");
         $("#itemModal").modal("show");
     }
 
@@ -225,7 +228,7 @@
     $(document).off("click", "#btnView").on("click", "#btnView", function () {
           $("#loadingSpinnerRateCode").show();
           $.ajax({
-              url: "/HouseKeepingAdmin/GetFacilityCategory",
+              url: "/Administration/GetPriority",
               type: "GET",
               cache: false,
               data: {
@@ -256,7 +259,7 @@
                 return;
             }
            $.ajax({
-               url: `/HouseKeepingAdmin/DeleteFacilityCategory/`+ selectedRowData.id,
+               url: `/Administration/DeletePriority/`+ selectedRowData.id,
                type: "POST",
                traditional: true,
                crossDomain: false,
@@ -270,7 +273,8 @@
                     }
                },
                error: function(){
-                    showToast("Error","Delete failed!",false);
+                   console.log("delete "+ selectedRowData.id);
+                    showToast("Error","Delete failed!" ,false);
                     $("#loadingSpinner").hide();
                },
            });
@@ -301,7 +305,7 @@
         worksheet.addRow([]);
 
         // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-        const reportRow = worksheet.addRow(['Facility Category']);
+        const reportRow = worksheet.addRow(['Priority']);
         worksheet.mergeCells('A5:D5');
         reportRow.font = { bold: true, size: 14 };
         reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -323,7 +327,7 @@
             worksheet.getCell(`A${lastRow}`).font = { italic: true };
 
             // Ghi file
-            let fileName = "FacilityCategory.xlsx";
+            let fileName = "Priority.xlsx";
             workbook.xlsx.writeBuffer().then(function (buffer) {
                 saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
             });
