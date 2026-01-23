@@ -796,11 +796,14 @@ namespace Cashiering.Controllers
 
         #region ARAgingLevels
 
-        public IActionResult ARAgingLevels()
+        [HttpGet]
+        public IActionResult GetARAgingLevelsData()
         {
-            List<ARAgingLevelsModel> ARAgingLevelsList = PropertyUtils.ConvertToList<ARAgingLevelsModel>(ARAgingLevelsBO.Instance.FindAll());
-            ViewBag.ARAgingLevels = ARAgingLevelsList;
-            return View(); // View này sẽ chứa DataGrid + script gọi API
+            // Lấy dữ liệu từ BO (giống hệt code cũ của bạn)
+            List<ARAgingLevelsModel> list = PropertyUtils.ConvertToList<ARAgingLevelsModel>(ARAgingLevelsBO.Instance.FindAll());
+
+            // Trả về dữ liệu kiểu JSON thay vì View
+            return Json(new { success = true, data = list });
         }
         [HttpPost]
         public IActionResult ARAgingLevelsSave(string level1, string level2, string level3, string level4, string level5, string user)

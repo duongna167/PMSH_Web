@@ -1,28 +1,59 @@
 ﻿<!-- Modal search preference-->
-<div class="modal fade modal-xl" id="modalPreference" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+<div class="modal fade modal-xl" id="modalPreference" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
 
             <div class="modal-header">
                 <h5 class="modal-title" id="staticBackdropLabel">Search Preference</h5>
-                <button type="button" class="btn-close" onclick="closeModalSearchPreference()"></button>
             </div>
             <div class="modal-body">
-                <div class="row mui-card mb-2">
+                <div class="search-filter">
+                    <div>
+                        <button class="mui-button mui-button-new" onclick="getDataPreference();">Search</button>
+
+                        <button type="button" id="btn-clear-prefence" class="mui-button mui-button-new">Clear</button>
+                        <button type="button" class="mui-button mui-button-new"
+                            onclick="closeModalSearchPreference()">Close</button>
+                    </div>
                     <div class="row">
-                        <div class="col-md-2 mb-2">
-                            <label for="input1" class="form-label">Code</label>
-                            <input type="text" class="form-control" id="codePreferenceSearch" oninput="getDataPreference();" />
+
+                        <!-- Code -->
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-2 mb-2">
+                            <div class="row g-2">
+
+                                <label class="col-12 col-md-3 col-form-label text-md-end">
+                                    Code
+                                </label>
+
+                                <div class="col-12 col-md-9">
+                                    <input type="text" class="form-control" id="codePreferenceSearch"
+                                        oninput="getDataPreference();">
+                                </div>
+
+                            </div>
                         </div>
-                        <div class="col-md-2 mb-2">
-                            <label for="input2" class="form-label">Group Preference</label>
-                            <select type="text" class="form-control" id="groupPreferenceSearch" asp-items="ViewBag.cboGroupPreferenceProvider" onchange="getDataPreference();">
-                            </select>
+
+                        <!-- Group Preference -->
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4 mt-2 mb-2">
+                            <div class="row g-2">
+
+                                <label class="col-12 col-md-4 col-form-label text-md-end">
+                                    Group Preference
+                                </label>
+
+                                <div class="col-12 col-md-8">
+                                    <select id="groupPreferenceSearch"
+                                        asp-items="ViewBag.cboGroupPreferenceProvider" onchange="getDataPreference();">
+                                    </select>
+                                </div>
+
+                            </div>
                         </div>
 
                     </div>
-
                 </div>
+
                 <div class="mui-card">
                     <div id="gridContainerSearchPreference" class="mt-2 gridContainer"></div>
                 </div>
@@ -31,15 +62,39 @@
     </div>
 </div>
 <script>
-    function getDataPreference(){
+    $(document).off("click", "#btn-clear-prefence").on("click", "#btn-clear-prefence", function () {
+        resetPreferenceSearch();
+    });
+
+    function resetPreferenceSearch() {
+
+        // Clear Code input
+        const codeInput = document.getElementById('codePreferenceSearch');
+        if (codeInput) {
+            codeInput.value = '';
+        }
+
+        // Reset Group Preference select
+        const groupSelect = document.getElementById('groupPreferenceSearch');
+        if (groupSelect && !groupSelect.disabled) {
+            groupSelect.selectedIndex = 0;
+        }
+
+        // Reload data
+        if (typeof getDataPreference === 'function') {
+            getDataPreference();
+        }
+    }
+
+    function getDataPreference() {
         $.ajax({
             url: '/Reservation/GetAllPreference',
             type: 'get',
             dataType: 'json',
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            data:{
-                code : $('#codePreferenceSearch').val(),
+            data: {
+                code: $('#codePreferenceSearch').val(),
                 preferenceGroup: $('#groupPreferenceSearch').val(),
             },
             success: function (result) {
@@ -58,12 +113,12 @@
     function initializeDataGridSearchPreference(data) {
         $("#gridContainerSearchPreference").dxDataGrid({
 
-            dataSource: data,   allowColumnResizing: true,
-                    columns: [
-                        { dataField: "ID", caption: "ID",  visible: false},
-                        { dataField: "code", caption: "Code", },
-                        { dataField: "description", caption: "Description",  },
-                    ],
+            dataSource: data, allowColumnResizing: true,
+            columns: [
+                { dataField: "ID", caption: "ID", visible: false },
+                { dataField: "code", caption: "Code", },
+                { dataField: "description", caption: "Description", },
+            ],
             paging: { pageSize: 15 },
             scrolling: {
                 rowRenderingMode: 'virtual',
@@ -76,13 +131,13 @@
                 showNavigationButtons: true,
             },
             filterRow: {
-                    visible: true,
-                    applyFilter: "auto"
+                visible: true,
+                applyFilter: "auto"
             },
             selection: {
                 mode: "single" // Allows only one row to be selected at a time
             },
-            onRowDblClick: function(e) {
+            onRowDblClick: function (e) {
                 $('#modalPreference').modal('hide');
                 $('#codePreferenceSearch').val(e.data.code);
                 $('#txtPreference').val(e.data.code);
@@ -91,17 +146,17 @@
             }
         });
     }
-    function clearSpecial(){
+    function clearSpecial() {
         $('#codePreferenceSearch').val('');
         $('#txtPreference').val('');
         $('#clearSpecial').hide();
     }
-    function openModalSearchPreference(){
+    function openModalSearchPreference() {
         getDataPreference();
         $('#modalPreference').modal('show');
 
     }
-    function closeModalSearchPreference(){
+    function closeModalSearchPreference() {
         $('#modalPreference').modal('hide');
     }
 </script>

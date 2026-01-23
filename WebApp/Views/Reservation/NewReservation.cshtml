@@ -1,5 +1,9 @@
 ﻿@* <link href="~/css/pages/reservation.css" rel="stylesheet" asp-append-version="true"/> *@
-
+<style>
+    .form-control:not([readonly]):not(:disabled) {
+        background: white !important;
+    }
+</style>
 <div class="">
     <div class="row">
 
@@ -351,10 +355,11 @@
                                             <label class="col-md-4 col-form-label text-start pe-0"
                                                 for="arrival">Arrival</label>
                                             <div class="col-md-7">
-                                                <div data-date-input data-format="DD/MM/YYYY" business-date>
+                                                <div data-date-input data-format="DD/MM/YYYY" business-date
+                                                    data-name="arrival">
                                                     <input type="text" class="date-ui form-control"
-                                                        placeholder="dd/mm/yyyy" autocomplete="off" id="arrival"
-                                                        style=" margin-left: 15px;" />
+                                                        placeholder="dd/mm/yyyy" autocomplete="off"
+                                                        style=" margin-left: 15px;" id="arrivalShow" />
                                                 </div>
                                                 <span style="font-size:12px;color:#c53030;display:none"
                                                     id="arrival-day"></span>
@@ -368,10 +373,11 @@
                                             <label class="col-md-4 col-form-label text-start pe-0"
                                                 for="departure">Departure</label>
                                             <div class="col-md-7">
-                                                <div data-date-input data-format="DD/MM/YYYY" business-date>
+                                                <div data-date-input data-format="DD/MM/YYYY" business-date
+                                                    data-name="departure">
                                                     <input type="text" class="date-ui form-control"
-                                                        placeholder="dd/mm/yyyy" autocomplete="off" id="departure"
-                                                        style=" margin-left: 15px;" />
+                                                        placeholder="dd/mm/yyyy" autocomplete="off"
+                                                        style=" margin-left: 15px;" id="departureShow" />
                                                 </div>
                                                 <span style="font-size:12px;color:#c53030;display:none"
                                                     id="departure-day"></span>
@@ -492,7 +498,8 @@
                                                 <div class="d-flex align-items-center">
                                                     <input id="roomID" style="display:none" />
                                                     <input id="roomSelect" readonly class="form-control me-1" />
-                                                    <button type="button" onclick="openModalSearchRoom()"
+                                                    <button type="button"
+                                                        onclick="openModalSearchRoom(isInitial = true)"
                                                         class="btn-search-icon">
                                                         <i class="fa-solid fa-arrow-down"></i>
                                                     </button>
@@ -1097,11 +1104,6 @@
         $("#txtContactPhone").val(result.contactPhone);
         $("#txtID").val(result.id);
         $('#txtName').val(result.lastName);
-        let arrival = result.arrivalDate.split('T')[0];
-
-        $('#arrival').val(arrival);
-        let departure = result.departureDate.split('T')[0];
-        $('#departure').val(departure);
         $("#txtFirstName").val(result.firstName);
         $("#txtTitleID").val(result.title)
         $("#txtPhone").val('');
@@ -1546,29 +1548,29 @@
     //     updateDates();
     // };
     // Lắng nghe sự kiện thay đổi ngày
-    document.getElementById('arrival').addEventListener('change', function () {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+    $(document).on('change', '#arrivalShow', function () {
         const arrivalDate = new Date(this.value);
 
-        // Cập nhật departure để giữ số đêm cố định
-        const nights = parseInt(document.getElementById('nights').value) || 1;
+        const nights = parseInt($('#nights').val()) || 1;
         const newDeparture = new Date(this.value);
         newDeparture.setDate(newDeparture.getDate() + nights);
-        // Đảm bảo departure lớn hơn arrival
+
         if (newDeparture <= arrivalDate) {
             newDeparture.setDate(arrivalDate.getDate() + 1);
         }
-        document.getElementById('departure').value = formatDate(newDeparture);
+
+        $('#departure').val(formatDate(newDeparture));
         updateDates();
     });
 
-    document.getElementById('departure').addEventListener('blur', function () {
+    $(document).on('change', '#departureShow', function () {
+
         const departureDateStr = $('#departure').val(); // Chuỗi YYYY-MM-DD
         const arrivalDateStr = $('#arrival').val(); // Chuỗi YYYY-MM-DD
 
         const departureDate = new Date(departureDateStr);
         const arrivalDate = new Date(arrivalDateStr);
+
 
         if (departureDateStr && arrivalDateStr && !isNaN(departureDate) && !isNaN(arrivalDate) && departureDate <= arrivalDate) {
             console.log('a');
