@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,6 +23,21 @@ namespace BaseBusiness.BO
         public static RoomOwnerProfileBO Instance
         {
             get { return instance; }
+        }
+
+        public bool IsDuplicateRoomOwner(long roomID, long id = 0)
+        {
+            if (roomID <= 0)
+                return false;
+
+            return facade.Exists(
+                "RoomOwnerProfile",
+                new Dictionary<string, object>
+                {
+            { "RoomID", roomID }
+                },
+                id
+            );
         }
 
     }

@@ -1,4 +1,4 @@
-﻿using Administration.Services.Interfaces;
+using Administration.Services.Interfaces;
 using BaseBusiness.util;
 using Microsoft.Data.SqlClient;
 using System;
@@ -12,7 +12,7 @@ namespace Administration.Services.Implements
 {
     public class HouseKeepingAdminService: IHouseKeepingAdminService
     {
-        public DataTable FacilityCodeData(string code, string description, int isActive)
+        public DataTable FacilityCodeData(string code, int isActive)
         {
             try
             {
@@ -29,13 +29,14 @@ namespace Administration.Services.Implements
                 throw new Exception($"ERROR: {ex.Message}", ex);
             }
         }
-        public DataTable FacilityCategoryData(string code, string description, int isActive)
+        public DataTable FacilityCategoryData(string code, string name, int isActive)
         {
             try
             {
                 SqlParameter[] param = new SqlParameter[]
                 {
                     new SqlParameter("@Code", code),
+                    new SqlParameter("@Name", name),
                     new SqlParameter("@Inactive", isActive),
                 };
                 DataTable myTable = DataTableHelper.getTableData("spFrmhkpFacilityCategorySearch", param);
