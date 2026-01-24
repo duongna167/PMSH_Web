@@ -3,7 +3,7 @@ namespace Cashiering.Dto
     public class SaveARAccountRequestDto
     {
         public int Id { get; set; }
-        public int ProfileId { get; set; }
+        public int Profile { get; set; }
         public string AccountNumber { get; set; } = string.Empty;
         public int AccountType { get; set; }
         public decimal CreditLimit { get; set; } // Dùng int? để tránh lỗi nếu rỗng

@@ -16,7 +16,7 @@
             </div>
             <div class="d-flex align-items-center col-md-2">
                 <label class="col-4 col-form-label me-2 text-end">AccountNo</label>
-                <input type="text" id="accountNo" class="form-control-sm flex-grow-1">
+                <input type="text" id="accountNo" class="form-control flex-grow-1">
             </div>
 
 
@@ -54,13 +54,13 @@
 <div class="modal fade" id="modalNew" tabindex="-1" aria-labelledby="transactionModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header ">
                 <h5 class="modal-title" id="transactionModalLabel">AR Account Receivable</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body">
-                <div class="mb-3 d-flex gap-2">
+                <div class="mb-3 d-flex gap-2 search-filter">
                     <button type="button" class="mui-button mui-button-search" onclick="AccountAvailableAdd();">
                         Save
                     </button>
@@ -74,18 +74,21 @@
                         <div class="col-lg-6">
                             <div class="row align-items-center mb-1">
                                 <label for="accountTypeAdd" class="col-sm-4 col-form-label text-sm-end">Account
-                                    Type</label>
+                                    Type<span style="color:red">*</span></label>
                                 <div class="col-sm-8">
-                                    <select id="accountTypeAdd" class="form-select"
+                                    <select id="accountTypeAdd" name="profileAddText" class="form-select"
                                         asp-items="ViewBag.cboAccountType"></select>
+                                    <div class="invalid-feedback"></div>
                                 </div>
                             </div>
 
                             <div class="row align-items-center mb-1">
                                 <label for="accountNumberAdd" class="col-sm-4 col-form-label text-sm-end">Account
-                                    Number</label>
+                                    Number<span style="color:red">*</span></label>
                                 <div class="col-sm-8">
-                                    <input type="text" class="form-control" id="accountNumberAdd">
+                                    <input type="text" name="accountNumberAdd" class="form-control"
+                                        id="accountNumberAdd">
+                                    <div class="invalid-feedback"></div>
                                 </div>
                             </div>
 
@@ -110,11 +113,12 @@
                                 <div class="col-sm-8">
                                     <div class="input-group">
                                         <input id="profileAdd" style="display:none" />
-                                        <input id="profileAddText" class="form-control" />
+                                        <input id="profileAddText" name="profileAddText" class="form-control" />
                                         <button class="mui-button-sm ms-1" type="button"
                                             onclick="openModalSearchProfile()">
                                             <i class="fa fa-search"></i>
                                         </button>
+                                        <div class="invalid-feedback"></div>
                                     </div>
                                 </div>
                             </div>
@@ -435,6 +439,15 @@
                     format: "dd/MM/yyyy"
                 }
             ],
+            onContentReady: function (e) {
+                const grid = e.component;
+                if (grid.getSelectedRowKeys().length === 0) {
+                    const key = grid.getKeyByRowIndex(0);
+                    if (key !== undefined) {
+                        grid.selectRows([key], false);
+                    }
+                }
+            },
             onRowClick: function (e) {
                 const grid = $("#gridContainer").dxDataGrid("instance");
                 grid.selectRows([e.key], false);
@@ -509,12 +522,14 @@
             contentType: false,
             data: formData,
             success: function (data) {
-                if (data.code == 0) {
+                if (data.success == true) {
                     closeModalNew();
                     searchReservation();
-                    showToast('Success', data.msg, true);
+                    showToast('Success', data.message, true);
                 } else {
-                    showToast('Error', data.msg, false);
+                    showToast('Error', data.message, false);
+                    applyValidationErrors(data.errors, "#modalNew");
+
                 }
             },
             error: function (xhr, statusText, err) { }
