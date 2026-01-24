@@ -1067,20 +1067,21 @@ namespace Administration.Controllers
                     .GroupBy(r => r["ID"].ToString())
                     .Select(g => g.First())
                     .Select(d => new {
-                        ID = d["ID"],
-                        Code = d["Code"]?.ToString() ?? "",
-                        Name = d["Name"]?.ToString() ?? "",
-                        TelePhone = d["TelePhone"]?.ToString() ?? "",
-                        Mobile = d["Mobile"]?.ToString() ?? "",
-                        Email = d["Email"]?.ToString() ?? "",
-                        Description = d["Description"]?.ToString() ?? "",
-                        ZoneID = d["ZoneID"],
-                        GroupID = d["GroupID"],
-                        CreatedBy = d["CreatedBy"]?.ToString() ?? "",
-                        CreatedDate = d["CreatedDate"]?.ToString() ?? "",
-                        UpdatedBy = d["UpdatedBy"]?.ToString() ?? "",
-                        UpdatedDate = d["UpdatedDate"]?.ToString() ?? "",
-                        Inactive = d["Inactive"]?.ToString() ?? ""
+
+                        Code = !string.IsNullOrEmpty(d["Code"].ToString()) ? d["Code"] : "",
+                        Name = !string.IsNullOrEmpty(d["Name"].ToString()) ? d["Name"] : "",
+                        Telephone = !string.IsNullOrEmpty(d["Telephone"].ToString()) ? d["Telephone"] : "",
+                        Mobile = !string.IsNullOrEmpty(d["Mobile"].ToString()) ? d["Mobile"] : "",
+                        Email = !string.IsNullOrEmpty(d["Email"].ToString()) ? d["Email"] : "",
+                        Description = !string.IsNullOrEmpty(d["Description"].ToString()) ? d["Description"] : "",
+                        ZoneID = !string.IsNullOrEmpty(d["ZoneID"].ToString()) ? d["ZoneID"] : "",
+                        GroupID = !string.IsNullOrEmpty(d["GroupID"].ToString()) ? d["GroupID"] : "",
+                        CreatedBy = !string.IsNullOrEmpty(d["CreatedBy"].ToString()) ? d["CreatedBy"] : "",
+                        CreatedDate = !string.IsNullOrEmpty(d["CreatedDate"].ToString()) ? d["CreatedDate"] : "",
+                        UpdatedBy = !string.IsNullOrEmpty(d["UpdatedBy"].ToString()) ? d["UpdatedBy"] : "",
+                        UpdatedDate = !string.IsNullOrEmpty(d["UpdatedDate"].ToString()) ? d["UpdatedDate"] : "",
+                        ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"] : "",
+                        Inactive = !string.IsNullOrEmpty(d["Inactive"].ToString()) ? d["Inactive"] : "",
                     }).ToList();
                 return Json(result);
 

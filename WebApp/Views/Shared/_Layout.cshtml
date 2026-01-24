@@ -733,6 +733,7 @@
     DevExpress.localization.locale("vi");
     document.addEventListener('DOMContentLoaded', function () {
         const isDesktop = () => window.innerWidth >= 992;
+        const BOTTOM_THRESHOLD = 40; // px
 
         // ===============================
         //  SUBMENU (CẤP 2) 
@@ -746,31 +747,54 @@
                 if (!isDesktop()) return;
                 clearTimeout(subHideTimeout);
 
-                const rect = item.getBoundingClientRect();
+                const toggle = item.querySelector('.dropdown-submenu-toggle');
+                const rect = toggle.getBoundingClientRect();
+
                 const viewportHeight = window.innerHeight;
 
                 submenu.style.position = 'fixed';
                 submenu.style.display = 'block';
 
-                // Xử lý vị trí NGANG (Left/Right)
+                const submenuHeight = submenu.scrollHeight;
+                const spaceAbove = rect.top;
+
+                const style = window.getComputedStyle(toggle);
+                const paddingTop = parseFloat(style.paddingTop);
+                const borderTop = parseFloat(style.borderTopWidth) || 0;
+
+                let topPos = rect.top + paddingTop + borderTop;
+
+                // Khoảng trống bên dưới
+                const spaceBelow = viewportHeight - rect.bottom;
+
+                // Nếu gần đáy màn hình → dịch lên nhẹ cho đẹp
+                if (spaceBelow < submenuHeight + BOTTOM_THRESHOLD) {
+                    const overflow = submenuHeight - spaceBelow;
+                    topPos -= Math.min(overflow * 0.4, 24); // chỉ kéo lên 40%, tối đa 24px
+                }
+
+                // Chặn cứng không vượt màn hình
+                topPos = Math.min(
+                    Math.max(10, topPos),
+                    viewportHeight - submenuHeight - 10
+                );
+
+                submenu.style.top = topPos + 'px';
+
+
+                // Giới hạn chiều cao + scroll
+                const maxHeight = Math.max(spaceBelow, spaceAbove) - 10;
+                submenu.style.maxHeight = maxHeight + 'px';
+                submenu.style.overflowY = 'auto';
+
+                // Ngang trái / phải
                 let leftPos = rect.right;
-                // Nếu menu tràn ra khỏi màn hình bên phải -> đẩy sang trái
-                if (rect.right + 220 > window.innerWidth) {
-                    leftPos = rect.left - 220;
+                if (rect.right + submenu.offsetWidth > window.innerWidth) {
+                    leftPos = rect.left - submenu.offsetWidth;
                 }
                 submenu.style.left = leftPos + 'px';
 
-                // Xử lý vị trí DỌC (Top)
-                submenu.style.top = rect.top + 'px';
-
-                // Nếu menu dài quá màn hình dưới -> cho phép scroll trong menu con
-                const spaceBelow = viewportHeight - rect.top - 10;
-                submenu.style.maxHeight = spaceBelow + 'px';
-
-                // Thêm class để kích hoạt animation
-                requestAnimationFrame(() => {
-                    submenu.classList.add('menu-open');
-                });
+                requestAnimationFrame(() => submenu.classList.add('menu-open'));
             });
 
             item.addEventListener('mouseleave', () => {
@@ -894,6 +918,7 @@
             }
         });
     });
+
     function showNotification() {
         $("#loadingSpinner").show();
 
