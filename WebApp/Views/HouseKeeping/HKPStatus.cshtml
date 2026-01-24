@@ -55,6 +55,7 @@
     .sticky-header label {
         font-size: 12px !important;
         line-height: 1.2;
+        padding-top: 6px;
     }
 
 
@@ -72,6 +73,37 @@
         background-image: none !important;
         padding-right: 10px !important;
     }
+
+    .status-color {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        display: inline-block;
+        border: 1px solid #ccc;
+        margin-top: 3px;
+    }
+
+    /* Màu theo status */
+    .bg-dirty {
+        background-color: red;
+    }
+
+    .bg-pickup {
+        background-color: #f740f4;
+    }
+
+    .bg-clean-nonchecked {
+        background-color: #1bdff5;
+    }
+
+    .bg-clean {
+        background-color: green;
+    }
+
+    .bg-outoforder {
+        background-color: #cf159a;
+    }
+
 </style>
 <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
@@ -99,24 +131,30 @@
             <div class="d-flex align-items-center flex-wrap mb-2">
                 <label class="fw-bold me-3 mb-1">Change Status:</label>
 
-                <div class="form-check me-3">
-                    <input class="form-check-input " type="checkbox" id="cleannonup" name="masterllioup" value="1">
-                    <label class="form-check-label" for="cleannonup">Clean Non-Checked</label>
+                <div class="form-check me-3 d-flex align-items-center">
+                    <span class="status-color bg-clean-nonchecked"></span>
+                    <input class="form-check-input ms-2" type="checkbox" id="cleannonup" name="masterllioup" value="1">
+                    <label class="form-check-label ms-1" for="cleannonup">Clean Non-Checked</label>
                 </div>
 
-                <div class="form-check me-3">
-                    <input class="form-check-input " type="checkbox" id="dirtyup" name="masterllioup" value="1">
-                    <label class="form-check-label" for="dirtyup">Dirty</label>
+                <div class="form-check me-3 d-flex align-items-center">
+                    <span class="status-color bg-dirty"></span>
+                    <input class="form-check-input ms-2" type="checkbox" id="dirtyup" name="masterllioup" value="1">
+                    <label class="form-check-label ms-1" for="dirtyup">Dirty</label>
                 </div>
 
-                <div class="form-check me-3">
-                    <input class="form-check-input " type="checkbox" id="cleanup" name="masterllioup" value="1" >
-                    <label class="form-check-label" for="cleanup">Clean</label>
+                <div class="form-check me-3 d-flex align-items-center">
+                    <span class="status-color bg-clean"></span>
+                    <input class="form-check-input ms-2" type="checkbox" id="cleanup" name="masterllioup" value="1">
+                    <label class="form-check-label ms-1" for="cleanup">Clean</label>
                 </div>
-                <div class="form-check me-3">
-                    <input class="form-check-input " type="checkbox" id="pickup" name="masterllioup" value="1">
-                    <label class="form-check-label" for="cleanup">Pickup</label>
+
+                <div class="form-check me-3 d-flex align-items-center">
+                    <span class="status-color bg-pickup"></span>
+                    <input class="form-check-input ms-2" type="checkbox" id="pickup" name="masterllioup" value="1">
+                    <label class="form-check-label ms-1" for="pickup">Pickup</label>
                 </div>
+
             </div>
 
         </div>
@@ -180,9 +218,10 @@
 
         $("#gridContainer").dxDataGrid({
             dataSource: data,
+            keyExpr: "id",
             allowColumnResizing: true,
             height: 500,
-            columnAutoWidth: true,
+           columnAutoWidth: false,
             columns: [
                { dataField: "id", caption: "ID", visible: false },
 
@@ -194,7 +233,10 @@
                 { dataField: "createdDate", caption: "Create Date", width: "8%", dataType: "date", format: "dd/MM/yyyy" },
                 { dataField: "updatedDate", caption: "Update Date", width: "9%", dataType: "date", format: "dd/MM/yyyy" }
             ],
-
+            selection: {
+                mode: "multiple",
+                showCheckBoxesMode: "always" // QUAN TRỌNG
+            },
             paging: { pageSize: 25 },
             scrolling: {
                 useNative: true,
@@ -209,7 +251,6 @@
             },
             filterRow: { visible: true, applyFilter: "auto" },
             headerFilter: { visible: true },
-            selection: { mode: "multiple", showCheckBoxesMode: "none" },
             showBorders: true,
             onRowPrepared: function (e) {
                 if (e.rowType === "data") {
@@ -244,33 +285,36 @@
                 }
             },
 
-            onRowClick: onRowClick,
+             onSelectionChanged: function (e) {
+                selectedRoomIds = e.selectedRowKeys;
+                console.log("Selected IDs:", selectedRoomIds);
+             },
 
         });
     }
 
-    function onRowClick(e) {
-        selectedRoomIds = [];
+    // function onRowClick(e) {
+    //     selectedRoomIds = [];
 
-        // L?y grid instance
-        const dataGrid = $("#gridContainer").dxDataGrid("instance");
+    //     // L?y grid instance
+    //     const dataGrid = $("#gridContainer").dxDataGrid("instance");
 
-        // L?y toàn b? data dã ch?n t? DOM (tr, class dx-selection)
-        $("tr.dx-selection").each(function () {
-            const rowIndex = $(this).attr("aria-rowindex");
+    //     // L?y toàn b? data dã ch?n t? DOM (tr, class dx-selection)
+    //     $("tr.dx-selection").each(function () {
+    //         const rowIndex = $(this).attr("aria-rowindex");
 
-            if (rowIndex) {
-                const index = parseInt(rowIndex) - 1; // Vì aria-rowindex b?t d?u t? 1
-                const rowData = dataGrid.getVisibleRows()[index]?.data;
+    //         if (rowIndex) {
+    //             const index = parseInt(rowIndex) - 1; // Vì aria-rowindex b?t d?u t? 1
+    //             const rowData = dataGrid.getVisibleRows()[index]?.data;
 
-                if (rowData && rowData.id) {
-                    selectedRoomIds.push(rowData.id);
-                }
-            }
-        });
+    //             if (rowData && rowData.id) {
+    //                 selectedRoomIds.push(rowData.id);
+    //             }
+    //         }
+    //     });
 
-        console.log("Danh sách ID du?c ch?n:", selectedRoomIds);
-    }
+    //     console.log("Danh sách ID du?c ch?n:", selectedRoomIds);
+    // }
 
     $(document).off("click", "#btnUpdatestatus").on("click", "#btnUpdatestatus", function () {
         if (!selectedRoomIds || selectedRoomIds.length === 0) {
