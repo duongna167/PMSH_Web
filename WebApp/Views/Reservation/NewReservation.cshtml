@@ -150,9 +150,10 @@
                                             <label class="col-md-4 col-form-label text-start pe-0" for="txtDob">Date of
                                                 Birth</label>
                                             <div class="col-md-7">
-                                                <div data-date-input data-format="DD/MM/YYYY" business-date>
+                                                <div data-date-input data-format="DD/MM/YYYY" business-date
+                                                    data-name="txtDob">
                                                     <input type="text" class="date-ui form-control"
-                                                        placeholder="dd/mm/yyyy" autocomplete="off" id="txtDob" />
+                                                        placeholder="dd/mm/yyyy" autocomplete="off" />
                                                 </div>
                                             </div>
                                         </div>
@@ -390,8 +391,8 @@
                                             <label class="col-md-2 col-form-label text-start pe-0"
                                                 for="nights">N</label>
                                             <div class="col-md-7">
-                                                <input type="text" id="nights" class="form-control" readonly
-                                                    style="text-align:right" />
+                                                <input type="number" id="nights" class="form-control"
+                                                    style="text-align:right" / min="1">
                                             </div>
                                         </div>
                                     </div>
@@ -413,7 +414,8 @@
                                     <!-- C -->
                                     <div class="form-group-new-reservation col-md-3">
                                         <div class="input-with-button row g-0 align-items-start">
-                                            <label style=" padding-left: 23px !important;margin-left: 11px !important; " class="col-md-4 col-form-label text-start pe-0" for="c">C</label>
+                                            <label style=" padding-left: 23px !important;margin-left: 11px !important; "
+                                                class="col-md-4 col-form-label text-start pe-0" for="c">C</label>
                                             <div class="col-md-5">
                                                 <input value="0" id="c" class="form-control" style="text-align:right" />
                                             </div>
@@ -1063,30 +1065,53 @@
         $('#modalOption').modal('hide');
     }
     var checkEdit = false;
+
+
     $(document).ready(async function () {
+        await window.initDateInputs();
+
         checkEdit = false;
         var result = @Json.Serialize(ViewBag.Reservation);
         console.log(result);
         $('#btnOption').hide();
         $('#btnClear').show();
         if (result.id != 0) {
+            console.log('đang mode edit');
+
             checkEdit = true;
             idReservation = result.id;
-            setUpReservation(result);
+            await setUpReservation(result);
             $('#btnOption').show();
             $('#btnClear').hide();
         }
 
         getBusinessDate();
         setUpIconClear();
-        if (typeof window.initDateInputs === 'function') {
-            window.initDateInputs();
-        }
         // await setTomSelect();
         roomNowuk = result.roomNo;
     });
 
-    function setUpReservation(result) {
+
+
+    async function setUpReservation(result) {
+
+        let arrivalDate = $('#arrival').val();
+        let departureDate = $('#departure').val();
+        let txtDob = $('#txtDob').val();
+
+        // CHỈ fallback NẾU THẬT SỰ RỖNG
+        if (!arrivalDate || !departureDate || !txtDob) {
+            arrivalDate = await waitForBusinessDate("arrival", 10000);
+            departureDate = await waitForBusinessDate("departure", 10000);
+            txtDob = await waitForBusinessDate("txtDob", 10000);
+        }
+
+        if (!arrivalDate || !departureDate || !txtDob) {
+            console.log("Không tải được ngày mặc định.");
+            return false;
+        }
+
+
         profileIndividualID = result.profileIndividualId;
         if (result.printRate === true) {
             document.getElementById("txtPrintRate").checked = true;
@@ -1128,8 +1153,10 @@
 
 
             if (idReservationRoomplan == idReservation) {
-                $("#arrival").val(startDate);
-                $("#departure").val(endDate);
+                @* $("#arrival").val(startDate);
+                $("#departure").val(endDate); *@
+                UI.setHiddenDate("arrival", startDate);
+                UI.setHiddenDate("departureInvoice", endDate);
                 $("#roomSelect").val(roomNo);
                 $("#txtRoomType").val(roomTypeId);
 
@@ -1137,20 +1164,23 @@
                 localStorage.removeItem("ReservationRoomPlan");
             } else {
 
-                $("#arrival").val(result.arrivalDate.split("T")[0]);
-                $("#departure").val(result.departureDate.split("T")[0]);
+                @* $("#arrival").val(result.arrivalDate.split("T")[0]);
+                $("#departure").val(result.departureDate.split("T")[0]); *@
+                UI.setHiddenDate("arrival", result.arrivalDate.split("T")[0]);
+                UI.setHiddenDate("departure", result.departureDate.split("T")[0]);
                 $("#roomSelect").val(result.roomNo);
                 $("#txtRoomType").val(result.roomTypeId);
             }
         }
         else {
             // fallback nếu localStorage trống
-            $("#arrival").val(result.arrivalDate.split("T")[0]);
-            $("#departure").val(result.departureDate.split("T")[0]);
+            @* $("#arrival").val(result.arrivalDate.split("T")[0]);
+            $("#departure").val(result.departureDate.split("T")[0]); *@
+            UI.setHiddenDate("arrival", result.arrivalDate.split("T")[0]);
+            UI.setHiddenDate("departure", result.departureDate.split("T")[0]);
             $("#roomSelect").val(result.roomNo);
             $("#txtRoomType").val(result.roomTypeId);
         }
-
         $("#adults").val(result.noOfAdult);
         $("#c").val(result.noOfChild);
         $("#c1").val(result.noOfChild1);
@@ -1548,38 +1578,79 @@
     //     updateDates();
     // };
     // Lắng nghe sự kiện thay đổi ngày
-    $(document).on('change', '#arrivalShow', function () {
-        const arrivalDate = new Date(this.value);
 
-        const nights = parseInt($('#nights').val()) || 1;
-        const newDeparture = new Date(this.value);
-        newDeparture.setDate(newDeparture.getDate() + nights);
+    let isSyncingDates = false;
 
-        if (newDeparture <= arrivalDate) {
-            newDeparture.setDate(arrivalDate.getDate() + 1);
-        }
+    $(document).on('change', '#arrivalShow', async function () {
+        if (isSyncingDates) return;
 
-        $('#departure').val(formatDate(newDeparture));
+        isSyncingDates = true;
+        // 1. Lấy số đêm
+        const nights = parseInt($('#nights').val(), 10) || 1;
+
+        // 2. Chờ arrival ISO từ hidden (nguồn sự thật)
+        const arrivalIso = await waitForBusinessDate("arrival");
+        // ví dụ: "2025-02-10"
+
+        // 3. Tính departure ISO dựa trên arrival ISO
+        const departureIso = UI.addDaysIso(arrivalIso, nights);
+
+        // 4. Set lại hidden + đồng bộ UI qua DateInput
+        UI.setHiddenDate("departure", departureIso);
+
+        // 5. Cập nhật logic liên quan khác
         updateDates();
+        isSyncingDates = false;
     });
 
-    $(document).on('change', '#departureShow', function () {
 
-        const departureDateStr = $('#departure').val(); // Chuỗi YYYY-MM-DD
-        const arrivalDateStr = $('#arrival').val(); // Chuỗi YYYY-MM-DD
+    $(document).on('change', '#departureShow, #nights', async function (e) {
+        if (isSyncingDates) return;
+        isSyncingDates = true;
 
-        const departureDate = new Date(departureDateStr);
-        const arrivalDate = new Date(arrivalDateStr);
+        try {
+            const targetId = e.target.id; // Kiểm tra xem cái nào vừa bị thay đổi
+            const arrivalIso = $('#arrival').val() || await waitForBusinessDate("arrival");
+            let departureIso = $('#departure').val();
+            const nights = parseInt($('#nights').val(), 10) || 1;
 
+            // TRƯỜNG HỢP 1: Người dùng thay đổi NGÀY ĐI (Departure)
+            if (targetId === 'departureShow') {
+                if (arrivalIso && departureIso) {
+                    if (departureIso <= arrivalIso) {
+                        // Nếu chọn ngày đi <= ngày đến: Giữ nguyên số đêm, lùi ngày đến lại
+                        const currentNights = nights > 0 ? nights : 1;
+                        const newArrival = UI.addDaysIso(departureIso, -currentNights);
+                        UI.setHiddenDate("arrival", newArrival);
+                    } else {
+                        // Nếu ngày đi hợp lệ: Tính lại số đêm
+                        calculateNights();
+                    }
+                }
+            }
 
-        if (departureDateStr && arrivalDateStr && !isNaN(departureDate) && !isNaN(arrivalDate) && departureDate <= arrivalDate) {
-            console.log('a');
-            let date = new Date(arrivalDate);
-            date.setDate(date.getDate() + 1);
-            $('#departure').val(date.toISOString().split('T')[0]);
+            // TRƯỜNG HỢP 2: Người dùng thay đổi SỐ ĐÊM (Nights)
+            else if (targetId === 'nights') {
+                if (arrivalIso && !isNaN(nights)) {
+                    if (nights < 1) {
+                        nights = 1;
+                        $('#nights').val(1);
+
+                    }
+                    // Giữ nguyên ngày đến, đẩy ngày đi ra xa theo số đêm
+                    const newDeparture = UI.addDaysIso(arrivalIso, nights);
+                    UI.setHiddenDate("departure", newDeparture);
+                }
+            }
+
+            // Cuối cùng cập nhật lại Thứ hiển thị và các logic phụ
+            updateDates();
+
+        } catch (error) {
+            console.error("Lỗi cập nhật ngày tháng:", error);
+        } finally {
+            isSyncingDates = false;
         }
-
-        updateDates();
     });
 
     numRoomsInput = document.getElementById('numRooms');

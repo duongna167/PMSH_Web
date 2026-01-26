@@ -134,7 +134,7 @@ namespace BaseBusiness.BO
             string typeS = "";
             if (type == "0")
             {
-                typeS = "1";
+                typeS = "0";
             }
             if (string.IsNullOrEmpty(type))
             {
@@ -143,17 +143,17 @@ namespace BaseBusiness.BO
             //Company
             else if (type == "1")
             {
-                typeS = "2";
+                typeS = "1";
             }
             //Source
             else if (type == "2")
             {
-                typeS = "3";
+                typeS = "2";
             }
             //Individual
             else if (type == "3")
             {
-                typeS = "0";
+                typeS = "3";
             }
             //Group
             else if (type == "4")

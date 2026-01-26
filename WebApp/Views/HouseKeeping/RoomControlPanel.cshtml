@@ -185,10 +185,10 @@
 <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
 <div class="text-center" id="reportTitle" style="font-size: 20px">Room Control Panel</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
+<div class="search-filter">
     <div class="">
         <button id="btnPrint" class="mui-button mui-button-new">View</button>
-        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">   Excel</button>
+        <button id="btnExportExcel" class="mui-button mui-button-new" type="button"> Excel</button>
         <button id="btnExportPdf" class="mui-button mui-button-new" type="button">
             PDF
         </button>
@@ -198,8 +198,6 @@
         <div class="d-flex flex-column ">
 
             <div class="d-flex align-items-center">
-                <label class="fw-bold me-3">View by:</label>
-
                 <div class="d-flex align-items-center me-3">
                     <label class="me-2 mb-0">Zone:</label>
                     <select id="zone" name="zone" class="tomselect-custom" multiple>
@@ -217,8 +215,6 @@
                     </select>
 
                 </div>
-
-
             </div>
         </div>
         <div class="d-flex flex-column ">
@@ -226,20 +222,29 @@
             <div class="d-flex align-items-center">
                 <div class="d-flex align-items-center me-3">
                     <label class="me-2 mb-0">From :</label>
-                    <input type="date" id="fromDate" name="fromDate" class="form-control form-control-sm w-auto" />
+                    <div class="col-12 col-md-8">
+                        <div class="clearable" data-date-input data-format="DD/MM/YYYY" business-date
+                            data-name="fromDate">
+                            <input type="text" class="date-ui form-control clearable" placeholder="dd/mm/yyyy"
+                                autocomplete="off" />
+                        </div>
+                    </div>
                 </div>
 
                 <div class="d-flex align-items-center me-3">
                     <label class="me-2 mb-0">To :</label>
-                    <input type="date" id="toDate" name="toDate" class="form-control form-control-sm w-auto" />
+                    <div class="col-12 col-md-8">
+                        <div class="clearable" data-date-input data-format="DD/MM/YYYY" business-date
+                            data-name="toDate">
+                            <input type="text" class="date-ui form-control clearable" placeholder="dd/mm/yyyy"
+                                autocomplete="off" />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-
-
-
     </div>
- 
+
 </div>
 
 <div class="mui-card">
@@ -251,20 +256,12 @@
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 <script>
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        let day = date.getDate().toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        return `${year}-${month}-${day}`;
-    }
-
     $(document).ready(function () {
-           getBusinessDate();
-
         initializeTomSelects();
 
-
+        getBusinessDate();
     });
+
     function getBusinessDate() {
         return $.ajax({
             url: '/Reservation/GetBusinessDate',
@@ -274,7 +271,7 @@
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
 
-                 const fromDateStr = result.split('T')[0];
+                const fromDateStr = result.split('T')[0];
                 const fromDate = new Date(fromDateStr);
 
                 // cộng thêm 13 ngày
@@ -286,7 +283,7 @@
 
                 $('#fromDate').val(fromDateStr);
                 $('#toDate').val(toDateStr);
-                      $("#btnPrint").trigger("click");
+                $("#btnPrint").trigger("click");
             },
             error: function (xhr, statusText, err) {
                 if (xhr.status == 401) {
@@ -294,6 +291,13 @@
                 }
             }
         });
+    }
+
+    function formatDate(date) {
+        let year = date.getFullYear();
+        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
+        let day = date.getDate().toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
+        return `${year}-${month}-${day}`;
     }
     function initializeTomSelects() {
         const selectors = ["#zone"];
@@ -328,7 +332,7 @@
             data: {
                 fromDate: $("#fromDate").val(),
                 toDate: $("#toDate").val(),
-              zone: $("#zone").val().join(",")
+                zone: $("#zone").val().join(",")
             },
             traditional: true,
             crossDomain: false,
@@ -341,7 +345,7 @@
                 $("#loadingSpinner").hide();
             },
             error: function () {
-                alert("Không th? t?i báo cáo.");
+                showToast("Error", "Unable to load data.", false);
                 $("#loadingSpinner").hide();
             }
         });
@@ -445,7 +449,7 @@
         const grid = $("#gridContainer").dxDataGrid("instance"); var selectedReport2 = '@ViewBag.ReportTitle';
         var selectedReport = '@ViewBag.ReportTitle';
         if (!selectedReport) {
-            alert("Vui lòng ch?n báo cáo tru?c khi xu?t Excel.");
+            showToast("Error", "Please select the report before exporting to Excel.", false);
             return;
         }
 
@@ -453,7 +457,7 @@
         const worksheet = workbook.addWorksheet("Sheet 1");
 
         // === T?o header công ty (dòng 1) ===
-        worksheet.addRow(['Công ty C? ph?n Gi?i pháp Công ngh? CS-Solution']);
+        worksheet.addRow(['Công ty Cổ phần Giải pháp Công nghệ CS-Solution']);
         worksheet.mergeCells('A1:E1');
         worksheet.getRow(1).font = { bold: true };
         worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
