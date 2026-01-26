@@ -2,57 +2,125 @@
 @using Reservation.Dto
 @* <link href="~/css/pages/reservation.css" rel="stylesheet" asp-append-version="true" /> *@
 @model List<ReservationSearchDTO>
-<div class="mt-3">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="header" style="justify-content:center">
-                <h3 id="content-title">Group Admin</h3>
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#groupAdminModal">
+    Open Group Admin
+</button>
+
+<div class="modal fade" id="groupAdminModal" tabindex="-1" aria-labelledby="groupAdminModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="groupAdminModalLabel">Group Admin</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="function-menu mui-card">
 
-                <a href="#">Advance</a>
-                <a href="#">Cancel</a>
-                <a href="#" onclick="openModalSplit();">Split</a>
-                <div class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">Room Assignment</a>
-                    <div class="dropdown-menu-custom-rsv">
-                        <a href="#" onclick="openRoomAssignment();" id="assignRoom">Assignment</a>
-                        <a href="#" onclick="openConfirmRoomUnAssign();" id="unAssignRoom">UnAssign</a>
-                        <a href="#" onclick="openModalAutoRoomAssignment();">Auto Room Assignment</a>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="function-menu mui-card p-2 border-bottom mb-3">
+                                <a href="#" class="btn btn-sm btn-light">Advance</a>
+                                <a href="#" class="btn btn-sm btn-light">Cancel</a>
+                                <a href="#" class="btn btn-sm btn-light" onclick="openModalSplit();">Split</a>
 
-                    </div>
-                </div>
-                <div class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">Check In</a>
-                    <div class="dropdown-menu-custom-rsv">
-                        <a href="#" onclick="checkinGroup">Check In</a>
-                        <a href="#" onclick="openModalGroupCheckIn();">Group Check In</a>
+                                <div class="btn-group">
+                                    <a href="#" class="btn btn-sm btn-light dropdown-toggle"
+                                        data-bs-toggle="dropdown">Room Assignment</a>
+                                    <div class="dropdown-menu">
+                                        <a class="dropdown-item" href="#" onclick="openRoomAssignment();"
+                                            id="assignRoom">Assignment</a>
+                                        <a class="dropdown-item" href="#" onclick="openConfirmRoomUnAssign();"
+                                            id="unAssignRoom">UnAssign</a>
+                                        <a class="dropdown-item" href="#" onclick="openModalAutoRoomAssignment();">Auto
+                                            Room Assignment</a>
+                                    </div>
+                                </div>
 
-                    </div>
-                </div>
-                <a href="#" onclick="roomSharer();">Room Sharer</a>
-                <div class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">Display</a>
-                    <div class="dropdown-menu-custom-rsv">
-                        <a href="#" onclick="filterDisplay(2)">Reservation</a>
-                        <a href="#" onclick="filterDisplay(1)">Guest In House</a>
-                        <a href="#" onclick="filterDisplay(6)">Checked Out</a>
-                        <a href="#" onclick="filterDisplay(7)">Cancellation</a>
-                        <a href="#" onclick="filterDisplay(9)">Wait List</a>
-                        <a href="#" onclick="filterDisplay(8)">NoShow</a>
-                        <a href="#" onclick="filterDisplay(0)">General</a>
+                                <div class="btn-group">
+                                    <a href="#" class="btn btn-sm btn-light dropdown-toggle"
+                                        data-bs-toggle="dropdown">Check In</a>
+                                    <div class="dropdown-menu">
+                                        <a class="dropdown-item" href="#" onclick="checkinGroup">Check In</a>
+                                        <a class="dropdown-item" href="#" onclick="openModalGroupCheckIn();">Group Check
+                                            In</a>
+                                    </div>
+                                </div>
+
+                                <a href="#" class="btn btn-sm btn-light" onclick="roomSharer();">Room Sharer</a>
+
+                                <div class="btn-group">
+                                    <a href="#" class="btn btn-sm btn-light dropdown-toggle"
+                                        data-bs-toggle="dropdown">Display</a>
+                                    <div class="dropdown-menu">
+                                        <a class="dropdown-item" href="#" onclick="filterDisplay(2)">Reservation</a>
+                                        <a class="dropdown-item" href="#" onclick="filterDisplay(1)">Guest In House</a>
+                                        <a class="dropdown-item" href="#" onclick="filterDisplay(6)">Checked Out</a>
+                                        <a class="dropdown-item" href="#" onclick="filterDisplay(7)">Cancellation</a>
+                                        <a class="dropdown-item" href="#" onclick="filterDisplay(9)">Wait List</a>
+                                        <a class="dropdown-item" href="#" onclick="filterDisplay(8)">NoShow</a>
+                                        <a class="dropdown-item" href="#" onclick="filterDisplay(0)">General</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="gridContainer" class="mt-2 gridContainer mui-card" style="min-height: 400px;">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div id="gridContainer" class="mt-2 gridContainer mui-card"></div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>
-
 @await Html.PartialAsync("GroupAdmin/GroupCheckIn")
 @await Html.PartialAsync("Options/RoomAssignment")
 <script>
+    // Khai báo biến toàn cục
+    var groupAdminModalInstance;
 
+    // Đảm bảo chỉ khởi tạo khi tài liệu đã sẵn sàng
+    $(document).ready(function () {
+        var modalElement = document.getElementById('groupAdminModal');
+
+        // Kiểm tra nếu bootstrap đã load
+        if (typeof bootstrap !== 'undefined') {
+            groupAdminModalInstance = new bootstrap.Modal(modalElement);
+        } else {
+            console.error("Lỗi: Thư viện Bootstrap chưa được tải. Hãy kiểm tra lại file layout hoặc CDN.");
+        }
+
+        // Xử lý lỗi vỡ Grid khi mở Modal
+        modalElement.addEventListener('shown.bs.modal', function () {
+            // Force DevExtreme grid vẽ lại cho đúng kích thước modal
+            if ($("#gridContainer").dxDataGrid("instance")) {
+                $("#gridContainer").dxDataGrid("instance").repaint();
+            }
+        });
+    });
+
+    // Function để MỞ modal (Sửa lại tên gọi cho đồng nhất)
+    function openGroupAdmin() {
+        if (groupAdminModalInstance) {
+            groupAdminModalInstance.show();
+        } else {
+            // Fallback nếu object chưa kịp khởi tạo
+            $('#groupAdminModal').modal('show');
+        }
+    }
+
+    // Function để ĐÓNG modal
+    function closeGroupAdmin() {
+        if (groupAdminModalInstance) {
+            groupAdminModalInstance.hide();
+        } else {
+            $('#groupAdminModal').modal('hide');
+        }
+    }
 
     var idReservation = 0;
     var isPseudo = 0;
@@ -60,7 +128,7 @@
     var shareRoom = 0;
     var reservationStatus = 0;
     var noOfRoom = 0;
-    var mg ='';
+    var mg = '';
     var status = '';
     var roomStatus = '';
     var roomNo = '';
@@ -75,11 +143,11 @@
     $(document).ready(async function () {
         var result = @Json.Serialize(ViewBag.Reservation);
         idReservation = result[0].ID;
-        setDateAssign(result[0].Arrival,result[0].Departure);
+        setDateAssign(result[0].Arrival, result[0].Departure);
 
         initializeDataGridSearch(result);
     });
-    function setDateAssign(arrivalDate,departure){
+    function setDateAssign(arrivalDate, departure) {
         const date = new Date(arrivalDate);
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -110,7 +178,7 @@
         const radio = document.querySelector(`input[type="radio"][name="${name}"]:checked`);
         return radio ? radio.value : null;
     }
-     function initializeDataGridSearch(data) {
+    function initializeDataGridSearch(data) {
         console.log(data);
         listData = data;
 
@@ -140,30 +208,30 @@
             selection: {
                 mode: "single"
             },
-            onRowDblClick: function(e) {
+            onRowDblClick: function (e) {
                 openModalEdit(e.data.id);
             },
-            onRowClick: function(e) {
+            onRowClick: function (e) {
                 // Giữ nguyên phần onRowClick của bạn
                 idReservation = e.data.ID;
                 mg = e.data.MG;
                 var html = ``;
-                if(e.data.ProfileComment != ''){
+                if (e.data.ProfileComment != '') {
                     html += `<span style="margin:0;padding:0">-${e.data.ProfileComment}</span>`;
                 }
-                if(e.data.CommentGroup != ''){
+                if (e.data.CommentGroup != '') {
                     html += `<span style="margin:0;padding:0">-${e.data.CommentGroup}</span>`;
                 }
-                if(e.data.DepositRequest != ''){
+                if (e.data.DepositRequest != '') {
                     html += `<span style="margin:0;padding:0">-${e.data.DepositRequest}</span>`;
                 }
-                if(e.data.FixedCharge != ''){
+                if (e.data.FixedCharge != '') {
                     html += `<span style="margin:0;padding:0">-${e.data.FixedCharge}</span>`;
                 }
-                if(e.data.ItemInventory != ''){
+                if (e.data.ItemInventory != '') {
                     html += `<span style="margin:0;padding:0">-${e.data.ItemInventory}</span>`;
                 }
-                if(e.data.Specials != ''){
+                if (e.data.Specials != '') {
                     html += `<span style="margin:0;padding:0">-${e.data.Specials}</span>`;
                 }
                 listReservationByConfirmationNo = listData.filter(item => item.ConfirmationNo === e.data.ConfirmationNo);
@@ -180,10 +248,10 @@
                 lastname = e.data.GuestName;
                 reservationStatus = e.data.ReservationStatus;
                 roomID = e.data.RoomID;
-                noOfRoom= e.data.NoOfRoom;
-                isPseudo= e.data.IsPseudo;
+                noOfRoom = e.data.NoOfRoom;
+                isPseudo = e.data.IsPseudo;
                 // Xử lý disable/enable button assign room
-                if(e.data.NoOfRoom != '1'){
+                if (e.data.NoOfRoom != '1') {
                     ['assignRoom', 'unAssignRoom'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) {
@@ -203,7 +271,7 @@
                     });
                 }
 
-                if(e.data.roomID == 0){
+                if (e.data.roomID == 0) {
                     ['unAssignRoom'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) {
@@ -287,13 +355,13 @@
         });
     }
 
-    function roomSharer(){
+    function roomSharer() {
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
         formData.append('rsvID', idReservation);
         formData.append('userName', userName);
-        formData.append('userID',userID);
+        formData.append('userID', userID);
 
         $.ajax({
             url: '/Reservation/RoomSharer',
@@ -316,20 +384,20 @@
             }
         });
     }
-     function checkinGroup(){
+    function checkinGroup() {
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
         formData.append('rsvID', idReservation);
         formData.append('userName', userName);
-        formData.append('userID',userID);
-        formData.append('mg',mg);
-        formData.append('arivalDate',arivalDate);
-        formData.append('shareRoom',shareRoom);
-        formData.append('reservationStatus',reservationStatus);
-        formData.append('roomID',roomID);
-        formData.append('noOfRoom',noOfRoom);
-        formData.append('isPseudo',isPseudo);
+        formData.append('userID', userID);
+        formData.append('mg', mg);
+        formData.append('arivalDate', arivalDate);
+        formData.append('shareRoom', shareRoom);
+        formData.append('reservationStatus', reservationStatus);
+        formData.append('roomID', roomID);
+        formData.append('noOfRoom', noOfRoom);
+        formData.append('isPseudo', isPseudo);
         $.ajax({
             url: '/Reservation/CheckinGroup',
             type: 'POST',
@@ -352,44 +420,44 @@
         });
     }
 
-    function filterDisplay(type){
+    function filterDisplay(type) {
         //general
-        if(type == 0){
-            var listItem = listData.filter(item => item.ReservationStatus != 3 && item.ReservationStatus != 4 && item.ReservationStatus != 7 );
+        if (type == 0) {
+            var listItem = listData.filter(item => item.ReservationStatus != 3 && item.ReservationStatus != 4 && item.ReservationStatus != 7);
             initializeDataGridSearch(listItem);
         }
         //guest in house
-        if(type == 1){
+        if (type == 1) {
             var listItem = listData.filter(item => item.ReservationStatus == 1 || item.ReservationStatus == 6);
             initializeDataGridSearch(listItem);
         }
         //reservation
-        if(type == 2){
+        if (type == 2) {
             var listItem = listData.filter(item => item.ReservationStatus == 0 || item.ReservationStatus == 5);
             initializeDataGridSearch(listItem);
         }
         // checked out
-        if(type == 6){
+        if (type == 6) {
             var listItem = listData.filter(item => item.ReservationStatus == 2);
             initializeDataGridSearch(listItem);
         }
         //cancellation
-        if(type == 7){
+        if (type == 7) {
             var listItem = listData.filter(item => item.ReservationStatus == 3);
             initializeDataGridSearch(listItem);
         }
         //wait list
-        if(type == 9){
+        if (type == 9) {
             var listItem = listData.filter(item => item.ReservationStatus == 4);
             initializeDataGridSearch(listItem);
         }
         //noshow
-        if(type == 8){
+        if (type == 8) {
             var listItem = listData.filter(item => item.ReservationStatus == 7);
             initializeDataGridSearch(listItem);
         }
     }
-    function assignAutoRoom(){
+    function assignAutoRoom() {
         var grid = $("#gridContainer").dxDataGrid("instance");
         var dataSource = grid.getDataSource();
         var data = dataSource.items();
@@ -398,19 +466,19 @@
             url: '/Reservation/AssignAutoRoom',
             type: 'post',
             dataType: 'json',
-            data:{
+            data: {
                 listRsvID: selectedIds,
                 listRoom: unselectedRows.map(row => row.roomNo),
             },
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                if(result.code == 0){
+                if (result.code == 0) {
                     showToast('Success', result.msg, true);
                     $('#statusAutoRoom').val(result.roomSelected);
                     redirectGroupAdmin(data.map(row => row.ConfirmationNo)[0])
                 }
-                else{
+                else {
                     showToast('Error', result.msg, false);
 
                 }
@@ -429,14 +497,14 @@
             url: '/Reservation/EncryptId',
             type: 'POST',
             data: { id: confirmationNo },
-            success: function(response) {
+            success: function (response) {
                 if (response.success) {
                     window.location.href = '/Reservation/GroupAdmin?key=' + encodeURIComponent(response.encryptedId);
                 } else {
                     alert('Lỗi khi mã hóa ID');
                 }
             },
-            error: function() {
+            error: function () {
                 alert('Lỗi khi gọi API mã hóa');
             }
         });
