@@ -402,6 +402,23 @@ UI.setHiddenDate = function (name, iso) {
   }
 };
 
+/**
+ * UI.addDaysIso
+ * ----------------
+ * Nhận ISO
+ *  Trả ISO
+ *  Không liên quan UI
+ *  Không phụ thuộc locale
+ * Mục đích:
+ * - Dùng cho tính toán ngày Night
+ * */
+UI.addDaysIso = function (isoDate, days) {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const date = new Date(y, m - 1, d + 1);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split("T")[0];
+};
+
 // Hàm nào cần hãy gọi để luôn sẵn sàng
 $(document).ready(async function () {
   var tooltipTriggerList = [].slice.call(

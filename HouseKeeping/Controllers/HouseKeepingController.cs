@@ -99,7 +99,12 @@ namespace HouseKeeping.Controllers
             }
             catch (Exception ex)
             {
-                return Json(ex.Message);
+                return Json(new
+                {
+                    success = false,
+                    error = "Execution Timeout",
+                    detail = ex.Message
+                });
             }
         }
         #endregion
@@ -122,7 +127,7 @@ namespace HouseKeeping.Controllers
             {
                 zone = FormatIdList(zone);
                 DataTable dataTable = _iHouseKeepingService.RoomFacilityForecastData(fromDate, toDate, zone);
-               
+
                 // Tạo danh sách các ngày trong khoảng fromDate -> toDate
                 var dateRange = Enumerable.Range(0, (toDate - fromDate).Days + 1)
                                           .Select(offset => fromDate.AddDays(offset))
@@ -674,7 +679,7 @@ namespace HouseKeeping.Controllers
             result[1] = paraDateConvert;
             return result;
         }
-        
+
         #region RoomStatus
         public IActionResult RoomStatus()
         {
@@ -1662,7 +1667,7 @@ namespace HouseKeeping.Controllers
             }
         }
         #endregion
-        
+
         #region FloorPlan
         public IActionResult FloorPlan()
         {
@@ -1802,7 +1807,7 @@ namespace HouseKeeping.Controllers
                               select new
                               {
                                   ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"].ToString() : "",
-                                  AttendantDate = d["AttendantDate"] == DBNull.Value  ? "" : Convert.ToDateTime(d["AttendantDate"]).ToString("dd/MM/yyyy"),
+                                  AttendantDate = d["AttendantDate"] == DBNull.Value ? "" : Convert.ToDateTime(d["AttendantDate"]).ToString("dd/MM/yyyy"),
                                   AttendantID = d["AttendantID"]?.ToString() ?? "",
                                   Points = d["Points"]?.ToString() ?? "",
                                   CreatedBy = d["CreatedBy"]?.ToString() ?? "",
@@ -2873,13 +2878,13 @@ namespace HouseKeeping.Controllers
             List<FloorModel> listfloor = PropertyUtils.ConvertToList<FloorModel>(FloorBO.Instance.FindAll());
             ViewBag.RoomList = filteredRoomList;
             ViewBag.FloorList = listfloor;
-         
+
             List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
             ViewBag.ZoneList = listzo;
             return View();
         }
         [HttpGet]
-        public IActionResult GuestServiceStatusData(int  servicestatsu, string room, string roomStatus, string zone)
+        public IActionResult GuestServiceStatusData(int servicestatsu, string room, string roomStatus, string zone)
         {
             try
             {
@@ -4443,7 +4448,7 @@ namespace HouseKeeping.Controllers
         #region HKPStatusData
         public IActionResult HKPStatus()
         {
-        
+
             return View();
         }
 
@@ -4454,7 +4459,7 @@ namespace HouseKeeping.Controllers
             {
                 string sql = @"SELECT  [Room Status] = [dbo].[fnGetHkpStatus](r.HKStatusID),z.Code, r.* FROM Room r WITH (NOLOCK) left JOIN Zone z WITH (NOLOCK) ON r.ZoneID = z.ID WHERE r.HKStatusID IN (1,2,3,4)";
 
-              
+
 
                 DataTable dt = TextUtils.Select(sql);
                 var result = (from d in dt.AsEnumerable()
