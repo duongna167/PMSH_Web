@@ -22,7 +22,7 @@ namespace Billing.Services.Implements
                     new SqlParameter("@GuestStatus", guestStatus),
 
                      new SqlParameter("@FolioStatus", folioStatus),
-                    new SqlParameter("@FolioType", folioType),
+                     new SqlParameter("@FolioType", folioType),
                      new SqlParameter("@Name", name ?? ""),
                      new SqlParameter("@Room", room ?? ""),
                      new SqlParameter("@FolioNo", folioNo ?? ""),
