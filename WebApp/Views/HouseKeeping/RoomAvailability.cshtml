@@ -9,126 +9,168 @@
 }
 @* <link asp-append-version="true" href="~/css/reservation.css" rel="stylesheet" /> *@
 
+<style>
+    .tomselect-custom .ts-control {
+        width: 200px; /* CỐ ĐỊNH NGANG */
+        max-height: 32px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start; /* tránh bị căn giữa gây giãn */
+        box-sizing: border-box;
+    }
+
+        /* Item đã chọn */
+        .tomselect-custom .ts-control .item {
+            max-width: 100%;
+            white-space: nowrap;
+        }
+
+        /* Input tìm kiếm */
+        .tomselect-custom .ts-control input {
+            flex: 0 0 80px; /* KHÔNG GIÃN NGANG */
+            min-width: 80px;
+            max-width: 80px;
+        }
+
+</style>
+
 
 <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
-<div class="search-filter">
-    <div>
-        <button id="btnPrint" class="mui-button mui-button-new">View</button>
-        <button id="btnExportExcel" class="mui-button mui-button-new" type="button"> Excel</button>
-    </div>
-    <div class="d-flex flex-wrap align-items-center gap-2 mt-1 filter-panel">
-        <!-- From Date -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" >
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
 
-        <div class="d-flex flex-column ">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="reportTitle" style="font-size:20px">Room Availability</h5>
+            </div>
 
-            <div class="d-flex align-items-center">
-                <div class="d-flex align-items-center me-3">
-                    <label class="me-2 mb-0">From :</label>
-                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
-                        <input type="text" class="date-ui form-control" placeholder="dd/mm/yyyy" autocomplete="off" />
+            <!-- Modal Body -->
+            <div class="modal-body">
+            <div class="search-filter">
+                <div>
+                    <button id="btnPrint" class="mui-button mui-button-new">View</button>
+                    <button id="btnExportExcel" class="mui-button mui-button-new" type="button"> Excel</button>
+                        <button  id="btnCloseAva" class="mui-button mui-button-new" type="button"> Close</button>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-1 filter-panel">
+                    <!-- From Date -->
+
+                    <div class="d-flex flex-column ">
+
+                        <div class="d-flex align-items-center">
+                            <div class="d-flex align-items-center me-3">
+                                <label class="me-2 mb-0">From :</label>
+                                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
+                                    <input type="text" class="date-ui " placeholder="dd/mm/yyyy" autocomplete="off" />
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center me-3">
+                                <label class="me-2 mb-0">Display No of Days:</label>
+                                <select id="displayofday" name="displayofday" class="form-control form-control-sm w-auto">
+                                    <option value="0"></option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="10">10</option>
+                                    <option value="15">15</option>
+                                    <option value="20">20</option>
+                                    <option value="28">28</option>
+                                    <option value="30">30</option>
+                                    <option value="31">31</option>
+                                </select>
+                            </div>
+
+                            <div class="d-flex align-items-center me-3">
+                                <label class="me-2 mb-0">Zone:</label>
+                                <select id="zone" name="zone" class="tomselect-custom" multiple>
+                                    @foreach (var item in zoneList)
+                                    {
+                                        if (item == zoneList[0])
+                                        {
+                                            <option value="@item.Code" selected>@item.Code</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@item.Code">@item.Code</option>
+                                        }
+                                    }
+                                </select>
+
+                            </div>
+
+                            <div class="d-flex align-items-center me-3">
+                                <label class="me-2 mb-0">Res.Type:</label>
+                                <select id="restype" name="restype" class="tomselect-custom" multiple>
+                                    @foreach (var item in restyList)
+                                    {
+                                        <option value="@item.ID">@item.Name</option>
+                                    }
+                                </select>
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-column">
+                        <div class="d-flex align-items-center me-3">
+
+                            <!-- Show Non Deduct -->
+                            <div class="d-flex align-items-center me-3">
+                                <span class="status-color-box color-clean-uncheck"></span>
+                                <input type="checkbox" id="showNonDeduct" name="includeOptions" value="1">
+                                <label class="form-check-label" for="showNonDeduct">Show Non Deduct</label>
+                            </div>
+
+                            <!-- Show %Occ3 -->
+                            <div class="d-flex align-items-center me-3">
+                                <input type="checkbox" id="showOcc3" name="includeOptions" value="1">
+                                <label class="form-check-label" for="showOcc3">Show %Occ3</label>
+                            </div>
+
+                            <!-- Show Room Night -->
+                            <div class="d-flex align-items-center me-3">
+                                <input type="checkbox" id="showRoomNight" name="includeOptions" value="1">
+                                <label class="form-check-label" for="showRoomNight">Show Room Night</label>
+                            </div>
+
+                            <!-- Include Out of Order -->
+                            <div class="d-flex align-items-center me-3">
+                                <input type="checkbox" id="includeOutOfOrder" name="includeOptions" value="1" checked>
+                                <label class="form-check-label" for="includeOutOfOrder">Include Out of Order</label>
+                            </div>
+
+                            <!-- Include Overbooking -->
+                            <div class="d-flex align-items-center me-3">
+                                <input type="checkbox" id="includeOverbooking" name="includeOptions" value="1">
+                                <label class="form-check-label" for="includeOverbooking">Include Overbooking</label>
+                            </div>
+
+                            <!-- Include Allotment -->
+                            <div class="d-flex align-items-center me-3">
+                                <input type="checkbox" id="includeAllotment" name="includeOptions" value="1" checked>
+                                <label class="form-check-label" for="includeAllotment">Include Allotment</label>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                <div class="d-flex align-items-center me-3">
-                    <label class="me-2 mb-0">Display No of Days:</label>
-                    <select id="displayofday" name="displayofday" class="form-control form-control-sm w-auto">
-                        <option value="0"></option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="10">10</option>
-                        <option value="15">15</option>
-                        <option value="20">20</option>
-                        <option value="28">28</option>
-                        <option value="30">30</option>
-                        <option value="31">31</option>
-                    </select>
-                </div>
-
-                <div class="d-flex align-items-center me-3">
-                    <label class="me-2 mb-0">Zone:</label>
-                    <select id="zone" name="zone" class="tomselect-custom" multiple>
-                        @foreach (var item in zoneList)
-                        {
-                            if (item == zoneList[0])
-                            {
-                                <option value="@item.Code" selected>@item.Code</option>
-                            }
-                            else
-                            {
-                                <option value="@item.Code">@item.Code</option>
-                            }
-                        }
-                    </select>
-
-                </div>
-
-                <div class="d-flex align-items-center me-3">
-                    <label class="me-2 mb-0">Res.Type:</label>
-                    <select id="restype" name="restype" class="tomselect-custom" multiple>
-                        @foreach (var item in restyList)
-                        {
-                            <option value="@item.ID">@item.Name</option>
-                        }
-                    </select>
-
-                </div>
             </div>
-        </div>
-        <div class="d-flex flex-column">
-            <div class="d-flex align-items-center me-3">
 
-                <!-- Show Non Deduct -->
-                <div class="d-flex align-items-center me-3">
-                    <span class="status-color-box color-clean-uncheck"></span>
-                    <input type="checkbox" id="showNonDeduct" name="includeOptions" value="1">
-                    <label class="form-check-label" for="showNonDeduct">Show Non Deduct</label>
-                </div>
-
-                <!-- Show %Occ3 -->
-                <div class="d-flex align-items-center me-3">
-                    <input type="checkbox" id="showOcc3" name="includeOptions" value="1">
-                    <label class="form-check-label" for="showOcc3">Show %Occ3</label>
-                </div>
-
-                <!-- Show Room Night -->
-                <div class="d-flex align-items-center me-3">
-                    <input type="checkbox" id="showRoomNight" name="includeOptions" value="1">
-                    <label class="form-check-label" for="showRoomNight">Show Room Night</label>
-                </div>
-
-                <!-- Include Out of Order -->
-                <div class="d-flex align-items-center me-3">
-                    <input type="checkbox" id="includeOutOfOrder" name="includeOptions" value="1" checked>
-                    <label class="form-check-label" for="includeOutOfOrder">Include Out of Order</label>
-                </div>
-
-                <!-- Include Overbooking -->
-                <div class="d-flex align-items-center me-3">
-                    <input type="checkbox" id="includeOverbooking" name="includeOptions" value="1">
-                    <label class="form-check-label" for="includeOverbooking">Include Overbooking</label>
-                </div>
-
-                <!-- Include Allotment -->
-                <div class="d-flex align-items-center me-3">
-                    <input type="checkbox" id="includeAllotment" name="includeOptions" value="1" checked>
-                    <label class="form-check-label" for="includeAllotment">Include Allotment</label>
-                </div>
+            <div class="mui-card">
+                <div id="gridContainer" class="gridContainer mt-2"></div>
+            </div>
+            <div id="loadingSpinner"
+                style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+            </div>
             </div>
         </div>
     </div>
-</div>
-
-<div class="mui-card">
-    <div id="gridContainer" class="gridContainer mt-2"></div>
-</div>
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 <script>
     function formatDate(date) {
@@ -143,9 +185,12 @@
         getBusinessDate();
         //$('#toDate').val(formatDate(parsedBusinessDate));
         initializeTomSelects();
+          $('#reportModal').modal('show');
 
 
-
+    });
+    $(document).on('click', '#btnCloseAva', function () {
+        window.location.href = '/Home/Index';
     });
 
     function getBusinessDate() {
