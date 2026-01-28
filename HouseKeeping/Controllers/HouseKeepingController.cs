@@ -4488,6 +4488,89 @@ namespace HouseKeeping.Controllers
             }
         }
         #endregion
+        #region Room Assignment
+        public IActionResult RoomAssignment()
+        {
+            List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
+            ViewBag.ZoneList = listzo;
+            List<RoomTypeModel> listrt = PropertyUtils.ConvertToList<RoomTypeModel>(RoomTypeBO.Instance.FindAll());
+            ViewBag.RoomTypeList = listrt;
+            List<ReservationTypeModel> listrtype = PropertyUtils.ConvertToList<ReservationTypeModel>(ReservationTypeBO.Instance.FindAll());
+            ViewBag.ReservationTypeList = listrtype;
+            List<VIPModel> listvip = PropertyUtils.ConvertToList<VIPModel>(VIPBO.Instance.FindAll());
+            ViewBag.VIPList = listvip;
+            return View();
+        }
+        [HttpGet]
+        public IActionResult RoomAssignmentData(DateTime arrival, string groupProfile,string vipcode,string name,string reservationTypeCode,string crsno,string roomTypeCode,string roomNo,string confirmationNo)
+        {
+            try
+            {
+                groupProfile = groupProfile ?? "";
+                vipcode = vipcode ?? "";
+                name = name ?? "";
+                reservationTypeCode = reservationTypeCode ?? "";
+                crsno = crsno ?? "";
+                roomTypeCode = roomTypeCode ?? "";
+                roomNo = roomNo ?? "";
+                confirmationNo = confirmationNo ?? "";
+
+
+                DataTable dataTable = _iHouseKeepingService.RoomAssignmentData(arrival, groupProfile, vipcode, name, reservationTypeCode, crsno, roomTypeCode, roomNo, confirmationNo);
+                var result = (from d in dataTable.AsEnumerable()
+                              select new
+                              {
+
+                                  HKStatus = d["HKStatus"] != DBNull.Value ? d["HKStatus"].ToString() : "",
+                                  RoomNo = d["RoomNo"] != DBNull.Value ? d["RoomNo"].ToString() : "",
+                                  RoomType = d["RoomType"] != DBNull.Value ? d["RoomType"].ToString() : "",
+                                  ConfirmationNo = d["ConfirmationNo"] != DBNull.Value ? d["ConfirmationNo"].ToString() : "",
+                                  CRSNo = d["CRSNo"] != DBNull.Value ? d["CRSNo"].ToString() : "",
+                                  ReservationNo = d["ReservationNo"] != DBNull.Value ? d["ReservationNo"].ToString() : "",
+                                  GuestName = d["GuestName"] != DBNull.Value ? d["GuestName"].ToString() : "",
+                                  ETA = d["ETA"] != DBNull.Value ? d["ETA"].ToString() : "",
+
+                                  Rms = d["Rms"] != DBNull.Value ? d["Rms"].ToString() : "",
+
+                                  DepartureDate = d["DepartureDate"] != DBNull.Value ? Convert.ToDateTime(d["DepartureDate"]).ToString("dd/MM/yyyy") : "",
+
+                                  Adults = d["Adults"] != DBNull.Value ? Convert.ToInt32(d["Adults"]) : 0,
+                                  Child = d["Child"] != DBNull.Value ? Convert.ToInt32(d["Child"]) : 0,
+                                  Child1 = d["Child1"] != DBNull.Value ? Convert.ToInt32(d["Child1"]) : 0,
+                                  Child2 = d["Child2"] != DBNull.Value ? Convert.ToInt32(d["Child2"]) : 0,
+
+                                  MG = d["MG"] != DBNull.Value ? d["MG"].ToString() : "",
+                                  ReservationTypeCode = d["ReservationTypeCode"] != DBNull.Value ? d["ReservationTypeCode"].ToString() : "",
+                                  Agent = d["Agent"] != DBNull.Value ? d["Agent"].ToString() : "",
+                                  Source = d["Source"] != DBNull.Value ? d["Source"].ToString() : "",
+                                  Company = d["Company"] != DBNull.Value ? d["Company"].ToString() : "",
+                                  Group = d["Group"] != DBNull.Value ? d["Group"].ToString() : "",
+
+                                  ID = d["ID"] != DBNull.Value ? Convert.ToInt32(d["ID"]) : 0,
+                                  ProfileIndividualID = d["ProfileIndividualID"] != DBNull.Value ? Convert.ToInt32(d["ProfileIndividualID"]) : 0,
+                                  RoomTypeID = d["RoomTypeID"] != DBNull.Value ? Convert.ToInt32(d["RoomTypeID"]) : 0,
+                                  RoomID = d["RoomID"] != DBNull.Value ? Convert.ToInt32(d["RoomID"]) : 0,
+
+                                  Color = d["Color"] != DBNull.Value ? d["Color"].ToString() : "",
+                                  ShareRoom = d["ShareRoom"] != DBNull.Value ? d["ShareRoom"].ToString() : "",
+                                  Status = d["Status"] != DBNull.Value ? d["Status"].ToString() : "",
+                                  RateCodeID = d["RateCodeID"] != DBNull.Value ? Convert.ToInt32(d["RateCodeID"]) : 0
+
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+            //  report.DataSource = dataTable;
+
+            // Không cần gán parameter
+            // report.RequestParameters = false;
+
+            // return PartialView("_ReportViewerPartial", report);
+        }
+        #endregion
     }
 }
 

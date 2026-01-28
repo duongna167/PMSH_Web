@@ -593,6 +593,7 @@ namespace RoomManagement.Controllers
                                   ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"] : "",
                                   Code = !string.IsNullOrEmpty(d["Code"].ToString()) ? d["Code"] : "",
                                   RoomNo = !string.IsNullOrEmpty(d["Room No"].ToString()) ? d["Room No"] : "",
+                                  RoomID = !string.IsNullOrEmpty(d["RoomID"].ToString()) ? d["RoomID"] : "",
                                   RoomType = !string.IsNullOrEmpty(d["Room Type"].ToString()) ? d["Room Type"] : "",
                                   Floor = !string.IsNullOrEmpty(d["Floor"].ToString()) ? d["Floor"] : "",
                                   Zone = !string.IsNullOrEmpty(d["Zone"].ToString()) ? d["Zone"] : "",
@@ -601,6 +602,8 @@ namespace RoomManagement.Controllers
                                   NoOfNights = !string.IsNullOrEmpty(d["No Of Nights"].ToString()) ? d["No Of Nights"] : "",
                                   ReasonCode = !string.IsNullOrEmpty(d["Reason Code"].ToString()) ? d["Reason Code"] : "",
                                   Reason = !string.IsNullOrEmpty(d["Reason"].ToString()) ? d["Reason"] : "",
+                                  ReasonID = !string.IsNullOrEmpty(d["ReasonID"].ToString()) ? d["ReasonID"] : "",
+                                  ReturnStatusID = !string.IsNullOrEmpty(d["ReturnStatusID"].ToString()) ? d["ReturnStatusID"] : "",
                                   ReturnStatus = !string.IsNullOrEmpty(d["Return Status"].ToString()) ? d["Return Status"] : "",
                                   Status = !string.IsNullOrEmpty(d["Status"].ToString()) ? d["Status"] : "",
                                   UserCreate = !string.IsNullOrEmpty(d["User Create"].ToString()) ? d["User Create"] : "",
@@ -854,7 +857,7 @@ namespace RoomManagement.Controllers
             }
         }
         [HttpPost]
-        public IActionResult UpdateBusinessBlock()
+        public IActionResult UpdateandInsertBusinessBlock()
         {
             ProcessTransactions pt = new ProcessTransactions();
             DBUtils dbUtils = new DBUtils();
@@ -863,54 +866,96 @@ namespace RoomManagement.Controllers
             {
                 pt.OpenConnection();
                 pt.BeginTransaction();
+                string roomIdStr = Request.Form["roomSelect"].ToString() ?? "";
+                string roomNoStr = Request.Form["roomNo"].ToString() ?? "";
 
-                long id = !string.IsNullOrEmpty(Request.Form["id"])
-                            ? long.Parse(Request.Form["id"])
-                            : 0;
-                if (id == 0)
+                string[] roomIds = roomIdStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                string[] roomNos = roomNoStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+                if (roomIds.Length == 0)
+                    return Json(new { success = false, message = "Chưa chọn phòng!" });
+
+                if (roomIds.Length != roomNos.Length)
+                    return Json(new { success = false, message = "RoomID và RoomNo không khớp!" });
+                int blockId = !string.IsNullOrEmpty(Request.Form["id"])
+                    ? int.Parse(Request.Form["id"])
+                    : 0;
+
+                int userId = HttpContext.Session.GetInt32("UserID") ?? 0;
+
+                DateTime fromDate = !string.IsNullOrEmpty(Request.Form["itemFromDate"])
+                    ? DateTime.Parse(Request.Form["itemFromDate"])
+                    : DateTime.Now;
+
+                DateTime toDate = !string.IsNullOrEmpty(Request.Form["itemToDate"])
+                    ? DateTime.Parse(Request.Form["itemToDate"])
+                    : DateTime.Now;
+
+                byte oooStatus = !string.IsNullOrEmpty(Request.Form["oooOrS"])
+                    ? byte.Parse(Request.Form["oooOrS"])
+                    : (byte)0;
+
+                int returnStatus = !string.IsNullOrEmpty(Request.Form["rtStatus"])
+                    ? int.Parse(Request.Form["rtStatus"])
+                    : 0;
+
+                int reasonId = !string.IsNullOrEmpty(Request.Form["comment"])
+                    ? int.Parse(Request.Form["comment"])
+                    : 0;
+
+                string reasonNote = Request.Form["txtReasonDesc"].ToString();
+
+                if (blockId == 0)
                     return Json(new { success = false, message = "ID không hợp lệ!" });
 
-                // Ép StringValues về string và check null
-                string roomNo = Request.Form["roomNo"].FirstOrDefault();
-                if (string.IsNullOrEmpty(roomNo))
-                    return Json(new { success = false, message = "RoomNo không hợp lệ!" });
-
-                // Lookup RoomID
-                string roomIdStr = dbUtils.returnTable("Room", "RoomNo", "ID", roomNo);
-                if (string.IsNullOrEmpty(roomIdStr))
-                    return Json(new { success = false, message = $"Không tìm thấy RoomID với RoomNo {roomNo}" });
-
-                int roomID = int.Parse(roomIdStr);
-
-                // Tạo model
-                BusinessBlockModel bbModel = new BusinessBlockModel
+                for (int i = 0; i < roomIds.Length; i++)
                 {
-                    ID = (int)id,
-                    Code = $"OOOS{id}",
-                    RoomID = roomID,
-                    RoomNo = roomNo,
-                    Name = "OutOfOrder/Service",
-                    FromDateOOO = !string.IsNullOrEmpty(Request.Form["itemFromDate"])
-                        ? DateTime.Parse(Request.Form["itemFromDate"])
-                        : DateTime.Now,
-                    ToDateOOO = !string.IsNullOrEmpty(Request.Form["itemToDate"])
-                        ? DateTime.Parse(Request.Form["itemToDate"])
-                        : DateTime.Now,
-                    OOOStatus = !string.IsNullOrEmpty(Request.Form["oooOrS"])
-                        ? byte.Parse(Request.Form["oooOrS"])
-                        : (byte)0,
-                    ReturnStatus = !string.IsNullOrEmpty(Request.Form["rtStatus"])
-                        ? int.Parse(Request.Form["rtStatus"])
-                        : 0,
-                    ReasonID = !string.IsNullOrEmpty(Request.Form["comment"])
-                        ? int.Parse(Request.Form["comment"])
-                        : 0,
-                    ReasonNote = Request.Form["txtReasonDesc"].ToString(),
-                    UserUpdateID = HttpContext.Session.GetInt32("UserID") ?? 0,
-                    UpdateDate = DateTime.Now
-                };
+                    int roomID = int.Parse(roomIds[i]);
+                    string roomNo = roomNos[i];
 
-                BusinessBlockBO.Instance.Update(bbModel);
+                    BusinessBlockModel bbModel;
+
+                    // ===== UPDATE / INSERT =====
+                    if (blockId > 0)
+                    {
+                        bbModel = (BusinessBlockModel)BusinessBlockBO.Instance
+                                        .FindByPrimaryKey(blockId);
+
+                        if (bbModel == null)
+                            bbModel = new BusinessBlockModel();
+                    }
+                    else
+                    {
+                        bbModel = new BusinessBlockModel();
+                    }
+
+                    // ===== GÁN DỮ LIỆU =====
+                    bbModel.Code = $"OOOS{blockId}";
+                    bbModel.RoomID = roomID;
+                    bbModel.RoomNo = roomNo;
+                    bbModel.Name = "OutOfOrder/Service";
+                    bbModel.FromDateOOO = fromDate;
+                    bbModel.ToDateOOO = toDate;
+                    bbModel.OOOStatus = oooStatus;
+                    bbModel.ReturnStatus = returnStatus;
+                    bbModel.ReasonID = reasonId;
+                    bbModel.ReasonNote = reasonNote;
+                    bbModel.UserUpdateID = userId;
+                    bbModel.UpdateDate = DateTime.Now;
+
+                    // ===== SAVE =====
+                    if (blockId > 0)
+                    {
+                        BusinessBlockBO.Instance.Update(bbModel);
+                    }
+                    else
+                    {
+                        bbModel.UserInsertID = userId;
+                        bbModel.CreateDate = DateTime.Now;
+                        BusinessBlockBO.Instance.Insert(bbModel);
+                    }
+                }
+
                 pt.CommitTransaction();
                 return Json(new { success = true });
             }
