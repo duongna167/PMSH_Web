@@ -261,12 +261,6 @@
     }
 
 
-/* 
-    #logGridNewContainer {
-        width: 1450px;
-        overflow-x: auto; /* ✅ Scroll ngang */
-    }
- */
 
 
 
@@ -327,7 +321,7 @@
 </style>
 <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="text-center" id="reportTitle" style="font-size: 20px">Task Assignment</div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
     <div class="mb-2">
         <button id="btnPrint" class="mui-button mui-button-new">View</button>
@@ -1946,27 +1940,43 @@
                    $("#popupFullScreen").hide();
             });
 
-     $(document).on("click", "#btnDailytasksheet", function () {
-                  $("#popupFullScreen").show();
-                var tasksheetnew = $("#tasksheetnew").val();
+    $(document).on("click", "#btnDailytasksheet", function () {
 
-                $.ajax({
-                    url: '/HouseKeeping/RoomAttendentDailyWorksheet', // thay tên controller vào đây
-                    type: 'GET',
-                    data: { isPopup: true, tasksheetnew: tasksheetnew },
-                    success: function (html) {
-                         $('#popupNewGridNew').modal("hide");
-                        $("#popupContent").html(html).show(); 
-                         $("#popupContent script").each(function () {
-                                eval($(this).text() || this.textContent || this.innerHTML || "");
-                            });
-                          
-                    },
-                    error: function (xhr) {
-                        console.error("Lỗi khi load partial view", xhr);
+        const tasksheetnew = $("#tasksheetnew").val();
+
+        // Ẩn popup cũ (nếu có)
+        const oldModal = bootstrap.Modal.getInstance(
+            document.getElementById("popupNewGridNew")
+        );
+        if (oldModal) oldModal.hide();
+
+        $.ajax({
+            url: "/HouseKeeping/RoomAttendentDailyWorksheet",
+            type: "GET",
+            data: {
+                isPopup: true,
+                tasksheetnew: tasksheetnew
+            },
+            success: function (html) {
+
+                $("#popupContent").html(html);
+
+                // Show popup fullscreen
+                const popup = new bootstrap.Modal(
+                    document.getElementById("popupFullScreen"),
+                    {
+                        backdrop: "static",
+                        keyboard: true
                     }
-                });
-            });
+                );
+                popup.show();
+            },
+            error: function (xhr) {
+                console.error("Lỗi khi load partial view", xhr);
+            }
+        });
+    });
+
 
      $("#btnDeletetasksheet").on("click", function () {
                 if (!selectedRowDataTS || selectedRowDataTS.length === 0) {
