@@ -1576,77 +1576,65 @@
     // };
     // Lắng nghe sự kiện thay đổi ngày
 
-    let isSyncingDates = false;
+    if (window.isSyncingDates === undefined) {
+        window.isSyncingDates = false;
+    }
 
     $(document).on('change', '#arrivalShow', async function () {
-        if (isSyncingDates) return;
+        if (window.isSyncingDates) return;
 
-        isSyncingDates = true;
-        // 1. Lấy số đêm
-        const nights = parseInt($('#nights').val(), 10) || 1;
-
-        // 2. Chờ arrival ISO từ hidden (nguồn sự thật)
-        const arrivalIso = await waitForBusinessDate("arrival");
-        // ví dụ: "2025-02-10"
-
-        // 3. Tính departure ISO dựa trên arrival ISO
-        const departureIso = UI.addDaysIso(arrivalIso, nights);
-
-        // 4. Set lại hidden + đồng bộ UI qua DateInput
-        UI.setHiddenDate("departure", departureIso);
-
-        // 5. Cập nhật logic liên quan khác
-        updateDates();
-        isSyncingDates = false;
-    });
-
-
-    $(document).on('change', '#departureShow, #nights', async function (e) {
-        if (isSyncingDates) return;
-        isSyncingDates = true;
+        window.isSyncingDates = true;
 
         try {
-            const targetId = e.target.id; // Kiểm tra xem cái nào vừa bị thay đổi
+            const nights = parseInt($('#nights').val(), 10) || 1;
+            const arrivalIso = await waitForBusinessDate("arrival");
+            const departureIso = UI.addDaysIso(arrivalIso, nights);
+
+            UI.setHiddenDate("departure", departureIso);
+            updateDates();
+
+        } finally {
+            window.isSyncingDates = false;
+        }
+    });
+
+    $(document).on('change', '#departureShow, #nights', async function (e) {
+        if (window.isSyncingDates) return;
+        window.isSyncingDates = true;
+
+        try {
+            const targetId = e.target.id;
             const arrivalIso = $('#arrival').val() || await waitForBusinessDate("arrival");
             let departureIso = $('#departure').val();
-            const nights = parseInt($('#nights').val(), 10) || 1;
+            let nights = parseInt($('#nights').val(), 10) || 1;
 
-            // TRƯỜNG HỢP 1: Người dùng thay đổi NGÀY ĐI (Departure)
             if (targetId === 'departureShow') {
                 if (arrivalIso && departureIso) {
                     if (departureIso <= arrivalIso) {
-                        // Nếu chọn ngày đi <= ngày đến: Giữ nguyên số đêm, lùi ngày đến lại
-                        const currentNights = nights > 0 ? nights : 1;
-                        const newArrival = UI.addDaysIso(departureIso, -currentNights);
+                        const safeNights = nights > 0 ? nights : 1;
+                        const newArrival = UI.addDaysIso(departureIso, -safeNights);
                         UI.setHiddenDate("arrival", newArrival);
                     } else {
-                        // Nếu ngày đi hợp lệ: Tính lại số đêm
                         calculateNights();
                     }
                 }
             }
 
-            // TRƯỜNG HỢP 2: Người dùng thay đổi SỐ ĐÊM (Nights)
             else if (targetId === 'nights') {
-                if (arrivalIso && !isNaN(nights)) {
-                    if (nights < 1) {
-                        nights = 1;
-                        $('#nights').val(1);
-
-                    }
-                    // Giữ nguyên ngày đến, đẩy ngày đi ra xa theo số đêm
-                    const newDeparture = UI.addDaysIso(arrivalIso, nights);
-                    UI.setHiddenDate("departure", newDeparture);
+                if (nights < 1) {
+                    nights = 1;
+                    $('#nights').val(1);
                 }
+                const newDeparture = UI.addDaysIso(arrivalIso, nights);
+                UI.setHiddenDate("departure", newDeparture);
             }
 
-            // Cuối cùng cập nhật lại Thứ hiển thị và các logic phụ
             updateDates();
 
-        } catch (error) {
-            console.error("Lỗi cập nhật ngày tháng:", error);
+        } catch (err) {
+            console.error("Lỗi cập nhật ngày tháng:", err);
         } finally {
-            isSyncingDates = false;
+            window.isSyncingDates = false;
         }
     });
 
