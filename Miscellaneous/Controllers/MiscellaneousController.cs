@@ -213,18 +213,18 @@ namespace Miscellaneous.Controllers
                 }
             }
         }
+
+
+
         public IActionResult MealReport()
         {
             return View();
         }
-
         [HttpGet]
         public IActionResult GetMealReport(DateTime fromDate, DateTime toDate, int type)
         {
             try
             {
-
-
                 DataTable dataTable = _iMiscellaneousService.MealReport(fromDate, toDate, type);
                 var result = (from d in dataTable.AsEnumerable()
                               select new    
@@ -243,7 +243,6 @@ namespace Miscellaneous.Controllers
                                   Account = !string.IsNullOrEmpty(d["Account"].ToString()) ? d["Account"] : "",
                                   RoomNo = !string.IsNullOrEmpty(d["RoomNo"].ToString()) ? d["RoomNo"] : "",
                                   CardID = !string.IsNullOrEmpty(d["CardID"].ToString()) ? d["CardID"] : "",
-                                  ZoneID = !string.IsNullOrEmpty(d["ZoneID"].ToString()) ? d["ZoneID"] : "",
                               }).ToList();
                 return Json(result);
             }
@@ -263,8 +262,6 @@ namespace Miscellaneous.Controllers
         {
             try
             {
-
-
                 DataTable dataTable = _iMiscellaneousService.ReportCustom(fromDate, toDate, mealShiftID, roomNo);
                 var result = (from d in dataTable.AsEnumerable()
                               select new
@@ -287,17 +284,8 @@ namespace Miscellaneous.Controllers
             {
                 return Json(ex.Message);
             }
-            //  report.DataSource = dataTable;
-
-            // Không cần gán parameter
-            // report.RequestParameters = false;
-
-            // return PartialView("_ReportViewerPartial", report);
         }
-        public IActionResult ReportCustom()
-        {
-            return View();
-        }
+        
         [HttpGet]
         public IActionResult GetReportCancelMeal(DateTime fromDate, DateTime toDate)
         {
@@ -335,11 +323,9 @@ namespace Miscellaneous.Controllers
 
             // return PartialView("_ReportViewerPartial", report);
         }
-        public IActionResult ReportCancelMeal()
-        {
-            return View();
-        }
+       
         [HttpGet]
+       
         public IActionResult GetReportWaiveMeal(DateTime fromDate, DateTime toDate, string mealShift, string roomNo)
         {
             try
@@ -372,10 +358,7 @@ namespace Miscellaneous.Controllers
 
             // return PartialView("_ReportViewerPartial", report);
         }
-        public IActionResult ReportWaiveMeal()
-        {
-            return View();
-        }
+       
         [HttpGet]
         public IActionResult GetReportUsedBreakFastMeal(DateTime fromDate, DateTime toDate, string roomNo)
         {
@@ -414,10 +397,6 @@ namespace Miscellaneous.Controllers
 
             // return PartialView("_ReportViewerPartial", report);
         }
-        public IActionResult ReportUsedBreakFastMeal()
-        {
-            return View();
-        }
         [HttpGet]
         public IActionResult GetReportUseBreakFastMeal(DateTime fromDate, DateTime toDate, string roomNo)
         {
@@ -451,10 +430,7 @@ namespace Miscellaneous.Controllers
 
             // return PartialView("_ReportViewerPartial", report);
         }
-        public IActionResult ReportUseBreakFastMeal()
-        {
-            return View();
-        }
+
         [HttpGet]
         public IActionResult GetIssuingCardToGuests(string firstName, string confirmationNo, string crsNo, string roomNo, string zone, string guestName, string rsvHolder, string isShowRS, string isShowCard, DateTime arrFrom, DateTime arrTo, string status, string ci_Day, string co_Day, string findCardID, string reservationID)
         {
@@ -525,6 +501,7 @@ namespace Miscellaneous.Controllers
             return View();
 
         }
+        
         private async void MainForm_TagScanCodeReceived(string code)
         {
             if (string.IsNullOrWhiteSpace(code)) return;

@@ -1,3 +1,4 @@
+
 <div class="modal fade profile-modal" id="modalProfileIndividual" tabindex="-1"
     aria-labelledby="modalProfileIndividualLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
@@ -175,10 +176,9 @@
                                                     class="col-sm-4 col-form-label text-sm-end">Date of
                                                     Birth</label>
                                                 <div class="col-sm-6" data-date-input data-format="DD/MM/YYYY"
-                                                    business-date>
+                                                    business-date data-name="txtDobIndividual">
                                                     <input type="text" class="date-ui form-control"
-                                                        placeholder="dd/mm/yyyy" autocomplete="off"
-                                                        id="txtDobIndividual" disabled />
+                                                        placeholder="dd/mm/yyyy" autocomplete="off" disabled />
                                                 </div>
                                                 <div class="col-sm-2"><input type="checkbox" class="form-check-input"
                                                         id="txtCheckboxDobIndividual" checked></div>
@@ -422,8 +422,18 @@
         if (isChecked) { $('#blackListReasonIndividual').css({ 'background-color': 'black', 'color': 'white' }); }
         else { $('#blackListReasonIndividual').css({ 'background-color': '', 'color': '' }); }
     });
-    $('#txtCheckboxDobIndividual').on('change', function () { $('#txtDobIndividual').prop('disabled', $(this).is(':checked')); });
 
+
+    $('#txtCheckboxDobIndividual').on('change', function () {
+        const isChecked = $(this).is(':checked');
+
+        // Tìm wrapper chứa bộ Date qua data-name
+        const $wrapper = $('[data-name="txtDobIndividual"]');
+
+        // Khóa/Mở tất cả input bên trong (bao gồm cả ô text hiển thị và ô ẩn)
+        $wrapper.find('input').prop('disabled', isChecked);
+
+    });
     // --- UI HELPERS ---
     function openModalSearch() {
         $('#modalIndividualSearch').modal('show');
@@ -437,6 +447,7 @@
     //Fill dữ liệu cho Individual
     function selectGroup(selectedRowData) {
         if (!selectedRowData) return;
+        console.log('selectedRowData:', selectedRowData);
 
         $('#idIndividual').val(selectedRowData.id ?? '');
 
@@ -510,12 +521,19 @@
         $('#txtReasonIndividual').val(selectedRowData.vipReason ?? '');
 
         // ===== DOB =====
-        if (selectedRowData.dateOfBirth && !selectedRowData.dateOfBirth.startsWith('1900')) {
-            $('#txtDobIndividual').val(selectedRowData.dateOfBirth.substring(0, 10)).prop('disabled', false);
-            $('#txtCheckboxDobIndividual').prop('checked', true);
-        } else {
-            $('#txtDobIndividual').val('').prop('disabled', true);
+        var dobValue = selectedRowData.dateOfBirth;
+
+        // Nếu có ngày sinh hợp lệ (không phải null/empty)
+        if (dobValue) {
+            // 1. Gọi hàm set giá trị (Hàm này sẽ lo việc parse chuỗi ISO)
+            UI.setHiddenDate("txtDobIndividual", dobValue);
             $('#txtCheckboxDobIndividual').prop('checked', false);
+            $('[data-name="txtDobIndividual"]').find('input').prop('disabled', false);
+
+        } else {
+            // Trường hợp null hoàn toàn
+            UI.setHiddenDate("txtDobIndividual", "1900-01-01");
+            $('[data-name="txtDobIndividual"]').find('input').prop('disabled', false);
         }
 
         // ===== STATUS =====
