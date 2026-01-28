@@ -1164,5 +1164,25 @@ namespace HouseKeeping.Services.Implements
             DataTable myTable = DataTableHelper.getTableData("spSelectAvailibilityColor", param);
             return myTable;
         }
+        public DataTable RoomAssignmentData(DateTime arrival, string groupProfile, string vipcode, string name, string reservationTypeCode, string crsno, string roomTypeCode, string roomNo, string confirmationNo)
+        {
+            SqlParameter[] param = new SqlParameter[]
+            {
+               new SqlParameter("@ArrivalDate", arrival),
+               new SqlParameter("@Group", groupProfile),
+                new SqlParameter("@VIP", vipcode),
+               new SqlParameter("@Name", name),
+                new SqlParameter("@ReservationType", reservationTypeCode),
+               new SqlParameter("@CRSNo", crsno),
+                  new SqlParameter("@RoomType", roomTypeCode),
+                new SqlParameter("@RoomNo", roomNo),
+               new SqlParameter("@ConfirmationNo", confirmationNo),
+                     new SqlParameter("@BusinessBlock", ""),
+               new SqlParameter("@Zone", "")
+            };
+
+            DataTable myTable = DataTableHelper.getTableData("spReservationAssignRoom", param);
+            return myTable;
+        }
     }
 }

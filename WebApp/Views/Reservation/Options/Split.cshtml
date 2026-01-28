@@ -8,25 +8,35 @@
         </div>
     </div>
 </div>
-<div class="modal fade modal-xl" id="modalSplit" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+<div class="modal fade modal-xl" id="modalSplit" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
 
             <div class="modal-header">
                 <h5 class="modal-title" id="staticBackdropLabel">Split Reservation</h5>
-                <button type="button" class="btn-close" onclick="closseModalSplit()"></button>
             </div>
             <div class="modal-body">
-                <div class="function-menu mui-card">
+                <div class="search-filter">
+                    <div>
 
-                    <a id="splitBtn" onclick="splitReservation();">Split</a>
-                    <a id="splitAllBtn"  onclick="splitAllReservation();">Split All</a>
-                    <a onclick="splitSpecialReservation();">Split Special</a>
-                    <a id="splitAllSpecialBtn" onclick="splitAllSpecialReservation();">Split All Special</a>
-                    <a  onclick="splitAllRoomSharerReservation();">Split All RoomSharer for all main guests</a>
+                        <button class="mui-button mui-button-new" id="splitBtn"
+                            onclick="splitReservation();">Split</button>
+                        <button class="mui-button mui-button-new" id="splitAllBtn"
+                            onclick="splitAllReservation();">Split
+                            All</button>
+                        <button class="mui-button mui-button-new" onclick="splitSpecialReservation();">Split
+                            Special</button>
+                        <button class="mui-button mui-button-new" id="splitAllSpecialBtn"
+                            onclick="splitAllSpecialReservation();">Split All Special</button>
+                        <button class="mui-button mui-button-new" onclick="splitAllRoomSharerReservation();">Split All
+                            RoomSharer for all main guests</button>
+                        <button type="button" class="mui-button mui-button-new"
+                            onclick="closseModalSplit()">Close</button>
+
+                    </div>
 
                 </div>
-
                 <div class="mui-card mt-2">
                     <div id="gridContainerSplit" class="mt-2 gridContainer"></div>
                 </div>
@@ -38,87 +48,87 @@
 
 
 <script>
-    function openModalSplit(){
+    function openModalSplit() {
         listReservationSplitID = listReservationByConfirmationNo.map(x => x.ID);
         initializeDataGridSplit(listReservationByConfirmationNo);
         $('#modalSplit').modal('show');
     }
-    function closseModalSplit(){
+    function closseModalSplit() {
         $('#modalSplit').modal('hide');
     }
     function openConfirmSplit(text) {
-        if(idReservation == 0){
+        if (idReservation == 0) {
             showToast('Error', 'Please choose booking', false);
             return;
         }
         $('#titleSplitReservation').text(text);
-       document.getElementById("confirmBoxSplit").style.display = "flex";
+        document.getElementById("confirmBoxSplit").style.display = "flex";
     }
     function closeConfirmSplit() {
-       
-       document.getElementById("confirmBoxSplit").style.display = "none";
+
+        document.getElementById("confirmBoxSplit").style.display = "none";
     }
-    function splitReservation(){
-     
+    function splitReservation() {
+
         openConfirmSplit('You are about to split this reservation? Do you want to continue?');
         type = 1;
     }
-    function splitAllReservation(){
+    function splitAllReservation() {
 
         openConfirmSplit('You are about to split all this reservation? Do you want to continue?');
         type = 2;
 
     }
-    function splitSpecialReservation(){
+    function splitSpecialReservation() {
         openConfirmSplit('You are about to create room sharer? Do you want to continue?');
         type = 3;
     }
-    function splitAllSpecialReservation(){
+    function splitAllSpecialReservation() {
         openConfirmSplit('You are about to create all room sharer? Do you want to continue?');
         type = 4;
     }
-    function splitAllRoomSharerReservation(){
+    function splitAllRoomSharerReservation() {
         const grid = $("#gridContainerSplit").dxDataGrid("instance");
-       checkedIds = grid.getVisibleRows()
-        .map(row => row.data)
-        .map(row => row.ID); // Lấy ID
+        checkedIds = grid.getVisibleRows()
+            .map(row => row.data)
+            .map(row => row.ID); // Lấy ID
         openConfirmSplit('You are about to split all room sharer for this confimation? Do you want to continue?');
         type = 5;
     }
     var type = 0;
-    function onConfirmSplitReservation(){
-        if(type == 1){
+    function onConfirmSplitReservation() {
+        if (type == 1) {
             ConfirmSplitReservation();
         }
-        else if(type == 2){
+        else if (type == 2) {
             ConfirmSplitAlllReservation();
         }
-        else if(type == 3){
+        else if (type == 3) {
             ConfirmSplitSpecialReservation();
         }
-        else if(type == 4){
+        else if (type == 4) {
             ConfirmSplitSpecialAllReservation();
         }
-        else if(type == 5){
+        else if (type == 5) {
             ConfirmSplitAlllRoomSharer();
         }
     }
 
-     checkedIds = [];
+    checkedIds = [];
 
     var idReservationSplit = 0;
     var listReservationSplitID = [];
     function ConfirmSplitReservation() {
-        if(idReservationSplit == 0){
+        if (idReservationSplit == 0) {
             showToast('Error', 'Please choose booking to split', false);
             return;
         }
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
-        formData.append('reservationID',idReservationSplit);
-        formData.append('userName',userName);
-        formData.append('userID',userID);
+        formData.append('reservationID', idReservationSplit);
+        formData.append('userName', userName);
+        formData.append('userID', userID);
 
         $.ajax({
             url: '/Reservation/SplitReservation',
@@ -129,7 +139,7 @@
             success: function (data) {
                 if (data.code == 0) {
                     closeConfirmSplit();
-                                    closseModalSplit();
+                    closseModalSplit();
                     searchReservation();
                     showToast('Success', data.msg, true);
                 } else {
@@ -138,7 +148,7 @@
 
             },
             error: function (xhr, statusText, err) {
-                 showToast('Error', err, false);
+                showToast('Error', err, false);
 
             }
         });
@@ -148,9 +158,9 @@
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
-        formData.append('reservationID',listReservationSplitID);
-        formData.append('userName',userName);
-        formData.append('userID',userID);
+        formData.append('reservationID', listReservationSplitID);
+        formData.append('userName', userName);
+        formData.append('userID', userID);
 
         $.ajax({
             url: '/Reservation/SplitAllReservation',
@@ -170,7 +180,7 @@
 
             },
             error: function (xhr, statusText, err) {
-                 showToast('Error', err, false);
+                showToast('Error', err, false);
 
             }
         });
@@ -180,9 +190,9 @@
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
-        formData.append('reservationID',idReservationSplit);
-        formData.append('userName',userName);
-        formData.append('userID',userID);
+        formData.append('reservationID', idReservationSplit);
+        formData.append('userName', userName);
+        formData.append('userID', userID);
 
         $.ajax({
             url: '/Reservation/SplitSpecialReservation',
@@ -202,20 +212,20 @@
 
             },
             error: function (xhr, statusText, err) {
-                 showToast('Error', err, false);
+                showToast('Error', err, false);
 
             }
         });
 
     }
 
-     function ConfirmSplitSpecialAllReservation() {
+    function ConfirmSplitSpecialAllReservation() {
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
-        formData.append('reservationID',listReservationSplitID);
-        formData.append('userName',userName);
-        formData.append('userID',userID);
+        formData.append('reservationID', listReservationSplitID);
+        formData.append('userName', userName);
+        formData.append('userID', userID);
 
         $.ajax({
             url: '/Reservation/SplitSpecialAllReservation',
@@ -235,7 +245,7 @@
 
             },
             error: function (xhr, statusText, err) {
-                 showToast('Error', err, false);
+                showToast('Error', err, false);
 
             }
         });
@@ -247,9 +257,9 @@
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
-        formData.append('reservationID',checkedIds);
-        formData.append('userName',userName);
-        formData.append('userID',userID);
+        formData.append('reservationID', checkedIds);
+        formData.append('userName', userName);
+        formData.append('userID', userID);
 
         $.ajax({
             url: '/Reservation/SplitSpecialAllReservation',
@@ -269,7 +279,7 @@
 
             },
             error: function (xhr, statusText, err) {
-                 showToast('Error', err, false);
+                showToast('Error', err, false);
 
             }
         });
@@ -336,7 +346,7 @@
             selection: {
                 mode: "single"
             },
-            onRowClick: function(e) {
+            onRowClick: function (e) {
                 idReservationSplit = e.data.ID;
                 if (e.data.NoOfRoom === '1' || e.data.NoOfRoom === '0') {
                     ['splitBtn', 'splitAllBtn', 'splitAllSpecialBtn'].forEach(id => {
