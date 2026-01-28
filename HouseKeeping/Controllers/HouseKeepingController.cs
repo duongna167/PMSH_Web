@@ -873,7 +873,7 @@ namespace HouseKeeping.Controllers
                                   RoomClass = !string.IsNullOrEmpty(d["Room Class"].ToString()) ? d["Room Class"].ToString() : "",
                                   HKStatusID = !string.IsNullOrEmpty(d["HKStatusID"].ToString()) ? d["HKStatusID"].ToString() : "",
                                   ReservationStatus = !string.IsNullOrEmpty(d["Reservation Status"].ToString()) ? d["Reservation Status"].ToString() : "",
-                                  Arrival = !string.IsNullOrEmpty(d["Arrival"].ToString()) ? d["Arrival"].ToString() : "",
+                                  Arrival = d["Arrival"] != DBNull.Value ? Convert.ToDateTime(d["Arrival"]).ToString("dd/MM/yyyy") : "",
                                   RoomName = !string.IsNullOrEmpty(d["RoomName"].ToString()) ? d["RoomName"].ToString() : ""
                               }).ToList();
 

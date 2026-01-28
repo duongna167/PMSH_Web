@@ -1,164 +1,445 @@
 ﻿
-@* <link href="~/css/reservation.css" rel="stylesheet" /> *@
-<div class="mt-3">
-    <div class="row">
-        <!-- Menu trái -->
-        <div class="col-md-2 mb-2">
-            <div class="menu-left">
-                <button class="toggle-btn"><i class="fas fa-bars"></i></button>
-                <a class="menu-item active">REPORT CHANGE MEAL</a>
-                 <a class="menu-item " asp-controller="Miscellaneous" asp-action="ReportCustom">REPORT CUSTOM</a>
-                <a class="menu-item" asp-controller="Miscellaneous" asp-action="ReportCancelMeal">REPORT CANCEL MEAL</a>
-                <a class="menu-item" asp-controller="Miscellaneous" asp-action="ReportWaiveMeal">REPORT WAIVE MEAL</a>
-                <a class="menu-item" asp-controller="Miscellaneous" asp-action="ReportUsedBreakFastMeal">REPORT USED BREAKFAST MEAL</a>
-                <a class="menu-item" asp-controller="Miscellaneous" asp-action="ReportUseBreakFastMeal">REPORT USE BREAKFAST MEAL</a>
+<style>
+    .report-meal-container {
+        --primary-dark: #027C75;
+        --primary-medium: #356b35;
+        --primary-light: #a3c4a3;
+        --bg-body: #f4f8f4;
+        --bg-white-green: #e8f5e9;
+        --text-dark: #151b22;
+        --text-light: #ffffff;
+        --text-color: #151b22;
+        --danger-color: #c62828;
+        font-family: 'Roboto', sans-serif;
+        font-size: 13px;
+        color: var(--text-color);
+    }
+
+        .report-meal-container .functions-pane {
+            background-color: #ffffff;
+            border: 1px solid var(--primary-light);
+            border-radius: 4px;
+            padding: 6px 10px !important;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .report-meal-container .function-menu {
+            display: flex;
+            align-items: center;
+            justify-content: start;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 0;
+        }
+
+            .report-meal-container .function-menu a {
+                text-decoration: none;
+                color: var(--text-color);
+                font-weight: 600;
+                font-size: 0.85rem;
+                padding: 4px 8px;
+                border-radius: 3px;
+                transition: all 0.2s ease-in-out;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+
+                .report-meal-container .function-menu a:hover {
+                    color: var(--text-color);
+                }
+
+        .report-meal-container .dropdown-menu-custom-rsv {
+            font-size: 0.8rem;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid #ddd;
+            padding: 5px 0;
+            min-width: 200px;
+        }
+
+        .report-meal-container .dropdown-item {
+            padding: 7px 15px;
+            color: var(--text-dark);
+            font-weight: 500;
+            transition: background 0.1s;
+        }
+
+            .report-meal-container .dropdown-item:hover {
+                /* background-color: var(--primary-dark); */
+                color: #151b22 !important;
+            }
+
+        .report-meal-container .dropdown-divider {
+            margin: 4px 0;
+        }
+
+        /* --- INFO CARD & FILTER AREA --- */
+        .report-meal-container .mui-card {
+            background-color: #ffffff;
+            border: 1px solid var(--primary-light);
+            border-radius: 4px;
+            padding: 4px; /* Giảm từ 8px xuống 4px */
+            margin-bottom: 4px; /* Giảm khoảng cách dưới card */
+        }
+
+            .report-meal-container .mui-card .row.g-2 {
+                margin-left: 0;
+                margin-right: 0;
+            }
+
+        .report-meal-container .info-group {
+            display: flex;
+            align-items: center;
+            background-color: #f8f9fa;
+            border: 1px solid #e2e8e2;
+            border-radius: 3px;
+            padding: 2px 6px; /* Giảm padding */
+            height: 28px; /* Giảm chiều cao từ 32px xuống 28px */
+            white-space: nowrap;
+        }
+
+            .report-meal-container .info-group label {
+                color: #555;
+                margin-right: 4px; /* Giảm margin label */
+                font-weight: 700;
+                font-size: 0.7rem; /* Chữ nhỏ hơn 1 chút */
+                margin-bottom: 0;
+            }
+
+            .report-meal-container .info-group input[type="date"],
+            .report-meal-container .info-group input[type="text"],
+            .report-meal-container .info-group select {
+                border: none;
+                background: transparent;
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: var(--text-color);
+                outline: none;
+                width: 100%;
+            }
+
+            .report-meal-container .info-group:focus-within {
+                border-color: var(--primary-medium);
+                background-color: #ffffff;
+                box-shadow: 0 0 0 1px var(--primary-light);
+            }
+
+    #loadingSpinnerRateCode {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.7); 
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .gridContainer {
+        position: relative;
+        min-height: 200px;
+    }
+</style>
+<div class="modal fade" id="reportMealModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content report-meal-container ">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Report Meal</h5>
             </div>
-        </div>
 
-        <!-- Nội dung bên phải -->
-        <div class="col-md-10">
-            <div class="content-right">
-                <div class="header">
-                    <h3 id="content-title">
-                        Report Change Meal
-
-                    </h3>
-                </div>
-                    <div class="d-flex flex-column mb-2 ">
-                    <div class="d-flex align-items-center" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-                            <div class="d-flex align-items-center me-2">
-                                <label class="me-2 mb-0">From Date: </label>
-                                <input type="date" id="fromDate" name="fromDate" class="form-control form-control-sm w-auto" />
+            <div class="modal-body" style="padding: 0px 2px 0px 2px !important;">
+                <div class="">
+                    <div class="functions-pane mb-2">
+                        <div class="function-menu flex-grow-1">
+                            <div class="dropdown d-inline-block">
+                                <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" id="currentReportText">
+                                    Select Report
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-custom-rsv">
+                                    <a class="dropdown-item" href="#" onclick="switchTab('change')">Report Meal Change</a>
+                                    <a class="dropdown-item" href="#" onclick="switchTab('custom')">Report Custom Meal</a>
+                                    <a class="dropdown-item" href="#" onclick="switchTab('cancel')">Report Cancel Meal</a>
+                                    <a class="dropdown-item" href="#" onclick="switchTab('waive')">Report Waive Meal</a>
+                                    <a class="dropdown-item" href="#" onclick="switchTab('used_bf')">Report Used Breakfast</a>
+                                    <a class="dropdown-item" href="#" onclick="switchTab('use_bf')">Report Use Breakfast</a>
+                                </div>
                             </div>
 
-                            <div class="d-flex align-items-center me-2">
-                                <label class="me-2 mb-0">To Date: </label>
-                                <input type="date" id="toDate" name="toDate" class="form-control form-control-sm w-auto" />
-                            </div>
-                        <div class="d-flex align-items-center me-2">
-                            <label>Meal Change Type: </label>
-                            <select id="mealType" name="mealType" class="form-control form-control-sm" style="width: 200px;">
-                                <option value="0">Change Meal</option>
-                                <option value="1">Add Meal</option>
-                                <option value="2">Cancel Meal</option>
-
-                             </select>
+                            <a href="#" id="btnSearch"> View</a>
+                            <a href="#" id="btnExcel"> Excel</a>
+                            <a href="#" data-bs-dismiss="modal" onclick="window.location.href='/Home/Index'"> Close</a>
                         </div>
-                        </div>
-
-                       
-                </div>
-                <div style="display:flex;column-gap:12px">
-                    <button   id="btnView" class="mui-button mui-button-new">View</button>
-
-                    <button   id="btnExcel" class="mui-button mui-button-new" type="button">  Excel</button>
-
-                </div>
-                <div id="loadingSpinnerRateCode" style="display: none; text-align: center; padding: 20px;">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
                     </div>
-                </div>
-                <div class="mui-card">
-                    <div id="gridContainerRateCode" class="mt-2 gridContainer"></div>
+
+                    <div class="mui-card mb-2 bg-light border-0">
+                        <div class="row align-items-center g-2 p-1">
+                            <div class="col-auto">
+                                <div class="info-group">
+                                    <label>From:</label>
+                                    <input type="date" id="dtFrom">
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="info-group">
+                                    <label>To:</label>
+                                    <input type="date" id="dtTo">
+                                </div>
+                            </div>
+
+                            <div class="col-auto filter-item" id="boxMealType" style="display:none">
+                                <div class="info-group">
+                                    <label>Type:</label>
+                                    <select id="mealType">
+                                        <option value="0">Change Meal</option>
+                                        <option value="1">Add Meal</option>
+                                        <option value="2">Cancel Meal</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-auto filter-item" id="boxMealShift" style="display:none">
+                                <div class="info-group">
+                                    <label>Shift:</label>
+                                    <select id="mealShift">
+                                        <option value="">--All--</option>
+                                        <option value="1">Breakfast</option>
+                                        <option value="2">Lunch</option>
+                                        <option value="3">Dinner</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-auto filter-item" id="boxRoomNo" style="display:none">
+                                <div class="info-group">
+                                    <label>Room:</label>
+                                    <input type="text" id="txtRoomNo" style="width:60px">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gridContainer mt-1" style="position: relative;">
+                        <div id="mainGrid"></div>
+
+                        <div id="loadingSpinnerRateCode" style="display: none;">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 <script>
+    let currentMode = 'change';
+    let currentReportName = "Meal Report";
 
-    DevExpress.localization.locale("vi");
-    let selectedRowData = null;
-      function formatDate(date) {
-            let year = date.getFullYear();
-            let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-            let day = date.getDate().toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-            return `${year}-${month}-${day}`;
-        }
+    $(document).ready(function () {
+        const defaultDate = "2025-10-25";
+        $("#dtFrom").val(defaultDate);
+        $("#dtTo").val(defaultDate);
 
-      $(document).ready(function () {
-                const today = new Date();
-                const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-                // Lấy ngày cuối cùng của tháng
-                const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-              // Định dạng theo local time
-                const formattedFirstDay = formatDate(firstDayOfMonth);
-                const formattedLastDay = formatDate(lastDayOfMonth);
-                console.log(formattedFirstDay); // Kiểm tra giá trị đúng chưa
-                console.log(formattedLastDay); // Kiểm tra giá trị đúng chưa
-                // Gán giá trị cho input date
-                document.getElementById('fromDate').value = formattedFirstDay;
-                document.getElementById('toDate').value = formattedLastDay;
-           
-                reloadGrid();
-        });
-              function loadGrid(data) {
-        $("#gridContainerRateCode").dxDataGrid({
-            dataSource: data,
+        $("#mainGrid").dxDataGrid({
+            columns: REPORT_CONFIGS['change'].columns,
+            dataSource: [],
             height: 500,
             width: "100%",
             columnAutoWidth: true,
             allowColumnResizing: true,
             columnResizingMode: "widget",
             selection: { mode: "single" },
+            filterRow: { visible: true, applyFilter: "auto" },
+            paging: { pageSize: 15 },
+            pager: {
+                visible: true,
+                allowedPageSizes: [15, 20, 50],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            },
+            scrolling: { mode: "standard", showScrollbar: "always" },
+            showBorders: true
+        });
+
+        $('#reportMealModal').modal('show');
+        switchTab('change');
+
+        $("#btnSearch").trigger("click");
+    });
+
+    function switchTab(mode) {
+        currentMode = mode;
+        const cfg = REPORT_CONFIGS[mode];
+
+        const reportNames = {
+            'change': 'Report Meal Change',
+            'custom': 'Report Custom Meal',
+            'cancel': 'Report Cancel Meal',
+            'waive': 'Report Waive Meal',
+            'used_bf': 'Report Used Breakfast',
+            'use_bf': 'Report Use Breakfast'
+        };
+        currentReportName = reportNames[mode];
+        $("#currentReportText").html(`${currentReportName}`);
+
+        $(".filter-item").hide();
+        if (cfg.showMealType) $("#boxMealType").show();
+        if (cfg.showMealShift) $("#boxMealShift").show();
+        if (cfg.showRoomNo) $("#boxRoomNo").show();
+
+        // Cập nhật cấu hình Grid
+        const grid = $("#mainGrid").dxDataGrid("instance");
+        grid.option("columns", cfg.columns);
+        grid.option("dataSource", []);
+
+        $("#btnSearch").click();
+    }
+
+    const REPORT_CONFIGS = {
+        change: {
+            url: "/Miscellaneous/GetMealReport",
+            showMealType: true, showMealShift: false, showRoomNo: false,
             columns: [
                 { dataField: "stt", caption: "STT", width: "11%" },
                 { dataField: "account", caption: "Guest Name", width: "23%" },
                 { dataField: "fromMeal", caption: "From Meal", width: "11%" },
-                { dataField: "fromDate", caption: "From Date", dataType:"date", format:"dd/MM/yyyy", width:"11%" },
+                { dataField: "fromDate", caption: "From Date", dataType: "date", format: "dd/MM/yyyy", width: "11%" },
                 { dataField: "toMeal", caption: "To Meal", width: "11%" },
-                { dataField: "toDate", caption: "To Date", dataType:"date", format:"dd/MM/yyyy", width:"11%" },
+                { dataField: "toDate", caption: "To Date", dataType: "date", format: "dd/MM/yyyy", width: "11%" },
                 { dataField: "roomNo", caption: "Room No", width: "11%" },
                 { dataField: "cardID", caption: "Card ID", width: "11%" },
-            ],
-            filterRow: { visible:true, applyFilter:"auto" },
-            paging: { pageSize:20 },
-            pager: {
-                visible:true,
-                allowedPageSizes:[20,50,'all'],
-                showPageSizeSelector:true,
-                showInfo:true,
-                showNavigationButtons:true
-            },
-            scrolling: { mode:"standard", showScrollbar:"always", scrollByContent:true },
-            onSelectionChanged: function(e){
-                selectedRowData = e.selectedRowsData.length > 0 ? e.selectedRowsData[0] : null;
-                console.log("Selected Row:", selectedRowData);
-            }
-        });
-    }
+            ]
+        },
+        custom: {
+            url: "/Miscellaneous/GetMealSearchCustom",
+            showMealType: false, showMealShift: true, showRoomNo: true,
+            columns: [
+                { dataField: "stt", caption: "STT", width: "12%" },
+                { dataField: "usingDate", caption: "Using Date", width: "12%" },
+                { dataField: "mealShift", caption: "Meal Shift", width: "12%" },
+                { dataField: "account", caption: "Guest Name", width: "28%" },
+                { dataField: "restaurantName", caption: "Restaurant", width: "12%" },
+                { dataField: "roomNo", caption: "Room No", width: "12%" },
+                { dataField: "zone", caption: "Zone", width: "12%" },
+            ]
+        },
+        cancel: {
+            url: "/Miscellaneous/GetReportCancelMeal",
+            showMealType: false, showMealShift: false, showRoomNo: false,
+            columns: [
+                { dataField: "stt", caption: "STT", width: "11%" },
+                { dataField: "cancelDate", caption: "Cancel Date", width: "11%" },
+                { dataField: "mealShift", caption: "Meal Shift", width: "11%" },
+                { dataField: "account", caption: "Guest Name", width: "23%" },
+                { dataField: "restaurantName", caption: "Restaurant", width: "11%" },
+                { dataField: "roomNo", caption: "Room No", width: "11%" },
+                { dataField: "zone", caption: "Zone", width: "11%" },
+                { dataField: "cardID", caption: "Card ID", width: "11%" },
+            ]
+        },
+        waive: {
+            url: "/Miscellaneous/GetReportWaiveMeal",
+            showMealType: false, showMealShift: true, showRoomNo: true,
+            columns: [
+                { dataField: "rateDate", caption: "Rate Date", dataType: "date", format: "dd/MM/yyyy", width: "14%" },
+                { dataField: "breakFast", caption: "Break Fast", width: "14%" },
+                { dataField: "lunch", caption: "Lunch", width: "14%" },
+                { dataField: "dinner", caption: "Dinner", width: "14%" },
+                { dataField: "account", caption: "Guest Name", width: "30%" },
+                { dataField: "roomNo", caption: "Room No", width: "14%" },
+            ]
+        },
+        used_bf: {
+            url: "/Miscellaneous/GetReportUsedBreakFastMeal",
+            showMealType: false, showMealShift: false, showRoomNo: true,
+            columns: [
+                { dataField: "stt", caption: "STT", width: "11%" },
+                { dataField: "usingDate", caption: "Using Date", width: "11%" },
+                { dataField: "mealShift", caption: "Meal Shift", width: "11%" },
+                { dataField: "account", caption: "Guest Name", width: "23%" },
+                { dataField: "restaurantName", caption: "Restaurant", width: "11%" },
+                { dataField: "roomNo", caption: "Room No", width: "11%" },
+                { dataField: "zone", caption: "Zone", width: "11%" },
+                { dataField: "amount", caption: "Amount", width: "11%" },
+            ]
+        },
+        use_bf: {
+            url: "/Miscellaneous/GetReportUseBreakFastMeal",
+            showMealType: false, showMealShift: false, showRoomNo: true,
+            columns: [
+                { dataField: "stt", caption: "STT", width: "12%" },
+                { dataField: "roomNo", caption: "Room No", width: "12%" },
+                { dataField: "usingDate", caption: "Date", width: "12%" },
+                { dataField: "mealShift", caption: "Meal Shift", width: "12%" },
+                { dataField: "account", caption: "Guest Name", width: "28%" },
+                { dataField: "zone", caption: "Zone", width: "12%" },
+                { dataField: "amount", caption: "Revenue", width: "12%" },
+            ]
+        }
+    };
 
-    // Reload grid với filter từ form
-    function reloadGrid() {
-        $("#loadingSpinnerRateCode").show();
+    $(document).off("click", "#btnSearch").on("click", "#btnSearch", function () {
+        const cfg = REPORT_CONFIGS[currentMode];
+        let fromDateValue = $("#dtFrom").val();
+        let toDateValue = $("#dtTo").val();
+
+        if(!fromDateValue) fromDateValue = "2025-10-25";
+        if(!toDateValue) toDateValue = "2025-10-25";
+
+        let params = {
+            fromDate: fromDateValue,
+            toDate: toDateValue
+        };
+
+        if (currentMode === 'change') {
+            params.type = $("#mealType").val();
+        }
+        else if (currentMode === 'custom') {
+            params.mealShiftID = $("#mealShift").val();
+            params.roomNo = $("#txtRoomNo").val();
+        }
+        else if (currentMode === 'waive') {
+            params.mealShift = $("#mealShift").val();
+            params.roomNo = $("#txtRoomNo").val();
+        }
+        else if (currentMode === 'used_bf' || currentMode === 'use_bf') {
+            params.roomNo = $("#txtRoomNo").val();
+        }
 
         $.ajax({
-            url: '/Miscellaneous/GetMealReport',
+            url: cfg.url,
             type: 'GET',
-            data: {
-                fromDate: $("#fromDate").val(),
-                toDate: $("#toDate").val(),
-                type: $("#mealType").val()
+            data: params,
+            beforeSend: function() {
+            $("#loadingSpinnerRateCode").show();
+            $("#mainGrid").css("opacity", "0.5");
             },
-            success: function(data){
-                console.log(data);
-                loadGrid(data);
+            success: function(data) {
                 $("#loadingSpinnerRateCode").hide();
+                $("#mainGrid").css("opacity", "1");
+                $("#mainGrid").dxDataGrid("instance").option("dataSource", data);
             },
-            error: function(xhr, status, error){
-                alert("Không thể tải dữ liệu");
+            error: function(err) {
                 $("#loadingSpinnerRateCode").hide();
+                $("#mainGrid").css("opacity", "1");
+                console.error("Get data error!:", err);
+                alert("An error occurred while loading the data!");
             }
         });
-    }
-
-    // Nút view click
-    $("#btnView").click(function(){
-        reloadGrid();
     });
+
     $("#btnExcel").click(function () {
-        const grid = $("#gridContainerRateCode").dxDataGrid("instance");   // 🔥 khai báo grid
+        const grid = $("#mainGrid").dxDataGrid("instance");
 
         const workbook = new ExcelJS.Workbook();
         const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
@@ -182,7 +463,7 @@
         worksheet.addRow([]);
 
         // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-        const reportRow = worksheet.addRow(['Meal Report']);
+        const reportRow = worksheet.addRow([currentReportName]);
         worksheet.mergeCells('A5:D5');
         reportRow.font = { bold: true, size: 14 };
         reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -204,7 +485,7 @@
             worksheet.getCell(`A${lastRow}`).font = { italic: true };
 
             // Ghi file
-            let fileName = "Meal Report.xlsx";
+            let fileName = `${currentReportName}.xlsx`;
             workbook.xlsx.writeBuffer().then(function (buffer) {
                 saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
             });
