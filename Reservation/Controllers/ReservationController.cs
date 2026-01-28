@@ -230,15 +230,16 @@ namespace Reservation.Controllers
         }
 
 
-        public IActionResult GroupReservation()
+        public IActionResult NewGroupReservation()
         {
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
             ViewBag.businesDate = businessDateModel[0].BusinessDate;
             ViewBag.cboMarket = ListItemHelper.GetMarketProvider();
+            ViewBag.cboCity = ListItemHelper.GetCityProvider();
             ViewBag.cboPackage = ListItemHelper.GetPackagesProvider();
             ViewBag.cboReservationType = ListItemHelper.GetReservationTypeProvider();
 
-            return View();
+            return PartialView();
         }
         public IActionResult WaitList()
         {
