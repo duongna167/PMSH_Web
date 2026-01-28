@@ -8,39 +8,46 @@
         font-size: 0.875rem !important;
     }
 
-    /* Khung TomSelect - Ép theo chuẩn form-control-sm */
+    /*css tomselect */
+
+    /* Wrapper select để khống chế chiều cao */
+    .filter-item .ts-wrapper {
+        width: 100%;
+    }
+
+    /* Khung TomSelect  */
     .ts-control {
-        min-height: 31px !important;
-        border-radius: 0.25rem !important;
-        border: 1px solid #ced4da !important;
-        padding: 2px 0.5rem !important;
-        font-size: 0.875rem !important;
-        line-height: 1 !important;
-        max-height: 85px !important;
-        overflow-y: auto !important;
+        height: 28px !important;
+        min-height: 28px !important;
+        padding: 2px 6px !important;
+        font-size: 13px !important;
         display: flex !important;
         align-items: center !important;
         flex-wrap: wrap !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
     }
 
-        /* Thẻ Item đã chọn (Tối giản như roomOwner) */
+        /* Thẻ Item đã chọn  */
         .ts-control .item {
-            background-color: #efefef !important;
-            color: #333 !important;
+            height: 20px !important;
+            padding: 0 6px !important;
+            margin: 2px 4px 2px 0 !important;
+            font-size: 12px !important;
+            line-height: 20px !important;
+            background: #f1f1f1 !important;
             border: 1px solid #ddd !important;
             border-radius: 3px !important;
-            padding: 0px 6px !important;
-            margin: 1px 4px 1px 0 !important;
-            font-size: 0.75rem !important;
             display: inline-flex !important;
             align-items: center !important;
         }
 
+
             /* Nút X xóa từng item (nếu dùng plugin remove_button) */
             .ts-control .item .remove {
-                border-left: 1px solid #ddd !important;
-                margin-left: 5px !important;
+                margin-left: 4px !important;
                 padding-left: 4px !important;
+                border-left: 1px solid #ccc !important;
             }
 
     /* Nút X xóa toàn bộ (Custom Clear Button) */
@@ -64,22 +71,29 @@
         transition: color 0.2s !important;
     }
 
-        .clear-button:hover {
-            color: #dc3545 !important;
-        }
-
     /* Đệm bên phải để text không đè lên nút Clear */
     .ts-wrapper.tomselect-custom .ts-control {
         padding-right: 28px !important;
     }
 
-    /* Dropdown menu */
-    .ts-dropdown {
-        z-index: 1060 !important;
-        font-size: 0.875rem !important;
+    .ts-wrapper {
+        position: relative !important;
     }
 
-    /* Tùy chỉnh thanh cuộn nhỏ cho tinh tế */
+    .ts-control input {
+        height: 20px !important;
+        font-size: 12px !important;
+        padding-left: 2px !important;
+    }
+
+    /* Dropdown menu */
+    .ts-dropdown {
+        z-index: 2000 !important;
+        font-size: 13px;
+    }
+
+
+    /* Tùy chỉnh thanh cuộn nhỏ  */
     .ts-control::-webkit-scrollbar {
         width: 4px;
     }
@@ -87,6 +101,13 @@
     .ts-control::-webkit-scrollbar-thumb {
         background: #ccc;
         border-radius: 4px;
+    }
+    /*end css tomselect */
+
+    /* Quan trọng: Sửa lỗi che khuất dropdown trong Modal */
+    #itemModal .modal-content,
+    #itemModal .modal-body {
+        overflow: visible !important;
     }
 </style>
 
@@ -216,7 +237,7 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Person In Charge Group</label>
                                 <select id="personInChargeGroupId" name="personInChargeGroupId"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm tomselect-custom">
                                     <option value="">-- Select Group --</option>
                                     @foreach (var sg in chargeGroup)
                                     {
@@ -230,7 +251,7 @@
                                 <label class="form-label fw-semibold">Person In Charge Zone</label>
                                 <span class="text-danger">*</span>
                                 <select id="personInChargeZoneId" name="personInChargeZoneId"
-                                        class="form-control form-control-sm">
+                                        class="form-control form-control-sm tomselect-custom">
                                     <option value="">-- Select Zone --</option>
                                     @foreach (var sg in chargeZone)
                                     {
@@ -291,14 +312,7 @@
     $(document).ready(function () {
         $("#btnView").trigger("click");
 
-        $(".tomselect-custom").on("change", function() {
-        const val = $(this).val();
-        const wrapper = $(this).next(".ts-wrapper");
-            if (val && val.length > 0) {
-                wrapper.removeClass("is-invalid");
-                wrapper.parent().find(".invalid-feedback").hide();
-            }
-        });
+        initTomSelect(".tomselect-custom");
 
         $("#formContainer").on("input change", "input, select, textarea", function () {
             if ($(this).hasClass("is-invalid")) {
@@ -313,7 +327,7 @@
              $(".invalid-feedback").hide();
         });
 
-        initializeTomSelects();
+   
 
         $("#btnRefresh").click(function() {
             const ids = ['#personInchargeGroupId', '#personInchargeZoneId'];
@@ -329,45 +343,7 @@
         });
     });
 
-    function initializeTomSelects() {
-        const selectors = ["#personInchargeGroupId", "#personInchargeZoneId"];
-        selectors.forEach(selector => {
-            const el = document.querySelector(selector);
-            if (el) {
-                 if (el.tomselect) el.tomselect.destroy();
-                    new TomSelect(el, {
-                        plugins: {
-                        'remove_button': { title: 'Deselect' },
-                        'dropdown_input': {},
-                        'clear_button': { title: 'Clear all' },
-                    },
-                    dropdownParent: 'body',
-                    create: false,
-                    maxItems: null,
-                    valueField: 'value',
-                    labelField: 'text',
-                    searchField: ['text'],
-                    placeholder: ' Enter or select options...',
-                    onClear: function() {
-                    const self = this;
-                    setTimeout(() => {
-                        self.close();
-                        self.blur();
-                    }, 10);
-                },
-                    render: {
-                        option: function(data, escape) {
-                            return `<div class="p-2"> ${escape(data.text)} </div>`;
-                        },
-                        item: function(data, escape) {
-                            return '<div title="' + escape(data.text) + '">' + escape(data.text) + '</div>';
-                        }
-                    }
-
-                });
-            }
-        });
-    }
+ 
 
     $("#btnNew").click(function () {
         $("#formContainer")[0].reset();

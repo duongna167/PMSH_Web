@@ -3,194 +3,270 @@
     var listzone = ViewBag.ZoneList;
 }
 <style>
-    #toDate:disabled {
-        background-color: #f5f5f5;
-        color: #999;
-        cursor: not-allowed;
-    }
-
-    #fromDate:disabled {
-        background-color: #f5f5f5;
-        color: #999;
-        cursor: not-allowed;
-    }
-
-    .form-label {
-        min-width: 80px;
-        text-align: right;
-        margin-right: 8px;
-    }
-
-    .border-box {
+    .filter-box {
         border: 1px solid #ced4da;
         border-radius: 6px;
-        padding: 12px;
-        margin: 8px; /* tạo khoảng cách giữa các box */
+        padding: 8px;
         background: #fff;
     }
 
-    .col-4-5 {
-        flex: 0 0 37.5%;
-        max-width: 37.5%;
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px 8px;
     }
+
+    .filter-item label {
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 2px;
+        display: block;
+        color: #555;
+    }
+
+    .filter-item input,
+    .filter-item select {
+        height: 28px;
+        font-size: 13px;
+    }
+
+    .filter-inline {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .filter-checks {
+        display: flex;
+        gap: 16px;
+        margin-top: 4px;
+        font-size: 13px;
+    }
+
+    /*css tomselect */
+
+    /* Wrapper select để khống chế chiều cao */
+    .filter-item .ts-wrapper {
+        width: 100%;
+    }
+
+    /* Khung TomSelect  */
+    .ts-control {
+        height: 28px !important;
+        min-height: 28px !important;
+        padding: 2px 6px !important;
+        font-size: 13px !important;
+        display: flex !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+    }
+
+        /* Thẻ Item đã chọn  */
+        .ts-control .item {
+            height: 20px !important;
+            padding: 0 6px !important;
+            margin: 2px 4px 2px 0 !important;
+            font-size: 12px !important;
+            line-height: 20px !important;
+            background: #f1f1f1 !important;
+            border: 1px solid #ddd !important;
+            border-radius: 3px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+        }
+
+
+            /* Nút X xóa từng item (nếu dùng plugin remove_button) */
+            .ts-control .item .remove {
+                margin-left: 4px !important;
+                padding-left: 4px !important;
+                border-left: 1px solid #ccc !important;
+            }
+
+    /* Nút X xóa toàn bộ (Custom Clear Button) */
+    .tomselect-custom-wrapper {
+        position: relative !important;
+        width: 100%;
+    }
+
+    .clear-button {
+        position: absolute !important;
+        right: 8px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        cursor: pointer !important;
+        font-size: 1.1rem !important;
+        color: #bbb !important;
+        z-index: 10 !important;
+        background: none !important;
+        border: none !important;
+        padding: 0 5px !important;
+        transition: color 0.2s !important;
+    }
+
+    /* Đệm bên phải để text không đè lên nút Clear */
+    .ts-wrapper.tomselect-custom .ts-control {
+        padding-right: 28px !important;
+    }
+
+        .ts-control input {
+            height: 20px !important;
+            font-size: 12px !important;
+            padding-left: 2px !important;
+        }
+
+    /* Dropdown menu */
+    .ts-dropdown {
+        z-index: 1060 !important;
+        font-size: 13px !important;
+    }
+
+    /* Tùy chỉnh thanh cuộn nhỏ  */
+    .ts-control::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .ts-control::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 4px;
+    }
+    /*end css tomselect */
 </style>
-@* <link href="~/css/reservation.css" rel="stylesheet" /> *@
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+
 
 <div class="text-center" id="reportTitle" style="font-size: 20px">
     Issuing Card To Guests
 </div>
+<!-- ================= BUTTONS ================= -->
+<div class="py-2 d-flex flex-wrap gap-2 align-items-center">
+    <button class="mui-button button-report-view" id="btnView">View</button>
+    <button class="mui-button button-report-view" id="btnOK">OK</button>
+    <button class="mui-button button-report-delete" id="btnCancelCard">Cancel Card</button>
 
-<div class="content-right">
+    <div class="d-flex align-items-center ms-auto">
+        <label class="filter-label">Input CardID</label>
+        <input id="cardID" name="cardID" class="form-control" style="width:180px">
+    </div>
+</div>
 
-    <div class="row" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-        <div class="col-md-6 border-box">
-            <!-- Tổng khối chiếm 6 cột -->
-            <div class="row">
-                <!-- Border bao quanh cả 2 khối -->
-                <!-- Khối 1: col-md-2 -->
-                <div class="col-md-4">
-                    <!-- Đổi 2/6 thành 4/12 để cân đối -->
-                    <div class="row">
-                        <div class="col-12 mb-2 d-flex align-items-center">
-                            <label for="firstName" class="form-label">Fst.Name</label>
-                            <input type="text" id="firstName" name="firstName" class="form-control" />
-                        </div>
-                        <div class="col-12 mb-2 d-flex align-items-center">
-                            <label for="confNo" class="form-label">Conf.No</label>
-                            <input type="text" id="confNo" name="confNo" class="form-control" />
-                        </div>
-                        <div class="col-12 mb-2 d-flex align-items-center">
-                            <label for="crsNoorGC" class="form-label">CRS No/GC</label>
-                            <input type="text" id="crsNoorGC" name="crsNoorGC" class="form-control" />
-                        </div>
-                        <div class="col-12 mb-2 d-flex align-items-center">
-                            <label for="roomNo" class="form-label">Room No</label>
-                            <input type="text" id="roomNo" name="roomNo" class="form-control" />
-                        </div>
-                        <div class="col-12 mb-2 d-flex align-items-center">
-                            <label for="zone" class="form-label">Zone</label>
-                            <select id="zone" name="zone" class="form-select" multiple>
-                                @foreach (var sg in ViewBag.ZoneList)
-                                {
-                                    <option value="@sg.Code">@sg.Code</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="col-12 mb-2 d-flex align-items-center">
-                            <label for="searchcardID" class="form-label">CardID</label>
-                            <input type="text" id="searchcardID" name="searchcardID" class="form-control" />
-                        </div>
+<!-- ================= FILTER AREA ================= -->
+<div class="row g-2">
+
+    <!-- FILTER -->
+    <div class="col-md-8">
+        <div class="filter-box">
+            <div class="filter-grid">
+
+                <div class="filter-item">
+                    <label>Fst.Name</label>
+                    <input id="firstName" class="form-control">
+                </div>
+
+                <div class="filter-item">
+                    <label>Conf.No</label>
+                    <input id="confNo" class="form-control">
+                </div>
+
+                <div class="filter-item">
+                    <label>CRS/GC</label>
+                    <input id="crsNoorGC" class="form-control">
+                </div>
+
+                <div class="filter-item">
+                    <label>Room No</label>
+                    <input id="roomNo" class="form-control">
+                </div>
+
+                <div class="filter-item">
+                    <label>Zone</label>
+                    <select id="zone" name="zone" multiple>
+                        @foreach (var sg in ViewBag.ZoneList)
+                        {
+                            <option value="@sg.Code">@sg.Code</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="filter-item">
+                    <label>CardID</label>
+                    <input id="searchcardID" class="form-control">
+                </div>
+
+                <div class="filter-item">
+                    <label>Arr.From</label>
+                    <div class="filter-inline">
+                        <input type="date" id="fromDate" class="form-control">
+                        <input type="checkbox" id="chkfromDate" checked>
                     </div>
                 </div>
 
-                <!-- Khối 2: col-md-4 -->
-                <div class="col-md-8">
-                    <div class="row">
-                        <div class="col-md-6 mb-2 d-flex align-items-center">
-                            <label for="fromDate" class="form-label">Arr.From</label>
-                            <input type="date" id="fromDate" name="fromDate" class="form-control" />
-                            <span class="input-group-text">
-                                <input type="checkbox" id="chkfromDate" class="form-check-input mt-0" checked />
-                            </span>
-                        </div>
-                        <div class="col-md-6 mb-2 d-flex align-items-center">
-                            <label for="toDate" class="form-label">Arr.To</label>
-                            <input type="date" id="toDate" name="toDate" class="form-control" />
-                            <span class="input-group-text">
-                                <input type="checkbox" id="chktoDate" class="form-check-input mt-0" checked />
-                            </span>
-                        </div>
-                        <div class="col-12 mb-2 d-flex align-items-center">
-                            <label for="name" class="form-label me-2">Name</label>
-                            <input type="text" id="name" name="name" class="form-control me-3" />
-                            <input type="checkbox" id="roomSharer" name="roomSharer" class="form-check-input me-1" checked />
-                            <label for="roomSharer" class="form-check-label mb-0">Room Sharer</label>
-                        </div>
-                        <div class="col-12 mb-2 d-flex align-items-center">
-                            <label for="resvHolder" class="form-label">Resv.Holder</label>
-                            <input type="text" id="resvHolder" name="resvHolder" class="form-control" />
-                        </div>
-                        <div class="col-12 mb-2 d-flex align-items-center">
-                            <label for="searchType" class="form-label">Search Type</label>
-                            <input type="text" id="searchType" name="searchType" class="form-control" />
-                        </div>
-                        <div class="col-12 mb-2 ms-5 d-flex align-items-center">
-                            <input type="checkbox" id="guesthascard" name="guesthascard" class="form-check-input me-1" checked />
-                            <label for="guesthascard" class="form-check-label">Show more guest has card</label>
-                        </div>
-                        <div class="col-12 mb-2 ms-5 d-flex align-items-center">
-                            <input type="checkbox" id="bycardIDfromCardReader" name="bycardIDfromCardReader" class="form-check-input me-1" />
-                            <label for="bycardIDfromCardReader" class="form-check-label">Search by card ID from Card reader. Click this checkbox</label>
-                        </div>
+                <div class="filter-item">
+                    <label>Arr.To</label>
+                    <div class="filter-inline">
+                        <input type="date" id="toDate" class="form-control">
+                        <input type="checkbox" id="chktoDate" checked>
                     </div>
                 </div>
 
+                <div class="filter-item">
+                    <label>Name</label>
+                    <input id="name" class="form-control">
+                </div>
+
+                <div class="filter-item">
+                    <label>Resv</label>
+                    <input id="resvHolder" class="form-control">
+                </div>
+
+                <div class="filter-item">
+                    <label>Type</label>
+                    <input id="searchType" class="form-control">
+                </div>
+
+            </div>
+
+            <div class="filter-checks">
+                <label><input type="checkbox" id="roomSharer" checked> Sharer</label>
+                <label><input type="checkbox" id="guesthascard" checked> Show guest has card</label>
+                <label><input type="checkbox" id="bycardIDfromCardReader"> Card reader</label>
             </div>
         </div>
-        <div class="col-md-1 border-box">
-            <div class="row">             
-                <div class="col-12 mb-2d-flex align-items-center">
-                    <input type="checkbox" id="addCard" name="addCard" class="form-check-input me-1" checked />
-                    <label for="addCard" class="form-check-label">Add Card</label>
-                </div>
-                <div class="col-12 mb-2 d-flex align-items-center">
-                    <input type="checkbox" id="cutKey" name="cutKey" class="form-check-input me-1" disabled/>
-                    <label for="cutKey" class="form-check-label">Cut Key</label>
+    </div>
 
-                </div>  
-            </div>
+
+    <div class="col-md-2">
+        <div class="filter-box">
+            <label><input type="checkbox" id="addCard" checked> Add Card</label><br>
+            <label><input type="checkbox" id="cutKey" disabled> Cut Key</label>
         </div>
-        <div class="col-4-5 border-box">
-            <div class="row">
+    </div>
 
-                <div class="col-12 mb-2d-flex align-items-center">
-                    <label class="form-check-label">1. Select guest list to add card or cutkey</label>
-                </div>
-                <div class="col-12 mb-2 d-flex align-items-center">
-                    <label class="form-check-label">2. Insert card to card reader --> Add card for guests</label>
-                </div>
-                <div class="col-12 mb-2 d-flex align-items-center">
-                    <label class="form-check-label">3. Options: Choose add card or cutkey or both</label>
-                </div>
-                <div class="col-12 mb-2 d-flex align-items-center">
-                    <label class="form-check-label">4. Click OK to confirm --> Add card for guests</label>
-                </div>
-                <div class="col-12 mb-2 d-flex align-items-center">
-                    <label class="form-check-label">(After issuing, card will be used for meals)</label>
-                </div>
-            </div>
+    <div class="col-md-2">
+        <div class="filter-box" style="font-size:12px">
+            <div>1. Select guest</div>
+            <div>2. Insert card</div>
+            <div>3. Choose option</div>
+            <div>4. Click OK</div>
         </div>
-
     </div>
 
 </div>
 
-    <!-- Buttons -->
-    <div class="mt-3 d-flex flex-wrap gap-2">
-        <button class="mui-button button-report-view" id="btnView"> View</button>
-       <button class="mui-button button-report-view" id="btnOK" type="button"> OK</button>
-        <button class="mui-button button-report-delete" id="btnCancelCard" type="button"> Cancel Card</button>
 
-    <div class="d-flex align-items-center ms-auto me-auto">
-        <label for="cardID" class="form-label">Input CardID</label>
-        <input type="text" id="cardID" name="cardID" class="form-control" />
-    </div>
-
-    </div>
-
-    <!-- Loading Spinner -->
-    <div id="loadingSpinnerRateCode" style="display: none; text-align: center; padding: 20px;">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-    </div>
-
-<!-- Grid -->
+<!-- ================= GRID ================= -->
 <div class="mui-card mt-3">
     <div id="gridContainerRateCode" class="gridContainer"></div>
 </div>
+
+<!-- Loading Spinner -->
+<div id="loadingSpinnerRateCode" style="display: none; text-align: center; padding: 20px;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+
 <script>
      const statusMap = {
         "Done": 1,
@@ -207,7 +283,7 @@
 
 
     DevExpress.localization.locale("vi");
-    let selectedRowsData = [];
+    var selectedRowsData = [];
 
       function formatDate(date) {
             let year = date.getFullYear();
@@ -296,27 +372,42 @@
          function initializeTomSelects() {
                 const selectors = ["#zone"];
 
-            for (const id of selectors) {
-                const el = document.querySelector(id);
-                if (!el) continue;
-
-                if (el.tomselect) el.tomselect.destroy();
-
-                const ts = new TomSelect(el, {
-                    plugins: ['remove_button'],
+            selectors.forEach(selector => {
+            const el = document.querySelector(selector);
+            if (el) {
+                 if (el.tomselect) el.tomselect.destroy();
+                    new TomSelect(el, {
+                        plugins: {
+                        'remove_button': { title: 'Deselect' },
+                        'dropdown_input': {},
+                        'clear_button': { title: 'Clear all' },
+                    },
+                    dropdownParent: 'body',
                     create: false,
                     maxItems: null,
-                    allowEmptyOption: true,
-                    placeholder: '',
-                    persist: false,
+                    valueField: 'value',
+                    labelField: 'text',
+                    searchField: ['text'],
+                    placeholder: ' Enter or select options...',
+                    onClear: function() {
+                    const self = this;
+                    setTimeout(() => {
+                        self.close();
+                        self.blur();
+                    }, 10);
+                },
                     render: {
-                        option: function (data, escape) {
-                            return `<div>${escape(data.text)}</div>`;
+                        option: function(data, escape) {
+                            return `<div class="p-2"> ${escape(data.text)} </div>`;
+                        },
+                        item: function(data, escape) {
+                            return '<div title="' + escape(data.text) + '">' + escape(data.text) + '</div>';
                         }
                     }
-                });
 
+                });
             }
+        });
         }
 
               function loadGrid(data) {

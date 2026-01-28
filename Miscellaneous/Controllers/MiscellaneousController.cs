@@ -215,7 +215,7 @@ namespace Miscellaneous.Controllers
         }
 
 
-
+        #region Meal Report
         public IActionResult MealReport()
         {
             return View();
@@ -430,6 +430,7 @@ namespace Miscellaneous.Controllers
 
             // return PartialView("_ReportViewerPartial", report);
         }
+        #endregion
 
         [HttpGet]
         public IActionResult GetIssuingCardToGuests(string firstName, string confirmationNo, string crsNo, string roomNo, string zone, string guestName, string rsvHolder, string isShowRS, string isShowCard, DateTime arrFrom, DateTime arrTo, string status, string ci_Day, string co_Day, string findCardID, string reservationID)
