@@ -97,10 +97,11 @@ function applyValidationErrors(errors, formSelector) {
     let $feedback = null; // nơi hiển thị message
 
     //  TomSelect
-    if ($field[0].tomselect) {
-      $errorTarget = $field.next(".ts-wrapper");
-      $feedback = findFeedback($errorTarget);
-    }
+      if ($field[0].tomselect) {
+          $errorTarget = $($field[0].tomselect.wrapper);
+          $feedback = findFeedback($errorTarget);
+      }
+
     //  Input / textarea / select thường
     else {
       $errorTarget = $field;
@@ -136,16 +137,16 @@ function findFeedback($el) {
 
 // Focus đúng element (kể cả TomSelect)
 function focusElement($el) {
-  if ($el.hasClass("ts-wrapper")) {
-    // TomSelect
-    //  const select = $el.prev("select")[0];
-    //  if (select && select.tomselect) {
-    //    select.tomselect.focus();
-    //  }
+    //if ($el.hasClass("ts-wrapper")) {
+    //    const select = $el.prev("select")[0];
+    //    if (select?.tomselect) {
+    //        select.tomselect.focus();
+    //    }
     //} else {
-    $el.focus();
-  }
+        $el.focus();
+    //}
 }
+
 
 //Init Input Date
 (function () {
