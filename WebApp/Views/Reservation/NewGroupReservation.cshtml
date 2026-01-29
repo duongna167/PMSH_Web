@@ -65,7 +65,7 @@
                                     <div class="clearable" data-date-input data-format="DD/MM/YYYY" business-date
                                         data-name="arrival2">
                                         <input type="text" class="date-ui form-control" placeholder="dd/mm/yyyy"
-                                            autocomplete="off" id="arrivalShow" />
+                                            autocomplete="off" id="arrivalNGRShow" />
                                     </div>
                                 </div>
                             </div>
@@ -81,7 +81,7 @@
                                     <div class="clearable" data-date-input data-format="DD/MM/YYYY" business-date
                                         data-name="departure2">
                                         <input type="text" class="date-ui form-control" placeholder="dd/mm/yyyy"
-                                            autocomplete="off" id="departureShow" />
+                                            autocomplete="off" id="departureNGRShow" />
                                     </div>
                                 </div>
                             </div>
@@ -258,39 +258,54 @@
             document.getElementById('nights2').value = diffDays >= 0 ? diffDays : 0;
         }
     }
+    // Hàm cập nhật ngày và thứ
+    function updateDates() {
+        const arrivalInput = document.getElementById('arrival2');
+        const departureInput = document.getElementById('departure2');
+        const arrivalDay = document.getElementById('arrival-day');
+        const departureDay = document.getElementById('departure-day');
+        const arrivalDate = new Date(arrivalInput.value);
+        const departureDate = new Date(departureInput.value);
+        calculateNights();
+    }
 
     // Lắng nghe sự kiện thay đổi ngày
-    $(document).on('change', '#arrivalShow', async function () {
-        window.isSyncingDates = true;
+    $(document).on('change', '#arrivalNGRShow', async function () {
+        console.log(' window.isSyncingDates', window.isSyncingDates);
+
         if (window.isSyncingDates) return;
+        window.isSyncingDates = true;
 
         // 2. Chờ arrival ISO từ hidden (nguồn sự thật)
-        const arrivalIso = await waitForBusinessDate("arrival2");
+        const arrivalIso = dateSystem;
+        console.log('dấdsadfvhaet', arrivalIso);
 
-        const nights = parseInt($('#nights2').val(), 10) || 1;
+        const nightsNGR = parseInt($('#nights2').val(), 10) || 1;
 
-        const departureIso = UI.addDaysIso(arrivalIso, nights);
+        const departureIso = UI.addDaysIso(arrivalIso, nightsNGR);
         UI.setHiddenDate("departure2", departureIso);
 
         updateDates();
         window.isSyncingDates = false;
     });
 
-    $(document).on('change', '#departureShow,#nights2', async function (e) {
+    $(document).on('change', '#departureNGRShow,#nights2', async function (e) {
         if (window.isSyncingDates) return;
         window.isSyncingDates = true;
         try {
-            const targetId = e.target.id; // Kiểm tra xem cái nào vừa bị thay đổi
-            const arrivalIso = $('#arrival2').val() || await waitForBusinessDate("arrival2");
-            let departureIso = $('#departure2').val();
-            const nights = parseInt($('#nights2').val(), 10) || 1;
+            console.log('dateTimeSystem adsd', dateSystem);
 
-            if (targetId === 'departureShow') {
+            const targetId = e.target.id; // Kiểm tra xem cái nào vừa bị thay đổi
+            const arrivalIso = $('#arrival2').val() || dateSystem;
+            let departureIso = $('#departure2').val();
+            const nightsNGR = parseInt($('#nights2').val(), 10) || 1;
+
+            if (targetId === 'departureNGRShow') {
                 if (arrivalIso && departureIso) {
                     if (departureIso <= arrivalIso) {
                         // Nếu chọn ngày đi <= ngày đến: Giữ nguyên số đêm, lùi ngày đến lại
-                        const currentNights = nights > 0 ? nights : 1;
-                        const newArrival = UI.addDaysIso(departureIso, -currentNights);
+                        const currentNightsNGR = nightsNGR > 0 ? nightsNGR : 1;
+                        const newArrival = UI.addDaysIso(departureIso, -currentNightsNGR);
                         UI.setHiddenDate("arrival2", newArrival);
                     } else {
                         // Nếu ngày đi hợp lệ: Tính lại số đêm
