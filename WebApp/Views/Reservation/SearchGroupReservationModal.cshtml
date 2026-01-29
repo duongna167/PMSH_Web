@@ -1,4 +1,9 @@
-﻿@* <link href="~/css/pages/reservation.css" rel="stylesheet" asp-append-version="true" /> *@
+﻿@{
+    Layout = null;
+}
+
+
+@* <link href="~/css/pages/reservation.css" rel="stylesheet" asp-append-version="true" /> *@
 <div class="modal fade" id="modalSearchGroupReservation" tabindex="-1" aria-labelledby="modalGroupReservationLabel"
     aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
@@ -19,8 +24,10 @@
                     <div>
                         <button class="mui-button mui-button-new" onclick="searchGroupReservation()">Search</button>
                         <button class="mui-button mui-button-new" id="btnExportExcel">Excel</button>
-                        <button class="mui-button mui-button-new" onclick="clearModelNew()">Refesh</button>
-                        <button class="mui-button mui-button-new" onclick="closeModalNew()">Close</button>
+                        <button class="mui-button mui-button-new"
+                            onclick="clearModalSearchGroupReservation()">Refesh</button>
+                        <button class="mui-button mui-button-new"
+                            onclick="closeModalSearchGroupReservation()">Close</button>
                     </div>
                     <!-- Filters -->
                     <div id="partial-content">
@@ -610,19 +617,21 @@
         });
 
     }
-    $(document).ready(async function () {
-        getBusinessDate().then(function () {
-            searchGroupReservation();
-        });
-        getProfileIndividual();
-        document.addEventListener("keydown", function (event) {
-            if (event.key === "Enter") {
-                searchGroupReservation();
-            }
-        });
-    });
 
+    async function openModalSearchGroupReservation() {
+        await searchGroupReservation();
+        clearModalSearchGroupReservation();
+        $('#modalSearchGroupReservation').modal('show');
+    }
 
+    function closeModalSearchGroupReservation() {
+        $('#modalSearchGroupReservation').modal('hide');
+        clearModalSearchGroupReservation();
+    }
+
+    function clearModalSearchGroupReservation() {
+        reloadBusinessDate();
+    }
 
     // Hàm định dạng ngày thành chuỗi YYYY-MM-DD
     function formatDate(date) {
@@ -643,68 +652,14 @@
         calculateNights();
     }
 
-    function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                const businessDate = new Date(result);
-                const formattedBusinessDate = result.split('T')[0];
-                $('#arrival').val(formattedBusinessDate);
-                $('#arrival2').val(formattedBusinessDate);
-                $('#fromDateSearch').val(formattedBusinessDate);
-                const departureDate = new Date(businessDate);
-                departureDate.setDate(businessDate.getDate() + 2);
-                const formattedDepartureDate = departureDate.toISOString().split('T')[0];
-                $('#departure').val(formattedDepartureDate);
-                $('#departure2').val(formattedDepartureDate);
-                $('#toDateSearch').val(formattedDepartureDate);
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-            }
-        });
-    }
-
     let isSyncingDates = false;
 
-    function getProfileIndividual() {
-        $.ajax({
-            url: '/Reservation/GetProfileIndividual',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if (result.length > 0) {
-                    let select = $('#name')[0].tomselect;
-                    select.addOption({ value: '0', text: '' });
-                    result.forEach(item => {
-                        select.addOption({ value: item.id, text: `${item.account}` });
-                    });
-                    select.setValue('0');
-                } else {
-                    let select = $('#name')[0].tomselect;
-                    select.clear();
-                    select.addOption({ value: '0', text: '' });
-                    select.setValue('0');
-                }
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-            }
-        });
-    }
+    async function searchGroupReservation() {
 
-    function searchGroupReservation() {
         // Hiển thị biểu tượng tải DevExtreme
+        $('#fromDateSearch').val(dateTimeSystem);
+        $('#toDateSearch').val(dateTimeSystem);
+
         $('#gridGroupVerContainer').hide();
         $('#loadingSpinnerR').show();
         $.ajax({
@@ -844,14 +799,7 @@
         });
     }
 
-    function closeModalNew() {
-        $('#modalSearchGroupReservation').modal('hide');
-        clearModelNew();
-    }
 
-    function clearModelNew() {
-        reloadBusinessDate();
-    }
 
     $("#btnExportExcel").click(function () {
         const grid = $("#gridGroupVerContainer").dxDataGrid("instance"); var selectedReport2 = 'Group Reservation';
