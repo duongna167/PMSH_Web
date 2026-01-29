@@ -6,18 +6,28 @@
 
 // Báo business date cho toàn cục
 window.dateTimeSystem = null;
+window.dateSystem = null;
 async function businessDateGlobal() {
   try {
-    window.dateTimeSystem = await $.ajax({
+    const result = await $.ajax({
       url: "/Reservation/GetBusinessDate",
       type: "GET",
       dataType: "json",
     });
-    console.log("dateTimeSystem:", dateTimeSystem);
 
-    return window.dateTimeSystem;
+    // Ví dụ result: "2026-01-29T00:00:00"
+    window.dateTimeSystem = result;
+    window.dateSystem = result?.split("T")[0] ?? null;
+
+    console.log("dateTimeSystem:", window.dateTimeSystem);
+    console.log("dateSystem:", window.dateSystem);
+
+    return result;
   } catch (err) {
-    console.error("AJAX ERROR", err);
+    console.error("AJAX GetBusinessDates ERROR", err);
+    window.dateTimeSystem = null;
+    window.dateSystem = null;
+    return null;
   }
 }
 
