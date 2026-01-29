@@ -193,11 +193,14 @@
                                  <a href="javascript:void(0);" class="open-new-reservation-modal">New Reservation</a>
                                 <a asp-area="" asp-controller="Reservation" asp-action="SearchReservation">Search
                                     Reservation</a>
-                                <a href="#" data-bs-toggle="modal" data-bs-target="#modalSearchGroupReservation">Search
-                                    Group
-                                    Reservation</a>
-                                <a href="javascript:void(0);" class="open-new-groupreservation">New
-                                    Group Reservation</a>
+                                <a href="javascript:void(0);" onclick="openSearchGroupReservation()">
+                                    Search Group Reservation
+                                </a>
+
+                                <a href="javascript:void(0);" onclick="openNewGroupReservation()">
+                                    New Group Reservation
+                                </a>
+
                                 <a asp-area="" asp-controller="Home" asp-action="">Room Assigment</a>
                                 <a asp-area="" asp-controller="Reservation" asp-action="OverBooking">Over Booking</a>
 
@@ -388,10 +391,12 @@
                             <a class="nav-link" href="#">MISCELLANEOUS</a>
                             <div class="dropdown-menu-custom">
                                 <a asp-area="" asp-controller="Miscellaneous" asp-action="MealReport">Report Meal</a>
-                                <a asp-area="" asp-controller="Miscellaneous" asp-action="CardManagement">Card Management</a>
-                                <a asp-area="" asp-controller="Miscellaneous" asp-action="IssuingCardToGuests">Guest card</a>
+                                <a asp-area="" asp-controller="Miscellaneous" asp-action="CardManagement">Card
+                                    Management</a>
+                                <a asp-area="" asp-controller="Miscellaneous" asp-action="IssuingCardToGuests">Guest
+                                    card</a>
                                 <a asp-area="" asp-controller="Home" asp-action="">Meal Management</a>
-                                
+
                                 @* <a asp-area="" asp-controller="Home" asp-action="">Export Revenue</a>
                                 <a asp-area="" asp-controller="Home" asp-action="">Export Payments</a>
                                 <a asp-area="" asp-controller="Home" asp-action="">Center Message</a> *@
@@ -687,8 +692,8 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await Html.PartialAsync("~/Views/Accounting/ARAgingLevels.cshtml")
-    @await Html.PartialAsync("~/Views/Reservation/NewGroupReservation.cshtml")
-    @await Html.PartialAsync("~/Views/Reservation/SearchGroupReservation.cshtml")
+    @* @await Html.PartialAsync("~/Views/Reservation/NewGroupReservation.cshtml")
+    @await Html.PartialAsync("~/Views/Reservation/SearchGroupReservation.cshtml") *@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 
@@ -940,7 +945,8 @@
 
     let isFormLoaded = false;
     let isARAgingLevelsLoaded = false;
-    $(document).ready(function () {
+    $(document).ready(async function () {
+        await businessDateGlobal();
         $('.open-new-reservation-modal').on('click', function (e) {
             e.preventDefault();
             var modal = $('#newReservationModal');
@@ -1205,16 +1211,30 @@
 
     });
 
-
-
 </script>
 
-<!-- //Scrip cho mở modal các loại -->
+<!-- Script để load modal -->
 <script>
-    $(document).off("click", ".open-new-groupreservation").on("click", ".open-new-groupreservation", function () {
-        openNewGroupReservation();
-    });
-
+    function openSearchGroupReservation() {
+        $("#modalContainer").load(
+            "/Reservation/SearchGroupReservationModal",
+            function () {
+                const modalEl = document.getElementById("modalSearchGroupReservation");
+                // Init UI control cho modal (datepicker, custom input...)
+                initDateInputs(modalEl);
+                const modal = new bootstrap.Modal(modalEl);
+                // ❗ GẮN EVENT TRƯỚC KHI SHOW
+                modalEl.addEventListener(
+                    "shown.bs.modal",
+                    async function () {
+                        await openModalSearchGroupReservation(); // ✅ GỌI ĐÚNG
+                    },
+                    { once: true } // ❗ tránh chạy lại
+                );
+                modal.show();
+            }
+        );
+    }
     function openNewGroupReservation() {
         $("#modalContainer").load(
             "/Reservation/NewGroupReservation",
@@ -1227,7 +1247,7 @@
                 modalEl.addEventListener(
                     "shown.bs.modal",
                     function () {
-                        openModalNew(); // ✅ GỌI ĐÚNG
+                        openModalNewGroupReservation(); // ✅ GỌI ĐÚNG
                     },
                     { once: true } // ❗ tránh chạy lại
                 );
@@ -1235,4 +1255,5 @@
             }
         );
     }
+
 </script>

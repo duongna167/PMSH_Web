@@ -4,6 +4,23 @@
 // Write your JavaScript code.
 // Hàm gọi để lấy business-date
 
+// Báo business date cho toàn cục
+window.dateTimeSystem = null;
+async function businessDateGlobal() {
+  try {
+    window.dateTimeSystem = await $.ajax({
+      url: "/Reservation/GetBusinessDate",
+      type: "GET",
+      dataType: "json",
+    });
+    console.log("dateTimeSystem:", dateTimeSystem);
+
+    return window.dateTimeSystem;
+  } catch (err) {
+    console.error("AJAX ERROR", err);
+  }
+}
+
 function formatDate(date, format = "DD/MM/YYYY") {
   if (!date) return "";
 
@@ -97,10 +114,10 @@ function applyValidationErrors(errors, formSelector) {
     let $feedback = null; // nơi hiển thị message
 
     //  TomSelect
-      if ($field[0].tomselect) {
-          $errorTarget = $($field[0].tomselect.wrapper);
-          $feedback = findFeedback($errorTarget);
-      }
+    if ($field[0].tomselect) {
+      $errorTarget = $($field[0].tomselect.wrapper);
+      $feedback = findFeedback($errorTarget);
+    }
 
     //  Input / textarea / select thường
     else {
@@ -137,16 +154,15 @@ function findFeedback($el) {
 
 // Focus đúng element (kể cả TomSelect)
 function focusElement($el) {
-    //if ($el.hasClass("ts-wrapper")) {
-    //    const select = $el.prev("select")[0];
-    //    if (select?.tomselect) {
-    //        select.tomselect.focus();
-    //    }
-    //} else {
-        $el.focus();
-    //}
+  //if ($el.hasClass("ts-wrapper")) {
+  //    const select = $el.prev("select")[0];
+  //    if (select?.tomselect) {
+  //        select.tomselect.focus();
+  //    }
+  //} else {
+  $el.focus();
+  //}
 }
-
 
 //Init Input Date
 (function () {
