@@ -1065,6 +1065,8 @@
 
 
     $(document).ready(async function () {
+        await window.initDateInputs();
+
         checkEdit = false;
         var result = @Json.Serialize(ViewBag.Reservation);
         console.log(result);
@@ -1148,8 +1150,6 @@
 
 
             if (idReservationRoomplan == idReservation) {
-                @* $("#arrival").val(startDate);
-                $("#departure").val(endDate); *@
                 UI.setHiddenDate("arrival", startDate);
                 UI.setHiddenDate("departureInvoice", endDate);
                 $("#roomSelect").val(roomNo);
@@ -1159,8 +1159,6 @@
                 localStorage.removeItem("ReservationRoomPlan");
             } else {
 
-                @* $("#arrival").val(result.arrivalDate.split("T")[0]);
-                $("#departure").val(result.departureDate.split("T")[0]); *@
                 UI.setHiddenDate("arrival", result.arrivalDate.split("T")[0]);
                 UI.setHiddenDate("departure", result.departureDate.split("T")[0]);
                 $("#roomSelect").val(result.roomNo);
@@ -1169,8 +1167,6 @@
         }
         else {
             // fallback nếu localStorage trống
-            @* $("#arrival").val(result.arrivalDate.split("T")[0]);
-            $("#departure").val(result.departureDate.split("T")[0]); *@
             UI.setHiddenDate("arrival", result.arrivalDate.split("T")[0]);
             UI.setHiddenDate("departure", result.departureDate.split("T")[0]);
             $("#roomSelect").val(result.roomNo);
@@ -1449,35 +1445,27 @@
         updateDatesRateCode();
     }
     function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                const businessDate = new Date(result);
-                const formattedBusinessDate = result.split('T')[0];
-                $('#pickUpDate').val(formattedBusinessDate);
 
-                const departureDate = new Date(businessDate);
-                departureDate.setDate(businessDate.getDate() + 2);
-                const formattedDepartureDate = departureDate.toISOString().split('T')[0];
-                if (!checkEdit) {
-                    $('#arrival').val(formattedBusinessDate);
-                    $('#departure').val(formattedDepartureDate);
-                    $('#txtDob').val(formattedBusinessDate);
-                }
-                $('#dropOffDate').val(formattedDepartureDate);
-                updateDates();
+        const businessDate = new Date(dateTimeSystem);
+        const formattedBusinessDate = dateSystem;
+        $('#pickUpDate').val(formattedBusinessDate);
 
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-            }
-        });
+        const departureDate = new Date(businessDate);
+        departureDate.setDate(businessDate.getDate() + 2);
+        const formattedDepartureDate = departureDate.toISOString().split('T')[0];
+        console.log('formattedDepartureDate', formattedDepartureDate);
+
+        if (!checkEdit) {
+            UI.setHiddenDate("arrival", formattedBusinessDate);
+            UI.setHiddenDate("departure", formattedDepartureDate);
+            UI.setHiddenDate("txtDob", formattedBusinessDate);
+            console.log('4936549146127');
+
+
+        }
+        UI.setHiddenDate("dropOffDate", formattedDepartureDate);
+        updateDates();
+
     }
     function getItemInvetory(id) {
         return $.ajax({
@@ -1587,7 +1575,7 @@
             const departureIso = UI.addDaysIso(arrivalIso, nights);
 
             UI.setHiddenDate("departure", departureIso);
-            updateDates();
+            Promise.resolve().then(updateDates);
 
         } finally {
             window.isSyncingDates = false;
@@ -1625,7 +1613,7 @@
                 UI.setHiddenDate("departure", newDeparture);
             }
 
-            updateDates();
+            Promise.resolve().then(updateDates);
 
         } catch (err) {
             console.error("Lỗi cập nhật ngày tháng:", err);
