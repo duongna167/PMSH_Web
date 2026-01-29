@@ -176,14 +176,6 @@ function focusElement($el) {
 
 //Init Input Date
 (function () {
-  async function getBusinessDateFromServer() {
-    return await $.ajax({
-      url: "/Reservation/GetBusinessDate",
-      type: "get",
-      dataType: "json",
-    });
-  }
-
   class DateInput {
     constructor(root) {
       this.$root = $(root); // Thẻ CHA
@@ -273,7 +265,7 @@ function focusElement($el) {
 
     async loadAndSetBusinessDate() {
       try {
-        const result = await getBusinessDateFromServer();
+        const result = dateTimeSystem;
         const businessDateISO = result.split("T")[0];
         console.log(
           `[BusinessDate] Autoload cho ${this.name}: ${businessDateISO}`,
