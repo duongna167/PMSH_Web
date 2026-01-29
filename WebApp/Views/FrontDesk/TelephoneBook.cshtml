@@ -8,8 +8,6 @@
 
 }
 
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
 <div class="text-center" id="reportTitle" style="font-size: 20px">Telephone Book</div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
     <div class="">
@@ -82,7 +80,7 @@
                
             </div>
             <div class="modal-body">
-                <div class="d-flex justify-content-start mb-3 gap-2">
+                <div class="py-2">
                    
                     <button type="button" class="mui-button mui-button-edit" id="btnSavePopup">
                         Save
@@ -93,8 +91,7 @@
                     <div class="row d-flex align-items-center">
                         <div class="col-md-6 ">
                             <label>Category</label>
-                            <select id="popupCategory" class="form-control">
-                                <option value="">-- Select One --</option>
+                            <select id="popupCategory" class="tomselect-custom">
                                 @foreach (var c in ViewBag.TelephoneBookCategoryList)
                                 {
                                     <option value="@c.ID">@c.Name</option>
@@ -142,7 +139,8 @@
     }
     $(document).ready(function () {
         var listTelephoneSelect = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.TelephoneSelect ?? new List<object>()));
-        console.log(listTelephoneSelect);
+        
+        initTomSelect(".tomselect-custom");
         loadTelephoneSelect(listTelephoneSelect);
         loadTelephoneGrid([]);
         $("#btnView").trigger("click");
@@ -150,6 +148,7 @@
     $(document).on("click", "#btnNew", function () {
         $("#popupForm")[0].reset(); // reset form
         $("#telephonePopup").modal("show");
+        clearTomSelect(".tomselect-custom");
     });
 
     // Khi bấm nút Update
@@ -168,13 +167,14 @@
         // Gọi API để lấy chi tiết theo ID
         $.get("/FrontDesk/GetTelephoneById", { id: row.id }, function (data) {
             if (data) {
-                $("#popupCategory").val(data.telephoneBookCategoryID);
+                   setTomSelectValue("#popupCategory",data.telephoneBookCategoryID);
+                // $("#popupCategory").val(data.telephoneBookCategoryID);
                 $("#popupName").val(data.name);
                 $("#popupPhone").val(data.telephone);
                 $("#popupAddress").val(data.address);
                 $("#popupRemark").val(data.remark);
                 $("#popupWeb").val(data.webAddress);
-                 $("#popupColor").val(signedIntToHexColor(data.color));
+                $("#popupColor").val(signedIntToHexColor(data.color));
 
                 // Lưu tạm id để khi Save biết update
                 $("#popupForm").data("edit-id", data.id);
@@ -280,7 +280,6 @@
             });
         }
     });
-
 
     $(document).off("click", "#btnView").on("click", "#btnView", function () {
         $("#loadingSpinner").show();
