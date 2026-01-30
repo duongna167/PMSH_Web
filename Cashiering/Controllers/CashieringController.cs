@@ -700,13 +700,23 @@ namespace Cashiering.Controllers
                     formattedDeparture = "";
                 }
                 DataTable resultExchangeData = _iCashieringManagerService.GetGUestInHouse(room, name, block, group, "", company, confirmationNo, formattedArrivalFrom, formattedArrivalTo, formattedDeparture, crsNo, package, guestName, zone, typeSearch);
-                var resultExchange = (from d in resultExchangeData.AsEnumerable()
-                                      select d.Table.Columns.Cast<DataColumn>()
-                                          //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
-                                          .ToDictionary(
-                                              col => col.ColumnName,
-                                              col => d[col.ColumnName]?.ToString()
-                                          )).ToList();
+                var resultExchange = resultExchangeData.AsEnumerable()
+                   .Select(d =>
+                       d.Table.Columns.Cast<DataColumn>()
+                       .ToDictionary(
+                           col => col.ColumnName,
+                           col =>
+                           {
+                               if ((col.ColumnName == "Arrival" || col.ColumnName == "Departure")
+                                   && DateTime.TryParse(d[col.ColumnName]?.ToString(), out DateTime dt))
+                               {
+                                   return dt.ToString("dd/MM/yyyy");
+                               }
+
+                               return d[col.ColumnName]?.ToString();
+                           }
+                       )
+                   ).ToList();
                 return Json(resultExchange);
             }
             catch (Exception ex)

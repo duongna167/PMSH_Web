@@ -34,7 +34,7 @@ namespace Cashiering.Services.Implements
                     new SqlParameter("@Package", package ?? ""),
                     new SqlParameter("@OrderBy", "0"),
 
-                     new SqlParameter("@GuestType", guestName ?? "0"),
+                     new SqlParameter("@GuestType", guestName ?? ""),
                      new SqlParameter("@ZoneID", zone),
                     new SqlParameter("@TypeSearch", typeSearch),
 

@@ -10,32 +10,7 @@
 @* <link asp-append-version="true" href="~/css/reservation.css" rel="stylesheet" /> *@
 
 <style>
-    .tomselect-custom .ts-control {
-        width: 200px;
-        /* CỐ ĐỊNH NGANG */
-        max-height: 32px;
-        overflow-y: auto;
-        overflow-x: hidden;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-start;
-        /* tránh bị căn giữa gây giãn */
-        box-sizing: border-box;
-    }
-
-    /* Item đã chọn */
-    .tomselect-custom .ts-control .item {
-        max-width: 100%;
-        white-space: nowrap;
-    }
-
-    /* Input tìm kiếm */
-    .tomselect-custom .ts-control input {
-        flex: 0 0 80px;
-        /* KHÔNG GIÃN NGANG */
-        min-width: 80px;
-        max-width: 80px;
-    }
+   
 </style>
 
 
@@ -66,7 +41,7 @@
                             <div class="d-flex align-items-center">
                                 <div class="d-flex align-items-center me-3">
                                     <label class="me-2 mb-0">From :</label>
-                                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
+                                    <div data-date-input data-format="DD/MM/YYYY"  data-name="fromDate">
                                         <input type="text" class="date-ui " placeholder="dd/mm/yyyy"
                                             autocomplete="off" />
                                     </div>
@@ -188,10 +163,12 @@
     let parsedBusinessDate = null;
 
     $(document).ready(function () {
-        getBusinessDate();
-        initializeTomSelects();
-        $('#reportModal').modal('show');
+                initializeTomSelects();
 
+          getBusinessDate();
+
+        $('#reportModal').modal('show');
+        
 
     });
     $(document).on('click', '#btnCloseAva', function () {
@@ -245,61 +222,45 @@
         }
     }
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        loadGrid();
+         let fromDate = $('#fromDate').val() || '';
+         const zone = $("#zone").val();
+         if (!zone || zone.length === 0) {
+             showToast('Error', "Please select a Zone before printing!", false);
+             return; // dừng không gọi AJAX
+         }
+         $("#loadingSpinner").show();
+         $.ajax({
+             url: '/HouseKeeping/RoomAvailabilityData',
+             type: 'GET',
+             data: {
+                 fromDate: fromDate,
+                 zone: $("#zone").val().join(","),
+                 restype: $("#restype").val().join(","),
+
+                 displayofday: $("#displayofday").val(),
+                 showNonDeduct: $("#showNonDeduct").val(),
+                 showOcc3: $("#showOcc3").val(),
+                 showRoomNight: $("#showRoomNight").val(),
+                 includeOutOfOrder: $("#includeOutOfOrder").val(),
+                 includeOverbooking: $("#includeOverbooking").val(),
+                 includeAllotment: $("#includeAllotment").val(),
+             },
+             traditional: true,
+             crossDomain: false,
+             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+             success: function (result) {
+                 // $("#reportViewerContainer").html(result);
+                 // $("#loadingSpinner").hide();
+                 console.log(result);
+                 initializeReservationSummaryGrid(result.data, result.fromDate, result.toDate);
+                 $("#loadingSpinner").hide();
+             },
+             error: function () {
+                 alert("Không th? t?i báo cáo.");
+                 $("#loadingSpinner").hide();
+             }
+         })
     });
-
-    async function loadGrid(isInitial = false) {
-        // Kiểm tra xem các trường ngày có giá trị hợp lệ hay không
-        let fromDate = $('#fromDate').val() || '';
-        // Nếu là load lần đầu (initial) và fromDate chưa có → bắt buộc chờ business date
-        if (isInitial && (!fromDate)) {
-            fromDate = await waitForBusinessDate("fromDate", 10000); // timeout 10s để an toàn
-        }
-
-        // Nếu vẫn rỗng sau khi chờ → báo lỗi hoặc fallback (tùy yêu cầu)
-        if (!fromDate) {
-            console.log("Không tải được ngày mặc định. Vui lòng chọn From Date thủ công.");
-            $("#loadingSpinnerRateCode").hide();
-            return;
-        }
-        const zone = $("#zone").val();
-        if (!zone || zone.length === 0) {
-            showToast('Error', "Please select a Zone before printing!", false);
-            return; // dừng không gọi AJAX
-        }
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/HouseKeeping/RoomAvailabilityData',
-            type: 'GET',
-            data: {
-                fromDate: fromDate,
-                zone: $("#zone").val().join(","),
-                restype: $("#restype").val().join(","),
-
-                displayofday: $("#displayofday").val(),
-                showNonDeduct: $("#showNonDeduct").val(),
-                showOcc3: $("#showOcc3").val(),
-                showRoomNight: $("#showRoomNight").val(),
-                includeOutOfOrder: $("#includeOutOfOrder").val(),
-                includeOverbooking: $("#includeOverbooking").val(),
-                includeAllotment: $("#includeAllotment").val(),
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                console.log(result);
-                initializeReservationSummaryGrid(result.data, result.fromDate, result.toDate);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        })
-    }
     function generateDateColumns(fromDate, toDate) {
         const columns = [];
         const start = new Date(fromDate);

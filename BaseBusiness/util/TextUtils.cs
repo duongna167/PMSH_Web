@@ -11,6 +11,12 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using Microsoft.Data.SqlClient;
+using System.Data.SqlClient;
+using SqlConnection = Microsoft.Data.SqlClient.SqlConnection;
+using SqlCommand = Microsoft.Data.SqlClient.SqlCommand;
+using SqlDataAdapter = Microsoft.Data.SqlClient.SqlDataAdapter;
+using SqlParameter = Microsoft.Data.SqlClient.SqlParameter;
+using SqlException = Microsoft.Data.SqlClient.SqlException;
 namespace BaseBusiness.util
 {
 	/// <summary>
@@ -40,8 +46,36 @@ namespace BaseBusiness.util
 				return 1;
 
 		}
+        public static string[] GetArrayTransaction(string strRouting)
+        {
+            string strReturn = "";
+            string[] array = strRouting.Trim().Split(',');
+            for (int i = 0; i < array.Length; i++)
+            {
+                if (!array[i].Trim().Equals(""))
+                {
+                    DataTable tb = TextUtils.Select("Select * from RoutingCode Where Code =N'" + array[i].ToString().Trim() + "'");
+                    if (tb.Rows.Count > 0)
+                    {
+                        if (strReturn == "")
+                            strReturn = tb.Rows[0]["TransactionCodes"].ToString().Trim();
+                        else
+                            strReturn = strReturn + "," + tb.Rows[0]["TransactionCodes"].ToString().Trim();
+                    }
+                    else
+                    {
+                        if (strReturn == "")
+                            strReturn = array[i].Trim();
+                        else
+                            strReturn = strReturn + "," + array[i].Trim();
+                    }
+                }
+            }
+            string[] arrayReturn = strReturn.Split(',');
 
-		public static DateTime GetBussinessDateTime()
+            return arrayReturn;
+        }
+        public static DateTime GetBussinessDateTime()
 		{
 			var businessDate = PropertyUtils
 								.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll())![0]
@@ -98,7 +132,29 @@ namespace BaseBusiness.util
 				throw new Exception("L?i kh?i t?o Connection String: " + ex.Message, ex);
 			}
 		}
-		public static DataTable getTable(string spName, params SqlParameter[] parameters)
+        public static DataTable getTable2(
+            string spName,
+            string nameSetToTable,
+            params SqlParameter[] parameters)
+        {
+            DataSet ds = new DataSet();
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            using (SqlCommand cmd = new SqlCommand(spName, conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddRange(parameters);
+
+                using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                {
+                    da.Fill(ds, nameSetToTable);
+                }
+            }
+
+            return ds.Tables[nameSetToTable];
+        }
+
+        public static DataTable getTable(string spName, params SqlParameter[] parameters)
 		{
 			DataTable dt = new DataTable();
 
@@ -116,7 +172,32 @@ namespace BaseBusiness.util
 
 			return dt;
 		}
-		public static string GetHostName()
+        public static int CreateFolioAtNight(int ReservationID, int RoomID, string RoomNo, string ConfirmationNo, int WindowNo, int ProfileID, string ProfileName)
+        {
+            try
+            {
+                FolioModel mF = new FolioModel();
+                mF.Status = false;
+                mF.CreateDate = GetSystemDate();
+                mF.FolioDate = GetBusinessDate();
+                //mF.IsMasterFolio = false;
+                mF.ConfirmationNo = ConfirmationNo;// ((ReservationModel)ReservationBO.Instance.FindByPK(ReservationID)).ConfirmationNo;
+                mF.FolioNo = WindowNo;
+                mF.ReservationID = ReservationID;
+                mF.ProfileID = ProfileID;
+                mF.AccountName = ProfileName;
+                mF.UpdateDate = mF.CreateDate;
+                mF.UserInsertID = Global.UserID;
+                mF.UserUpdateID = Global.UserID;
+
+                return (int)FolioBO.Instance.Insert(mF);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+        public static string GetHostName()
 		{
 			return System.Environment.MachineName; //System.Net.Dns.GetHostName();
 
