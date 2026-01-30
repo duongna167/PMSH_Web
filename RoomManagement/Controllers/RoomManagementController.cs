@@ -18,6 +18,7 @@ using Microsoft.Extensions.Logging;
 using RoomManagement.Dto;
 using RoomManagement.Services.Implements;
 using RoomManagement.Services.Interfaces;
+using static BaseBusiness.util.ValidationUtils;
 
 namespace RoomManagement.Controllers
 {
@@ -637,7 +638,6 @@ namespace RoomManagement.Controllers
             return View();
         }
 
-
         #region out of order/service management
         [HttpGet]
         public IActionResult GetAvailableRoomsSearchOOO(string isDummy, string smoking, string floor, string roomTypeCode, string foStatus, string hkStatusID, string roomNo, DateTime fromDate, DateTime toDate, string zoneCode)
@@ -751,7 +751,7 @@ namespace RoomManagement.Controllers
         //    }
         //}
         #endregion
-        [HttpPost]
+
         [HttpPost]
         public IActionResult DeleteBusinessBlock(int id)
         {
@@ -860,53 +860,44 @@ namespace RoomManagement.Controllers
         public IActionResult UpdateandInsertBusinessBlock()
         {
             ProcessTransactions pt = new ProcessTransactions();
-            DBUtils dbUtils = new DBUtils();
 
             try
             {
-                pt.OpenConnection();
-                pt.BeginTransaction();
                 string roomIdStr = Request.Form["roomSelect"].ToString() ?? "";
                 string roomNoStr = Request.Form["roomNo"].ToString() ?? "";
+                string fromDateStr = Request.Form["itemFromDate"].ToString();
+                string toDateStr = Request.Form["itemToDate"].ToString();
+                string commentStr = Request.Form["comment"].ToString();
+                string idStr = Request.Form["id"].ToString();
+
+                DateTime.TryParse(fromDateStr, out DateTime fromDate);
+                DateTime.TryParse(toDateStr, out DateTime toDate);
+
+                var listErrors = GetErrors(
+                    Check(string.IsNullOrWhiteSpace(roomIdStr), "roomSelect", "Haven't selected a room yet!"),
+
+                    Check(fromDate == default, "itemFromDate", "From Date is required!"),
+                    Check(toDate == default, "itemToDate", "To Date is required!"),
+                    Check(toDate <= fromDate && fromDate != default, "itemToDate", "To Date must be greater than From Date!"),
+
+                    Check(string.IsNullOrWhiteSpace(commentStr), "comment", "Please select a reason!")
+                );
+
+                if (listErrors.Count > 0)
+                    return Json(new { success = false, errors = listErrors });
+
+
+                pt.OpenConnection();
+                pt.BeginTransaction();
 
                 string[] roomIds = roomIdStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
                 string[] roomNos = roomNoStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
-
-                if (roomIds.Length == 0)
-                    return Json(new { success = false, message = "Chưa chọn phòng!" });
-
-                if (roomIds.Length != roomNos.Length)
-                    return Json(new { success = false, message = "RoomID và RoomNo không khớp!" });
-                int blockId = !string.IsNullOrEmpty(Request.Form["id"])
-                    ? int.Parse(Request.Form["id"])
-                    : 0;
-
                 int userId = HttpContext.Session.GetInt32("UserID") ?? 0;
-
-                DateTime fromDate = !string.IsNullOrEmpty(Request.Form["itemFromDate"])
-                    ? DateTime.Parse(Request.Form["itemFromDate"])
-                    : DateTime.Now;
-
-                DateTime toDate = !string.IsNullOrEmpty(Request.Form["itemToDate"])
-                    ? DateTime.Parse(Request.Form["itemToDate"])
-                    : DateTime.Now;
-
-                byte oooStatus = !string.IsNullOrEmpty(Request.Form["oooOrS"])
-                    ? byte.Parse(Request.Form["oooOrS"])
-                    : (byte)0;
-
-                int returnStatus = !string.IsNullOrEmpty(Request.Form["rtStatus"])
-                    ? int.Parse(Request.Form["rtStatus"])
-                    : 0;
-
-                int reasonId = !string.IsNullOrEmpty(Request.Form["comment"])
-                    ? int.Parse(Request.Form["comment"])
-                    : 0;
-
+                byte oooStatus = byte.TryParse(Request.Form["oooOrS"], out byte b) ? b : (byte)0;
+                int returnStatus = int.TryParse(Request.Form["rtStatus"], out int rs) ? rs : 0;
+                int reasonId = int.Parse(commentStr);
                 string reasonNote = Request.Form["txtReasonDesc"].ToString();
-
-                if (blockId == 0)
-                    return Json(new { success = false, message = "ID không hợp lệ!" });
+                int blockId = int.TryParse(idStr, out int bid) ? bid : 0;
 
                 for (int i = 0; i < roomIds.Length; i++)
                 {
@@ -914,22 +905,16 @@ namespace RoomManagement.Controllers
                     string roomNo = roomNos[i];
 
                     BusinessBlockModel bbModel;
-
-                    // ===== UPDATE / INSERT =====
                     if (blockId > 0)
                     {
-                        bbModel = (BusinessBlockModel)BusinessBlockBO.Instance
-                                        .FindByPrimaryKey(blockId);
-
-                        if (bbModel == null)
-                            bbModel = new BusinessBlockModel();
+                        bbModel = (BusinessBlockModel)BusinessBlockBO.Instance.FindByPrimaryKey(blockId) ?? new BusinessBlockModel();
                     }
                     else
                     {
                         bbModel = new BusinessBlockModel();
                     }
 
-                    // ===== GÁN DỮ LIỆU =====
+                    // GÁN DỮ LIỆU
                     bbModel.Code = $"OOOS{blockId}";
                     bbModel.RoomID = roomID;
                     bbModel.RoomNo = roomNo;
@@ -943,7 +928,6 @@ namespace RoomManagement.Controllers
                     bbModel.UserUpdateID = userId;
                     bbModel.UpdateDate = DateTime.Now;
 
-                    // ===== SAVE =====
                     if (blockId > 0)
                     {
                         BusinessBlockBO.Instance.Update(bbModel);
@@ -969,10 +953,6 @@ namespace RoomManagement.Controllers
                 pt.CloseConnection();
             }
         }
-
-
-
-
 
 
     }
