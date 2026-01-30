@@ -31,6 +31,10 @@ async function businessDateGlobal() {
   }
 }
 
+window.businessDateReady = (async () => {
+  await businessDateGlobal();
+})();
+
 function formatDate(date, format = "DD/MM/YYYY") {
   if (!date) return "";
 
@@ -214,7 +218,9 @@ function focusElement($el) {
 
       // LOGIC TỰ ĐỘNG CHÈN NGÀY
       if (this.isBusinessDate) {
-        this.loadAndSetBusinessDate();
+        window.businessDateReady.then(() => {
+          this.loadAndSetBusinessDate();
+        });
       } else if (this.defaultISO) {
         this.setISO(this.defaultISO);
       }
@@ -265,11 +271,12 @@ function focusElement($el) {
 
     async loadAndSetBusinessDate() {
       try {
-        const result = dateTimeSystem;
-        const businessDateISO = result.split("T")[0];
-        console.log(
-          `[BusinessDate] Autoload cho ${this.name}: ${businessDateISO}`,
-        );
+        if (!window.dateTimeSystem) {
+          console.warn("Business date chưa sẵn sàng");
+          return;
+        }
+
+        const businessDateISO = window.dateTimeSystem.split("T")[0];
         this.setISO(businessDateISO);
       } catch (err) {
         console.error("Không thể lấy Business Date:", err);
@@ -390,29 +397,45 @@ function waitForBusinessDate(name = "fromDate", timeoutMs = 8000) {
  */
 window.UI = window.UI || {};
 
-UI.setHiddenDate = function (name, iso) {
-  if (!name || !iso || typeof iso !== "string") return;
+UI.setHiddenDate = function (name, value) {
+  if (!name || !value || typeof value !== "string") return;
 
-  // 1. Chuẩn hóa ISO → yyyy-mm-dd
-  const datePart = iso.split("T")[0];
-  const parts = datePart.split("-");
+  let year, month, day;
 
-  if (parts.length !== 3) return;
+  // ISO: yyyy-mm-dd hoặc yyyy-mm-ddThh:mm:ss
+  if (value.includes("-")) {
+    const datePart = value.split("T")[0];
+    const parts = datePart.split("-");
+    if (parts.length !== 3) return;
 
-  const year = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10) - 1;
-  const day = parseInt(parts[2], 10);
+    year = parseInt(parts[0], 10);
+    month = parseInt(parts[1], 10) - 1;
+    day = parseInt(parts[2], 10);
+  }
+  // dd/MM/yyyy
+  else if (value.includes("/")) {
+    const parts = value.split("/");
+    if (parts.length !== 3) return;
+
+    day = parseInt(parts[0], 10);
+    month = parseInt(parts[1], 10) - 1;
+    year = parseInt(parts[2], 10);
+  } else {
+    return;
+  }
 
   const dateObj = new Date(year, month, day);
   if (isNaN(dateObj.getTime())) return;
 
-  // 2. Set giá trị cho input hidden
+  // hidden luôn lưu yyyy-mm-dd (chuẩn backend)
+  const hiddenValue = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
   const $hidden = $(`input[type="hidden"][name="${name}"]`);
   if (!$hidden.length) return;
 
-  $hidden.val(datePart);
+  $hidden.val(hiddenValue);
 
-  // 3. Đồng bộ lại UI datepicker nếu đã init
+  // sync datepicker
   const $wrapper = $hidden.closest("[data-date-input]");
   const $ui = $wrapper.find(".date-ui");
 
@@ -446,5 +469,8 @@ $(document).ready(async function () {
   var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl);
   });
-  await window.initDateInputs();
+
+  window.businessDateReady.then(() => {
+    window.initDateInputs();
+  });
 });
