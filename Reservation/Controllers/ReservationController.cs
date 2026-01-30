@@ -5274,22 +5274,54 @@ namespace Reservation.Controllers
         }
         #endregion
 
-        #region DatVP __ OverBooking: Search
+        #region TuanDB Renew __ OverBooking: Search
         [HttpGet]
-        public async Task<IActionResult> SearchOverBooking()
+        public IActionResult SearchOverBooking(DateTime date)
         {
             try
             {
-                List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
+                string sqlCommand = $@"
+            SELECT
+                    [Date],
+                    RoomType,
+                    Quantity,
+                    OverBookLevel AS [NotoSell],
+                    CASE 
+                        WHEN [Type] = 0 THEN (OverBookLevel - Quantity)
+                        ELSE NULL
+                    END AS Overbooking,
+                    CASE 
+                        WHEN [Type] = 0 THEN 'Number'
+                        ELSE 'Percentage'
+                    END AS [Type],
+                    CreateBy,
+                    CreateDate,
+                    UpdateBy,
+                    UpdateDate,
+                    ID,
+                    RoomTypeID
+                FROM OverBooking WITH (NOLOCK)
+                WHERE [Date] >= CONVERT(date, '{date:yyyyMMdd}')
+                ORDER BY [Date]";
 
-                string sqlCommand = $"SELECT Date, RoomType, Quantity, OverBookLevel AS [NotoSell], CASE WHEN [Type] = 0 THEN (OverBookLevel - Quantity) ELSE '' END AS Overbooking, CASE WHEN [Type] = 0 THEN 'Number' ELSE 'Percentage' END AS [Type], CreateBy, CreateDate , UpdateBy, UpdateDate, ID, RoomTypeID FROM OverBooking WITH (NOLOCK)WHERE DATEDIFF(day,Date, '{businessDateModel[0].BusinessDate}') <= 0 ORDER BY Date ";
                 var data = _iReservationService.SearchOverBooking(sqlCommand);
-                var result = (from d in data.AsEnumerable()
-                              select d.Table.Columns.Cast<DataColumn>()
-                                  .ToDictionary(
-                                      col => col.ColumnName,
-                                      col => d[col.ColumnName]?.ToString()
-                                  )).ToList();
+                var result = (from d in data
+                .AsEnumerable()
+                              select d.Table.Columns.Cast<DataColumn>().ToDictionary(
+                              col => col.ColumnName,
+                              col =>
+                              {
+                                  var value = d[col.ColumnName];
+                                  if (value == DBNull.Value) return null;
+
+                                  // CreatedDate: KHÔNG ToString
+                                  if (col.ColumnName == "CreateDate" || col.ColumnName == "UpdateDate" || col.ColumnName == "Date")
+                                      return value;
+
+                                  // Các field khác: ToString
+                                  return value.ToString();
+                              }
+                          )).ToList();
                 return Json(result);
 
             }
@@ -5320,97 +5352,128 @@ namespace Reservation.Controllers
         public ActionResult SaveOverBooking()
         {
             ProcessTransactions pt = new ProcessTransactions();
+
             try
             {
                 pt.OpenConnection();
                 pt.BeginTransaction();
 
-                // Lấy chuỗi JSON từ Request.Form
+                List<BusinessDateModel> businessDates = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
+
+                // ===== GET FORM DATA =====
+                int id = int.TryParse(Request.Form["id"], out var tmpId) ? tmpId : 0;
+
                 var daysJson = Request.Form["days"].ToString();
-                List<string> days;
-
-                // Kiểm tra daysJson có rỗng hoặc không hợp lệ
-                if (!string.IsNullOrEmpty(daysJson))
-                {
-                    days = System.Text.Json.JsonSerializer.Deserialize<List<string>>(daysJson);
-                }
-                else
-                {
+                if (string.IsNullOrEmpty(daysJson))
                     return Json(new { code = 1, msg = "No days selected" });
-                }
-                if (days.Count < 1)
-                {
-                    return Json(new { code = 1, msg = "Please click to checkbox that match with from date and to date" });
 
-                }
-                var fromDateStr = Request.Form["fromDate"].ToString();
-                var toDateStr = Request.Form["toDate"].ToString();
-                var roomType = Request.Form["roomType"].ToString();
-                var obLevel = Request.Form["obLevel"].ToString();
-                var quantity = Request.Form["quantity"].ToString();
-                var noToSell = Request.Form["noToShell"].ToString();
-                var type = Request.Form["type"].ToString();
+                List<string> days = System.Text.Json.JsonSerializer.Deserialize<List<string>>(daysJson) ?? new List<string>();
+                if (days == null || days.Count == 0)
+                    return Json(new { code = 1, msg = "Please select valid days" });
+
+                var fromDateStr = Request.Form["fromDate"];
+                var toDateStr = Request.Form["toDate"];
+                var roomTypeStr = Request.Form["roomType"].ToString();
+                var obLevelStr = Request.Form["obLevel"].ToString();
+                var quantityStr = Request.Form["quantity"].ToString();
+                var type = Request.Form["type"];
                 var userName = Request.Form["userName"].ToString();
-                var userID = Request.Form["userID"].ToString();
-                RoomTypeModel roomTypeModel = (RoomTypeModel)RoomTypeBO.Instance.FindByPrimaryKey(int.Parse(roomType));
+                var userIDStr = Request.Form["userID"].ToString();
 
-                // Kiểm tra ngày từ fromDate đến toDate
-                if (!DateTime.TryParse(fromDateStr, out DateTime fromDate) || !DateTime.TryParse(toDateStr, out DateTime toDate))
+                if (!DateTime.TryParse(fromDateStr, out DateTime fromDate) ||
+                    !DateTime.TryParse(toDateStr, out DateTime toDate))
+                    return Json(new { code = 1, msg = "Invalid date format" });
+
+                int roomTypeId = int.Parse(roomTypeStr);
+                int quantity = int.Parse(quantityStr);
+                int obLevel = string.IsNullOrEmpty(obLevelStr) ? 0 : int.Parse(obLevelStr);
+                int userID = int.Parse(userIDStr);
+
+                RoomTypeModel roomTypeModel =
+                    (RoomTypeModel)RoomTypeBO.Instance.FindByPrimaryKey(roomTypeId);
+
+                // ===== UPDATE (id > 0) =====
+                if (id > 0)
                 {
-                    return Json(new { code = 1, msg = "Invalid date format." });
+                    OverbookingModel? overBooking =
+                        OverbookingBO.Instance.FindByPrimaryKey(id) as OverbookingModel;
+
+                    if (overBooking == null)
+                        return Json(new { code = 1, msg = "Overbooking not found" });
+
+                    overBooking.RoomTypeID = roomTypeModel?.ID ?? 0;
+                    overBooking.RoomType = roomTypeModel?.Code ?? "";
+                    overBooking.Quantity = quantity;
+                    overBooking.OverbookLevel = quantity + obLevel;
+                    overBooking.Type = type == "Number" ? 0 : 1;
+                    overBooking.UpdateBy = userName;
+                    overBooking.UpdateDate = businessDates![0].BusinessDate;
+
+                    OverbookingBO.Instance.Update(overBooking);
+
+                    ActivityLogBO.Instance.Insert(new ActivityLogModel
+                    {
+                        TableName = "Overbooking",
+                        ObjectID = id,
+                        UserID = userID,
+                        UserName = userName,
+                        ChangeDate = businessDates![0].BusinessDate,
+                        Change = "Update",
+                        OldValue = "",
+                        NewValue = $"Ro.Type: {roomTypeModel?.Code} - Qty: {quantity} - On: {overBooking.Date:dd/MM/yyyy}"
+                    });
+
+                    pt.CommitTransaction();
+                    return Json(new { code = 0, msg = "Over Booking updated successfully" });
                 }
 
+                // ===== INSERT (id == 0) =====
                 var dayNames = new List<string> { "sun", "mon", "tue", "wed", "thu", "fri", "sat" };
-                var currentDate = fromDate;
+                DateTime currentDate = fromDate;
 
-                // Kiểm tra từng ngày từ fromDate đến toDate
                 while (currentDate <= toDate)
                 {
-                    var dayName = dayNames[(int)currentDate.DayOfWeek].ToLower(); // Chuyển tên ngày thành chữ thường để so sánh
-                    if (days.Contains(dayName)) // Chỉ xử lý nếu ngày hiện tại nằm trong danh sách days
+                    string dayName = dayNames[(int)currentDate.DayOfWeek];
+
+                    if (days.Contains(dayName))
                     {
-                        if (OverbookingBO.CheckOverBooking(int.Parse(roomType), currentDate) > 0)
+                        if (OverbookingBO.CheckOverBooking(roomTypeId, currentDate) == 0)
                         {
-                            // Bỏ qua nếu đã có overbooking cho ngày này
-                            currentDate = currentDate.AddDays(1);
-                            continue;
+                            OverbookingModel overBooking = new OverbookingModel
+                            {
+                                RoomTypeID = roomTypeModel?.ID ?? 0,
+                                RoomType = roomTypeModel?.Code ?? "",
+                                Quantity = quantity,
+                                Date = currentDate,
+                                OverbookLevel = quantity + obLevel,
+                                Type = type == "Number" ? 0 : 1,
+                                CreateBy = userName,
+                                UpdateBy = userName,
+                                CreateDate = businessDates![0].BusinessDate,
+                                UpdateDate = businessDates![0].BusinessDate
+                            };
+
+                            OverbookingBO.Instance.Insert(overBooking);
                         }
-
-                        OverbookingModel overBooking = new OverbookingModel();
-                        overBooking.RoomTypeID = (roomTypeModel == null || roomTypeModel.ID == 0) ? 0 : roomTypeModel.ID;
-                        overBooking.RoomType = (roomTypeModel == null || roomTypeModel.ID == 0) ? "" : roomTypeModel.Code;
-                        overBooking.Quantity = int.Parse(quantity);
-                        overBooking.Date = currentDate;
-                        overBooking.OverbookLevel = !string.IsNullOrEmpty(obLevel) ? (int.Parse(quantity) + int.Parse(obLevel)) : int.Parse(quantity);
-                        overBooking.Type = type == "Number" ? 0 : 1;
-                        overBooking.CreateBy = userName;
-                        overBooking.UpdateBy = userName;
-                        overBooking.CreateDate = DateTime.Now;
-                        overBooking.UpdateDate = DateTime.Now;
-
-                        OverbookingBO.Instance.Insert(overBooking);
                     }
 
                     currentDate = currentDate.AddDays(1);
                 }
 
-                // Ghi log hoạt động
-                string logRoom = (roomTypeModel == null || roomTypeModel.ID == 0) ? "" : roomTypeModel.Code;
-                ActivityLogModel activity = new ActivityLogModel
+                ActivityLogBO.Instance.Insert(new ActivityLogModel
                 {
                     TableName = "Overbooking",
                     ObjectID = 0,
-                    UserID = int.Parse(userID),
+                    UserID = userID,
                     UserName = userName,
                     ChangeDate = DateTime.Now,
                     Change = "Insert",
                     OldValue = "",
-                    NewValue = $"Ro.Type: {logRoom} - Qty: {int.Parse(quantity)} - On: {fromDate:dd/MM/yyyy} - {toDate:dd/MM/yyyy}"
-                };
-                ActivityLogBO.Instance.Insert(activity);
+                    NewValue = $"Ro.Type: {roomTypeModel?.Code} - Qty: {quantity} - From: {fromDate:dd/MM/yyyy} - To: {toDate:dd/MM/yyyy}"
+                });
 
                 pt.CommitTransaction();
-                return Json(new { code = 0, msg = "Over Booking was created successfully" });
+                return Json(new { code = 0, msg = "Over Booking created successfully" });
             }
             catch (Exception ex)
             {
@@ -5436,9 +5499,20 @@ namespace Reservation.Controllers
                 var result = (from d in data.AsEnumerable()
                               select d.Table.Columns.Cast<DataColumn>()
                                   .ToDictionary(
-                                      col => col.ColumnName,
-                                      col => d[col.ColumnName]?.ToString()
-                                  )).ToList();
+                                    col => col.ColumnName,
+                                    col =>
+                                    {
+                                        var value = d[col.ColumnName];
+                                        if (value == DBNull.Value) return null;
+
+                                        // CreatedDate: KHÔNG ToString
+                                        if (col.ColumnName == "CreateDate" || col.ColumnName == "UpdateDate" || col.ColumnName == "Date")
+                                            return value;
+
+                                        // Các field khác: ToString
+                                        return value.ToString();
+                                    }
+                          )).ToList();
                 return Json(result);
 
             }

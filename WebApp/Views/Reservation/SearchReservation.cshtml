@@ -33,8 +33,8 @@
                             </label>
                             <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
                                 <input type="checkbox" id="chooseFromDate" checked class="col-md-2">
-                                <div class="col-md-10" data-date-input data-format="DD/MM/YYYY" business-date
-                                    data-name="arrivalForm">
+                                <div class="col-md-10" data-date-input data-format="DD/MM/YYYY" data-name="arrivalForm"
+                                    business-date>
                                     <input type="text" class="date-ui form-control" placeholder="dd/mm/yyyy"
                                         autocomplete="off" />
                                 </div>
@@ -457,7 +457,6 @@
         if (type && typeMapping[type]) {
             $("#searchType").val(typeMapping[type]).trigger("change");
         }
-        await window.initDateInputs();
         await searchReservation(isInitial = true);
         await setTomSelect();
         $('#listFunction').hide();
@@ -509,20 +508,16 @@
     }
 
     async function searchReservation(isInitial = false) {
+
+        await window.businessDateReady;
         $('#cmt_wrapper').hide();
         $("#loadingSpinnerForm").show();
 
         const checkboxValue = $('#roomShare').is(':checked') ? $('#roomShare').val() : '';
 
         // Kiểm tra xem các trường ngày có giá trị hợp lệ hay không
-        let arrivalDate = $('#arrivalForm').val() || '';
-        let departureDate = $('#departureForm').val() || '';
-        // Nếu là load lần đầu (initial) và fromDate chưa có → bắt buộc chờ business date
-        if (isInitial && (!arrivalDate || !departureDate)) {
-            arrivalDate = await waitForBusinessDate("arrivalForm", 10000); // timeout 10s để an toàn
-            departureDate = await waitForBusinessDate("departureForm", 10000); // timeout 10s để an toàn
-        }
-
+        let arrivalDate = $('#arrivalForm').val() || window.dateSystem;
+        let departureDate = $('#departureForm').val() || window.dateSystem;
         // Nếu vẫn rỗng sau khi chờ → báo lỗi hoặc fallback (tùy yêu cầu)
         if (!arrivalDate || !departureDate) {
             console.log("Không tải được ngày mặc định. Vui lòng chọn From Date thủ công.");
