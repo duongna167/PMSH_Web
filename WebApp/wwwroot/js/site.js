@@ -168,14 +168,8 @@ function findFeedback($el) {
 
 // Focus đúng element (kể cả TomSelect)
 function focusElement($el) {
-  //if ($el.hasClass("ts-wrapper")) {
-  //    const select = $el.prev("select")[0];
-  //    if (select?.tomselect) {
-  //        select.tomselect.focus();
-  //    }
-  //} else {
   $el.focus();
-  //}
+
 }
 
 //Init Input Date

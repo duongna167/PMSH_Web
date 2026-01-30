@@ -5,23 +5,12 @@
 
  * Select option ? single or multiple (add attribute multiple to select tag)
    - single:  <select id="mySelect" class="tomselect"> ---- 
-              Override  js:
-                  initTomSelect('#country', {
-                    maxItems: 1
-                  });
 
    - multiple: <select id="mySelect" class="tomselect" multiple> ----  
             + Select multiple values, but limit the number of selections :
                Override  js:
-                  initTomSelect('#country', {
-                    maxItems: 5 // limit to 5 selections
-                  });
- * If tomselect is inside a modal đổi id modal
-   -   #itemModal .modal-content,
-    #itemModal .modal-body {
-        overflow: visible !important;
-    }
- 
+                  initTomSelect('#country');
+ * 
  */
 
 /* =========================================================
@@ -29,14 +18,13 @@
  * Author: (phuc)
  * Usage:
  *  initTomSelect('.tomselect');
- *  initTomSelect('#zone', { maxItems: 1 });
  *  initTomSelect(['#roomID', '#ownerCode']);
  *
  *  getTomSelectValue('#ownerCode');
  *  getTomSelectValue('#ownerCode', { asObject: true });
+ *  clearMultipleTomSelect(['#zone', '#restype']);
+ *  clearTomSelect('#zone');
  * ========================================================= */
-
-(function (window) {
 
     /* ================= INIT ================= */
 
@@ -47,11 +35,12 @@
             plugins: {
                 dropdown_input: {}
             },
+            dataAttr: 'data-data',
             create: false,
             valueField: 'value',
             labelField: 'text',
             searchField: ['text'],
-            placeholder: 'Enter or select options...',
+            placeholder: 'Enter or select...',
             render: {
                 option(data, escape) {
                     return `<div class="p-2">${escape(data.text)}</div>`;
@@ -106,69 +95,79 @@
     }
 
     /* ================= GET VALUE ================= */
+    /*  Usage:
+        const owners = getTomSelectValue("#ownerCode");
 
-    function getTomSelectValue(selector) {
+        const model = {
+            OwnerCode: owners.map(x => x.value),
+            OwnerName: owners.map(x => x.name)
+        };
+    */
+
+    function getTomSelect(selector) {
         const el = document.querySelector(selector);
-        if (!el || !el.tomselect) return null;
+        return el && el.tomselect ? el.tomselect : null;
+    }
 
-        const ts = el.tomselect;
-        const val = ts.getValue();
+    function getTomSelectData(selector) {
+        const ts = getTomSelect(selector);
+        if (!ts) return null;
 
-        if (!val || val.length === 0) return null;
+        const value = ts.getValue();
+        if (!value || value.length === 0) return null;
+
+        const mapItem = (v) => {
+            const opt = ts.options[v] || {};
+            return {
+                value: v,
+                text: opt.text || "",
+                data: { ...opt }   // giữ toàn bộ data-roomno, data-name,...
+            };
+        };
 
         // MULTI
-        if (Array.isArray(val)) {
-            return val.map(v => ({
-                value: v,
-                text: ts.options[v]?.text || "",
-                data: ts.options[v]?.dataset || {}
-            }));
+        if (Array.isArray(value)) {
+            return value.map(mapItem);
         }
 
         // SINGLE
-        const opt = ts.options[val] || {};
-        return {
-            value: val,
-            text: ts.options[val]?.text || "",
-            data: opt.dataset || {}
-        };
-    };
+        return mapItem(value);
+}
 
+    function toBackendValue(selectData, field) {
+        if (!selectData) return "";
 
-    /* ================= SET / CLEAR ================= */
+        // MULTI
+        if (Array.isArray(selectData)) {
+            return selectData.map(x => x.data?.[field] ?? x.value);
+        }
 
-    function setTomSelectValue(selector, value) {
-        const el = document.querySelector(selector);
-        if (!el) return;
-
-        [...el.options].forEach(opt => {
-            opt.selected = Array.isArray(value)
-                ? value.includes(opt.value)
-                : opt.value == value;
-        });
-
-        el.dispatchEvent(new Event("change", { bubbles: true }));
+        // SINGLE
+        return selectData.data?.[field] ?? selectData.value;
     }
 
+
+    // 1. Hàm Clear cho 1 ID
     function clearTomSelect(selector) {
-        const el = document.querySelector(selector);
-        if (!el) return;
-
-        // Bỏ chọn toàn bộ option
-        el.value = null;
-        [...el.options].forEach(opt => opt.selected = false);
-
-        // Báo cho TomSelect (và validation) biết là có thay đổi
-        el.dispatchEvent(new Event("change", { bubbles: true }));
+        if (document.querySelector(selector).tomselect) {
+            document.querySelector(selector).tomselect.clear();
+        }
     }
 
+    // 2. Hàm SetValue cho 1 ID (Dùng cho Update/Edit)
+    function setTomSelectValue(selector, value) {
+        if (document.querySelector(selector).tomselect) {
+            document.querySelector(selector).tomselect.setValue(value);
+        }
+    }
 
-
-    /* ================= EXPORT ================= */
-
-    window.initTomSelect = initTomSelect;
-    window.getTomSelectValue = getTomSelectValue;
-    window.setTomSelectValue = setTomSelectValue;
-    window.clearTomSelect = clearTomSelect;
-
-})(window);
+    // 3. Hàm truyền nhiều ID vào để Clear cùng lúc
+    function clearMultipleTomSelect(ids) {
+        if (!Array.isArray(ids)) ids = [ids];
+        ids.forEach(id => {
+            const el = document.querySelector(id);
+            if (el && el.tomselect) {
+                el.tomselect.clear();
+            }
+        });
+    }

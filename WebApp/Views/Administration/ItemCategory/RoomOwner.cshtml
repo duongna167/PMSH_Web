@@ -1,111 +1,7 @@
-﻿@{
+@{
     var roomList = ViewBag.RoomList;
     var ownerList = ViewBag.OwnerList;
 }
-<style>
-    /*css tomselect */
-
-    /* Wrapper select để khống chế chiều cao */
-    .filter-item .ts-wrapper {
-        width: 100%;
-    }
-
-    /* Khung TomSelect  */
-    .ts-control {
-        height: 28px !important;
-        min-height: 28px !important;
-        padding: 2px 6px !important;
-        font-size: 13px !important;
-        display: flex !important;
-        align-items: center !important;
-        flex-wrap: wrap !important;
-        overflow-x: hidden !important;
-        overflow-y: auto !important;
-    }
-
-        /* Thẻ Item đã chọn  */
-        .ts-control .item {
-            height: 20px !important;
-            padding: 0 6px !important;
-            margin: 2px 4px 2px 0 !important;
-            font-size: 12px !important;
-            line-height: 20px !important;
-            background: #f1f1f1 !important;
-            border: 1px solid #ddd !important;
-            border-radius: 3px !important;
-            display: inline-flex !important;
-            align-items: center !important;
-        }
-
-
-            /* Nút X xóa từng item (nếu dùng plugin remove_button) */
-            .ts-control .item .remove {
-                margin-left: 4px !important;
-                padding-left: 4px !important;
-                border-left: 1px solid #ccc !important;
-            }
-
-    /* Nút X xóa toàn bộ (Custom Clear Button) */
-    .tomselect-custom-wrapper {
-        position: relative !important;
-        width: 100%;
-    }
-
-    .clear-button {
-        position: absolute !important;
-        right: 8px !important;
-        top: 50% !important;
-        transform: translateY(-50%) !important;
-        cursor: pointer !important;
-        font-size: 1.1rem !important;
-        color: #bbb !important;
-        z-index: 10 !important;
-        background: none !important;
-        border: none !important;
-        padding: 0 5px !important;
-        transition: color 0.2s !important;
-    }
-
-    /* Đệm bên phải để text không đè lên nút Clear */
-    .ts-wrapper.tomselect-custom .ts-control {
-        padding-right: 28px !important;
-    }
-
-    .ts-wrapper {
-        position: relative !important;
-    }
-
-    .ts-control input {
-        height: 20px !important;
-        font-size: 12px !important;
-        padding-left: 2px !important;
-    }
-
-    /* Dropdown menu */
-    .ts-dropdown {
-        z-index: 2000 !important;
-        font-size: 13px;
-    }
-
-
-    /* Tùy chỉnh thanh cuộn nhỏ  */
-    .ts-control::-webkit-scrollbar {
-        width: 4px;
-    }
-
-    .ts-control::-webkit-scrollbar-thumb {
-        background: #ccc;
-        border-radius: 4px;
-    }
-    /*end css tomselect */
-
-    /* Quan trọng: Sửa lỗi che khuất dropdown trong Modal */
-    #itemModal .modal-content,
-    #itemModal .modal-body {
-        overflow: visible !important;
-    }
-
-</style>
 
 <div class="text-center" style="font-size: 20px">Room Owner</div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
@@ -145,7 +41,10 @@
                                 <select id="roomID" name="roomID" class="tomselect-custom">
                                     @foreach (var r in roomList)
                                     {
-                                        <option value="@r.ID" data-roomno="@r.RoomNo">@r.RoomNo</option>
+                                        <option value="@r.ID"
+                                                data-roomno="@r.RoomNo">
+                                            @r.RoomNo
+                                        </option>
                                     }
                                 </select>
                                 <div class="invalid-feedback"></div>
@@ -158,7 +57,10 @@
                                 <select id="ownerCode" name="ownerCode" class="tomselect-custom">
                                     @foreach (var o in ownerList)
                                     {
-                                        <option value="@o.Code" data-name="@o.Name">@o.Code - @o.Name</option>
+                                        <option value="@o.Code"
+                                                data-name="@o.Name">
+                                            @o.Code - @o.Name
+                                        </option>
                                     }
                                 </select>
                                 <div class="invalid-feedback"></div>
@@ -192,12 +94,13 @@
                 $(this).next(".invalid-feedback").text("");
             }
         });
+     
         $('#itemModal').on('hidden.bs.modal', function () {
              applyValidationErrors([], "#formContainer");
              $(".ts-wrapper").removeClass("is-invalid");
              $(".invalid-feedback").hide();
         });
-       
+
         initTomSelect(".tomselect-custom");
     });
 
@@ -265,6 +168,7 @@
     $("#btnNew").click(function (){
         $("#formContainer")[0].reset();
         $("#id").val("0");
+        clearMultipleTomSelect( ['#roomID', '#ownerCode']);
 
         $("#itemModalLabel").text("Add Room Owner");
         $("#itemModal").modal("show");
@@ -280,38 +184,31 @@
 
         $("#id").val(selectedRowData.id);
 
-        if (document.querySelector("#roomID").tomselect) {
-            document.querySelector("#roomID").tomselect.setValue(selectedRowData.roomID);
-        }
-
-        if (document.querySelector("#ownerCode").tomselect) {
-            document.querySelector("#ownerCode").tomselect.setValue(selectedRowData.ownerCode);
-        }
-
+        setTomSelectValue("#roomID", selectedRowData.roomID);
+        setTomSelectValue("#ownerCode", selectedRowData.ownerCode);
         $("#itemModalLabel").text("Update Room Owner");
         $("#itemModal").modal("show");
     });
    
     $("#btnSaveItem").click(function (){
+
         const id = parseInt($("#id").val()) || 0;
         const loginName = (localStorage.getItem("Loginname") || "")
                 .trim().replace(/^"(.*)"$/,'$1') ?? "";
         const loginUser = parseInt(localStorage.getItem("userID")) || 0;
 
-        const room = getTomSelectValue("#roomID");
-        const owner = getTomSelectValue("#ownerCode");
-
+        const room = getTomSelectData("#roomID");
+        const owner = getTomSelectData("#ownerCode");
 
         const model = {
             ID: id,
-            RoomID: room?.value || 0,
-            RoomNo: room?.text || "",
-            OwnerCode: Array.isArray(owner)
-                ? owner.map(x => x.value)
-                : owner?.value || "",
-            OwnerName: Array.isArray(owner)
-                ? owner.map(x => x.text.replace(/^[^-]*-\s*/, '').trim())
-                : owner?.text.replace(/^[^-]*-\s*/, '').trim(),
+
+            RoomID: toBackendValue(room, "value"),
+            RoomNo: toBackendValue(room, "roomno"),
+
+            OwnerCode: toBackendValue(owner, "value"),
+            OwnerName: toBackendValue(owner, "name"),
+
             CreatedBy: loginName,
             UpdatedBy: loginName
         };

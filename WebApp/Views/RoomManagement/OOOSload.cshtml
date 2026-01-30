@@ -1,7 +1,5 @@
 ﻿@using DevExpress.XtraReports.UI
-@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+
 @{
     var selectedReport = @ViewBag.ReportHeader;
     var listroom = ViewBag.RoomList;
@@ -11,19 +9,7 @@
     var rooms = ViewBag.AvailableRooms;
 }
 
-
 <style>
-
-    .dx-datagrid-headers .dx-header-row td {
-        white-space: pre-line !important;
-        text-align: center;
-        font-size: 11px;
-    }
-
-
-    .dx-datagrid .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default, .dx-datagrid-container .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default {
-        display: none;
-    }
 
     .filter_wrapper {
         /*     background-color: #ececec; */
@@ -32,9 +18,6 @@
         border-radius: 8px;
     }
 
-    .gridContainer {
-        margin: 0px 8px;
-    }
 
     .button_wrapper {
         display: flex;
@@ -45,13 +28,6 @@
         .button_wrapper .fa-solid {
             margin-right: 5px;
         }
-
-    .selected {
-        background-color: #4CAF50; /* Màu xanh */
-        color: white;
-    }
-
- 
 
     .sticky-header .form-control-sm {
         padding: .1rem .35rem;
@@ -73,21 +49,6 @@
         line-height: 1.2;
     }
 
-
-    .sort-select {
-        max-width: 130px; /* ho?c 100px n?u mu?n nh? hon */
-        font-size: 12px;
-        padding: 0.15rem 0.5rem;
-    }
-
-    .sort-select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-image: none !important;
-        padding-right: 10px !important;
-    }
-
     button:disabled {
         pointer-events: none; /* Không cho hover/click */
         opacity: 0.6; /* Cho nó mờ đi */
@@ -106,17 +67,6 @@
         max-width: 180px; /* chiều rộng vừa phải */
     }
 
-    .hide-band .dx-datagrid-bands > tr:first-child {
-        display: none !important;
-    }
-
-    .ts-dropdown .ts-dropdown-content > div:first-child {
-        position: sticky;
-        top: 0;
-        background: #f8f9fa;
-        z-index: 10;
-    }
-
     #historyModal .modal-dialog.custom-modal-width {
         max-width: 1650px !important;
         width: 1650px !important;
@@ -129,80 +79,108 @@
 
 
 </style>
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+
 <div class="text-center" id="reportTitle" style="font-size: 20px">Out of Order and Service </div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+    <div class="pb-2">
+        <button id="btnView" class="mui-button mui-button-new">View</button>
+        <button id="btnNew" class="mui-button mui-button-new" type="button">  New</button>
+        <button id="btnEdit" class="mui-button mui-button-new" type="button">  Edit</button>
+        <button id="btnDelete" class="mui-button mui-button-new" type="button">  Delete</button>
+        <button id="btnHistory" class="mui-button mui-button-new" type="button">  History</button>
+    </div>
+    <div class="row g-2 align-items-center mb-1 mt-2 px-1">
 
-        <div class="d-flex flex-column ">
-            <div class="d-flex align-items-center">
-                <div class="d-flex align-items-center me-2">
-                    <label class="me-2 mb-0">From Date:</label>
-                    <input type="date" id="fromDate" name="fromDate" class="form-control form-control-sm w-auto" />
+        <div class="col-auto">
+            <div class="row g-1 align-items-center">
+                <div class="col-auto">
+                    <label class="mb-0 small fw-bold">From Date:</label>
                 </div>
-
-                <div class="d-flex align-items-center me-2">
-                    <label class="me-2 mb-0">To Date:</label>
-                    <input type="date" id="toDate" name="toDate" class="form-control form-control-sm w-auto" />
+                <div class="col-auto">
+                    <input type="date" id="fromDate" name="fromDate" class="form-control form-control-sm" style="width: 130px;" />
                 </div>
             </div>
         </div>
-        <div class="d-flex align-items-center me-2">
-            <label class="me-2 mb-0">Room:</label>
-            <select id="room" class="tomselect-custom" multiple>
-                @foreach (var u in ViewBag.RoomList)
-                {
-                    <option value="@u.RoomNo">@u.RoomNo - @u.RoomTypeCode</option>
-                }
-            </select>
-        </div>
-        <div class="d-flex align-items-center me-2">
-            <label class="me-2 mb-0">Room Class:</label>
-            <select id="roomClass" class="form-control form-control-sm w-auto">
 
-                <option value="0">-- Select Group --</option>
-                @foreach (var g in ViewBag.RoomClassList)
-                {
-                    <option value="@g.ID">@g.Code</option>
-                }
-            </select>
-        </div>
-        <div class="d-flex align-items-center me-2">
-            <label class="me-2 mb-0">Zone:</label>
-            <select id="zone" class="tomselect-custom" multiple>
-                @foreach (var z in ViewBag.ZoneList)
-                {
-                    <option value="@z.Code">@z.Code </option>
-                }
-            </select>
-        </div>
-        <label class="me-2 mb-0">Type:</label>
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="optionFilter" id="outofOrder" checked>
-            <label class="form-check-label" for="outofService">
-                Out of Order
-            </label>
+        <div class="col-auto">
+            <div class="row g-1 align-items-center">
+                <div class="col-auto">
+                    <label class="mb-0 small fw-bold">To Date:</label>
+                </div>
+                <div class="col-auto">
+                    <input type="date" id="toDate" name="toDate" class="form-control form-control-sm" style="width: 130px;" />
+                </div>
+            </div>
         </div>
 
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="optionFilter" id="outofService" checked>
-            <label class="form-check-label" for="outofService">
-                Out of Service
-            </label>
+        <div class="col-auto">
+            <div class="row g-1 align-items-center">
+                <div class="col-auto">
+                    <label class="mb-0 small fw-bold">Room:</label>
+                </div>
+                <div class="col-auto" style="width: 180px;">
+                    <select id="room" class="tomselect-custom" multiple>
+                        @foreach (var u in ViewBag.RoomList)
+                        {
+                            <option value="@u.RoomNo">@u.RoomNo - @u.RoomTypeCode</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-auto">
+            <div class="row g-1 align-items-center">
+                <div class="col-auto">
+                    <label class="mb-0 small fw-bold">Room Class:</label>
+                </div>
+                <div class="col-auto">
+                    <select id="roomClass" class="tomselect-custom" style="width: 150px;">
+                        @foreach (var g in ViewBag.RoomClassList)
+                        {
+                            <option value="@g.ID">@g.Code</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-auto">
+            <div class="row g-1 align-items-center">
+                <div class="col-auto">
+                    <label class="mb-0 small fw-bold">Zone:</label>
+                </div>
+                <div class="col-auto" style="width: 180px;">
+                    <select id="zone" class="tomselect-custom" multiple>
+                        @foreach (var z in ViewBag.ZoneList)
+                        {
+                            <option value="@z.Code">@z.Code </option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-auto">
+            <div class="row g-2 align-items-center">
+                <div class="col-auto">
+                    <label class="mb-0 small fw-bold">Type:</label>
+                </div>
+                <div class="col-auto">
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="checkbox" name="optionFilter" id="outofOrder" checked>
+                        <label class="form-check-label small" for="outofOrder">Out of Order</label>
+                    </div>
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="checkbox" name="optionFilter" id="outofService" checked>
+                        <label class="form-check-label small" for="outofService">Out of Service</label>
+                    </div>
+                </div>
+            </div>
         </div>
 
     </div>
 
-    <div class="">
-        <button   id="btnView" class="mui-button mui-button-new">View</button>
-        <button   id="btnNew" class="mui-button mui-button-new" type="button">  New</button>
-        <button   id="btnEdit" class="mui-button mui-button-new" type="button">  Edit</button>
-        <button   id="btnDelete" class="mui-button mui-button-new" type="button">  Delete</button>
-        <button   id="btnHistory" class="mui-button mui-button-new" type="button">  History</button>
-
-
-    </div>
    
 </div>
 <div class="mui-card">
@@ -211,19 +189,17 @@
         <div class="gridContainer"  id="gridContainer"></div>
     </div>
 
-
     <!-- Modal Popup for New Item -->
-    <div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel" aria-hidden="true">
+    <div class="modal fade" id="itemModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="itemModalLabel" aria-hidden="true">
         <div class="modal-dialog custom-modal-width">
             <!-- modal-lg để form rộng hơn -->
             <div class="modal-content" >
                 <div class="modal-header">
                     <h5 class="modal-title" id="itemModalLabel">Out of order/service management</h5>
-        @*             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> *@
                 </div>
 
                 <div class="modal-body">
-                    <div class="d-flex flex-wrap gap-2 mb-3">
+                    <div class="py-2">
                         <button type="button" id="btnSaveItem" class="mui-button mui-button-new">Save</button>
                         <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                     </div>
@@ -269,8 +245,7 @@
                         <div class="row align-items-center mb-2">
                             <label class="col-3 col-form-label">Job Code:</label>
                             <div class="col-9">
-                                <select id="rtStatus" name="rtStatus" class="form-control form-control-sm">
-                                    <option>--Chose One--</option>
+                                <select id="rtStatus" name="rtStatus" class="tomselect-custom">
                                     <option value="2">Dirty</option>
                                     <option value="1">Clean Non-Checked</option>
                                     <option value="3">Pickup</option>
@@ -283,8 +258,7 @@
                         <div class="row align-items-center mb-2">
                             <label class="col-3 col-form-label">Reason:</label>
                             <div class="col-9">
-                                <select id="comment" class="form-control form-control-sm">
-                                    <option value="">---Select Reason---</option>
+                                <select id="comment" class="tomselect-custom">
                                     @foreach (var dpm in ViewBag.CommentList)
                                     {
                                         <option value="@dpm.ID" data-desc="@dpm.Description">
@@ -310,6 +284,7 @@
             </div>
         </div>
     </div>
+    
     <!-- History Modal -->
     <div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl custom-modal-width">
@@ -363,12 +338,16 @@
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 <script>
+    let selectedRowData=null;
 
     $(document).ready(function () {
           getBusinessDate();
-            initializeTomSelects();
+          initTomSelect(".tomselect-custom");
+            
+          clearMultipleTomSelect(["#roomClass"]);
 
     });
+
     function getBusinessDate() {
         return $.ajax({
             url: '/Reservation/GetBusinessDate',
@@ -394,39 +373,13 @@
             }
         });
     }
-        document.getElementById("comment").addEventListener("change", function () {
+
+    document.getElementById("comment").addEventListener("change", function () {
         var desc = this.options[this.selectedIndex].getAttribute("data-desc");
         document.getElementById("txtReasonDesc").value = desc || "";
-    });
-      function initializeTomSelects() {
-                const selectors = ["#room","#zone","#roomSelect"];
+    });         
 
-            for (const id of selectors) {
-                const el = document.querySelector(id);
-                if (!el) continue;
-
-                if (el.tomselect) el.tomselect.destroy();
-
-                const ts = new TomSelect(el, {
-                    plugins: ['remove_button'],
-                    create: false,
-                    maxItems: null,
-                    allowEmptyOption: true,
-                    placeholder: '',
-                    persist: false,
-                    maxOptions: 1000,
-                    render: {
-                        option: function (data, escape) {
-                            return `<div>${escape(data.text)}</div>`;
-                        }
-                    }
-                });
-
-            }
-      }
-                   
-
-          function getStatusValue() {
+    function getStatusValue() {
         const isOOO = $('#outofOrder').is(':checked');
         const isOOS = $('#outofService').is(':checked');
 
@@ -435,7 +388,7 @@
         if (isOOS) return 2;          // Chỉ OOS
         return 3;                     // Không chọn cái nào
     }
-    let selectedRowData=null;
+
     function loadHistoryOOOGrid(data) {
             $("#gridContainer").dxDataGrid({
             dataSource: data,
@@ -501,10 +454,12 @@
             }
         });
         }
-            $(document).off("click", "#btnView").on("click", "#btnView", function () {
+
+    $(document).off("click", "#btnView").on("click", "#btnView", function () {
          reloadGrid();
     });
-      function reloadGrid() {
+
+    function reloadGrid() {
         $("#loadingSpinner").show();
         const status = getStatusValue();
         $.ajax({
@@ -530,19 +485,17 @@
             }
         });
     }
-            $("#btnNew").click(function () {
-                   clearNewFormKeepDate();
-                $("#itemModal").modal("show");
-             
-            });
+    
+    $("#btnNew").click(function () {
+        clearNewFormKeepDate();
+        $("#itemModal").modal("show");
 
-        function clearNewFormKeepDate() {
+    });
 
-            // ===== ROOM (TomSelect) =====
-            const roomEl = document.getElementById("roomSelect");
-            if (roomEl && roomEl.tomselect) {
-                roomEl.tomselect.clear();   // clear chọn phòng
-            }
+    function clearNewFormKeepDate() {
+
+            clearMultipleTomSelect(["#roomSelect","#comment","#rtStatus"]);
+
 
             // ===== JOB CODE =====
             $("#rtStatus").val(""); // về --Choose One--
@@ -555,18 +508,17 @@
 
         }
 
-
-        $("#btnHistory").click(function () {
+    $("#btnHistory").click(function () {
             openHistoryPopup();
             $("#historyModal").modal("show");
         });
-        $("#btnHistorySearch").click(function () {
+
+    $("#btnHistorySearch").click(function () {
             openHistoryPopup();
 
         });
 
-
-               function openHistoryPopup() {
+    function openHistoryPopup() {
             $("#historyPopup").modal("show");
 
             // gọi ajax load dữ liệu
@@ -606,16 +558,17 @@
                 }
             });
         }
-         $("#btnSaveItem").click(function () {
-            SaveOOOS();
-          
-        });
-            function SaveOOOS() {
+    
+    $("#btnSaveItem").click(function () {
+        SaveOOOS();
+    });
+
+    function SaveOOOS() {
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
 
-           const roomIds = $("#roomSelect").val() || [];
+        const roomIds = $("#roomSelect").val() || [];
 
         // Lấy danh sách RoomNo (text của option được chọn)
         const roomNos = $("#roomSelect option:selected")
@@ -673,6 +626,7 @@
                deleteSelectedItem();
         }
     });
+
     function deleteSelectedItem() {
         $.post("/RoomManagement/DeleteBusinessBlock", { id: selectedRowData.id }, function (res) {
             if (res.deleted > 0) {
@@ -688,13 +642,6 @@
         });
     }
 
-
-
-   
-
-     
-
-
     $("#btnEdit").click(function () {
         if (!selectedRowData) {
             alert("Vui lòng chọn một dòng để edit!");
@@ -707,13 +654,12 @@
 
     });
 
-     function fillEditForm(data) {
-
-           const el = document.getElementById("roomSelect");
-    if (el && el.tomselect && data.roomID) {
-        const ids = data.roomID.toString().split(",");
-        el.tomselect.setValue(ids);
-    }
+    function fillEditForm(data) {
+        const el = document.getElementById("roomSelect");
+        if (el && el.tomselect && data.roomID) {
+            const ids = data.roomID.toString().split(",");
+            el.tomselect.setValue(ids);
+        }
         $("input[name='oooOrS'][value='" + data.statusId + "']").prop("checked", true);
 
         // ===== JOB CODE =====
