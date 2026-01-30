@@ -1,23 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using BaseBusiness.BO;
+﻿using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using Dapper;
-using DevExpress.XtraPrinting.Native;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using RoomManagement.Dto;
-using RoomManagement.Services.Implements;
 using RoomManagement.Services.Interfaces;
+using System.Data;
 using static BaseBusiness.util.ValidationUtils;
 
 namespace RoomManagement.Controllers
@@ -208,7 +200,7 @@ namespace RoomManagement.Controllers
         }
 
         [HttpPost]
-        public IActionResult UpdateItemInventory(int ItemID, DateTime Date, DateTime MatchDate,int Quantity,int UserID)
+        public IActionResult UpdateItemInventory(int ItemID, DateTime Date, DateTime MatchDate, int Quantity, int UserID)
         {
             if (ItemID == null)
                 return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ" });
@@ -959,4 +951,3 @@ namespace RoomManagement.Controllers
 
 
 }
-
