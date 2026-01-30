@@ -7,7 +7,7 @@
 }
 
 <style>
-
+   
 </style>
 
 <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
@@ -33,14 +33,12 @@
                         <div class="container-fluid px-0">
                             <div class="row g-2 align-items-center">
 
-                                <!-- From Date -->
-                                <div class="col-auto">
-                                    <label class="col-form-label mb-0">From :</label>
-                                </div>
-                                <div class="col-auto">
-                                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
-                                        <input type="text" class="date-ui form-control form-control-sm"
-                                               placeholder="dd/mm/yyyy" autocomplete="off" />
+                            <div class="d-flex align-items-center">
+                                <div class="d-flex align-items-center me-3">
+                                    <label class="me-2 mb-0">From :</label>
+                                    <div data-date-input data-format="DD/MM/YYYY"  data-name="fromDate">
+                                        <input type="text" class="date-ui " placeholder="dd/mm/yyyy"
+                                            autocomplete="off" />
                                     </div>
                                 </div>
 
@@ -49,8 +47,7 @@
                                     <label class="col-form-label mb-0">Display No of Days:</label>
                                 </div>
                                 <div class="col-auto">
-                                    <select id="displayofday" name="displayofday"
-                                            class="form-control form-control-sm">
+                                    <select id="displayofday" name="displayofday" class="form-control form-control-sm">
                                         <option value="0"></option>
                                         <option value="1">1</option>
                                         <option value="2">2</option>
@@ -122,7 +119,8 @@
                                 </div>
 
                                 <div class="col-auto d-flex align-items-center gap-2">
-                                    <input type="checkbox" id="includeOutOfOrder" name="includeOptions" value="1" checked>
+                                    <input type="checkbox" id="includeOutOfOrder" name="includeOptions" value="1"
+                                        checked>
                                     <label class="form-check-label mb-0" for="includeOutOfOrder">
                                         Include Out of Order
                                     </label>
@@ -136,7 +134,8 @@
                                 </div>
 
                                 <div class="col-auto d-flex align-items-center gap-2">
-                                    <input type="checkbox" id="includeAllotment" name="includeOptions" value="1" checked>
+                                    <input type="checkbox" id="includeAllotment" name="includeOptions" value="1"
+                                        checked>
                                     <label class="form-check-label mb-0" for="includeAllotment">
                                         Include Allotment
                                     </label>
@@ -169,81 +168,62 @@
     let parsedBusinessDate = null;
 
     $(document).ready(function () {
-        getBusinessDate();
-        initTomSelect(".tomselect-custom");
-        $('#reportModal').modal('show');
+                initializeTomSelects();
 
+          getBusinessDate();
+
+        $('#reportModal').modal('show');
+        
 
     });
     $(document).on('click', '#btnCloseAva', function () {
         window.location.href = '/Home/Index';
     });
 
-    function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                console.log('result', result);
 
-                UI.setHiddenDate("fromDate", result);
 
-                $("#btnPrint").trigger("click");
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-            }
-        });
-    }
-   
+
+
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        loadGrid();
+         let fromDate = $('#fromDate').val() || '';
+         const zone = $("#zone").val();
+         if (!zone || zone.length === 0) {
+             showToast('Error', "Please select a Zone before printing!", false);
+             return; // dừng không gọi AJAX
+         }
+         $("#loadingSpinner").show();
+         $.ajax({
+             url: '/HouseKeeping/RoomAvailabilityData',
+             type: 'GET',
+             data: {
+                 fromDate: fromDate,
+                 zone: $("#zone").val().join(","),
+                 restype: $("#restype").val().join(","),
+
+                 displayofday: $("#displayofday").val(),
+                 showNonDeduct: $("#showNonDeduct").val(),
+                 showOcc3: $("#showOcc3").val(),
+                 showRoomNight: $("#showRoomNight").val(),
+                 includeOutOfOrder: $("#includeOutOfOrder").val(),
+                 includeOverbooking: $("#includeOverbooking").val(),
+                 includeAllotment: $("#includeAllotment").val(),
+             },
+             traditional: true,
+             crossDomain: false,
+             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+             success: function (result) {
+                 // $("#reportViewerContainer").html(result);
+                 // $("#loadingSpinner").hide();
+                 console.log(result);
+                 initializeReservationSummaryGrid(result.data, result.fromDate, result.toDate);
+                 $("#loadingSpinner").hide();
+             },
+             error: function () {
+                 alert("Không th? t?i báo cáo.");
+                 $("#loadingSpinner").hide();
+             }
+         })
     });
-
-    async function loadGrid() {
-        const zone = $("#zone").val();
-        if (!zone || zone.length === 0) {
-            showToast('Error', "Please select a Zone before printing!", false);
-            return; // dừng không gọi AJAX
-        }
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/HouseKeeping/RoomAvailabilityData',
-            type: 'GET',
-            data: {
-                fromDate: fromDate,
-                zone: $("#zone").val().join(","),
-                restype: $("#restype").val().join(","),
-
-                displayofday: $("#displayofday").val(),
-                showNonDeduct: $("#showNonDeduct").val(),
-                showOcc3: $("#showOcc3").val(),
-                showRoomNight: $("#showRoomNight").val(),
-                includeOutOfOrder: $("#includeOutOfOrder").val(),
-                includeOverbooking: $("#includeOverbooking").val(),
-                includeAllotment: $("#includeAllotment").val(),
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                console.log(result);
-                initializeReservationSummaryGrid(result.data, result.fromDate, result.toDate);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        })
-    }
     function generateDateColumns(fromDate, toDate) {
         const columns = [];
         const start = new Date(fromDate);

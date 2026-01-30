@@ -5,106 +5,83 @@
     var zoneList = ViewBag.ZoneList;
 }
 
-<style>
-    .filter_wrapper {
-        /*     background-color: #ececec; */
-        /*   margin: 0px 8px 14px 8px; */
-        padding: 18px 0px 0px 14px;
-        border-radius: 8px;
-    }
-
-    .button_wrapper {
-        display: flex;
-        column-gap: 12px;
-        margin: 0px 8px;
-    }
-
-    .button_wrapper .fa-solid {
-        margin-right: 5px;
-    }
-
-    .selected {
-        background-color: #4CAF50;
-        /* Màu xanh */
-        color: white;
-    }
-    .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
-    }
-
-    .sticky-header label[class*="me-"] {
-        margin-right: .5rem !important;
-    }
-
-    .sticky-header input[type="date"].form-control-sm {
-        font-size: 12px !important;
-        /* dúng 12?px */
-        height: calc(1.1em + .2rem + 2px);
-        /* gi? cùng chi?u cao */
-    }
-
-    .sticky-header label {
-        font-size: 12px !important;
-        line-height: 1.2;
-    }
-
-</style>
+<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
 <div class="text-center" id="reportTitle" style="font-size: 20px"></div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="">
-        <button id="btnPrint" class="mui-button mui-button-new">View</button>
-        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">  Excel</button>
-        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">
-            PDF
-        </button>
-    </div>
-    <div class="d-flex flex-wrap align-items-center gap-3 mb-1 mt-2 filter-panel px-2">
+<div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
 
-        <div class="d-flex align-items-center">
-            <label class="fw-bold me-2 text-nowrap">View by:</label>
-            <div class="d-flex align-items-center">
-                <label class="me-2 mb-0 small text-nowrap">Zone:</label>
-                <div style="width: 220px;">
-                    <select id="zone" name="zone" class="tomselect-custom" multiple>
-                        @foreach (var item in zoneList)
-                        {
-                            @if (item == zoneList[0])
-                            {
-                                <option value="@item.Code" selected>@item.Code</option>
-                            }
-                            else
-                            {
-                                <option value="@item.Code">@item.Code</option>
-                            }
-                        }
-                    </select>
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="reportTitle" style="font-size:20px">Room Facility Forecast</h5>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body">
+                <div class="search-filter">
+                    <div class="">
+                        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+                        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">  Excel</button>
+                        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">
+                            PDF
+                        </button>
+                        <button id="btnCloseAva" class="mui-button mui-button-new" type="button"> Close</button>
+                    </div>
+                    <div class="filter-panel d-flex align-items-center flex-nowrap gap-3 mt-2 mb-1">
+
+                        <!-- Zone -->
+                        <div class="d-flex align-items-center zone-wrap">
+                            <label class="me-2 mb-0">Zone:</label>
+                            <select id="zone" name="zone" class="tomselect-custom" multiple>
+                                @foreach (var item in zoneList)
+                                {
+                                    if (item == zoneList[0])
+                                    {
+                                        <option value="@item.Code" selected>@item.Code</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@item.Code">@item.Code</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+
+                        <!-- From -->
+                        <div class="d-flex align-items-center pb-2">
+                            <label class="me-2 mb-0">From:</label>
+                            <div class="date-wrap">
+                                <div class="clearable" data-date-input data-format="DD/MM/YYYY" data-name="fromDate">
+                                    <input type="text" class="date-ui form-control" autocomplete="off" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- To -->
+                        <div class="d-flex align-items-center pb-2">
+                            <label class="me-2 mb-0">To:</label>
+                            <div class="date-wrap">
+                                <div class="clearable" data-date-input data-format="DD/MM/YYYY" data-name="toDate">
+                                    <input type="text" class="date-ui form-control" autocomplete="off" />
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="mui-card">
+                    <div id="gridContainer" class="gridContainer mt-2"></div>
+                </div>
+                <div id="loadingSpinner"
+                    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+                    <i class="fa-solid fa-spinner fa-spin"></i>
                 </div>
             </div>
         </div>
-
-        <div class="d-flex align-items-center gap-3">
-            <div class="d-flex align-items-center">
-                <label class="me-2 mb-0 small text-nowrap">From:</label>
-                <input type="date" id="fromDate" name="fromDate" class="form-control form-control-sm" style="width: 140px;" />
-            </div>
-
-            <div class="d-flex align-items-center">
-                <label class="me-2 mb-0 small text-nowrap">To:</label>
-                <input type="date" id="toDate" name="toDate" class="form-control form-control-sm" style="width: 140px;" />
-            </div>
-        </div>
-
     </div>
-    
-</div>
-
-<div class="mui-card">
-    <div id="gridContainer" class="gridContainer mt-2"></div>
-</div>
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 <script>
     function formatDate(date) {
@@ -118,9 +95,14 @@
     $(document).ready(function () {
         document.getElementById("reportTitle").innerText = 'Room Facility Forecast';
                getBusinessDate();
-       initTomSelect(".tomselect-custom");
-       clearTomSelect(".tomselect-custom");
+        initializeTomSelects();
+                $('#reportModal').modal('show');
+
     });
+     $(document).on('click', '#btnCloseAva', function () {
+        window.location.href = '/Home/Index';
+    });
+
      function getBusinessDate() {
         return $.ajax({
             url: '/Reservation/GetBusinessDate',
@@ -135,13 +117,13 @@
 
                 // cộng thêm 13 ngày
                 const toDate = new Date(fromDate);
-                toDate.setDate(toDate.getDate() + 13);
+                toDate.setDate(toDate.getDate() + 15);
 
                 // format yyyy-MM-dd
                 const toDateStr = toDate.toISOString().split('T')[0];
 
-                $('#fromDate').val(fromDateStr);
-                $('#toDate').val(toDateStr);
+                UI.setHiddenDate("toDate", toDateStr);
+                 UI.setHiddenDate("fromDate", fromDateStr);
                       $("#btnPrint").trigger("click");
             },
             error: function (xhr, statusText, err) {

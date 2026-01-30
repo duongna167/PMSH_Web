@@ -8,5 +8,6 @@ namespace NightAudit.Services.Interfaces
 {
     internal interface IRunNightAuditService
     {
+        
     }
 }

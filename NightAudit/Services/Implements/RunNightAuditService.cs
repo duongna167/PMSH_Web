@@ -9,6 +9,6 @@ namespace NightAudit.Services.Implements
 {
     public class RunNightAuditService : IRunNightAuditService
     {
-
+       
     }
 }
