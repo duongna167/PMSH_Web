@@ -4,9 +4,9 @@
    - With id or ids : initTomSelect('#mySelect'); or initTomSelect(['#select1', '#select2']);
 
  * Select option ? single or multiple (add attribute multiple to select tag)
-   - single:  <select id="mySelect" class="tomselect"> ---- 
+   - single:  <select id="mySelect" class="tomselect-custom"> ---- 
 
-   - multiple: <select id="mySelect" class="tomselect" multiple> ----  
+   - multiple: <select id="mySelect" class="tomselect-custom" multiple> ----  
             + Select multiple values, but limit the number of selections :
                Override  js:
                   initTomSelect('#country');
@@ -17,7 +17,7 @@
  * TomSelect Helper
  * Author: (phuc)
  * Usage:
- *  initTomSelect('.tomselect');
+ *  initTomSelect('.tomselect-custom');
  *  initTomSelect(['#roomID', '#ownerCode']);
  *
  *  getTomSelectValue('#ownerCode');
@@ -60,6 +60,17 @@
                     el.hasAttribute('multiple') ||
                     (options.maxItems && options.maxItems > 1);
 
+                // AUTO ADD EMPTY OPTION FOR SINGLE SELECT
+                if (!isMultiple) {
+                    const hasEmptyOption = [...el.options].some(o => o.value === "");
+                    if (!hasEmptyOption) {
+                        const emptyOption = document.createElement("option");
+                        emptyOption.value = "";
+                        emptyOption.text = "";
+                        el.insertBefore(emptyOption, el.firstChild);
+                    }
+                }
+
                 const tsOptions = {
                     ...baseOptions,
                     ...options,
@@ -73,19 +84,7 @@
                             title: isMultiple ? 'Clear all' : 'Clear'
                         }
                     },
-                    onChange(value) {
-                        const $wrapper = $(this.wrapper); 
 
-                        if (value && value.length > 0) {
-                            $wrapper.removeClass("is-invalid");
-
-                            $wrapper
-                                .closest(".col-9, .form-group, .form-floating")
-                                .find(".invalid-feedback")
-                                .hide();
-                        }
-                    }
-                  
                 };
 
                 new TomSelect(el, tsOptions);
@@ -93,7 +92,6 @@
             });
         }); 
     }
-
     /* ================= GET VALUE ================= */
     /*  Usage:
         const owners = getTomSelectValue("#ownerCode");
