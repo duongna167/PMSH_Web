@@ -5499,9 +5499,20 @@ namespace Reservation.Controllers
                 var result = (from d in data.AsEnumerable()
                               select d.Table.Columns.Cast<DataColumn>()
                                   .ToDictionary(
-                                      col => col.ColumnName,
-                                      col => d[col.ColumnName]?.ToString()
-                                  )).ToList();
+                                    col => col.ColumnName,
+                                    col =>
+                                    {
+                                        var value = d[col.ColumnName];
+                                        if (value == DBNull.Value) return null;
+
+                                        // CreatedDate: KHÔNG ToString
+                                        if (col.ColumnName == "CreateDate" || col.ColumnName == "UpdateDate" || col.ColumnName == "Date")
+                                            return value;
+
+                                        // Các field khác: ToString
+                                        return value.ToString();
+                                    }
+                          )).ToList();
                 return Json(result);
 
             }
