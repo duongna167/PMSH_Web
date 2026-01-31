@@ -1,4 +1,4 @@
-window.ValidationAdapter = (function () {
+﻿window.ValidationAdapter = (function () {
 
     function apply(errors, formSelector) {
         clear(formSelector);
@@ -25,16 +25,26 @@ window.ValidationAdapter = (function () {
 
     function markTomSelectInvalid($el, message) {
         const ts = $el[0].tomselect;
-        const $wrapper = $(ts.wrapper);
+        if (!ts) return;
 
+        const $wrapper = $(ts.wrapper);
         $wrapper.addClass("is-invalid");
 
-        let $feedback = $wrapper
-            .closest(".col-md-6, .col-md-4, .col-12")
-            .find(".invalid-feedback");
+        // Tìm container gần nhất (col / form-group)
+        const $container = $wrapper.closest(
+            ".col-md-6, .col-md-4, .col-md-2, .col-12, .form-group"
+        );
+
+        let $feedback = $container.find(".invalid-feedback").first();
+
+        if ($feedback.length === 0) {
+            console.warn("No invalid-feedback found for TomSelect:", $el.attr("name"));
+            return;
+        }
 
         $feedback.text(message).show();
     }
+
 
     function clearField(fieldEl) {
         const $el = $(fieldEl);

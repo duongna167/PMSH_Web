@@ -16,8 +16,16 @@ window.FormModal = (function () {
         if ($form.length === 0) return;
 
         $form[0].reset();
+
+        $form.find("select").each(function () {
+            if (this.tomselect) {
+                this.tomselect.clear();
+            }
+        });
+
         ValidationAdapter.clear(formSelector);
     }
+
 
     return { open, close };
 

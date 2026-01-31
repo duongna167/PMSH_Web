@@ -1,27 +1,14 @@
-﻿using Administration.Services.Implements;
-using Administration.Services.Interfaces;
+﻿using Administration.Services.Interfaces;
 using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
-using DevExpress.CodeParser;
-using DocumentFormat.OpenXml.EMMA;
-using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Org.BouncyCastle.Asn1.X509;
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
-using System.Net;
-using System.Security.Policy;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using static BaseBusiness.util.ValidationUtils;
 namespace Administration.Controllers
 {
@@ -1101,12 +1088,10 @@ namespace Administration.Controllers
             string message = "";
 
             var listErrors = GetErrors(
-                Check(model, "general", "Invalid data"),
+                Check(model == null, "general", "Invalid data"),
 
                 Check(model?.Name, "txtname", "Name cannot be blank."),
-                Check(model.PersonInChargeZoneID, "personInChargeZoneId", "Zone cannot be blank.")
-                //Check(PersonInChargeBO.Instance.IsDuplicate("Code", model.Code, model.ID),
-                //     "code", "This code already exists.")
+                Check(model?.PersonInChargeZoneID <= 0, "personInChargeZoneId", "Zone cannot be blank.")
             );
 
             if (listErrors.Count > 0)

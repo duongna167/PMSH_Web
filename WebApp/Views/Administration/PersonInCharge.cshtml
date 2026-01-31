@@ -284,13 +284,17 @@
         let loginName = (localStorage.getItem("Loginname") || "")
             .trim()
             .replace(/^"(.*)"$/, '$1');
+
+        const group = getTomSelectData("#personInChargeGroupId");
+        const zone  = getTomSelectData("#personInChargeZoneId");
+
         const model = {
             ID: parseInt($("#id").val()) || 0,
             Code: $("#txtcode").val(),
             Name: $("#txtname").val(),
             Description: $("#txtdescription").val(),
-            PersonInChargeGroupID: parseInt($("#personInChargeGroupId").val()) || 0,
-            PersonInChargeZoneID: parseInt($("#personInChargeZoneId").val()) || 0,
+            PersonInChargeGroupID:parseInt( toBackendValue(group)),
+            PersonInChargeZoneID: parseInt(toBackendValue(zone)),
             Email: $("#txtEmail").val(),
             TelePhone: $("#txtTelePhone").val(),
             MobilePhone: $("#txtMobilePhone").val(),
@@ -375,22 +379,18 @@
 
     $(document).off("click", "#btnView").on("click", "#btnView", function () {
           $("#loadingSpinnerRateCode").show();
-          var groupIdSearch = $("#personInchargeGroupIds").val();
-          var zoneIdSearch = $("#personInchargeZoneIds").val();
-
-          var groupIdString = (groupIdSearch && groupIdSearch.length > 0) ? groupIdSearch.join(",") : "";
-          var zoneIdString = (zoneIdSearch && zoneIdSearch.length > 0) ? zoneIdSearch.join(",") : "";
+          const groups = getTomSelectData("#personInchargeGroupIds");
+          const zones  = getTomSelectData("#personInchargeZoneIds");
 
           $.ajax({
               url: "/Administration/GetPersonInCharge",
               type: "GET",
               cache: false,
               data: {
-
                   code: $("#codeInput").val() || "",
                   name: $("#nameInput").val() || "",
-                  group: groupIdString,
-                  zone:zoneIdString,
+                  group: groups ? toBackendValue(groups).join(",") : "",
+                  zone: zones ? toBackendValue(zones).join(",") : "",
                   isActive: $("#chkshowInactive").prop("checked") ? 1 : 0
               },
               crossDomain: false,
