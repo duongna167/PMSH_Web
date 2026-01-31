@@ -33,6 +33,7 @@ async function businessDateGlobal() {
 
 window.businessDateReady = (async () => {
   await businessDateGlobal();
+    await initDateInputs();
 })();
 
 function formatDate(date, format = "DD/MM/YYYY") {

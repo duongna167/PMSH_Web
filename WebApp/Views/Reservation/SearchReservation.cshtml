@@ -33,8 +33,7 @@
                             </label>
                             <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
                                 <input type="checkbox" id="chooseFromDate" checked class="col-md-2">
-                                <div class="col-md-10" data-date-input data-format="DD/MM/YYYY" data-name="arrivalForm"
-                                    business-date>
+                                <div class="col-md-10" data-date-input data-format="DD/MM/YYYY" data-name="arrivalForm">
                                     <input type="text" class="date-ui form-control" placeholder="dd/mm/yyyy"
                                         autocomplete="off" />
                                 </div>
@@ -44,7 +43,7 @@
                             <label>Arr.To</label>
                             <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
                                 <input type="checkbox" id="chooseToDate" checked class="col-md-2">
-                                <div class="col-md-10" data-date-input data-format="DD/MM/YYYY" business-date
+                                <div class="col-md-10" data-date-input data-format="DD/MM/YYYY"
                                     data-name="departureForm">
                                     <input type="text" class="date-ui form-control" placeholder="dd/mm/yyyy"
                                         autocomplete="off" />
@@ -264,7 +263,7 @@
                                     onclick="openModalBilling();">Billing</a>
                                 <a href="#" class="font-semibold col-md-2 mb-2"
                                     style="background-color:white;color:black;border: 1px solid #009444;border-radius: 4px !important;"
-                                    onclick="openModalDeposit();">Packages</a>
+                                    onclick="openModalPackage();">Packages</a>
                                 <a href="#" class="font-semibold col-md-2 mb-2"
                                     style="background-color:white;color:black;border: 1px solid #009444;border-radius: 4px !important;"
                                     onclick="openModalDeposit();">Dep/DXL</a>
@@ -376,6 +375,7 @@
 @await Html.PartialAsync("Options/WaitList")
 @await Html.PartialAsync("Options/CheckOutAll")
 @await Html.PartialAsync("Options/CheckOutZero")
+@await Html.PartialAsync("Options/Packages")
 @await Html.PartialAsync("Options/CheckOut")
 @await Html.PartialAsync("Options/Alerts")
 @await Html.PartialAsync("Options/Traces")
@@ -438,6 +438,7 @@
         offcanvas.show();
     }
     $(document).ready(async function () {
+        await getBusinessDate();
         setupDefaultCaret();
         const urlParams = new URLSearchParams(window.location.search);
         const type = urlParams.get("type");
@@ -467,48 +468,40 @@
             }
         });
     });
-    function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                const businessDate = new Date(result);
-                const formattedBusinessDate = result.split('T')[0];
-                $('#dateTraces').val(formattedBusinessDate);
-                $('#fromDateAddNewTrace').val(formattedBusinessDate);
-                $('#toDateAddNewTrace').val(formattedBusinessDate);
+    async function getBusinessDate() {
+        window.initDateInputs();
+        await window.businessDateReady;
 
-                // Chỉ set giá trị nếu các trường ngày trống
-                if (!$('#arrivalForm').val()) {
-                    $('#arrivalForm').val(formattedBusinessDate);
-                    $('#expDatePaymentBilling').val(formattedBusinessDate);
-                    $('#transDatePaymentBilling').val(formattedBusinessDate);
-                    $('#fromDateSelectOption').val(formattedBusinessDate);
-                    $('#toDateSelectOption').val(formattedBusinessDate);
+        $('#dateTraces').val(dateSystem);
+        $('#fromDateAddNewTrace').val(dateSystem);
+        $('#toDateAddNewTrace').val(dateSystem);
 
+        // Chỉ set giá trị nếu các trường ngày trống
+        if (!$('#arrivalForm').val()) {
+
+            const vadsda = $('#arrivalForm').val();
+
+            UI.setHiddenDate("arrivalForm", dateSystem);
+            console.log('arrivalForm', vadsda);
+            console.log('departureIsodateSystem', dateSystem);
+            $('#expDatePaymentBilling').val(dateSystem);
+            $('#transDatePaymentBilling').val(dateSystem);
+            $('#fromDateSelectOption').val(dateSystem);
+            $('#toDateSelectOption').val(dateSystem);
 
 
-                }
-                if (!$('#departureForm').val()) {
-                    const departureDate = new Date(businessDate);
-                    departureDate.setDate(businessDate.getDate() + 7);
-                    const formattedDepartureDate = departureDate.toISOString().split('T')[0];
-                    $('#departureForm').val(formattedDepartureDate);
-                }
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-            }
-        });
+
+        }
+        if (!$('#departureForm').val()) {
+            const departureIso = UI.addDaysIso(dateSystem, 7);
+            console.log('departureIso', departureIso);
+
+            UI.setHiddenDate("departureForm", departureIso);
+        }
     }
 
-    async function searchReservation(isInitial = false) {
 
+    async function searchReservation(isInitial = false) {
         await window.businessDateReady;
         $('#cmt_wrapper').hide();
         $("#loadingSpinnerForm").show();
@@ -853,6 +846,8 @@
                 $('#functionAndOptionTable').show();
                 $('#listFunction').show();
                 idReservation = e.data.ID;
+                console.log('e.data', e.data);
+
                 $('#moreInfo').empty();
                 let html = '';
                 ['ProfileComment', 'CommentGroup', 'DepositRequest', 'FixedCharge', 'ItemInventory', 'Specials'].forEach(field => {

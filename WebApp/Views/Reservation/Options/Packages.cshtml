@@ -1,33 +1,38 @@
-﻿<div class="modal fade modal-xl" id="modalPackage" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+﻿<div class="modal fade modal-xl" id="modalPackage" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
 
             <div class="modal-header">
                 <h5 class="modal-title" id="staticBackdropLabel">Package </h5>
-               @*  <button type="button" class="btn-close" onclick="closeModalPackage()"></button> *@
+                @*  <button type="button" class="btn-close" onclick="closeModalPackage()"></button> *@
             </div>
             <div class="modal-body">
                 <div>
                     <button class="mui-button mui-button-search" onclick="openModalNewPackage();">New</button>
-                    <button class="mui-button mui-button-search" onclick="openModalOption();" id="btnEditPackage">Edit</button>
-                    <button class="mui-button mui-button-search" onclick="openModalMoreFields();" id="btnDeletePackage">Delete</button>
-                    <button class="mui-button mui-button-search" onclick="closeModalPackage()"></button>
+                    <button class="mui-button mui-button-search" onclick="openModalOption();"
+                        id="btnEditPackage">Edit</button>
+                    <button class="mui-button mui-button-search" onclick="openModalMoreFields();"
+                        id="btnDeletePackage">Delete</button>
+                    <button class="mui-button mui-button-search" onclick="closeModalPackage()">Close</button>
                 </div>
                 <div class="mui-divider"></div>
                 <div class="mui-card mt-2">
                     <div id="gridContainerPackage" class="mt-2 gridContainer"></div>
+                    <div id="gridContainerPackageDeitail" class="mt-2 gridContainer"></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-<div class="modal fade modal" id="modalNewPackage" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+<div class="modal fade modal" id="modalNewPackage" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content" style="border:1px solid #bcbcbc">
 
             <div class="modal-header">
                 <h5 class="modal-title" id="staticBackdropLabel">New Package</h5>
-         @*        <button type="button" class="btn-close" onclick="closeModalNewPackage()"></button> *@
+                @*        <button type="button" class="btn-close" onclick="closeModalNewPackage()"></button> *@
             </div>
             <div class="modal-body">
                 <div>
@@ -88,7 +93,8 @@
     </div>
 </div>
 
-<div class="modal fade modal" id="modalPackageetUp" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+<div class="modal fade modal" id="modalPackageetUp" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content" style="border:1px solid #bcbcbc">
 
@@ -110,33 +116,31 @@
     </div>
 </div>
 <script>
-
-    function openModalNewPackage(){
-        clearPackage();
-        $('#modalNewPackage').modal('show');
-    }
-    function closeModalNewPackage(){
-        $('#modalNewPackage').modal('hide');
-    }
-    function openModalPackage(){
-        if(idReservation == 0){
+    function openModalPackage() {
+        if (idReservation == 0) {
             showToast("Error", "Please choose booking", false);
             return;
         }
-        GetPackageetUp();
-        setHideButtonPackage();
-        GetPackageByReservationID();
-        $('#modalPackage').modal('show');
+        @* GetPackageetUp(); *@
+            GetPackageByReservationID();
     }
-    function closeModalPackage(){
+
+    function openModalNewPackage() {
+        clearPackage();
+        $('#modalNewPackage').modal('show');
+    }
+    function closeModalNewPackage() {
+        $('#modalNewPackage').modal('hide');
+    }
+    function closeModalPackage() {
         $('#modalPackage').modal('hide');
 
     }
-    function setHideButtonPackage(){
+    function setHideButtonPackage() {
         $('#btnEditPackage').hide();
         $('#btnDeletePackage').hide();
     }
-    function setShowButtonPackage(){
+    function setShowButtonPackage() {
         $('#btnEditPackage').show();
         $('#btnDeletePackage').show();
     }
@@ -148,12 +152,31 @@
             type: 'get',
             dataType: 'json',
             data: {
-                reservationID: idReservation
+                reservationID: idReservation,
+                type: 2,
             },
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                initializeDataGridPackage(result);
+                if (result.success == false) {
+                    showToast("Error", result.message, false)
+                    return;
+                }
+                if (result.success === true && (!result.summary || result.summary.length === 0)) {
+                    showToast("Warning", result.message || "No packages found for this reservation.", false);
+                    return;
+                }
+                else {
+                    if (result.summary.length == 0) {
+                        showToast("Warning", "No packages found for this reservation.", false)
+                        return;
+                    }
+                    else {
+                        initializeDataGridPackage(result.details);
+                        setHideButtonPackage();
+                        $('#modalPackage').modal('show');
+                    }
+                }
             },
             error: function (xhr, statusText, err) {
                 if (xhr.status == 401) {
@@ -162,23 +185,66 @@
             }
         });
     }
-    function initializeDataGridPackage(data) {
+
+    function GetPackageByReservationDetail(dataDetail) {
+        $.ajax({
+            url: '/Reservation/GetPackageByReservationID',
+            type: 'get',
+            dataType: 'json',
+            data: {
+                reservationID: idReservation,
+                packageID: dataDetail.packageID,
+                beginDate: dataDetail.beginDate,
+                endDate: dataDetail.endDate,
+            },
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+                if (result.success == false) {
+                    showToast("Error", result.message, false)
+                    return;
+                }
+                if (result.success === true && (!result.detailsPackage || result.detailsPackage.length === 0)) {
+                    showToast("Warning", result.message || "No packages found for this reservation.", false);
+                    return;
+                }
+                else {
+
+                    initializeDataGridPackageDetail(result.detailsPackage);
+                    setHideButtonPackage();
+                    $('#modalPackage').modal('show');
+
+                }
+            },
+            error: function (xhr, statusText, err) {
+                if (xhr.status == 401) {
+                    sessionTimeout();
+                }
+            }
+        });
+    }
+    function initializeDataGridPackage(details) {
         $("#gridContainerPackage").dxDataGrid({
 
-        dataSource: data, allowColumnResizing: true,
+            dataSource: details, allowColumnResizing: true,
             columns: [
-                { dataField: "ID", caption: "ID",  visible: false},
-                { dataField: "Code", caption: "Code"},
-                { dataField: "Area", caption: "Area"},
-                { dataField: "Description", caption: "Description"},
-                { dataField: "ReservationID", caption: "ReservationID", visible: false},
-                { dataField: "OriginPackageID", caption: "OriginPackageID", visible: false},
-
+                { dataField: "packageID", caption: "ID", visible: false },
+                { dataField: "rateCode", caption: "Rate Code", width: 100 },
+                { dataField: "package", caption: "Package", width: 120 },
+                { dataField: "description", caption: "Description", width: "auto" }, // Cột này sẽ chiếm diện tích còn lại
+                { dataField: "qty", caption: "Qty", width: 60, alignment: "center" },
+                { dataField: "totalPrice", caption: "Price", width: 110, format: "#,##0", dataType: "number" },
+                { dataField: "totalPriceAfterTax", caption: "Price Net", width: 110, format: "#,##0", dataType: "number" },
+                { dataField: "currencyID", caption: "Curr", width: 70, alignment: "center" },
+                { dataField: "postingRhythmID", caption: "Rhythm ID", width: 100 },
+                { dataField: "beginDate", visible: false },
+                { dataField: "endDate", visible: false },
             ],
             paging: { pageSize: 15 },
             scrolling: {
                 rowRenderingMode: 'virtual',
             },
+            height: "250px",
             pager: {
                 visible: true,
                 allowedPageSizes: [15, 20, 'all'],
@@ -187,29 +253,76 @@
                 showNavigationButtons: true,
             },
             filterRow: {
-                    visible: true,
-                    applyFilter: "auto"
+                visible: true,
+                applyFilter: "auto"
             },
             selection: {
                 mode: "single"
             },
-            onRowClick: function(e) {
+            onRowClick: function (e) {
+                setShowButtonPackage();
+            },
+            onRowDblClick: function (e) {
+                selecteReservationPackage = e.data;
+                console.log('selecteReservationPackage', selecteReservationPackage);
+                GetPackageByReservationDetail(selecteReservationPackage);
+            }
+        });
+    }
+
+    function initializeDataGridPackageDetail(details) {
+        $("#gridContainerPackageDeitail").dxDataGrid({
+
+            dataSource: details, allowColumnResizing: true,
+            columns: [
+                { dataField: "ID", visible: false },
+                { dataField: "Package", caption: "Package", width: 120 },
+                { dataField: "Description", caption: "Description", width: "auto" },
+                { dataField: "Qty", caption: "Qty", width: 60, alignment: "center" },
+                { dataField: "Price", caption: "Price", width: 110, format: "#,##0", dataType: "number" },
+                { dataField: "Price Net", caption: "Price Net", width: 110, format: "#,##0", dataType: "number" },
+                { dataField: "Currency", caption: "Curr", width: 70, alignment: "center" },
+                { dataField: "PostingRhythm", caption: "Rhythm", width: 120 },
+                { dataField: "Begin Date", caption: "Begin", width: 100, dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "End Date", caption: "End", width: 100, dataType: "date", format: "dd/MM/yyyy" },
+            ],
+            paging: { pageSize: 15 },
+            scrolling: {
+                rowRenderingMode: 'virtual',
+            },
+            height: "250px",
+            pager: {
+                visible: true,
+                allowedPageSizes: [15, 20, 'all'],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true,
+            },
+            filterRow: {
+                visible: true,
+                applyFilter: "auto"
+            },
+            selection: {
+                mode: "single"
+            },
+            onRowClick: function (e) {
                 setShowButtonPackage();
             }
         });
     }
+
     function SavePackage() {
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
-        formData.append('reservationID',idReservation);
+        formData.append('reservationID', idReservation);
         formData.append('code', $('#codePackageNew').val());
         formData.append('area', $('#areaNewPackage').val());
         formData.append('description', $('#descriptionPackage').val());
         formData.append('warningDay', $('#warningDayPackage').val());
         formData.append('actice', $('#activePackage').is(':checked') ? 1 : 0);
         formData.append('userName', userName);
-        formData.append('userID',userID);
+        formData.append('userID', userID);
         $.ajax({
             url: '/Reservation/SavePackage',
             type: 'POST',
@@ -234,18 +347,18 @@
         });
 
     }
-    function clearPackage(){
-         $('#codePackageNew').val('');
-         $('#areaNewPackage').val('Reservation');
-         $('#descriptionPackage').val('');
-         $('#warningDayPackage').val('0');
+    function clearPackage() {
+        $('#codePackageNew').val('');
+        $('#areaNewPackage').val('Reservation');
+        $('#descriptionPackage').val('');
+        $('#warningDayPackage').val('0');
     }
 
-    function openModalPackageetUp(){
+    function openModalPackageetUp() {
         GetPackageetUp();
         $('#modalPackageetUp').modal('show');
     }
-    function closeModalPackageetUp(){
+    function closeModalPackageetUp() {
         $('#modalPackageetUp').modal('hide');
     }
     function GetPackageetUp() {
@@ -268,11 +381,11 @@
     function initializeDataGridPackageSetUp(data) {
         $("#gridContainerPackageSetUp").dxDataGrid({
 
-        dataSource: data, allowColumnResizing: true,
+            dataSource: data, allowColumnResizing: true,
             columns: [
-                { dataField: "id", caption: "ID",  visible: false},
-                { dataField: "code", caption: "Code"},
-                { dataField: "description", caption: "Description"},
+                { dataField: "id", caption: "ID", visible: false },
+                { dataField: "code", caption: "Code" },
+                { dataField: "description", caption: "Description" },
 
 
             ],
@@ -288,13 +401,13 @@
                 showNavigationButtons: true,
             },
             filterRow: {
-                    visible: true,
-                    applyFilter: "auto"
+                visible: true,
+                applyFilter: "auto"
             },
             selection: {
                 mode: "single"
             },
-            onRowDblClick: function(e) {
+            onRowDblClick: function (e) {
                 $('#codePackageNew').val(e.data.code);
                 closeModalPackageetUp();
             }

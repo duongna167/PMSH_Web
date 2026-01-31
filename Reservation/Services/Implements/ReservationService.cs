@@ -7,6 +7,7 @@ using DevExpress.XtraReports.Serialization;
 using DevExpress.XtraRichEdit.Import.Doc;
 using Microsoft.AspNetCore.Server.IISIntegration;
 using Microsoft.Data.SqlClient;
+using Reservation.Dto;
 using Reservation.Services.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
+using static Reservation.Dto.ReservationPackageDTO;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Reservation.Services.Implements
@@ -633,24 +635,139 @@ namespace Reservation.Services.Implements
                 throw new Exception($"ERROR: {ex.Message}", ex);
             }
         }
-        public DataTable SearchReservationPackages(int reservationID)
+        public DataTable SearchReservationPackages(
+            int reservationID,
+            int packageID,
+            int type,
+            DateTime beginDate,
+            DateTime endDate,
+            int rateCodeID)
         {
             try
             {
-                SqlParameter[] param = new SqlParameter[]
-                {
+                SqlParameter[] param =
+                [
                     new SqlParameter("@ReservationID", reservationID),
+                    new SqlParameter("@PackageID", packageID),
+                    new SqlParameter("@Type", type),
+                    new SqlParameter("@BeginDate", beginDate),
+                    new SqlParameter("@EndDate", endDate),
+                    new SqlParameter("@RateCodeID", rateCodeID)
+                ];
 
-                };
-
-                DataTable myTable = DataTableHelper.getTableData("spReservationPackage", param);
-                return myTable;
+                return DataTableHelper.getTableData("spReservationPackage", param);
             }
             catch (SqlException ex)
             {
-
-                throw new Exception($"ERROR: {ex.Message}", ex);
+                throw new Exception($"ERROR spReservationPackage: {ex.Message}", ex);
             }
         }
+        public List<ReservationPackageSummary> GetReservationPackagePhase2(
+            int reservationId,
+            int packageId,
+            DateTime beginDate,
+            DateTime endDate,
+            int rateCodeId)
+        {
+            try
+            {
+                // 1. Tạo câu lệnh SQL Dynamic dùng linh hoạt hơn không phụ thuộc vào type
+                // Lưu ý: Format ngày tháng thành 'yyyy-MM-dd' để SQL hiểu chính xác
+                string sqlQuery = string.Format(@"
+                    SELECT 
+                        a.PackageID,
+                        ISNULL(d.RateCode, '') AS RateCode, 
+                        b.Code AS Package, 
+                        b.Description,
+                        a.Quantity AS Qty, 
+                        a.Price AS TotalPrice, 
+                        a.PriceAfterTax AS TotalPriceAfterTax, 
+                        a.CurrencyID,
+                        a.BeginDate, 
+                        a.EndDate,
+                        a.ReservationID, 
+                        CASE WHEN a.Excluded = 1 THEN 'x' ELSE '' END AS Excl,
+                        a.RateCodeID,
+                        a.IsTaxInclude,
+                        a.TransactionCode,
+                        a.CalculationRuleID,
+                        a.PostingRhythmID,
+                        a.PostingDay,
+                        c.NoOfAdult, c.NoOfChild, c.NoOfChild1, c.NoOfChild2,
+                        DATEDIFF(day, a.BeginDate, a.EndDate) AS Night
+                    FROM dbo.ReservationPackage a WITH (NOLOCK)
+                    INNER JOIN dbo.Package b WITH (NOLOCK) ON a.PackageID = b.ID
+                    INNER JOIN dbo.Reservation c WITH (NOLOCK) ON a.ReservationID = c.ID
+                    LEFT JOIN dbo.RateCode d WITH (NOLOCK) ON a.RateCodeID = d.ID
+                    WHERE 
+                        a.ReservationID = {0}
+                        AND b.ID = {1}
+                        AND a.RateCodeID = {2}
+                        AND DATEDIFF(day, a.BeginDate, '{3}') = 0
+                        AND DATEDIFF(day, a.EndDate, '{4}') = 0
+                    ",
+                    reservationId,
+                    packageId,
+                    rateCodeId,
+                    beginDate.ToString("yyyy-MM-dd"),
+                    endDate.ToString("yyyy-MM-dd")
+                );
+
+                // 2. Chuẩn bị tham số cho spSearchAllForTrans
+                SqlParameter[] parameters = [new SqlParameter("@sqlCommand", sqlQuery)];
+
+                // 3. Gọi DB qua hàm getTableData có sẵn
+                // Giả sử class chứa getTableData tên là DaoHelper
+                DataTable dataTable = DataTableHelper.getTableData("spSearchAllForTrans", parameters);
+
+                // 4. Map dữ liệu sang List object (Code của bạn)
+                if (dataTable == null || dataTable.Rows.Count == 0)
+                    return new List<ReservationPackageSummary>();
+
+                var result = (from d in dataTable.AsEnumerable()
+                              select new ReservationPackageSummary
+                              {
+                                  PackageID = d.Field<int>("PackageID"),
+                                  RateCode = d["RateCode"]?.ToString() ?? string.Empty,
+                                  Package = d["Package"]?.ToString() ?? string.Empty,
+                                  Description = d["Description"]?.ToString() ?? string.Empty,
+
+                                  Qty = d["Qty"] != DBNull.Value ? Convert.ToInt32(d["Qty"]) : 0,
+                                  TotalPrice = d["TotalPrice"] != DBNull.Value ? Convert.ToDecimal(d["TotalPrice"]) : 0,
+                                  TotalPriceAfterTax = d["TotalPriceAfterTax"] != DBNull.Value ? Convert.ToDecimal(d["TotalPriceAfterTax"]) : 0,
+
+                                  CurrencyID = d["CurrencyID"]?.ToString() ?? string.Empty,
+
+                                  BeginDate = d["BeginDate"] != DBNull.Value ? Convert.ToDateTime(d["BeginDate"]) : DateTime.MinValue,
+                                  EndDate = d["EndDate"] != DBNull.Value ? Convert.ToDateTime(d["EndDate"]) : DateTime.MinValue,
+
+                                  ReservationID = d["ReservationID"] != DBNull.Value ? Convert.ToInt32(d["ReservationID"]) : 0,
+                                  Excl = d["Excl"]?.ToString() ?? string.Empty,
+
+                                  RateCodeID = d["RateCodeID"] != DBNull.Value ? Convert.ToInt32(d["RateCodeID"]) : 0,
+
+                                  IsTaxInclude = d["IsTaxInclude"] != DBNull.Value && Convert.ToBoolean(d["IsTaxInclude"]),
+                                  TransactionCode = d["TransactionCode"]?.ToString() ?? string.Empty,
+                                  CalculationRuleID = d["CalculationRuleID"] != DBNull.Value ? Convert.ToInt32(d["CalculationRuleID"]) : 0,
+                                  PostingRhythmID = d["PostingRhythmID"] != DBNull.Value ? Convert.ToInt32(d["PostingRhythmID"]) : 0,
+                                  PostingDay = d["PostingDay"] != DBNull.Value ? Convert.ToDateTime(d["EndDate"]) : DateTime.MinValue,
+
+                                  NoOfAdult = d["NoOfAdult"] != DBNull.Value ? Convert.ToInt32(d["NoOfAdult"]) : 0,
+                                  NoOfChild = d["NoOfChild"] != DBNull.Value ? Convert.ToInt32(d["NoOfChild"]) : 0,
+                                  NoOfChild1 = d["NoOfChild1"] != DBNull.Value ? Convert.ToInt32(d["NoOfChild1"]) : 0,
+                                  NoOfChild2 = d["NoOfChild2"] != DBNull.Value ? Convert.ToInt32(d["NoOfChild2"]) : 0,
+
+                                  Night = d["Night"] != DBNull.Value ? Convert.ToInt32(d["Night"]) : 0
+                              }).ToList();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"ERROR GetReservationPackagePhase2: {ex.Message}", ex);
+            }
+        }
+
+
     }
 }

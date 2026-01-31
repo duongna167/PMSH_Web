@@ -40,6 +40,7 @@ using System.Transactions;
 using System.Xml;
 using static DevExpress.CodeParser.CodeStyle.Formatting.Rules;
 using static log4net.Appender.RollingFileAppender;
+using static Reservation.Dto.ReservationPackageDTO;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 namespace Reservation.Controllers
@@ -6197,29 +6198,121 @@ namespace Reservation.Controllers
         }
         #endregion
 
-        #region  Nam_Packages
+        #region  Nam_Packages Tuan_Renew
         [HttpGet]
-        public async Task<IActionResult> GetPackageByReservationID(int reservationID)
+        public IActionResult GetPackageByReservationID(
+            DateTime? beginDate,
+            DateTime? endDate,
+            int type = 0,
+            int reservationID = 0,
+            int packageID = 0,
+            int rateCodeID = 0)
         {
             try
             {
+                if (reservationID <= 0)
+                    return Json(new { Success = false, message = "ReservationID is required" });
 
-                var data = _iReservationService.SearchReservationPackages(reservationID);
+                var businessDates = PropertyUtils
+                    .ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
 
-                var result = (from d in data.AsEnumerable()
-                              select d.Table.Columns.Cast<DataColumn>()
-                                  //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
-                                  .ToDictionary(
-                                      col => col.ColumnName,
-                                      col => d[col.ColumnName]?.ToString()
-                                  )).ToList();
-                return Json(result);
+                if (businessDates == null || businessDates.Count == 0)
+                    return Json(new { Success = false, message = "Business date not available" });
+
+                var businessDate = businessDates[0].BusinessDate;
+                beginDate ??= businessDate;
+                endDate ??= businessDate;
+                /* ========= PHASE 0 : type = 0 ========= */
+
+                if (type == 0)
+                {
+                    var phase0 = _iReservationService.SearchReservationPackages(reservationID, packageID, type, beginDate.Value, endDate.Value, rateCodeID);
+                    if (phase0 == null || phase0.Rows.Count == 0)
+                        return Json(new { Success = true, message = "No packages detail found for this reservation package." });
+
+                    var phaseResult = phase0.AsEnumerable()
+                        .Select(r => phase0.Columns.Cast<DataColumn>()
+                            .ToDictionary(
+                                c => c.ColumnName,
+                                c => r[c] == DBNull.Value ? null : r[c]
+                            ))
+                        .ToList();
+                    return Json(new
+                    {
+                        Success = true,
+                        DetailsPackage = phaseResult
+                    });
+
+                }
+
+                /* ========= PHASE 1 : type = 1 ========= */
+                var phase1 = _iReservationService.SearchReservationPackages(
+                    reservationID,
+                    packageID,
+                    type: 1,
+                    beginDate.Value,
+                    endDate.Value,
+                    rateCodeID
+                );
+
+                if (phase1 == null || phase1.Rows.Count == 0)
+                    return Json(new { Success = true, message = "No packages found for this reservation." });
+
+                var phase1Result = phase1.AsEnumerable()
+                    .Select(r => phase1.Columns.Cast<DataColumn>()
+                        .ToDictionary(
+                            c => c.ColumnName,
+                            c => r[c] == DBNull.Value ? null : r[c]
+                        ))
+                    .ToList();
+
+                /* ========= PHASE 2 : type = 2 (FLAT) ========= */
+
+                var phase2Results = new List<ReservationPackageSummary>();
+
+                foreach (DataRow row in phase1.Rows)
+                {
+                    var packageId = row["ID"] != DBNull.Value
+                        ? Convert.ToInt32(row["ID"])
+                        : 0;
+
+                    if (packageId <= 0)
+                        continue;
+
+                    var rowBeginDate = row["Begin Date"] != DBNull.Value
+                        ? Convert.ToDateTime(row["Begin Date"])
+                        : beginDate.Value;
+
+                    var rowEndDate = row["End Date"] != DBNull.Value
+                        ? Convert.ToDateTime(row["End Date"])
+                        : endDate.Value;
+
+                    // ✅ service đã mapping model
+                    var items = _iReservationService.GetReservationPackagePhase2(
+                        reservationID,
+                        packageId,
+                        rowBeginDate,
+                        rowEndDate,
+                        rateCodeID
+                    );
+
+                    if (items != null && items.Count > 0)
+                        phase2Results.AddRange(items);
+                }
+                return Json(new
+                {
+                    Success = true,
+                    summary = phase1Result,
+                    Details = phase2Results
+                });
             }
             catch (Exception ex)
             {
-                return Json(ex.Message);
+                return StatusCode(500, ex.Message);
             }
         }
+
+
 
         #endregion
 
