@@ -8,9 +8,7 @@
         font-size: 0.875rem !important;
     }
 
-   
 </style>
-
 
 <div class="text-center" style="font-size: 20px">Person In Charge</div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
@@ -40,29 +38,29 @@
             </div>
         </div>
 
-            <div class="col-auto d-flex align-items-center" style="width: 250px;">
+        <div class="col-auto d-flex align-items-center" style="width: 250px;">
             <label for="personInchargeGroupIds" class="pe-3 fw-bold text-nowrap">Group:</label>
-                <div class="flex-grow-1">
-                    <select id="personInchargeGroupIds" name="group" class="tomselect-custom" multiple>
-                        @foreach (var sg in chargeGroup)
-                        {
-                            <option value="@sg.ID">@sg.Name</option>
-                        }
-                    </select>
-                </div>
+            <div class="flex-grow-1">
+                <select id="personInchargeGroupIds" name="group" class="tomselect-custom" multiple>
+                    @foreach (var sg in chargeGroup)
+                    {
+                        <option value="@sg.ID">@sg.Name</option>
+                    }
+                </select>
             </div>
+        </div>
 
-            <div class="col-auto d-flex align-items-center" style="width: 250px;">
+        <div class="col-auto d-flex align-items-center" style="width: 250px;">
             <label for="personInchargeZoneIds" class="pe-3 fw-bold text-nowrap">Zone:</label>
-                <div class="flex-grow-1">
-                    <select id="personInchargeZoneIds" name="zone" class="tomselect-custom" multiple>
-                        @foreach (var i in chargeZone)
-                        {
-                            <option value="@i.ID">@i.Name</option>
-                        }
-                    </select>
-                </div>
+            <div class="flex-grow-1">
+                <select id="personInchargeZoneIds" name="zone" class="tomselect-custom" multiple>
+                    @foreach (var i in chargeZone)
+                    {
+                        <option value="@i.ID">@i.Name</option>
+                    }
+                </select>
             </div>
+        </div>
 
     </div>
 
@@ -103,7 +101,7 @@
 
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold">
-                                    Code 
+                                    Code
                                 </label>
                                 <input type="text" id="txtcode" name="txtcode"
                                        class="form-control form-control-sm" readonly>
@@ -147,7 +145,7 @@
                                 <div class="invalid-feedback"></div>
                             </div>
 
-                            <div class="col-md-6">   
+                            <div class="col-md-6">
                                 <label class="form-label fw-semibold">Person In Charge Zone</label>
                                 <span class="text-danger">*</span>
                                 <select id="personInChargeZoneId" name="personInChargeZoneId"
@@ -286,13 +284,17 @@
         let loginName = (localStorage.getItem("Loginname") || "")
             .trim()
             .replace(/^"(.*)"$/, '$1');
+
+        const group = getTomSelectData("#personInChargeGroupId");
+        const zone  = getTomSelectData("#personInChargeZoneId");
+
         const model = {
             ID: parseInt($("#id").val()) || 0,
             Code: $("#txtcode").val(),
             Name: $("#txtname").val(),
             Description: $("#txtdescription").val(),
-            PersonInChargeGroupID: parseInt($("#personInChargeGroupId").val()) || 0,
-            PersonInChargeZoneID: parseInt($("#personInChargeZoneId").val()) || 0,
+            PersonInChargeGroupID:parseInt( toBackendValue(group)) || 0,
+            PersonInChargeZoneID: parseInt(toBackendValue(zone)) || 0,
             Email: $("#txtEmail").val(),
             TelePhone: $("#txtTelePhone").val(),
             MobilePhone: $("#txtMobilePhone").val(),
@@ -377,22 +379,18 @@
 
     $(document).off("click", "#btnView").on("click", "#btnView", function () {
           $("#loadingSpinnerRateCode").show();
-          var groupIdSearch = $("#personInchargeGroupIds").val();
-          var zoneIdSearch = $("#personInchargeZoneIds").val();
-
-          var groupIdString = (groupIdSearch && groupIdSearch.length > 0) ? groupIdSearch.join(",") : "";
-          var zoneIdString = (zoneIdSearch && zoneIdSearch.length > 0) ? zoneIdSearch.join(",") : "";
+          const groups = getTomSelectData("#personInchargeGroupIds");
+          const zones  = getTomSelectData("#personInchargeZoneIds");
 
           $.ajax({
               url: "/Administration/GetPersonInCharge",
               type: "GET",
               cache: false,
               data: {
-
                   code: $("#codeInput").val() || "",
                   name: $("#nameInput").val() || "",
-                  group: groupIdString,
-                  zone:zoneIdString,
+                  group: groups ? toBackendValue(groups).join(",") : "",
+                  zone: zones ? toBackendValue(zones).join(",") : "",
                   isActive: $("#chkshowInactive").prop("checked") ? 1 : 0
               },
               crossDomain: false,
