@@ -7,7 +7,7 @@
 }
 
 <style>
-   
+
 </style>
 
 <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
@@ -33,12 +33,14 @@
                         <div class="container-fluid px-0">
                             <div class="row g-2 align-items-center">
 
-                            <div class="d-flex align-items-center">
-                                <div class="d-flex align-items-center me-3">
-                                    <label class="me-2 mb-0">From :</label>
-                                    <div data-date-input data-format="DD/MM/YYYY"  data-name="fromDate">
-                                        <input type="text" class="date-ui " placeholder="dd/mm/yyyy"
-                                            autocomplete="off" />
+                                <!-- From Date -->
+                                <div class="col-auto">
+                                    <label class="col-form-label mb-0">From :</label>
+                                </div>
+                                <div class="col-auto">
+                                    <div data-date-input data-format="DD/MM/YYYY" data-name="fromDate">
+                                        <input type="text" class="date-ui form-control form-control-sm"
+                                               placeholder="dd/mm/yyyy" autocomplete="off" />
                                     </div>
                                 </div>
 
@@ -120,7 +122,7 @@
 
                                 <div class="col-auto d-flex align-items-center gap-2">
                                     <input type="checkbox" id="includeOutOfOrder" name="includeOptions" value="1"
-                                        checked>
+                                           checked>
                                     <label class="form-check-label mb-0" for="includeOutOfOrder">
                                         Include Out of Order
                                     </label>
@@ -135,7 +137,7 @@
 
                                 <div class="col-auto d-flex align-items-center gap-2">
                                     <input type="checkbox" id="includeAllotment" name="includeOptions" value="1"
-                                        checked>
+                                           checked>
                                     <label class="form-check-label mb-0" for="includeAllotment">
                                         Include Allotment
                                     </label>
@@ -151,7 +153,7 @@
                     <div id="gridContainer" class="gridContainer mt-2"></div>
                 </div>
                 <div id="loadingSpinner"
-                    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+                     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
                     <i class="fa-solid fa-spinner fa-spin"></i>
                 </div>
             </div>
@@ -165,61 +167,86 @@
         let day = date.getDate().toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
         return `${year}-${month}-${day}`;
     }
-
     let parsedBusinessDate = null;
 
-    $(document).ready(function () {
-       initTomSelect(".tomselect-custom");
+    $(document).ready(async function () {
+  
+        initTomSelect(".tomselect-custom");
+           getBusinessDate();
+        $('#reportModal').modal('show');
 
-       $("#btnView").trigger("click");
 
-       $('#reportModal').modal('show');
-        
     });
+     function getBusinessDate() {
+        return $.ajax({
+            url: '/Reservation/GetBusinessDate',
+            type: 'get',
+            dataType: 'json',
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+
+                const fromDateStr = result.split('T')[0];
+
+                 UI.setHiddenDate("fromDate", fromDateStr);
+                $("#btnPrint").trigger("click");
+            },
+            error: function (xhr, statusText, err) {
+                if (xhr.status == 401) {
+                    sessionTimeout();
+                }
+            }
+        });
+    }
 
     $(document).on('click', '#btnCloseAva', function () {
         window.location.href = '/Home/Index';
     });
 
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-         let fromDate = $('#fromDate').val() || '';
-         const zone = $("#zone").val();
-         if (!zone || zone.length === 0) {
-             showToast('Error', "Please select a Zone before printing!", false);
-             return; // dừng không gọi AJAX
-         }
-         $("#loadingSpinner").show();
-         $.ajax({
-             url: '/HouseKeeping/RoomAvailabilityData',
-             type: 'GET',
-             data: {
-                 fromDate: fromDate,
-                 zone: $("#zone").val().join(","),
-                 restype: $("#restype").val().join(","),
 
-                 displayofday: $("#displayofday").val(),
-                 showNonDeduct: $("#showNonDeduct").val(),
-                 showOcc3: $("#showOcc3").val(),
-                 showRoomNight: $("#showRoomNight").val(),
-                 includeOutOfOrder: $("#includeOutOfOrder").val(),
-                 includeOverbooking: $("#includeOverbooking").val(),
-                 includeAllotment: $("#includeAllotment").val(),
-             },
-             traditional: true,
-             crossDomain: false,
-             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-             success: function (result) {
-                 // $("#reportViewerContainer").html(result);
-                 // $("#loadingSpinner").hide();
-                 console.log(result);
-                 initializeReservationSummaryGrid(result.data, result.fromDate, result.toDate);
-                 $("#loadingSpinner").hide();
-             },
-             error: function () {
-                 alert("Không th? t?i báo cáo.");
-                 $("#loadingSpinner").hide();
-             }
-         })
+
+
+
+    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+
+        const fromDate = $("#fromDate").val() ;
+        const zone = $("#zone").val();
+        if (!zone || zone.length === 0) {
+            showToast('Error', "Please select a Zone before printing!", false);
+            return; // dừng không gọi AJAX
+        }
+        $("#loadingSpinner").show();
+        $.ajax({
+            url: '/HouseKeeping/RoomAvailabilityData',
+            type: 'GET',
+            data: {
+                fromDate: fromDate,
+                zone: $("#zone").val().join(","),
+                restype: $("#restype").val().join(","),
+
+                displayofday: $("#displayofday").val(),
+                showNonDeduct: $("#showNonDeduct").val(),
+                showOcc3: $("#showOcc3").val(),
+                showRoomNight: $("#showRoomNight").val(),
+                includeOutOfOrder: $("#includeOutOfOrder").val(),
+                includeOverbooking: $("#includeOverbooking").val(),
+                includeAllotment: $("#includeAllotment").val(),
+            },
+            traditional: true,
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+                // $("#reportViewerContainer").html(result);
+                // $("#loadingSpinner").hide();
+                console.log(result);
+                initializeReservationSummaryGrid(result.data, result.fromDate, result.toDate);
+                $("#loadingSpinner").hide();
+            },
+            error: function () {
+                alert("Không th? t?i báo cáo.");
+                $("#loadingSpinner").hide();
+            }
+        })
     });
 
     function generateDateColumns(fromDate, toDate) {
@@ -298,6 +325,11 @@
         return columns;
     }
 
+
+
+
+
+
     function getWeekNumber(date) {
         const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
         const dayNum = d.getUTCDay() || 7;
@@ -305,6 +337,8 @@
         const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
         return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     }
+
+
 
     function initializeReservationSummaryGrid(data, fromDate, toDate) {
         const columnWidth = 120;
@@ -382,6 +416,9 @@
         });
     }
 
+
+
+
     $("#btnExportExcel").click(function () {
         const grid = $("#gridContainer").dxDataGrid("instance");
         const selectedReport = "RoomAvailability";
@@ -435,6 +472,8 @@
             });
         });
     });
+
+
 
     // Nút xu?t PDF
     $("#btnExportPdf").click(function () {
