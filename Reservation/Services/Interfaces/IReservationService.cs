@@ -6,6 +6,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Reservation.Dto.ReservationPackageDTO;
 
 namespace Reservation.Services.Interfaces
 {
@@ -119,6 +120,14 @@ namespace Reservation.Services.Interfaces
         /// <returns>datatable list room auto assign</returns>
         DataTable ReservationAutoRoomAssignment(int type, string roomType, string roomClass, string smoking, string floor,
             string startFromRoom, DateTime arrivalDate, DateTime departureDate, string hkStatusID, string confirmationNo, string rsvRoomTypeID, string notAssRoomNo);
-        DataTable SearchReservationPackages(int reservationID);
+        DataTable SearchReservationPackages(
+            int reservationID,
+            int packageID,
+            int type,
+            DateTime beginDate,
+            DateTime endDate,
+            int rateCodeID);
+
+        List<ReservationPackageSummary> GetReservationPackagePhase2(int reservationId, int packageId, DateTime beginDate, DateTime endDate, int rateCodeId);
     }
 }
