@@ -1,5 +1,10 @@
 ﻿window.ValidationAdapter = (function () {
 
+    function findFieldContainer($el) {
+        return $el.closest(
+            ".form-group, .form-floating, .input-group, .col, [class^='col-']"
+        );
+    }
     function apply(errors, formSelector) {
         clear(formSelector);
 
@@ -20,7 +25,13 @@
 
     function markInputInvalid($el, message) {
         $el.addClass("is-invalid");
-        $el.next(".invalid-feedback").text(message).show();
+
+        const $container = findFieldContainer($el);
+        const $feedback = $container.find(".invalid-feedback").first();
+
+        if ($feedback.length === 0) return;
+
+        $feedback.text(message).show();
     }
 
     function markTomSelectInvalid($el, message) {
@@ -30,12 +41,9 @@
         const $wrapper = $(ts.wrapper);
         $wrapper.addClass("is-invalid");
 
-        // Tìm container gần nhất (col / form-group)
-        const $container = $wrapper.closest(
-            ".col-md-6, .col-sm-9, .col-md-4, .col-md-2, .col-12, .form-group"
-        );
+        const $container = findFieldContainer($wrapper);
 
-        let $feedback = $container.find(".invalid-feedback").first();
+        const $feedback = $container.find(".invalid-feedback").first();
 
         if ($feedback.length === 0) {
             console.warn("No invalid-feedback found for TomSelect:", $el.attr("name"));
@@ -45,25 +53,24 @@
         $feedback.text(message).show();
     }
 
-
     function clearField(fieldEl) {
         const $el = $(fieldEl);
 
-        // TomSelect
         if (fieldEl.tomselect) {
             const $wrapper = $(fieldEl.tomselect.wrapper);
             $wrapper.removeClass("is-invalid");
 
-            $wrapper
-                .closest(".col-md-6, .col-md-4, .col-12")
+            findFieldContainer($wrapper)
                 .find(".invalid-feedback")
                 .hide()
                 .text("");
-        }
-        // Normal input
-        else {
+        } else {
             $el.removeClass("is-invalid");
-            $el.next(".invalid-feedback").hide().text("");
+
+            findFieldContainer($el)
+                .find(".invalid-feedback")
+                .hide()
+                .text("");
         }
     }
 
