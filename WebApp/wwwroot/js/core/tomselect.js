@@ -87,11 +87,19 @@
 
                 };
 
-                new TomSelect(el, tsOptions);
+                const ts = new TomSelect(el, tsOptions);
+
+                ts.on('clear', function () {
+                    this.close();
+                    this.control_input.blur();
+                });
+
+
              
             });
         }); 
-    }
+}
+
     /* ================= GET VALUE ================= */
     /*  Usage:
         const owners = getTomSelectValue("#ownerCode");
