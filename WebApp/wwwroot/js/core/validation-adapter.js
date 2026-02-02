@@ -32,7 +32,7 @@
 
         // Tìm container gần nhất (col / form-group)
         const $container = $wrapper.closest(
-            ".col-md-6, .col-md-4, .col-md-2, .col-12, .form-group"
+            ".col-md-6, .col-sm-9, .col-md-4, .col-md-2, .col-12, .form-group"
         );
 
         let $feedback = $container.find(".invalid-feedback").first();
