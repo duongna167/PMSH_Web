@@ -1,0 +1,508 @@
+﻿@using DevExpress.XtraReports.UI
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewBag.Title = ViewBag.ReportHeader;
+    var zoneList = ViewBag.ZoneList;
+    var roomtypeList = ViewBag.RoomTypeList;
+    var roomList = ViewBag.RoomList;
+}
+@* <link asp-append-version="true" href="~/css/reservation.css" rel="stylesheet" /> *@
+
+<style>
+
+
+</style>
+<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+<div class="text-center" id="reportTitle" style="font-size: 20px">Posting Minibar</div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+
+
+    <div class="">
+        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+
+        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">  Excel</button>
+        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">
+            PDF
+        </button>
+        <button id="btnUpdateMinibar" class="mui-button mui-button-new" type="button">  Update</button>
+
+
+
+    </div>
+  
+
+</div>
+<div class="modal fade" id="popupChooseFolio" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-md">
+        <div class="modal-content">
+
+            <!-- HEADER -->
+            <div class="modal-header py-2">
+                <h6 class="modal-title" id="attendantPointTitle">Edit</h6>
+            </div>
+
+            <!-- BODY -->
+            <div class="modal-body p-3"  >
+                <!-- BUTTON -->
+                <div class="d-flex justify-content-start mb-3 gap-2  pt-2">
+                    <button id="btnContinue"
+                            class="mui-button mui-button-search">
+                        Continue
+                    </button>
+
+                    <button type="button"
+                            id="btnClosePopup"
+                            class="mui-button mui-button-new">
+                        Close
+                    </button>
+                </div>
+         
+                <!-- GRID -->
+                <div id="logGridContainer"  class="gridContainer mt-2">
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="popupChooseArticle" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <!-- HEADER -->
+            <div class="modal-header py-2">
+                <h6 class="modal-title" id="attendantPointTitle">Minibar</h6>
+            </div>
+
+            <!-- BODY -->
+            <div class="modal-body p-3"  >
+                <!-- BUTTON -->
+                <div class="d-flex justify-content-start mb-3 gap-2  pt-2">
+                    <button id="btnSave"
+                            class="mui-button mui-button-search">
+                        Save
+                    </button>
+
+                    <button type="button"
+                            id="btnClosePopup"
+                            class="mui-button mui-button-new">
+                        Close
+                    </button>
+                </div>
+         
+                <!-- GRID -->
+                <div id="logGridArticleContainer" class="gridContainer mt-2">
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mui-card">
+    @*     <div style="font-size: 20px;" class="mt-1" id="reportTitle"></div> *@
+    <div id="gridContainer" class="gridContainer mt-2"></div>
+</div>
+<div id="loadingSpinner"
+     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+</div>
+<script>
+
+
+
+    $(document).ready(function () {
+
+
+        $("#btnPrint").trigger("click");
+
+
+
+    });
+
+
+
+    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+
+        $.ajax({
+            url: '/HouseKeeping/HKPStatusData',
+            type: 'GET',
+            crossDomain: false,
+            headers: {
+                "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
+            },
+            success: function (result) {
+                console.log(result);
+                initializeRoomStatusGrid(result);
+                $("#loadingSpinner").hide();
+            },
+            error: function () {
+                alert("Không thể tải báo cáo.");
+                $("#loadingSpinner").hide();
+            }
+        });
+    });
+
+    let selectedRoom = null;
+    let selectedFolio = null;
+    let selectedArticle = null;
+    function initializeRoomStatusGrid(data) {
+
+        $("#gridContainer").dxDataGrid({
+            dataSource: data,
+            keyExpr: "id",
+            allowColumnResizing: true,
+            height: 500,
+            columnAutoWidth: false,
+
+            columns: [
+                { dataField: "id", caption: "ID", visible: false },
+                { dataField: "roomNo", caption: "Room No", width: "10%" },
+                { dataField: "roomTypeCode", caption: "Room Type", width: "10%" },
+                { dataField: "roomName", caption: "Room Name", width: "20%" },
+                { dataField: "roomStatus", caption: "Room Status", width: "15%" },
+                { dataField: "floor", caption: "Floor", width: "8%", dataType: "number", format: "#,##0" },
+                { dataField: "createdDate", caption: "Create Date", width: "8%", dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "updatedDate", caption: "Update Date", width: "9%", dataType: "date", format: "dd/MM/yyyy" }
+            ],
+
+            /* 🔴 CHỈ CHỌN 1 HÀNG */
+            selection: {
+                mode: "single"
+            },
+
+            paging: { pageSize: 25 },
+            scrolling: {
+                useNative: true,
+                showScrollbar: "always"
+            },
+
+            pager: {
+                visible: true,
+                allowedPageSizes: [25, 50, 'all'],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            },
+
+            filterRow: { visible: true, applyFilter: "auto" },
+            headerFilter: { visible: true },
+            showBorders: true,
+
+            /* 🔴 LẤY GIÁ TRỊ HÀNG ĐƯỢC CHỌN */
+            onSelectionChanged: function (e) {
+                selectedRoom = e.selectedRowsData[0] || null;
+
+                if (selectedRoom) {
+                    console.log("Selected Room:", selectedRoom);
+                    console.log("Room ID:", selectedRoom.id);
+                    console.log("Room No:", selectedRoom.roomNo);
+                }
+            },
+
+            onRowPrepared: function (e) {
+                if (e.rowType === "data" && e.data?.isTotal) {
+                    e.rowElement.css({
+                        "font-weight": "bold",
+                        "background-color": "#f6f6f6"
+                    });
+                }
+            }
+        });
+    }
+
+    $("#btnUpdateMinibar").on("click", function () {
+        if (!selectedRoom) {
+             showToast('Warning', "Please select a row first", false);
+     
+            return;
+        }       
+        loadMinibarByRoomId(selectedRoom.id);
+
+    });
+
+     $("#btnContinue").on("click", function () {
+ 
+        loadMinibarByArticle();
+
+    });
+
+
+     function loadMinibarByRoomId(roomId) {
+
+        $("#loadingSpinner").show();
+
+        $.ajax({
+            url: '/HouseKeeping/GetFolioMiniBar',
+            type: 'GET', 
+            data: {
+                roomId: roomId
+            },
+            headers: {
+                "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
+            },
+            success: function (result) {
+   
+                initializeGetFolioGrid(result);
+
+                $('#popupChooseFolio').modal('show');
+            },
+            error: function () {
+                alert("Không thể tải dữ liệu minibar.");
+            },
+            complete: function () {
+                $("#loadingSpinner").hide();
+            }
+        });
+    }
+
+     function initializeGetFolioGrid(data) {
+
+        $("#logGridContainer").dxDataGrid({
+            dataSource: data,
+            keyExpr: "id",
+            allowColumnResizing: true,
+            height: 500,
+            columnAutoWidth: false,
+
+            columns: [
+                { dataField: "id", caption: "ID", visible: false },
+                { dataField: "folioDate", caption: "Folio Date", width: "20%" , dataType: "date", format: "dd/MM/yyyy"},
+                { dataField: "folioNo", caption: "Folio No", width: "30%" },
+                { dataField: "accountName", caption: "Account Name", width: "50%" }
+            ],
+
+            /* 🔴 CHỈ CHỌN 1 HÀNG */
+            selection: {
+                mode: "single"
+            },
+
+            paging: { pageSize: 25 },
+            scrolling: {
+                useNative: true,
+                showScrollbar: "always"
+            },
+
+            pager: {
+                visible: true,
+                allowedPageSizes: [25, 50, 'all'],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            },
+
+            filterRow: { visible: true, applyFilter: "auto" },
+            headerFilter: { visible: true },
+            showBorders: true,
+
+            /* 🔴 LẤY GIÁ TRỊ HÀNG ĐƯỢC CHỌN */
+            onSelectionChanged: function (e) {
+                selectedFolio = e.selectedRowsData[0] || null;
+
+                if (selectedFolio) {
+                    console.log("selectedFolio:", selectedRoom);
+                
+                }
+            },
+
+            onRowPrepared: function (e) {
+                if (e.rowType === "data" && e.data?.isTotal) {
+                    e.rowElement.css({
+                        "font-weight": "bold",
+                        "background-color": "#f6f6f6"
+                    });
+                }
+            }
+        });
+    }
+     $("#btnContinue").on("click", function () {
+
+        loadMinibarByArticle();
+
+    });
+     function loadMinibarByArticle() {
+
+        $("#loadingSpinner").show();
+
+        $.ajax({
+            url: '/HouseKeeping/GetMinibarByArticle',
+            type: 'GET',
+            data: {
+              
+            },
+            headers: {
+                "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
+            },
+            success: function (result) {
+
+                initializeGetMinibarByArticleGrid(result);
+
+                $('#popupChooseArticle').modal('show');
+            },
+            error: function () {
+                alert("Không thể tải dữ liệu minibar.");
+            },
+            complete: function () {
+                $("#loadingSpinner").hide();
+            }
+        });
+    }
+        function initializeGetMinibarByArticleGrid(data) {
+
+        data.forEach(item => {
+            if (item.quantity === undefined || item.quantity === null) {
+                item.quantity = 1;
+            }
+        });
+
+        $("#logGridArticleContainer").dxDataGrid({
+            dataSource: data,
+            keyExpr: "id",
+            height: 500,
+            allowColumnResizing: true,
+            columnAutoWidth: false,
+
+            /* 🔴 BẬT EDITING */
+            editing: {
+                mode: "cell",
+                allowUpdating: true,
+                useIcons: true
+            },
+
+            columns: [
+                { dataField: "id", caption: "ID", visible: false },
+
+                { dataField: "code", caption: "Code", width: "20%" },
+
+                { dataField: "description", caption: "Description", width: "30%" },
+
+                { dataField: "transactionCode", caption: "Transaction Code", width: "30%" },
+
+                { dataField: "defaultPrice", caption: "Price", width: "20%" },
+
+                {
+                    dataField: "quantity",
+                    caption: "Quantity",
+                    width: "10%",
+                    dataType: "number",
+                    allowEditing: true,
+                    editorOptions: {
+                        min: 1,
+                        showSpinButtons: true
+                    }
+                }
+            ],
+
+            selection: {
+                mode: "single"
+            },
+
+            paging: { pageSize: 25 },
+
+            pager: {
+                visible: true,
+                allowedPageSizes: [25, 50, "all"],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            },
+
+            filterRow: { visible: true, applyFilter: "auto" },
+            headerFilter: { visible: true },
+            showBorders: true,
+            onSelectionChanged: function (e) {
+                selectedArticle = e.selectedRowsData[0] || null;
+                if (selectedArticle) {
+                    console.log("selectedArticle:", selectedArticle);
+                }
+            }
+        });
+    }
+
+    $('#btnClosePopup, #overlay').click(function () {
+      $('#popupChooseFolio').modal('hide');
+
+    });
+    $("#btnExportExcel").click(function () {
+        const grid = $("#gridContainer").dxDataGrid("instance"); var selectedReport2 = '@ViewBag.ReportTitle';
+        var selectedReport = '@ViewBag.ReportTitle';
+        if (!selectedReport) {
+            alert("Vui lòng ch?n báo cáo tru?c khi xu?t Excel.");
+            return;
+        }
+
+        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+        const worksheet = workbook.addWorksheet("Sheet 1");
+
+        // === T?o header công ty (dòng 1) ===
+        worksheet.addRow(['Công ty C? ph?n Gi?i pháp Công ngh? CS-Solution']);
+        worksheet.mergeCells('A1:E1');
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+        // === Dòng 2: Th?i gian xu?t (ph?i) ===
+        const now = new Date();
+        const exportDate = now.toLocaleString("vi-VN");
+        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
+        worksheet.mergeCells('E2:H2');
+        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
+
+        // === Dòng 3–4: Tr?ng
+        worksheet.addRow([]);
+        worksheet.addRow([]);
+
+        // === Dòng 5: Tên báo cáo ? gi?a ===
+        const reportRow = worksheet.addRow(['', '', selectedReport]);
+        worksheet.mergeCells('C5:F5');
+        reportRow.font = { bold: true, size: 14 };
+        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
+        worksheet.addRow([]);
+
+        // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
+        DevExpress.excelExporter.exportDataGrid({
+            component: grid,
+            worksheet: worksheet,
+            autoFilterEnabled: true,
+            topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
+        }).then(function () {
+            // Footer
+            const lastRow = worksheet.lastRow.number + 2;
+            worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
+            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
+            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+            worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+            // Ghi file
+            let fileName = selectedReport + ".xlsx";
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+            });
+        });
+    });
+
+
+
+    // Nút xu?t PDF
+    $("#btnExportPdf").click(function () {
+        const { jsPDF } = window.jspdf; // ?? B? sung dòng này
+
+        const doc = new jsPDF();
+
+        DevExpress.pdfExporter.exportDataGrid({
+            jsPDFDocument: doc,
+            component: $("#gridContainer").dxDataGrid("instance"),
+            autoTableOptions: {
+                styles: { cellPadding: 2, fontSize: 8 },
+                margin: { top: 20 }
+            }
+        }).then(() => {
+            doc.save("BaoCao.pdf");
+        });
+    });
+</script>
