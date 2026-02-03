@@ -1897,7 +1897,7 @@ namespace HouseKeeping.Controllers
             ViewBag.BusinessDate = businessDateModel[0].BusinessDate;
             List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
             ViewBag.ZoneList = listzo;
-            return View();
+            return PartialView();
         }
 
         [HttpGet]
@@ -1922,7 +1922,7 @@ namespace HouseKeeping.Controllers
                                   hkstatusID = d["HKStatusID"]?.ToString() ?? "",
                                   fostatus = d["FOStatus"]?.ToString() ?? "",
                                   Attendant = d["Attendant"]?.ToString() ?? "",
-                                  TaskDate = d["TaskDate"]?.ToString() ?? "",
+                                  TaskDate = d["TaskDate"] != DBNull.Value ? Convert.ToDateTime(d["TaskDate"]) : (DateTime?)null,
                                   TimeIn = d["TimeIn"]?.ToString() ?? "",
                                   TimeOut = d["TimeOut"]?.ToString() ?? "",
                                   TasksheetID = d["TasksheetID"]?.ToString() ?? "",
@@ -4504,7 +4504,7 @@ namespace HouseKeeping.Controllers
             return View();
         }
         [HttpGet]
-        public IActionResult RoomAssignmentData(DateTime arrival, string groupProfile,string vipcode,string name,string reservationTypeCode,string crsno,string roomTypeCode,string roomNo,string confirmationNo)
+        public IActionResult RoomAssignmentData(DateTime arrival, string groupProfile, string vipcode, string name, string reservationTypeCode, string crsno, string roomTypeCode, string roomNo, string confirmationNo)
         {
             try
             {

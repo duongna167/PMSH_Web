@@ -33,7 +33,7 @@ async function businessDateGlobal() {
 
 window.businessDateReady = (async () => {
   await businessDateGlobal();
-    await initDateInputs();
+  await initDateInputs();
 })();
 
 function formatDate(date, format = "DD/MM/YYYY") {
@@ -170,7 +170,6 @@ function findFeedback($el) {
 // Focus đúng element (kể cả TomSelect)
 function focusElement($el) {
   $el.focus();
-
 }
 
 //Init Input Date
@@ -210,6 +209,7 @@ function focusElement($el) {
         .appendTo(this.$root);
 
       this.initCalendar();
+      this.setupResponsive(); //
 
       // LOGIC TỰ ĐỘNG CHÈN NGÀY
       if (this.isBusinessDate) {
@@ -262,6 +262,52 @@ function focusElement($el) {
 
       // Chống đóng lịch khi click vào input (nổi bọt)
       this.$ui.on("click", (e) => e.stopPropagation());
+    }
+
+    setupResponsive() {
+      const self = this;
+      const ro = new ResizeObserver((entries) => {
+        for (let entry of entries) {
+          const width = entry.contentRect.width;
+
+          // Xác định các ngưỡng kích thước
+          const isSmall = width < 120;
+          const extraSmall = width < 100;
+
+          // 1. Cập nhật class để CSS điều khiển ẩn/hiện Icon
+          self.$root.toggleClass("is-compact", isSmall);
+          self.$root.toggleClass("is-extra-small", extraSmall);
+
+          // 2. Logic thay đổi Format Datepicker (Dựa trên ngưỡng 120px)
+          const targetFormat = isSmall ? "dd/mm/yy" : self.format;
+
+          // Lấy format hiện tại của plugin để so sánh
+          const currentPlugin = self.$ui.data("datepicker");
+          if (currentPlugin && currentPlugin.options.format !== targetFormat) {
+            self.$ui.datepicker("destroy");
+            self.$ui.datepicker({
+              autoHide: true,
+              format: targetFormat,
+              zIndex: 2048,
+              pick: function (e) {
+                const date = e.date;
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, "0");
+                const d = String(date.getDate()).padStart(2, "0");
+                self.$hidden.val(`${y}-${m}-${d}`);
+              },
+            });
+
+            // Đổ lại ngày để hiển thị đúng format mới
+            const currentVal = self.$hidden.val();
+            if (currentVal) {
+              self.setISO(currentVal);
+            }
+          }
+        }
+      });
+
+      ro.observe(this.$root[0]);
     }
 
     async loadAndSetBusinessDate() {

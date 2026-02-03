@@ -6,99 +6,111 @@
     var zoneList = ViewBag.ZoneList;
 }
 
-
-<style>
-   
-</style>
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="mb-2">
-        <button id="btnPrint" class="mui-button mui-button-new">View</button>
-        <button id="btnReport" class="mui-button mui-button-new" type="button">
-            Report
-        </button>
-
-        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">  Excel</button>
-
-    </div>
-    <div class="filter-panel mb-1">
-        <div class="row g-2 align-items-center">
-
-            <!-- From Date -->
-            <div class="col-md-2">
-                <div class="row align-items-center">
-                    <label class="col-4 mb-0 text-nowrap" for="fromDate">From Date:</label>
-                    <div class="col-8">
-                        <input type="date" id="fromDate" name="fromDate"
-                               class="form-control form-control-sm">
+<div class="modal fade" id="tss_modal" tabindex="-1" aria-labelledby="tss_modalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tss_modalLabel">Task Sheet Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="search-filter" id="tss_filterForm">
+                    <div>
+                        <button id="tss_btnView" class="mui-button mui-button-new"
+                            onclick="tss_Module.search()">View</button>
+                        <button id="tss_btnRefesh" class="mui-button mui-button-new"
+                            onclick="tss_Module.refresh()">Refesh</button>
+                        <button id="tss_Report" class="mui-button mui-button-new" type="button">Report</button>
+                        <button id="tss_btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+                        <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                     </div>
+                    <div class="mt-1">
+                        <div class="row g-2 mt-1 align-items-center">
+                            <div class="col-12 col-sm-6 col-md-3 col-lg-2 col-xl-2">
+                                <div class="row g-1 align-items-center">
+                                    <label class="col-4 text-md-end mb-0 text-nowrap">From</label>
+                                    <div class="col-8">
+                                        <div class="clearable" data-date-input data-format="DD/MM/YYYY" business-date
+                                            data-name="tss_fromDate">
+                                            <input type="text" id="tss_display_fromDate"
+                                                class="date-ui form-control form-control-sm clearable"
+                                                placeholder="dd/mm/yyyy" autocomplete="off" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-3 col-lg-2 col-xl-2">
+                                <div class="row g-1 align-items-center">
+                                    <label class="col-4 text-md-end mb-0 text-nowrap">To</label>
+                                    <div class="col-8">
+                                        <div class="clearable" data-date-input data-format="DD/MM/YYYY" business-date
+                                            data-name="tss_toDate">
+                                            <input type="text" id="tss_display_toDate"
+                                                class="date-ui form-control form-control-sm clearable"
+                                                placeholder="dd/mm/yyyy" autocomplete="off" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-12 col-md-6 col-lg-3 col-xl-3">
+                                <div class="row g-1 align-items-center">
+                                    <label class="col-4 text-md-end mb-0 text-nowrap">Attendant</label>
+                                    <div class="col-8">
+                                        <select id="tss_attendant" name="tss_attendant" class="tomselect-custom"
+                                            multiple>
+                                            @foreach (var item in listatt)
+                                            {
+                                                <option value="@item.ID">@item.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-3 col-lg-2 col-xl-2">
+                                <div class="row g-1 align-items-center">
+                                    <label class="col-4 text-md-end mb-0 text-nowrap">Room</label>
+                                    <div class="col-8">
+                                        <input type="text" id="tss_room" name="tss_room"
+                                            class="form-control form-control-sm" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3">
+                                <div class="row g-1 align-items-center">
+                                    <label class="col-4 text-md-end mb-0 text-nowrap">Zone</label>
+                                    <div class="col-8">
+                                        <select id="tss_zone" name="tss_zone" class="tomselect-custom" multiple>
+                                            @foreach (var item in zoneList)
+                                            {
+                                                <option value="@item.Code">@item.Code</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mui-card">
+                    <div id="tss_gridContainer" class="gridContainer mt-2"></div>
+                </div>
+
+                <div id="tss_loadingSpinner"
+                    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+                    <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
                 </div>
             </div>
-
-            <!-- To Date -->
-            <div class="col-md-2">
-                <div class="row align-items-center">
-                    <label class="col-4 mb-0 text-nowrap" for="toDate">To Date:</label>
-                    <div class="col-8">
-                        <input type="date" id="toDate" name="toDate"
-                               class="form-control form-control-sm">
-                    </div>
-                </div>
-            </div> 
-
-            <!-- Attendant -->
-            <div class="col-md-2">
-                <div class="row align-items-center">
-                    <label class="col-4 mb-0 text-nowrap" for="attendant">Attendant ID:</label>
-                    <div class="col-8">
-                        <select id="attendant" name="attendant"
-                                class="tomselect-custom" multiple>
-                            @foreach (var item in listatt)
-                            {
-                                <option value="@item.ID">@item.Name</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Room -->
-            <div class="col-md-2">
-                <div class="row align-items-center">
-                    <label class="col-3 mb-0 text-nowrap" for="room">Room:</label>
-                    <div class="col-9">
-                        <input type="text" id="room" name="room"
-                               class="form-control form-control-sm">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Zone -->
-            <div class="col-md-2">
-                <div class="row align-items-center">
-                    <label class="col-4 mb-0 text-nowrap" for="zone">Zone:</label>
-                    <div class="col-8">
-                        <select id="zone" name="zone"
-                                class="tomselect-custom" multiple>
-                            @foreach (var item in zoneList)
-                            {
-                                <option value="@item.Code">@item.Code</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
-
-
-
 </div>
 
-<div class="modal fade" id="popupNewGrid" tabindex="-1" aria-hidden="true">
+
+<div class="modal fade" id="tss_report" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
 
         <div class="modal-content">
@@ -106,7 +118,7 @@
             <!-- Modal Header -->
             <div class="modal-header">
                 <h5 class="modal-title" id="attendantPointTitle">Report</h5>
-              
+
             </div>
 
             <!-- Modal Body -->
@@ -114,16 +126,11 @@
 
                 <!-- Action buttons -->
                 <div class="d-flex justify-content-start mb-3 gap-2">
-                    <button id="btnExportpopExcel"
-                            class="mui-button mui-button-new"
-                            type="button">
+                    <button id="tss_btnExportpopExcel" class="mui-button mui-button-new" type="button">
                         Excel
                     </button>
 
-                    <button 
-                            id="btnClosePopup"
-                            class="mui-button mui-button-new"
-                            data-bs-dismiss="modal">
+                    <button id="tss_closeReport" class="mui-button mui-button-new" data-bs-dismiss="modal">
                         Close
                     </button>
                 </div>
@@ -139,405 +146,178 @@
 </div>
 
 
-<div class="mui-card">
-    <div id="gridContainer" class="gridContainer mt-2"></div>
-</div>
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
-</div>
+
 <script>
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        let day = date.getDate().toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        return `${year}-${month}-${day}`;
-    }
+    var tss_Module = {
+        gridInstance: null,
 
-    let parsedBusinessDate = null;
-    $(document).ready(function () {
+        init: function () {
+            this.search(); // Khởi tạo bảng trống trước
+            initTomSelect('.tomselect-custom');
+            this.bindEvents();
+        },
 
-        getBusinessDate();
+        getFilters: function () {
+            return {
+                fromDate: $("#tss_fromDate").val() || dateSystem,
+                toDate: $("#tss_toDate").val() || dateSystem,
+                attendant: $("#tss_attendant").val(),
+                room: $("#tss_room").val(),
+                zone: $("#tss_zone").val(),
+            };
+        },
 
-        // Gán vào input type="date"
+        refresh: function () {
+            $("#tss_attendant").val("");
+            $("#tss_zone").val("");
+            $("#tss_room").val("");
+            reloadBusinessDate();
+            // Gọi lại hàm khởi tạo ngày của DateInput nếu cần
+            this.search();
+        },
 
-        initializeTomSelects();
-        initializeTomSelectszone();
+        search: function () {
+            const filters = this.getFilters();
+            const self = this; // Gán self để dùng bên trong AJAX
 
+            $("#loadingSpinner").show();
 
-    });
-     function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
+            $.ajax({
+                url: '/HouseKeeping/TaskSheetStatusData',
+                type: 'GET',
+                data: filters, // Truyền trực tiếp filters, không cần bọc { filters } nếu backend nhận trực tiếp
+                traditional: true,
+                success: function (result) {
+                    // SỬA LỖI Ở ĐÂY: Dùng self thay vì this
+                    self.initializeTaskSheetStatusGrid(result);
 
-                 const fromDateStr = result.split('T')[0];
-
-
-                $('#fromDate').val(fromDateStr);
-                $('#toDate').val(fromDateStr);
-                $('#fromDatenew').val(fromDateStr);
-                        $("#btnPrint").trigger("click");
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-            }
-        });
-    }
-    $("#btnReport").on("click", function () {
-
-
-        $('#popupNewGrid').modal("show");
-    });
-    $('#btnClosePopup').click(function () {
-        $('#popupNewGrid').modal("hide");
- 
-
-    });
-    function initializeTomSelectszone() {
-        const selectors = ["#zone"];
-
-        for (const id of selectors) {
-            const el = document.querySelector(id);
-            if (!el) continue;
-
-            // Nếu đã khởi tạo rồi thì destroy
-            if (el.tomselect) el.tomselect.destroy();
-
-            const ts = new TomSelect(el, {
-                plugins: ['remove_button'],
-                create: false,
-                maxItems: null,
-                allowEmptyOption: true,
-                placeholder: '',
-                persist: false,
-                render: {
-                    option: function (data, escape) {
-                       
-
-                        return `<div>${escape(data.text)}</div>`;
+                    // Kiểm tra nếu có container cho PopGrid thì mới init
+                    if ($("#logGridContainer").length > 0) {
+                        self.initializeTaskSheetStatusPopGrid(result);
                     }
-                }
-            });
 
-        }
-    }
-    function initializeTomSelects() {
-        const selectors = ["#attendant"];
-
-        for (const id of selectors) {
-            const el = document.querySelector(id);
-            if (!el) continue;
-
-            if (el.tomselect) el.tomselect.destroy();
-
-            const ts = new TomSelect(el, {
-                plugins: ['remove_button'],
-                create: false,
-                maxItems: null,
-                allowEmptyOption: true,
-                placeholder: '',
-                persist: false,
-                render: {
-                    option: function (data, escape) {
-                       
-                        return `<div>${escape(data.text)}</div>`;
-                    }
-                }
-            });
-
-        }
-    }
-
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/HouseKeeping/TaskSheetStatusData',
-            type: 'GET',
-            data: {
-                fromDate: $("#fromDate").val(),
-                toDate: $("#toDate").val(),
-                attendant: $("#attendant").val().join(","),
-                room: $("#room").val(),
-                zone: $("#zone").val().join(",")
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                console.log(result);
-                initializeTaskSheetStatusGrid(result);
-                initializeTaskSheetStatusPopGrid(result);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-
-    function initializeTaskSheetStatusPopGrid(data) {
-        const columnWidth = 120;
-
-        $("#logGridContainer").dxDataGrid({
-            dataSource: data,
-            allowColumnResizing: true,
-            columnAutoWidth: true,
-            height :500,
-            width: "100%",
-            columns: [
-                { dataField: "colIndex", caption: "No", width: columnWidth - 70 },
-                { dataField: "roomNo", caption: "RoomNo", width: columnWidth},
-                { dataField: "roomType", caption: "RoomType", width: columnWidth },
-                { dataField: "hkstatusID", caption: "Room Status", width: columnWidth },
-                { dataField: "fostatus", caption: "FOStatus", width: columnWidth },
-                { dataField: "attendant", caption: "Attendant", width: columnWidth },
-                { dataField: "taskDate", caption: "Task Date", width: columnWidth, dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "timeIn", caption: "TimeIn", width: columnWidth+20  },
-                { dataField: "timeOut", caption: "Time Out", width: columnWidth +20 },
-                { dataField: "complete", caption: "Status", width: columnWidth +20}
-            ],
-
-
-            paging: { pageSize: 25 },
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
-            selection: { mode: "multiple", showCheckBoxesMode: "none" },
-            showBorders: true,
-
-            onRowClick: function (e) {
-                selectedRowData = e.data; // lưu dòng được chọn
-            },
-
-            onRowPrepared: function (e) {
-                if (e.rowType === "data") {
-                    if (e.data?.isTotal) {
-                        e.rowElement.css({
-                            "font-weight": "bold",
-                            "background-color": "#f6f6f6"
-                        });
-                    }
-                }
-            }
-        });
-    }
-
-    function initializeTaskSheetStatusGrid(data) {
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            allowColumnResizing: true,
-            columnAutoWidth: true,
-            columnResizingMode: "widget",   
-            height:600,
-            width: "100%",
-            columns: [
-                {
-                    dataField: "colIndex",
-                    caption: "No"
+                    $("#loadingSpinner").hide();
                 },
-                { dataField: "roomNo", caption: "RoomNo"},
-                { dataField: "roomType", caption: "RoomType" },
-                { dataField: "hkstatusID", caption: "Room Status"},
-                { dataField: "fostatus", caption: "FOStatus" },
-                {
-                    dataField: "attendant",
-                    caption: "Attendant"
-                },
-                {
-                    dataField: "taskDate",
-                    caption: "Task Date",
-                    dataType: "date", format: "dd/MM/yyyy"
-                },
-                { dataField: "timeIn", caption: "Time In"},
-                { dataField: "timeOut", caption: "Time Out"},
-                { dataField: "complete", caption: "Status"}
-            ],
+                error: function (xhr) {
+                    console.error(xhr);
+                    alert("Không thể tải báo cáo.");
+                    $("#loadingSpinner").hide();
+                }
+            });
+        },
 
-            grouping: {
-                autoExpandAll: true // Tự động mở rộng group
-            },
-            groupPanel: {
-                visible: false // Hiện panel kéo thả group
-            },
-            paging: { pageSize: 25 },
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
-            selection: { mode: "multiple", showCheckBoxesMode: "none" },
-            showBorders: true,
-
-            onRowClick: function (e) {
-                selectedRowData = e.data; // lưu dòng được chọn
-            },
-
-            onCellPrepared: function (e) {
-                if (e.rowType === "data" && e.column.dataField === "hkstatusID") {
-                    const status = (e.value || "").toLowerCase();
-
-                    if (status.includes("dirty")) {
-                        e.cellElement.css("background-color", "Red"); // d? nh?t
-                        e.cellElement.css("color", "white");
-                    } else if (status.includes("pickup")) {
-                        e.cellElement.css("background-color", "#f740f4"); // tím nh?t
-                    } else if (status.includes("clean non-checked")) {
-                        e.cellElement.css("background-color", "#1bdff5"); // xanh nu?c bi?n nh?t
-                    } else if (status.includes("out of order")) {
-                        e.cellElement.css("background-color", "#d1dfe3"); // h?ng
-                        e.cellElement.css("color", "black");
-                    } else if (status.includes("clean")) {
-                        e.cellElement.css("background-color", "green"); // xanh lá
-                        e.cellElement.css("color", "white"); // ch? tr?ng cho d? nhìn
+        initializeTaskSheetStatusGrid: function (data) {
+            $("#tss_gridContainer").dxDataGrid({
+                dataSource: data,
+                allowColumnResizing: true,
+                columnAutoWidth: true,
+                height: 600,
+                columns: [
+                    { dataField: "colIndex", caption: "No", width: 50 },
+                    { dataField: "roomNo", caption: "RoomNo" },
+                    { dataField: "hkstatusID", caption: "Room Status" },
+                    { dataField: "fostatus", caption: "FOStatus" },
+                    { dataField: "attendant", caption: "Attendant" },
+                    {
+                        dataField: "taskDate",
+                        caption: "Task Date",
+                        dataType: "date",
+                        format: "dd/MM/yyyy"
+                    },
+                    { dataField: "complete", caption: "Status" }
+                ],
+                // ... Giữ các cấu hình khác của bạn (onCellPrepared, paging...)
+                onCellPrepared: function (e) {
+                    if (e.rowType === "data" && e.column.dataField === "hkstatusID") {
+                        const status = (e.value || "").toLowerCase();
+                        if (status.includes("dirty")) {
+                            e.cellElement.css({ "background-color": "Red", "color": "white" });
+                        } else if (status.includes("clean")) {
+                            e.cellElement.css({ "background-color": "green", "color": "white" });
+                        }
+                        // Thêm các điều kiện khác ở đây...
                     }
                 }
-            },
+            });
+        },
 
-        });
+        initializeTaskSheetStatusPopGrid: function (data) {
+            // Tương tự, dùng ID chuẩn logGridContainer
+            $("#logGridContainer").dxDataGrid({
+                dataSource: data,
+                // ... Cấu hình PopGrid của bạn
+            });
+        },
+        bindEvents: function () {
+            const self = this;
+
+            // Dùng .off().on() để tránh trùng lặp sự kiện khi init lại
+            $("#tss_Report").off("click").on("click", function () {
+                $('#tss_report').modal("show");
+            });
+
+            $('#tss_closeReport').off("click").on("click", function () {
+                $('#tss_report').modal("hide");
+            });
+
+            // Sửa lỗi ID gridContainer tại đây
+            $("#tss_btnExportExcel").off("click").on("click", function () {
+                const grid = $("#tss_gridContainer").dxDataGrid("instance");
+                if (!grid) {
+                    alert("Dữ liệu chưa sẵn sàng.");
+                    return;
+                }
+                self.exportToExcel(grid, 'Task Sheet Status Group');
+            });
+
+            $("#tss_btnExportpopExcel").off("click").on("click", function () {
+                const grid = $("#logGridContainer").dxDataGrid("instance");
+                if (!grid) {
+                    alert("Dữ liệu báo cáo chưa sẵn sàng.");
+                    return;
+                }
+                self.exportToExcel(grid, 'Task Sheet Status Report');
+            });
+        },
+
+        // Tách hàm Export dùng chung để code gọn hơn
+        exportToExcel: function (gridInstance, reportName) {
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            // Header Công ty
+            worksheet.addRow(['Công ty Cổ phần Giải pháp Công nghệ CS-Solution']);
+            worksheet.mergeCells('A1:E1');
+            worksheet.getRow(1).font = { bold: true };
+
+            // Tên báo cáo
+            const reportRow = worksheet.addRow(['', '', reportName]);
+            worksheet.mergeCells('C5:F5');
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { horizontal: 'center' };
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: gridInstance,
+                worksheet: worksheet,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(() => {
+                workbook.xlsx.writeBuffer().then((buffer) => {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), reportName + ".xlsx");
+                });
+            });
+        }
     }
+    // Hàm global để ModalManager gọi sau khi hiện modal
+    window.openModalTaskSheetStatus = function () {
+        tss_Module.init();
+    };
 
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance");
-        var selectedReport = 'Task Sheet Status Group';
-        if (!selectedReport) {
-            alert("Vui lòng ch?n báo cáo tru?c khi xu?t Excel.");
-            return;
-        }
-
-        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === T?o header công ty (dòng 1) ===
-        worksheet.addRow(['Công ty C? ph?n Gi?i pháp Công ngh? CS-Solution']);
-        worksheet.mergeCells('A1:E1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Th?i gian xu?t (ph?i) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
-        worksheet.mergeCells('E2:H2');
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: Tr?ng
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tên báo cáo ? gi?a ===
-        const reportRow = worksheet.addRow(['', '', selectedReport]);
-        worksheet.mergeCells('C5:F5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
-        worksheet.addRow([]);
-
-        // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
-        }).then(function () {
-            // Footer
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
-            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = selectedReport + ".xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
-            });
-        });
+    // Tự dọn dẹp biến khi Modal đóng để tránh rò rỉ bộ nhớ
+    $("#tss_modal").on("hidden.bs.modal", function () {
+        if (tss_Module.tsAttendant) tss_Module.tsAttendant.destroy();
+        if (tss_Module.tsZone) tss_Module.tsZone.destroy();
     });
-    $("#btnExportpopExcel").click(function () {
-        const grid = $("#logGridContainer").dxDataGrid("instance");
-        var selectedReport = 'Task Sheet Status Report';
-        if (!selectedReport) {
-            alert("Vui lòng ch?n báo cáo tru?c khi xu?t Excel.");
-            return;
-        }
 
-        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
 
-        // === T?o header công ty (dòng 1) ===
-        worksheet.addRow(['Công ty C? ph?n Gi?i pháp Công ngh? CS-Solution']);
-        worksheet.mergeCells('A1:E1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
 
-        // === Dòng 2: Th?i gian xu?t (ph?i) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
-        worksheet.mergeCells('E2:H2');
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: Tr?ng
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tên báo cáo ? gi?a ===
-        const reportRow = worksheet.addRow(['', '', selectedReport]);
-        worksheet.mergeCells('C5:F5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
-        worksheet.addRow([]);
-
-        // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
-        }).then(function () {
-            // Footer
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
-            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = selectedReport + ".xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
-            });
-        });
-    });
 </script>
