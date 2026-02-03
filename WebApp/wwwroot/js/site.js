@@ -439,52 +439,54 @@ function waitForBusinessDate(name = "fromDate", timeoutMs = 8000) {
 window.UI = window.UI || {};
 
 UI.setHiddenDate = function (name, value) {
-  if (!name || !value || typeof value !== "string") return;
+  // 1. Chấp nhận cả String và Date Object
+  if (!name || !value) return null;
 
   let year, month, day;
 
-  // ISO: yyyy-mm-dd hoặc yyyy-mm-ddThh:mm:ss
-  if (value.includes("-")) {
-    const datePart = value.split("T")[0];
-    const parts = datePart.split("-");
-    if (parts.length !== 3) return;
-
-    year = parseInt(parts[0], 10);
-    month = parseInt(parts[1], 10) - 1;
-    day = parseInt(parts[2], 10);
-  }
-  // dd/MM/yyyy
-  else if (value.includes("/")) {
-    const parts = value.split("/");
-    if (parts.length !== 3) return;
-
-    day = parseInt(parts[0], 10);
-    month = parseInt(parts[1], 10) - 1;
-    year = parseInt(parts[2], 10);
+  if (value instanceof Date) {
+    year = value.getFullYear();
+    month = value.getMonth();
+    day = value.getDate();
+  } else if (typeof value === "string") {
+    // ... Giữ nguyên logic split "-" và "/" của bạn ...
+    if (value.includes("-")) {
+      const parts = value.split("T")[0].split("-");
+      if (parts.length !== 3) return null;
+      year = parseInt(parts[0], 10);
+      month = parseInt(parts[1], 10) - 1;
+      day = parseInt(parts[2], 10);
+    } else if (value.includes("/")) {
+      const parts = value.split("/");
+      if (parts.length !== 3) return null;
+      day = parseInt(parts[0], 10);
+      month = parseInt(parts[1], 10) - 1;
+      year = parseInt(parts[2], 10);
+    } else {
+      return null;
+    }
   } else {
-    return;
+    return null;
   }
 
   const dateObj = new Date(year, month, day);
-  if (isNaN(dateObj.getTime())) return;
+  if (isNaN(dateObj.getTime())) return null;
 
-  // hidden luôn lưu yyyy-mm-dd (chuẩn backend)
   const hiddenValue = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
+  // 2. CHỖ THAY ĐỔI: Chỉ tìm và set giá trị nếu thẻ input tồn tại
   const $hidden = $(`input[type="hidden"][name="${name}"]`);
-  if (!$hidden.length) return;
-
-  $hidden.val(hiddenValue);
-
-  // sync datepicker
-  const $wrapper = $hidden.closest("[data-date-input]");
-  const $ui = $wrapper.find(".date-ui");
-
-  if ($ui.length && $ui.data("datepicker")) {
-    $ui.datepicker("setDate", dateObj);
+  if ($hidden.length) {
+    $hidden.val(hiddenValue);
+    const $wrapper = $hidden.closest("[data-date-input]");
+    const $ui = $wrapper.find(".date-ui");
+    if ($ui.length && $ui.data("datepicker")) {
+      $ui.datepicker("setDate", dateObj);
+    }
   }
+  // 3. LUÔN LUÔN RETURN: Dù có tìm thấy input hay không
+  return hiddenValue;
 };
-
 /**
  * UI.addDaysIso
  * ----------------
