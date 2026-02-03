@@ -70,7 +70,7 @@
 </div>
 
 <div class="modal fade" id="popupChooseArticle" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
         <div class="modal-content">
 
             <!-- HEADER -->
@@ -88,7 +88,7 @@
                     </button>
 
                     <button type="button"
-                            id="btnClosePopup"
+                            id="btnClosePopupArticle"
                             class="mui-button mui-button-new">
                         Close
                     </button>
@@ -147,6 +147,54 @@
         });
     });
 
+     $(document).off("click", "#btnSave").on("click", "#btnSave", function () {
+         const userName = JSON.parse(localStorage.getItem("Loginname"));
+        const userID = JSON.parse(localStorage.getItem("userID"));
+        if (!selectedArticle) {
+            showToast('Warning', 'Please select an article before posting.', false);
+            return;
+        }
+        $.ajax({
+            url: '/HouseKeeping/PostingFolio',
+            type: 'POST',
+             data: {
+                roomId: selectedRoom.id,
+                roomNo: selectedRoom.roomNo,
+                roomTypeCode: selectedRoom.roomTypeCode,
+                roomTypeID: selectedRoom.roomTypeID,
+                folioid: selectedFolio.id,
+                accountName: selectedFolio.accountName,
+                _RsvID: selectedFolio.reservationID,
+                transactionCode: selectedArticle.transactionCode,
+                _CurrencyID: selectedArticle.currencyID,
+                quantity: selectedArticle.quantity,
+                articleCode: selectedArticle.code,
+                price: selectedArticle.defaultPrice,
+                  userID:userID,
+                  userName:userName
+            },
+            crossDomain: false,
+            headers: {
+                "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
+            },
+            success: function (result) {
+                if (result.success) {
+                    $('#popupChooseFolio').modal('hide');
+                        $('#popupChooseArticle').modal('hide');
+                    showToast('Success', result.message, true);
+
+                } else {
+                    showToast('Error', result.message, false);
+                    // xử lý khi sai
+                }
+
+            },
+            error: function () {
+                alert("Không thể tải báo cáo.");
+                $("#loadingSpinner").hide();
+            }
+        });
+    });
     let selectedRoom = null;
     let selectedFolio = null;
     let selectedArticle = null;
@@ -260,7 +308,7 @@
         });
     }
 
-     function initializeGetFolioGrid(data) {
+    function initializeGetFolioGrid(data) {
 
         $("#logGridContainer").dxDataGrid({
             dataSource: data,
@@ -271,17 +319,17 @@
 
             columns: [
                 { dataField: "id", caption: "ID", visible: false },
-                { dataField: "folioDate", caption: "Folio Date", width: "20%" , dataType: "date", format: "dd/MM/yyyy"},
+                { dataField: "folioDate", caption: "Folio Date", width: "20%", dataType: "date", format: "dd/MM/yyyy" },
                 { dataField: "folioNo", caption: "Folio No", width: "30%" },
                 { dataField: "accountName", caption: "Account Name", width: "50%" }
             ],
 
-            /* 🔴 CHỈ CHỌN 1 HÀNG */
             selection: {
                 mode: "single"
             },
 
             paging: { pageSize: 25 },
+
             scrolling: {
                 useNative: true,
                 showScrollbar: "always"
@@ -299,26 +347,26 @@
             headerFilter: { visible: true },
             showBorders: true,
 
-            /* 🔴 LẤY GIÁ TRỊ HÀNG ĐƯỢC CHỌN */
+            /* 🔴 TỰ ĐỘNG CHỌN HÀNG ĐẦU TIÊN */
+            onContentReady: function (e) {
+                const grid = e.component;
+
+                if (grid.getVisibleRows().length > 0 && !grid.option("selectedRowKeys")?.length) {
+                    grid.selectRowsByIndexes([0]);
+                }
+            },
+
+            /* 🔴 LẤY HÀNG ĐƯỢC CHỌN */
             onSelectionChanged: function (e) {
                 selectedFolio = e.selectedRowsData[0] || null;
 
                 if (selectedFolio) {
-                    console.log("selectedFolio:", selectedRoom);
-                
-                }
-            },
-
-            onRowPrepared: function (e) {
-                if (e.rowType === "data" && e.data?.isTotal) {
-                    e.rowElement.css({
-                        "font-weight": "bold",
-                        "background-color": "#f6f6f6"
-                    });
+                    console.log("selectedFolio:", selectedFolio);
                 }
             }
         });
     }
+
      $("#btnContinue").on("click", function () {
 
         loadMinibarByArticle();
@@ -351,80 +399,98 @@
             }
         });
     }
-        function initializeGetMinibarByArticleGrid(data) {
+    function initializeGetMinibarByArticleGrid(data) {
 
-        data.forEach(item => {
-            if (item.quantity === undefined || item.quantity === null) {
-                item.quantity = 1;
-            }
-        });
+    data.forEach(item => {
+        if (item.quantity === undefined || item.quantity === null) {
+            item.quantity = 1;
+        }
+    });
 
-        $("#logGridArticleContainer").dxDataGrid({
-            dataSource: data,
-            keyExpr: "id",
-            height: 500,
-            allowColumnResizing: true,
-            columnAutoWidth: false,
+    $("#logGridArticleContainer").dxDataGrid({
+        dataSource: data,
+        keyExpr: "id",
+        height: 500,
+        allowColumnResizing: true,
+        columnAutoWidth: false,
 
-            /* 🔴 BẬT EDITING */
-            editing: {
-                mode: "cell",
-                allowUpdating: true,
-                useIcons: true
-            },
+        /* 🔴 KHÔNG CHO EDIT TỰ DO */
+        editing: {
+            mode: "cell",
+            allowUpdating: false
+        },
 
-            columns: [
-                { dataField: "id", caption: "ID", visible: false },
+        columns: [
+            { dataField: "id", visible: false },
 
-                { dataField: "code", caption: "Code", width: "20%" },
+            { dataField: "code", caption: "Code", width: "20%" },
 
-                { dataField: "description", caption: "Description", width: "30%" },
+            { dataField: "description", caption: "Description", width: "30%" },
 
-                { dataField: "transactionCode", caption: "Transaction Code", width: "30%" },
+            { dataField: "transactionCode", caption: "Transaction Code", width: "20%" },
 
-                { dataField: "defaultPrice", caption: "Price", width: "20%" },
+            { dataField: "defaultPrice", caption: "Price", width: "20%" , dataType: "number", format: "#,##0"},
 
-                {
-                    dataField: "quantity",
-                    caption: "Quantity",
-                    width: "10%",
-                    dataType: "number",
-                    allowEditing: true,
-                    editorOptions: {
-                        min: 1,
-                        showSpinButtons: true
-                    }
-                }
-            ],
-
-            selection: {
-                mode: "single"
-            },
-
-            paging: { pageSize: 25 },
-
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, "all"],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-
-            filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
-            showBorders: true,
-            onSelectionChanged: function (e) {
-                selectedArticle = e.selectedRowsData[0] || null;
-                if (selectedArticle) {
-                    console.log("selectedArticle:", selectedArticle);
+            {
+                dataField: "quantity",
+                caption: "Quantity",
+                width: "20%",
+                dataType: "number",
+                editorOptions: {
+                    min: 1,
+                    showSpinButtons: false
                 }
             }
-        });
-    }
+        ],
 
-    $('#btnClosePopup, #overlay').click(function () {
+        /* 🔴 CHỈ CHỌN 1 HÀNG */
+        selection: {
+            mode: "single"
+        },
+
+        paging: { pageSize: 25 },
+
+        pager: {
+            visible: true,
+            allowedPageSizes: [25, 50, "all"],
+            showPageSizeSelector: true,
+            showInfo: true,
+            showNavigationButtons: true
+        },
+
+        filterRow: { visible: true, applyFilter: "auto" },
+        headerFilter: { visible: true },
+        showBorders: true,
+
+        /* 🔴 LOGIC CHỈ EDIT CỘT QUANTITY */
+        onCellClick: function (e) {
+            if (e.rowType !== "data") return;
+
+            const grid = e.component;
+            const selectedRowKey = grid.getSelectedRowKeys()[0];
+
+            // Phải click đúng hàng đang được chọn
+            if (selectedRowKey !== e.key) return;
+
+            // Chỉ cho edit cột quantity
+            if (e.column.dataField === "quantity") {
+                grid.editCell(e.rowIndex, e.columnIndex);
+            }
+        },
+
+        onSelectionChanged: function (e) {
+            selectedArticle = e.selectedRowsData[0] || null;
+        }
+    });
+}
+
+    $('#btnClosePopup').click(function () {
       $('#popupChooseFolio').modal('hide');
+
+    });
+
+     $('#btnClosePopupArticle').click(function () {
+        $('#popupChooseArticle').modal('hide');
 
     });
     $("#btnExportExcel").click(function () {
