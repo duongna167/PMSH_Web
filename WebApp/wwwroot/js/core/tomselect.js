@@ -1,4 +1,6 @@
 ﻿/*
+ * TomSelect Helper
+ * Author: (phuc)
  * How use to ?
    - With class : initTomSelect('.tomselect');
    - With id or ids : initTomSelect('#mySelect'); or initTomSelect(['#select1', '#select2']);
@@ -12,20 +14,11 @@
                   initTomSelect('#country');
  * 
  */
-
-/* =========================================================
- * TomSelect Helper
- * Author: (phuc)
- * Usage:
- *  initTomSelect('.tomselect-custom');
- *  initTomSelect(['#roomID', '#ownerCode']);
- *
- *  getTomSelectValue('#ownerCode');
- *  getTomSelectValue('#ownerCode', { asObject: true });
- *  clearMultipleTomSelect(['#zone', '#restype']);
- *  clearTomSelect('#zone');
- * ========================================================= */
-
+/**
+ * Khởi tạo TomSelect cho danh sách selectors
+ * @param {string|string[]} selectors - ID, Class hoặc Array các selector
+ * @param {object} options - Cấu hình ghi đè của TomSelect
+ */
     /* ================= INIT ================= */
 
     function initTomSelect(selectors, options = {}) {
@@ -52,17 +45,29 @@
         };
 
         selectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+
+            if (!elements || elements.length === 0) return;
             document.querySelectorAll(selector).forEach(el => {
 
-                if (el.tomselect) el.tomselect.destroy();
+                if (el.tomselect) return;
+                //if (!el || !document.body.contains(el)) return;
 
+                const tagName = el.tagName.toUpperCase();
+                if (tagName !== 'SELECT' && tagName !== 'INPUT') {
+                    console.warn(`TomSelect Skip: Element ${selector} is a ${tagName}, not a SELECT/INPUT.`);
+                    return;
+                }
+
+                const isSelect = el.tagName === 'SELECT';
                 const isMultiple =
                     el.hasAttribute('multiple') ||
                     (options.maxItems && options.maxItems > 1);
 
-                // AUTO ADD EMPTY OPTION FOR SINGLE SELECT
-                if (!isMultiple) {
-                    const hasEmptyOption = [...el.options].some(o => o.value === "");
+                if (isSelect && !isMultiple) {
+                    const optionsArray = el.options ? Array.from(el.options) : [];
+                    const hasEmptyOption = optionsArray.some(o => o.value === "");
+
                     if (!hasEmptyOption) {
                         const emptyOption = document.createElement("option");
                         emptyOption.value = "";
@@ -86,14 +91,18 @@
                     },
 
                 };
+                try {
+                    if (el.value === undefined) el.value = '';
 
-                const ts = new TomSelect(el, tsOptions);
-
-                ts.on('clear', function () {
-                    this.close();
-                    this.control_input.blur();
-                });
-
+                    const ts = new TomSelect(el, tsOptions);
+                    ts.on('clear', function () {
+                        this.close();
+                        if (this.control_input) this.control_input.blur();
+                        this.refreshOptions(false);
+                    });
+                } catch (e) {
+                    // log
+                }
 
              
             });

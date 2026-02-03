@@ -1,16 +1,12 @@
 ﻿@using DevExpress.XtraReports.UI
 
 @{
-    ViewBag.Title = ViewBag.ReportHeader;
     var zoneList = ViewBag.ZoneList;
 }
 
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
 <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
+        <div class="modal-content modal-full-height">
 
             <!-- Modal Header -->
             <div class="modal-header">
@@ -19,58 +15,77 @@
 
             <!-- Modal Body -->
             <div class="modal-body">
-                <div class="search-filter">
-                    <div class="">
-                        <button id="btnPrint" class="mui-button mui-button-new">View</button>
-                        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">  Excel</button>
-                        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">
-                            PDF
-                        </button>
-                        <button id="btnCloseAva" class="mui-button mui-button-new" type="button"> Close</button>
+                <div class="search-filter mb-3">
+
+                    <!-- ACTION BAR -->
+                    <div class="row g-2 mb-2">
+                        <div class="col-auto">
+                            <button id="btnPrint" class="mui-button mui-button-new">View</button>
+                        </div>
+                        <div class="col-auto">
+                            <button id="btnExportExcel" class="mui-button mui-button-new">Excel</button>
+                        </div>
+                        <div class="col-auto">
+                            <button id="btnExportPdf" class="mui-button mui-button-new">PDF</button>
+                        </div>
+                        <div class="col-auto">
+                            <button id="btnCloseAva" class="mui-button mui-button-new">Close</button>
+                        </div>
                     </div>
-                    <div class="filter-panel d-flex align-items-center flex-nowrap gap-3 mt-2 mb-1">
+
+                    <!-- FILTER BAR -->
+                    <div class="row g-3 align-items-center">
 
                         <!-- Zone -->
-                        <div class="d-flex align-items-center zone-wrap">
-                            <label class="me-2 mb-0">Zone:</label>
-                            <select id="zone" name="zone" class="tomselect-custom" multiple>
-                                @foreach (var item in zoneList)
-                                {
-                                    if (item == zoneList[0])
-                                    {
-                                        <option value="@item.Code" selected>@item.Code</option>
-                                    }
-                                    else
+                        <div class="col-12 col-md-6 col-lg-5 col-xl-4">
+                            <div class="d-flex align-items-center">
+                                <label class="me-2 mb-0">Zone:</label>
+                                <!-- GIỮ NGUYÊN id / name -->
+                                <select id="zone" name="zone" class="tomselect-custom flex-grow-1" multiple>
+                                    @foreach (var item in zoneList)
                                     {
                                         <option value="@item.Code">@item.Code</option>
                                     }
-                                }
-                            </select>
+                                </select>
+                            </div>
                         </div>
 
                         <!-- From -->
-                        <div class="d-flex align-items-center pb-2">
-                            <label class="me-2 mb-0">From:</label>
-                            <div class="date-wrap">
-                                <div class="clearable" data-date-input data-format="DD/MM/YYYY" data-name="fromDate">
-                                    <input type="text" class="date-ui form-control" autocomplete="off" />
+                        <div class="col-6 col-md-3 col-lg-2">
+                            <div class="d-flex align-items-center">
+                                <label class="me-2 mb-0">From:</label>
+                                <div class="date-wrap">
+                                    <!-- GIỮ NGUYÊN data-name -->
+                                    <div data-date-input data-format="DD/MM/YYYY"
+                                         business-date data-name="fromDate" class="w-100">
+                                        <input type="text"
+                                               class="date-ui form-control form-control-sm"
+                                               placeholder="dd/mm/yyyy"
+                                               autocomplete="off" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- To -->
-                        <div class="d-flex align-items-center pb-2">
-                            <label class="me-2 mb-0">To:</label>
-                            <div class="date-wrap">
-                                <div class="clearable" data-date-input data-format="DD/MM/YYYY" data-name="toDate">
-                                    <input type="text" class="date-ui form-control" autocomplete="off" />
+                        <div class="col-6 col-md-3 col-lg-2">
+                            <div class="d-flex align-items-center">
+                                <label class="me-2 mb-0">To:</label>
+                                <div class="date-wrap">
+                                    <div data-date-input data-format="DD/MM/YYYY"
+                                         business-date data-name="toDate" class="w-100">
+                                        <input type="text"
+                                               class="date-ui form-control form-control-sm"
+                                               placeholder="dd/mm/yyyy"
+                                               autocomplete="off" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                     </div>
-
                 </div>
+
 
                 <div class="mui-card">
                     <div id="gridContainer" class="gridContainer mt-2"></div>
@@ -84,55 +99,17 @@
     </div>
 </div>
 <script>
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        let day = date.getDate().toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        return `${year}-${month}-${day}`;
-    }
-    let parsedBusinessDate = null;
+    var parsedBusinessDate = null;
 
     $(document).ready(function () {
-        document.getElementById("reportTitle").innerText = 'Room Facility Forecast';
-               getBusinessDate();
-        initializeTomSelects();
-                $('#reportModal').modal('show');
-
+        $('#reportModal').modal('show');
+        initTomSelect(".tomselect-custom");
+        $("#btnPrint").trigger("click");
     });
-     $(document).on('click', '#btnCloseAva', function () {
+    
+    $(document).on('click', '#btnCloseAva', function () {
         window.location.href = '/Home/Index';
     });
-
-     function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-
-                 const fromDateStr = result.split('T')[0];
-                const fromDate = new Date(fromDateStr);
-
-                // cộng thêm 13 ngày
-                const toDate = new Date(fromDate);
-                toDate.setDate(toDate.getDate() + 15);
-
-                // format yyyy-MM-dd
-                const toDateStr = toDate.toISOString().split('T')[0];
-
-                UI.setHiddenDate("toDate", toDateStr);
-                 UI.setHiddenDate("fromDate", fromDateStr);
-                      $("#btnPrint").trigger("click");
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-            }
-        });
-    }
     
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
         $("#loadingSpinner").show();
@@ -148,9 +125,6 @@
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                console.log(result);
                 initializeReservationSummaryGrid(result, $("#fromDate").val(), $("#toDate").val());
                 $("#loadingSpinner").hide();
             },
@@ -160,6 +134,51 @@
             }
         });
     });
+
+    function initializeReservationSummaryGrid(data, fromDate, toDate) {
+        const columnWidth = 120;
+        const dateColumns = generateDateColumns(fromDate, toDate);
+        console.log(dateColumns);
+
+        $("#gridContainer").dxDataGrid({
+            dataSource: data,
+            allowColumnResizing: true,
+            columnAutoWidth: true,
+            height: "100%",
+            columns: [
+                { dataField: "Statisticname", caption: "Statistic Name", width: columnWidth + 40 },
+                ...dateColumns
+            ],
+
+            paging: { pageSize: 15 },
+            scrolling: {
+                useNative: true,
+                showScrollbar: "always"
+            },
+            pager: {
+                visible: true,
+                allowedPageSizes: [15, 25, 50],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            },
+            filterRow: { visible: true, applyFilter: "auto" },
+            headerFilter: { visible: true },
+            selection: { mode: "multiple", showCheckBoxesMode: "none" },
+            showBorders: false,
+            onRowPrepared: function (e) {
+                if (e.rowType === "data") {
+
+                    if (e.data?.isTotal) {
+                        e.rowElement.css({
+                            "font-weight": "bold",
+                            "background-color": "#f6f6f6"
+                        });
+                    }
+                }
+            }
+        });
+    }
 
 
     function generateDateColumns(fromDate, toDate) {
@@ -205,57 +224,6 @@
         const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
         return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     }
-
-
-
-    function initializeReservationSummaryGrid(data, fromDate, toDate) {
-        const columnWidth = 120;
-
-
-
-        const dateColumns = generateDateColumns(fromDate, toDate);
-        console.log(dateColumns);
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            allowColumnResizing: true,
-            columnAutoWidth: true,
-            columns: [
-                { dataField: "Statisticname", caption: "Statistic Name", width: columnWidth + 40 },
-                ...dateColumns
-            ],
-
-            paging: { pageSize: 25 },
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
-            selection: { mode: "multiple", showCheckBoxesMode: "none" },
-            showBorders: true,
-            onRowPrepared: function (e) {
-                if (e.rowType === "data") {
-
-                    if (e.data?.isTotal) {
-                        e.rowElement.css({
-                            "font-weight": "bold",
-                            "background-color": "#f6f6f6"
-                        });
-                    }
-                }
-            }
-        });
-    }
-
-
-
 
     $("#btnExportExcel").click(function () {
         const grid = $("#gridContainer").dxDataGrid("instance"); var selectedReport2 = '@ViewBag.ReportTitle';
@@ -316,8 +284,6 @@
         });
     });
 
-
-
     // Nút xu?t PDF
     $("#btnExportPdf").click(function () {
         const { jsPDF } = window.jspdf; // ?? B? sung dòng này
@@ -335,4 +301,5 @@
             doc.save("BaoCao.pdf");
         });
     });
+
 </script>
