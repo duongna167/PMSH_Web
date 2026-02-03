@@ -1,18 +1,19 @@
 ﻿<!-- Modal group check in-->
-<div class="modal fade modal-xl" id="modalGroupCheckIn" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+<div class="modal fade modal-xl" id="modalGroupCheckIn" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
 
             <div class="modal-header">
                 <h5 class="modal-title" id="staticBackdropLabel">Group check in</h5>
-                <button type="button" class="btn-close" onclick="closeModalGroupCheckIn();"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-2">
                     <button class="mui-button mui-button-search" onclick="GroupCheckIn();">Check In</button>
+                    <button class="mui-button mui-button-search" onclick="closeModalGroupCheckIn();">Close</button>
                 </div>
 
-                <div class="mt-2 row bg-light border rounded" style="margin:0 1px">
+                <div class="search-filter">
                     <div class="row">
                         <div class="radio-group col-md-5">
                             <input type="radio" name="grouupCheckInType" checked value="3">
@@ -33,7 +34,6 @@
                     </div>
 
                 </div>
-                <div class="mui-divider"></div>
                 <div class="mui-card">
                     <div id="gridContainerSearchGroupCheckInRoom" class="mt-2 gridContainer"></div>
                 </div>
@@ -43,11 +43,11 @@
     </div>
 </div>
 <script>
-    function openModalGroupCheckIn(){
+    function openModalGroupCheckIn() {
         $('#modalGroupCheckIn').modal('show');
         searchGroupCheckInRoom($('input[name="grouupCheckInType"]:checked').val());
     }
-    function closeModalGroupCheckIn(){
+    function closeModalGroupCheckIn() {
         $('#modalGroupCheckIn').modal('hide');
     }
     $('input[name="grouupCheckInType"]').on('change', function () {
@@ -55,20 +55,20 @@
         searchGroupCheckInRoom(selectedValue);
 
     });
-    function searchGroupCheckInRoom(type){
+    function searchGroupCheckInRoom(type) {
         $.ajax({
             url: '/Reservation/SearchGroupCheckInRoom',
             type: 'get',
             dataType: 'json',
             data: {
                 confirmationNo: listData[0].ConfirmationNo,
-                type : type
+                type: type
             },
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
                 console.log(result);
-                    initializeDataGridSearchGroupCheckInRoom(result);
+                initializeDataGridSearchGroupCheckInRoom(result);
 
             },
             error: function (xhr, statusText, err) {
@@ -78,8 +78,8 @@
             }
         });
     }
-     function initializeDataGridSearchGroupCheckInRoom(data) {
-        let columns = [];
+    function initializeDataGridSearchGroupCheckInRoom(data) {
+        let columns = columnAdG;
 
         if (data.length > 0) {
             columns = Object.keys(data[0]).map(key => {
@@ -89,7 +89,7 @@
                 const isDate =
                     sampleValue &&
                     (sampleValue instanceof Date ||
-                     /^\d{4}-\d{2}-\d{2}T/.test(sampleValue));
+                        /^\d{4}-\d{2}-\d{2}T/.test(sampleValue));
 
                 return {
                     dataField: key,
@@ -101,22 +101,7 @@
         }
 
         // Cột checkbox
-        columns.unshift({
-            caption: "",
-            width: 50,
-            allowFiltering: false,
-            allowSorting: false,
-            cellTemplate: function (container, options) {
-                $("<input>")
-                    .attr("type", "checkbox")
-                    .prop("checked", options.data && options.data.isSelected)
-                    .on("change", function (e) {
-                        options.data.isSelected = e.target.checked;
-                    })
-                    .appendTo(container);
-            }
-        });
-         console.log("Columns config:", columns);
+
         $("#gridContainerSearchGroupCheckInRoom").dxDataGrid({
             dataSource: data,
             columns: columns,
@@ -140,9 +125,10 @@
                 applyFilter: "auto"
             },
             selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "none"
-            }
+                mode: "multiple", // Cho phép chọn nhiều
+                showCheckBoxesMode: "always", // Luôn hiện checkbox ở cột đầu tiên
+                selectAllMode: "page" // Chọn tất cả trên trang hiện tại hoặc "allPages"
+            },
         });
     }
 

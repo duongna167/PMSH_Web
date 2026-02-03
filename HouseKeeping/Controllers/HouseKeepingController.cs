@@ -29,6 +29,7 @@ using static DevExpress.CodeParser.CodeStyle.Formatting.Rules;
 using DevExpress.DataAccess.DataFederation;
 using System.Reflection.Metadata;
 using Microsoft.VisualBasic;
+using System.Collections;
 
 namespace HouseKeeping.Controllers
 {
@@ -4470,6 +4471,7 @@ namespace HouseKeeping.Controllers
                                   RoomName = d["RoomName"]?.ToString(),
                                   Floor = d["Floor"]?.ToString(),
                                   RoomTypeCode = d["RoomTypeCode"]?.ToString(),
+                                  RoomTypeID = d["RoomTypeID"]?.ToString(),
                                   FOStatus = !string.IsNullOrEmpty(d["FOStatus"].ToString()) ? d["FOStatus"].ToString() : "",
                                   HKStatusID = !string.IsNullOrEmpty(d["HKStatusID"].ToString()) ? d["HKStatusID"].ToString() : "",
                                   CreatedDate = d["CreateDate"] == DBNull.Value ? "" : Convert.ToDateTime(d["CreateDate"]).ToString("dd/MM/yyyy"),
@@ -4672,6 +4674,548 @@ namespace HouseKeeping.Controllers
                 });
             }
         }
+        [HttpPost]
+        public IActionResult PostingFolio(int roomId, string roomNo,string roomTypeCode,int roomTypeID, int folioid, string accountName, int _RsvID, string transactionCode , string _CurrencyID, string  quantity,string articleCode,int price, int userID,string userName)
+        {
+            try
+            {
+
+                ProcessTransactions pt = new ProcessTransactions();
+                try
+                {
+                    #region Mở kết nối và bắt đầu 1 Transaction
+                    pt.OpenConnection();
+                    pt.BeginTransaction();
+                    #endregion
+
+                    #region Lấy ra thông tin của FolioID
+
+                    int _RsvID_Return = 0;
+                    int _Amount = 0;
+                    int FolioID = folioid;
+                    _RsvID = _RsvID_Return;
+                    string _TransCode = transactionCode;
+                    int _RmID =roomId;
+                    int _RmTypeID = roomTypeID;
+                    string reservationID = _RsvID.ToString();
+                    string _RmTypeCode = roomTypeCode;
+                    string _Quan = quantity;
+                    string _ArCode = articleCode;
+                    _Amount = price * int.Parse(_Quan);
+                    #endregion
+
+                    if (FolioID > 0)
+                    {
+                        #region Khai báo Model
+
+                        FolioDetailModel mFD_Detail = new FolioDetailModel();
+                        FolioDetailModel mFD_Master = new FolioDetailModel();
+
+                        #endregion
+
+                        #region Lấy ra thông tin của TransCode
+
+                        //lấy Transactions từ aticle
+
+                        TransactionsModel mT = new TransactionsModel();
+                        List<TransactionsModel> lst = PropertyUtils.ConvertToList<TransactionsModel>(TransactionsBO.Instance.FindByAttribute("Code", _TransCode));
+                    
+
+                        if (lst.Count > 0)
+                        {
+                            mT = (TransactionsModel)lst[0];
+                        }
+                        else
+                        {
+
+                            return Json(new { success = false, message = "Cant not find Adjustment Code {0} in Transactions" });
+                        }
+
+                        #endregion
+
+                        #region Gán giá trị cho các biến Static
+                        //datdp(06.10.11)
+                        //Tan(01.02.18) ANh hòa bảo bỏ qua
+                        //if (_IsPostedAR == true)
+                        //{
+                        //    mFD_Detail.IsPostedAR = true;
+                        //    mFD_Master.IsPostedAR = true;
+                        //}
+                        //else
+                        //{
+                        //    mFD_Detail.IsPostedAR = false;
+                        //    mFD_Master.IsPostedAR = false;
+                        //}
+                        mFD_Detail.IsPostedAR = false;
+                        mFD_Master.IsPostedAR = false;
+
+                        //if (_ProID != 0)
+                        //{
+                        //    mFD_Detail.ProfitCenterID = _ProID;
+                        //    mFD_Detail.ProfitCenterCode = _ProCode;
+                        //}
+                        //else
+                        //{
+                        //    mFD_Detail.ProfitCenterID = ProfitCenterID;
+                        //    mFD_Detail.ProfitCenterCode = ProfitCenterCode;
+                        //}
+                        mFD_Detail.ProfitCenterID = 0;
+                        mFD_Detail.ProfitCenterCode = "";
+
+                        //lấy room ID
+                        mFD_Detail.RoomID = _RmID;
+                        mFD_Detail.RoomTypeID = _RmTypeID;
+                        mFD_Detail.RoomType = _RmTypeCode;
+                        mFD_Detail.Status = false;
+
+                        mFD_Detail.CurrencyID = _CurrencyID;
+                        mFD_Detail.CurrencyMaster = "";
+
+                        mFD_Detail.ReservationID = Int32.Parse(reservationID);
+                        mFD_Detail.OriginReservationID = Int32.Parse(reservationID);
+
+                        mFD_Detail.FolioID = FolioID;
+                        mFD_Detail.OriginFolioID = mFD_Detail.FolioID;
+
+                        mFD_Detail.Quantity = int.Parse(_Quan);
+                        mFD_Detail.TransactionDate = DateTime.Now;
+                        mFD_Detail.PackageID = 0;
+
+                        mFD_Detail.UserInsertID = userID;
+                        mFD_Detail.UserUpdateID = userID;
+                        mFD_Detail.CreateDate = DateTime.Now;
+                        mFD_Detail.UpdateDate = DateTime.Now;
+                        //if (AutoPosting == true)
+                        //{
+                        //    mFD_Detail.UserID = 0;
+                        //    mFD_Detail.UserName = "$$";
+                        //    mFD_Detail.CashierNo = "";
+                        //    mFD_Detail.ShiftID = 0;
+                        //}
+                        //else
+                        //{
+                        mFD_Detail.UserID = userID;
+                        mFD_Detail.UserName = userName;
+                        mFD_Detail.CashierNo = userName;
+                        mFD_Detail.ShiftID = 0;
+                        //}
+                        //if (_ProID != 0)
+                        //{
+                        //    mFD_Master.ProfitCenterID = _ProID;
+                        //    mFD_Master.ProfitCenterCode = _ProCode;
+                        //}
+                        //else
+                        //{
+                        //    mFD_Master.ProfitCenterID = ProfitCenterID;
+                        //    mFD_Master.ProfitCenterCode = ProfitCenterCode;
+                        //}
+                        mFD_Master.ProfitCenterID = 0;
+                        mFD_Master.ProfitCenterCode = "";
+
+                        mFD_Master.Status = false;
+
+                        mFD_Master.CurrencyID = _CurrencyID;
+                        mFD_Master.CurrencyMaster = _CurrencyID;
+
+                        mFD_Master.RoomID = _RmID;
+                        mFD_Master.RoomTypeID = _RmTypeID;
+                        mFD_Master.RoomType = _RmTypeCode;
+
+                        mFD_Master.ReservationID = Int32.Parse(reservationID);
+                        mFD_Master.OriginReservationID = Int32.Parse(reservationID);
+
+                        mFD_Master.FolioID = FolioID;
+                        mFD_Master.OriginFolioID = mFD_Master.FolioID;
+
+                        mFD_Master.Quantity = int.Parse(_Quan);
+                        mFD_Master.TransactionDate = DateTime.Now;
+                        mFD_Master.PackageID = 0;
+
+                        mFD_Master.UserInsertID = userID;
+                        mFD_Master.UserUpdateID = userID;
+                        mFD_Master.CreateDate = DateTime.Now;
+                        mFD_Master.UpdateDate = DateTime.Now;
+                        //if (AutoPosting == true)userID
+                        //{
+                        //    mFD_Master.UserID = 0;
+                        //    mFD_Master.UserName = "$$";
+                        //    mFD_Master.CashierNo = "";
+                        //    mFD_Master.ShiftID = 0;
+                        //}
+                        //else
+                        //{
+                        mFD_Master.UserID = userID;
+                        mFD_Master.UserName = userName;
+                        mFD_Master.CashierNo = userName;
+                        mFD_Master.ShiftID = 0;
+                        //}
+                        #endregion
+
+                        #region Kiểm tra xem Transaction này có ở trong Generate ?
+                 
+                        List<GenerateTransactionModel> arr = PropertyUtils.ConvertToList<GenerateTransactionModel>(GenerateTransactionBO.Instance.FindByAttribute("TransactionCode", _TransCode));
+                        #endregion
+
+                        bool TaxInclude = true;
+                        #region Nếu chưa tồn tại trong Generate.
+                        if ((arr == null) || (arr.Count == 0))
+                        {
+
+                            //Gán thông tin cho các propertie còn lại
+                            mFD_Detail.IsSplit = false;
+                            mFD_Detail.Reference = "";
+                            mFD_Detail.Supplement = "";
+
+                            mFD_Detail.TransactionGroupID = mT.TransactionGroupID;
+                            mFD_Detail.TransactionSubgroupID = mT.TransactionSubGroupID;
+                            mFD_Detail.GroupCode = mT.GroupCode;
+                            mFD_Detail.SubgroupCode = mT.SubgroupCode;
+                            mFD_Detail.GroupType = mT.GroupType;
+
+                            mFD_Detail.ArticleCode = _ArCode;
+                            mFD_Detail.TransactionCode = mT.Code;
+                            ////tan ân
+                            //if (_TransDesc.Length > 0)
+                            //    mFD_Detail.Description = _TransDesc;//mT.Description;
+                            //else
+                            mFD_Detail.Description = mT.Description;
+                            mFD_Detail.Amount = _Amount;
+                            mFD_Detail.AmountBeforeTax = _Amount;
+                            mFD_Detail.Price = mFD_Detail.Amount / mFD_Detail.Quantity;
+
+                            mFD_Detail.AmountMaster = TextUtils.ExchangeCurrency(DateTime.Now, _CurrencyID, _CurrencyID, _Amount);
+                            mFD_Detail.AmountMasterBeforeTax = mFD_Detail.AmountMaster;
+
+                            mFD_Detail.AmountGross = mFD_Detail.Amount;
+                            mFD_Detail.AmountMasterGross = mFD_Detail.AmountMaster;
+
+                            mFD_Detail.PostType = 1;
+                            mFD_Detail.RowState = 1;
+
+                            //Thực hiện Post
+                            mFD_Detail.ID = (int)pt.Insert(mFD_Detail);
+
+                            mFD_Detail.InvoiceNo = mFD_Detail.ID.ToString();
+                            mFD_Detail.TransactionNo = mFD_Detail.ID.ToString();
+
+                            pt.Update(mFD_Detail);
+                            ////Update số dư.
+                            ////tan 010218 tam thoi bo qua chua biet
+                            //UpdateBalance(_RsvID, FolioID, pt, ref _Message);
+
+                            //// Ghi histoty
+                            //if (mFD_Detail.GroupType != 1)
+                            //    ActionPosting.InsertHistory(pt, _SysDate, _BusinessDate, mFD_Detail.FolioID, mFD_Detail.FolioID, mFD_Detail.InvoiceNo, ActionPosting.HistoryType.Basic_Post,
+                            //        ActionPosting.GetActionText(ActionPosting.HistoryType.Basic_Post, mFD_Detail.TransactionCode, mFD_Detail.Description),
+                            //        Global.UserName, mFD_Detail.TransactionCode, mFD_Detail.Description, mFD_Detail.Amount, mFD_Detail.Supplement, "", "", "");
+                            //else
+                            //    ActionPosting.InsertHistory(pt, _SysDate, _BusinessDate, mFD_Detail.FolioID, mFD_Detail.FolioID, mFD_Detail.InvoiceNo, ActionPosting.HistoryType.Payment,
+                            //        ActionPosting.GetActionText(ActionPosting.HistoryType.Payment, mFD_Detail.TransactionCode, mFD_Detail.Description),
+                            //        Global.UserName, mFD_Detail.TransactionCode, mFD_Detail.Description, mFD_Detail.Amount, mFD_Detail.Supplement, "", "", "");
+                            //Trả về thông tin
+                            //_AmountReturn = mFD_Detail.Amount;
+                            //_AmountLocalReturn = mFD_Detail.AmountMaster;
+                            //_TransNoReturn = mFD_Detail.TransactionNo;
+                        }
+                        #endregion
+
+                        #region Nếu đã tồn tại trong Generate -> lấy ra và thực hiện
+                        else
+                        {
+                            #region Khai báo biến
+                            decimal s1 = 0, s2 = 0, s3 = 0;
+                            decimal CurrentAmount = 0;
+                            decimal BaseAmount = _Amount;
+                            decimal Rate = 0;
+                            GenerateTransactionModel mGT;
+                            #endregion
+
+                            #region Lấy ra thông tin của amount trước thuế
+                            if (TaxInclude == true)
+                                BaseAmount = GetAmount(arr, Convert.ToDecimal(BaseAmount));
+                            #endregion
+
+                            #region Insert dòng tổng
+
+                            mFD_Master.IsSplit = true;
+                            mFD_Master.Reference = "";
+                            mFD_Master.Supplement = "";
+
+                            mFD_Master.TransactionGroupID = mT.TransactionGroupID;
+                            mFD_Master.TransactionSubgroupID = mT.TransactionSubGroupID;
+                            mFD_Master.GroupCode = mT.GroupCode;
+                            mFD_Master.SubgroupCode = mT.SubgroupCode;
+                            mFD_Master.GroupType = mT.GroupType;
+
+                            mFD_Master.ArticleCode = _ArCode;
+                            mFD_Master.TransactionCode = mT.Code;
+
+                            ////Tân tạm bỏ
+                            //if (_TransDesc.Length > 0)
+                            //    mFD_Master.Description = _TransDesc;//mT.Description;
+                            //else
+                            mFD_Master.Description = mT.Description;
+
+                            mFD_Master.Quantity = Int32.Parse(_Quan);
+
+                            mFD_Master.Price = 0;
+                            mFD_Master.Amount = 0;
+                            mFD_Master.AmountMaster = 0;
+                            mFD_Master.AmountBeforeTax = 0;
+                            mFD_Master.AmountMasterBeforeTax = 0;
+
+                            mFD_Master.PostType = 2;
+                            mFD_Master.RowState = 1;
+
+                            mFD_Master.ID = (int)pt.Insert(mFD_Master);
+
+                            mFD_Master.InvoiceNo = mFD_Master.ID.ToString();
+                            mFD_Master.TransactionNo = mFD_Master.ID.ToString();
+                            #endregion
+
+                            for (int j = 0; j < arr.Count; j++)
+                            {
+                                #region Đổ dữ liệu vào Model
+                                mGT = (GenerateTransactionModel)arr[j];
+                                #endregion
+
+                                #region Lấy ra  CurrentAmount
+                                if (mGT.Type == 0)
+                                {
+                                    if (mGT.BaseAmount == 0)
+                                        CurrentAmount = (mGT.Percentage * BaseAmount) / 100;
+                                    else if (mGT.BaseAmount == 1)
+                                        CurrentAmount = (mGT.Percentage * s1) / 100;
+                                    else if (mGT.BaseAmount == 2)
+                                        CurrentAmount = (mGT.Percentage * s2) / 100;
+                                    else
+                                        CurrentAmount = (mGT.Percentage * s3) / 100;
+                                }
+                                else if (mGT.Type == 1)
+                                {
+                                    CurrentAmount = mGT.Amount;
+                                }
+                                CurrentAmount = GetAmountFormat(CurrentAmount);
+                                #endregion
+
+                                #region Lấy dữ liệu vào s1,s2,s3
+                                if ((mGT.Subtotal1 == true) && (mGT.Subtotal2 == false) && (mGT.Subtotal3 == false))
+                                {
+                                    s1 = s1 + CurrentAmount;
+                                }
+                                else if ((mGT.Subtotal1 == true) && (mGT.Subtotal2 == true) && (mGT.Subtotal3 == false))
+                                {
+                                    s1 = s1 + CurrentAmount;
+                                    s2 = CurrentAmount;
+                                }
+                                else if ((mGT.Subtotal1 == true) && (mGT.Subtotal2 == false) && (mGT.Subtotal3 == true))
+                                {
+                                    s1 = s1 + CurrentAmount;
+                                    s3 = CurrentAmount;
+                                }
+                                else if ((mGT.Subtotal1 == true) && (mGT.Subtotal2 == true) && (mGT.Subtotal3 == true))
+                                {
+                                    s1 = s1 + CurrentAmount;
+                                    s2 = CurrentAmount;
+                                    s3 = CurrentAmount;
+                                }
+                                #endregion
+
+                                #region Đổ dữ liệu vào model Model
+
+                                mFD_Detail.IsSplit = false;
+                                mFD_Detail.PostType = 2;
+                                mFD_Detail.RowState = 2;
+
+                                mFD_Detail.TransactionGroupID = mGT.TransactionGroupID;
+                                mFD_Detail.TransactionSubgroupID = mGT.TransactionSubGroupID;
+                                mFD_Detail.GroupCode = mGT.GroupCode;
+                                mFD_Detail.SubgroupCode = mGT.SubgroupCode;
+                                mFD_Detail.GroupType = mGT.GroupType;
+
+                                mFD_Detail.TransactionCode = mGT.TransactionCodeDetail;
+                                mFD_Detail.Description = mGT.Description;
+
+                                if ((TaxInclude == true) && (j == arr.Count - 1))
+                                    mFD_Detail.Amount = _Amount - mFD_Master.Amount;
+                                else
+                                    mFD_Detail.Amount = GetAmountFormat(CurrentAmount);
+                                mFD_Detail.AmountBeforeTax = mFD_Detail.Amount;
+                                mFD_Detail.Price = mFD_Detail.Amount / mFD_Detail.Quantity;
+                                mFD_Detail.AmountGross = mFD_Detail.Amount;
+                                if (j == 0)
+                                {
+                                    // Tính ra tỉ giá nếu là dòng dầu
+                                    mFD_Detail.AmountMaster = TextUtils.ExchangeCurrency(DateTime.Now, _CurrencyID, _CurrencyID, mFD_Detail.Amount);
+                                    Rate = mFD_Detail.AmountMaster / mFD_Detail.Amount;
+                                    // Nếu là dòng đầu -> insert giá trước thuế.
+                                    mFD_Master.AmountBeforeTax = mFD_Detail.Amount;
+                                    mFD_Master.AmountMasterBeforeTax = mFD_Detail.AmountMaster;
+                                }
+                                else
+                                    mFD_Detail.AmountMaster = mFD_Detail.Amount * Rate;
+
+                                mFD_Detail.AmountMasterBeforeTax = mFD_Detail.AmountMaster;
+                                mFD_Detail.AmountMasterGross = mFD_Detail.AmountMaster;
+
+                                #endregion
+
+                                #region Insert Du lieu
+
+                                mFD_Detail.InvoiceNo = mFD_Master.InvoiceNo;
+                                mFD_Detail.TransactionNo = mFD_Master.TransactionNo;
+                                mFD_Detail.ID = (int)pt.Insert(mFD_Detail);
+
+                                mFD_Master.AmountMaster = mFD_Master.AmountMaster + mFD_Detail.AmountMaster;
+                                mFD_Master.Amount = mFD_Master.Amount + mFD_Detail.Amount;
+
+                                #endregion
+                            }
+                            // Tính giá Gross
+                            mFD_Master.AmountGross = mFD_Master.Amount;
+                            mFD_Master.AmountMasterGross = mFD_Master.AmountMaster;
+                            // Tính giá Net nếu số tiền nhập vào là giá sau thuế
+                            if (TaxInclude == true)
+                            {
+                                mFD_Master.Amount = _Amount;
+                                mFD_Master.AmountMaster = _Amount * Rate;
+                            }
+                            mFD_Master.Price = mFD_Master.Amount / mFD_Master.Quantity;
+
+                            pt.Update(mFD_Master);
+                            //Update số dư.
+                            //UpdateBalance(_RsvID, FolioID, pt, ref _Message);
+
+                            // Ghi histoty
+                            //if (mFD_Master.GroupType != 1)
+                            //    ActionPosting.InsertHistory(pt, _SysDate, _BusinessDate, mFD_Master.FolioID, mFD_Master.FolioID, mFD_Master.InvoiceNo, ActionPosting.HistoryType.Gen_Post,
+                            //        ActionPosting.GetActionText(ActionPosting.HistoryType.Gen_Post, mFD_Master.TransactionCode, mFD_Master.Description),
+                            //        Global.UserName, mFD_Master.TransactionCode, mFD_Master.Description, mFD_Master.Amount, mFD_Master.Supplement, "", "", "");
+                            //else
+                            //    ActionPosting.InsertHistory(pt, _SysDate, _BusinessDate, mFD_Master.FolioID, mFD_Master.FolioID, mFD_Master.InvoiceNo, ActionPosting.HistoryType.Payment,
+                            //        ActionPosting.GetActionText(ActionPosting.HistoryType.Payment, mFD_Master.TransactionCode, mFD_Master.Description),
+                            //        Global.UserName, mFD_Master.TransactionCode, mFD_Master.Description, mFD_Master.Amount, mFD_Master.Supplement, "", "", "");
+
+                            ////Trả về thông tin
+                            //_AmountReturn = mFD_Master.Amount;
+                            //_AmountLocalReturn = mFD_Master.AmountMaster;
+                            //_TransNoReturn = mFD_Master.TransactionNo;
+                        }
+                        #endregion
+
+                        #region Commit-Return
+                        pt.CommitTransaction();
+                        pt.CloseConnection();
+                        string[] strArrayReturn1 = { "true" };
+                        return Json(new { success = true, message = "Posting successfully." });
+                        #endregion
+
+                    }
+                    else if (FolioID == -1)
+                    {
+                        string _Message = "Folio is locked.";
+                        string[] strArrayReturn = { "false", _Message };
+                        return Json(new { success = false, message = _Message });
+
+                    }
+                    else
+                    {
+                        string[] strArrayReturn = { "true" };
+                        return Json(new { success = true, message = "Posting successfully." });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    pt.CloseConnection();
+                    string _Message = ex.Message;
+                    string[] strArrayReturn = { "false", _Message };
+                    return Json(new { success = false, message = _Message });
+                
+                }
+
+
+
+               
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+        decimal GetAmount(List<GenerateTransactionModel> arr, decimal InputAmount)
+        {
+            #region Khai báo biến
+
+            string s1 = "B0", s2 = "B0", s3 = "B0";
+            string BaseAmount = "B";
+            string CurrentAmount = "";
+
+            GenerateTransactionModel mGT;
+
+            string result = "";
+
+            #endregion
+
+            for (int i = 0; i < arr.Count; i++)
+            {
+                #region Do du lieu vao Model
+                mGT = (GenerateTransactionModel)arr[i];
+                #endregion
+
+                #region Lay ra CurrentAmount
+
+                if (mGT.BaseAmount == 0)
+                    CurrentAmount = "B" + Convert.ToString(Convert.ToDecimal(mGT.Percentage) / 100);
+                else if (mGT.BaseAmount == 1)
+                    CurrentAmount = "B" + (mGT.Percentage * GetNumber(s1)) / 100;
+                else if (mGT.BaseAmount == 2)
+                    CurrentAmount = "B" + (mGT.Percentage * GetNumber(s2)) / 100;
+                else
+                    CurrentAmount = "B" + (mGT.Percentage * GetNumber(s3)) / 100;
+
+                #endregion
+
+                #region Lay du lieu vao s1,s2,s3
+                if ((mGT.Subtotal1 == true) && (mGT.Subtotal2 == false) && (mGT.Subtotal3 == false))
+                {
+                    s1 = "B" + (GetNumber(s1) + GetNumber(CurrentAmount));
+                }
+                else if ((mGT.Subtotal1 == true) && (mGT.Subtotal2 == true) && (mGT.Subtotal3 == false))
+                {
+                    s1 = "B" + (GetNumber(s1) + GetNumber(CurrentAmount));
+                    s2 = CurrentAmount;
+                }
+                else if ((mGT.Subtotal1 == true) && (mGT.Subtotal2 == false) && (mGT.Subtotal3 == true))
+                {
+                    s1 = "B" + (GetNumber(s1) + GetNumber(CurrentAmount));
+                    s3 = CurrentAmount;
+                }
+                else if ((mGT.Subtotal1 == true) && (mGT.Subtotal2 == true) && (mGT.Subtotal3 == true))
+                {
+                    s1 = "B" + (GetNumber(s1) + GetNumber(CurrentAmount));
+                    s2 = CurrentAmount;
+                    s3 = CurrentAmount;
+                }
+                #endregion
+
+                if (result.Equals(""))
+                    result = CurrentAmount;
+                else
+                    result = "B" + (GetNumber(result) + GetNumber(CurrentAmount));
+            }
+
+            return InputAmount / GetNumber(result);
+        }
+        decimal GetNumber(string InputAmount)
+        {
+            return Convert.ToDecimal(InputAmount.Trim('B'));
+        }
+        decimal GetAmountFormat(decimal Amount)
+        {
+            Decimal Result = Convert.ToDecimal(Amount.ToString("###,###,###.00"));
+            return Result;
+        }
+
         #endregion
     }
 }
