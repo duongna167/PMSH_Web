@@ -21,39 +21,35 @@
         white-space: nowrap;
     }
 
-        /* Label gọn */
-        .filter-item > label {
-            margin: 0;
-            font-weight: 500;
-        }
+    /* Label gọn */
+    .filter-item>label {
+        margin: 0;
+        font-weight: 500;
+    }
 
     /* Group checkbox Show */
     .show-group {
         gap: 12px;
     }
 
-        /* Checkbox gọn hàng */
-        .show-group .form-check {
-            display: flex;
-            align-items: center;
-            margin: 0;
-        }
+    /* Checkbox gọn hàng */
+    .show-group .form-check {
+        display: flex;
+        align-items: center;
+        margin: 0;
+    }
 
-        .show-group .form-check-label {
-            margin-left: 4px;
-            padding-top: 0;
-            cursor: pointer;
-        }
-
+    .show-group .form-check-label {
+        margin-left: 4px;
+        padding-top: 0;
+        cursor: pointer;
+    }
 </style>
 <div class="text-center" id="reportTitle" style="font-size: 20px">Room Discrepancy</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
+<div class="search-filter">
     <div class="">
-        <button style="border-radius: 4px;  margin-right: 6px; " id="btnPrint" class="mui-button mui-button-new">View</button>
-        <button style="border-radius: 4px;  margin-right: 6px; " id="btnSave" class="mui-button mui-button-new"
-                type="button">
-            Save
-        </button>
+        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+        <button id=" btnSave" class="mui-button mui-button-new" type="button"> Save</button>
 
     </div>
     <div class="filter-box d-flex flex-wrap align-items-center gap-3 mb-1">
@@ -103,25 +99,25 @@
             <label>Show:</label>
 
             <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="sleeps">
-                <label class="form-check-label text-primary" for="sleeps">Sleeps</label>
+                <input type="checkbox" id="sleeps" checked>
+                <label class="form-check-label " for="sleeps">Sleeps</label>
             </div>
 
             <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="skips">
-                <label class="form-check-label text-primary" for="skips">Skips</label>
+                <input type="checkbox" id="skips" checked>
+                <label class="form-check-label " for="skips">Skips</label>
             </div>
 
             <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="personsDiscrepancy">
-                <label class="form-check-label text-primary" for="personsDiscrepancy">
+                <input type="checkbox" id="personsDiscrepancy" checked>
+                <label class="form-check-label " for="personsDiscrepancy">
                     Persons Discrepancy
                 </label>
             </div>
         </div>
 
     </div>
-  
+
 </div>
 
 <div class="mui-card">
@@ -176,12 +172,13 @@
 
         $("#gridContainer").dxDataGrid({
             dataSource: data,
-            keyExpr: "roomNo",
+            keyExpr: "id",
             allowColumnResizing: true,
             selection: { mode: "single" }, // chỉ chọn 1 dòng
-            // editing: { mode: "batch", allowUpdating: true },
-            height :500,   
+            editing: { mode: "batch", allowUpdating: true },
+            height: 500,
             columns: [
+                { dataField: "id", caption: "ID", visible: false },
                 { dataField: "roomNo", caption: "Room No", allowEditing: false },
                 {
                     dataField: "hkStatusId",
@@ -194,7 +191,12 @@
                         valueExpr: "id",
                         displayExpr: "name"
                     },
-                    editCellTemplate: function (cellElement, cellInfo) {
+                    cellTemplate: function (cellElement, cellInfo) {
+
+                        cellElement
+                            .addClass("dx-editor-cell")
+                            .attr("tabindex", 0);
+
                         $("<div>").dxSelectBox({
                             dataSource: [
                                 { id: 0, name: "Vacant" },
@@ -203,7 +205,15 @@
                             valueExpr: "id",
                             displayExpr: "name",
                             value: cellInfo.value,
-                            onValueChanged: function (e) { cellInfo.setValue(e.value); }
+                            buttons: ["dropDown"],
+                            width: "100%",
+                            onValueChanged(e) {
+                                cellInfo.component.cellValue(
+                                    cellInfo.rowIndex,
+                                    "hkStatusId",
+                                    e.value
+                                );
+                            }
                         }).appendTo(cellElement);
                     }
                 },
@@ -232,43 +242,96 @@
                 visible: true,
                 applyFilter: "auto"
             },
-        });
-    }
-   
-    $('#btnSave').click(function () {
-        var grid = $("#gridContainer").dxDataGrid("instance");
-        var selectedRow = grid.getSelectedRowsData()[0]; // chỉ lấy 1 phòng
+            toolbar: {
+                visible: false
+            },
+            onCellPrepared: function (e) {
+                if (e.rowType === "data" && e.column.dataField === "roomStatus") {
+                    const status = (e.value || "").toLowerCase();
 
-        if (!selectedRow) {
-            alert('Vui lòng chọn 1 phòng.');
-            return;
-        }
-
-        var payload = {
-            roomNo: selectedRow.roomNo,      // **string, không phải mảng**
-            newHKFOStatus: selectedRow.hkStatusId
-        };
-
-        console.log("Payload gửi lên server:", payload);
-
-        $.ajax({
-            url: '/RoomManagement/UpdateHKFOStatus',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(payload),
-            success: function (res) {
-                if (res.success) {
-                    alert(res.message);
-                    grid.refresh();
-                } else {
-                    alert('Lỗi: ' + res.message);
+                    if (status.includes("dirty")) {
+                        e.cellElement.css("background-color", "Red"); // d? nh?t
+                        e.cellElement.css("color", "white");
+                    } else if (status.includes("pickup")) {
+                        e.cellElement.css("background-color", "#f740f4"); // tím nh?t
+                    } else if (status.includes("clean non-checked")) {
+                        e.cellElement.css("background-color", "#1bdff5"); // xanh nu?c bi?n nh?t
+                    } else if (status.includes("out of order")) {
+                        e.cellElement.css("background-color", "#cf159a"); // h?ng
+                        e.cellElement.css("color", "white");
+                    } else if (status.includes("clean")) {
+                        e.cellElement.css("background-color", "green"); // xanh lá
+                        e.cellElement.css("color", "white"); // ch? tr?ng cho d? nhìn
+                    }
                 }
             },
-            error: function (err) {
-                console.log(err);
-                alert('Có lỗi xảy ra khi lưu!');
+            onSaving: function (e) {
+                const editRows = e.changes;
+                console.log('edtRows', editRows);
+                if (editRows.length < 1) {
+                    showToast("Warning", "There are no changes to save.", false);
+                    return;
+                }
+                var userId = localStorage.getItem("userID");
+                const payload = editRows
+                    .filter(c => c.type === "update")
+                    .map(c => ({
+                        roomIds: c.key,
+                        newHKFOStatus: c.data.hkStatusId,
+                        updateByID: userId
+                    }))
+                    .filter(p => p.newHKFOStatus !== undefined);
+                console.log('payload', payload);
+                $.ajax({
+                    url: '/UpdateHKFOStatus',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        if (res.success) {
+                            const skippedText = res.skipped && res.skipped.length > 0 ? res.skipped.join(", ") : "no";
+                            showToast("Success", `Update success ${res.updated} room(s), skipped room(s): ${skippedText}`, true);
+                            grid.refresh();
+                        } else {
+                            showToast('Error: ', res.message, false);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        // Nếu có mảng errors thì hiển thị từng cái
+                        if (Array.isArray(xhr.responseJSON?.errors)) {
+                            xhr.responseJSON.errors.forEach((err, index) => {
+                                setTimeout(() => {
+                                    showToast("Error", err, false);
+                                }, index * 1000); // delay 300ms mỗi toast
+                            });
+                        }
+
+                    }
+
+                });
+
+
+
             }
         });
+    }
+
+    $('#btnSave').click(function () {
+        var grid = $("#gridContainer").dxDataGrid("instance");
+        //    var selectedRow = grid.getSelectedRowsData()[0]; // chỉ lấy 1 phòng
+        grid.saveEditData();
+
+        @* if (!selectedRow) {
+            alert('Vui lòng chọn 1 phòng.');
+            return;
+        } *@
+
+            @* var payload = {
+            roomNo: selectedRow.roomNo,      // **string, không phải mảng**
+            newHKFOStatus: selectedRow.hkStatusId
+        }; *@
+
+            @* console.log("Payload gửi lên server:", payload); *@
     });
 
 

@@ -78,44 +78,64 @@ namespace RoomManagement.Controllers
         }
 
         [HttpPost("UpdateHKFOStatus")]
-        public IActionResult UpdateHKFOStatus([FromBody] RoomUpdateDTO dto)
+        public IActionResult UpdateHKFOStatus([FromBody] List<RoomUpdateDTO> dto)
         {
-            if (dto == null || string.IsNullOrEmpty(dto.RoomNo))
-                return BadRequest(new { success = false, message = "Không có phòng nào được chọn" });
+            if (dto == null || dto.Count == 0)
+                return Json(new { success = false, message = "Không có phòng nào được chọn" });
+
+            // Validate status
+            if (dto.Any(d => d.NewHKFOStatus < 0 || d.NewHKFOStatus > 1))
+                return Json(new { success = false, message = "HKFO Status không hợp lệ" });
+
 
             try
             {
-                string connString = new AppConfiguration()?.ConnectionString;
-                if (string.IsNullOrEmpty(connString))
-                    return BadRequest(new { success = false, message = "Chuỗi kết nối không hợp lệ" });
+                var roomIds = dto
+                    .Select(d => d.RoomIds)
+                    .Where(id => id > 0)
+                    .Distinct()
+                    .ToList();
 
-                using (SqlConnection conn = new SqlConnection(connString))
+
+                //  Load rooms (1 query)
+                var rooms = roomIds.Any()
+                    ? RoomBO.Instance.GetList<RoomModel>(
+                        "SELECT * FROM Room WHERE ID IN @Ids",
+                        new { Ids = roomIds })
+                    : new List<RoomModel>();
+
+
+
+                var foundIDs = rooms.Select(r => r.ID).ToList();
+                var notFoundIDs = roomIds
+                    .Where(id => id <= 0 || !foundIDs.Contains(id))
+                    .ToList();
+
+                foreach (var room in rooms)
                 {
-                    conn.Open();
+                    var req = dto.First(d => d.RoomIds == room.ID);
 
-                    string sql = @"
-                        UPDATE Room
-                        SET HKFOStatus = @NewHKFOStatus
-                        WHERE RoomNo = @RoomNo
-                  ";
-
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    if (room.HKFOStatus != req.NewHKFOStatus)
                     {
-                        cmd.Parameters.Add("@NewHKFOStatus", SqlDbType.Int).Value = dto.NewHKFOStatus;
-                        cmd.Parameters.Add("@RoomNo", SqlDbType.VarChar, 10).Value = dto.RoomNo;
+                        room.HKFOStatus = req.NewHKFOStatus;
+                        room.UserUpdateID = req.UpdateByID;
+                        room.UpdateDate = DateTime.Now;
 
-                        int rowsAffected = cmd.ExecuteNonQuery();
-
-                        if (rowsAffected == 0)
-                            return BadRequest(new { success = false, message = "Phòng không thỏa điều kiện hoặc không tồn tại" });
+                        RoomBO.Instance.Update(room);
                     }
                 }
 
-                return Ok(new { success = true, message = "Cập nhật thành công" });
+
+                return Ok(new
+                {
+                    success = true,
+                    updated = rooms.Count,
+                    skipped = notFoundIDs
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.ToString() });
+                return Json(new { success = false, message = ex.Message });
             }
         }
 

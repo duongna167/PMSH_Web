@@ -8,9 +8,11 @@ namespace BaseBusiness.Model
 {
     public class RoomUpdateDTO
     {
-        public string RoomNo { get; set; }  // chỉ 1 phòng
-        public int NewHKFOStatus { get; set; }
+        public int RoomIds { get; set; } = 0;
+        public int NewHKFOStatus { get; set; } = 0;
+        public int UpdateByID { get; set; } = 0;
     }
+
 
 
 }

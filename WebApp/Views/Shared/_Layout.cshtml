@@ -20,7 +20,7 @@
     <link href="~/css/assets/textarea.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/assets/button_small.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/assets/input_date.css" rel="stylesheet" />
-
+    <link href="~/css/assets/modal-ratio.css" rel="stylesheet" />
 
     @* css components *@    
     <link href="~/css/components/grid_table.css" rel="stylesheet" asp-append-version="true" />
@@ -152,8 +152,8 @@
                 <span class="divider">|</span>
 
                 <div class="notification-wrapper">
-                   @*  <div class="notification-icon" onclick="showNotification()"> *@
-                    <div class="notification-icon" >
+                    @*  <div class="notification-icon" onclick="showNotification()"> *@
+                    <div class="notification-icon">
                         <i class="fas fa-bell"></i>
                         <span class="notification-badge">0</span>
                     </div>
@@ -206,7 +206,8 @@
                                     New Group Reservation
                                 </a>
 
-                                <a asp-area="" asp-controller="HouseKeeping" asp-action="RoomAssignment">Room Assignment</a>
+                                <a asp-area="" asp-controller="HouseKeeping" asp-action="RoomAssignment">Room
+                                    Assignment</a>
                                 <a asp-area="" asp-controller="Reservation" asp-action="OverBooking">Over Booking</a>
 
                                 <a asp-area="" asp-controller="Reservation" asp-action="RateCodeAuthor">Rate Query</a>
@@ -243,7 +244,8 @@
                                 <a asp-area="" asp-controller="Home" asp-action="">Report of Staying</a>
                                 <a asp-area="" asp-controller="Home" asp-action="">Recalculate Revenue </a> *@
                                 <a asp-area="" asp-controller="FrontDesk" asp-action="PostingToRoom">Posting To Room</a>
-                                <a asp-area="" asp-controller="FrontDesk" asp-action="MapTransactionCode">Map Transaction Code</a>
+                                <a asp-area="" asp-controller="FrontDesk" asp-action="MapTransactionCode">Map
+                                    Transaction Code</a>
 
                                 <a asp-area="" asp-controller="HouseKeeping" asp-action="LostAndFound">Lost And
                                     Found</a>
@@ -266,7 +268,7 @@
                                 <a asp-area="" asp-controller="HouseKeeping" asp-action="RoomPlan">Room Plan</a>
                                 <a asp-area="" asp-controller="HouseKeeping" asp-action="FloorPlan">Floor Plan</a>
                                 <a asp-area="" asp-controller="HouseKeeping" asp-action="RoomStatus">Room Status</a>
-                   
+
                                 <a asp-area="" asp-controller="RoomManagement" asp-action="Discrepancy">Discrepancy</a>
                                 @* <a asp-area="" asp-controller="RoomManagement" asp-action="OOOSload">Out Of Order/Service</a> *@
                                 <a asp-area="" asp-controller="RoomManagement" asp-action="OOOSload">Out Of Order</a>
@@ -1229,46 +1231,70 @@
 
 <!-- Script để load modal -->
 <script>
+    const ModalManager = {
+        load: function (url, modalId, callback) {
+            const $container = $("#modalContainer");
+            $container.empty();
+            $container.load(url, function (response, status, xhr) {
+                if (status === "error") {
+                    console.error(`Lỗi load file: ${xhr.status} ${xhr.statusText}`);
+                    return;
+                }
+
+                console.log(`[2] Đã tải xong HTML. Đang tìm ID: ${modalId}`);
+                const modalEl = document.getElementById(modalId);
+
+                if (!modalEl) {
+                    console.error(`Không tìm thấy phần tử ID: ${modalId} trong nội dung vừa tải!`);
+                    return;
+                }
+
+                if (typeof initDateInputs === "function") initDateInputs(modalEl);
+
+                const modal = new bootstrap.Modal(modalEl);
+
+                modalEl.addEventListener("shown.bs.modal", function () {
+
+                    // Kiểm tra callback
+                    if (typeof callback === "function") {
+                        callback();
+                    } else if (typeof window[callback] === "function") {
+                        // Nếu truyền vào dạng string 'openModalSearchGroupReservation'
+                        window[callback]();
+                    } else {
+                        console.warn(`Không tìm thấy hàm callback để thực thi.`);
+                    }
+                }, { once: true });
+
+                modalEl.addEventListener("hidden.bs.modal", function () {
+                    modal.dispose();
+                    $container.empty();
+                });
+
+                modal.show();
+            });
+        }
+    };
 
     function openSearchGroupReservation() {
-        $("#modalContainer").load(
+        // Truyền dạng string để JS không check sự tồn tại ngay lập tức
+        ModalManager.load(
             "/Reservation/SearchGroupReservationModal",
-            function () {
-                const modalEl = document.getElementById("modalSearchGroupReservation");
-                // Init UI control cho modal (datepicker, custom input...)
-                initDateInputs(modalEl);
-                const modal = new bootstrap.Modal(modalEl);
-                // ❗ GẮN EVENT TRƯỚC KHI SHOW
-                modalEl.addEventListener(
-                    "shown.bs.modal",
-                    async function () {
-                        await openModalSearchGroupReservation(); // ✅ GỌI ĐÚNG
-                    },
-                    { once: true } // ❗ tránh chạy lại
-                );
-                modal.show();
-            }
-        );
-    }
-    function openNewGroupReservation() {
-        $("#modalContainer").load(
-            "/Reservation/NewGroupReservation",
-            function () {
-                const modalEl = document.getElementById("modalNewGroupReservation");
-                // Init UI control cho modal (datepicker, custom input...)
-                initDateInputs(modalEl);
-                const modal = new bootstrap.Modal(modalEl);
-                // ❗ GẮN EVENT TRƯỚC KHI SHOW
-                modalEl.addEventListener(
-                    "shown.bs.modal",
-                    function () {
-                        openModalNewGroupReservation(); // ✅ GỌI ĐÚNG
-                    },
-                    { once: true } // ❗ tránh chạy lại
-                );
-                modal.show();
-            }
+            "modalSearchGroupReservation",
+            "openModalSearchGroupReservation"
         );
     }
 
+    function openNewGroupReservation() {
+        // Hoặc bọc trong function() {}
+        ModalManager.load(
+            "/Reservation/NewGroupReservation",
+            "modalNewGroupReservation",
+            function () {
+                if (typeof openModalNewGroupReservation === "function") {
+                    openModalNewGroupReservation();
+                }
+            }
+        );
+    }
 </script>
