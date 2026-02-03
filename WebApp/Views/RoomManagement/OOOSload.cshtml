@@ -10,65 +10,6 @@
 }
 
 <style>
-    /* =========================
-       COMPACT FILTER TOOLBAR
-       ========================= */
-
-    .filter-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, max-content));
-        gap: 6px 10px;
-        align-items: center;
-    }
-
-    /* mỗi filter là 1 hàng nhỏ */
-    .filter-item {
-        display: flex;
-        align-items: center;
-        white-space: nowrap;
-    }
-
-        /* label nhỏ – sát */
-        .filter-item label {
-            font-size: 12px;
-            font-weight: 600;
-            margin-right: 4px;
-            color: #333;
-        }
-
-    /* control */
-    .filter-control {
-        display: flex;
-        align-items: center;
-        min-width: 0;
-    }
-
-    /* date group */
-    .filter-date {
-        gap: 4px;
-    }
-
-    /* input / select đồng bộ height */
-    .date-ui,
-    .tomselect-custom,
-    .filter-checkbox {
-        height: 30px;
-        font-size: 12px;
-    }
-
-    /* checkbox compact */
-    .filter-checkbox {
-        gap: 8px;
-        padding: 0 6px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        background: #f8f9fa;
-    }
-
-        .filter-checkbox label {
-            font-weight: 500;
-            margin: 0;
-        }
 
 
     /* Date input */
@@ -96,23 +37,27 @@
         <button id="btnHistory" class="mui-button mui-button-new">History</button>
     </div>
 
-    <div class="filter-grid">
+    <div class="container-fluid px-0">
+        <div class="row g-2 align-items-center">
 
-        <div class="filter-item">
-            <label>Date:</label>
-            <div class="filter-control filter-date">
+            <!-- Date -->
+            <div class="col-auto">
+                <label class="col-form-label mb-0">Date:</label>
+            </div>
+            <div class="col-auto d-flex gap-1">
                 <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
-                    <input type="text" class="date-ui form-control form-control-sm" placeholder="From" />
+                    <input type="text" class="date-ui form-control form-control-sm" placeholder="From">
                 </div>
                 <div data-date-input data-format="DD/MM/YYYY" business-date data-name="toDate">
-                    <input type="text" class="date-ui form-control form-control-sm" placeholder="To" />
+                    <input type="text" class="date-ui form-control form-control-sm" placeholder="To">
                 </div>
             </div>
-        </div>
 
-        <div class="filter-item">
-            <label>Room:</label>
-            <div class="filter-control">
+            <!-- Room (3) -->
+            <div class="col-auto">
+                <label class="col-form-label mb-0">Room:</label>
+            </div>
+            <div class="col-md-2 col-sm-6">
                 <select id="room" class="tomselect-custom" multiple>
                     @foreach (var u in ViewBag.RoomList)
                     {
@@ -120,11 +65,12 @@
                     }
                 </select>
             </div>
-        </div>
 
-        <div class="filter-item">
-            <label>Class:</label>
-            <div class="filter-control">
+            <!-- Class (1) ✅ FIX -->
+            <div class="col-auto">
+                <label class="col-form-label mb-0">Class:</label>
+            </div>
+            <div class="col-md-1 col-sm-4">
                 <select id="roomClass" class="tomselect-custom">
                     @foreach (var g in ViewBag.RoomClassList)
                     {
@@ -132,11 +78,12 @@
                     }
                 </select>
             </div>
-        </div>
 
-        <div class="filter-item">
-            <label>Zone:</label>
-            <div class="filter-control">
+            <!-- Zone (2) -->
+            <div class="col-auto">
+                <label class="col-form-label mb-0">Zone:</label>
+            </div>
+            <div class="col-md-1 col-sm-4">
                 <select id="zone" class="tomselect-custom" multiple>
                     @foreach (var z in ViewBag.ZoneList)
                     {
@@ -144,17 +91,24 @@
                     }
                 </select>
             </div>
-        </div>
 
-        <div class="filter-item">
-            <label>Type:</label>
-            <div class="filter-control filter-checkbox">
-                <label><input type="checkbox" id="outofOrder" checked> OOO</label>
-                <label><input type="checkbox" id="outofService" checked> OOS</label>
+            <!-- Type (auto) -->
+            <div class="col-auto">
+                <label class="col-form-label mb-0">Type:</label>
             </div>
+            <div class="col-auto d-flex gap-2 border rounded px-2 py-1">
+                <label class="mb-0">
+                    <input type="checkbox" id="outofOrder" checked> OOO
+                </label>
+                <label class="mb-0">
+                    <input type="checkbox" id="outofService" checked> OOS
+                </label>
+            </div>
+
         </div>
 
     </div>
+
 
 </div>
 
@@ -164,175 +118,176 @@
         <div class="gridContainer" id="gridContainer"></div>
     </div>
 
-    <!-- Modal Popup for New Item -->
-    <div class="modal fade" id="itemModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="itemModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="itemModalLabel">Out of order/service management</h5>
-                </div>
-
-                <div class="modal-body">
-                    <div class="py-2">
-                        <button type="button" id="btnSaveItem" class="mui-button mui-button-new">Save</button>
-                        <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
-                    </div>
-
-                    <form id="formContainer">
-                        <div class="container-fluid px-2">
-                            <input type="hidden" id="id" name="id" value="0" />
-
-                            <div class="row g-3 mb-2 align-items-center">
-                                <div class="col-md-7">
-                                    <div class="row align-items-center">
-                                        <label class="col-sm-5 col-form-label text-md-end fw-bold px-1">Type:</label>
-                                        <div class="col-sm-7">
-                                            <div class="d-flex gap-3">
-                                                <div class="form-check m-0">
-                                                    <input class="" type="radio" name="oooOrS" id="ooo" value="1">
-                                                    <label class="form-check-label" for="ooo">OOO</label>
-                                                </div>
-                                                <div class="form-check m-0">
-                                                    <input class="" type="radio" name="oooOrS" id="oos" value="2" checked>
-                                                    <label class="form-check-label" for="oos">OOS</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-5">
-                                    <div class="row align-items-center">
-                                        <label class="col-sm-5 col-form-label text-md-end fw-bold px-1">From Date:</label>
-                                        <div class="col-sm-7">
-                                            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="itemFromDate" name="itemFromDate">
-                                                <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy"  />
-                                            </div>
-
-                                            <div class="invalid-feedback"></div>
-
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mb-2 align-items-center">
-                                <div class="col-md-7">
-                                    <div class="row align-items-center">
-                                        <label class="col-sm-5 col-form-label text-md-end fw-bold px-1">Return Status:</label>
-                                        <div class="col-sm-7">
-                                            <select id="rtStatus" name="rtStatus" class="tomselect-custom">
-                                                <option value="2">Dirty</option>
-                                                <option value="1">Clean Non-Checked</option>
-                                                <option value="3">Pickup</option>
-                                                <option value="4">Clean</option>
-                                            </select>
-                                            <div class="invalid-feedback"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-5">
-                                    <div class="row align-items-center">
-                                        <label class="col-sm-5 col-form-label text-md-end fw-bold px-1">To Date:</label>
-                                        <div class="col-sm-7">
-                                            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="itemToDate" name="itemToDate">
-                                                <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" />
-                                            </div>
-                                            <div class="invalid-feedback"></div>
-
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row mb-2 align-items-center">
-                                <label class="col-sm-3 col-form-label text-md-end fw-bold px-1">Reason:</label>
-                                <div class="col-sm-9">
-                                    <select id="comment" name="comment" class="tomselect-custom">
-                                        @foreach (var dpm in ViewBag.CommentList)
-                                        {
-                                            <option value="@dpm.ID" data-desc="@dpm.Description">@dpm.Code - @dpm.Description</option>
-                                        }
-                                    </select>
-                                    <div class="invalid-feedback"></div>
-                                </div>
-                            </div>
-
-                            <div class="row mb-2 align-items-center">
-                                <label class="col-sm-3 col-form-label text-md-end fw-bold px-1">Reason Note:</label>
-                                <div class="col-sm-9" style="width:224px;">
-                                    <input type="text" id="txtReasonDesc" name="txtReasonDesc" class="form-control form-control-sm" placeholder="Enter additional notes..." />
-                                    <div class="invalid-feedback"></div>
-                                </div>
-                            </div>
-
-                            <div class="row mb-2 align-items-center">
-                                <label class="col-sm-3 col-form-label text-md-end fw-bold px-1">Room Select:</label>
-                                <div class="col-sm-9">
-                                    <select id="roomSelect" name="roomSelect" class="tomselect-custom" multiple>
-                                        @foreach (var u in ViewBag.RoomList)
-                                        {
-                                            <option value="@u.ID">@u.RoomNo</option>
-                                        }
-                                    </select>
-                                    <div class="invalid-feedback"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- History Modal -->
-    <div class="modal fade" id="historyModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="historyModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <!-- rộng hơn để chứa grid -->
-            <div class="modal-content" ">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="historyModalLabel">Room Change History</h5>
-                </div>
-
-                <div class="modal-body">
-                    <div class="item-modal-actions py-2">
-                        <button class="mui-button mui-button-new" id="btnHistorySearch">Search</button>
-                        <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
-                    </div>
-                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-
-                        <div class="d-flex align-items-center me-2">
-                            <label class="me-2 mb-0">Room:</label>
-                            <input type="text" id="historyRoom" class="form-control form-control-sm w-auto" />
-                        </div>
-                        <div class="d-flex align-items-center me-2">
-                            <label class="me-2 mb-0">User Name:</label>
-                            <input type="text" id="historyUser" class="form-control form-control-sm w-auto" />
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="d-flex align-items-center">
-                                <label for="historyFromDate" class="me-2 mb-0">From Date:</label>
-                                <input type="date" id="historyFromDate" class="form-control form-control-sm w-auto" />
-                            </div>
-                            <div class="d-flex align-items-center">
-                                <label for="historyToDate" class="me-2 mb-0">To Date:</label>
-                                <input type="date" id="historyToDate" class="form-control form-control-sm w-auto" />
-                            </div>
-                        </div>
-
-
-                    </div>
-
-
-                    <div id="gridWrapper">
-                        <div class="gridContainer mt-2" id="historyGrid"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
 </div>
+<!-- Modal Popup for New Item -->
+<div class="modal fade" id="itemModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="itemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="itemModalLabel">Out of order/service management</h5>
+            </div>
+
+            <div class="modal-body">
+                <div class="py-2">
+                    <button type="button" id="btnSaveItem" class="mui-button mui-button-new">Save</button>
+                    <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <form id="formContainer">
+                    <div class="container-fluid px-2">
+                        <input type="hidden" id="id" name="id" value="0" />
+
+                        <div class="row g-3 mb-2 align-items-center">
+                            <div class="col-md-7">
+                                <div class="row align-items-center">
+                                    <label class="col-sm-5 col-form-label text-md-end fw-bold px-1">Type:</label>
+                                    <div class="col-sm-7">
+                                        <div class="d-flex gap-3">
+                                            <div class="form-check m-0">
+                                                <input class="" type="radio" name="oooOrS" id="ooo" value="1">
+                                                <label class="form-check-label" for="ooo">OOO</label>
+                                            </div>
+                                            <div class="form-check m-0">
+                                                <input class="" type="radio" name="oooOrS" id="oos" value="2" checked>
+                                                <label class="form-check-label" for="oos">OOS</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="row align-items-center">
+                                    <label class="col-sm-5 col-form-label text-md-end fw-bold px-1">From Date:</label>
+                                    <div class="col-sm-7">
+                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="itemFromDate" name="itemFromDate">
+                                            <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" />
+                                        </div>
+
+                                        <div class="invalid-feedback"></div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-2 align-items-center">
+                            <div class="col-md-7">
+                                <div class="row align-items-center">
+                                    <label class="col-sm-5 col-form-label text-md-end fw-bold px-1">Return Status:</label>
+                                    <div class="col-sm-7">
+                                        <select id="rtStatus" name="rtStatus" class="tomselect-custom">
+                                            <option value="2">Dirty</option>
+                                            <option value="1">Clean Non-Checked</option>
+                                            <option value="3">Pickup</option>
+                                            <option value="4">Clean</option>
+                                        </select>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="row align-items-center">
+                                    <label class="col-sm-5 col-form-label text-md-end fw-bold px-1">To Date:</label>
+                                    <div class="col-sm-7">
+                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="itemToDate" name="itemToDate">
+                                            <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" />
+                                        </div>
+                                        <div class="invalid-feedback"></div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-2 align-items-center">
+                            <label class="col-sm-3 col-form-label text-md-end fw-bold px-1">Reason:</label>
+                            <div class="col-sm-9">
+                                <select id="comment" name="comment" class="tomselect-custom">
+                                    @foreach (var dpm in ViewBag.CommentList)
+                                    {
+                                        <option value="@dpm.ID" data-desc="@dpm.Description">@dpm.Code - @dpm.Description</option>
+                                    }
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-2 align-items-center">
+                            <label class="col-sm-3 col-form-label text-md-end fw-bold px-1">Reason Note:</label>
+                            <div class="col-sm-9" style="width:224px;">
+                                <input type="text" id="txtReasonDesc" name="txtReasonDesc" class="form-control form-control-sm" placeholder="Enter additional notes..." />
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-2 align-items-center">
+                            <label class="col-sm-3 col-form-label text-md-end fw-bold px-1">Room Select:</label>
+                            <div class="col-sm-9">
+                                <select id="roomSelect" name="roomSelect" class="tomselect-custom" multiple>
+                                    @foreach (var u in ViewBag.RoomList)
+                                    {
+                                        <option value="@u.ID">@u.RoomNo</option>
+                                    }
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal fade" id="historyModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="historyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <!-- rộng hơn để chứa grid -->
+        <div class="modal-content" ">
+            <div class="modal-header">
+                <h5 class="modal-title" id="historyModalLabel">Room Change History</h5>
+            </div>
+
+            <div class="modal-body">
+                <div class="item-modal-actions py-2">
+                    <button class="mui-button mui-button-new" id="btnHistorySearch">Search</button>
+                    <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+
+                    <div class="d-flex align-items-center me-2">
+                        <label class="me-2 mb-0">Room:</label>
+                        <input type="text" id="historyRoom" class="form-control form-control-sm w-auto" />
+                    </div>
+                    <div class="d-flex align-items-center me-2">
+                        <label class="me-2 mb-0">User Name:</label>
+                        <input type="text" id="historyUser" class="form-control form-control-sm w-auto" />
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center">
+                            <label for="historyFromDate" class="me-2 mb-0">From Date:</label>
+                            <input type="date" id="historyFromDate" class="form-control form-control-sm w-auto" />
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <label for="historyToDate" class="me-2 mb-0">To Date:</label>
+                            <input type="date" id="historyToDate" class="form-control form-control-sm w-auto" />
+                        </div>
+                    </div>
+
+
+                </div>
+
+
+                <div id="gridWrapper">
+                    <div class="gridContainer mt-2" id="historyGrid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
