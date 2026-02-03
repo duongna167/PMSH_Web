@@ -4571,6 +4571,108 @@ namespace HouseKeeping.Controllers
             // return PartialView("_ReportViewerPartial", report);
         }
         #endregion
+
+        #region  PostingMinibar
+        public IActionResult PostingMinibar()
+        {
+
+            return View();
+        }
+        [HttpGet]
+        public IActionResult GetFolioMiniBar(int roomId)
+        {
+            try
+            {
+                string sql = $"SELECT Folio.* FROM Reservation WITH (NOLOCK), Room WITH (NOLOCK), Folio WITH (NOLOCK) where Room.ID = Reservation.RoomID and Reservation.Status = 1 and Folio.ReservationID = Reservation.ID and Room.ID = '{roomId}' ";
+
+
+
+                DataTable dt = TextUtils.Select(sql);
+                var result = (from d in dt.AsEnumerable()
+                              select new
+                              {
+                                  ID = d["ID"]?.ToString(),
+                                  ARNo = d["ARNo"]?.ToString(),
+                                  FolioDate = d["FolioDate"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(d["FolioDate"]),
+                                  FolioNo = d["FolioNo"]?.ToString(),
+                                  ReservationID = d["ReservationID"]?.ToString(),
+                                  ProfileID = d["ProfileID"]?.ToString(),
+                                  AccountName = d["AccountName"]?.ToString(),
+                                  Status = d["Status"] == DBNull.Value ? (int?)null : Convert.ToInt32(d["Status"]),
+                                  IsMasterFolio = d["IsMasterFolio"] == DBNull.Value ? false : Convert.ToBoolean(d["IsMasterFolio"]),
+                                  ConfirmationNo = d["ConfirmationNo"]?.ToString(),
+                                  BalanceUSD = d["BalanceUSD"] == DBNull.Value ? 0m : Convert.ToDecimal(d["BalanceUSD"]),
+                                  BalanceVND = d["BalanceVND"] == DBNull.Value ? 0m : Convert.ToDecimal(d["BalanceVND"]),
+                                  IsPrintVAT = d["IsPrintVAT"] == DBNull.Value ? false : Convert.ToBoolean(d["IsPrintVAT"]),
+                                  CreateDate = d["CreateDate"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(d["CreateDate"]),
+                                  UpdateDate = d["UpdateDate"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(d["UpdateDate"]),
+                                  UserUpdateID = d["UserUpdateID"]?.ToString(),
+                                  UserInsertID = d["UserInsertID"]?.ToString()
+
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        [HttpGet]
+        public IActionResult GetMinibarByArticle()
+        {
+            try
+            {
+                string sql = $"select * from Article WITH (NOLOCK) where IsMiniBar=1";
+
+
+
+                DataTable dt = TextUtils.Select(sql);
+                var result = (from d in dt.AsEnumerable()
+                              select new
+                              {
+                                  ID = d["ID"]?.ToString(),
+                                  Code = d["Code"]?.ToString(),
+                                  Description = d["Description"]?.ToString(),
+                                  TransactionCode = d["TransactionCode"]?.ToString(),
+
+                                  DefaultPrice = d["DefaultPrice"] == DBNull.Value ? 0m : Convert.ToDecimal(d["DefaultPrice"]),
+                                  CurrencyID = d["CurrencyID"]?.ToString(),
+
+                                  IsActive = d["IsActive"] == DBNull.Value ? false : Convert.ToBoolean(d["IsActive"]),
+                                  UnitID = d["UnitID"]?.ToString(),
+                                  ConversionUnitID = d["ConversionUnitID"]?.ToString(),
+
+                                  Exchange = d["Exchange"] == DBNull.Value ? 0m : Convert.ToDecimal(d["Exchange"]),
+                                  ArticleType = d["ArticleType"]?.ToString(),
+                                  Supplement = d["Supplement"]?.ToString(),
+
+                                  CreateDate = d["CreateDate"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(d["CreateDate"]),
+                                  UpdateDate = d["UpdateDate"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(d["UpdateDate"]),
+
+                                  UserUpdateID = d["UserUpdateID"]?.ToString(),
+                                  UserInsertID = d["UserInsertID"]?.ToString(),
+
+                                  IsMiniBar = d["IsMiniBar"] == DBNull.Value ? false : Convert.ToBoolean(d["IsMiniBar"]),
+                                  IsTransfer = d["IsTransfer"] == DBNull.Value ? false : Convert.ToBoolean(d["IsTransfer"])
+
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+        #endregion
     }
 }
 

@@ -91,7 +91,7 @@
                                     Departure
                                 </label>
                                 <div class="col-12 col-md-8">
-                                    <div class="clearable" data-date-input data-format="DD/MM/YYYY" business-date
+                                    <div class="clearable" data-date-input data-format="DD/MM/YYYY"
                                         data-name="departure2">
                                         <input type="text" id="departureNGRShow" class="date-ui form-control"
                                             placeholder="dd/mm/yyyy" autocomplete="off" />
@@ -172,7 +172,14 @@
 
     function openModalNewGroupReservation() {
         clearModalNewGroupReservation();
+        const toDate = new Date(dateSystem);
+        toDate.setDate(toDate.getDate() + 8);
+        const toDateStr = toDate.toISOString().split('T')[0];
+        console.log('toDateStr', toDateStr);
+
+        UI.setHiddenDate("departure2", toDateStr);
         searchRoomAvailale();
+
         $('#modalNewGroupReservation').modal('show');
     }
 
@@ -187,9 +194,57 @@
         $('#sale').prop('checked', false);
     }
 
+    function generateDateColumns(fromDate, toDate) {
+        const columns = [];
+        let start = new Date(fromDate);
+        const end = new Date(toDate);
+
+        while (start <= end) {
+            const yyyy = start.getFullYear();
+            const mm = String(start.getMonth() + 1).padStart(2, '0');
+            const dd = String(start.getDate()).padStart(2, '0');
+
+            const dateKey = `${yyyy}-${mm}-${dd}`; // MATCH API RESPONSE
+
+            const month = start.toLocaleString('en-US', { month: 'short' });
+            const weekday = start.toLocaleString('en-US', { weekday: 'short' });
+            const weekNumber = getWeekNumber(start);
+
+            const captionHtml = `${dd}-${month}<br>${weekday}<br>CW${weekNumber}`;
+
+            columns.push({
+                dataField: dateKey,     // ✅ QUAN TRỌNG
+                caption: dateKey,
+                width: 60,
+                dataType: "number",
+                alignment: "right",
+                headerCellTemplate(container) {
+                    container.html(
+                        `<div style="white-space:normal;text-align:center;font-size:11px">
+                        ${captionHtml}
+                    </div>`
+                    );
+                }
+            });
+
+            start.setDate(start.getDate() + 1);
+        }
+
+        return columns;
+    }
+
+    function getWeekNumber(date) {
+        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        const dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    }
 
     function searchRoomAvailale() {
         // Hiển thị biểu tượng tải DevExtreme
+        const fromDate = $('#arrival2').val();
+        const toDate = $('#departure2').val();
 
         $('#gridContainerRoom').hide();
         $('#loadingSpinnerRoom').show();
@@ -198,16 +253,16 @@
             type: 'get',
             dataType: 'json',
             data: {
-                fromDate: $('#arrival2').val(),
-                toDate: $('#departure2').val(),
+                fromDate: fromDate,
+                toDate: toDate,
             },
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                initializeDataGridRoomAvailable(result);
                 // Ẩn biểu tượng tải sau khi dữ liệu tải xong
                 $('#loadingSpinnerRoom').hide();
                 $('#gridContainerRoom').show();
+                initializeDataGridRoomAvailable(result, fromDate, toDate);
             },
             error: function (xhr, statusText, err) {
                 // Ẩn biểu tượng tải nếu xảy ra lỗi
@@ -217,6 +272,9 @@
                 } else {
                     showToast('Error', 'Đã xảy ra lỗi khi tìm kiếm phòng trống.', false);
                 }
+            },
+            complete: function () {
+                $('#loadingSpinnerRoom').hide();
             }
         });
     }
@@ -271,7 +329,7 @@
     }
 
     // Lắng nghe sự kiện thay đổi ngày
-    $(document).on('change', '#arrivalNGRShow', async function () {
+    @* $(document).on('change', '#arrivalNGRShow', async function () {
 
         if (window.isSyncingDates) return;
         window.isSyncingDates = true;
@@ -331,104 +389,94 @@
         } finally {
             window.isSyncingDates = false;
         }
-    });
+    }); *@
 
-    function initializeDataGridRoomAvailable(data) {
-        // Add default values for Currency and RateCode
-        data.forEach(item => {
-            item.Currency = "VND";
-            item.RateCode = "0";
-        });
+        function initializeDataGridRoomAvailable(data, fromDate, toDate) {
+            // Add default values for Currency and RateCode
+            data.forEach(item => {
+                item.Currency = "VND";
+                item.RateCode = "0";
+            });
+            const columnWidth = 120;
+            const dateColumns = generateDateColumns(fromDate, toDate);
 
-        // Define the columns array
-        const columns = [];
 
-        // Explicitly define the desired columns in the specified order
-        const predefinedColumns = [
-            {
-                dataField: "Currency",
-                caption: "Currency",
-                alignment: "left",
-                width: 150 // Fixed width of 150px
-            },
-            {
-                dataField: "RateCode",
-                caption: "Rate Code",
-                alignment: "left",
-                width: 150 // Fixed width of 150px
-            },
-            {
-                dataField: "RoomType",
-                caption: "Room Type",
-                alignment: "left",
-                width: 150 // Fixed width of 150px
-            },
-            {
-                dataField: "NumofRoom",
-                caption: "Num of Room",
-                alignment: "right",
-                width: 150 // Fixed width of 150px
-            }
-        ];
+            // Define the columns array
+            const columns = [];
 
-        // Add remaining columns dynamically, excluding specified ones
-        if (data.length > 0) {
-            for (const key of Object.keys(data[0])) {
-                if (!["Currency", "RateCode", "RoomType", "NumofRoom", "RoomTypeID"].includes(key)) {
-                    columns.push({
-                        dataField: key,
-                        caption: key,
-                        alignment: typeof data[0][key] === 'number' ? 'right' : 'left',
-                        width: 150 // Fixed width of 150px
-                    });
+            // Explicitly define the desired columns in the specified order
+            const predefinedColumns = [
+                {
+                    dataField: "Currency",
+                    caption: "Currency",
+                    alignment: "left",
+                    width: 60 // Fixed width of 150px
+                },
+                {
+                    dataField: "RateCode",
+                    caption: "Rate Code",
+                    alignment: "left",
+                    width: 100 // Fixed width of 150px
+                },
+                {
+                    dataField: "RoomType",
+                    caption: "Room Type",
+                    alignment: "left",
+                    width: 100 // Fixed width of 150px
+                },
+                {
+                    dataField: "NumofRoom",
+                    caption: "Num of Room",
+                    alignment: "right",
+                    width: 100 // Fixed width of 150px
                 }
+            ];
+
+
+            // Combine predefined columns with dynamically generated ones
+            const finalColumns = [...predefinedColumns, ...dateColumns];
+
+            // Hide RoomTypeID column (in case it was added elsewhere)
+            const roomTypeIdColumn = finalColumns.find(col => col.dataField === "RoomTypeID");
+            if (roomTypeIdColumn) {
+                roomTypeIdColumn.visible = false;
             }
+
+            // Initialize the DevExtreme DataGrid
+            $("#gridContainerRoom").dxDataGrid({
+                dataSource: data,
+                columns: finalColumns,
+                paging: {
+                    pageSize: 15,
+                    enabled: true
+                },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [15, 20, 'all'],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: {
+                    visible: true,
+                    applyFilter: "auto"
+                },
+                editing: {
+                    mode: "cell",
+                    allowUpdating: true,
+                    allowAdding: false,
+                    allowDeleting: false
+                },
+                scrolling: {
+                    mode: 'standard',
+                    showScrollbar: 'always',
+                    useNative: false
+                },
+                selection: {
+                    mode: "single"
+                }, height: "500px",
+            });
         }
-
-        // Combine predefined columns with dynamically generated ones
-        const finalColumns = [...predefinedColumns, ...columns];
-
-        // Hide RoomTypeID column (in case it was added elsewhere)
-        const roomTypeIdColumn = finalColumns.find(col => col.dataField === "RoomTypeID");
-        if (roomTypeIdColumn) {
-            roomTypeIdColumn.visible = false;
-        }
-
-        // Initialize the DevExtreme DataGrid
-        $("#gridContainerRoom").dxDataGrid({
-            dataSource: data,
-            columns: finalColumns,
-            paging: {
-                pageSize: 15,
-                enabled: true
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [15, 20, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            editing: {
-                mode: "cell",
-                allowUpdating: true,
-                allowAdding: false,
-                allowDeleting: false
-            },
-            scrolling: {
-                mode: 'standard',
-                showScrollbar: 'always',
-                useNative: false
-            },
-            selection: {
-                mode: "single"
-            }, width: "100%", height: "500px",
-        });
-    }
     function SaveGroupReservation() {
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
