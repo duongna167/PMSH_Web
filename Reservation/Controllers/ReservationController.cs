@@ -27,6 +27,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
@@ -6537,7 +6538,39 @@ namespace Reservation.Controllers
         //}
 
         //#endregion
+        #region Tuan_GetSetUpPackage
+        [HttpGet]
+        public IActionResult GetSetUpPackage(string searchKey = "")
+        {
+            try
+            {
+                DataTable table = _iReservationService.GetSetUpPackage(searchKey);
+                var result = (from d in table.AsEnumerable()
+                              select d.Table.Columns.Cast<DataColumn>().ToDictionary(
+                              col => col.ColumnName,
+                              col =>
+                              {
+                                  var value = d[col.ColumnName];
+                                  if (value == DBNull.Value) return null;
 
+                                  // CreatedDate: KHÔNG ToString
+                                  if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate")
+                                      return value;
+
+                                  // Các field khác: ToString
+                                  return value.ToString();
+                              }
+                          )).ToList();
+                return Json(result);
+
+            }
+            catch (Exception ex)
+            {
+
+                return Json(ex.Message);
+            }
+        }
+        #endregion
 
     }
 }

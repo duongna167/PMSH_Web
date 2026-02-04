@@ -768,6 +768,19 @@ namespace Reservation.Services.Implements
             }
         }
 
+        public DataTable GetSetUpPackage(string searchKey = "")
+        {
+            string filter = string.IsNullOrEmpty(searchKey) ? "%" : $"%{searchKey}%";
+            string query = $@"Select * From Package where ((Code like N'{filter}' or Description like N'{filter}'))
+                                And Active = 1 Order By Code";
+            SqlParameter[] parameters = [
+                new SqlParameter("sqlCommand",query)
+            ];
+            DataTable table = DataTableHelper.getTableData("spSearchAllForTrans", parameters);
+            return table;
+
+        }
+
 
     }
 }
