@@ -1,165 +1,218 @@
 ﻿@using DevExpress.XtraReports.UI
 
 @{
-    ViewBag.Title = ViewBag.ReportHeader;
     var zoneList = ViewBag.ZoneList;
 }
+<style>
+    #loadingSpinnerRateCode {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 999;
+        background: rgba(255, 255, 255, 0.55);
+        backdrop-filter: blur(2px);
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
-<div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    .modal-full-height {
+        height: 95vh;
+    }
+
+    .modal-body {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .mui-card {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .gridContainer {
+        position: relative;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+
+</style>
+
+<div class="modal fade" id="reportModal" data-bs-backdrop="static" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
+        <div class="modal-content modal-full-height">
 
-            <!-- Modal Header -->
-            <div class="modal-header">
-                <h5 class="modal-title" id="reportTitle" style="font-size:20px">Room Facility Forecast</h5>
+            <!-- HEADER -->
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Room Facility Forecast</h5>
             </div>
 
-            <!-- Modal Body -->
+            <!-- BODY -->
             <div class="modal-body">
-                <div class="search-filter">
-                    <div class="">
-                        <button id="btnPrint" class="mui-button mui-button-new">View</button>
-                        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">  Excel</button>
-                        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">
-                            PDF
-                        </button>
-                        <button id="btnCloseAva" class="mui-button mui-button-new" type="button"> Close</button>
-                    </div>
-                    <div class="filter-panel d-flex align-items-center flex-nowrap gap-3 mt-2 mb-1">
 
-                        <!-- Zone -->
-                        <div class="d-flex align-items-center zone-wrap">
-                            <label class="me-2 mb-0">Zone:</label>
+                <!-- ACTION BAR -->
+                <div class="py-2 flex-shrink-0">
+                    <button id="btnPrint" class="mui-button mui-button-new">View</button>
+                    <button id="btnExportExcel" class="mui-button mui-button-new">Excel</button>
+                    <button id="btnExportPdf" class="mui-button mui-button-new">PDF</button>
+                    <button id="btnCloseAva" class="mui-button mui-button-new">Close</button>
+                </div>
+
+                <!-- CARD = FILTER + GRID -->
+                <div class="mui-card mb-2 bg-light border-0">
+
+                    <!-- FILTER -->
+                    <div class="d-flex gap-3 align-items-center mb-2 flex-shrink-0">
+
+                        <div class="d-flex align-items-center">
+                            <label class="fw-bold me-2 mb-0">Zone</label>
+                            <div style="width: 200px;">
                             <select id="zone" name="zone" class="tomselect-custom" multiple>
                                 @foreach (var item in zoneList)
                                 {
-                                    if (item == zoneList[0])
-                                    {
-                                        <option value="@item.Code" selected>@item.Code</option>
-                                    }
-                                    else
-                                    {
-                                        <option value="@item.Code">@item.Code</option>
-                                    }
+                                    <option value="@item.Code">@item.Code</option>
                                 }
                             </select>
+                            </div>
                         </div>
 
-                        <!-- From -->
-                        <div class="d-flex align-items-center pb-2">
-                            <label class="me-2 mb-0">From:</label>
-                            <div class="date-wrap">
-                                <div class="clearable" data-date-input data-format="DD/MM/YYYY" data-name="fromDate">
-                                    <input type="text" class="date-ui form-control" autocomplete="off" />
+                        <div class="d-flex align-items-center">
+                            <label class="fw-bold me-2 mb-0">From</label>
+                            <div class="date-group">
+                                <div data-date-input data-format="DD/MM/YYYY"
+                                     business-date data-name="fromDate">
+                                    <input type="text"
+                                           class="form-control form-control-sm date-ui"
+                                           placeholder="dd/mm/yyyy" />
                                 </div>
                             </div>
                         </div>
 
-                        <!-- To -->
-                        <div class="d-flex align-items-center pb-2">
-                            <label class="me-2 mb-0">To:</label>
-                            <div class="date-wrap">
-                                <div class="clearable" data-date-input data-format="DD/MM/YYYY" data-name="toDate">
-                                    <input type="text" class="date-ui form-control" autocomplete="off" />
+                        <div class="d-flex align-items-center">
+                            <label class="fw-bold me-2 mb-0">To</label>
+                            <div class="date-group">
+                                <div data-date-input data-format="DD/MM/YYYY" data-name="toDate">
+                                    <input type="text"
+                                           class="form-control form-control-sm date-ui"
+                                           placeholder="dd/mm/yyyy" />
                                 </div>
                             </div>
                         </div>
 
                     </div>
 
-                </div>
+                    <!-- GRID -->
+                    <div class="gridContainer mt-2">
+                        <div id="gridContainer"></div>
 
-                <div class="mui-card">
-                    <div id="gridContainer" class="gridContainer mt-2"></div>
-                </div>
-                <div id="loadingSpinner"
-                    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-                    <i class="fa-solid fa-spinner fa-spin"></i>
+                        <div id="loadingSpinnerRateCode" style="display:none">
+                            <div class="spinner-border text-primary"></div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
+
         </div>
     </div>
 </div>
+
+
 <script>
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        let day = date.getDate().toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        return `${year}-${month}-${day}`;
-    }
-    let parsedBusinessDate = null;
+    var parsedBusinessDate = null;
 
     $(document).ready(function () {
-        document.getElementById("reportTitle").innerText = 'Room Facility Forecast';
-               getBusinessDate();
-        initializeTomSelects();
-                $('#reportModal').modal('show');
-
+        $('#reportModal').modal('show');
+        initTomSelect(".tomselect-custom");
+        $("#btnPrint").trigger("click");
     });
-     $(document).on('click', '#btnCloseAva', function () {
+    
+    $(document).on('click', '#btnCloseAva', function () {
         window.location.href = '/Home/Index';
     });
-
-     function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-
-                 const fromDateStr = result.split('T')[0];
-                const fromDate = new Date(fromDateStr);
-
-                // cộng thêm 13 ngày
-                const toDate = new Date(fromDate);
-                toDate.setDate(toDate.getDate() + 15);
-
-                // format yyyy-MM-dd
-                const toDateStr = toDate.toISOString().split('T')[0];
-
-                UI.setHiddenDate("toDate", toDateStr);
-                 UI.setHiddenDate("fromDate", fromDateStr);
-                      $("#btnPrint").trigger("click");
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-            }
-        });
-    }
     
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        $("#loadingSpinner").show();
+        if (!$('#toDate').val()) {
+            const toDateIso = UI.addDaysIso(dateSystem, 7);
+
+            UI.setHiddenDate("toDate", toDateIso);
+        }
+        let toDate = $('#toDate').val() || window.dateSystem;
+
+        $("#loadingSpinnerRateCode").show();
         $.ajax({
             url: '/HouseKeeping/RoomFacilityForecastData',
             type: 'GET',
             data: {
                 fromDate: $("#fromDate").val(),
-                toDate: $("#toDate").val(),
+                toDate: toDate,
                 zone: $("#zone").val().join(","),
             },
             traditional: true,
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                console.log(result);
                 initializeReservationSummaryGrid(result, $("#fromDate").val(), $("#toDate").val());
-                $("#loadingSpinner").hide();
+                $("#loadingSpinnerRateCode").hide();
             },
             error: function () {
                 alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
+                $("#loadingSpinnerRateCode").hide();
             }
         });
     });
+
+    function initializeReservationSummaryGrid(data, fromDate, toDate) {
+        const columnWidth = 120;
+        const dateColumns = generateDateColumns(fromDate, toDate);
+        console.log(dateColumns);
+
+        $("#gridContainer").dxDataGrid({
+            dataSource: data,
+            allowColumnResizing: true,
+            columnAutoWidth: true,
+            height: "100%",
+            columns: [
+                { dataField: "Statisticname", caption: "Statistic Name", width: columnWidth + 40 },
+                ...dateColumns
+            ],
+
+            paging: { pageSize: 20 },
+            scrolling: {
+                useNative: true,
+                showScrollbar: "always"
+            },
+            pager: {
+                visible: true,
+                allowedPageSizes: [20, 50, 100],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            },
+            filterRow: { visible: true, applyFilter: "auto" },
+            headerFilter: { visible: true },
+            selection: { mode: "multiple", showCheckBoxesMode: "none" },
+            showBorders: false,
+            onRowPrepared: function (e) {
+                if (e.rowType === "data") {
+
+                    if (e.data?.isTotal) {
+                        e.rowElement.css({
+                            "font-weight": "bold",
+                            "background-color": "#f6f6f6"
+                        });
+                    }
+                }
+            }
+        });
+    }
 
 
     function generateDateColumns(fromDate, toDate) {
@@ -205,57 +258,6 @@
         const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
         return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     }
-
-
-
-    function initializeReservationSummaryGrid(data, fromDate, toDate) {
-        const columnWidth = 120;
-
-
-
-        const dateColumns = generateDateColumns(fromDate, toDate);
-        console.log(dateColumns);
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            allowColumnResizing: true,
-            columnAutoWidth: true,
-            columns: [
-                { dataField: "Statisticname", caption: "Statistic Name", width: columnWidth + 40 },
-                ...dateColumns
-            ],
-
-            paging: { pageSize: 25 },
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
-            selection: { mode: "multiple", showCheckBoxesMode: "none" },
-            showBorders: true,
-            onRowPrepared: function (e) {
-                if (e.rowType === "data") {
-
-                    if (e.data?.isTotal) {
-                        e.rowElement.css({
-                            "font-weight": "bold",
-                            "background-color": "#f6f6f6"
-                        });
-                    }
-                }
-            }
-        });
-    }
-
-
-
 
     $("#btnExportExcel").click(function () {
         const grid = $("#gridContainer").dxDataGrid("instance"); var selectedReport2 = '@ViewBag.ReportTitle';
@@ -316,8 +318,6 @@
         });
     });
 
-
-
     // Nút xu?t PDF
     $("#btnExportPdf").click(function () {
         const { jsPDF } = window.jspdf; // ?? B? sung dòng này
@@ -335,4 +335,5 @@
             doc.save("BaoCao.pdf");
         });
     });
+
 </script>

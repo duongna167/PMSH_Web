@@ -129,5 +129,7 @@ namespace Reservation.Services.Interfaces
             int rateCodeID);
 
         List<ReservationPackageSummary> GetReservationPackagePhase2(int reservationId, int packageId, DateTime beginDate, DateTime endDate, int rateCodeId);
+
+        public DataTable GetSetUpPackage(string searchKey = "");
     }
 }

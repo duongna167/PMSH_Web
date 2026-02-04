@@ -56,7 +56,7 @@ namespace NightAudit.Controllers
         }
         public IActionResult RoomRate()
         {
-            return View();
+            return PartialView();
         }
         public IActionResult RunNightAudit()
         {
@@ -4695,6 +4695,44 @@ namespace NightAudit.Controllers
             finally
             {
                 pt.CloseConnection();
+            }
+        }
+        #endregion
+
+        #region Tuan_NA 2/2026
+        [HttpGet]
+        public IActionResult SearchRoomRate(DateTime? date, bool warning, bool reservation, bool checkIN, bool checkOut, bool dueIn, bool dueOut, bool cancel)
+        {
+            try
+            {
+                DateTime businessDate = TextUtils.GetBussinessDateTime();
+                // nếu không truyền date -> lấy businessDate
+                DateTime finalDate = date ?? businessDate;
+
+                DataTable table = _iRoomRateService.SearchRoomRate(finalDate, warning, reservation, checkIN, checkOut, dueIn, dueOut, cancel);
+                var result = (from d in table.AsEnumerable()
+                              select d.Table.Columns.Cast<DataColumn>().ToDictionary(
+                              col => col.ColumnName,
+                              col =>
+                              {
+                                  var value = d[col.ColumnName];
+                                  if (value == DBNull.Value) return null;
+
+                                  // CreatedDate: KHÔNG ToString
+                                  if (col.ColumnName == "ArrivalDate" || col.ColumnName == "DepartureDate")
+                                      return value;
+
+                                  // Các field khác: ToString
+                                  return value.ToString();
+                              }
+                          )).ToList();
+                return Json(result);
+
+            }
+            catch (Exception ex)
+            {
+
+                return Json(ex.Message);
             }
         }
         #endregion

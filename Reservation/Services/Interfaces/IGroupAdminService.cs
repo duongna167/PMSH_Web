@@ -11,6 +11,7 @@ namespace Reservation.Services.Interfaces
         {
                 DataTable SearchGroupCheckInRoom(string ConfirmationNo, string Inspected, string Clean, string AllRooms, string CleanAndInspected);
                 DataTable SearchGroupAdmin(string ConfirmationNo, string DisplayStattus, string Name, string RoomNo);
+                DataTable SearchGroupAdmin2(string ConfirmationNo, int Sorting, string DisplayStattus, string Name, string RoomNo);
 
                 DataTable spReservationSearchByConfirmationNo(string ConfirmationNo);
 

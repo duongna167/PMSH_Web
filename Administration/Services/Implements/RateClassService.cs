@@ -22,7 +22,6 @@ namespace Administration.Services.Implements
             }
             catch (Exception ex)
             {
-
                 throw new Exception($"ERROR: {ex.Message}", ex);
             }
         }

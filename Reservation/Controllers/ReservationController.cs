@@ -27,6 +27,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
@@ -4739,7 +4740,41 @@ namespace Reservation.Controllers
         }
         #endregion
 
-        #region  DatVP __ Reservation: Group check in
+        #region  Tuan __ Reservation: Group Admin
+        [HttpGet]
+        public async Task<IActionResult> SearchGroupAdmin(string confirmationNo = "", int sorting = 0, string displayStattus = "10", string name = "", string roomNo = "")
+        {
+            try
+            {
+                var data = _iGroupAdminService.SearchGroupAdmin2(confirmationNo, sorting, displayStattus, name, roomNo);
+                var result = (from d in data.AsEnumerable()
+                              select d.Table.Columns.Cast<DataColumn>()
+                                  //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
+                                  .ToDictionary(
+                                      col => col.ColumnName,
+                                       col =>
+                                       {
+                                           var value = d[col.ColumnName];
+                                           if (value == DBNull.Value) return null;
+
+                                           // CreatedDate: KHÔNG ToString
+                                           if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate"
+                                           || col.ColumnName == "Arrival" || col.ColumnName == "Departure")
+                                               return value;
+
+                                           // Các field khác: ToString
+                                           return value.ToString();
+                                       })).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+
+        #endregion
+        #region  DatVP __ Reservation: Group check in 
         [HttpGet]
         public async Task<IActionResult> SearchGroupCheckInRoom(string confirmationNo, int type, string name, string roomNo)
         {
@@ -6503,23 +6538,38 @@ namespace Reservation.Controllers
         //}
 
         //#endregion
-        #region
-        public IActionResult RateQuery()
+        #region Tuan_GetSetUpPackage
+        [HttpGet]
+        public IActionResult GetSetUpPackage(string searchKey = "")
         {
-            List<RateCodeModel> listRateCode = PropertyUtils.ConvertToList<RateCodeModel>(RateCodeBO.Instance.FindAll());
-            List<RateCategoryModel> listRateCate = PropertyUtils.ConvertToList<RateCategoryModel>(RateCategoryBO.Instance.FindAll());
-            List<RateClassModel> listRateClass = PropertyUtils.ConvertToList<RateClassModel>(RateClassBO.Instance.FindAll());
-            ViewBag.RateCodeList = listRateCode;
-            ViewBag.RateCateList = listRateCate;
-            ViewBag.RateClass = listRateClass;
-            List<RoomTypeModel> listrt = PropertyUtils.ConvertToList<RoomTypeModel>(RoomTypeBO.Instance.FindAll());
-            ViewBag.RoomTypeList = listrt;
-            List<PackageModel> listPackage = PropertyUtils.ConvertToList<PackageModel>(PackageBO.Instance.FindAll());
-            ViewBag.PackageList = listPackage;
-            return View();
+            try
+            {
+                DataTable table = _iReservationService.GetSetUpPackage(searchKey);
+                var result = (from d in table.AsEnumerable()
+                              select d.Table.Columns.Cast<DataColumn>().ToDictionary(
+                              col => col.ColumnName,
+                              col =>
+                              {
+                                  var value = d[col.ColumnName];
+                                  if (value == DBNull.Value) return null;
+
+                                  // CreatedDate: KHÔNG ToString
+                                  if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate")
+                                      return value;
+
+                                  // Các field khác: ToString
+                                  return value.ToString();
+                              }
+                          )).ToList();
+                return Json(result);
+
+            }
+            catch (Exception ex)
+            {
+
+                return Json(ex.Message);
+            }
         }
-
-
         #endregion
 
     }

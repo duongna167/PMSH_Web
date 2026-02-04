@@ -44,6 +44,34 @@ namespace Reservation.Services.Implements
             }
         }
 
+        public DataTable SearchGroupAdmin2(string ConfirmationNo,int Sorting, string DisplayStattus, string Name, string RoomNo)
+        {
+            try
+            {
+                SqlParameter[] param = new SqlParameter[]
+                {
+                    new SqlParameter("@ConfirmationNo", ConfirmationNo),
+                     new SqlParameter("@Sorting", Sorting),
+                    new SqlParameter("@DisplayStatus", DisplayStattus),
+
+                     new SqlParameter("@Name", Name ?? ""),
+                     new SqlParameter("@RoomNo", RoomNo ?? ""),
+                    new SqlParameter("@MasterFolio", ""),
+
+                };
+
+                DataTable myTable = DataTableHelper.getTableData("spReservationSearchConfNo", param);
+
+
+                return myTable;
+            }
+            catch (SqlException ex)
+            {
+
+                throw new Exception($"ERROR: {ex.Message}", ex);
+            }
+        }
+
         public DataTable SearchGroupCheckInRoom(string ConfirmationNo, string Inspected, string Clean, string AllRooms, string CleanAndInspected)
         {
             try

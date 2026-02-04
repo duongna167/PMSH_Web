@@ -2906,9 +2906,9 @@ namespace HouseKeeping.Controllers
                                   ReservationStatus = d["ReservationStatus"]?.ToString() ?? "",
                                   ResvID = d["ResvID"]?.ToString() ?? "",
                                   CreatedBy = d["CreatedBy"]?.ToString() ?? "",
-                                  CreatedDate = d["CreatedDate"]?.ToString() ?? "",
+                                  CreatedDate = d["CreatedDate"] != DBNull.Value ? Convert.ToDateTime(d["CreatedDate"]) : (DateTime?)null,
                                   UpdatedBy = d["UpdatedBy"]?.ToString() ?? "",
-                                  UpdatedDate = d["UpdatedDate"]?.ToString() ?? ""
+                                  UpdatedDate = d["UpdatedDate"] != DBNull.Value ? Convert.ToDateTime(d["CreatedDate"]) : (DateTime?)null,
                               }).ToList();
 
                 return Json(result);
@@ -4675,7 +4675,7 @@ namespace HouseKeeping.Controllers
             }
         }
         [HttpPost]
-        public IActionResult PostingFolio(int roomId, string roomNo,string roomTypeCode,int roomTypeID, int folioid, string accountName, int _RsvID, string transactionCode , string _CurrencyID, string  quantity,string articleCode,int price, int userID,string userName)
+        public IActionResult PostingFolio(int roomId, string roomNo, string roomTypeCode, int roomTypeID, int folioid, string accountName, int _RsvID, string transactionCode, string _CurrencyID, string quantity, string articleCode, int price, int userID, string userName)
         {
             try
             {
@@ -4695,7 +4695,7 @@ namespace HouseKeeping.Controllers
                     int FolioID = folioid;
                     _RsvID = _RsvID_Return;
                     string _TransCode = transactionCode;
-                    int _RmID =roomId;
+                    int _RmID = roomId;
                     int _RmTypeID = roomTypeID;
                     string reservationID = _RsvID.ToString();
                     string _RmTypeCode = roomTypeCode;
@@ -4719,7 +4719,7 @@ namespace HouseKeeping.Controllers
 
                         TransactionsModel mT = new TransactionsModel();
                         List<TransactionsModel> lst = PropertyUtils.ConvertToList<TransactionsModel>(TransactionsBO.Instance.FindByAttribute("Code", _TransCode));
-                    
+
 
                         if (lst.Count > 0)
                         {
@@ -4852,7 +4852,7 @@ namespace HouseKeeping.Controllers
                         #endregion
 
                         #region Kiểm tra xem Transaction này có ở trong Generate ?
-                 
+
                         List<GenerateTransactionModel> arr = PropertyUtils.ConvertToList<GenerateTransactionModel>(GenerateTransactionBO.Instance.FindByAttribute("TransactionCode", _TransCode));
                         #endregion
 
@@ -5130,12 +5130,12 @@ namespace HouseKeeping.Controllers
                     string _Message = ex.Message;
                     string[] strArrayReturn = { "false", _Message };
                     return Json(new { success = false, message = _Message });
-                
+
                 }
 
 
 
-               
+
             }
             catch (Exception ex)
             {
