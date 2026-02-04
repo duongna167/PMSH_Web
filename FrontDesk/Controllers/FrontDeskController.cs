@@ -15,7 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using BaseBusiness.util; 
+using BaseBusiness.util;
 using Microsoft.Data.SqlClient;
 using Org.BouncyCastle.Asn1;
 using System.ServiceModel.Channels;
@@ -49,7 +49,7 @@ namespace FrontDesk.Controllers
             List<TelephoneBookCategoryModel> tlplist = PropertyUtils.ConvertToList<TelephoneBookCategoryModel>(TelephoneBookCategoryBO.Instance.FindAll());
             var sortedList = tlplist.OrderBy(x => x.Name).ToList();
             ViewBag.TelephoneBookCategoryList = sortedList;
-            DataTable dataTable = _iFrontDeskService.TelephoneBook("","","");
+            DataTable dataTable = _iFrontDeskService.TelephoneBook("", "", "");
             var result = (from d in dataTable.AsEnumerable()
                           select new
                           {
@@ -58,10 +58,10 @@ namespace FrontDesk.Controllers
 
                           }).ToList();
             ViewBag.TelephoneSelect = result;
-            return View();
+            return PartialView();
         }
         [HttpGet]
-        public JsonResult GetTelephoneBook(string CategoryCode,string BookCode)
+        public JsonResult GetTelephoneBook(string CategoryCode, string BookCode)
         {
             CategoryCode = CategoryCode ?? "";
             BookCode = BookCode ?? "";
@@ -266,7 +266,7 @@ namespace FrontDesk.Controllers
                 }
                 int userId = HttpContext.Session.GetInt32("UserID") ?? 0;
                 string userName = HttpContext.Session.GetString("LoginName") ?? "system";
-              
+
                 var computerName = Environment.MachineName;
 
                 string sqlSelect = @"SELECT TOP 1 NewValue 
@@ -374,11 +374,11 @@ namespace FrontDesk.Controllers
             ViewBag.RoomClassList = listroclass;
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
             ViewBag.BusinessDate = businessDateModel[0].BusinessDate;
-            return View(); 
+            return View();
         }
 
         [HttpGet]
-        public IActionResult WakeUpCallFindRoom(string roomNoset, string reservationHolder, string zone,string confirmNo)
+        public IActionResult WakeUpCallFindRoom(string roomNoset, string reservationHolder, string zone, string confirmNo)
         {
             roomNoset = roomNoset ?? "";
             reservationHolder = reservationHolder ?? "";
@@ -410,11 +410,11 @@ namespace FrontDesk.Controllers
         }
 
         [HttpGet]
-        public IActionResult WakeUpCallSearch(DateTime currentDate, string searchforName, int  isSpecial)
+        public IActionResult WakeUpCallSearch(DateTime currentDate, string searchforName, int isSpecial)
         {
-     
+
             searchforName = searchforName ?? "";
-      
+
             try
             {
                 DataTable dataTable = _iFrontDeskService.WakeUpCallSearch(currentDate, searchforName, isSpecial);
@@ -424,7 +424,7 @@ namespace FrontDesk.Controllers
                                   ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"].ToString() : "",
                                   RoomID = !string.IsNullOrEmpty(d["RoomID"].ToString()) ? d["RoomID"].ToString() : "",
                                   Room = !string.IsNullOrEmpty(d["Room"].ToString()) ? d["Room"].ToString() : "",
-                                 
+
                                   Name = !string.IsNullOrEmpty(d["Name"].ToString()) ? d["Name"].ToString() : "",
                                   DateTime = !string.IsNullOrEmpty(d["Date/Time"].ToString()) ? Convert.ToDateTime(d["Date/Time"]).ToString("yyyy-MM-dd") : "",
 
@@ -442,7 +442,7 @@ namespace FrontDesk.Controllers
         public IActionResult ViewWakeUpCallAccount(int roomID, int shareRoom)
         {
 
-       
+
 
             try
             {
@@ -452,7 +452,7 @@ namespace FrontDesk.Controllers
                               {
 
                                   Account = !string.IsNullOrEmpty(d["Account"].ToString()) ? d["Account"].ToString() : "",
-                                
+
 
                               }).ToList();
 
@@ -464,7 +464,7 @@ namespace FrontDesk.Controllers
             }
         }
         [HttpGet]
-        public IActionResult ViewWakeUpCall(string name, string group, string roomview,DateTime fromDateview,DateTime toDateview,string timeDailyview,int  roomClass)
+        public IActionResult ViewWakeUpCall(string name, string group, string roomview, DateTime fromDateview, DateTime toDateview, string timeDailyview, int roomClass)
         {
 
             name = name ?? "";
@@ -534,10 +534,10 @@ namespace FrontDesk.Controllers
                 string message = "";
                 List<WakeUpCallRow> selectedRows = request.selectedRows ?? new List<WakeUpCallRow>();
                 #region insert 1 ngày cho phòng ko phải Group
-                if (request.callType== "date")//insert 1 ngày cho phòng ko phải Group
+                if (request.callType == "date")//insert 1 ngày cho phòng ko phải Group
                 {
 
-                    for (int i = 0; i < request.selectedRows.Count-1; i++)
+                    for (int i = 0; i < request.selectedRows.Count - 1; i++)
                     {
                         WakeUpCallRow row = request.selectedRows[i];
                         string strDateTime = request.singleDate.ToString("yyyy-MM-dd") + " " + request.timeDate;
@@ -563,7 +563,7 @@ namespace FrontDesk.Controllers
                         int wcID = (int)WakeUpCallBO.Instance.Insert(modelWUC);
                         message += "wake up call is created for room: " + row.Room + " \n";
                         #region ghi log
-                        string description = "Wake up call set for room: " + row.Room + ", Time: " + request.timeDate+ " from " + request.singleDate.ToShortDateString() + " to " + request.singleDate.ToShortDateString();
+                        string description = "Wake up call set for room: " + row.Room + ", Time: " + request.timeDate + " from " + request.singleDate.ToShortDateString() + " to " + request.singleDate.ToShortDateString();
                         WakeUpCallLogModel wcLogModel = new WakeUpCallLogModel();
                         wcLogModel.CreateDate = DateTime.Now;
                         wcLogModel.WakeUpCallID = wcID;
@@ -571,13 +571,13 @@ namespace FrontDesk.Controllers
                         WakeUpCallLogBO.Instance.Insert(wcLogModel);
                         #endregion
                     }
-                 
+
                 }
                 #endregion
                 #region insert nhiều ngày cho phòng ko phải Group
                 if (request.callType == "daily")//insert nhiều ngày cho phòng ko phải Group
                 {
-                   
+
                     TimeSpan oneDate = new TimeSpan(1, 0, 0, 0);
                     for (int i = 0; i < request.selectedRows.Count - 1; i++)
                     {
@@ -621,7 +621,7 @@ namespace FrontDesk.Controllers
                             #endregion
                         }
                     }
-                   
+
                 }
                 #endregion
                 pt.CommitTransaction();
@@ -633,7 +633,7 @@ namespace FrontDesk.Controllers
             {
                 pt.RollBack();
                 return Json(new { success = false, message = ex.Message });
-        
+
             }
             finally
             {
@@ -655,7 +655,7 @@ namespace FrontDesk.Controllers
                 string timeDaily = request.timeDaily ?? "";
                 string message = "";
                 List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
-                 DateTime SystemDate = businessDateModel[0].BusinessDate;
+                DateTime SystemDate = businessDateModel[0].BusinessDate;
                 List<WakeUpCallRow> selectedRows = request.selectedRows ?? new List<WakeUpCallRow>();
                 #region Cancel tất cả wakeupcall ở những phòng không thuộc group
                 if (request.callType == "daily")//xóa tất cả wakeupcall ở những phòng không thuộc group
@@ -690,10 +690,10 @@ namespace FrontDesk.Controllers
                         #endregion   
                     }
                     message = "Delete Successfully!";
-             
+
                 }
                 #endregion
-              
+
                 #region Cancel từng Schedule không thuộc group
                 if (request.callType == "date")//xóa từng Schedule không thuộc group
                 {
@@ -753,12 +753,12 @@ namespace FrontDesk.Controllers
             string a = dtresv.Rows[0][0].ToString();
             DateTime lastDeparture = ConvertStringDateTime(dtresv.Rows[0][0].ToString());
             TimeSpan tcompare = lastDeparture - wkDate;
-            if (tcompare.Days < 0)            
-                message += "Can not create for room: " + roomNo + "  Wakeup Date must be <= the departure date \n";            
+            if (tcompare.Days < 0)
+                message += "Can not create for room: " + roomNo + "  Wakeup Date must be <= the departure date \n";
             #region
             string command1 = "select ID from Wakeupcall where RoomID = " + roomID.ToString() + " and datediff(minute,WakeUpTime,'" + wkDate.ToString("MM/dd/yyyy HH:mm") + "')=0 and Status not in (3,4,5)";
             DataTable dt = BaseBusiness.util.TextUtils.Select(command1);
-            if(dt.Rows.Count>0)
+            if (dt.Rows.Count > 0)
                 message += "wake up call for room: " + roomNo + " is exist already, can not create more \n";
             #endregion
 
@@ -849,11 +849,11 @@ namespace FrontDesk.Controllers
         #region PostingToRoom
         public IActionResult PostingToRoom()
         {
-           
+
             return View();
         }
         [HttpPost]
-        public IActionResult PostToRoom(DateTime fromDate, string roomNos,string userName, int userID)
+        public IActionResult PostToRoom(DateTime fromDate, string roomNos, string userName, int userID)
         {
 
 
@@ -2518,7 +2518,7 @@ namespace FrontDesk.Controllers
             Decimal Result = Convert.ToDecimal(Amount.ToString("###,###,###.00"));
             return Result;
         }
-     
+
         private bool GetIncludeRate(int PackageID)
         {
             /* Trả về true nếu package nằm trong giá; false : nếu không bao gồm trong giá */
@@ -2672,7 +2672,7 @@ namespace FrontDesk.Controllers
                                                     ReservationID = TextUtils.ToInt(tbRouting.Rows[c]["ToReservationID"].ToString());
                                                     Windows = TextUtils.ToInt(tbRouting.Rows[c]["ToFolioNo"].ToString());
                                                     isPostingFixedCharge = true;
-                                                    PostingToFolio(true, SystemDate, Date, pProfitCenterID, pProfitCenterCode, ConfirmNo, ReservationID, RoomID, OriginRsvID, OriginFolioID, ProfileID, AccountName, Windows, TransactionCode, ArticlesCode, Reffrence, Supplement, Amount, TaxInclude, Quantity, CurrencyID, MasterCurrencyID, ref AmountReturn, ref AmountMasterReturn, ref TransNoReturn, ref err, RoomTypeID, RoomType,0,"");
+                                                    PostingToFolio(true, SystemDate, Date, pProfitCenterID, pProfitCenterCode, ConfirmNo, ReservationID, RoomID, OriginRsvID, OriginFolioID, ProfileID, AccountName, Windows, TransactionCode, ArticlesCode, Reffrence, Supplement, Amount, TaxInclude, Quantity, CurrencyID, MasterCurrencyID, ref AmountReturn, ref AmountMasterReturn, ref TransNoReturn, ref err, RoomTypeID, RoomType, 0, "");
                                                 }
                                             }
                                         }
@@ -3416,7 +3416,7 @@ namespace FrontDesk.Controllers
             }
             catch (Exception ex)
             {
-               
+
             }
         }
         protected static decimal GetAmount(ArrayList arr, decimal InputAmount)
