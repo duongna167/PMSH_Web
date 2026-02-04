@@ -6503,7 +6503,24 @@ namespace Reservation.Controllers
         //}
 
         //#endregion
+        #region
+        public IActionResult RateQuery()
+        {
+            List<RateCodeModel> listRateCode = PropertyUtils.ConvertToList<RateCodeModel>(RateCodeBO.Instance.FindAll());
+            List<RateCategoryModel> listRateCate = PropertyUtils.ConvertToList<RateCategoryModel>(RateCategoryBO.Instance.FindAll());
+            List<RateClassModel> listRateClass = PropertyUtils.ConvertToList<RateClassModel>(RateClassBO.Instance.FindAll());
+            ViewBag.RateCodeList = listRateCode;
+            ViewBag.RateCateList = listRateCate;
+            ViewBag.RateClass = listRateClass;
+            List<RoomTypeModel> listrt = PropertyUtils.ConvertToList<RoomTypeModel>(RoomTypeBO.Instance.FindAll());
+            ViewBag.RoomTypeList = listrt;
+            List<PackageModel> listPackage = PropertyUtils.ConvertToList<PackageModel>(PackageBO.Instance.FindAll());
+            ViewBag.PackageList = listPackage;
+            return View();
+        }
 
+
+        #endregion
 
     }
 }

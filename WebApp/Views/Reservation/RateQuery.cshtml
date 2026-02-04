@@ -1,0 +1,645 @@
+﻿@using DevExpress.XtraReports.UI
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewBag.Title = ViewBag.ReportHeader;
+    var listRateCode = ViewBag.RateCodeList;
+    var listRateCate = ViewBag.RateCateList;
+    var listRateClass = ViewBag.RateClass;
+    var listrt = ViewBag.RoomTypeList;
+    var listPackage = ViewBag.PackageList;
+}
+@* <link asp-append-version="true" href="~/css/reservation.css" rel="stylesheet" /> *@
+
+<div class="modal fade" id="modalRateQuery" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="reportTitle" style="font-size:20px"> Rate Query</h5>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body">
+                <div class="sticky-header bg-white p-2 shadow-sm z-3">
+                    <div class="">
+                        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+                   
+                        <button id="btnCloseAva" class="mui-button mui-button-new" type="button"> Close</button>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1 pt-2 filter-panel">
+                        <div class="container-fluid pt-2">
+
+                            <!-- ===== ROW 1 : Arrival / Nights / Departure / Pax / No.Room ===== -->
+                            <div class="row align-items-center mb-2">
+                                <!-- Arrival -->
+                                <div class="col-md-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <label class="mb-0">Arrival</label>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <input type="date" id="arrival" class="form-control form-control-sm">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Departure -->
+                                <div class="col-md-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <label class="mb-0">Departure</label>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <input type="date" id="departure" class="form-control form-control-sm">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Info -->
+                                <div class="col-md-6">
+                                    <div class="row align-items-center g-1 flex-nowrap">
+
+                                        <div class="col-auto">
+                                            <label class="mb-0">Nights</label>
+                                        </div>
+                                        <div class="col-1">
+                                            <input id="nights" class="form-control form-control-sm">
+                                        </div>
+
+                                        <div class="col-auto">
+                                            <label class="mb-0">Adults</label>
+                                        </div>
+                                        <div class="col-1">
+                                            <input id="adult" class="form-control form-control-sm">
+                                        </div>
+
+                                        <div class="col-auto">
+                                            <label class="mb-0">Child</label>
+                                        </div>
+                                        <div class="col-1">
+                                            <input id="child1" class="form-control form-control-sm">
+                                        </div>
+
+                                        <div class="col-auto">
+                                            <label class="mb-0">Child1</label>
+                                        </div>
+                                        <div class="col-1">
+                                            <input id="child2" class="form-control form-control-sm">
+                                        </div>
+
+                                        <div class="col-auto">
+                                            <label class="mb-0">No.Room</label>
+                                        </div>
+                                        <div class="col-1">
+                                            <input id="roomCount" class="form-control form-control-sm">
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <!-- ===== ROW 3 : LEFT (Name/Group/Agent/Company/Source) ===== -->
+                            <div class="row">
+
+                                <!-- LEFT BLOCK -->
+                                <div class="col-md-6">
+
+                                    <div class="row mb-1">
+                                        <div class="col-md-3 d-flex align-items-center">
+                                            <label class="mb-0">Name</label>
+                                        </div>
+                                        <div class="col-md-9 d-flex">
+                                            <input id="txtName" class="form-control form-control-sm me-1">
+                                            <button onclick="openModalSearchProfile(0);" type="button" class="btn-search-icon">
+                                                <i class="fa-solid fa-arrow-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-1">
+                                        <div class="col-md-3 d-flex align-items-center">
+                                            <label class="mb-0">Group</label>
+                                        </div>
+                                        <div class="col-md-9 d-flex">
+                                            <input id="group" class="form-control form-control-sm me-1">
+                                            <button onclick="openModalSearchProfile(4);" type="button" class="btn-search-icon">
+                                                <i class="fa-solid fa-arrow-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-1">
+                                        <div class="col-md-3 d-flex align-items-center">
+                                            <label class="mb-0">Agent</label>
+                                        </div>
+                                        <div class="col-md-9 d-flex">
+                                            <input id="agent" class="form-control form-control-sm me-1">
+                                            <button onclick="openModalSearchProfile(1);" type="button" class="btn-search-icon">
+                                                <i class="fa-solid fa-arrow-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-1">
+                                        <div class="col-md-3 d-flex align-items-center">
+                                            <label class="mb-0">Company</label>
+                                        </div>
+                                        <div class="col-md-9 d-flex">
+                                            <input id="company" class="form-control form-control-sm me-1">
+                                            <button onclick="openModalSearchProfile(2);" type="button" class="btn-search-icon">
+                                                <i class="fa-solid fa-arrow-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-3 d-flex align-items-center">
+                                            <label class="mb-0">Source</label>
+                                        </div>
+                                        <div class="col-md-9 d-flex">
+                                            <input id="source" class="form-control form-control-sm me-1">
+                                            <button onclick="openModalSearchProfile(3);" type="button" class="btn-search-icon">
+                                                <i class="fa-solid fa-arrow-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <!-- RIGHT BLOCK -->
+                                <div class="col-md-6">
+
+                                    <div class="row mb-1">
+                                        <div class="col-md-4 d-flex align-items-center">
+                                            <label class="mb-0">Rate Class</label>
+                                        </div>
+                                        <div class="col-md-8 d-flex">
+                                            <select id="rateClass" style="width: 100%;" class="form-control form-control-sm me-1">
+                                                <option value="">--ALL--</option>
+                                                @foreach (var item in listRateCode)
+                                                {
+                                                    <option value="@item.ID">@item.Code</option>
+                                                }
+                                            </select>
+                                           
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-1">
+                                        <div class="col-md-4 d-flex align-items-center">
+                                            <label class="mb-0">Rate Category</label>
+                                        </div>
+                                        <div class="col-md-8 d-flex">
+                                            <input id="rateCategory" class="form-control form-control-sm me-1">
+                                            <button type="button" class="btn-search-icon">
+                                                <i class="fa-solid fa-arrow-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-1">
+                                        <div class="col-md-4 d-flex align-items-center">
+                                            <label class="mb-0">Rate Code</label>
+                                        </div>
+                                        <div class="col-md-8 d-flex">
+                                            <input id="rateCode" class="form-control form-control-sm me-1">
+                                            <button type="button" class="btn-search-icon">
+                                                <i class="fa-solid fa-arrow-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-1">
+                                        <div class="col-md-4 d-flex align-items-center">
+                                            <label class="mb-0">Promotions</label>
+                                        </div>
+                                        <div class="col-md-8 d-flex">
+                                            <input id="promotion" class="form-control form-control-sm me-1">
+                                            <button type="button" class="btn-search-icon">
+                                                <i class="fa-solid fa-arrow-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-1">
+                                        <div class="col-md-4 d-flex align-items-center">
+                                            <label class="mb-0">Room Type</label>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <input id="roomType" class="form-control form-control-sm">
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-4 d-flex align-items-center">
+                                            <label class="mb-0">Block Code</label>
+                                        </div>
+                                        <div class="col-md-8 d-flex">
+                                            <input id="blockCode" class="form-control form-control-sm me-1">
+                                            <button type="button" class="btn-search-icon">
+                                                <i class="fa-solid fa-arrow-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mt-1">
+                                        <div class="col-md-4 d-flex align-items-center">
+                                            <label class="mb-0">Packages</label>
+                                        </div>
+                                        <div class="col-md-8 d-flex">
+                                            <input id="packages" class="form-control form-control-sm me-1">
+                                            <button type="button" class="btn-search-icon">
+                                                <i class="fa-solid fa-arrow-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="mui-card">
+                    <div id="gridContainer" class="gridContainer mt-2"></div>
+                </div>
+                <div id="loadingSpinner"
+                     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+                    <i class="fa-solid fa-spinner fa-spin"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@await Html.PartialAsync("ModalNewReservation/ModalMoreFields")
+@await Html.PartialAsync("ModalNewReservation/ModalRateCode")
+@await Html.PartialAsync("ModalNewReservation/ModalSearchAllotment")
+@await Html.PartialAsync("ModalNewReservation/ModalSearchBooker")
+@await Html.PartialAsync("ModalNewReservation/ModalSearchMarket")
+@await Html.PartialAsync("ModalNewReservation/ModalSearchPreference")
+@await Html.PartialAsync("ModalNewReservation/ModalSearchProfile")
+@await Html.PartialAsync("ModalNewReservation/ModalSearchAgent")
+@await Html.PartialAsync("ModalNewReservation/ModalSearchCompany")
+@await Html.PartialAsync("ModalNewReservation/ModalSearchContact")
+
+<script>
+  
+    $(document).ready(function () {
+
+        getBusinessDate();
+
+        initializeTomSelects();
+
+           $('#modalRateQuery').modal('show');
+    });
+     function openModalOption() {
+        $('#modalOption').modal('show');
+    }
+    function closeModalOption() {
+        $('#modalOption').modal('hide');
+    }
+    function getBusinessDate() {
+        return $.ajax({
+            url: '/Reservation/GetBusinessDate',
+            type: 'get',
+            dataType: 'json',
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+
+                 const fromDateStr = result.split('T')[0];
+                $('#arrival').val(fromDateStr);
+                $('#departure').val(fromDateStr);
+
+            },
+            error: function (xhr, statusText, err) {
+                if (xhr.status == 401) {
+                    sessionTimeout();
+                }
+            }
+        });
+    }
+
+    $('#btnClosePopup, #overlay').click(function () {
+       $('#popupNewGrid').modal('hide');
+
+
+        $('#fromDatenew').val(formatDate(parsedBusinessDate));
+        $('#attendantnew').val('').trigger('change');
+        $('#username').val('');
+        $('#point').val('');
+        $('#txtid').val('');
+    });
+    $('#btnNewAppoin').click(function () {
+        if ($('#txtid').val()) {
+            $('#attendantPointTitle').text('Edit AttendantPoint');
+        } else {
+            $('#attendantPointTitle').text('New AttendantPoint');
+        }
+       $('#popupNewGrid').modal('show');;
+    });
+    function initializeTomSelects() {
+        const selectors = ["#attendant"];
+
+        for (const id of selectors) {
+            const el = document.querySelector(id);
+            if (!el) continue;
+
+            if (el.tomselect) el.tomselect.destroy();
+
+            const ts = new TomSelect(el, {
+                plugins: ['remove_button'],
+                create: false,
+                maxItems: null,
+                allowEmptyOption: true,
+                placeholder: '',
+                persist: false,
+                render: {
+                    option: function (data, escape) {
+                        return `<div>${escape(data.text)}</div>`;
+                    }
+                }
+            });
+
+        }
+    }
+
+    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+        $("#loadingSpinner").show();
+        $.ajax({
+            url: '/HouseKeeping/AttendantPointData',
+            type: 'GET',
+            data: {
+                fromDate: $("#fromDate").val(),
+                toDate: $("#toDate").val(),
+                attendant: $("#attendant").val(),
+            },
+            traditional: true,
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+                // $("#reportViewerContainer").html(result);
+                // $("#loadingSpinner").hide();
+                console.log(result);
+                initializeAttendantPointGrid(result);
+                $("#loadingSpinner").hide();
+            },
+            error: function () {
+                alert("Không th? t?i báo cáo.");
+                $("#loadingSpinner").hide();
+            }
+        });
+    });
+
+    let selectedRowData = null;
+
+    function initializeAttendantPointGrid(data) {
+        const columnWidth = 215;
+        $("#gridContainer").dxDataGrid({
+            dataSource: data,
+            height:500,
+            allowColumnResizing: true,
+            columnAutoWidth: true,
+              columns: [
+                    { dataField: "attendantDate", caption: "Date", width: "14%", dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "attendantID", caption: "Attendant ID", width: "14%" },
+                    { dataField: "points", caption: "Points", width: "10%" },
+                    { dataField: "updatedBy", caption: "Updated By", width: "14%" },
+                    { dataField: "updatedDate", caption: "Updated Date", width: "14%", dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "createdBy", caption: "Created By", width: "14%" },
+                    { dataField: "createdDate", caption: "Created Date", width: "14%", dataType: "date", format: "dd/MM/yyyy" }
+                ],
+
+
+            paging: { pageSize: 25 },
+            scrolling: {
+                useNative: true,
+                showScrollbar: "always"
+            },
+            pager: {
+                visible: true,
+                allowedPageSizes: [25, 50, 'all'],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            },
+            filterRow: { visible: true, applyFilter: "auto" },
+            headerFilter: { visible: true },
+            selection: { mode: "multiple", showCheckBoxesMode: "none" },
+            showBorders: true,
+            onRowClick: function (e) {
+                selectedRowData = e.data; // lưu dòng được chọn
+            },
+
+
+            onRowPrepared: function (e) {
+                if (e.rowType === "data") {
+
+                    if (e.data?.isTotal) {
+                        e.rowElement.css({
+                            "font-weight": "bold",
+                            "background-color": "#f6f6f6"
+                        });
+                    }
+                }
+            }
+        });
+    }
+    $('#btnEditAppoin').on('click', function () {
+        if (!selectedRowData) {
+            showToast('Warning', 'Please select a row before clicking Edit.', false);
+            return;
+        }
+
+        // Đổ dữ liệu vào các input
+        $('#txtid').val(selectedRowData.id);
+        $('#fromDatenew').val(selectedRowData.attendantDate ? moment(selectedRowData.attendantDate).format('YYYY-MM-DD') : '');
+        $('#attendantnew').val(selectedRowData.attendantID).trigger('change');
+        $('#username').val(selectedRowData.updatedBy || selectedRowData.createdBy || '');
+        $('#point').val(selectedRowData.points || '');
+        console.log($('#txtid').val());
+        if ($('#txtid').val()) {
+            $('#attendantPointTitle').text('Edit AttendantPoint');
+        } else {
+            $('#attendantPointTitle').text('New AttendantPoint');
+        }
+        // Hiện popup
+    $('#popupNewGrid').modal('show');;
+    });
+
+    $(document).off("click", "#btnDeleteAppoin").on("click", "#btnDeleteAppoin", function () {
+        console.log(selectedRowData);
+        if (!selectedRowData) {
+            showToast('Warning', 'Please select a row before clicking Edit.', false);
+            return;
+        }
+
+
+
+        // Send AJAX
+        $.ajax({
+            url: '/HouseKeeping/DeleteAttendantPoint',
+            type: 'POST',
+            data: {
+                ID: selectedRowData.id,
+
+            },
+            traditional: true,
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (response) {
+                if (response.success) {
+                    showToast('Success', response.message, true);
+                    $("#btnPrint").trigger("click");
+                    selectedRowData = null;
+                } else {
+                    showToast('Warning', response.message, false);
+                }
+            },
+            error: function () {
+                showToast('Warning', response.message, false);
+                $("#loadingSpinner").hide();
+            }
+        });
+    });
+    $(document).off("click", "#btnSaveAtt").on("click", "#btnSaveAtt", function () {
+
+        var date = $("#fromDatenew").val();
+        var attendantId = $("#attendantnew").val();
+        var username = $("#username").val();
+        var point = $("#point").val();
+        var ID = $("#txtid").val();
+        // Validation and toast messages in English
+        if (!date) {
+            $("#loadingSpinner").hide();
+            showToast('Error', 'Please select a date.', false);
+            return;
+        }
+
+        if (!attendantId) {
+            $("#loadingSpinner").hide();
+            showToast('Error', 'Please select an Attendant ID.', false);
+            return;
+        }
+
+        if (!username) {
+            $("#loadingSpinner").hide();
+            showToast('Error', 'Please enter the user name.', false);
+            return;
+        }
+
+        if (!point) {
+            $("#loadingSpinner").hide();
+            showToast('Error', 'Please enter the point.', false);
+            return;
+        }
+
+
+
+        // Send AJAX
+        $.ajax({
+            url: '/HouseKeeping/UpdateAttendantPoint',
+            type: 'POST',
+            data: {
+                ID: ID,
+                Date: date,
+                AttendantID: attendantId,
+                UserName: username,
+                Point: point
+            },
+            traditional: true,
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (response) {
+                if (response.success) {
+                    showToast('Success', response.message, true);
+                    $('#fromDatenew').val(formatDate(parsedBusinessDate));
+                    $('#attendantnew').val('').trigger('change');
+                    $('#username').val('');
+                    $('#point').val('');
+                    $('#txtid').val('');
+
+                $('#popupNewGrid').modal('hide');
+                    $("#btnPrint").trigger("click");
+
+                } else {
+                    showToast('Warning', response.message, false);
+                }
+            },
+            error: function () {
+                showToast('Warning', response.message, false);
+                $("#loadingSpinner").hide();
+            }
+        });
+    });
+
+
+
+    $("#btnExportExcel").click(function () {
+        const grid = $("#gridContainer").dxDataGrid("instance");
+        var selectedReport = 'Attendant Point';
+        if (!selectedReport) {
+            alert("Vui lòng ch?n báo cáo tru?c khi xu?t Excel.");
+            return;
+        }
+
+        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+        const worksheet = workbook.addWorksheet("Sheet 1");
+
+        // === T?o header công ty (dòng 1) ===
+        worksheet.addRow(['Công ty C? ph?n Gi?i pháp Công ngh? CS-Solution']);
+        worksheet.mergeCells('A1:E1');
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+        // === Dòng 2: Th?i gian xu?t (ph?i) ===
+        const now = new Date();
+        const exportDate = now.toLocaleString("vi-VN");
+        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
+        worksheet.mergeCells('E2:H2');
+        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
+
+        // === Dòng 3–4: Tr?ng
+        worksheet.addRow([]);
+        worksheet.addRow([]);
+
+        // === Dòng 5: Tên báo cáo ? gi?a ===
+        const reportRow = worksheet.addRow(['', '', selectedReport]);
+        worksheet.mergeCells('C5:F5');
+        reportRow.font = { bold: true, size: 14 };
+        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
+        worksheet.addRow([]);
+
+        // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
+        DevExpress.excelExporter.exportDataGrid({
+            component: grid,
+            worksheet: worksheet,
+            autoFilterEnabled: true,
+            topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
+        }).then(function () {
+            // Footer
+            const lastRow = worksheet.lastRow.number + 2;
+            worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
+            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
+            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+            worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+            // Ghi file
+            let fileName = selectedReport + ".xlsx";
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+            });
+        });
+    });
+</script>
