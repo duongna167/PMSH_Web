@@ -1,13 +1,13 @@
 ﻿<link href="~/css/pages/Posting.css" rel="stylesheet" />
 
 <div class="modal fade" id="modalPosting" data-bs-backdrop="static" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered" style="background-color: rgba(0, 0, 0, 0.4);backdrop-filter: blur(2px);">
-        <div class="modal-content modal-full-height" style="border: 1px solid black;box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2), 0 8px 10px rgba(0, 0, 0, 0.1);">
+    <div class="modal-dialog modal-xl" style="background-color: rgba(0, 0, 0, 0.4);backdrop-filter: blur(2px);">
+        <div class="modal-content modal-full-height" style="border: 1px solid black;position: relative !important;">
             <div class="modal-header">
                 <strong class="modal-title" style="font-size: 1rem;">Posting Transaction - Article</strong>
             </div>
-            <div class="modal-body d-flex flex-column">
-                <div class="row g-3 flex-grow-1 d-flex flex-column" style="min-height: 0; flex-wrap: nowrap;">
+            <div class="modal-body d-flex flex-column" style="min-height:0;">
+                <div class="flex-grow-1 d-flex flex-column" style="min-height: 0;">
                     <div class="main-toolbar d-flex p-2">
                         <button class="mui-button mui-button-save ms-1 me-1" id="btn-post" onclick="PostingService();"><span> Post</span></button>
                         <button class="mui-button mui-button-new me-1" id="btn-add" style="display: none"><span>Add</span></button>
@@ -21,7 +21,7 @@
                     </div>
 
                     <div class="container-fluid main-content flex-grow-1 d-flex flex-column" style="min-height: 0;">
-                        <div class="row g-1 flex-grow-1">
+                        <div class="row g-1 h-100">
                             <div class="col-md-3 h-100" id="view-group">
                                 <div class="split-column">
                                     <div class="split-item"><div class="app-header">Group Transaction</div>
@@ -185,7 +185,7 @@
                                                 </div>
                                                 <div class="form-footer-fixed">
                                                     <div class="footer-list-area">
-                                                        <div class="footer-header"><span class="fw-bold">Posted List</span></div>
+                                                        <div class="footer-header px-2"><span class="fw-bold">Posted List</span></div>
                                                         <div class="footer-bottom-bar">
                                                             <div class="small fw-bold">Amount posted : <span class="text-primary">0.00</span></div>
                                                             <a class="clear-btn">Clear Posted</a>
@@ -343,13 +343,13 @@
         </div>
     </div>
 </div>
-<div id="loadingOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
-    <div style="text-align:center; color:white;">
-        <i class="fas fa-circle-notch fa-spin fa-3x"></i>
-        <div style="margin-top:10px; font-weight:600; font-size: 1rem;">Processing...</div>
-    </div>
+<div id="loadingOverlay" style="display:none">
+    <div class="spinner-border text-primary"></div>
 </div>
 <script>
+    let isResetting = false;
+    let isSilentReset = false;
+
     // --- UTILS ---
     function formatNumberWithComma(num) {
         if (num === null || num === undefined || isNaN(num) || num === '') return '0,00';
@@ -377,6 +377,7 @@
 
     // Nhập Net -> Ra Gross (amount++)
     function apiCalcPlusFromNet() {
+        if (isResetting) return;
         let tCode = getActiveEl('.js-trans-code').val();
         let $netInput = getActiveEl('.js-input-price-net');
         let netVal = parseNumberWithComma($netInput.val());
@@ -401,6 +402,7 @@
 
     // Nhập Gross(price++) -> Ra Net
     function apiCalcNetFromPlus() {
+        if (isResetting) return;
         let tCode = getActiveEl('.js-trans-code').val();
         let $grossInput = getActiveEl('.js-input-price');
         let grossVal = parseNumberWithComma($grossInput.val());
@@ -439,6 +441,15 @@
 
     // --- EVENTS ---
     $(document).ready(function() {
+            // sự kiện mở modal
+        $('#modalPosting').on('shown.bs.modal', function () {
+            loadGroups();
+            loadCurrencies();
+            loadFolioWindows();
+            const activeTab = $('.nav-link.active').attr('id');
+            syncToolbarLogic();
+        });
+
         //  Search List (transGroup,...,article)
         $(document).on('keyup', '.js-search-box', function() {
             var value = $(this).val().toLowerCase();
@@ -480,6 +491,7 @@
 
         //  Kiểm tra input để đảm bảo không âm khi blur
         $(document).on('blur', '.js-input-qty, .js-input-price, .js-input-price-net', function() {
+            if (isSilentReset) return;
             var valStr = $(this).val();
             // Chuyển dấu phẩy thành chấm để parse
             var cleanStr = valStr.replace(/\./g, '').replace(/,/g, '.');
@@ -494,6 +506,7 @@
 
         //  INPUT PRICE ++
         $(document).on('blur keypress', '.js-input-price', function(e) {
+            if (isSilentReset) return;
             if (e.type === 'keypress' && e.which !== 13) return;
             if (e.type === 'keypress') { e.preventDefault(); $(this).blur(); return; }
             apiCalcNetFromPlus();
@@ -501,6 +514,7 @@
 
         //  INPUT PRICE NET
         $(document).on('blur keypress', '.js-input-price-net', function(e) {
+            if (isSilentReset) return;
             if (e.type === 'keypress' && e.which !== 13) return;
             if (e.type === 'keypress') { e.preventDefault(); $(this).blur(); return; }
             apiCalcPlusFromNet();
@@ -508,6 +522,7 @@
 
         //  QUANTITY
         $(document).on('blur keypress', '.js-input-qty', function(e) {
+             if (isSilentReset) return;
              if (e.type === 'keypress' && e.which !== 13) return;
              if (e.type === 'keypress') { e.preventDefault(); $(this).blur(); return; }
              calculateLineTotal();
@@ -556,8 +571,8 @@
 
             var currentRef = $refInput.val();
 
-            var cleanRef = currentRef.replace(/ Express Service : .*?%/g, '')
-                                     .replace(/ Discount Service : .*?%/g, '');
+            var cleanRef = currentRef.replace(/ Express Service : \d+(\.\d+)?%$/g, '')
+                                     .replace(/ Discount Service : \d+(\.\d+)?%$/g, '');
 
                 if ($chkExpress.is(':checked') && pctExpress) {
                     cleanRef = cleanRef + " Express Service : " + pctExpress + "%";
@@ -642,7 +657,9 @@
         activeForm.find('.js-input-price').addClass('active-user-input');
         activeForm.find('.js-input-price-net').removeClass('active-user-input');
 
-        apiCalcNetFromPlus();
+        if (price > 0) {
+            apiCalcNetFromPlus();
+        }
 
         if (window.innerWidth < 768) switchView('form');
         setTimeout(function() {
@@ -651,25 +668,36 @@
     }
 
     function resetForm() {
-        let $activePane = $('.tab-pane.active');
-        $activePane.find('input[type="text"]').val('');
-        $activePane.find('.js-invoice-desc').val('Invoicing Package');
-        $activePane.find('.js-input-qty').val('1');
-        $activePane.find('.js-input-price, .js-input-price-net').val('0,00');
-        $activePane.find('.amount-display').val('0,00');
-        // $activePane.find('.js-row-article').addClass('d-none').removeClass('d-flex');
+        let $pane = $('.tab-pane.active');
+        if ($pane.length === 0) return; // Bảo vệ nếu không tìm thấy tab active
 
-        // Reset Express
-        $activePane.find('.js-chk-express').prop('checked', false).trigger('change');
-        $activePane.find('.js-input-express-pct').val('50.00');
+        isResetting = true;
+        isSilentReset = true;
 
-        // Reset Discount
-        $activePane.find('.js-chk-discount').prop('checked', false).trigger('change');
-        $activePane.find('.js-input-discount-pct').val('10.00'); 
+        $pane.find('input')
+            .not('.js-invoice-desc, .js-invoice-ref, .js-invoice-supp, .js-invoice-checkNo')
+            .val('');
 
-        $('.list-group-item').removeClass('active-item-custom');
-        $activePane.find('.js-trans-code').focus();
+        $pane.find('.js-input-qty').val('1');
+        $pane.find('.js-input-price, .js-input-price-net').val('0,00');
+        $pane.find('.js-amount-gross, .js-amount-net').val('0,00');
+
+        $pane.find('.js-chk-express, .js-chk-discount').prop('checked', false);
+        $pane.find('.express-box input').prop('disabled', true);
+
+        $pane.find('.js-input-price, .js-input-price-net')
+            .removeClass('active-user-input');
+
+        var grid = $("#gridInvoiceFooter").data("dxDataGrid");
+        if (grid) { grid.option("dataSource", []); }
+
+        // Trả lại trạng thái sau khi xử lý xong DOM
+        setTimeout(() => {
+            isResetting = false;
+            isSilentReset = false;
+        }, 200);
     }
+
 
     //  các hàm hỗ trợ mở modal chuyển view v.v
 
@@ -689,26 +717,14 @@
         const cols = ["view-trans", "view-group", "view-form"];
         cols.forEach((id) => {
             const el = document.getElementById(id);
-            if (id === "view-" + viewName) el.classList.add("active-view");
+            if (id === "view-" + viewName) {
+            el.classList.add("active-view");
+            // Nếu quay lại màn hình Form, kiểm tra lại toolbar
+            if (viewName === 'form') syncToolbarLogic();
+        }
             else el.classList.remove("active-view");
         });
     }
-
-    // Logic view button next tab f2/f3
-    document.addEventListener("DOMContentLoaded", function () {
-        // const btnAdd = document.getElementById("btn-add");
-        const tabEls = document.querySelectorAll('button[data-bs-toggle="tab"]');
-        tabEls.forEach((tabEl) => {
-            tabEl.addEventListener("shown.bs.tab", function (event) {
-                if (event.target.id === "detail-tab") {
-                    invoiceList = [];
-                    resetForm();
-                }
-
-                syncToolbarByTab(event.target.id);
-            });
-        });
-    });
 
     // F2/F3
     document.addEventListener("keydown", function (event) {
@@ -730,17 +746,20 @@
 
     });
 
-    function syncToolbarByTab(tabId) {
+    function syncToolbarLogic() {
         const btnAdd = document.getElementById("btn-add");
+        if (!btnAdd) return;
 
-        if (tabId === "invoice-tab") {
-            btnAdd.style.display = "flex";
-            refreshInvoiceGrid();
+        // Tìm tab đang active thực tế trên giao diện
+        const activeTab = document.querySelector('.nav-tabs .nav-link.active');
+        const activeTabId = activeTab ? activeTab.id : "";
+
+        if (activeTabId === "invoice-tab") {
+            btnAdd.style.setProperty("display", "flex", "important");
         } else {
-            btnAdd.style.display = "none";
+            btnAdd.style.setProperty("display", "none", "important");
         }
     }
-
 
     // Load Data INTO CBO
     function loadCurrencies() {
@@ -911,24 +930,16 @@
     }
 
     // --- RESET FORM KHI ĐÓNG MODAL ---
-    $('#modalPosting').on('hidden.bs.modal', function () {
+    $(document).on('shown.bs.tab', 'button[data-bs-toggle="tab"]', function (e) {
+        syncToolbarLogic();
+        invoiceList = [];
         resetForm();
-        invoiceList = []; 
-        $('#list-subgroup-container').empty();
-        $('#list-transaction-container').empty();
-        $('#list-article-container').empty();
 
-        // Reset về tab mặc định (F2)
-        var triggerEl = document.querySelector('#detail-tab');
-        if(triggerEl) bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+        if (typeof refreshInvoiceGrid === 'function') {
+            refreshInvoiceGrid();
+        }
     });
 
-    // sự kiện mở modal
-    $('#modalPosting').on('shown.bs.modal', function () {
-        loadGroups();
-        loadCurrencies();
-        loadFolioWindows();
-    });
 
     // nut add and post
     var invoiceList = [];
@@ -980,7 +991,13 @@
             };
 
             invoiceList.push(itemObj);
-            // renderInvoiceFooter();
+            // Thêm hiệu ứng thông báo nhỏ hoặc cuộn xuống cuối
+                showToast("Success", "Item added to list", true);
+
+                // Tùy chọn: Tự động cuộn xuống phần Footer để xem danh sách
+                $('.form-body-scroll').animate({
+                    scrollTop: $('.form-footer-fixed').offset().top
+                }, 500);
             refreshInvoiceGrid();
             resetFormKeepInvoiceInfo();
         });
@@ -1175,7 +1192,7 @@
             error: function (err) {
                 $('#loadingOverlay').fadeOut(200);
                 console.error(err);
-                showToast('Error', "System Error: " + error, false);
+                showToast('Error', "System Error: " + (err.statusText || "Unknown"), false);
             }
         });
     }
