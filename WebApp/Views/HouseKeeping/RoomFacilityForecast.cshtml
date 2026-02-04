@@ -87,7 +87,7 @@
                             <label class="fw-bold me-2 mb-0">From</label>
                             <div class="date-group">
                                 <div data-date-input data-format="DD/MM/YYYY"
-                                     business-date data-name="fromDate">
+                                      data-name="fromDate">
                                     <input type="text"
                                            class="form-control form-control-sm date-ui"
                                            placeholder="dd/mm/yyyy" />
@@ -129,22 +129,46 @@
     var parsedBusinessDate = null;
 
     $(document).ready(function () {
-        $('#reportModal').modal('show');
+
         initTomSelect(".tomselect-custom");
-        $("#btnPrint").trigger("click");
+        getBusinessDate();
+                $('#reportModal').modal('show');
     });
     
     $(document).on('click', '#btnCloseAva', function () {
         window.location.href = '/Home/Index';
     });
-    
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        if (!$('#toDate').val()) {
-            const toDateIso = UI.addDaysIso(dateSystem, 7);
+     function getBusinessDate() {
+        return $.ajax({
+            url: '/Reservation/GetBusinessDate',
+            type: 'get',
+            dataType: 'json',
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
 
-            UI.setHiddenDate("toDate", toDateIso);
-        }
-        let toDate = $('#toDate').val() || window.dateSystem;
+                const fromDateStr = result.split('T')[0];
+                const fromDate = new Date(fromDateStr);
+
+                // cộng thêm 13 ngày
+                const toDate = new Date(fromDate);
+                toDate.setDate(toDate.getDate() + 15);
+
+                // format yyyy-MM-dd
+                const toDateStr = toDate.toISOString().split('T')[0];
+                 UI.setHiddenDate("toDate", toDateStr);
+                 UI.setHiddenDate("fromDate", fromDateStr);
+                $("#btnPrint").trigger("click");
+            },
+            error: function (xhr, statusText, err) {
+                if (xhr.status == 401) {
+                    sessionTimeout();
+                }
+            }
+        });
+    }
+    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+
 
         $("#loadingSpinnerRateCode").show();
         $.ajax({
@@ -152,7 +176,7 @@
             type: 'GET',
             data: {
                 fromDate: $("#fromDate").val(),
-                toDate: toDate,
+                  toDate: $("#toDate").val(),
                 zone: $("#zone").val().join(","),
             },
             traditional: true,
