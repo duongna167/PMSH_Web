@@ -199,7 +199,7 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
         });
     }
 
-function loadDataToTomSelect(selector, apiUrl) {
+async function loadDataToTomSelect(selector, apiUrl) {
     // 1. Khởi tạo TomSelect trước (dùng helper của bạn)
     initTomSelect(selector);
 

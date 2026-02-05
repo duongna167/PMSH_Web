@@ -21,7 +21,7 @@
  * Khởi tạo toàn diện: Render HTML -> Init Picker -> Load Business Date
  * @param {function} done - Callback chạy sau khi đã có ngày từ Server
  */
-function initDateInput(done = null) {
+function initDateCustom(done = null) {
     $('.date-input').each(function () {
         const $el = $(this);
         if ($el.children().length > 0) return; 
