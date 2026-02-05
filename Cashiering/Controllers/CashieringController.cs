@@ -1,17 +1,17 @@
-﻿using System.Data;
-using BaseBusiness.BO;
+﻿using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
+using Cashiering.Commons.Helpers;
 using Cashiering.Services.Interfaces;
+using DevExpress.ClipboardSource.SpreadsheetML;
+using DevExpress.XtraReports.UI;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Data.SqlClient;
-using DevExpress.ClipboardSource.SpreadsheetML;
-using Cashiering.Commons.Helpers;
-using DevExpress.XtraReports.UI;
+using System.Data;
 
 namespace Cashiering.Controllers
 {
@@ -1100,6 +1100,7 @@ namespace Cashiering.Controllers
             }
         }
         #endregion
+
     }
 }
 

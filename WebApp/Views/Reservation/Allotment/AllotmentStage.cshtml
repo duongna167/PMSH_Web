@@ -17,11 +17,11 @@
         justify-content: center;
     }
 </style>
-<div class="modal fade" id="allotTypeModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="allotStageModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content modal-full-height">
             <div class="modal-header bg-light py-2">
-                <h5 class="modal-title">Allotment Type</h5>
+                <h5 class="modal-title">Allotment Stage</h5>
             </div>
 
             <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
@@ -62,7 +62,7 @@
                     </div>
 
                     <div class="gridContainer mt-2 d-flex flex-column flex-grow-1" style="min-height: 0;">
-                        <div id="gridAllotmentType"></div>
+                        <div id="gridAllotmentStage"></div>
 
                         <div id="loadingSpinnerRateCode" style="display: none;">
                             <div class="spinner-border text-primary" role="status"></div>
@@ -140,7 +140,7 @@
         $('#itemModal').on('hidden.bs.modal', function () {
              applyValidationErrors([], "#formContainer");
         });
-        $('#allotTypeModal').modal('show')
+        $('#allotStageModal').modal('show')
         $("#btnView").trigger("click");
 
     });
@@ -149,7 +149,7 @@
         $("#formContainer")[0].reset();
 
         $("#id").val("0");
-        $("#itemModalLabel").text("Add Allotment Type");
+        $("#itemModalLabel").text("Add Allotment Stage");
         $("#itemModal").modal("show");
     });
 
@@ -173,7 +173,7 @@
         };
 
         $.ajax({
-            url: "/Allotment/AllotmentTypeSave",
+            url: "/Allotment/AllotmentStageSave",
             type: "POST",
             contentType: "application/json",
             cache: false,
@@ -183,11 +183,11 @@
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             beforeSend: function() {
                 $("#loadingSpinnerRateCode").show();
-                $("#gridAllotmentType").css("opacity", "0.5");
+                $("#gridAllotmentStage").css("opacity", "0.5");
             },
             success: function (res) {
                 $("#loadingSpinnerRateCode").hide();
-                $("#gridAllotmentType").css("opacity", "1");
+                $("#gridAllotmentStage").css("opacity", "1");
                 if (res.success) {
                     showToast("Success", res.message, true);
                     $("#itemModal").modal("hide");
@@ -206,7 +206,7 @@
             },
             error: function (xhr) {
                 $("#loadingSpinnerRateCode").hide();
-                $("#gridAllotmentType").css("opacity", "1");
+                $("#gridAllotmentStage").css("opacity", "1");
                 showToast("Error", "Request error!", false);
                 $("#itemModal").modal("hide");
             }
@@ -220,7 +220,7 @@
         $("#txtdescription").val(data.description);
         $("#inactive").prop("checked", data.inactive);
 
-        $("#itemModalLabel").text("Update Allotment Type");
+        $("#itemModalLabel").text("Update Allotment Stage");
         $("#itemModal").modal("show");
     }
 
@@ -234,7 +234,7 @@
     });
 
     function loadGrid(data) {
-        $("#gridAllotmentType").dxDataGrid({
+        $("#gridAllotmentStage").dxDataGrid({
             dataSource: data,
             height: "100%",
             width: "100%",
@@ -272,7 +272,7 @@
     $(document).off("click", "#btnView").on("click", "#btnView", function () {
           $("#loadingSpinnerRateCode").show();
           $.ajax({
-              url: "/Allotment/GetAllotmentType",
+              url: "/Allotment/GetAllotmentStage",
               type: "GET",
               cache: false,
               data: {
@@ -285,16 +285,16 @@
               headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
               beforeSend: function() {
                 $("#loadingSpinnerRateCode").show();
-                $("#gridAllotmentType").css("opacity", "0.5");
+                $("#gridAllotmentStage").css("opacity", "0.5");
               },
               success: function(data){
                 $("#loadingSpinnerRateCode").hide();
-                $("#gridAllotmentType").css("opacity", "1");
+                $("#gridAllotmentStage").css("opacity", "1");
                 loadGrid(data);
               },
               error: function(xhr, status, error){
                  $("#loadingSpinnerRateCode").hide();
-                 $("#gridAllotmentType").css("opacity", "1");
+                 $("#gridAllotmentStage").css("opacity", "1");
                  showToast("Error", "Unable to load data", false);
               }
              });
@@ -310,7 +310,7 @@
                 return;
            }
            $.ajax({
-               url: `/Allotment/DeleteAllotmentType/`+ selectedRowData.id,
+               url: `/Allotment/DeleteAllotmentStage/`+ selectedRowData.id,
                type: "POST",
                traditional: true,
                crossDomain: false,
@@ -330,7 +330,7 @@
        });
 
     $("#btnExportExcel").click(function () {
-        const grid = $("#gridAllotmentType").dxDataGrid("instance");
+        const grid = $("#gridAllotmentStage").dxDataGrid("instance");
 
         const workbook = new ExcelJS.Workbook();
         const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
@@ -354,7 +354,7 @@
         worksheet.addRow([]);
 
         // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-        const reportRow = worksheet.addRow(['Allotment Type']);
+        const reportRow = worksheet.addRow(['Allotment Stage']);
         worksheet.mergeCells('A5:D5');
         reportRow.font = { bold: true, size: 14 };
         reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -376,7 +376,7 @@
             worksheet.getCell(`A${lastRow}`).font = { italic: true };
 
             // Ghi file
-            let fileName = "AllotmentType.xlsx";
+            let fileName = "AllotmentStage.xlsx";
             workbook.xlsx.writeBuffer().then(function (buffer) {
                 saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
             });

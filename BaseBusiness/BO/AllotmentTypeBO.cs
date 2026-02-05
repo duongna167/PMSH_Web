@@ -1,10 +1,5 @@
 ﻿using BaseBusiness.bc;
 using BaseBusiness.Facade;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BaseBusiness.BO
 {
@@ -21,6 +16,21 @@ namespace BaseBusiness.BO
         public static AllotmentTypeBO Instance
         {
             get { return instance; }
+        }
+
+        public bool IsDuplicateCode(string code, long id = 0)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                return false;
+
+            return facade.Exists(
+                "AllotmentType",
+                new Dictionary<string, object>
+                {
+            { "Code", code.Trim() }
+                },
+                id
+            );
         }
     }
 }
