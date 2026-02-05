@@ -202,17 +202,17 @@ namespace BaseBusiness.BO
             keyWord = keyWord ?? "";
             city = city ?? "";
 
-            string typeS = type switch
-            {
-                0 => "1", // Corporate
-                1 => "2", // Company
-                2 => "3", // Source
-                3 => "0", // Individual
-                4 => "4", // Group
-                5 => "5", // Contact
-                6 => "",  // All
-                _ => ""
-            };
+            //string typeS = type switch
+            //{
+            //    0 => "1", // Corporate
+            //    1 => "2", // Company
+            //    2 => "3", // Source
+            //    3 => "0", // Individual
+            //    4 => "4", // Group
+            //    5 => "5", // Contact
+            //    6 => "",  // All
+            //    _ => ""
+            //};
 
             string _saleInCharge = showSaleInCharge ? "true" : "";
 
@@ -223,7 +223,7 @@ namespace BaseBusiness.BO
         new SqlParameter("@FirstName", firstName),
         new SqlParameter("@Keyword", keyWord),
         new SqlParameter("@City", city),
-        new SqlParameter("@Type", typeS),
+        new SqlParameter("@Type", type),
         new SqlParameter("@ShowSaleInCharge", _saleInCharge),
         new SqlParameter("@Page", page),
         new SqlParameter("@PageSize", pageSize)
