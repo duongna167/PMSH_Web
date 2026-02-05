@@ -1,0 +1,188 @@
+@using DevExpress.XtraReports.UI
+
+
+<div class="modal fade" id="pfos_modal" tabindex="-1" aria-labelledby="pfos_modalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pfos_modalLabel">Task Sheet Status</h5>
+            </div>
+            <div class="modal-body">
+                <div class="search-filter" id="pfos_filterForm">
+                    <div>
+                        <button id="pfos_btnView" class="mui-button mui-button-new"
+                                onclick="pfos_Module.onUpdateStatus()">Ok</button>
+                        <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                    </div>
+                    <div class="mt-1">
+                        <div class="row g-2 mt-1 align-items-center">
+                            <div class="col-12 ">
+                                <div class="row g-1 align-items-center">
+                                    <label class="col-2 text-md-end mb-0 text-nowrap">Room</label>
+                                    <div class="col-10">
+                                        <select id="pfos_room" name="pfos_room" class="tomselect-custom"
+                                                aria-placeholder="Select Room">
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-1">
+                        <div class="row g-2 mt-1 align-items-center">
+                            <div class="col-12">
+                                <div class="row g-1 align-items-center">
+                                    <div class="form-check col-12 col-md-6">
+                                        <input type="radio" name="pfos_checkRoom" id="rdbVacant" value="1">
+                                        <label class="form-check-label" for="rdbVacant">
+                                            Vacant
+                                        </label>
+                                    </div>
+                                    <div class="form-check  col-12 col-md-6">
+                                        <input type="radio" name="pfos_checkRoom" id="rdbOccupied" checked value="0">
+                                        <label class="form-check-label" for="rdbOccupied">
+                                            Occupied
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <div id="pfos_loadingSpinner"
+                     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+                    <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var pfos_Module = {
+        init: function () {
+            // this.search(); // Khởi tạo bảng trống trước
+            initTomSelect('#pfos_room', {
+                render: {
+                    item: function (data, escape) {
+                        // Chỉ hiện value (Số phòng) thay vì text (Tên phòng)
+                        return `<div title="${escape(data.text)}">${escape(data.value)}</div>`;
+                    }
+                }
+            }); const ts = getTomSelect('#pfos_room');
+            if (ts) {
+                ts.on('change', function (value) {
+                    if (!value || value === "") {
+                        $('input[name="pfos_checkRoom"]').prop('disabled', false);
+                    } else {
+                        $('input[name="pfos_checkRoom"]').prop('disabled', true);
+                    }
+                });
+            }
+            this.loadRoomData();
+            this.bindEvents();
+        },
+
+        loadRoomData: function (isVacant) {
+            $.get('/FrontDesk/GetRoomPFOS', { isVacant: isVacant }, function (res) {
+                const ts = getTomSelect('#pfos_room');
+                if (ts) {
+                    ts.clearOptions(); // Xóa sạch option cũ
+
+                    res.forEach(item => {
+                        ts.addOption({
+                            value: item.RoomNo,
+                            text: item.RoomNo + " - " + item.RoomName,
+                            db_room_id: item.ID,      // ID của bảng Room
+                            db_room_type_id: item.RoomTypeID, // ID của bảng RoomType,
+                            // Thêm các thuộc tính tùy chỉnh nếu muốn
+                            custom_field: item.Floor
+                        });
+                    });
+
+                    ts.refreshOptions(false); // Cập nhật lại giao diện
+                }
+            });
+        },
+        onUpdateStatus: function () {
+            const userID = JSON.parse(localStorage.getItem("userID"));
+
+            // 1. Lấy dữ liệu của item đang được chọn trong TomSelect
+            const selected = getTomSelectData('#pfos_room');
+
+            // Kiểm tra xem người dùng đã chọn phòng chưa
+            if (!selected || !selected.data) {
+                showToast("Warning", "Please choose a room!", false);
+                return;
+            }
+
+            // 2. Trích xuất các ID mà ta đã đính kèm ở bước 1
+            const roomId = selected.data.db_room_id;         // ID của phòng
+            const roomTypeId = selected.data.db_room_type_id; // ID loại phòng (để check Dummy)
+
+            // 3. Lấy trạng thái từ Radio Button trên giao diện
+            // Giả sử: true = Vacant (Trống), false = Occupied (Có khách)
+            const isVacant = $('#rdbVacant').is(':checked');
+
+            // 4. Gửi dữ liệu lên hàm C# UpdateRoomPFOS đã viết
+            $.ajax({
+                url: '/FrontDesk/UpdateRoomPFOS',
+                type: 'POST',
+                data: {
+                    roomId: roomId,
+                    roomTypeID: roomTypeId,
+                    isVacant: isVacant,
+                    userID: userID
+                },
+                success: function (res) {
+                    if (res.success) {
+                        showToast("Success", res.message, true);
+                        // Load lại danh sách phòng (vì phòng vừa đổi trạng thái có thể không còn 
+                        // thỏa mãn điều kiện FOStatus=1 của hàm GetRoomPFOS nữa)
+                        pfos_Module.refresh();
+                    } else {
+                        showToast("Error", res.message, false);
+                        pfos_Module.refresh();
+                    }
+                }
+            });
+        },
+
+        refresh: function () {
+            // 1. Clear giá trị đang chọn trong TomSelect
+            const ts = getTomSelect('#pfos_room');
+            if (ts) {
+                ts.clear();        // Xóa text đang hiển thị
+                ts.clearOptions(); // Xóa sạch danh sách cũ để tránh nhầm lẫn
+            }
+            $('input[type=radio][name=pfos_checkRoom][value="0"]').prop('checked', true);
+
+            this.loadRoomData();
+        },
+
+
+        bindEvents: function () {
+            const self = this;
+
+            // Theo dõi thay đổi của name = pfos_checkRoom
+            $('input[name="pfos_checkRoom"]').on('change', function () {
+                const selectedStatus = $(this).val(); // 'occupied' hoặc 'vacant'
+                // Gọi Ajax load lại danh sách phòng mới dựa trên status
+                self.loadRoomData(selectedStatus);
+            });
+        },
+    }
+    // Hàm global để ModalManager gọi sau khi hiện modal
+    window.openModalPFOS = function () {
+        pfos_Module.init();
+    };
+
+    // Tự dọn dẹp biến khi Modal đóng để tránh rò rỉ bộ nhớ
+    $("#pfos_modal").on("hidden.bs.modal", function () {
+        if (pfos_Module.tsAttendant) pfos_Module.tsAttendant.destroy();
+        if (pfos_Module.tsZone) pfos_Module.tsZone.destroy();
+    });
+</script>
