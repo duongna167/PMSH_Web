@@ -1,19 +1,16 @@
 ﻿/*
  * TomSelect Helper
  * Author: (phuc)
- * How use to ?
-   - With class : initTomSelect('.tomselect');
-   - With id or ids : initTomSelect('#mySelect'); or initTomSelect(['#select1', '#select2']);
-
- * Select option ? single or multiple (add attribute multiple to select tag)
-   - single:  <select id="mySelect" class="tomselect-custom"> ---- 
-
-   - multiple: <select id="mySelect" class="tomselect-custom" multiple> ----  
-            + Select multiple values, but limit the number of selections :
-               Override  js:
-                  initTomSelect('#country');
- * 
  */
+
+/**
+ * TOMSELECT HELPER - Hướng dẫn sử dụng:
+ * 1. Dùng với Class: initTomSelect('.tomselect-custom');
+ * 2. Dùng với ID:    initTomSelect('#mySelect');
+ * 3. Dùng với API:   initTomSelect('#mySelect', { valueField: 'ID', labelField: 'Name' }, '/api/url');
+ * 4. Dùng ViewBag:   Chỉ cần render <option> trong HTML rồi gọi initTomSelect('#id');
+ */
+
 /**
  * Khởi tạo TomSelect cho danh sách selectors
  * @param {string|string[]} selectors - ID, Class hoặc Array các selector
@@ -21,7 +18,7 @@
  */
     /* ================= INIT ================= */
 
-    function initTomSelect(selectors, options = {}) {
+function initTomSelect(selectors, options = {}, apiUrl = null) {
         if (!Array.isArray(selectors)) selectors = [selectors];
 
         const baseOptions = {
@@ -82,19 +79,34 @@
                     plugins: {
                         ...baseOptions.plugins,
                         ...(options.plugins || {}),
-                        ...(isMultiple ? {
-                            remove_button: { title: 'Remove' }
-                        } : {}),
-                        clear_button: {
-                            title: isMultiple ? 'Clear all' : 'Clear'
-                        }
-                    },
+                        'clear_button': {
+                            'title': isMultiple ?'Clear all': 'Clear'}
+                    }
 
                 };
+                if (isMultiple) {
+                    tsOptions.plugins['remove_button'] = { title: 'Remove' };
+                }
                 try {
                     if (el.value === undefined) el.value = '';
 
                     const ts = new TomSelect(el, tsOptions);
+                    if (apiUrl) {
+                        fetch(apiUrl)
+                            .then(res => res.json())
+                            .then(data => {
+                                const vField = tsOptions.valueField || 'value';
+                                const lField = tsOptions.labelField || 'text';
+
+                                const formattedData = data.map(i => ({
+                                    value: i[vField], // Truy cập động theo tên field
+                                    text: i[lField]
+                                }));
+
+                                ts.addOptions(formattedData);
+                                ts.refreshOptions(false);
+                            });
+                    }
                     ts.on('clear', function () {
                         this.close();
                         if (this.control_input) this.control_input.blur();
@@ -186,3 +198,30 @@
             }
         });
     }
+
+function loadDataToTomSelect(selector, apiUrl) {
+    // 1. Khởi tạo TomSelect trước (dùng helper của bạn)
+    initTomSelect(selector);
+
+    const ts = getTomSelect(selector);
+    if (!ts) return;
+
+    try {
+        // 2. Gọi API
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        // 3. Format lại dữ liệu nếu API trả về ID/Name thay vì value/text
+        const formattedData = data.map(item => ({
+            value: item.id || item.ID, // Linh hoạt theo API của bạn
+            text: item.name || item.Name
+        }));
+
+        // 4. Đổ dữ liệu vào và refresh
+        ts.addOptions(formattedData);
+        ts.refreshOptions(false);
+
+    } catch (error) {
+        console.error("Lỗi khi load API:", error);
+    }
+}

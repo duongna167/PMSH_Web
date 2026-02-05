@@ -22,7 +22,7 @@
 
                     <div class="container-fluid main-content flex-grow-1 d-flex flex-column" style="min-height: 0;">
                         <div class="row g-1 h-100">
-                            <div class="col-md-3 h-100" id="view-group">
+                            <div class="col-md-3 col-lg-2 h-100" id="view-group">
                                 <div class="split-column">
                                     <div class="split-item"><div class="app-header">Group Transaction</div>
                                         <div class="p-1 border-bottom bg-light">
@@ -36,7 +36,7 @@
                                     <div class="scroll-area list-group list-group-flush" id="list-subgroup-container"></div></div>
                                 </div>
                             </div>
-                            <div class="col-md-3 h-100" id="view-trans">
+                            <div class="col-md-3 col-lg-3 col-xl-2 h-100" id="view-trans">
                                 <div class="split-column">
                                     <div class="split-item"><div class="app-header">Transaction List</div>
                                         <div class="p-1 border-bottom bg-light">
@@ -51,7 +51,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-6 h-100 active-view" id="view-form">
+                            <div class="col-md-6 col-lg-7 col-xl-8 h-100 active-view" id="view-form">
                                 <div class="form-container">
                                     @* Nút tab Post detail/Post Invoice*@
                                     <div class="d-flex bg-dark align-items-center justify-content-between pe-2">
@@ -74,7 +74,7 @@
                                                         <div class="col-12 col-sm-7"><input type="text" class="form-control form-control-sm js-trans-desc" /></div>
                                                     </div>
                                                     <div class="row g-1 mb-1 align-items-center js-row-article">
-                                                        <div class="col-12 col-sm-2"><label class="form-label fw-bold">↳ Article</label></div>
+                                                        <div class="col-12 col-sm-2"><label class="form-label fw-bold">Article</label></div>
                                                         <div class="col-12 col-sm-3"><input type="text" class="form-control form-control-sm js-art-code" readonly /></div>
                                                         <div class="col-12 col-sm-7"><input type="text" class="form-control form-control-sm js-art-desc" readonly /></div>
                                                     </div>
@@ -210,7 +210,7 @@
                                                         <div class="col-12 col-sm-7"><input type="text" class="form-control form-control-sm js-trans-desc" /></div>
                                                     </div>
                                                     <div class="row g-1 mb-1 align-items-center js-row-article">
-                                                        <div class="col-12 col-sm-2"><label class="form-label fw-bold">↳ Article</label></div>
+                                                        <div class="col-12 col-sm-2"><label class="form-label fw-bold">Article</label></div>
                                                         <div class="col-12 col-sm-3"><input type="text" class="form-control form-control-sm js-art-code" readonly /></div>
                                                         <div class="col-12 col-sm-7"><input type="text" class="form-control form-control-sm js-art-desc" readonly /></div>
                                                     </div>
@@ -260,7 +260,9 @@
                                                         <div class="col-12 col-sm-2"><label class="form-label">Supplement</label></div>
                                                         <div class="col-12 col-sm-10"><input type="text" class="form-control form-control-sm js-sup-folio" /></div>
                                                     </div>
+                                                </div>
 
+                                                <div class="form-moreinfor-fixed">
                                                     <div class="section-header">More Information</div>
                                                     <div class="express-box">
                                                         <div class="express-check-group">
@@ -319,6 +321,7 @@
                                                         </div>
                                                     </fieldset>
                                                 </div>
+                                                
                                                 <div class="form-footer-fixed">
                                                     <div class="footer-list-area">
                                                         <div class="footer-header d-flex justify-content-between align-items-center px-2">
@@ -715,22 +718,67 @@
         }
     }
 
+    // function switchView(viewName) {
+    //     document.querySelectorAll(".mobile-nav button").forEach((btn) => btn.classList.remove("active"));
+    //     document.getElementById("nav-" + viewName).classList.add("active");
+    //     const cols = ["view-trans", "view-group", "view-form"];
+    //     cols.forEach((id) => {
+    //         const el = document.getElementById(id);
+    //         if (id === "view-" + viewName) {
+    //         el.classList.add("active-view");
+    //         if (viewName === 'form') syncToolbarLogic();
+    //     }
+    //         else el.classList.remove("active-view");
+    //     });
+    // }
+
     function switchView(viewName) {
+        const isMobile = window.innerWidth < 768;
+
         document.querySelectorAll(".mobile-nav button").forEach((btn) => btn.classList.remove("active"));
-        document.getElementById("nav-" + viewName).classList.add("active");
+        const activeBtn = document.getElementById("nav-" + viewName);
+        if(activeBtn) activeBtn.classList.add("active");
+
         const cols = ["view-trans", "view-group", "view-form"];
+
         cols.forEach((id) => {
             const el = document.getElementById(id);
-            if (id === "view-" + viewName) {
-            el.classList.add("active-view");
-            // Nếu quay lại màn hình Form, kiểm tra lại toolbar
-            if (viewName === 'form') syncToolbarLogic();
-        }
-            else el.classList.remove("active-view");
+            if (isMobile) {
+                // Logic cho Mobile: Chỉ hiện 1 cột được chọn
+                if (id === "view-" + viewName) {
+                    el.classList.add("active-view");
+                    el.style.display = "block";
+                } else {
+                    el.classList.remove("active-view");
+                    el.style.display = "none";
+                }
+            } else {
+                // Logic cho Tablet/Desktop: Hiển thị tất cả các cột theo Grid Bootstrap
+                el.style.display = "";
+                el.classList.remove("active-view");
+                if (id === "view-form") el.classList.add("active-view");
+            }
         });
+
+        if (viewName === 'form') syncToolbarLogic();
+
+        // Refresh lại Grid để tính toán lại chiều cao khi chuyển view/màn hình
+        if (typeof refreshInvoiceGrid === 'function') {
+            setTimeout(refreshInvoiceGrid, 200);
+        }
     }
 
-    // F2/F3
+    // Thêm sự kiện lắng nghe khi resize trình duyệt
+    window.addEventListener('resize', function() {
+        const isMobile = window.innerWidth < 768;
+        if (!isMobile) {
+            // Tự động khôi phục hiển thị các cột nếu người dùng xoay ngang tablet hoặc mở rộng trình duyệt
+            ["view-trans", "view-group", "view-form"].forEach(id => {
+                document.getElementById(id).style.display = "";
+            });
+        }
+    });
+
     document.addEventListener("keydown", function (event) {
         if (event.key === "F2") {
             event.preventDefault();
@@ -1262,7 +1310,6 @@
         // thao tác F3 invoice list
         function refreshInvoiceGrid() {
             var $gridContainer = $("#gridInvoiceFooter");
-
             if ($gridContainer.length === 0) return;
 
             var dataGridInstance = $gridContainer.data("dxDataGrid");
@@ -1270,11 +1317,13 @@
             if (dataGridInstance) {
                 dataGridInstance.option("dataSource", invoiceList);
 
-                dataGridInstance.repaint();
+                //Sử dụng requestAnimationFrame để đảm bảo DOM đã render xong chiều cao mới
+                window.requestAnimationFrame(function() {
+                    dataGridInstance.updateDimensions();
+                });
             } else {
                 initInvoiceFooterGrid();
             }
-
             updateFooterTotal();
         }
 

@@ -82,11 +82,16 @@
 
         /* --- INFO CARD & FILTER AREA --- */
         .report-meal-container .mui-card {
-            background-color: #ffffff;
-            border: 1px solid var(--primary-light);
-            border-radius: 4px;
+            background-color: #ffffff !important;
+            border: 1px solid var(--primary-light) !important;
+            border-radius: 4px !important;
             padding: 4px; /* Giảm từ 8px xuống 4px */
             margin-bottom: 4px; /* Giảm khoảng cách dưới card */
+            flex: none !important;
+            display: flex !important;
+            flex-direction: column !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
         }
 
             .report-meal-container .mui-card .row.g-2 {
@@ -148,17 +153,37 @@
     .gridContainer {
         position: relative;
     }
+
+    /* Biến modal-body thành flex container */
+    .report-meal-container .modal-body {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden; /* Ngăn scroll toàn trang modal để grid tự scroll bên trong */
+    }
+
+    /* Ép container của Grid phải lấy toàn bộ không gian còn trống */
+    .report-meal-container .gridContainer {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0; /* Quan trọng để flexbox hoạt động chính xác trong một số trình duyệt */
+    }
+
+    /* Đảm bảo div chứa dxDataGrid cũng lấy full chiều cao của cha nó */
+    #mainGrid {
+        flex-grow: 1;
+        width: 100%;
+    }
 </style>
 <div class="modal fade" id="reportMealModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content report-meal-container ">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content report-meal-container modal-full-height">
             <div class="modal-header bg-light py-2">
                 <h5 class="modal-title">Report Meal</h5>
             </div>
 
             <div class="modal-body" style="padding: 0px 2px 0px 2px !important;">
-                <div class="">
-                    <div class="functions-pane mb-2">
+                <div class="functions-pane mb-2">
                         <div class="function-menu flex-grow-1">
                             <div class="dropdown d-inline-block">
                                 <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" id="currentReportText">
@@ -180,7 +205,7 @@
                         </div>
                     </div>
 
-                    <div class="mui-card mb-2 bg-light border-0">
+                <div class="mui-card mb-2 bg-light border-0">
                         <div class="row align-items-center g-2 p-1">
                             <div class="col-auto">
                                 <div class="info-group">
@@ -227,14 +252,13 @@
                         </div>
                     </div>
 
-                    <div class="gridContainer mt-1" style="position: relative;">
+                <div class="gridContainer mt-1" style="position: relative;">
                         <div id="mainGrid"></div>
 
                         <div id="loadingSpinnerRateCode" style="display: none;">
                             <div class="spinner-border text-primary" role="status"></div>
                         </div>
                     </div>
-                </div>
             </div>
         </div>
     </div>
@@ -252,17 +276,17 @@
         $("#mainGrid").dxDataGrid({
             columns: REPORT_CONFIGS['change'].columns,
             dataSource: [],
-            height: 500,
+            height: "100%",
             width: "100%",
             columnAutoWidth: true,
             allowColumnResizing: true,
             columnResizingMode: "widget",
             selection: { mode: "single" },
             filterRow: { visible: true, applyFilter: "auto" },
-            paging: { pageSize: 15 },
+            paging: { pageSize: 25 },
             pager: {
                 visible: true,
-                allowedPageSizes: [15, 20, 50],
+                allowedPageSizes: [25, 50, 100],
                 showPageSizeSelector: true,
                 showInfo: true,
                 showNavigationButtons: true

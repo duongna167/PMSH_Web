@@ -194,20 +194,24 @@
     });
 
     function initializeReservationSummaryGrid(data, fromDate, toDate) {
-        const columnWidth = 120;
+        const columnWidth = 160;
         const dateColumns = generateDateColumns(fromDate, toDate);
-        console.log(dateColumns);
 
         $("#gridContainer").dxDataGrid({
             dataSource: data,
             allowColumnResizing: true,
-            columnAutoWidth: true,
+            columnAutoWidth: false, // Để width của dateColumns ổn định hơn
             height: "100%",
+            showBorders: true,
             columns: [
-                { dataField: "Statisticname", caption: "Statistic Name", width: columnWidth + 40 },
+                {
+                    dataField: "Statisticname",
+                    caption: "Statistic Name",
+                    width: columnWidth,
+                    fixed: true // Cố định cột tên để dễ theo dõi khi scroll ngang
+                },
                 ...dateColumns
             ],
-
             paging: { pageSize: 20 },
             scrolling: {
                 useNative: true,
@@ -222,11 +226,8 @@
             },
             filterRow: { visible: true, applyFilter: "auto" },
             headerFilter: { visible: true },
-            selection: { mode: "multiple", showCheckBoxesMode: "none" },
-            showBorders: false,
             onRowPrepared: function (e) {
                 if (e.rowType === "data") {
-
                     if (e.data?.isTotal) {
                         e.rowElement.css({
                             "font-weight": "bold",
@@ -237,43 +238,85 @@
             }
         });
     }
-
-
+    
     function generateDateColumns(fromDate, toDate) {
         const columns = [];
         const start = new Date(fromDate);
         const end = new Date(toDate);
 
+        let index = 1; // Bắt đầu từ date1, date2...
+
         while (start <= end) {
-            const dateStr = start.toISOString().split("T")[0]; // yyyy-MM-dd
-
             const day = start.getDate().toString().padStart(2, '0');
-            const month = start.toLocaleString('en-US', { month: 'short' }); // "Jul"
-            const weekday = start.toLocaleString('en-US', { weekday: 'short' }); // "Mon"
-            const weekNumber = getWeekNumber(start); // CW
+            const month = start.toLocaleString('en-US', { month: 'short' });
+            const weekday = start.toLocaleString('en-US', { weekday: 'short' });
+            const weekNumber = getWeekNumber(start);
 
-            const captionHtml = `${day}-${month}<br>${weekday}<br>CW${-weekNumber}`;
+            const captionHtml = `${day}-${month}<br>${weekday}<br>CW${weekNumber}`;
 
             columns.push({
-                dataField: dateStr,
-                width: 110,
-                dataType: "number",
-                format: {
-                    type: "fixedPoint",
-                    precision: 1 // luôn có 1 ch? s? th?p phân
-                },
+                dataField: `date${index}`,   // Ví dụ: date1, date2...
+                width: 100,                  // Tăng nhẹ độ rộng để hiển thị đủ text
                 alignment: "center",
+                dataType: "number",
+                cellTemplate: function (container, options) {
+                    let value = options.value;
+                    let num = parseFloat(value);
+
+                    // Format số (1,000; 1,234.5 ...)
+                    const formatNumber = (val) =>
+                        new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(val);
+
+                    // Logic định dạng dựa trên cột Statisticname (hoặc roomType tùy API của bạn)
+                    // Lưu ý: Tôi dùng options.data.Statisticname vì trong code cũ của bạn field là Statisticname
+                    let rowType = options.data.Statisticname || options.data.roomType;
+
+                    if (rowType === "% OCC") {
+                        if (value !== null && value !== undefined && value !== "") {
+                            if (!isNaN(num)) {
+                                container.text(num + " %");
+                            } else {
+                                container.text(value + " %");
+                            }
+                        } else {
+                            container.text("");
+                        }
+                    }
+                    else if (rowType === "R.Night") {
+                        if (!num || num === 0) {
+                            container.text("0").css("color", "red");
+                        } else {
+                            container.text(formatNumber(num));
+                        }
+                    }
+                    else if (rowType === "Allotment") {
+                        container.text(num ? formatNumber(num) : "0");
+                    }
+                    else {
+                        if (!isNaN(num)) {
+                            if (num <= 0) {
+                                container.text(formatNumber(num)).css("color", "red");
+                            } else {
+                                container.text(formatNumber(num));
+                            }
+                        } else {
+                            container.text("");
+                        }
+                    }
+                },
                 headerCellTemplate: function (container) {
-                    container.html(`<div style="white-space: normal; text-align:center; font-size:11px;">${captionHtml}</div>`);
+                    container.html(
+                        `<div style="white-space: normal; text-align:center; font-size:11px;">${captionHtml}</div>`
+                    );
                 }
             });
 
             start.setDate(start.getDate() + 1);
+            index++;
         }
 
         return columns;
     }
-
 
     function getWeekNumber(date) {
         const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
