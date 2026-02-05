@@ -137,17 +137,18 @@ namespace FrontDesk.Controllers
             }
         }
         [HttpPost]
-        public JsonResult InsertTelephoneBook(string name, string telephone, string address, string remark, string webAddress, int categoryId, int color)
+        public JsonResult InsertTelephoneBook(string name, string telephone, string address, string remark, string webAddress, int categoryId, int color, int userID)
         {
             try
             {
+                DateTime businessDate = TextUtils.GetBussinessDateTime();
+
                 var vnPhoneRegex = new System.Text.RegularExpressions.Regex(@"^((0|\+84)(3|5|7|8|9)[0-9]{8}|0\d{2,3}\d{7,8})$");
 
                 if (string.IsNullOrWhiteSpace(telephone) || !vnPhoneRegex.IsMatch(telephone))
                 {
                     return Json(new { success = false, message = "Số điện thoại Việt Nam không hợp lệ (di động hoặc máy bàn)!" });
                 }
-                int userId = HttpContext.Session.GetInt32("UserID") ?? 0;
 
                 var model = new TelephoneBookModel
                 {
@@ -158,8 +159,8 @@ namespace FrontDesk.Controllers
                     WebAddress = webAddress,
                     TelephoneBookCategoryID = categoryId,
                     Color = color,
-                    CreateDate = DateTime.Now,
-                    UserInsertID = userId
+                    CreateDate = businessDate,
+                    UserInsertID = userID
                 };
 
                 TelephoneBookBO.Instance.Insert(model);
@@ -172,11 +173,11 @@ namespace FrontDesk.Controllers
         }
         [HttpPost]
         public JsonResult UpdateTelephoneBook(int id, string name, string telephone, string address,
-    string remark, string webAddress, int categoryId, int color)
+    string remark, string webAddress, int categoryId, int color, int userID)
         {
             try
             {
-                int userId = HttpContext.Session.GetInt32("UserID") ?? 0;
+                DateTime businessDate = TextUtils.GetBussinessDateTime();
 
                 var model = new TelephoneBookModel
                 {
@@ -188,8 +189,8 @@ namespace FrontDesk.Controllers
                     WebAddress = webAddress,
                     TelephoneBookCategoryID = categoryId,
                     Color = color,
-                    UserUpdateID = userId,
-                    UpdateDate = DateTime.Now
+                    UserUpdateID = userID,
+                    UpdateDate = businessDate
                 };
 
                 TelephoneBookBO.Instance.Update(model);
@@ -3905,6 +3906,84 @@ namespace FrontDesk.Controllers
             catch (Exception ex)
             {
                 return Json(new { success = false, message = ex.Message });
+            }
+        }
+        #endregion
+        #region Tuan_2/2026
+        public IActionResult ProcessFOStatus()
+        {
+            return PartialView();
+        }
+
+        [HttpGet]
+        public IActionResult GetRoomPFOS(int isVacant)
+        {
+            try
+            {
+                DataTable table = _iFrontDeskService.GetRoomPFOS(isVacant);
+                var result = (from d in table.AsEnumerable()
+                              select d.Table.Columns.Cast<DataColumn>().ToDictionary(
+                              col => col.ColumnName,
+                              col =>
+                              {
+                                  var value = d[col.ColumnName];
+                                  if (value == DBNull.Value) return null;
+
+                                  // CreatedDate: KHÔNG ToString
+                                  if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate")
+                                      return value;
+
+                                  // Các field khác: ToString
+                                  return value.ToString();
+                              }
+                          )).ToList();
+                return Json(result);
+
+            }
+            catch (Exception ex)
+            {
+
+                return Json(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        public JsonResult UpdateRoomPFOS(int roomId, int roomTypeID, bool isVacant, int userID = 0)
+        {
+            try
+            {
+                if (RoomTypeBO.Instance.FindByPrimaryKey(roomTypeID) is RoomTypeModel rt)
+                {
+                    if (rt.IsPseudo == true)
+                        return Json(new { success = false, message = "Dummy room not check." });
+                }
+                else return Json(new { success = false, message = "Room Type not found." });
+
+                // Valid Room Model
+                var roomModel = RoomBO.Instance.FindByPrimaryKey(roomId) as RoomModel;
+                if (roomModel == null) return Json(new { success = false, message = "Room not found." });
+
+                // Valid Logic Reservation từ Service
+                int resvCount = _iFrontDeskService.GetReservationCount(roomId, isVacant);
+
+                if (isVacant && resvCount != 0)
+                    return Json(new { success = false, message = "Room is Occupied. Please check again reservation." });
+
+                if (!isVacant && resvCount == 0)
+                    return Json(new { success = false, message = "Room is vacant. Please check again reservation." });
+
+                // Nếu tất cả Valid -> Gọi Service thực thi Update
+                var result = _iFrontDeskService.ExecuteUpdateStatus(roomModel, isVacant, userID);
+
+                return Json(new
+                {
+                    success = true,
+                    message = $"Changed FOStatus Room No. {result.roomNo} to {result.statusName} successfully."
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error: " + ex.Message });
             }
         }
         #endregion
