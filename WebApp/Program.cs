@@ -135,6 +135,10 @@ mvcBuilder.PartManager.ApplicationParts.Add(
 mvcBuilder.PartManager.ApplicationParts.Add(
     new AssemblyPart(typeof(SecurityController).Assembly));
 
+// Reservation Allotment
+mvcBuilder.PartManager.ApplicationParts.Add(
+    new AssemblyPart(typeof(AllotmentController).Assembly));
+
 builder.Services.AddHttpClient();
 builder.Services.AddSignalR();
 builder.Services.AddControllersWithViews();
@@ -206,6 +210,9 @@ builder.Services.AddSingleton<ITransactionArticleLinkService, TransactionArticle
 builder.Services.AddSingleton<INewProfileService, NewProfileService>();
 builder.Services.AddSingleton<IExtendProfileService, ExtendProfileService>();
 builder.Services.AddSingleton<ISecurityService,SecurityService>();
+
+builder.Services.AddSingleton<IAllotmentService, AllotmentService>();
+
 
 builder.Services.AddAuthentication(options =>
 {

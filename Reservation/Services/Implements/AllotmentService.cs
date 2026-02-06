@@ -1,7 +1,7 @@
-using System.Data;
 using BaseBusiness.util;
 using Microsoft.Data.SqlClient;
 using Reservation.Services.Interfaces;
+using System.Data;
 
 namespace Reservation.Services.Implements
 {
@@ -25,6 +25,32 @@ namespace Reservation.Services.Implements
 
                 throw new Exception($"ERROR: {ex.Message}", ex);
             }
+        }
+
+        public DataTable AllotmentType(string code, string name, int inactive)
+        {
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@Code", code ?? ""),
+                new SqlParameter("@Name", name ?? ""),
+                new SqlParameter("@Inactive", inactive)
+            };
+
+            DataTable myTable = DataTableHelper.getTableData("spFrmAllotmentTypeSearch", param);
+            return myTable;
+        }
+
+        public DataTable AllotmentStage(string code, string name, int inactive)
+        {
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@Code", code ?? ""),
+                new SqlParameter("@Name", name ?? ""),
+                new SqlParameter("@Inactive", inactive)
+            };
+
+            DataTable myTable = DataTableHelper.getTableData("spFrmAllotmentStageSearch", param);
+            return myTable;
         }
     }
 }

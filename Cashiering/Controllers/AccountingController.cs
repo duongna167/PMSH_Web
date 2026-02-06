@@ -718,7 +718,7 @@ namespace Cashiering.Controllers
 
             List<CurrencyModel> listcurr = PropertyUtils.ConvertToList<CurrencyModel>(CurrencyBO.Instance.FindAll());
             ViewBag.CurrencyList = listcurr;
-            return View(); // View này sẽ chứa DataGrid + script gọi API
+            return View(); 
         }
 
         [HttpGet]
