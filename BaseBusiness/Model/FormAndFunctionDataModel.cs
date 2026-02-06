@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BaseBusiness.Model
 {
-    public class FormAndFunctionModel : BaseModel
+    public class FormAndFunctionDataModel : BaseModel
     {
         public int ID { get; set; }
 
@@ -17,15 +17,7 @@ namespace BaseBusiness.Model
 
         public string Description { get; set; }
 
-        public bool ShiftKey { get; set; }
-
-        public bool CtrlKey { get; set; }
-
-        public bool AltKey { get; set; }
-
-        public string ShortcutKey { get; set; }
-
-        public int FormAndFunctionGroupID { get; set; }
+        public int  FormAndFunctionDataGroupID { get; set; }
 
         public string CreatedBy { get; set; }
 
@@ -35,11 +27,8 @@ namespace BaseBusiness.Model
 
         public DateTime UpdatedDate { get; set; }
 
-        public bool IsHide { get; set; }
-
         public decimal OrderIndex { get; set; }
 
-        public bool Inactive { get; set; }
-        public string MappingLinkWeb { get; set; }
+        public bool IsHide { get; set; }
     }
 }
