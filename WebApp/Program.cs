@@ -35,6 +35,9 @@ using Report.Services.Interfaces;
 using Reservation.Controllers;
 using Reservation.Services.Implements;
 using Reservation.Services.Interfaces;
+using Security.Controllers;
+using Security.Services.Implements;
+using Security.Services.Interfaces;
 using RoomManagement.Controllers;
 using RoomManagement.Services.Implements;
 using RoomManagement.Services.Interfaces;
@@ -129,6 +132,8 @@ mvcBuilder.PartManager.ApplicationParts.Add(
 // HouseKeeping Admin
 mvcBuilder.PartManager.ApplicationParts.Add(
     new AssemblyPart(typeof(HouseKeepingAdminController).Assembly));
+mvcBuilder.PartManager.ApplicationParts.Add(
+    new AssemblyPart(typeof(SecurityController).Assembly));
 
 // Reservation Allotment
 mvcBuilder.PartManager.ApplicationParts.Add(
@@ -204,6 +209,7 @@ builder.Services.AddSingleton<IPackageService, PackageService>();
 builder.Services.AddSingleton<ITransactionArticleLinkService, TransactionArticleLinkService>();
 builder.Services.AddSingleton<INewProfileService, NewProfileService>();
 builder.Services.AddSingleton<IExtendProfileService, ExtendProfileService>();
+builder.Services.AddSingleton<ISecurityService,SecurityService>();
 
 builder.Services.AddSingleton<IAllotmentService, AllotmentService>();
 
