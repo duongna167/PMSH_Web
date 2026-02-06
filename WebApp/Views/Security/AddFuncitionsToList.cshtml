@@ -1,0 +1,618 @@
+﻿@using DevExpress.XtraReports.UI
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+ 
+    var listsc = ViewBag.ShortcutKeyList;
+    var listfromandfuc = ViewBag.FormAndFunctionGroupList;
+}
+@* <link asp-append-version="true" href="~/css/reservation.css" rel="stylesheet" /> *@
+
+<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+    <div class="">
+        <button id="btnPrint" class="mui-button mui-button-view">View</button>
+        <button id="btnExportExcel" class="mui-button button-report-excel" type="button"> Excel</button>
+        <button id="btnNewTheKeyboard" class="mui-button mui-button-new" type="button"> New </button>
+        <button id="btnEditAppoin" class="mui-button mui-button-edit" type="button">Edit </button>
+        <button id="btnDeleteAppoin" class="mui-button mui-button-delete" type="button">
+            Delete
+        </button>
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-1 pt-2 filter-panel">
+        <!-- From Date -->
+
+        <div class="row g-3 align-items-center filter-panel">
+
+            <div class="col-md-auto">
+                <div class="d-flex align-items-center">
+                    <label class="me-2 mb-0 text-nowrap" for="attendant">Code tag:</label>
+                    <div class="col-8">
+                        <input type="text" id="codetag" name="codetag"
+                               class="form-control form-control-sm" />
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-auto">
+                <div class="d-flex align-items-center">
+                    <label class="me-2 mb-0 text-nowrap" for="attendant">Name rights:</label>
+                    <div class="col-8">
+                        <input type="text" id="namerights" name="namerights"
+                               class="form-control form-control-sm" />
+                    </div>
+                </div>
+            </div>
+            <!-- Radio: Functions rights (value = 0) -->
+            <div class="col-md-auto">
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input"
+                           type="radio"
+                           name="rightsType"
+                           id="functionsRights"
+                           value="0"
+                           checked>
+                    <label class="form-check-label" for="functionsRights">
+                        Functions rights
+                    </label>
+                </div>
+            </div>
+
+            <!-- Radio: Data rights (value = 1) -->
+            <div class="col-md-auto">
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input"
+                           type="radio"
+                           name="rightsType"
+                           id="dataRights"
+                           value="1">
+                    <label class="form-check-label" for="dataRights">
+                        Data rights
+                    </label>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="modal fade" id="popupNewGrid" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" >
+
+            <!-- HEADER -->
+            <div class="modal-header py-2">
+                <h5 id="attendantPointTitle" class="modal-title">
+                    The Keyboard Shortcut
+                </h5>
+            </div>
+
+            <!-- BODY -->
+            <div class="modal-body p-3" >
+
+                <!-- BUTTON -->
+                <div class="d-flex justify-content-start mb-3 gap-2 pt-2">
+                    <button id="btnSaveAtt"
+                            class="mui-button mui-button-search">
+                        Save
+                    </button>
+
+                    <button type="button"
+                            id="btnClosePopup"
+                            class="mui-button mui-button-new"
+                            data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+
+                <!-- FORM -->
+                <div class="container-fluid">
+                    <div class="row g-3">
+                        <input type="hidden" id="txtid" name="txtid" />
+                        <!-- LEFT: INFORMATION -->
+                        <div class="col-md-7">
+                            <fieldset class="border p-2 h-100">
+                                <legend class="float-none w-auto px-2 small fw-bold">
+                                    Information
+                                </legend>
+
+                                <!-- Code Tag -->
+                                <div class="row align-items-center mb-2">
+                                    <div class="col-md-4">
+                                        <label class="mb-0">Code Tag</label>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <input type="text"id="codetagnew" class="form-control form-control-sm">
+                                    </div>
+                                </div>
+
+                                <!-- Name rights -->
+                                <div class="row align-items-center mb-2">
+                                    <div class="col-md-4">
+                                        <label class="mb-0">Name rights</label>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <input type="text" id="namerightnew" class="form-control form-control-sm">
+                                    </div>
+                                </div>
+
+                                <!-- Description -->
+                                <div class="row align-items-center mb-2">
+                                    <div class="col-md-4">
+                                        <label class="mb-0">Description</label>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <input type="text" id="descriptionnew" class="form-control form-control-sm">
+                                    </div>
+                                </div>
+                                <!-- MappingLinkWeb -->
+                                <div class="row align-items-center mb-2">
+                                    <div class="col-md-4">
+                                        <label class="mb-0">Mapping Link Web</label>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <input type="text" id="mappingLinkWeb" class="form-control form-control-sm">
+                                    </div>
+                                </div>
+                                <!-- Group -->
+                                <div class="row align-items-center mb-2">
+                                    <div class="col-md-4">
+                                        <label class="mb-0">Group</label>
+                                    </div>
+                                    <div class="col-md-8 d-flex gap-1">
+                                        <select id="groupnew" name="groupnew" class="form-control form-control-sm">
+                                            @foreach (var item in listfromandfuc)
+                                            {
+                                                <option value="@item.ID">@item.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Is Hide -->
+                                <div class="row align-items-center">
+                                    <div class="col-md-4"></div>
+                                    <div class="col-md-8">
+                                        <div class="form-check">
+                                            <input class="form-check-input me-2" type="checkbox" id="chkHide">
+                                            <label class="form-check-label" for="chkHide">
+                                                Is Hide
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </div>
+
+                        <!-- RIGHT: SHORTCUTS -->
+                        <div class="col-md-5">
+                            <fieldset class="border p-2 h-100">
+                                <legend class="float-none w-auto px-2 small fw-bold">
+                                    Shortcuts
+                                </legend>
+
+                                <!-- Keys -->
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input me-2" type="checkbox" id="chkShift">
+                                    <label class="form-check-label" for="chkShift">
+                                        Keys Shift
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input me-2" type="checkbox" id="chkCtrl">
+                                    <label class="form-check-label" for="chkCtrl">
+                                        Keys Ctrl
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input me-2" type="checkbox" id="chkAlt">
+                                    <label class="form-check-label" for="chkAlt">
+                                        Keys Alt
+                                    </label>
+                                </div>
+
+                                <!-- Function Keys -->
+                                <div class="row align-items-center">
+                                    <div class="col-md-5">
+                                        <label class="mb-0">Functions Keys</label>
+                                    </div>
+                                    <div class="col-md-7">
+                                        <select id="functionkeynew"  name="functionkeynew" class="form-control form-control-sm">
+                                            @foreach (var item in listsc)
+                                            {
+                                                <option value="@item.Name">@item.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </div>
+
+                    </div>
+                </div>
+
+
+                <!-- GRID -->
+                <div id="logGridContainer"
+                     class="gridContainer mt-2"
+                     style="max-height:250px; overflow:auto;">
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mui-card">
+    <div id="gridContainer" class="gridContainer mt-2"></div>
+</div>
+<div id="loadingSpinner"
+     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+</div>
+<script>
+
+    let parsedBusinessDate = null;
+    $(document).ready(function () {
+
+        document.getElementById("reportTitle").innerText = 'Add Funcitions To List';
+
+       $("#btnPrint").trigger("click");
+
+
+    });
+
+
+    $('#btnClosePopup, #overlay').click(function () {
+       $('#popupNewGrid').modal('hide');
+
+
+        $('#fromDatenew').val(formatDate(parsedBusinessDate));
+        $('#attendantnew').val('').trigger('change');
+        $('#username').val('');
+        $('#point').val('');
+        $('#txtid').val('');
+    });
+    $('#btnNewTheKeyboard').click(function () {
+
+       $('#popupNewGrid').modal('show');;
+    });
+ 
+    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+        var rightsType = $('input[name="rightsType"]:checked').val();
+        $("#loadingSpinner").show();
+        $.ajax({
+            url: '/Security/AddFuncitionsToListData',
+            type: 'GET',
+            data: {
+                codetag: $("#codetag").val(),
+                namerights: $("#namerights").val(),
+                isDataRight: rightsType,
+            },
+            traditional: true,
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+                // $("#reportViewerContainer").html(result);
+                // $("#loadingSpinner").hide();
+                console.log(result);
+                initializeAddFuncitionsToListGrid(result);
+                $("#loadingSpinner").hide();
+            },
+            error: function () {
+                alert("Không th? t?i báo cáo.");
+                $("#loadingSpinner").hide();
+            }
+        });
+    });
+
+    let selectedRowData = null;
+
+     function initializeAddFuncitionsToListGrid(data) {
+        $("#gridContainer").dxTreeList({
+            dataSource: data,
+            keyExpr: "id",
+            parentIdExpr: "parentID",
+            rootValue: 0,
+
+            height: 500,
+            showBorders: true,
+            columnAutoWidth: true,
+            autoExpandAll: false,
+            columns: [
+                {
+                    dataField: "name",
+                    caption: "Name Rights",
+                    width: "30%"
+                },
+                {
+                    dataField: "code",
+                    caption: "Code Tag",
+                    width: "20%"
+                },
+                {
+                    dataField: "mappingLinkWeb",
+                    caption: "Mapping Link Web",
+                    width: "20%"
+                },
+                booleanColumn("shiftKey", "Shift", "6%"),
+                booleanColumn("ctrlKey", "Ctrl", "6%"),
+                booleanColumn("altKey", "Alt", "6%"),
+                {
+                    dataField: "shortcutKey",
+                    caption: "The Keyboard Shortcut",
+                    width: "20%"
+                },
+                booleanColumn("isHide", "Hide", "6%")
+            ],
+            selection: {
+                mode: "single"
+            },
+
+            filterRow: { visible: true },
+            headerFilter: { visible: true },
+
+            paging: {
+                enabled: false
+            },
+
+            scrolling: {
+                mode: "standard"
+            },
+            onRowClick: function (e) {
+                selectedRowData = e.data;
+
+                console.log("Row clicked:", selectedRowData);
+            },
+            onRowPrepared: function (e) {
+                if (e.rowType === "data" && e.node.hasChildren) {
+                    e.rowElement.css({
+                        "font-weight": "bold",
+                        "background-color": "#f8f9fa"
+                    });
+                }
+            }
+        });
+    }
+       function booleanColumn(field, caption, width) {
+        return {
+            dataField: field,
+            caption: caption,
+            width: width || "6%",
+            alignment: "center",
+            cellTemplate: function (container, options) {
+                $("<div>")
+                    .dxCheckBox({
+                        value: options.value,
+                        readOnly: true
+                    })
+                    .css({
+                        transform: "scale(0.85)",
+                        margin: "0 auto"
+                    })
+                    .appendTo(container);
+            }
+        };
+    }
+
+
+    $('#btnEditAppoin').on('click', function () {
+         var rightsType = $('input[name="rightsType"]:checked').val();
+         console.log(rightsType);
+        if (!selectedRowData) {
+            showToast('Warning', 'Please select a row before clicking Edit.', false);
+            return;
+        }
+         $.ajax({
+            url: '/Security/AddFuncitionsToListDetail',
+            type: 'GET',
+            data: {
+                id: selectedRowData.id,
+                isDataRight: rightsType,
+            },
+            traditional: true,
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (res) {
+
+                
+                var result   =res[0];
+                  console.log(result);
+                if(rightsType == 1){
+                     $('#txtid').val(result.id);
+                    $('#codetagnew').val(result.code || '');
+                    $('#namerightnew').val(result.name || '');
+                    $('#descriptionnew').val(result.description || '');
+                    $('#chkHide').prop('checked', result.isHide === true);
+                        $('#groupnew').val(result.formAndFunctionDataGroupID || '');
+                    $("#loadingSpinner").hide();
+                }else{
+                    $('#txtid').val(result.id);
+                    $('#codetagnew').val(result.code || '');
+                    $('#namerightnew').val(result.name || '');
+                    $('#descriptionnew').val(result.name || '');
+                    $('#mappingLinkWeb').val(result.mappingLinkWeb || '');
+                    $('#chkHide').prop('checked', result.isHide === true);
+                    $('#chkShift').prop('checked', result.shiftKey === true);
+                    $('#chkCtrl').prop('checked', result.ctrlKey === true);
+                    $('#chkAlt').prop('checked', result.altKey === true);
+                         $('#functionkeynew').val(result.shortcutKey || '');
+                    $('#groupnew').val(result.formAndFunctionGroupID || '');
+                    $("#loadingSpinner").hide();
+                }
+             
+            },
+            error: function () {
+                alert("Không th? t?i báo cáo.");
+                $("#loadingSpinner").hide();
+            }
+        });
+        // Hiện popup
+        $('#popupNewGrid').modal('show');;
+    });
+
+    $(document).off("click", "#btnDeleteAppoin").on("click", "#btnDeleteAppoin", function () {
+        console.log(selectedRowData);
+        if (!selectedRowData) {
+            showToast('Warning', 'Please select a row before clicking Edit.', false);
+            return;
+        }
+
+
+
+        // Send AJAX
+        $.ajax({
+            url: '/HouseKeeping/DeleteAttendantPoint',
+            type: 'POST',
+            data: {
+                ID: selectedRowData.id,
+
+            },
+            traditional: true,
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (response) {
+                if (response.success) {
+                    showToast('Success', response.message, true);
+                    $("#btnPrint").trigger("click");
+                    selectedRowData = null;
+                } else {
+                    showToast('Warning', response.message, false);
+                }
+            },
+            error: function () {
+                showToast('Warning', response.message, false);
+                $("#loadingSpinner").hide();
+            }
+        });
+    });
+
+
+   $(document).off("click", "#btnSaveAtt").on("click", "#btnSaveAtt", function () {
+            var rightsType = $('input[name="rightsType"]:checked').val();
+            var codetagnew = $("#codetagnew").val();
+            var namerightnew = $("#namerightnew").val();
+            var descriptionnew = $("#descriptionnew").val();
+            var mappingLinkWeb = $("#mappingLinkWeb").val();
+            var groupnew = $("#groupnew").val();
+            var isHide = $('#chkHide').is(':checked') ? 1 : 0;
+            var isShift = $('#chkShift').is(':checked') ? 1 : 0;
+            var isCtrl = $('#chkCtrl').is(':checked') ? 1 : 0;
+            var isAlt = $('#chkAlt').is(':checked') ? 1 : 0;
+            var functionkeynew = $("#functionkeynew").val();
+            var ID = $("#txtid").val();
+           const userName = JSON.parse(localStorage.getItem("Loginname"));
+           const userID = JSON.parse(localStorage.getItem("userID"));
+
+        // Send AJAX
+        $.ajax({
+            url: '/Security/UpdateFormAndFunction',
+            type: 'POST',
+            data: {
+                ID: ID,
+                codetagnew:codetagnew,
+                namerightnew:namerightnew,
+                descriptionnew:descriptionnew,
+                mappingLinkWeb:mappingLinkWeb,
+                groupnew:groupnew,
+                isHide:isHide,
+                isShift:isShift,
+                isCtrl:isCtrl,
+                isAlt:isAlt,
+                functionkeynew:functionkeynew,
+                 _IsDataRight: rightsType,
+                 userName:userName,
+                userID:userID
+            },
+            traditional: true,
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (response) {
+                if (response.success) {
+                    showToast('Success', response.message, true);
+                    $('#fromDatenew').val(formatDate(parsedBusinessDate));
+                    $('#attendantnew').val('').trigger('change');
+                    $('#username').val('');
+                    $('#point').val('');
+                    $('#txtid').val('');
+
+                $('#popupNewGrid').modal('hide');
+                    $("#btnPrint").trigger("click");
+
+                } else {
+                    showToast('Warning', response.message, false);
+                }
+            },
+            error: function () {
+                showToast('Warning', response.message, false);
+                $("#loadingSpinner").hide();
+            }
+        });
+   });
+
+
+
+    $("#btnExportExcel").click(function () {
+        const grid = $("#gridContainer").dxDataGrid("instance");
+        var selectedReport = 'AddFuncitionsToList';
+        if (!selectedReport) {
+            alert("Vui lòng ch?n báo cáo tru?c khi xu?t Excel.");
+            return;
+        }
+
+        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+        const worksheet = workbook.addWorksheet("Sheet 1");
+
+        // === T?o header công ty (dòng 1) ===
+        worksheet.addRow(['Công ty C? ph?n Gi?i pháp Công ngh? CS-Solution']);
+        worksheet.mergeCells('A1:E1');
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+        // === Dòng 2: Th?i gian xu?t (ph?i) ===
+        const now = new Date();
+        const exportDate = now.toLocaleString("vi-VN");
+        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
+        worksheet.mergeCells('E2:H2');
+        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
+
+        // === Dòng 3–4: Tr?ng
+        worksheet.addRow([]);
+        worksheet.addRow([]);
+
+        // === Dòng 5: Tên báo cáo ? gi?a ===
+        const reportRow = worksheet.addRow(['', '', selectedReport]);
+        worksheet.mergeCells('C5:F5');
+        reportRow.font = { bold: true, size: 14 };
+        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
+        worksheet.addRow([]);
+
+        // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
+        DevExpress.excelExporter.exportDataGrid({
+            component: grid,
+            worksheet: worksheet,
+            autoFilterEnabled: true,
+            topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
+        }).then(function () {
+            // Footer
+            const lastRow = worksheet.lastRow.number + 2;
+            worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
+            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
+            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+            worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+            // Ghi file
+            let fileName = selectedReport + ".xlsx";
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+            });
+        });
+    });
+</script>
