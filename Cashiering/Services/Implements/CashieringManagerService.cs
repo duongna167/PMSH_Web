@@ -49,5 +49,27 @@ namespace Cashiering.Services.Implements
                 throw new Exception($"ERROR: {ex.Message}", ex);
             }
         }
+        public DataTable SetUpInvoiceSerial()
+        {
+            // Kết quả trả về chuỗi định dạng 'yyyy-MM-dd' để SQL Server hiểu đúng
+            var BusinessDate = TextUtils.GetBusinessDateTime();
+            string tenYearsAgo = BusinessDate.AddYears(-10).ToString("yyyy-MM-dd");
+
+            // Lưu ý: Dùng a.VATDate >= '{tenYearsAgo}' sẽ nhanh hơn DATEDIFF
+            string query = $@"SELECT DISTINCT a.SerialNo 
+                      FROM FolioVAT a 
+                      WHERE a.VATDate >= '{tenYearsAgo}' 
+                      AND a.Status = 1 
+                      AND ISNULL(a.FormNo, '') <> '' 
+                      AND ISNULL(a.SerialNo, '') <> ''";
+
+            // 3. Thực thi qua Store Procedure
+            SqlParameter[] parameters = [
+                new SqlParameter("sqlCommand", query)
+            ];
+
+            DataTable table = DataTableHelper.getTableData("spSearchAllForTrans", parameters);
+            return table;
+        }
     }
 }

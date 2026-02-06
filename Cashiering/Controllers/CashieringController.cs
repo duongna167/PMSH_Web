@@ -1100,7 +1100,44 @@ namespace Cashiering.Controllers
             }
         }
         #endregion
+        #region Tuan_Invoice 6/2/2026
+        public IActionResult EInvoiceManager()
+        {
+            return View();
+        }
 
+        [HttpGet]
+        public IActionResult SetUpInvoiceSerial()
+        {
+            try
+            {
+                DataTable table = _iCashieringManagerService.SetUpInvoiceSerial();
+                var result = (from d in table.AsEnumerable()
+                              select d.Table.Columns.Cast<DataColumn>().ToDictionary(
+                                  col => col.ColumnName,
+                                  col =>
+                                  {
+                                      {
+                                          var value = d[col.ColumnName];
+                                          if (value == DBNull.Value) return null;
+
+                                          // CreatedDate: KHÔNG ToString
+                                          if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate")
+                                              return value;
+
+                                          // Các field khác: ToString
+                                          return value.ToString();
+                                      }
+                                  }
+                              )).ToList();
+                              return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+        #endregion
     }
 }
 
