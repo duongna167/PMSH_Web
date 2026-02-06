@@ -532,6 +532,49 @@ namespace BaseBusiness.bc
             }
         }
 
+        public virtual bool IsDuplicateCode(
+			string table,
+			string codeField,
+			object codeValue,
+			long id = 0)
+			{
+				if (baseFacade == null)
+					throw new BOException("BaseFacade is not initialized.");
+
+				var conditions = new Dictionary<string, object>
+			{
+				{ codeField, codeValue }
+			};
+
+            return baseFacade.Exists(table, conditions, id);
+        }
+
+        public virtual bool IsDuplicateCode(
+			string table,
+			Dictionary<string, object> conditions,
+			long id = 0)
+        {
+            if (baseFacade == null)
+                throw new BOException("BaseFacade is not initialized.");
+
+            return baseFacade.Exists(table, conditions, id);
+        }
+
+        public virtual bool IsDuplicateCode(
+			 string table,
+			 string codeField,
+			 object codeValue,
+			 string id,
+			 string idField)
+		{
+				var conditions = new Dictionary<string, object>
+		{
+			{ codeField, codeValue }
+		};
+
+            return baseFacade.Exists(table, conditions, id, idField);
+        }
+
 
 
     }

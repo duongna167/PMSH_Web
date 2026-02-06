@@ -1,6 +1,4 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿
 @{
     ViewBag.Title = ViewBag.ReportHeader;
     var zoneList = ViewBag.ZoneList;
@@ -8,51 +6,43 @@
 }
 
 <div class="text-center" id="reportTitle" style="font-size: 20px"></div>
-<div class="search-filter">
-    <div class="">
+<div class="container-fluid p-2">
+    <div class="py-2">
         <button id="btnPrint" class="mui-button mui-button-new">View</button>
     </div>
-    <div class="d-flex flex-wrap align-items-center gap-2 mt-1 filter-panel">
-        <!-- From Date -->
 
-        <div class="d-flex flex-column ">
-
-            <div class="d-flex align-items-center">
-                <div class="d-flex align-items-center me-3">
-                    <label class="me-2 mb-0">Trans .Date :</label>
-                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
-                        <input type="text" class="date-ui form-control form-control-sm w-auto" placeholder="dd/mm/yyyy"
-                            autocomplete="off" />
-                    </div>
-
-                </div>
-                <div class="d-flex align-items-center me-3">
-                    <label class="me-2 mb-0">Cachier:</label>
-                    <select id="cachier" name="cachier" class="tomselect-custom" multiple>
-                        @foreach (var item in usersList)
-                        {
-                            <option value="@item.ID">@item.LoginName</option>
-                        }
-                    </select>
-
-                </div>
-                <div class="d-flex align-items-center me-3">
-                    <label class="me-2 mb-0">Zone:</label>
-                    <select id="zonecode" name="zonecode" class="tomselect-custom" multiple>
-                        @foreach (var item in zoneList)
-                        {
-                            <option value="@item.ID">@item.Code</option>
-                        }
-                    </select>
-
+    <div class="filter-panel bg-light p-1">
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-6 col-lg-3">
+                <label class="form-label small fw-bold mb-1" for="fromDate">Trans. Date:</label>
+                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
+                    <input type="text" class="date-ui form-control form-control-sm w-100"
+                           placeholder="dd/mm/yyyy" autocomplete="off" />
                 </div>
             </div>
+
+            <div class="col-12 col-md-6 col-lg-4">
+                <label class="form-label small fw-bold mb-1" for="cachier">Cashier:</label>
+                <select id="cachier" name="cachier" class="tomselect-custom" multiple>
+                    @foreach (var item in usersList)
+                    {
+                        <option value="@item.ID">@item.LoginName</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-12 col-md-12 col-lg-4">
+                <label class="form-label small fw-bold mb-1" for="zonecode">Zone:</label>
+                <select id="zonecode" name="zonecode" class="tomselect-custom" multiple>
+                    @foreach (var item in zoneList)
+                    {
+                        <option value="@item.ID">@item.Code</option>
+                    }
+                </select>
+            </div>
         </div>
-
-
     </div>
 </div>
-
 <div class="mui-card">
     <div id="gridContainer" class="gridContainer mt-2"></div>
 </div>
@@ -84,7 +74,7 @@
         // Gán vào input type="date"
         // $('#fromDate').val(formatDate(parsedBusinessDate));
 
-        // initializeTomSelects();
+        initTomSelect(".tomselect-custom");
         getBusinessDate();
     });
     function getBusinessDate() {
@@ -98,7 +88,7 @@
 
                 const fromDateStr = result.split('T')[0];
                 $('#fromDate').val(fromDateStr);
-                initializeTomSelects();
+                
                 $("#btnPrint").trigger("click");
 
             },
@@ -110,32 +100,6 @@
         });
     }
 
-    function initializeTomSelects() {
-        const selectors = ["#zonecode", "#cachier"];
-
-        for (const id of selectors) {
-            const el = document.querySelector(id);
-            if (!el) continue;
-
-            // Nếu đã khởi tạo rồi thì destroy
-            if (el.tomselect) el.tomselect.destroy();
-
-            const ts = new TomSelect(el, {
-                plugins: ['remove_button'],
-                create: false,
-                maxItems: null,
-                allowEmptyOption: true,
-                placeholder: '',
-                persist: false,
-                render: {
-                    option: function (data, escape) {
-                        return `<div>${escape(data.text)}</div>`;
-                    }
-                }
-            });
-
-        }
-    }
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
         $("#loadingSpinner").show();
 
