@@ -130,6 +130,10 @@ mvcBuilder.PartManager.ApplicationParts.Add(
 mvcBuilder.PartManager.ApplicationParts.Add(
     new AssemblyPart(typeof(HouseKeepingAdminController).Assembly));
 
+// Reservation Allotment
+mvcBuilder.PartManager.ApplicationParts.Add(
+    new AssemblyPart(typeof(AllotmentController).Assembly));
+
 builder.Services.AddHttpClient();
 builder.Services.AddSignalR();
 builder.Services.AddControllersWithViews();
@@ -200,6 +204,9 @@ builder.Services.AddSingleton<IPackageService, PackageService>();
 builder.Services.AddSingleton<ITransactionArticleLinkService, TransactionArticleLinkService>();
 builder.Services.AddSingleton<INewProfileService, NewProfileService>();
 builder.Services.AddSingleton<IExtendProfileService, ExtendProfileService>();
+
+builder.Services.AddSingleton<IAllotmentService, AllotmentService>();
+
 
 builder.Services.AddAuthentication(options =>
 {

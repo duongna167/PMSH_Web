@@ -1,33 +1,33 @@
-﻿using System;
+﻿using BaseBusiness.BO;
+using BaseBusiness.Model;
+using BaseBusiness.util;
+using DevExpress.Charts.Native;
+using DevExpress.Data.ODataLinq;
+using DevExpress.DataAccess.DataFederation;
+using DevExpress.XtraCharts.Native;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
+using Miscellaneous.Hubs;
+using Miscellaneous.Services.Implements;
+using Miscellaneous.Services.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Net;
+using System.Reflection;
+using System.Security.Policy;
 using System.ServiceModel.Channels;
 using System.Text;
 using System.Threading.Tasks;
-using BaseBusiness.BO;
-using BaseBusiness.Model;
-using BaseBusiness.util;
-using Miscellaneous.Services.Interfaces;
-using Miscellaneous.Services.Implements;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Microsoft.Data.SqlClient;
-using System.Security.Policy;
-using DevExpress.XtraCharts.Native;
-using DevExpress.Charts.Native;
-using System.Reflection;
-using Microsoft.IdentityModel.Tokens;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using DevExpress.Data.ODataLinq;
 using static DevExpress.CodeParser.CodeStyle.Formatting.Rules;
-using DevExpress.DataAccess.DataFederation;
-using Microsoft.AspNetCore.SignalR;
-using Miscellaneous.Hubs;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 namespace Miscellaneous.Controllers
 {
     public class MiscellaneousController : Controller
@@ -38,6 +38,13 @@ namespace Miscellaneous.Controllers
         private readonly IMiscellaneousService _iMiscellaneousService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IHubContext<TagScanHub> _hubContext;
+
+        // ===== RFID debounce (500ms) =====
+        private static readonly object _rfidLock = new();
+        private static string _lastRfidCode = null;
+        private static DateTime _lastRfidTime = DateTime.MinValue;
+        private const int RFID_DEBOUNCE_MS = 500;
+
         public MiscellaneousController(ILogger<MiscellaneousController> logger,
              IMemoryCache cache, IConfiguration configuration, IMiscellaneousService iMiscellaneousService, IHttpContextAccessor httpContextAccessor, IHubContext<TagScanHub> hubContext)
         {
@@ -503,14 +510,14 @@ namespace Miscellaneous.Controllers
 
         }
         
-        private async void MainForm_TagScanCodeReceived(string code)
-        {
-            if (string.IsNullOrWhiteSpace(code)) return;
-            string tag8 = TagScannerHelper.Instance.Convert10To8TagNo(code);
+        //private async void MainForm_TagScanCodeReceived(string code)
+        //{
+        //    if (string.IsNullOrWhiteSpace(code)) return;
+        //    string tag8 = TagScannerHelper.Instance.Convert10To8TagNo(code);
 
-            // Gửi mã quét được ra client qua SignalR
-            await _hubContext.Clients.All.SendAsync("ReceiveCode", tag8);
-        }
+        //    // Gửi mã quét được ra client qua SignalR
+        //    await _hubContext.Clients.All.SendAsync("ReceiveCode", tag8);
+        //}
         [HttpPost]
         public IActionResult AddCard([FromBody] AddCardRequest request)
         {
@@ -622,8 +629,38 @@ namespace Miscellaneous.Controllers
             }
         }
 
+        private void MainForm_TagScanCodeReceived(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return;
 
+            // Convert 10 số → 8 số (nếu cần)
+            var finalCode = TagScannerHelper.Instance.Convert10To8TagNo(code);
 
+            lock (_rfidLock)
+            {
+                var now = DateTime.UtcNow;
+
+                // Chặn scan trùng trong 500ms
+                if (_lastRfidCode == finalCode &&
+                    (now - _lastRfidTime).TotalMilliseconds < RFID_DEBOUNCE_MS)
+                {
+                    return;
+                }
+
+                _lastRfidCode = finalCode;
+                _lastRfidTime = now;
+            }
+
+            //  Đẩy realtime sang client
+            _hubContext.Clients.All.SendAsync("ReceiveCode", finalCode);
+        }
+
+        [HttpGet]
+        public IActionResult TestRFID(string code)
+        {
+            MainForm_TagScanCodeReceived(code);
+            return Ok("sent");
+        }
 
 
     }

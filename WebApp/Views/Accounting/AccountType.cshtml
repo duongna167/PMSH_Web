@@ -8,88 +8,8 @@
 }
 
 <style>
-    .dx-datagrid-headers .dx-header-row td {
-        white-space: pre-line !important;
-        text-align: center;
-        font-size: 11px;
-    }
 
-    .dx-datagrid .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default,
-    .dx-datagrid-container .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default {
-        display: none;
-    }
-
-    .filter_wrapper {
-        /*     background-color: #ececec; */
-        /*   margin: 0px 8px 14px 8px; */
-        padding: 18px 0px 0px 14px;
-        border-radius: 8px;
-    }
-
-    .gridContainer {
-        margin: 0px 8px;
-    }
-
-    .button_wrapper {
-        display: flex;
-        column-gap: 12px;
-        margin: 0px 8px;
-    }
-
-    .button_wrapper .fa-solid {
-        margin-right: 5px;
-    }
-
-    .selected {
-        background-color: #4CAF50;
-        /* Màu xanh */
-        color: white;
-    }
-
-
-
-    .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
-    }
-
-    .sticky-header label[class*="me-"] {
-        margin-right: .5rem !important;
-    }
-
-
-    .sticky-header input[type="date"].form-control-sm {
-
-        font-size: 12px !important;
-        /* dúng 12?px */
-        height: calc(1.1em + .2rem + 2px);
-        /* gi? cùng chi?u cao */
-    }
-
-    .sticky-header label {
-        font-size: 12px !important;
-        line-height: 1.2;
-    }
-
-
-    .sort-select {
-        max-width: 130px;
-        /* ho?c 100px n?u mu?n nh? hon */
-        font-size: 12px;
-        padding: 0.15rem 0.5rem;
-    }
-
-    .sort-select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-image: none !important;
-        padding-right: 10px !important;
-    }
 </style>
-
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
 <div class="text-center" id="reportTitle" style="font-size: 20px">Account Type</div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
     <div class="">
@@ -102,7 +22,6 @@
     </div>
 </div>
 <div class="mui-card">
-    @*     <div style="font-size: 20px;" class="mt-1" id="reportTitle"></div> *@
     <div id="gridContainer" class="gridContainer mt-2"></div>
 </div>
 <div id="overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999;"></div>
@@ -115,12 +34,9 @@
 
     </div>
     <div class="d-flex justify-content-start mb-3 gap-2">
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnOkAuto" class="mui-button mui-button-advance"
-            type="button"> Ok</button>
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnSaveAuto" class="mui-button mui-button-new"
-            type="button"> Save</button>
-        <button onclick="$('#popupNewAccoutType').hide()" id="btnClosePopup" class="btn btn-sm mui-button-close"
-            style=" border-radius: 4px;">
+        <button id="btnOkAuto" class="mui-button mui-button-advance" type="button"> Ok</button>
+        <button id="btnSaveAuto" class="mui-button mui-button-new" type="button"> Save</button>
+        <button onclick="$('#popupNewAccoutType').hide()" id="btnClosePopup" class="mui-button mui-button-close">
              Close
         </button>
     </div>
@@ -345,7 +261,7 @@
                 { dataField: "type", caption: "Type", width: 100 }
             ],
             scrolling: {
-                mode: "standard", // Không dùng virtual để footer hiển thị đúng
+                mode: "standard", 
                 showScrollbar: "always",
                 scrollByContent: true
             },
@@ -363,9 +279,8 @@
                 visible: true,
                 applyFilter: "auto"
             },
-            // 🔥 Quan trọng: gán selectedRowData khi click chọn
             onRowClick: function (e) {
-                selectedRowData = e.data; // 🔥 lấy data của row vừa click
+                selectedRowData = e.data; 
                 console.log("Selected Row (RowClick):", selectedRowData);
             }
         });
@@ -425,7 +340,7 @@
         }
 
         if (!confirm("Are you sure you want to delete this record?")) {
-            return; // Nếu chọn Cancel thì dừng
+            return; 
         }
 
         $.ajax({
@@ -566,7 +481,7 @@
         $('#overlay').fadeOut(200);
     });
     $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance");   // 🔥 khai báo grid
+        const grid = $("#gridContainer").dxDataGrid("instance");  
 
         const workbook = new ExcelJS.Workbook();
         const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
@@ -590,7 +505,7 @@
         worksheet.addRow([]);
 
         // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-        const reportRow = worksheet.addRow(['Telephone Directory']);
+        const reportRow = worksheet.addRow(['AR Accounting Type']);
         worksheet.mergeCells('A5:D5');
         reportRow.font = { bold: true, size: 14 };
         reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -612,7 +527,7 @@
             worksheet.getCell(`A${lastRow}`).font = { italic: true };
 
             // Ghi file
-            let fileName = "Telephone Directory.xlsx";
+            let fileName = "ARAccountType.xlsx";
             workbook.xlsx.writeBuffer().then(function (buffer) {
                 saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
             });
