@@ -1130,7 +1130,43 @@ namespace Cashiering.Controllers
                                       }
                                   }
                               )).ToList();
-                              return Json(result);
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+        public IActionResult SearchInvoiceOrInvoiceDetail(DateTime fromDate, DateTime toDate, string searchName, string confNo,
+         string folioNo, string invoiceNo, string invoiceSerial, int print, int resType, int viewBy, int id)
+        {
+            searchName ??= "";
+            invoiceSerial ??= "";
+            confNo ??= "";
+            folioNo ??= "";
+            invoiceNo ??= "";
+            try
+            {
+                DataTable dataTable = _iCashieringManagerService.SearchInvoiceOrInvoiceDetail(fromDate, toDate, searchName, confNo,
+                    folioNo, invoiceNo, invoiceSerial, print, resType, viewBy, id);
+                var result = (from d in dataTable.AsEnumerable()
+                              select d.Table.Columns.Cast<DataColumn>().ToDictionary(
+                              col => col.ColumnName,
+                              col =>
+                              {
+                                  var value = d[col.ColumnName];
+                                  if (value == DBNull.Value) return null;
+                                  if (col.ColumnName == "verificationCode") return null;
+
+                                  // CreatedDate: KHÔNG ToString
+                                  if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate")
+                                      return value;
+
+                                  // Các field khác: ToString
+                                  return value.ToString();
+                              }
+                          )).ToList();
+                return Json(result);
             }
             catch (Exception ex)
             {
