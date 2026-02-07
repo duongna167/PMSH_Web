@@ -71,5 +71,32 @@ namespace Cashiering.Services.Implements
             DataTable table = DataTableHelper.getTableData("spSearchAllForTrans", parameters);
             return table;
         }
+
+        public DataTable SearchInvoiceOrInvoiceDetail(DateTime fromDate, DateTime toDate, string searchName, string confNo,
+         string folioNo, string invoiceNo, string invoiceSerial, int print, int resType, int viewBy, int id)
+        {
+
+            List<SqlParameter> param = new List<SqlParameter>
+            {
+                new("@ConfirmationNo", confNo),
+                new("@FolioNo", folioNo),
+                new("@SerialNo", invoiceSerial),
+                new("@InvoiceNo", invoiceNo),
+                new("@FromDate", fromDate),
+                new("@ToDate",toDate) ,
+                new("@Print",print),
+                new("@ResType",resType),
+            };
+            if (viewBy == 1)
+            {
+                param.Add(new SqlParameter("@ID", id));
+                DataTable myTableDetail = DataTableHelper.getTableData("spVAT_SearchVAT_Detail_HDDT", [.. param]);
+                return myTableDetail;
+
+            }
+
+            DataTable myTable = DataTableHelper.getTableData("spVAT_SearchVAT_HDDT", [..param]);
+            return myTable;
+        }
     }
 }
