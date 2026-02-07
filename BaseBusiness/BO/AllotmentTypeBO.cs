@@ -23,14 +23,13 @@ namespace BaseBusiness.BO
             if (string.IsNullOrWhiteSpace(code))
                 return false;
 
-            return facade.Exists(
-                "AllotmentType",
-                new Dictionary<string, object>
-                {
-            { "Code", code.Trim() }
-                },
-                id
+            return IsDuplicateCode(
+             "AllotmentType",
+             "Code",
+             code.Trim(),
+             id
             );
+
         }
     }
 }

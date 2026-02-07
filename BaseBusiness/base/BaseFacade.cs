@@ -1293,6 +1293,35 @@ namespace BaseBusiness.bc
                 return conn.ExecuteScalar<int?>(sql.ToString(), param) != null;
             }
         }
+        public bool Exists(
+            string table,
+            Dictionary<string, object> conditions,
+            string id,
+            string idField = "ID")
+        {
+            var sql = new StringBuilder($"SELECT TOP 1 1 FROM {table} WHERE 1=1 ");
+            var param = new DynamicParameters();
+
+            foreach (var item in conditions)
+            {
+                if (item.Value == null) continue;
+
+                sql.Append($" AND {item.Key} = @{item.Key}");
+                param.Add("@" + item.Key, item.Value);
+            }
+
+            if (!string.IsNullOrEmpty(id))
+            {
+                sql.Append($" AND {idField} <> @ID");
+                param.Add("@ID", id);
+            }
+
+            using (var conn = new SqlConnection(strcon))
+            {
+                conn.Open();
+                return conn.ExecuteScalar<int?>(sql.ToString(), param) != null;
+            }
+        }
 
 
     }

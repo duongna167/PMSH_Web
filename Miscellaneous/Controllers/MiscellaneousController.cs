@@ -26,6 +26,7 @@ using System.Security.Policy;
 using System.ServiceModel.Channels;
 using System.Text;
 using System.Threading.Tasks;
+using static BaseBusiness.util.ValidationUtils;
 using static DevExpress.CodeParser.CodeStyle.Formatting.Rules;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 namespace Miscellaneous.Controllers
@@ -55,6 +56,9 @@ namespace Miscellaneous.Controllers
             _httpContextAccessor = httpContextAccessor;
             _hubContext = hubContext;
         }
+
+        #region CardManagement
+
         public IActionResult CardManagement()
         {
             int baudRate = 9600;
@@ -94,100 +98,109 @@ namespace Miscellaneous.Controllers
             return Json(list);
         }
         [HttpPost]
-        public IActionResult InsertCard([FromBody] CardModel model)
+        public IActionResult SaveCard([FromBody] CardModel model)
         {
-            var username = HttpContext.Session.GetString("LoginName") ?? "";
+            var listErrors = GetErrors(
+                Check(model == null, "general", "Invalid data."),
+                Check(string.IsNullOrWhiteSpace(model?.ID), "cardID", "Card ID is required.")
+            );
 
-            model.CreatedBy = username;
-            model.UpdatedBy = username;
-            model.CreatedDate = DateTime.Now;
-            model.UpdatedDate = DateTime.Now;
-
-            using (var conn = new SqlConnection(DBUtils.GetDBConnectionString()))
+            if (listErrors.Count > 0)
             {
-                conn.Open();
+                return Json(new { success = false, errors = listErrors });
+            }
 
-                // Check xem ID đã có chưa
-                string checkSql = "SELECT COUNT(*) FROM Card WHERE ID = @ID";
-                using (var checkCmd = new SqlCommand(checkSql, conn))
+            try
+            {
+                var existedCards = CardBO.Instance.FindByAttribute("ID", model.ID);
+                bool isExist = existedCards != null && existedCards.Count > 0;
+
+                var businessDates = PropertyUtils.ConvertToList<BusinessDateModel>(
+                    BusinessDateBO.Instance.FindAll()
+                );
+                DateTime businessDate = businessDates[0].BusinessDate;
+
+                // ================= INSERT =================
+                if (!isExist)
                 {
-                    checkCmd.Parameters.AddWithValue("@ID", model.ID);
-                    int count = (int)checkCmd.ExecuteScalar();
-                    if (count > 0)
+                    if (CardBO.Instance.IsDuplicateCardId(model.ID))
                     {
-                        return Json(new { success = false, message = "Card ID does not exist" });
+                        return Json(new
+                        {
+                            success = false,
+                            message = $"Card ID already exists: [{model.ID}]"
+                        });
                     }
+
+                    model.CreatedDate = businessDate;
+                    model.UpdatedDate = DateTime.Now;
+                    string statusTextInsert = model.Status switch
+                    {
+                        1 => "Active",
+                        0 => "Inactive",
+                        _ => "Other"
+                    };
+
+                    CardBO.Instance.InsertCard(model);
+
+                    return Json(new
+                    {
+                        success = true,
+                        message = "Insert successfully!",
+                        data = new
+                        {
+                            id = model.ID,
+                            cardTypeID = model.CardTypeID,
+                            cardType = "Card Hotel",
+                            status = model.Status,
+                            statusText = statusTextInsert,
+                            createdBy = model.CreatedBy,
+                            createdDate = model.CreatedDate,
+                            updatedBy = model.UpdatedBy,
+                            updatedDate = model.UpdatedDate
+                        }
+                    });
                 }
 
-                // Nếu chưa có thì insert
-                string sql = @"
-        INSERT INTO Card (ID, CardTypeID, Status, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, CanSell)
-        VALUES (@ID, @CardTypeID, @Status, @CreatedDate, @CreatedBy, @UpdatedDate, @UpdatedBy, @CanSell)";
+                // ================= UPDATE =================
+                var oldData = (CardModel)existedCards[0];
 
-                using (var cmd = new SqlCommand(sql, conn))
+                model.CreatedBy = oldData.CreatedBy;
+                model.CreatedDate = oldData.CreatedDate;
+                model.UpdatedDate = DateTime.Now;
+                string statusTextEdit = model.Status switch
                 {
-                    cmd.Parameters.AddWithValue("@ID", model.ID);
-                    cmd.Parameters.AddWithValue("@CardTypeID", model.CardTypeID);
-                    cmd.Parameters.AddWithValue("@Status", model.Status);
-                    cmd.Parameters.AddWithValue("@CreatedDate", model.CreatedDate);
-                    cmd.Parameters.AddWithValue("@CreatedBy", model.CreatedBy);
-                    cmd.Parameters.AddWithValue("@UpdatedDate", model.UpdatedDate);
-                    cmd.Parameters.AddWithValue("@UpdatedBy", model.UpdatedBy);
-                    cmd.Parameters.AddWithValue("@CanSell", model.CanSell);
+                    1 => "Active",
+                    0 => "Inactive",
+                    _ => "Other"
+                };
+                CardBO.Instance.Update(model);
 
-                    int rows = cmd.ExecuteNonQuery();
-                    return Ok(new { success = rows > 0, id = model.ID });
-                }
+                return Json(new
+                {
+                    success = true,
+                    message = "Update successfully!",
+                    data = new
+                    {
+                        id = model.ID,
+                        cardTypeID = model.CardTypeID,
+                        cardType = "Card Hotel",
+                        status = model.Status,
+                        statusText = statusTextEdit,
+                        createdBy = model.CreatedBy,
+                        createdDate = model.CreatedDate,
+                        updatedBy = model.UpdatedBy,
+                        updatedDate = model.UpdatedDate
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
             }
         }
-        [HttpPost]
-        public IActionResult UpdateCard([FromBody] CardModel model)
-        {
-            var username = HttpContext.Session.GetString("LoginName") ?? "";
-            model.UpdatedBy = username;
-            model.UpdatedDate = DateTime.Now;
 
-            using (var conn = new SqlConnection(DBUtils.GetDBConnectionString()))
-            {
-                conn.Open();
 
-                // Check xem Card có tồn tại chưa
-                string checkSql = "SELECT COUNT(*) FROM Card WHERE ID = @ID";
-                using (var checkCmd = new SqlCommand(checkSql, conn))
-                {
-                    checkCmd.Parameters.AddWithValue("@ID", model.ID);
-                    int count = (int)checkCmd.ExecuteScalar();
-                    if (count == 0)
-                    {
-                        return Json(new { success = false, message = "Card ID does not exist " });
-                    }
-                }
-
-                // Update
-                string sql = @"
-                            UPDATE Card
-                            SET 
-                                CardTypeID = @CardTypeID,
-                                Status = @Status,
-                                UpdatedDate = @UpdatedDate,
-                                UpdatedBy = @UpdatedBy,
-                                CanSell = @CanSell
-                            WHERE ID = @ID";
-
-                using (var cmd = new SqlCommand(sql, conn))
-                {
-                    cmd.Parameters.AddWithValue("@ID", model.ID);
-                    cmd.Parameters.AddWithValue("@CardTypeID", model.CardTypeID);
-                    cmd.Parameters.AddWithValue("@Status", model.Status);
-                    cmd.Parameters.AddWithValue("@UpdatedDate", model.UpdatedDate);
-                    cmd.Parameters.AddWithValue("@UpdatedBy", model.UpdatedBy);
-                    cmd.Parameters.AddWithValue("@CanSell", model.CanSell);
-
-                    int rows = cmd.ExecuteNonQuery();
-                    return Ok(new { success = rows > 0, id = model.ID });
-                }
-            }
-        }
         [HttpPost]
         public IActionResult DeleteCard([FromBody] CardModel model)
         {
@@ -220,7 +233,40 @@ namespace Miscellaneous.Controllers
                 }
             }
         }
+        #endregion
 
+        private void MainForm_TagScanCodeReceived(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return;
+
+            // Convert 10 số → 8 số (nếu cần)
+            var finalCode = TagScannerHelper.Instance.Convert10To8TagNo(code);
+
+            lock (_rfidLock)
+            {
+                var now = DateTime.UtcNow;
+
+                // Chặn scan trùng trong 500ms
+                if (_lastRfidCode == finalCode &&
+                    (now - _lastRfidTime).TotalMilliseconds < RFID_DEBOUNCE_MS)
+                {
+                    return;
+                }
+
+                _lastRfidCode = finalCode;
+                _lastRfidTime = now;
+            }
+
+            //  Đẩy realtime sang client
+            _hubContext.Clients.All.SendAsync("ReceiveCode", finalCode);
+        }
+
+        [HttpGet]
+        public IActionResult TestRFID(string code)
+        {
+            MainForm_TagScanCodeReceived(code);
+            return Ok("sent");
+        }
 
         #region Meal Report
         public IActionResult MealReport()
@@ -439,6 +485,7 @@ namespace Miscellaneous.Controllers
         }
         #endregion
 
+        #region Guest Card
         [HttpGet]
         public IActionResult GetIssuingCardToGuests(string firstName, string confirmationNo, string crsNo, string roomNo, string zone, string guestName, string rsvHolder, string isShowRS, string isShowCard, DateTime arrFrom, DateTime arrTo, string status, string ci_Day, string co_Day, string findCardID, string reservationID)
         {
@@ -509,15 +556,7 @@ namespace Miscellaneous.Controllers
             return View();
 
         }
-        
-        //private async void MainForm_TagScanCodeReceived(string code)
-        //{
-        //    if (string.IsNullOrWhiteSpace(code)) return;
-        //    string tag8 = TagScannerHelper.Instance.Convert10To8TagNo(code);
 
-        //    // Gửi mã quét được ra client qua SignalR
-        //    await _hubContext.Clients.All.SendAsync("ReceiveCode", tag8);
-        //}
         [HttpPost]
         public IActionResult AddCard([FromBody] AddCardRequest request)
         {
@@ -581,6 +620,7 @@ namespace Miscellaneous.Controllers
             public ReservationModel Reservation { get; set; }
             public CardModel Card { get; set; }
         }
+
         [HttpPost]
         public IActionResult CancelCard([FromBody] AddCardRequest request)
         {
@@ -628,40 +668,7 @@ namespace Miscellaneous.Controllers
                 }
             }
         }
-
-        private void MainForm_TagScanCodeReceived(string code)
-        {
-            if (string.IsNullOrWhiteSpace(code)) return;
-
-            // Convert 10 số → 8 số (nếu cần)
-            var finalCode = TagScannerHelper.Instance.Convert10To8TagNo(code);
-
-            lock (_rfidLock)
-            {
-                var now = DateTime.UtcNow;
-
-                // Chặn scan trùng trong 500ms
-                if (_lastRfidCode == finalCode &&
-                    (now - _lastRfidTime).TotalMilliseconds < RFID_DEBOUNCE_MS)
-                {
-                    return;
-                }
-
-                _lastRfidCode = finalCode;
-                _lastRfidTime = now;
-            }
-
-            //  Đẩy realtime sang client
-            _hubContext.Clients.All.SendAsync("ReceiveCode", finalCode);
-        }
-
-        [HttpGet]
-        public IActionResult TestRFID(string code)
-        {
-            MainForm_TagScanCodeReceived(code);
-            return Ok("sent");
-        }
-
+        #endregion
 
     }
 }
