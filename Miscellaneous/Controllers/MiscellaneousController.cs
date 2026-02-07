@@ -101,12 +101,14 @@ namespace Miscellaneous.Controllers
         public IActionResult SaveCard([FromBody] CardModel model)
         {
             var listErrors = GetErrors(
-                Check(model == null || string.IsNullOrWhiteSpace(model.ID),
-                      "cardID", "Card ID is required.")
+                Check(model == null, "general", "Invalid data."),
+                Check(string.IsNullOrWhiteSpace(model?.ID), "cardID", "Card ID is required.")
             );
 
             if (listErrors.Count > 0)
+            {
                 return Json(new { success = false, errors = listErrors });
+            }
 
             try
             {
@@ -121,10 +123,25 @@ namespace Miscellaneous.Controllers
                 // ================= INSERT =================
                 if (!isExist)
                 {
+                    if (CardBO.Instance.IsDuplicateCardId(model.ID))
+                    {
+                        return Json(new
+                        {
+                            success = false,
+                            message = $"Card ID already exists: [{model.ID}]"
+                        });
+                    }
+
                     model.CreatedDate = businessDate;
                     model.UpdatedDate = DateTime.Now;
+                    string statusTextInsert = model.Status switch
+                    {
+                        1 => "Active",
+                        0 => "Inactive",
+                        _ => "Other"
+                    };
 
-                    CardBO.Instance.Insert(model);
+                    CardBO.Instance.InsertCard(model);
 
                     return Json(new
                     {
@@ -136,7 +153,7 @@ namespace Miscellaneous.Controllers
                             cardTypeID = model.CardTypeID,
                             cardType = "Card Hotel",
                             status = model.Status,
-                            statusText = model.Status == 1 ? "Active" : "Inactive",
+                            statusText = statusTextInsert,
                             createdBy = model.CreatedBy,
                             createdDate = model.CreatedDate,
                             updatedBy = model.UpdatedBy,
@@ -151,7 +168,12 @@ namespace Miscellaneous.Controllers
                 model.CreatedBy = oldData.CreatedBy;
                 model.CreatedDate = oldData.CreatedDate;
                 model.UpdatedDate = DateTime.Now;
-
+                string statusTextEdit = model.Status switch
+                {
+                    1 => "Active",
+                    0 => "Inactive",
+                    _ => "Other"
+                };
                 CardBO.Instance.Update(model);
 
                 return Json(new
@@ -164,7 +186,7 @@ namespace Miscellaneous.Controllers
                         cardTypeID = model.CardTypeID,
                         cardType = "Card Hotel",
                         status = model.Status,
-                        statusText = model.Status == 1 ? "Active" : "Inactive",
+                        statusText = statusTextEdit,
                         createdBy = model.CreatedBy,
                         createdDate = model.CreatedDate,
                         updatedBy = model.UpdatedBy,
@@ -212,6 +234,39 @@ namespace Miscellaneous.Controllers
             }
         }
         #endregion
+
+        private void MainForm_TagScanCodeReceived(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return;
+
+            // Convert 10 số → 8 số (nếu cần)
+            var finalCode = TagScannerHelper.Instance.Convert10To8TagNo(code);
+
+            lock (_rfidLock)
+            {
+                var now = DateTime.UtcNow;
+
+                // Chặn scan trùng trong 500ms
+                if (_lastRfidCode == finalCode &&
+                    (now - _lastRfidTime).TotalMilliseconds < RFID_DEBOUNCE_MS)
+                {
+                    return;
+                }
+
+                _lastRfidCode = finalCode;
+                _lastRfidTime = now;
+            }
+
+            //  Đẩy realtime sang client
+            _hubContext.Clients.All.SendAsync("ReceiveCode", finalCode);
+        }
+
+        [HttpGet]
+        public IActionResult TestRFID(string code)
+        {
+            MainForm_TagScanCodeReceived(code);
+            return Ok("sent");
+        }
 
         #region Meal Report
         public IActionResult MealReport()
@@ -614,41 +669,6 @@ namespace Miscellaneous.Controllers
             }
         }
         #endregion
-
-
-        private void MainForm_TagScanCodeReceived(string code)
-        {
-            if (string.IsNullOrWhiteSpace(code)) return;
-
-            // Convert 10 số → 8 số (nếu cần)
-            var finalCode = TagScannerHelper.Instance.Convert10To8TagNo(code);
-
-            lock (_rfidLock)
-            {
-                var now = DateTime.UtcNow;
-
-                // Chặn scan trùng trong 500ms
-                if (_lastRfidCode == finalCode &&
-                    (now - _lastRfidTime).TotalMilliseconds < RFID_DEBOUNCE_MS)
-                {
-                    return;
-                }
-
-                _lastRfidCode = finalCode;
-                _lastRfidTime = now;
-            }
-
-            //  Đẩy realtime sang client
-            _hubContext.Clients.All.SendAsync("ReceiveCode", finalCode);
-        }
-
-        [HttpGet]
-        public IActionResult TestRFID(string code)
-        {
-            MainForm_TagScanCodeReceived(code);
-            return Ok("sent");
-        }
-
 
     }
 }

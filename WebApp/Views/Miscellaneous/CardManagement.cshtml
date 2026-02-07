@@ -82,21 +82,24 @@
             .catch(function (err) {
                 console.error("❌ Lỗi kết nối SignalR:", err);
             });
-
-            
-        $("#cardID").on("keydown", function (e) {
-         let value = $(this).val();
-            if (e.key === "Enter") {
-                e.preventDefault();
-                // Kiểm tra nếu đủ 8 số và toàn là số
-                if (value.length === 8 && /^\d+$/.test(value)) {
-                    insertCard(value);
-                }
-            }
-        });
+        $("#btnSave").hide();
 
         reloadGrid();
     });
+
+    $("#cardID").on("keydown", function (e) {
+        if (e.key !== "Enter") return;
+
+        e.preventDefault();
+
+        if (selectedRow) return;
+
+        let value = $(this).val();
+        if (value.length === 8 && /^\d+$/.test(value)) {
+            $("#btnSave").click();
+        }
+    });
+
 
     $("#btnNew").on("click", function () {
         enterNewMode();
@@ -133,6 +136,7 @@
             .focus();
 
         selectedRow = null;
+        $("#btnSave").hide();
     }
 
     function enterEditMode() {
@@ -140,6 +144,8 @@
 
         $("#cardID")
             .prop("readonly", true);
+        $("#btnSave").show();
+
     }
 
     function appendToGrid(item) {
@@ -184,11 +190,23 @@
     });
 
     $("#btnSave").on("click", function () {
+        let cardId = $("#cardID").val();
 
+        if (!cardId || cardId.trim() === "") {
+            showToast("Warning", "Card ID is required.", false);
+            $("#cardID").focus();
+            return;
+        }
+
+        let loginName = (localStorage.getItem("Loginname") || "")
+            .trim()
+            .replace(/^"(.*)"$/, '$1');
         let payload = {
-            ID: $("#cardID").val(),
+            ID: cardId.trim(),
             CardTypeID: parseInt($("#cardType").val()),
             Status: parseInt($("#status").val()),
+            CreatedBy: loginName,
+            UpdatedBy: loginName,
             CanSell: false
         };
 
@@ -207,18 +225,18 @@
                 let grid = $("#gridCardManagement").dxDataGrid("instance");
                 let store = grid.getDataSource().store();
 
-                // ===== INSERT =====
+                // ===== NEW =====
                 if (!selectedRow) {
                     store.push([{
                         type: "insert",
-                        data: res.data   // 🔥 server phải trả row vừa insert
+                        data: res.data
                     }]);
 
                     cardCount++;
                     $("#cardCount").text(cardCount);
                     $("#cardID").val("").focus();
                 }
-                // ===== UPDATE =====
+                // ===== EDIT =====
                 else {
                     store.push([{
                         type: "update",
@@ -227,13 +245,15 @@
                     }]);
 
                     selectedRow = null;
+                    $("#cardID").val("").prop("readonly", true);
+                    $("#btnSave").hide();
+
                 }
 
                 showToast("Success", res.message, true);
             }
         });
     });
-
 
     function reloadGrid() {
         $("#loadingSpinnerRateCode").show();
