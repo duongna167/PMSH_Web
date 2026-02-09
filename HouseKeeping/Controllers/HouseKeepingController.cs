@@ -4501,7 +4501,7 @@ namespace HouseKeeping.Controllers
             ViewBag.ReservationTypeList = listrtype;
             List<VIPModel> listvip = PropertyUtils.ConvertToList<VIPModel>(VIPBO.Instance.FindAll());
             ViewBag.VIPList = listvip;
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult RoomAssignmentData(DateTime arrival, string groupProfile, string vipcode, string name, string reservationTypeCode, string crsno, string roomTypeCode, string roomNo, string confirmationNo)

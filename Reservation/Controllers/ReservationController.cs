@@ -299,7 +299,7 @@ namespace Reservation.Controllers
 
             ViewBag.cboRoomType = ListItemHelper.GetRoomTyeProvider();
 
-            return View();
+            return PartialView();
 
         }
 
@@ -5409,7 +5409,7 @@ namespace Reservation.Controllers
 
                 var fromDateStr = Request.Form["fromDate"];
                 var toDateStr = Request.Form["toDate"];
-                var roomTypeStr = Request.Form["roomType"].ToString();
+                var roomTypeStr = Request.Form["roomType"];
                 var obLevelStr = Request.Form["obLevel"].ToString();
                 var quantityStr = Request.Form["quantity"].ToString();
                 var type = Request.Form["type"];
@@ -5420,14 +5420,17 @@ namespace Reservation.Controllers
                     !DateTime.TryParse(toDateStr, out DateTime toDate))
                     return Json(new { code = 1, msg = "Invalid date format" });
 
-                int roomTypeId = int.Parse(roomTypeStr);
                 int quantity = int.Parse(quantityStr);
                 int obLevel = string.IsNullOrEmpty(obLevelStr) ? 0 : int.Parse(obLevelStr);
                 int userID = int.Parse(userIDStr);
 
-                RoomTypeModel roomTypeModel =
-                    (RoomTypeModel)RoomTypeBO.Instance.FindByPrimaryKey(roomTypeId);
+                if (string.IsNullOrWhiteSpace(roomTypeStr) || !int.TryParse(roomTypeStr, out int roomTypeId) || roomTypeId <= 0)
+                    return Json(new { code = 1, msg = "Please select a valid room type" });
 
+                RoomTypeModel? roomTypeModel = RoomTypeBO.Instance.FindByPrimaryKey(roomTypeId) as RoomTypeModel;
+
+                if (roomTypeModel == null)
+                    return Json(new { code = 1, msg = "Room type not found" });
                 // ===== UPDATE (id > 0) =====
                 if (id > 0)
                 {
