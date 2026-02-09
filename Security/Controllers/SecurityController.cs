@@ -34,6 +34,7 @@ namespace Security.Controllers
             _iSecurityService = iSecurityService;
             _httpContextAccessor = httpContextAccessor;
         }
+        #region  AddFuncitionsToList
         public IActionResult AddFuncitionsToList()
         {
             List<ShortcutKeyModel> listsc = PropertyUtils.ConvertToList<ShortcutKeyModel>(ShortcutKeyBO.Instance.FindAll());
@@ -284,5 +285,16 @@ namespace Security.Controllers
 
             }
         }
+        #endregion
+
+        #region
+        public IActionResult UsersManagement()
+        {
+            List<UserGroupModel> listug = PropertyUtils.ConvertToList<UserGroupModel>(UserGroupBO.Instance.FindAll());
+            ViewBag.UserGroupList = listug;
+
+            return View();
+        }
+        #endregion
     }
 }

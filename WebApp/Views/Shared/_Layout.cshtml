@@ -570,7 +570,7 @@
     <div class="modal fade" id="newReservationModal" tabindex="-1" aria-labelledby="newReservationModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 92vw;">
-            <div class="modal-content">
+            <div class="modal-content modal-full-height">
                 <div class="modal-header">
                     <h5 class="modal-title" id="newReservationModalLabel">New Reservation</h5>
                     @* <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> *@
@@ -1141,6 +1141,59 @@
                 $(this).hide();
             }
         });
+
+            (function () {
+
+        const permissionData = JSON.parse(localStorage.getItem("PermissionNames")) || [];
+        const permissionNames = permissionData
+            .map(x => x.name?.toString().trim().toLowerCase())
+            .filter(Boolean);
+
+        const pathSegments = window.location.pathname
+            .split('/')
+            .filter(Boolean);
+
+        // Trang root "/"
+        if (pathSegments.length === 0) return;
+
+        const controller = pathSegments[0].toLowerCase();
+        const action = (pathSegments[pathSegments.length - 1] || "").toLowerCase();
+
+        console.log("Current action:", action);
+
+        // ❌ BỎ QUA HOME / INDEX
+        if (controller === "home" || action === "index") {
+            return;
+        }
+
+        // 🔍 Lấy toàn bộ data-action trong menu
+        const menuActions = Array.from(
+            document.querySelectorAll("a[data-action]")
+        ).map(a =>
+            a.getAttribute("data-action")?.toString().trim().toLowerCase()
+        ).filter(Boolean);
+
+        // 👉 Nếu KHÔNG có menu nào khai báo action này → cho truy cập
+        if (!menuActions.includes(action)) {
+            return;
+        }
+
+        // 🚫 Có menu action nhưng KHÔNG có quyền
+        if (!permissionNames.includes(action)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Access Denied',
+                text: 'You do not have permission to access this function',
+                confirmButtonText: 'OK',
+                allowOutsideClick: false
+            }).then(() => {
+                window.location.href = '/Home/Index';
+            });
+        }
+
+    })();
+
+
 
     });
 
