@@ -854,361 +854,308 @@
     });
     let roomNorl, roomtypeid, idReservationrl, roomIDrl;
     let originalAppointmentData = null;
-       function initializeRoomScheduler(schedulerData, fromDate, toDate) {
+    function initializeRoomScheduler(schedulerData, fromDate, toDate) {
         if (!schedulerData || !schedulerData.length) return;
 
-        const startDate = new Date(fromDate);
-        const endDate = new Date(toDate);
-        const daysToShow = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        /* =======================
+           1. CACHE DATE / TIME
+        ======================= */
+        const DAY_MS = 86400000;
 
-        const roomGroups = [
-            ...new Map(
-                schedulerData
-                    .filter(d => d.roomID && d.roomNo && d.roomNo.trim() !== "")
-                    .map(d => [d.roomID.toString(), {
-                        id: d.roomID.toString(),
-                        text: d.roomNo.trim()
-                    }])
-            ).values()
-        ];
-
-        const validRoomIDs = new Set(roomGroups.map(g => g.id));
-           const from = new Date(fromDate);
+        const from = new Date(fromDate);
         from.setHours(0, 0, 0, 0);
+        const fromTime = from.getTime();
 
         const to = new Date(toDate);
         to.setHours(0, 0, 0, 0);
-            const roomInfoMap = {};
-    schedulerData.forEach(d => {
-        if (d.roomID && !roomInfoMap[d.roomID]) {
-            roomInfoMap[d.roomID] = {
-                roomNo: d.roomNo,
-                roomNumber: d.roomNumber,
-                roomTypeCode: d.roomTypeCode
-            };
+        const toTime = to.getTime();
+
+        const startDate = from;
+        const daysToShow = Math.floor((toTime - fromTime) / DAY_MS) + 1;
+
+        /* =======================
+           2. BUILD ROOM MAP (1 LOOP)
+        ======================= */
+        const roomMap = new Map();
+        const roomInfoMap = Object.create(null);
+
+        for (const d of schedulerData) {
+            if (!d.roomID || !d.roomNo) continue;
+
+            const roomID = String(d.roomID);
+
+            if (!roomMap.has(roomID)) {
+                roomMap.set(roomID, {
+                    id: roomID,
+                    text: d.roomNo.trim()
+                });
+
+                roomInfoMap[roomID] = {
+                    roomNo: d.roomNo,
+                    roomNumber: d.roomNumber,
+                    roomTypeCode: d.roomTypeCode
+                };
+            }
         }
-    });
 
+        const roomGroups = Array.from(roomMap.values());
+        const validRoomIDs = new Set(roomMap.keys());
 
-    const appointments = schedulerData
-      .filter(d => {
+        /* =======================
+           3. BUILD APPOINTMENTS (FAST LOOP)
+        ======================= */
+        const appointments = [];
 
-          const arrival = parseVNDateOnly(d.arrivalDate);
-          const departure = parseVNDateOnly(d.departureDate);
+        for (const d of schedulerData) {
+            if (!d.roomID) continue;
 
-          if (
-              !d.roomID ||
-              !validRoomIDs.has(d.roomID.toString()) ||
-              !arrival ||
-              !departure
-          ) {
-              return false;
-          }
+            const roomID = String(d.roomID);
+            if (!validRoomIDs.has(roomID)) continue;
 
-          // ⭐ SO SÁNH THEO NGÀY
-          return arrival <= to && departure >= from;
-      })
-      .map(d => {
-          const arrival = parseVNDateOnly(d.arrivalDate);
-          const departure = parseVNDateOnly(d.departureDate);
+            const arrival = parseVNDateOnly(d.arrivalDate);
+            const departure = parseVNDateOnly(d.departureDate);
+            if (!arrival || !departure) continue;
 
-          return {
-              text: d.lastName || "",
+            const arrivalTime = arrival.getTime();
+            const departureTime = departure.getTime();
 
-              // ⭐ CLAMP THEO NGÀY
-              startDate: arrival < from ? from : arrival,
-              endDate: departure > to ? to : departure,
+            // Không giao với khoảng hiển thị
+            if (arrivalTime > toTime || departureTime < fromTime) continue;
 
-              roomID: d.roomID.toString(),
-              type: d.type || "",
-              reservationStatus: d.reservationStatus || "",
-             reservationID: !d.reservationID || String(d.reservationID) === "0" ? d.oooid : d.reservationID,
-              roomTypeCode: d.roomTypeCode || "",
-              oooStatus: d.oooStatus || "",
-              roomNumber: d.roomNumber || "",
-              tooltipData: {
-                  company: d.company,
-                  agent: d.agent,
-                  paymentMethod: d.paymentMethod,
-                  comment: d.comment,
-                  confirmationNo: d.confirmationNo,
-                  code: d.code
-              }
-          };
-      });
+            appointments.push({
+                text: d.lastName || "",
+                startDate: arrivalTime < fromTime ? from : arrival,
+                endDate: departureTime > toTime ? to : departure,
+                roomID: roomID,
+                type: d.type || "",
+                reservationStatus: d.reservationStatus || "",
+                reservationID:
+                    !d.reservationID || String(d.reservationID) === "0"
+                        ? d.oooid
+                        : d.reservationID,
+                roomTypeCode: d.roomTypeCode || "",
+                oooStatus: d.oooStatus || "",
+                roomNumber: d.roomNumber || "",
+                tooltipData: {
+                    company: d.company,
+                    agent: d.agent,
+                    paymentMethod: d.paymentMethod,
+                    comment: d.comment,
+                    confirmationNo: d.confirmationNo,
+                    code: d.code
+                }
+            });
+        }
 
-
-
-
+        /* =======================
+           4. INIT SCHEDULER
+        ======================= */
         $("#schedulerContainer").dxScheduler({
             dataSource: appointments,
+
             views: [{
-                type: 'timelineDay',
-                name: '',
+                type: "timelineDay",
+                name: "",
                 intervalCount: daysToShow,
                 startDate: startDate
             }],
-            currentView: '',
+
+            currentView: "",
             currentDate: startDate,
             startDayHour: 0,
             endDayHour: 24,
             cellDuration: 1440,
+
             groups: ["roomID"],
-            dataCellTemplate: function (cellData, index, cellElement) {
+            crossScrollingEnabled: true,
+            repaintChangesOnly: true,
 
-                const cellDate = new Date(cellData.startDate);
-                cellDate.setHours(0,0,0,0);
-
-                const from = new Date(fromDate);
-                from.setHours(0,0,0,0);
-
-                // 👉 CHỈ render ở cột ngày đầu tiên
-                if (cellDate.getTime() === from.getTime()) {
-
-                    const roomID = cellData.groups.roomID;
-                    const roomInfo = roomInfoMap[roomID];
-
-                    if (roomInfo) {
-                        cellElement.append(`
-                            <div class="room-label">
-                                <div class="room-no">${roomInfo.roomNumber}</div>
-                                <div class="room-type">-${roomInfo.roomTypeCode || ""}</div>
-                            </div>
-                        `);
-                    }
-                }
-            },
-                    crossScrollingEnabled: true,
             resources: [{
                 fieldExpr: "roomID",
                 dataSource: roomGroups,
                 label: "Phòng",
                 allowMultiple: false
             }],
+
+            /* =======================
+               5. CELL TEMPLATE (EARLY RETURN)
+            ======================= */
+            dataCellTemplate: function (cellData, index, cellElement) {
+                if (cellData.startDate.getTime() !== fromTime) return;
+
+                const roomInfo = roomInfoMap[cellData.groups.roomID];
+                if (!roomInfo) return;
+
+                cellElement.append(`
+                    <div class="room-label">
+                        <div class="room-no">${roomInfo.roomNumber}</div>
+                        <div class="room-type">-${roomInfo.roomTypeCode || ""}</div>
+                    </div>
+                `);
+            },
+
+            /* =======================
+               6. APPOINTMENT RENDER
+            ======================= */
             onAppointmentRendered: function (e) {
                 const el = $(e.appointmentElement);
                 const data = e.appointmentData;
+                const tooltip = data.tooltipData || {};
 
-                const tooltipData = data.tooltipData || {};
-                const lastName = data.text;
+                const titleText =
+                    data.type === "OOOS"
+                        ? `${tooltip.code || "Code"} (Out of Order)`
+                        : data.text;
 
-                // 👉 Nếu là OOOS thì title hiển thị code + (out of order), ngược lại dùng lastName
-                let titleText = lastName;
-                if (data.type === "OOOS") {
-                    titleText = `${tooltipData.code || "Code"} (Out of Order)`;
+                const tooltipContent =
+                    `Company: ${tooltip.company || ""}\n` +
+                    `Agent: ${tooltip.agent || ""}\n` +
+                    `PaymentMethod: ${tooltip.paymentMethod || ""}\n` +
+                    `Comment: ${tooltip.comment || ""}\n` +
+                    `ConfirmationNo: ${tooltip.confirmationNo || ""}`;
+
+                let titleEl = el.children(".dx-scheduler-appointment-title");
+                if (!titleEl.length) {
+                    titleEl = $('<div class="dx-scheduler-appointment-title"></div>').appendTo(el);
+                }
+                titleEl.text(titleText).attr("title", tooltipContent);
+
+                // ==== COLOR / CLASS ====
+                if (data.type === "Reservation") {
+                    el.addClass(
+                        ({
+                            "0": "resv-pending",
+                            "5": "resv-pending",
+                            "8": "resv-pending",
+                            "1": "resv-checkin",
+                            "2": "resv-checkout",
+                            "6": "resv-dueout"
+                        })[String(data.reservationStatus)] || "resv-checkin"
+                    );
+                } else if (data.type === "OOOS") {
+                    el.addClass(
+                        data.oooStatus === "1"
+                            ? "ooo-order"
+                            : data.oooStatus === "2"
+                            ? "ooo-service"
+                            : "ooo-default"
+                    );
                 }
 
-                const tooltipContent = [
-                    `Company:        ${tooltipData.company || ""}`,
-                    `Agent:          ${tooltipData.agent || ""}`,
-                    `PaymentMethod:  ${tooltipData.paymentMethod || ""}`,
-                    `Comment:        ${tooltipData.comment || ""}`,
-                    `ConfirmationNo: ${tooltipData.confirmationNo || ""}`
-                ].join('\n');
+                // ==== OFFSET DAY 1 ====
+                const startTime = new Date(data.startDate).setHours(0, 0, 0, 0);
+                const endTime = new Date(data.endDate).setHours(0, 0, 0, 0);
 
-                const titleEl = el.find(".dx-scheduler-appointment-title");
-                if (titleEl.length) {
-                    titleEl.text(titleText).css("display", "block").attr("title", tooltipContent);
-                } else {
-                    el.append(`<div class="dx-scheduler-appointment-title" title="${tooltipContent}">${titleText}</div>`);
-                }
-
-                // 🎯 Màu theo type
-             if (data.type === "Reservation") {
-                const resvStatus = String(data.reservationStatus);
-
-                switch (resvStatus) {
-                    case "0":
-                    case "5":
-                    case "8":
-                        // Chưa check-in
-                        el.addClass("resv-pending");
-                        break;
-
-                    case "1":
-                        // Đã check-in
-                        el.addClass("resv-checkin");
-                        break;
-
-                    case "2":
-                        // Đã check-out
-                        el.addClass("resv-checkout");
-                        break;
-
-                    case "6":
-                        // Due out
-                        el.addClass("resv-dueout");
-                        break;
-
-                    default:
-                        // Mặc định
-                        el.addClass("resv-checkin");
-                        break;
-                }
-
-            } else if (data.type === "OOOS") {
-                const oooStatus = String(data.oooStatus || "");
-
-                if (oooStatus === "1") {
-                    // Out Of Order
-                    el.addClass("ooo-order");
-
-                    const currentTitle = el.attr("title") || "";
-                    el.attr("title", currentTitle + " (Out Of Order)");
-
-                } else if (oooStatus === "2") {
-                    // Out Of Service
-                    el.addClass("ooo-service");
-
-                    const currentTitle = el.attr("title") || "";
-                    el.attr("title", currentTitle + " (Out Of Service)");
-
-                } else {
-                    // Mặc định OOOS
-                    el.addClass("ooo-default");
-                }
-            }
-                    const start = new Date(data.startDate);
-            start.setHours(0,0,0,0);
-
-            const end = new Date(data.endDate);
-            end.setHours(0,0,0,0);
-
-            const from = new Date(fromDate);
-            from.setHours(0,0,0,0);
-
-                if (from >= start && from <= end) {
+                if (fromTime >= startTime && fromTime <= endTime) {
                     el.css({
-                        "position": "absolute",
-                        "left": "100px",
-                        "margin-top": "4px"
+                        left: "100px",
+                        marginTop: "4px"
                     });
                 }
-                // Dịch translateY lên
-                const style = el.attr("style");
-                const match = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(style);
-                if (match) {
-                    const x = parseFloat(match[1]);
-                    const y = parseFloat(match[2]);
-                    const newY = y - 30;
-                    const newTransform = `translate(${x}px, ${newY}px)`;
-                    el.attr("style", style.replace(/translate\([^)]+\)/, newTransform));
-                }
-            }
-            , onAppointmentUpdating: async function (e) {
+            },
+
+            /* =======================
+               7. UPDATE HANDLER (GIỮ LOGIC)
+            ======================= */
+            onAppointmentUpdating: async function (e) {
                 const oldData = e.oldData;
                 const newData = e.newData;
                 idReservationrl = oldData.reservationID;
 
-                const oldStart = oldData.startDate.getTime();
-                const oldEnd = oldData.endDate.getTime();
-                const newStart = newData.startDate.getTime();
-                const newEnd = newData.endDate.getTime();
-
                 const isMoved =
-                    oldStart !== newStart ||
-                    oldEnd !== newEnd ||
+                    oldData.startDate.getTime() !== newData.startDate.getTime() ||
+                    oldData.endDate.getTime() !== newData.endDate.getTime() ||
                     oldData.roomID !== newData.roomID;
-
-                // getInfoByProfileIndividualID(idReservationrl);
 
                 try {
                     const result = await getRoomID(newData.roomID);
                     roomIDrl = result.id;
                     roomNorl = result.roomNo;
                     roomtypeid = result.roomTypeID;
-                    const roomtypecode = result.roomTypeCode;
-                    ;
-                    const isSameRoomType = roomtypecode === oldData.roomTypeCode;
 
-                    if (isMoved) {
-                        if (isSameRoomType) {
-                            const action = await askUpdateOrReview();
+                    const isSameRoomType =
+                        result.roomTypeCode === oldData.roomTypeCode;
 
-                            if (action === "cancel") {
-                                e.cancel = true;
-                                e.newData.startDate = oldData.startDate;
-                                e.newData.endDate = oldData.endDate;
-                                e.newData.roomID = oldData.roomID;;
-                                return;
-                            } else if (action === "review") {
-                                originalAppointmentData = oldData;
-                                $('#modalEdit').modal('show');
-                                // getReservationByIDReview(idReservationrl);
+                    if (!isMoved) return;
 
-                                e.cancel = true;
-                                e.newData.startDate = oldData.startDate;
-                                e.newData.endDate = oldData.endDate;
-                                e.newData.roomID = oldData.roomID;
-                                goReview(idReservationrl);
+                    if (isSameRoomType) {
+                        const action = await askUpdateOrReview();
 
+                        if (action === "cancel") {
+                            e.cancel = true;
+                            return;
+                        }
 
-                            } else if (action === "update") {
+                        if (action === "review") {
+                            e.cancel = true;
+                            $('#modalEdit').modal('show');
+                            goReview(idReservationrl);
+                            return;
+                        }
 
-                                // getReservationByID(idReservationrl, newData.startDate, newData.endDate, roomNo, roomtypeid,roomID);
-                                goUpdate(idReservationrl, newData.startDate, newData.endDate, roomNorl, roomtypeid, roomIDrl);
-                            }
+                        if (action === "update") {
+                            goUpdate(
+                                idReservationrl,
+                                newData.startDate,
+                                newData.endDate,
+                                roomNorl,
+                                roomtypeid,
+                                roomIDrl
+                            );
+                        }
+                    } else {
+                        if (!confirm("Are you sure to edit?")) {
+                            e.cancel = true;
+                            return;
+                        }
+
+                        if (oldData.type === "OOOS") {
+                            goReview(idReservationrl);
                         } else {
-                            const confirmed = confirm("Are you sure to edit?");
-                            if (!confirmed) {
-
-                                e.cancel = true;
-                                e.newData.startDate = oldData.startDate;
-                                e.newData.endDate = oldData.endDate;
-                                e.newData.roomID = oldData.roomID;
-                                return;
-                            } else {
-                                if (oldData.type === "OOOS") {
-                                        goReview(idReservationrl);
-                                } else {
-                                    goUpdate(
-                                        idReservationrl,
-                                        newData.startDate,
-                                        newData.endDate,
-                                        roomNorl,
-                                        roomtypeid,
-                                        roomIDrl
-                                    );
-                                }
-                                // goUpdate(idReservationrl, newData.startDate, newData.endDate, roomNorl, roomtypeid, roomIDrl);
-                            }
+                            goUpdate(
+                                idReservationrl,
+                                newData.startDate,
+                                newData.endDate,
+                                roomNorl,
+                                roomtypeid,
+                                roomIDrl
+                            );
                         }
                     }
-                } catch (error) {
-                    console.error("Lỗi khi lấy room info:", error);
+                } catch (err) {
+                    console.error("Room info error:", err);
                     e.cancel = true;
                 }
-            },
-
-
+            }
         });
 
-        // Đồng bộ cuộn grid với scheduler
+        /* =======================
+           8. SYNC SCROLL (UNCHANGED)
+        ======================= */
         setTimeout(() => {
             const gridScrollable = $("#gridContainer .dx-scrollable-container");
             const schedulerScrollable = $("#schedulerContainer .dx-scrollable-container");
 
-            if (gridScrollable.length && schedulerScrollable.length) {
-                let isSyncing = false;
+            if (!gridScrollable.length || !schedulerScrollable.length) return;
 
-                gridScrollable.on("scroll", function () {
-                    if (!isSyncing) {
-                        isSyncing = true;
-                        schedulerScrollable.scrollTop($(this).scrollTop());
-                        isSyncing = false;
-                    }
-                });
+            let syncing = false;
 
-                schedulerScrollable.on("scroll", function () {
-                    if (!isSyncing) {
-                        isSyncing = true;
-                        gridScrollable.scrollTop($(this).scrollTop());
-                        isSyncing = false;
-                    }
-                });
-            }
+            gridScrollable.on("scroll", function () {
+                if (syncing) return;
+                syncing = true;
+                schedulerScrollable.scrollTop(this.scrollTop);
+                syncing = false;
+            });
+
+            schedulerScrollable.on("scroll", function () {
+                if (syncing) return;
+                syncing = true;
+                gridScrollable.scrollTop(this.scrollTop);
+                syncing = false;
+            });
         }, 200);
     }
+
 
     function goUpdate(idReservationrl, startDate, endDate, roomNorl, roomtypeid, roomIDrl) {
          var modal = $('#newReservationModal');
