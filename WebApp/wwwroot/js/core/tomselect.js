@@ -199,29 +199,39 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
         });
     }
 
-async function loadDataToTomSelect(selector, apiUrl) {
-    // 1. Khởi tạo TomSelect trước (dùng helper của bạn)
-    initTomSelect(selector);
-
-    const ts = getTomSelect(selector);
-    if (!ts) return;
-
-    try {
-        // 2. Gọi API
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-
-        // 3. Format lại dữ liệu nếu API trả về ID/Name thay vì value/text
-        const formattedData = data.map(item => ({
-            value: item.id || item.ID, // Linh hoạt theo API của bạn
-            text: item.name || item.Name
-        }));
-
-        // 4. Đổ dữ liệu vào và refresh
-        ts.addOptions(formattedData);
-        ts.refreshOptions(false);
-
-    } catch (error) {
-        console.error("Lỗi khi load API:", error);
+    // Hàm detroy Tomselect khi đóng các modal
+    function destroyTomSelect(selectors) {
+        selectors.forEach(selector => {
+            const el = document.querySelector(selector);
+            if (el && el.tomselect) {
+                el.tomselect.destroy();
+            }
+        });
     }
-}
+
+    async function loadDataToTomSelect(selector, apiUrl) {
+        // 1. Khởi tạo TomSelect trước (dùng helper của bạn)
+        initTomSelect(selector);
+
+        const ts = getTomSelect(selector);
+        if (!ts) return;
+
+        try {
+            // 2. Gọi API
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+
+            // 3. Format lại dữ liệu nếu API trả về ID/Name thay vì value/text
+            const formattedData = data.map(item => ({
+                value: item.id || item.ID, // Linh hoạt theo API của bạn
+                text: item.name || item.Name
+            }));
+
+            // 4. Đổ dữ liệu vào và refresh
+            ts.addOptions(formattedData);
+            ts.refreshOptions(false);
+
+        } catch (error) {
+            console.error("Lỗi khi load API:", error);
+        }
+    }
