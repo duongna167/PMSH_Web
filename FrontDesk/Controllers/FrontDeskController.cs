@@ -851,7 +851,7 @@ namespace FrontDesk.Controllers
         public IActionResult PostingToRoom()
         {
 
-            return View();
+            return PartialView();
         }
         [HttpPost]
         public IActionResult PostToRoom(DateTime fromDate, string roomNos, string userName, int userID)

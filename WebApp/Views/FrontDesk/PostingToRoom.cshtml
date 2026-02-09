@@ -1,360 +1,419 @@
 ﻿@using DevExpress.XtraReports.UI
-@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
 @{
     ViewBag.Title = ViewBag.ReportHeader;
     var zoneList = ViewBag.ZoneList;
 }
-@* <link asp-append-version="true" href="~/css/reservation.css" rel="stylesheet" /> *@
+
 <style>
-    /* Font size cho dòng Total Summary */
     .dx-datagrid-total-footer,
     .dx-datagrid-summary-item {
         font-size: 12px;
     }
-
 </style>
-<div class="text-center" id="reportTitle" style="font-size: 20px">Posting To Room</div>
-                <div class="search-filter">
-                    <div class="">
-                        <button id="btnPrint" class="mui-button mui-button-new">View</button>
-                        <button id="btnCheckall" class="mui-button mui-button-new" type="button">Check All</button>
-                        <button id="btnPost" class="mui-button mui-button-new" type="button">Post</button>
-                        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">  Excel</button>
-                        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">
-                            PDF
-                        </button>
-                      
-                    </div>
-                    <div class="filter-panel d-flex align-items-center flex-nowrap gap-3 mt-2 mb-1">
 
-                        <!-- From -->
-                        <div class="d-flex align-items-center pb-2">
-                            <label class="me-2 mb-0">Date:</label>
-                            <div class="date-wrap">
-                                <div class="clearable" data-date-input data-format="DD/MM/YYYY" data-name="fromDate">
-                                    <input type="text" class="date-ui form-control" autocomplete="off" />
+<div class="modal fade" id="ptr_modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-4by3 modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Posting To Room</h5>
+            </div>
+
+            <div class="modal-body">
+                <div class="search-filter">
+
+                    <div class="pt-1">
+                        <button id="ptr_btnView" class="mui-button mui-button-new">View</button>
+                        <button id="ptr_btnCheckall" class="mui-button mui-button-new" type="button">Check All</button>
+                        <button id="ptr_btnPost" class="mui-button mui-button-new" type="button">Post</button>
+                        <button id="ptr_btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+                        <button id="ptr_btnExportPdf" class="mui-button mui-button-new" type="button">PDF</button>
+                        <button class="mui-button mui-button-new" type="button" data-bs-dismiss="modal">Close</button>
+                    </div>
+
+                    <div class="filter-panel">
+                        <div class="container-fluid mb-1">
+                            <div class="row g-2 mt-1 align-items-center">
+
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3">
+                                    <div class="row g-1 align-items-center">
+                                        <label class="col-3 col-md-4 text-md-end mb-0 text-nowrap">
+                                            Date
+                                        </label>
+                                        <div class="col-9 col-md-8">
+                                            <div class="date-wrap">
+                                                <div class="clearable" data-date-input data-format="DD/MM/YYYY"
+                                                     data-name="fromDate">
+                                                    <input type="text" class="date-ui form-control form-control-sm"
+                                                           autocomplete="off" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
+
                             </div>
                         </div>
-
-
                     </div>
 
                 </div>
 
                 <div class="mui-card">
-                    <div id="gridContainer" class="gridContainer mt-2"></div>
+                    <div id="ptr_gridContainer" class="gridContainer mt-2"></div>
                 </div>
-                <div id="loadingSpinner"
+
+                <div id="ptr_loadingSpinner"
                      style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
                     <i class="fa-solid fa-spinner fa-spin"></i>
                 </div>
 
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+    var ptr_Module = {
+        postingGrid: null,
+        selectedRoomNos: [],
 
-  
-    $(document).ready(function () {
-    
-               getBusinessDate();
+        init: function () {
+            this.bindEvents();
+            this.loadBusinessDateAndAutoView();
+        },
 
-   
+        bindEvents: function () {
+            const self = this;
 
-    });
-  
-
-     function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-
-                 const fromDateStr = result.split('T')[0];
-
-
-                UI.setHiddenDate("fromDate", fromDateStr);
-          
-                      $("#btnPrint").trigger("click");
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-            }
-        });
-    }
-  
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/Cashiering/GuestInHouse',
-            type: 'GET',
-            data: {
-                room: "",
-                name: "",
-                block: "",
-                group: "",
-                company: "",
-                confirmationNo: "",
-                arrivalDate: "",
-                arrivalTo: "",
-                departure: "",
-                crsNo: "",
-                package: "",
-                guestName: "",
-                zone: "",
-                typeSearch: 0,
-                chooseArrivalFrom: 0,
-                chooseArrivalTo: 0,
-                chooseDeparture: 0
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                console.log(result);
-                initializePostingToRoomGrid(result);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-      $("#btnCheckall").on("click", function () {
-        if (!postingGrid) return;
-
-        const selectedCount = postingGrid.getSelectedRowKeys().length;
-
-        if (selectedCount > 0) {
-            // 👉 UNCHECK: chỉ bỏ tích các dòng đang chọn
-            postingGrid.clearSelection();
-            $(this).text("Check All");
-        } else {
-            // 👉 CHECK ALL
-            postingGrid.selectAll();
-            $(this).text("Uncheck All");
-        }
-    });
-
-
-
-
-
-    let selectedRoomNos = [];
-        function initializePostingToRoomGrid(data) {
-
-        postingGrid = $("#gridContainer")
-            .dxDataGrid({
-                 dataSource: data.filter(x => x.Room > 0),
-
-                height: 500,
-
-                allowColumnResizing: true,
-                columnResizingMode: "widget",
-                columnAutoWidth: false,
-
-                paging: { pageSize: 15 },
-                scrolling: {
-                    mode: "standard",
-                    columnRenderingMode: "virtual"
-                },
-
-                pager: {
-                    visible: true,
-                    allowedPageSizes: [15, 20, "all"],
-                    showPageSizeSelector: true,
-                    showInfo: true,
-                    showNavigationButtons: true
-                },
-
-                filterRow: {
-                    visible: true,
-                    applyFilter: "auto"
-                },
-                 selection: {
-                    mode: "multiple",
-                    showCheckBoxesMode: "always"
-                },
-                 onSelectionChanged: function (e) {
-                    selectedRoomNos = e.selectedRowsData.map(x => x.Room)
-                },
-               columns: [
-
-                { caption: "Rm", dataField: "Room", width: "4%" ,sortOrder: "asc", sortIndex: 0},
-                { caption: "MG", dataField: "MainGuest", width: "4%" },
-                { caption: "Name", dataField: "Name", width: "10%" },
-
-                {
-                    caption: "Balance (VND)",
-                    dataField: "BalanceVND",
-                    dataType: "number",
-                    format: "#,##0",
-                    alignment: "right",
-                    width: "10%"
-                },
-
-                { caption: "R.Type", dataField: "RoomType", width: "5%" },
-                { caption: "Arrival", dataField: "Arrival", dataType: "date", format: "dd/MM/yyyy", width: "6%" },
-                { caption: "Departure", dataField: "Departure", dataType: "date", format: "dd/MM/yyyy", width: "6%" },
-
-                { caption: "A", dataField: "Adult", width: "5%" , dataType: "number"},
-                { caption: "1", dataField: "Child", width: "4%" , dataType: "number"},
-                { caption: "2", dataField: "Child1", width: "4%" , dataType: "number"},
-                { caption: "3", dataField: "Child2", width: "4%" , dataType: "number"},
-
-                { caption: "Status", dataField: "Status", width: "5%" },
-                { caption: "Rate", dataField: "Rate", dataType: "number", format: "#,##0", alignment: "right", width: "8%" },
-
-                { caption: "Holder", dataField: "ReservationHolder", width: "7%" },
-                { caption: "Conf.No", dataField: "ConfirmationNo", width: "5%" },
-                { caption: "CRS.No", dataField: "CRSNo", width: "5%" },
-                { caption: "Pkg", dataField: "Packages", width: "4%" },
-                { caption: "Company", dataField: "Company", width: "6%" },
-                { caption: "Agent", dataField: "Agent", width: "6%" },
-                { caption: "R.Code", dataField: "RateCode", width: "5%" },
-                { caption: "Source", dataField: "Source", width: "5%" },
-                { caption: "Market", dataField: "Market", width: "5%" }
-
-            ],
-
-
-              summary: {
-                    totalItems: [
-                        { column: "BalanceVND", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" },
-                        { column: "Rate",       summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" },
-                        { column: "Adult",      summaryType: "sum", valueFormat: "#,##0",displayFormat: "{0}" },
-                        { column: "Child",      summaryType: "sum", valueFormat: "#,##0",displayFormat: "{0}" },
-                        { column: "Child1",     summaryType: "sum", valueFormat: "#,##0",displayFormat: "{0}" },
-                        { column: "Child2",     summaryType: "sum", valueFormat: "#,##0",displayFormat: "{0}" }
-                    ]
-                }
-
-            })
-            .dxDataGrid("instance"); // ✅ QUAN TRỌNG
-    }
-
-    $(document).off("click", "#btnPost").on("click", "#btnPost", function () {
-          const roomNos = selectedRoomNos.join(",");
-
-
-        if (!roomNos) {
-               showToast('Warning', "Please select at least one Room", false);
-            return;
-        }
-              const userName = JSON.parse(localStorage.getItem("Loginname"));
-        const userID = JSON.parse(localStorage.getItem("userID"));
-        $.ajax({
-            url: "/FrontDesk/PostToRoom",
-            type: "POST",
-            data: {
-                fromDate: $("#fromDate").val(),
-                roomNos: roomNos  , // VD: "101,102,203"
-                userName:userName,
-                userID:userID
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (res) {
-                 if (res.success === true) {
-                    showToast('Success',res.message, true);
-                    $("#btnPrint").trigger("click");
-                } else {
-                      showToast('Error', "Post failed", false);
-                }
-            },
-            error: function (err) {
-                console.error(err);
-                alert("Post failed");
-            }
-        });
-    });
-
-
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance"); var selectedReport2 = '@ViewBag.ReportTitle';
-        var selectedReport = '@ViewBag.ReportTitle';
-        if (!selectedReport) {
-            alert("Vui lòng ch?n báo cáo tru?c khi xu?t Excel.");
-            return;
-        }
-
-        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === T?o header công ty (dòng 1) ===
-        worksheet.addRow(['Công ty C? ph?n Gi?i pháp Công ngh? CS-Solution']);
-        worksheet.mergeCells('A1:E1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Th?i gian xu?t (ph?i) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
-        worksheet.mergeCells('E2:H2');
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: Tr?ng
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tên báo cáo ? gi?a ===
-        const reportRow = worksheet.addRow(['', '', selectedReport]);
-        worksheet.mergeCells('C5:F5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
-        worksheet.addRow([]);
-
-        // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
-        }).then(function () {
-            // Footer
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
-            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = selectedReport + ".xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+            $(document).off("click", "#ptr_btnView").on("click", "#ptr_btnView", function () {
+                self.onView();
             });
-        });
-    });
 
+            $(document).off("click", "#ptr_btnCheckall").on("click", "#ptr_btnCheckall", function () {
+                self.onToggleCheckAll();
+            });
 
+            $(document).off("click", "#ptr_btnPost").on("click", "#ptr_btnPost", function () {
+                self.onPost();
+            });
 
-    // Nút xu?t PDF
-    $("#btnExportPdf").click(function () {
-        const { jsPDF } = window.jspdf; // ?? B? sung dòng này
+            $(document).off("click", "#ptr_btnExportExcel").on("click", "#ptr_btnExportExcel", function () {
+                self.onExportExcel();
+            });
 
-        const doc = new jsPDF();
+            $(document).off("click", "#ptr_btnExportPdf").on("click", "#ptr_btnExportPdf", function () {
+                self.onExportPdf();
+            });
+        },
 
-        DevExpress.pdfExporter.exportDataGrid({
-            jsPDFDocument: doc,
-            component: $("#gridContainer").dxDataGrid("instance"),
-            autoTableOptions: {
-                styles: { cellPadding: 2, fontSize: 8 },
-                margin: { top: 20 }
+        loadBusinessDateAndAutoView: function () {
+            const self = this;
+
+            return $.ajax({
+                url: '/Reservation/GetBusinessDate',
+                type: 'get',
+                dataType: 'json',
+                crossDomain: false,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (result) {
+                    const fromDateStr = result.split('T')[0];
+
+                    UI.setHiddenDate("fromDate", fromDateStr);
+
+                    // show modal + auto view
+                    $('#ptr_modal').modal('show');
+                    $("#ptr_btnView").trigger("click");
+                },
+                error: function (xhr) {
+                    if (xhr.status == 401) sessionTimeout();
+                }
+            });
+        },
+
+        onView: function () {
+            const self = this;
+
+            $("#ptr_loadingSpinner").show();
+
+            $.ajax({
+                url: '/Cashiering/GuestInHouse',
+                type: 'GET',
+                data: {
+                    room: "",
+                    name: "",
+                    block: "",
+                    group: "",
+                    company: "",
+                    confirmationNo: "",
+                    arrivalDate: "",
+                    arrivalTo: "",
+                    departure: "",
+                    crsNo: "",
+                    package: "",
+                    guestName: "",
+                    zone: "",
+                    typeSearch: 0,
+                    chooseArrivalFrom: 0,
+                    chooseArrivalTo: 0,
+                    chooseDeparture: 0
+                },
+                traditional: true,
+                crossDomain: false,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (result) {
+                    self.initializePostingToRoomGrid(result);
+                },
+                error: function () {
+                    alert("Không thể tải báo cáo.");
+                },
+                complete: function () {
+                    $("#ptr_loadingSpinner").hide();
+                }
+            });
+        },
+
+        onToggleCheckAll: function () {
+            if (!this.postingGrid) return;
+
+            const selectedCount = this.postingGrid.getSelectedRowKeys().length;
+
+            if (selectedCount > 0) {
+                this.postingGrid.clearSelection();
+                $("#ptr_btnCheckall").text("Check All");
+            } else {
+                this.postingGrid.selectAll();
+                $("#ptr_btnCheckall").text("Uncheck All");
             }
-        }).then(() => {
-            doc.save("BaoCao.pdf");
-        });
+        },
+
+        initializePostingToRoomGrid: function (data) {
+            const self = this;
+
+            self.selectedRoomNos = [];
+
+            self.postingGrid = $("#ptr_gridContainer")
+                .dxDataGrid({
+                    dataSource: (data || []).filter(x => x.Room > 0),
+                    height: "100%",
+
+                    allowColumnResizing: true,
+                    columnResizingMode: "widget",
+                    columnAutoWidth: false,
+
+                    paging: { pageSize: 15 },
+                    scrolling: {
+                        mode: "standard",
+                        columnRenderingMode: "virtual"
+                    },
+
+                    pager: {
+                        visible: true,
+                        allowedPageSizes: [15, 20, "all"],
+                        showPageSizeSelector: true,
+                        showInfo: true,
+                        showNavigationButtons: true
+                    },
+
+                    filterRow: {
+                        visible: true,
+                        applyFilter: "auto"
+                    },
+
+                    selection: {
+                        mode: "multiple",
+                        showCheckBoxesMode: "always"
+                    },
+
+                    onSelectionChanged: function (e) {
+                        self.selectedRoomNos = e.selectedRowsData.map(x => x.Room);
+                    },
+
+                    columns: [
+                        { caption: "Rm", dataField: "Room", width: 60, sortOrder: "asc", sortIndex: 0 },
+                        { caption: "MG", dataField: "MainGuest", width: 50 },
+                        { caption: "Name", dataField: "Name", width: 180 },
+                        {
+                            caption: "Balance (VND)",
+                            dataField: "BalanceVND",
+                            dataType: "number",
+                            format: "#,##0",
+                            alignment: "right",
+                            width: 120
+                        },
+                        { caption: "R.Type", dataField: "RoomType", width: 80 },
+                        { caption: "Arrival", dataField: "Arrival", dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                        { caption: "Departure", dataField: "Departure", dataType: "date", format: "dd/MM/yyyy", width: 100 },
+
+                        // Nhóm khách
+                        { caption: "Adult", dataField: "Adult", width: 60, dataType: "number" },
+                        { caption: "1", dataField: "Child", width: 40, dataType: "number" },
+                        { caption: "2", dataField: "Child1", width: 40, dataType: "number" },
+                        { caption: "3", dataField: "Child2", width: 40, dataType: "number" },
+
+                        { caption: "Status", dataField: "Status", width: 90 },
+                        { caption: "Rate", dataField: "Rate", dataType: "number", format: "#,##0", alignment: "right", width: 110 },
+
+                        { caption: "Holder", dataField: "ReservationHolder", width: 150 },
+                        { caption: "Conf.No", dataField: "ConfirmationNo", width: 90 },
+                        { caption: "CRS.No", dataField: "CRSNo", width: 90 },
+                        { caption: "Pkg", dataField: "Packages", width: 70 },
+                        { caption: "Company", dataField: "Company", width: 150 },
+                        { caption: "Agent", dataField: "Agent", width: 150 },
+                        { caption: "R.Code", dataField: "RateCode", width: 90 },
+                        { caption: "Source", dataField: "Source", width: 100 },
+                        { caption: "Market", dataField: "Market", width: 100 }
+                    ],
+                    summary: {
+                        totalItems: [
+                            { column: "BalanceVND", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" },
+                            { column: "Rate", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" },
+                            { column: "Adult", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" },
+                            { column: "Child", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" },
+                            { column: "Child1", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" },
+                            { column: "Child2", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" }
+                        ]
+                    }
+                })
+                .dxDataGrid("instance");
+
+            $("#ptr_btnCheckall").text("Check All");
+        },
+
+        onPost: function () {
+            const self = this;
+
+            const roomNos = (self.selectedRoomNos || []).join(",");
+
+            if (!roomNos) {
+                showToast('Warning', "Please select at least one Room", false);
+                return;
+            }
+
+            const userName = JSON.parse(localStorage.getItem("Loginname"));
+            const userID = JSON.parse(localStorage.getItem("userID"));
+
+            $.ajax({
+                url: "/FrontDesk/PostToRoom",
+                type: "POST",
+                data: {
+                    fromDate: $("#fromDate").val(),
+                    roomNos: roomNos,
+                    userName: userName,
+                    userID: userID
+                },
+                traditional: true,
+                crossDomain: false,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (res) {
+                    if (res && res.success === true) {
+                        showToast('Success', res.message, true);
+                        $("#ptr_btnView").trigger("click");
+                    } else {
+                        showToast('Error', "Post failed", false);
+                    }
+                },
+                error: function (err) {
+                    console.error(err);
+                    alert("Post failed");
+                }
+            });
+        },
+
+        onExportExcel: function () {
+            const grid = $("#ptr_gridContainer").dxDataGrid("instance");
+            const selectedReport = '@ViewBag.ReportTitle';
+
+            if (!selectedReport) {
+                alert("Vui lòng chọn báo cáo trước khi xuất Excel.");
+                return;
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            worksheet.addRow(['Công ty Cổ phần Giải pháp Công nghệ CS-Solution']);
+            worksheet.mergeCells('A1:E1');
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+            const now = new Date();
+            const exportDate = now.toLocaleString("vi-VN");
+            worksheet.addRow(['', '', '', '', ' ' + exportDate]);
+            worksheet.mergeCells('E2:H2');
+            worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
+
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            const reportRow = worksheet.addRow(['', '', selectedReport]);
+            worksheet.mergeCells('C5:F5');
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            worksheet.addRow([]);
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
+                worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                let fileName = selectedReport + ".xlsx";
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                });
+            });
+        },
+
+        onExportPdf: function () {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            DevExpress.pdfExporter.exportDataGrid({
+                jsPDFDocument: doc,
+                component: $("#ptr_gridContainer").dxDataGrid("instance"),
+                autoTableOptions: {
+                    styles: { cellPadding: 2, fontSize: 8 },
+                    margin: { top: 20 }
+                }
+            }).then(() => {
+                doc.save("PostingToRoom.pdf");
+            });
+        },
+
+        destroy: function () {
+            try {
+                if (this.postingGrid) {
+                    this.postingGrid.dispose();
+                    this.postingGrid = null;
+                }
+            } catch (e) { }
+
+            this.selectedRoomNos = [];
+
+            $("#ptr_gridContainer").empty();
+            $("#ptr_loadingSpinner").hide();
+
+            $(document).off("click", "#ptr_btnView");
+            $(document).off("click", "#ptr_btnCheckall");
+            $(document).off("click", "#ptr_btnPost");
+            $(document).off("click", "#ptr_btnExportExcel");
+            $(document).off("click", "#ptr_btnExportPdf");
+        }
+    };
+
+    // Global entry for ModalManager
+    window.openModalPTR = function () {
+        ptr_Module.init();
+    };
+
+    // Auto cleanup
+    $("#ptr_modal").on("hidden.bs.modal", function () {
+        ptr_Module.destroy();
     });
 </script>
