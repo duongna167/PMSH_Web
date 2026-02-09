@@ -1103,7 +1103,7 @@ namespace Cashiering.Controllers
         #region Tuan_Invoice 6/2/2026
         public IActionResult EInvoiceManager()
         {
-            return View();
+            return PartialView();
         }
 
         [HttpGet]

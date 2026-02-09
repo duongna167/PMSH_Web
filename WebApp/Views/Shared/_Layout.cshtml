@@ -206,8 +206,8 @@
                                     New Group Reservation
                                 </a>
 
-                                <a asp-area="" asp-controller="HouseKeeping" asp-action="RoomAssignment" data-action="RoomAssignment">Room Assignment</a>
-                                <a asp-area="" asp-controller="Reservation" asp-action="OverBooking" data-action="OverBooking">Over Booking</a>
+                                <a href="javascript:void(0);" onclick="openRoomAssignment()" data-action="RoomAssignment">Room Assignment</a>
+                                <a href="javascript:void(0);" onclick="openOverBooking()"  data-action="OverBooking">Over Booking</a>
                                 <div class="dropdown-submenu">
                                     <a class="dropdown-submenu-toggle">Allotment</a>
                                     <div class="dropdown-submenu-content">
@@ -320,12 +320,12 @@
 
                                     </div>
                                 </div>
-                                <div class="dropdown-submenu"
+                                <div class="dropdown-submenu">
                                     <a class="dropdown-submenu-toggle">E invoice</a>
                                     <div class="dropdown-submenu-content">
 
-                                        @* <!-- <a asp-area="" asp-controller="Home" asp-action="">E Profile Upload</a> --> *@
-                                        <a asp-area="" asp-controller="Home" asp-action="">E Invoice Management</a>
+                                        @* <a asp-area="" asp-controller="Home" asp-action="">E Profile Upload</a> *@
+                                        <a href="javascript:void(0);" onclick="openEInvoiceMG()">E Invoice Management</a>
                                     </div>
                                 </div>
                                 <a asp-area="" asp-controller="Cashiering" asp-action="CashierAudit" data-action="CashierAudit">Cashier Audit</a>
@@ -360,14 +360,14 @@
                             </div>
                         </li>
 
-                        <li class="nav-item">
+                   @*      <li class="nav-item">
                             <a class="nav-link" href="#">MISCELLANEOUS</a>
                             <div class="dropdown-menu-custom">
                                 <a asp-area="" asp-controller="Miscellaneous" asp-action="MealReport" data-action="MealReport">Report Meal</a>
                                 <a asp-area="" asp-controller="Miscellaneous" asp-action="CardManagement" data-action="CardManagement">Card Management</a>
                                 <a asp-area="" asp-controller="Miscellaneous" asp-action="IssuingCardToGuests" data-action="IssuingCardToGuests">Guest Card</a>                                                 
                             </div>
-                        </li>
+                        </li> *@
 
                         <li class="nav-item">
                             <a class="nav-link" href="#">NIGHT AUDIT</a>
@@ -402,7 +402,7 @@
                                         <a asp-area="" asp-controller="TransactionSubGroup" asp-action="TransSubGroup" data-action="TransSubGroup">Transaction SubGroup</a>
                                         <a asp-area="" asp-controller="TransactionGroup" asp-action="TransGroup" data-action="TransGroup">Transaction Group</a>
                                         <a asp-area="" asp-controller="TransactionArticleLink" asp-action="TransactionArticleLink" data-action="TransactionArticleLink">Transaction Article Link</a>
-                                        <a asp-area="" asp-controller="HouseKeeping" asp-action="RoomAssignment" data-action="RoomAssignment">Room Assignment</a>
+                                        <a href="javascript:void(0);" onclick="openRoomAssignment()" data-action="RoomAssignment">Room Assignment</a>
                                         <a asp-area="" asp-controller="RoutingCode" asp-action="RoutingCode" data-action="RoutingCode">Routing Code</a>
                                     </div>
                                 </div>
@@ -572,7 +572,7 @@
     <div class="modal fade" id="newReservationModal" tabindex="-1" aria-labelledby="newReservationModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 92vw;">
-            <div class="modal-content">
+            <div class="modal-content modal-full-height">
                 <div class="modal-header">
                     <h5 class="modal-title" id="newReservationModalLabel">New Reservation</h5>
                     @* <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> *@
@@ -1144,6 +1144,59 @@
             }
         });
 
+            (function () {
+
+        const permissionData = JSON.parse(localStorage.getItem("PermissionNames")) || [];
+        const permissionNames = permissionData
+            .map(x => x.name?.toString().trim().toLowerCase())
+            .filter(Boolean);
+
+        const pathSegments = window.location.pathname
+            .split('/')
+            .filter(Boolean);
+
+        // Trang root "/"
+        if (pathSegments.length === 0) return;
+
+        const controller = pathSegments[0].toLowerCase();
+        const action = (pathSegments[pathSegments.length - 1] || "").toLowerCase();
+
+        console.log("Current action:", action);
+
+        // ❌ BỎ QUA HOME / INDEX
+        if (controller === "home" || action === "index") {
+            return;
+        }
+
+        // 🔍 Lấy toàn bộ data-action trong menu
+        const menuActions = Array.from(
+            document.querySelectorAll("a[data-action]")
+        ).map(a =>
+            a.getAttribute("data-action")?.toString().trim().toLowerCase()
+        ).filter(Boolean);
+
+        // 👉 Nếu KHÔNG có menu nào khai báo action này → cho truy cập
+        if (!menuActions.includes(action)) {
+            return;
+        }
+
+        // 🚫 Có menu action nhưng KHÔNG có quyền
+        if (!permissionNames.includes(action)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Access Denied',
+                text: 'You do not have permission to access this function',
+                confirmButtonText: 'OK',
+                allowOutsideClick: false
+            }).then(() => {
+                window.location.href = '/Home/Index';
+            });
+        }
+
+    })();
+
+
+
     });
 
 </script>
@@ -1193,7 +1246,9 @@
             });
         }
     };
-
+ //Phần cho reservation
+ //
+ //
     function openSearchGroupReservation() {
         // Truyền dạng string để JS không check sự tồn tại ngay lập tức
         ModalManager.load(
@@ -1215,6 +1270,17 @@
             }
         );
     }
+
+function openRoomAssignment() {
+        // Truyền dạng string để JS không check sự tồn tại ngay lập tức
+        ModalManager.load(
+            "/HouseKeeping/RoomAssignment",
+            "ara_roomAssign",
+            "openModalAra"
+        );
+    }
+    //Phần cho HouseKeeping
+    //
     function openTaskSheetStatus() {
         ModalManager.load(
             "/Housekeeping/TaskSheetStatus",
@@ -1241,6 +1307,20 @@
             "/FrontDesk/ProcessFOStatus",
             "pfos_modal",
             "openModalPFOS"
+        );
+    }
+    function openEInvoiceMG() {
+        ModalManager.load(
+            "/Cashiering/EInvoiceManager",
+            "eim_modal",
+            "openModalEInvoiceMG"
+        );
+    }
+    function openOverBooking() {
+        ModalManager.load(
+            "/Reservation/OverBooking",
+            "obk_modal",
+            "openModalObk"
         );
     }
     function openOOOS() {

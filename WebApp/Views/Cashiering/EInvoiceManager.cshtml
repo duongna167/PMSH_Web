@@ -16,13 +16,13 @@
                         <button class="mui-button mui-button-new" onclick="eim_Module.searchInvoiceOrInvoiceDetail()"
                             >Search</button
                         >
-                        <button class="mui-button mui-button-new">New Invoice</button>
-                        <button class="mui-button mui-button-new">Edit</button>
-                        <button class="mui-button mui-button-new">Delete</button>
-                        <button class="mui-button mui-button-new">RSV</button>
-                        <button class="mui-button mui-button-new">Billing</button>
-                        <button class="mui-button mui-button-new">E Invoice</button>
-                        <button class="mui-button mui-button-new">Excel</button>
+                        <button class="mui-button mui-button-new" id="emi_btnNewInvoice">New Invoice</button>
+                        <button class="mui-button mui-button-new" id="emi_btnEditInvoice">Edit</button>
+                        <button class="mui-button mui-button-new" id="emi_btnDeleteInvoice">Delete</button>
+                        <button class="mui-button mui-button-new" id="emi_btnRSV">RSV</button>
+                        <button class="mui-button mui-button-new" id="emi_btnBilling">Billing</button>
+                        <button class="mui-button mui-button-new" id="emi_btnEInvoice">E Invoice</button>
+                        <button class="mui-button mui-button-new" id="emi_btnExportExcel">Excel</button>
                         <button class="mui-button mui-button-new" data-bs-dismiss="modal" aria-label="Close">
                             Close
                         </button>
@@ -240,6 +240,8 @@
         init: function () {
             initTomSelect('#eim_InvoiceSerial');
             this.setUpInvoiceSerial();
+            this.searchInvoiceOrInvoiceDetail();
+            this.bindEvents();
         },
         setUpInvoiceSerial: function () {
             $.get('/Cashiering/SetUpInvoiceSerial', function (res) {
@@ -303,9 +305,6 @@
                     }
 
                     // Các xử lý phụ khác (nếu có)
-                    if ($('#logGridContainer').length > 0) {
-                        self.initializeTaskSheetStatusPopGrid(result);
-                    }
                 },
                 error: function (xhr) {
                     console.error(xhr);
@@ -418,11 +417,133 @@
                 ],
             });
         },
+        bindEvents: function () {
+            const self = this;
+            $('#emi_btnExportExcel')
+                .off('click')
+                .on('click', function () {
+                    showToast(
+                        'Warning',
+                        'Chức năng đang được phát triển. Vui lòng liên hệ Admin để biết thời gian cập nhật.\n' +
+                            'This feature is under development. Please contact the administrator for the update schedule.',
+                        false
+                    );
+                    return;
+                });
+            $('#emi_btnNewInvoice')
+                .off('click')
+                .on('click', function () {
+                    showToast(
+                        'Warning',
+                        'Chức năng đang được phát triển. Vui lòng liên hệ Admin để biết thời gian cập nhật.\n' +
+                            'This feature is under development. Please contact the administrator for the update schedule.',
+                        false
+                    );
+                    return;
+                });
+
+            $('#emi_btnEditInvoice')
+                .off('click')
+                .on('click', function () {
+                    showToast(
+                        'Warning',
+                        'Chức năng đang được phát triển. Vui lòng liên hệ Admin để biết thời gian cập nhật.\n' +
+                            'This feature is under development. Please contact the administrator for the update schedule.',
+                        false
+                    );
+                    return;
+                });
+
+            $('#emi_btnDeleteInvoice')
+                .off('click')
+                .on('click', function () {
+                    showToast(
+                        'Warning',
+                        'Chức năng đang được phát triển. Vui lòng liên hệ Admin để biết thời gian cập nhật.\n' +
+                            'This feature is under development. Please contact the administrator for the update schedule.',
+                        false
+                    );
+                    return;
+                });
+
+            $('#emi_btnRSV')
+                .off('click')
+                .on('click', function () {
+                    showToast(
+                        'Warning',
+                        'Chức năng đang được phát triển. Vui lòng liên hệ Admin để biết thời gian cập nhật.\n' +
+                            'This feature is under development. Please contact the administrator for the update schedule.',
+                        false
+                    );
+                    return;
+                });
+
+            $('#emi_btnBilling')
+                .off('click')
+                .on('click', function () {
+                    showToast(
+                        'Warning',
+                        'Chức năng đang được phát triển. Vui lòng liên hệ Admin để biết thời gian cập nhật.\n' +
+                            'This feature is under development. Please contact the administrator for the update schedule.',
+                        false
+                    );
+                    return;
+                });
+
+            $('#emi_btnEInvoice')
+                .off('click')
+                .on('click', function () {
+                    showToast(
+                        'Warning',
+                        'Chức năng đang được phát triển. Vui lòng liên hệ Admin để biết thời gian cập nhật.\n' +
+                            'This feature is under development. Please contact the administrator for the update schedule.',
+                        false
+                    );
+                    return;
+                });
+        },
+        // Tách hàm Export dùng chung để code gọn hơn
+        exportToExcel: function (gridInstance, reportName) {
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Sheet 1');
+
+            // Header Công ty
+            worksheet.addRow(['Công ty Cổ phần Giải pháp Công nghệ CS-Solution']);
+            worksheet.mergeCells('A1:E1');
+            worksheet.getRow(1).font = { bold: true };
+
+            // Tên báo cáo
+            const reportRow = worksheet.addRow(['', '', reportName]);
+            worksheet.mergeCells('C5:F5');
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { horizontal: 'center' };
+
+            DevExpress.excelExporter
+                .exportDataGrid({
+                    component: gridInstance,
+                    worksheet: worksheet,
+                    topLeftCell: { row: 7, column: 1 },
+                })
+                .then(() => {
+                    workbook.xlsx.writeBuffer().then((buffer) => {
+                        saveAs(new Blob([buffer], { type: 'application/octet-stream' }), reportName + '.xlsx');
+                    });
+                });
+        },
     };
-    document.addEventListener('DOMContentLoaded', function () {
-        var modalEl = document.getElementById('eim_modal');
-        var modal = new bootstrap.Modal(modalEl);
-        modal.show();
+    // document.addEventListener('DOMContentLoaded', function () {
+    //     var modalEl = document.getElementById('eim_modal');
+    //     var modal = new bootstrap.Modal(modalEl);
+    //     modal.show();
+    //     eim_Module.init();
+    // });
+    window.openModalEInvoiceMG = function () {
         eim_Module.init();
+    };
+
+    // Tự dọn dẹp biến khi Modal đóng để tránh rò rỉ bộ nhớ
+    $('#eim_modal').on('hidden.bs.modal', function () {
+        // if (pfos_Module.tsAttendant) pfos_Module.tsAttendant.destroy();
+        // if (pfos_Module.tsZone) pfos_Module.tsZone.destroy();
     });
 </script>

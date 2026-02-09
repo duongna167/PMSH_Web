@@ -97,108 +97,108 @@ namespace Miscellaneous.Controllers
 
             return Json(list);
         }
-        [HttpPost]
-        public IActionResult SaveCard([FromBody] CardModel model)
-        {
-            var listErrors = GetErrors(
-                Check(model == null, "general", "Invalid data."),
-                Check(string.IsNullOrWhiteSpace(model?.ID), "cardID", "Card ID is required.")
-            );
+        //[HttpPost]
+        //public IActionResult SaveCard([FromBody] CardModel model)
+        //{
+        //    var listErrors = GetErrors(
+        //        Check(model == null, "general", "Invalid data."),
+        //        Check(string.IsNullOrWhiteSpace(model?.ID), "cardID", "Card ID is required.")
+        //    );
 
-            if (listErrors.Count > 0)
-            {
-                return Json(new { success = false, errors = listErrors });
-            }
+        //    if (listErrors.Count > 0)
+        //    {
+        //        return Json(new { success = false, errors = listErrors });
+        //    }
 
-            try
-            {
-                var existedCards = CardBO.Instance.FindByAttribute("ID", model.ID);
-                bool isExist = existedCards != null && existedCards.Count > 0;
+        //    try
+        //    {
+        //        var existedCards = CardBO.Instance.FindByAttribute("ID", model.ID);
+        //        bool isExist = existedCards != null && existedCards.Count > 0;
 
-                var businessDates = PropertyUtils.ConvertToList<BusinessDateModel>(
-                    BusinessDateBO.Instance.FindAll()
-                );
-                DateTime businessDate = businessDates[0].BusinessDate;
+        //        var businessDates = PropertyUtils.ConvertToList<BusinessDateModel>(
+        //            BusinessDateBO.Instance.FindAll()
+        //        );
+        //        DateTime businessDate = businessDates[0].BusinessDate;
 
-                // ================= INSERT =================
-                if (!isExist)
-                {
-                    if (CardBO.Instance.IsDuplicateCardId(model.ID))
-                    {
-                        return Json(new
-                        {
-                            success = false,
-                            message = $"Card ID already exists: [{model.ID}]"
-                        });
-                    }
+        //        // ================= INSERT =================
+        //        if (!isExist)
+        //        {
+        //            if (CardBO.Instance.IsDuplicateCardId(model.ID))
+        //            {
+        //                return Json(new
+        //                {
+        //                    success = false,
+        //                    message = $"Card ID already exists: [{model.ID}]"
+        //                });
+        //            }
 
-                    model.CreatedDate = businessDate;
-                    model.UpdatedDate = DateTime.Now;
-                    string statusTextInsert = model.Status switch
-                    {
-                        1 => "Active",
-                        0 => "Inactive",
-                        _ => "Other"
-                    };
+        //            model.CreatedDate = businessDate;
+        //            model.UpdatedDate = DateTime.Now;
+        //            string statusTextInsert = model.Status switch
+        //            {
+        //                1 => "Active",
+        //                0 => "Inactive",
+        //                _ => "Other"
+        //            };
 
-                    CardBO.Instance.InsertCard(model);
+        //            CardBO.Instance.InsertCard(model);
 
-                    return Json(new
-                    {
-                        success = true,
-                        message = "Insert successfully!",
-                        data = new
-                        {
-                            id = model.ID,
-                            cardTypeID = model.CardTypeID,
-                            cardType = "Card Hotel",
-                            status = model.Status,
-                            statusText = statusTextInsert,
-                            createdBy = model.CreatedBy,
-                            createdDate = model.CreatedDate,
-                            updatedBy = model.UpdatedBy,
-                            updatedDate = model.UpdatedDate
-                        }
-                    });
-                }
+        //            return Json(new
+        //            {
+        //                success = true,
+        //                message = "Insert successfully!",
+        //                data = new
+        //                {
+        //                    id = model.ID,
+        //                    cardTypeID = model.CardTypeID,
+        //                    cardType = "Card Hotel",
+        //                    status = model.Status,
+        //                    statusText = statusTextInsert,
+        //                    createdBy = model.CreatedBy,
+        //                    createdDate = model.CreatedDate,
+        //                    updatedBy = model.UpdatedBy,
+        //                    updatedDate = model.UpdatedDate
+        //                }
+        //            });
+        //        }
 
-                // ================= UPDATE =================
-                var oldData = (CardModel)existedCards[0];
+        //        // ================= UPDATE =================
+        //        var oldData = (CardModel)existedCards[0];
 
-                model.CreatedBy = oldData.CreatedBy;
-                model.CreatedDate = oldData.CreatedDate;
-                model.UpdatedDate = DateTime.Now;
-                string statusTextEdit = model.Status switch
-                {
-                    1 => "Active",
-                    0 => "Inactive",
-                    _ => "Other"
-                };
-                CardBO.Instance.Update(model);
+        //        model.CreatedBy = oldData.CreatedBy;
+        //        model.CreatedDate = oldData.CreatedDate;
+        //        model.UpdatedDate = DateTime.Now;
+        //        string statusTextEdit = model.Status switch
+        //        {
+        //            1 => "Active",
+        //            0 => "Inactive",
+        //            _ => "Other"
+        //        };
+        //        CardBO.Instance.Update(model);
 
-                return Json(new
-                {
-                    success = true,
-                    message = "Update successfully!",
-                    data = new
-                    {
-                        id = model.ID,
-                        cardTypeID = model.CardTypeID,
-                        cardType = "Card Hotel",
-                        status = model.Status,
-                        statusText = statusTextEdit,
-                        createdBy = model.CreatedBy,
-                        createdDate = model.CreatedDate,
-                        updatedBy = model.UpdatedBy,
-                        updatedDate = model.UpdatedDate
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message });
-            }
-        }
+        //        return Json(new
+        //        {
+        //            success = true,
+        //            message = "Update successfully!",
+        //            data = new
+        //            {
+        //                id = model.ID,
+        //                cardTypeID = model.CardTypeID,
+        //                cardType = "Card Hotel",
+        //                status = model.Status,
+        //                statusText = statusTextEdit,
+        //                createdBy = model.CreatedBy,
+        //                createdDate = model.CreatedDate,
+        //                updatedBy = model.UpdatedBy,
+        //                updatedDate = model.UpdatedDate
+        //            }
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return Json(new { success = false, message = ex.Message });
+        //    }
+        //}
 
 
         [HttpPost]
