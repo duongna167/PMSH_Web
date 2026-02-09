@@ -3784,7 +3784,7 @@ namespace FrontDesk.Controllers
         public IActionResult MapTransactionCode()
         {
 
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult MapTransactionCodeData()
