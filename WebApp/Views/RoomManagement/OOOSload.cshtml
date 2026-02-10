@@ -1,4 +1,4 @@
-﻿@using DevExpress.XtraReports.UI
+@using DevExpress.XtraReports.UI
 
 @{
     var selectedReport = @ViewBag.ReportHeader;
@@ -36,11 +36,12 @@
 
             <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
                 <div class="py-2">
-                    <button id="btnView" class="mui-button mui-button-view">View</button>
-                    <button id="btnNew" class="mui-button mui-button-new">New</button>
-                    <button id="btnEdit" class="mui-button mui-button-edit">Edit</button>
-                    <button id="btnDelete" class="mui-button mui-button-delete">Delete</button>
-                    <button id="btnHistory" class="mui-button mui-button-new">History</button>
+                    <button id="ooos_btnView" class="mui-button mui-button-view">View</button>
+                    <button id="ooos_btnNew" class="mui-button mui-button-new">New</button>
+                    <button id="ooos_btnEdit" class="mui-button mui-button-edit">Edit</button>
+                    <button id="ooos_btnDelete" class="mui-button mui-button-delete">Delete</button>
+                    <button id="ooos_btnHistory" class="mui-button mui-button-new">History</button>
+                    <button id="ooos_btnExportExcel" class="mui-button mui-button-export">Excel</button>
                     <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
                 </div>
                 <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
@@ -53,10 +54,10 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <label class="mb-0 fw-semibold">Date:</label>
                                     <div class="d-flex gap-1 flex-grow-1">
-                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
+                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="ooos_fromDate">
                                             <input type="text" class="date-ui form-control form-control-sm" placeholder="From">
                                         </div>
-                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="toDate">
+                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="ooos_toDate">
                                             <input type="text" class="date-ui form-control form-control-sm" placeholder="To">
                                         </div>
                                     </div>
@@ -67,7 +68,7 @@
                             <div class="col-xl-3 col-lg-4 col-md-6">
                                 <div class="d-flex align-items-center gap-2">
                                     <label class="mb-0 fw-semibold">Room:</label>
-                                    <select id="room" class="tomselect-custom flex-grow-1" multiple>
+                                    <select id="ooos_room" class="tomselect-custom flex-grow-1" multiple>
                                         @foreach (var u in ViewBag.RoomList)
                                         {
                                             <option value="@u.RoomNo">@u.RoomNo</option>
@@ -80,7 +81,7 @@
                             <div class="col-xl-2 col-lg-2 col-md-4">
                                 <div class="d-flex align-items-center gap-2">
                                     <label class="mb-0 fw-semibold">Class:</label>
-                                    <select id="roomClass" class="tomselect-custom flex-grow-1">
+                                    <select id="ooos_roomClass" class="tomselect-custom flex-grow-1">
                                         @foreach (var g in ViewBag.RoomClassList)
                                         {
                                             <option value="@g.ID">@g.Code</option>
@@ -93,7 +94,7 @@
                             <div class="col-xl-2 col-lg-2 col-md-4">
                                 <div class="d-flex align-items-center gap-2">
                                     <label class="mb-0 fw-semibold">Zone:</label>
-                                    <select id="zone" class="tomselect-custom flex-grow-1" multiple>
+                                    <select id="ooos_zone" class="tomselect-custom flex-grow-1" multiple>
                                         @foreach (var z in ViewBag.ZoneList)
                                         {
                                             <option value="@z.Code">@z.Code</option>
@@ -108,10 +109,10 @@
                                     <label class="mb-0 fw-semibold">Type:</label>
                                     <div class="d-flex gap-2 border rounded px-2 py-1 bg-white">
                                         <label class="mb-0">
-                                            <input type="checkbox" id="outofOrder" checked> OOO
+                                            <input type="checkbox" id="ooos_outofOrder" checked> OOO
                                         </label>
                                         <label class="mb-0">
-                                            <input type="checkbox" id="outofService" checked> OOS
+                                            <input type="checkbox" id="ooos_outofService" checked> OOS
                                         </label>
                                     </div>
                                 </div>
@@ -122,7 +123,7 @@
                     </div>
 
                     <div class="gridContainer mt-2 d-flex flex-column flex-grow-1 overflow-auto">
-                        <div id="gridContainer"></div>
+                        <div id="ooos_gridContainer"></div>
 
                         <div id="loadingSpinnerRateCode" style="display: none;">
                             <div class="spinner-border text-primary" role="status"></div>
@@ -136,62 +137,67 @@
 </div>
 
 <!-- Modal Popup for New Item -->
-<div class="modal fade" id="itemModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="itemModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+<div class="modal fade" id="ooos_itemModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="itemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="itemModalLabel">Out of order/service management</h5>
+                <h5 class="modal-title" id="ooos_itemModalLabel">Out of order/service management</h5>
             </div>
 
             <div class="modal-body">
-                <div class="py-2">
-                    <button type="button" id="btnSaveItem" class="mui-button mui-button-new">Save</button>
-                    <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+
+                <!-- Action -->
+                <div class="py-2 d-flex gap-2 flex-column flex-sm-row">
+                    <button type="button"
+                            id="ooos_btnSaveItem"
+                            class="mui-button mui-button-new w-sm-auto">
+                        Save
+                    </button>
+                    <button type="button"
+                            class="mui-button mui-button-new w-sm-auto"
+                            data-bs-dismiss="modal">
+                        Close
+                    </button>
                 </div>
 
-                <form id="formContainer">
+                <form id="ooos_formContainer">
                     <div class="container-fluid px-2">
-                        <input type="hidden" id="id" name="id" value="0" />
 
-                        <div class="row g-3 mb-2 align-items-center">
-                            <div class="col-md-7">
-                                <div class="row align-items-center">
-                                    <label class="col-sm-5 col-form-label text-md-end fw-bold px-1">Type:</label>
-                                    <div class="col-sm-7">
-                                        <div class="d-flex gap-3">
+                        <input type="hidden" id="ooos_id" name="id" value="0" />
+
+                        <div class="row g-4">
+
+                            <!-- LEFT COLUMN -->
+                            <div class="col-12 col-lg-7">
+
+                                <!-- Type -->
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
+                                        Type
+                                    </div>
+                                    <div class="col-12 col-md-8">
+                                        <div class="d-flex gap-4">
                                             <div class="form-check m-0">
-                                                <input class="" type="radio" name="oooOrS" id="ooo" value="1">
-                                                <label class="form-check-label" for="ooo">OOO</label>
+                                                <input type="radio" name="oooOrS" id="ooos_ooo" value="1">
+                                                <label class="form-check-label">OOO</label>
                                             </div>
                                             <div class="form-check m-0">
-                                                <input class="" type="radio" name="oooOrS" id="oos" value="2" checked>
-                                                <label class="form-check-label" for="oos">OOS</label>
+                                                <input type="radio" name="oooOrS" id="ooos_oos" value="2" checked>
+                                                <label class="form-check-label">OOS</label>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="col-md-5">
-                                <div class="row align-items-center">
-                                    <label class="col-sm-5 col-form-label text-md-end fw-bold px-1">From Date:</label>
-                                    <div class="col-sm-7">
-                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="itemFromDate" name="itemFromDate">
-                                            <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" />
-                                        </div>
 
-                                        <div class="invalid-feedback"></div>
-
+                                <!-- Return Status -->
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
+                                        Return Status
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row g-3 mb-2 align-items-center">
-                            <div class="col-md-7">
-                                <div class="row align-items-center">
-                                    <label class="col-sm-5 col-form-label text-md-end fw-bold px-1">Return Status:</label>
-                                    <div class="col-sm-7">
-                                        <select id="rtStatus" name="rtStatus" class="tomselect-custom">
+                                    <div class="col-12 col-md-8">
+                                        <select id="ooos_rtStatus"
+                                                name="rtStatus"
+                                                class="tomselect-custom w-100">
                                             <option value="2">Dirty</option>
                                             <option value="1">Clean Non-Checked</option>
                                             <option value="3">Pickup</option>
@@ -200,94 +206,147 @@
                                         <div class="invalid-feedback"></div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="col-md-5">
-                                <div class="row align-items-center">
-                                    <label class="col-sm-5 col-form-label text-md-end fw-bold px-1">To Date:</label>
-                                    <div class="col-sm-7">
-                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="itemToDate" name="itemToDate">
-                                            <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" />
-                                        </div>
-                                        <div class="invalid-feedback"></div>
 
+                                <!-- Reason -->
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
+                                        Reason
+                                    </div>
+                                    <div class="col-12 col-md-8">
+                                        <select id="ooos_comment"
+                                                name="comment"
+                                                class="tomselect-custom w-100">
+                                            @foreach (var dpm in ViewBag.CommentList)
+                                            {
+                                                <option value="@dpm.ID">
+                                                    @dpm.Code - @dpm.Description
+                                                </option>
+                                            }
+                                        </select>
+                                        <div class="invalid-feedback"></div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <div class="row mb-2 align-items-center">
-                            <label class="col-sm-3 col-form-label text-md-end fw-bold px-1">Reason:</label>
-                            <div class="col-sm-9">
-                                <select id="comment" name="comment" class="tomselect-custom">
-                                    @foreach (var dpm in ViewBag.CommentList)
-                                    {
-                                        <option value="@dpm.ID" data-desc="@dpm.Description">@dpm.Code - @dpm.Description</option>
-                                    }
-                                </select>
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
+                                <!-- Reason Note -->
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
+                                        Reason Note
+                                    </div>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text"
+                                               id="ooos_txtReasonDesc"
+                                               name="txtReasonDesc"
+                                               class="form-control form-control-sm" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
 
-                        <div class="row mb-2 align-items-center">
-                            <label class="col-sm-3 col-form-label text-md-end fw-bold px-1">Reason Note:</label>
-                            <div class="col-sm-9" style="width:224px;">
-                                <input type="text" id="txtReasonDesc" name="txtReasonDesc" class="form-control form-control-sm" placeholder="Enter additional notes..." />
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
+                                <!-- Room Select -->
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
+                                        Room Select
+                                    </div>
+                                    <div class="col-12 col-md-8">
+                                        <select id="ooos_roomSelect"
+                                                name="roomSelect"
+                                                class="tomselect-custom w-100"
+                                                multiple>
+                                            @foreach (var u in ViewBag.RoomList)
+                                            {
+                                                <option value="@u.ID">@u.RoomNo</option>
+                                            }
+                                        </select>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
 
-                        <div class="row mb-2 align-items-center">
-                            <label class="col-sm-3 col-form-label text-md-end fw-bold px-1">Room Select:</label>
-                            <div class="col-sm-9">
-                                <select id="roomSelect" name="roomSelect" class="tomselect-custom" multiple>
-                                    @foreach (var u in ViewBag.RoomList)
-                                    {
-                                        <option value="@u.ID">@u.RoomNo</option>
-                                    }
-                                </select>
-                                <div class="invalid-feedback"></div>
                             </div>
+
+                            <!-- RIGHT COLUMN -->
+                            <div class="col-12 col-lg-5">
+
+                                <!-- From -->
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
+                                        From
+                                    </div>
+                                    <div class="col-12 col-md-8">
+                                        <div data-date-input
+                                             data-format="DD/MM/YYYY"
+                                             business-date
+                                             data-name="ooos_itemFromDate"
+                                             name="itemFromDate">
+                                            <input type="text"
+                                                   class="date-ui form-control form-control-sm"
+                                                   placeholder="dd/MM/yyyy" />
+                                        </div>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+
+                                <!-- To -->
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
+                                        To
+                                    </div>
+                                    <div class="col-12 col-md-8">
+                                        <div data-date-input
+                                             data-format="DD/MM/YYYY"
+                                             business-date
+                                             data-name="ooos_itemToDate"
+                                             name="itemToDate">
+                                            <input type="text"
+                                                   class="date-ui form-control form-control-sm"
+                                                   placeholder="dd/MM/yyyy" />
+                                        </div>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+
+                            </div>
+
                         </div>
                     </div>
                 </form>
 
             </div>
+
         </div>
     </div>
 </div>
 
 <!-- History Modal -->
-<div class="modal fade" id="historyModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="historyModalLabel" aria-hidden="true">
+<div class="modal fade" id="ooos_historyModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="historyModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <!-- rộng hơn để chứa grid -->
         <div class="modal-content" ">
             <div class="modal-header">
-                <h5 class="modal-title" id="historyModalLabel">Room Change History</h5>
+                <h5 class="modal-title" id="ooos_historyModalLabel">Room Change History</h5>
             </div>
 
             <div class="modal-body">
                 <div class="item-modal-actions py-2">
-                    <button class="mui-button mui-button-new" id="btnHistorySearch">Search</button>
+                    <button class="mui-button mui-button-new" id="ooos_btnHistorySearch">Search</button>
                     <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                 </div>
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-2" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
 
                     <div class="d-flex align-items-center me-2">
                         <label class="me-2 mb-0">Room:</label>
-                        <input type="text" id="historyRoom" class="form-control form-control-sm w-auto" />
+                        <input type="text" id="ooos_historyRoom" class="form-control form-control-sm w-auto" />
                     </div>
                     <div class="d-flex align-items-center me-2">
                         <label class="me-2 mb-0">User Name:</label>
-                        <input type="text" id="historyUser" class="form-control form-control-sm w-auto" />
+                        <input type="text" id="ooos_historyUser" class="form-control form-control-sm w-auto" />
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <div data-date-input data-format="DD/MM/YYYY" business-date
-                             data-name="historyFromDate" style="width: 130px;">
+                             data-name="ooos_historyFromDate" style="width: 130px;">
                             <input type="text" class="date-ui form-control form-control-sm"
                                    placeholder="dd/mm/yyyy" autocomplete="off" />
                         </div>
                         <div data-date-input data-format="DD/MM/YYYY" business-date
-                             data-name="historyToDate" style="width: 130px;">
+                             data-name="ooos_historyToDate" style="width: 130px;">
                             <input type="text" class="date-ui form-control form-control-sm"
                                    placeholder="dd/mm/yyyy" autocomplete="off" />
                         </div>
@@ -298,7 +357,7 @@
 
 
                 <div class="gridContainer mt-2">
-                    <div id="historyGrid"></div>
+                    <div id="ooos_historyGrid"></div>
                 </div>
             </div>
         </div>
@@ -309,105 +368,26 @@
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 <script>
+        
+    var ooos_Module = {
+        selectedRowData: null,
 
-    window.openModalOOOS = function () {
-        let selectedRowData = null;
-
-        initTomSelect(".tomselect-custom");
-        $("#btnView").trigger("click");
-
-        $('#itemModal').on('hidden.bs.modal', function () {
-            ValidationAdapter.clear("#formContainer");
-        });
-
-        $("#formContainer").on("input", "input, textarea", function () {
-            if ($(this).hasClass("is-invalid")) {
-                ValidationAdapter.clearField(this);
-            }
-        });
-
-        $("#formContainer").on("change", "select.tomselect-custom", function () {
-            if (this.tomselect) {
-                ValidationAdapter.clearField(this);
-            }
-        });
-    };
-
-    $("#ooos_modal").on("hidden.bs.modal", function () {
-
-        /* === Destroy DevExtreme Grid === */
-        if ($("#gridContainer").data("dxDataGrid")) {
-            $("#gridContainer").dxDataGrid("dispose");
-            $("#gridContainer").empty();
-        }
-
-        /* === Destroy TomSelect === */
-        destroyTomSelect([
-            "#room",
-            "#roomClass",
-            "#zone"
-        ]);
-
-        /* === Clear state === */
-        selectedRowData = null;
-    });
-
-    document.getElementById("comment").addEventListener("change", function () {
-        var desc = this.options[this.selectedIndex].getAttribute("data-desc");
-        document.getElementById("txtReasonDesc").value = desc || "";
-    });
-
-    function getStatusValue() {
-        const isOOO = $('#outofOrder').is(':checked');
-        const isOOS = $('#outofService').is(':checked');
-
-        if (isOOO && isOOS) return 0; // Chọn cả hai
-        if (isOOO) return 1;          // Chỉ OOO
-        if (isOOS) return 2;          // Chỉ OOS
-        return 3;                     // Không chọn cái nào
-    }
-
-    function loadHistoryOOOGrid(data) {
-            $("#gridContainer").dxDataGrid({
-            dataSource: data,
+        baseGridOptions: {
             height: "100%",
             width: "100%",
             showBorders: true,
             hoverStateEnabled: true,
-            columnAutoWidth: false,
-            wordWrapEnabled: true, // Tự động xuống dòng nếu tiêu đề dài
+            wordWrapEnabled: true,
             allowColumnResizing: true,
             columnResizingMode: "widget",
+            columnAutoWidth: true,
             selection: { mode: "single" },
-            columns: [
-                { dataField: "id", visible:false},
-                { dataField: "roomID", visible:false},
-                { dataField: "reasonID", visible:false},
-                { dataField: "code", caption: "Code", width: 90 },
-                { dataField: "roomNo", caption: "Room No", alignment: "right" , width: 70 },
-                { dataField: "roomType", caption: "Room Type", width: 70 },
-                { dataField: "floor", caption: "Floor", alignment: "right",width: 50 },
-                { dataField: "zone", caption: "Zone", width: 50 },
-                { dataField: "fromDate", caption: "From Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "toDate", caption: "To Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "noOfNights", caption: "Nights", width: 50 },
-                { dataField: "reason", caption: "Reason", width: 150 },
-                { dataField: "status", caption: "Status", width: 50 },
-                { dataField: "userCreate", caption: "User Create", width: 100 },
-                { dataField: "createdDate", caption: "Create Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "userUpdate", caption: "User Update", width: 100 },
-                { dataField: "updatedDate", caption: "Update Date", width: 80, dataType: "date", format: "dd/MM/yyyy" }
-            ],
             scrolling: {
                 mode: "standard",
                 showScrollbar: "always",
-                scrollByContent: true,
-                scrollByThumb: true,
                 useNative: true
             },
-            paging: {
-                pageSize: 20
-            },
+            paging: { pageSize: 20 },
             pager: {
                 visible: true,
                 allowedPageSizes: [20, 50, 100],
@@ -415,175 +395,327 @@
                 showInfo: true,
                 showNavigationButtons: true
             },
-            columnAutoWidth: true,
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            summary: {
-                totalItems: [
-                    {
-                        showInColumn: "reason",
-                        summaryType: "custom",
-                        name: "TotalNights",
-                        displayFormat: "Total Nights: {0}",
-                        alignment: "left"
+            filterRow: { visible: true, applyFilter: "auto" }
+        },
+
+        initGrid: function (containerId, options) {
+            const fullOptions = $.extend(true, {}, this.baseGridOptions, options);
+            return $(containerId).dxDataGrid(fullOptions);
+        },
+
+        init: function () {
+            this.initEvents();
+            this.intitDOMEvents();
+        },
+
+        initEvents: function () {
+            const self = this;
+
+            window.openModalOOOS = function () {
+                initTomSelect(".tomselect-custom");
+                self.reloadGrid();
+                
+                $('#itemModal').on('hidden.bs.modal', function () {
+                    self.disposeGrid("#ooos_gridContainer");
+                    destroyTomSelect(["#ooos_room", "#ooos_roomClass", "#ooos_zone"]);
+                    self.selectedRowData = null;
+                });
+
+                $("#formContainer").on("input", "input, textarea", function () {
+                    if ($(this).hasClass("is-invalid")) {
+                        ValidationAdapter.clearField(this);
                     }
-                ],
-                calculateCustomSummary: function (options) {
-                    if (options.name === "TotalNights") {
-                        if (options.summaryProcess === "start") options.totalValue = 0;
-                        if (options.summaryProcess === "calculate") options.totalValue += (options.value.noOfNights || 0);
+                });
+
+                $("#formContainer").on("change", "select.tomselect-custom", function () {
+                    if (this.tomselect) {
+                        ValidationAdapter.clearField(this);
                     }
-                }
-            },
-            onSelectionChanged: function (e) {
-                if (e.selectedRowsData.length > 0) {
-                    selectedRowData = e.selectedRowsData[0];
-                    console.log("Selected Row:", selectedRowData);
-                } else {
-                    selectedRowData = null;
+                });
 
-                }
-            }
-        });
-    }
+                // Tự động điền note khi chọn Reason
+                $(document).on("change", "#ooos_comment", function () {
+                    var desc = $(this).find(":selected").data("desc");
+                    $("#ooos_txtReasonDesc").val(desc || "");
+                });
 
-    $(document).off("click", "#btnView").on("click", "#btnView", function () {
-         reloadGrid();
-    });
+            };
 
-    function reloadGrid() {
-        const roomClass = getTomSelectData("#roomClass");
-        const zone = getTomSelectData("#zone");
+        },
 
-        const status = getStatusValue();
-        $("#loadingSpinner").show();
+        intitDOMEvents: function () {
+            const self = this;
+            $("#ooos_btnView").on("click", () => self.reloadGrid());
+            $("#ooos_btnNew").on("click", () => self.openNewModal());
+            $("#ooos_btnEdit").on("click", () => self.openEditModal());
+            $("#ooos_btnSaveItem").on("click", () => self.saveOOOS());
+            $("#ooos_btnDelete").on("click", () => self.confirmDelete());
+            $("#ooos_btnExportExcel").on("click", () => self.exportToExcel());
+            $("#ooos_btnHistory").on("click", () => self.openModalHistory());
+        },
 
-        $.ajax({
-            url: '/RoomManagement/GetOOOSload',
-            type: 'GET',
-            data: {
-                status: status,
-                roomNo: $("#room").val(),
-                roomClassID: roomClass?.value,
+        reloadGrid: function () {
+            const self = this;
+            const filterData = {
+                status: self.getStatusValue(),
+                roomNo: (getTomSelectData("#ooos_room") || []).map(x => x.value).join(","),
+                roomClassID: getTomSelectData("#ooos_roomClass")?.value,
                 fromDate: $("#fromDate").val() || dateSystem ,
                 toDate: $("#toDate").val() || dateSystem,
-                zone: zone ? zone.map(x => x.value).join(",") : ""
+                zone: (getTomSelectData("#ooos_zone") || []).map(x => x.value).join(",")
+            };
+            $("#loadingSpinnerRateCode").show();
+            $.ajax({
+                url: '/RoomManagement/GetOOOSload',
+                type: 'GET',
+                data: filterData,
+                success: function (data) {
+                    self.renderMainGrid(data);
+                    $("#loadingSpinnerRateCode").hide();
+                },
+                error: function (xhr, status, error) {
+                    showToast("Error", "Unable to load data", false);
+                    $("#loadingSpinnerRateCode").hide();
+                }
+            });
+        },
 
-            },
-            success: function (data) {
-                loadHistoryOOOGrid(data);
-                $("#loadingSpinner").hide();
-            },
-            error: function (xhr, status, error) {
-                alert("Unable to load data");
-                $("#loadingSpinner").hide();
+        renderMainGrid: function (data) {
+            const self = this;
+            self.initGrid("#ooos_gridContainer",{
+                dataSource: data,
+                columns: [
+                    { dataField: "id", visible:false},
+                    { dataField: "roomID", visible:false},
+                    { dataField: "reasonID", visible:false},
+                    { dataField: "code", caption: "Code", width: 90 },
+                    { dataField: "roomNo", caption: "Room No", alignment: "right" , width: 60 },
+                    { dataField: "roomType", caption: "Room Type", width: 70 },
+                    { dataField: "floor", caption: "Floor", alignment: "right",width: 50 },
+                    { dataField: "zone", caption: "Zone", width: 50 },
+                    { dataField: "fromDate", caption: "From Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "toDate", caption: "To Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "noOfNights", caption: "Nights", width: 50 },
+                    { dataField: "reason", caption: "Reason", width: 150 },
+                    { dataField: "status", caption: "Status", width: 50 },
+                    { dataField: "userCreate", caption: "User Create", width: 100 },
+                    { dataField: "createdDate", caption: "Create Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "userUpdate", caption: "User Update", width: 100 },
+                    { dataField: "updatedDate", caption: "Update Date", width: 80, dataType: "date", format: "dd/MM/yyyy" }
+                ],
+                summary: {
+                    totalItems: [
+                        {
+                            showInColumn: "reason",
+                            summaryType: "custom",
+                            name: "TotalNights",
+                            displayFormat: "Total Nights: {0}",
+                            alignment: "left"
+                        }
+                    ],
+                    calculateCustomSummary: function (options) {
+                        if (options.name === "TotalNights") {
+                            if (options.summaryProcess === "start") options.totalValue = 0;
+                            if (options.summaryProcess === "calculate") options.totalValue += (options.value.noOfNights || 0);
+                        }
+                    }
+                },
+                onSelectionChanged: function (e) {
+                    self.selectedRowData = e.selectedRowsData[0] || null;
+                }
+            });
+
+        },
+
+        openNewModal: function () {
+            $("#ooos_itemModal").modal("show");
+            initDateInputs();
+            $("#ooos_id").val(0);
+            $("#ooos_itemModalLabel").text("New Out of Order/Service");
+            clearMultipleTomSelect(["#ooos_roomSelect", "#ooos_comment"]);
+        },
+
+        openEditModal: function (){
+            const self = this;
+            if (!self.selectedRowData) {
+                showToast("Warning", "Please select a row first!", false);
+                return;
             }
-        });
-    }
+            $("#ooos_itemModalLabel").text("Update Out of Order/Service");
+            self.fillEditForm(self.selectedRowData);
+            $("#ooos_itemModal").modal("show");
+        },
 
-    $("#btnNew").on("click", function () {
+        fillEditForm: function (data) {
+            $("#ooos_id").val(data.id);
+            const statusVal = data.status === "OOO" ? "1" : "2";
+            $(`input[name='oooOrS'][value='${statusVal}']`).prop("checked", true);
 
-        FormModal.open("#itemModal", "#formContainer", {
-            onOpen: () => {
-                $("#id").val(0);
-                $("#itemModalLabel").text("New OOOS");
+            setTomSelectValue("#ooos_roomSelect", data.roomID);
+            setTomSelectValue("#ooos_rtStatus", data.returnStatusID);
+            setTomSelectValue("#ooos_comment", data.reasonID);
+            $("#ooos_txtReasonDesc").val(data.reason || "");
 
-                UI.setHiddenDate("itemFromDate",$("#itemFromDate").val());
+            $("[data-name='ooos_itemFromDate'] input").val(formatDate(data.fromDate));
+            $("[data-name='ooos_itemToDate'] input").val(formatDate(data.toDate));
+        },
 
-                UI.setHiddenDate("itemToDate", $("#itemFromDate").val());
-                clearMultipleTomSelect([
-                    "#roomSelect",
-                    "#comment"
-                ]);
+        saveOOOS: function () {
+            const self = this;
+            var formData = new FormData();
+
+            formData.append("id", $("#ooos_id").val());
+            formData.append("roomSelect", (getTomSelectData("#ooos_roomSelect") || []).map(x => x.value).join(","));
+            formData.append("oooOrS", $("input[name='oooOrS']:checked").val());
+            formData.append("rtStatus", getTomSelectData("#ooos_rtStatus")?.value || "");
+            formData.append("comment", getTomSelectData("#ooos_comment")?.value || "");
+            formData.append('txtReasonDesc', $("#ooos_txtReasonDesc").val());
+            formData.append('itemFromDate', $("[data-name='itemFromDate'] input").val());
+            formData.append('itemToDate', $("[data-name='itemToDate'] input").val());
+            formData.append('userName', JSON.parse(localStorage.getItem("Loginname")));
+            formData.append('userID', JSON.parse(localStorage.getItem("userID")));
+
+            $.ajax({
+                url: '/RoomManagement/UpdateandInsertBusinessBlock',
+                type: 'POST',
+                processData: false,
+                contentType: false,
+                data: formData,
+                success: function (res) {
+                    if (res.success) {
+                        showToast("Success", res.message, true);
+                        $("#ooos_itemModal").modal("hide");
+                        self.reloadGrid();
+                    } else {
+                        ValidationAdapter.apply(res.errors || [], "#formContainer");
+                        showToast("Warning", res.message, false);
+                    }
+                }
+            });
+        },
+
+        confirmDelete: function() {
+            const self = this;
+            if (!self.selectedRowData) {
+                showToast("Warning","Please select a line to delete.", false);
+                return;
             }
 
-        });
-    });
+            if (!confirm("Are you sure you want to delete this record? This action cannot be undone.")) {
+                return;
+           }
+           $.ajax({
+               url: `/RoomManagement/DeleteBusinessBlock/`+ self.selectedRowData.id,
+               type: "POST",
+               traditional: true,
+               crossDomain: false,
+               headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+               success: function(result){
+                    if(result.success){
+                        self.reloadGrid();
+                        showToast("Success","Delete Successfully!",true);
+                    } else {
+                        showToast("Error",result.message,false);
+                    }
+               },
+               error: function(){
+                    showToast("Error","Delete failed!" ,false);
+               },
+           });
+        },
 
-    $("#btnEdit").on("click", function () {
-        if (!selectedRowData) {
-            showToast("Warning","Please select a row first!", false);
-            return;
-        }
-
-        FormModal.open("#itemModal", "#formContainer", {
-            onOpen: () => {
-                fillEditForm(selectedRowData);
-                 $("#itemModalLabel").text("Update OOOS");
+        exportToExcel: function () {
+            const grid = $("#ooos_gridContainer").dxDataGrid("instance");
+            if (!grid) {
+                showToast("Warning", "No data to export!", false);
+                return;
             }
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const worksheet = workbook.addWorksheet("Sheet 1");
 
-        });
-    });
+            // === Dòng 1: Tên công ty (merge theo 4 cột) ===
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells('A1:D1');
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
 
-    var OOO_STATUS_MAP = {
-        "OOO": "1",
-        "OOS": "2"
-    };
+            // === Dòng 2: Ngày giờ xuất (Sửa lỗi hiển thị ở đây) ===
+            const now = new Date();
+            const exportDateStr = "Export Date: " + now.toLocaleString("vi-VN");
+            const row2 = worksheet.getRow(2);
+            row2.getCell(1).value = exportDateStr; // Gán vào ô đầu tiên của vùng merge (A2)
+            worksheet.mergeCells('A2:D2');
+            row2.alignment = { vertical: 'middle', horizontal: 'left' };
+            row2.font = { italic: true };
 
-    function setOOOStatus(status) {
-        const key = (status || "").toUpperCase();
-        const value = OOO_STATUS_MAP[key];
-        if (!value) return;
+            // === Dòng 3–4: trống
+            worksheet.addRow([]);
+            worksheet.addRow([]);
 
-        $("input[name='oooOrS'][value='" + value + "']")
-            .prop("checked", true);
-    }
+            // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
+            const reportRow = worksheet.addRow(['Out Of Order And Service']);
+            worksheet.mergeCells('A5:D5');
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    function fillEditForm(data) {
+            // === Dòng 6: trống
+            worksheet.addRow([]);
 
-        setOOOStatus(data.status);
+            // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                // Footer (sau cùng)
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
 
-        setTomSelectValue("#roomSelect", data.roomID);
+                // Ghi file
+                let fileName = "OutOfOrderAndService.xlsx";
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                });
+            });
+        },
 
-        setTomSelectValue("#rtStatus", data.returnStatusID);
-        setTomSelectValue("#comment", data.reasonID);
+        getStatusValue: function () {
+            const isOOO = $('#ooos_outofOrder').is(':checked');
+            const isOOS = $('#ooos_outofService').is(':checked');
+            if (isOOO && isOOS) return 0;
+            return isOOO ? 1 : (isOOS ? 2 : 3);
+        },
 
-        $("#txtReasonDesc").val(data.reason || "");
+        disposeGrid: function (containerId) {
+            if ($(containerId).data("dxDataGrid")) {
+                $(containerId).dxDataGrid("dispose");
+                $(containerId).empty();
+            }
+        },
 
-        $("[data-name='itemFromDate'] input")
-            .val(formatDate(data.fromDate));
+        openModalHistory: function () {
+            const self = this;
+            $("#ooos_historyModal").modal("show");
 
-        $("[data-name='itemToDate'] input")
-            .val(formatDate(data.toDate));
-
-        $("#id").val(data.id);
-    }
-
-    $("#btnHistory").click(function () {
-            openHistoryPopup();
-    });
-
-    $("#btnHistorySearch").click(function () {
-            openHistoryPopup();
-    });
-
-    function openHistoryPopup() {
-            $("#historyModal").modal("show");
-
-            // gọi ajax load dữ liệu
             $.ajax({
                 url: "/RoomManagement/GetRoomStatusHistoryOOO",
                 type: "GET",
                 data: {
-                    roomNo: $("#historyRoom").val(),
-                    userName: $("#historyUser").val(),
-                    fromDate: $("#historyFromDate").val(),
-                    toDate: $("#historyToDate").val()
-
+                    roomNo: $("#ooos_historyRoom").val(),
+                    userName: $("#ooos_historyUser").val(),
+                    fromDate: $("#ooos_historyFromDate").val(),
+                    toDate: $("#ooos_historyToDate").val()
                 },
                 success: function (data) {
-                    $("#historyGrid").dxDataGrid({
-                        dataSource: data, // bind dữ liệu trả về
-                        columnAutoWidth: true,
-                        showBorders: true,
-                        showColumnLines: true, // hiện đường kẻ cột
-                        showRowLines: true,    // hiện đường kẻ hàng
-                        height: 600,  // chiều cao lưới
-                        width: "100%", // full chiều rộng popup
-                        scrolling: { mode: "virtual" },
-                        columns: [
+                    self.initGrid("#ooos_historyGrid", {
+                        dataSource: data,
+                        // height: 500, 
+                        // paging: { pageSize: 20 }, 
+                         columns: [
                             { dataField: "roomNo", caption: "Room No" , width: "6%"},
                             { dataField: "action", caption: "Action", width: "9%" },
                             { dataField: "oldValue", caption: "Old Value", width: "32%" },
@@ -593,94 +725,13 @@
                             { dataField: "changeDate", caption: "Change Date", dataType: "date", format: "dd/MM/yyyy HH:mm", width: "9%" }
                         ]
                     });
-                },
-                error: function () {
-                    alert("Lỗi khi load dữ liệu history");
                 }
             });
-        }
+        },
+    };
 
-    $("#btnSaveItem").click(function () {
-        SaveOOOS();
+    $(document).ready(function () {
+        ooos_Module.init();
     });
-
-    function SaveOOOS() {
-        const userName = JSON.parse(localStorage.getItem("Loginname"));
-        const userID = JSON.parse(localStorage.getItem("userID"));
-        var formData = new FormData();
-
-        const rooms = getTomSelectData("#roomSelect") || [];
-        const status = getTomSelectData("#rtStatus");
-        const comment = getTomSelectData("#comment");
-
-        // Append vào formData
-        formData.append("roomSelect", rooms.map(x => x.value).join(","));
-        formData.append("roomNo", rooms.map(x => x.text).join(","));
-        formData.append(
-          'oooOrS',
-          $("input[name='oooOrS']:checked").val()
-        );
-        formData.append("rtStatus", status?.value ?? "");
-        formData.append("comment", comment?.value ?? "");
-        formData.append('txtReasonDesc', $("#txtReasonDesc").val());
-        formData.append('itemFromDate', $("#itemFromDate").val());
-        formData.append('itemToDate', $("#itemToDate").val());
-        formData.append('userName', userName);
-        formData.append('userID', userID);
-
-        // Nếu đang edit, lấy id từ selectedRowData
-        if (selectedRowData && selectedRowData.id) {
-            formData.append('id', selectedRowData.id);
-        }
-
-        $.ajax({
-            url: '/RoomManagement/UpdateandInsertBusinessBlock',
-            type: 'POST',
-            processData: false,
-            contentType: false,
-            data: formData,
-            success: function (res) {
-                if (res.success) {
-                    showToast("Success", res.message, true);
-                    FormModal.close("#itemModal", "#formContainer");
-                    $("#btnView").trigger("click");
-                } else {
-                    ValidationAdapter.apply(res.errors || [], "#formContainer");
-                    showToast("Warning", res.message || "Invalid data", false);
-                }
-            },
-            error: function (xhr, statusText, err) {
-                showToast('Error', "Save error!", false);
-            }
-        });
-    }
-
-    $("#btnDelete").click(function () {
-        if (!selectedRowData) {
-            DevExpress.ui.notify("Please select a row first!", "warning", 2000);
-            return;
-        }
-        if (confirm("Bạn có chắc chắn muốn xoá bản ghi này không?")) {
-               deleteSelectedItem();
-        }
-    });
-
-    function deleteSelectedItem() {
-        $.post("/RoomManagement/DeleteBusinessBlock", { id: selectedRowData.id }, function (res) {
-            if (res.deleted > 0) {
-                showToast("Success", "Deleted successfully!", true);
-                   $("#btnView").trigger("click");
-                selectedRowData = null;
-            } else {
-                showToast("Error", "Delete failed!", false);
-            }
-        }).fail(function (xhr) {
-            console.error("Delete error:", xhr.responseText);
-            showToast("Error", "Delete error!", false);
-        });
-    }
-
-
-
 
 </script>

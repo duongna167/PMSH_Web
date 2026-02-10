@@ -1,169 +1,126 @@
-﻿@using DevExpress.XtraReports.UI
-@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
 @{
- 
     var listsc = ViewBag.ShortcutKeyList;
     var listfromandfuc = ViewBag.FormAndFunctionGroupList;
 }
-@* <link asp-append-version="true" href="~/css/reservation.css" rel="stylesheet" /> *@
 
-<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="">
-        <button id="btnPrint" class="mui-button mui-button-view">View</button>
-        <button id="btnExportExcel" class="mui-button button-report-excel" type="button"> Excel</button>
-        <button id="btnNewTheKeyboard" class="mui-button mui-button-new" type="button"> New </button>
-        <button id="btnEditAppoin" class="mui-button mui-button-edit" type="button">Edit </button>
-        <button id="btnDeleteAppoin" class="mui-button mui-button-delete" type="button">
-            Delete
-        </button>
-    </div>
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1 pt-2 filter-panel">
-        <!-- From Date -->
-
-        <div class="row g-3 align-items-center filter-panel">
-
-            <div class="col-md-auto">
-                <div class="d-flex align-items-center">
-                    <label class="me-2 mb-0 text-nowrap" for="attendant">Code tag:</label>
-                    <div class="col-8">
-                        <input type="text" id="codetag" name="codetag"
-                               class="form-control form-control-sm" />
+<div class="modal fade" id="shortcutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-4by3 modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Functions To List</h5>
+            </div>
+            <div class="modal-body">
+                <div class="sticky-header bg-white p-2 shadow-sm z-3">
+                    <div class="pb-2">
+                        <button id="btnPrint" class="mui-button mui-button-view">View</button>
+                        <button id="btnExportExcel" class="mui-button button-report-excel" type="button">Excel</button>
+                        <button id="btnNewTheKeyboard" class="mui-button mui-button-new" type="button">New</button>
+                        <button id="btnEditAppoin" class="mui-button mui-button-edit" type="button">Edit</button>
+                        <button id="btnDeleteAppoin" class="mui-button mui-button-delete" type="button">Delete</button>
+                        <button class="mui-button mui-button-new" id="btnClose">Close</button>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-auto">
-                <div class="d-flex align-items-center">
-                    <label class="me-2 mb-0 text-nowrap" for="attendant">Name rights:</label>
-                    <div class="col-8">
-                        <input type="text" id="namerights" name="namerights"
-                               class="form-control form-control-sm" />
+                    <div class="container-fluid pt-2 filter-panel">
+                        <div class="row g-2 align-items-center">
+
+                            <!-- Code tag -->
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label for="codetag" class="form-label mb-0 text-nowrap" style="min-width: 90px;">
+                                        Code tag
+                                    </label>
+                                    <input type="text" id="codetag" class="form-control form-control-sm">
+                                </div>
+                            </div>
+
+                            <!-- Name rights -->
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label for="namerights" class="form-label mb-0 text-nowrap" style="min-width: 100px;">
+                                        Name rights
+                                    </label>
+                                    <input type="text" id="namerights" class="form-control form-control-sm">
+                                </div>
+                            </div>
+
+                            <!-- Type -->
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center gap-3">
+                                    <label class="form-label mb-0 text-nowrap" style="min-width: 60px;">
+                                        Type
+                                    </label>
+
+                                    <div class="form-check form-check-inline mb-0">
+                                        <input  type="radio" name="rightsType" id="functionsRights" value="0" checked>
+                                        <label class="form-check-label text-nowrap" for="functionsRights">
+                                            Functions rights
+                                        </label>
+                                    </div>
+
+                                    <div class="form-check form-check-inline mb-0">
+                                        <input  type="radio" name="rightsType" id="dataRights" value="1">
+                                        <label class="form-check-label text-nowrap" for="dataRights">
+                                            Data rights
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
-                </div>
-            </div>
-            <!-- Radio: Functions rights (value = 0) -->
-            <div class="col-md-auto">
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input"
-                           type="radio"
-                           name="rightsType"
-                           id="functionsRights"
-                           value="0"
-                           checked>
-                    <label class="form-check-label" for="functionsRights">
-                        Functions rights
-                    </label>
-                </div>
-            </div>
 
-            <!-- Radio: Data rights (value = 1) -->
-            <div class="col-md-auto">
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input"
-                           type="radio"
-                           name="rightsType"
-                           id="dataRights"
-                           value="1">
-                    <label class="form-check-label" for="dataRights">
-                        Data rights
-                    </label>
+                </div>
+
+                <div class="mui-card">
+                    <div id="gridContainer" class="gridContainer mt-2"></div>
+                </div>
+
+                <div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+                    <i class="fa-solid fa-spinner fa-spin"></i>
                 </div>
             </div>
-
         </div>
-
     </div>
-
 </div>
 
-
+<!-- Popup New / Edit -->
 <div class="modal fade" id="popupNewGrid" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content" >
-
-            <!-- HEADER -->
+        <div class="modal-content">
             <div class="modal-header py-2">
-                <h5 id="attendantPointTitle" class="modal-title">
-                    The Keyboard Shortcut
-                </h5>
+                <h5 class="modal-title">The Keyboard Shortcut</h5>
             </div>
-
-            <!-- BODY -->
-            <div class="modal-body p-3" >
-
-                <!-- BUTTON -->
+            <div class="modal-body p-3">
                 <div class="d-flex justify-content-start mb-3 gap-2 pt-2">
-                    <button id="btnSaveAtt"
-                            class="mui-button mui-button-search">
-                        Save
-                    </button>
-
-                    <button type="button"
-                            id="btnClosePopup"
-                            class="mui-button mui-button-new"
-                            data-bs-dismiss="modal">
-                        Close
-                    </button>
+                    <button id="btnSaveAtt" class="mui-button mui-button-search">Save</button>
+                    <button type="button" id="btnClosePopup" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                 </div>
-
-                <!-- FORM -->
                 <div class="container-fluid">
                     <div class="row g-3">
                         <input type="hidden" id="txtid" name="txtid" />
-                        <!-- LEFT: INFORMATION -->
                         <div class="col-md-7">
                             <fieldset class="border p-2 h-100">
-                                <legend class="float-none w-auto px-2 small fw-bold">
-                                    Information
-                                </legend>
-
-                                <!-- Code Tag -->
+                                <legend class="float-none w-auto px-2 small fw-bold">Information</legend>
                                 <div class="row align-items-center mb-2">
-                                    <div class="col-md-4">
-                                        <label class="mb-0">Code Tag</label>
-                                    </div>
-                                    <div class="col-md-8">
-                                        <input type="text"id="codetagnew" class="form-control form-control-sm">
-                                    </div>
+                                    <div class="col-md-4"><label class="mb-0">Code Tag</label></div>
+                                    <div class="col-md-8"><input type="text" id="codetagnew" class="form-control form-control-sm"></div>
                                 </div>
-
-                                <!-- Name rights -->
                                 <div class="row align-items-center mb-2">
-                                    <div class="col-md-4">
-                                        <label class="mb-0">Name rights</label>
-                                    </div>
-                                    <div class="col-md-8">
-                                        <input type="text" id="namerightnew" class="form-control form-control-sm">
-                                    </div>
+                                    <div class="col-md-4"><label class="mb-0">Name rights</label></div>
+                                    <div class="col-md-8"><input type="text" id="namerightnew" class="form-control form-control-sm"></div>
                                 </div>
-
-                                <!-- Description -->
                                 <div class="row align-items-center mb-2">
-                                    <div class="col-md-4">
-                                        <label class="mb-0">Description</label>
-                                    </div>
-                                    <div class="col-md-8">
-                                        <input type="text" id="descriptionnew" class="form-control form-control-sm">
-                                    </div>
+                                    <div class="col-md-4"><label class="mb-0">Description</label></div>
+                                    <div class="col-md-8"><input type="text" id="descriptionnew" class="form-control form-control-sm"></div>
                                 </div>
-                                <!-- MappingLinkWeb -->
                                 <div class="row align-items-center mb-2">
-                                    <div class="col-md-4">
-                                        <label class="mb-0">Mapping Link Web</label>
-                                    </div>
-                                    <div class="col-md-8">
-                                        <input type="text" id="mappingLinkWeb" class="form-control form-control-sm">
-                                    </div>
+                                    <div class="col-md-4"><label class="mb-0">Mapping Link Web</label></div>
+                                    <div class="col-md-8"><input type="text" id="mappingLinkWeb" class="form-control form-control-sm"></div>
                                 </div>
-                                <!-- Group -->
                                 <div class="row align-items-center mb-2">
-                                    <div class="col-md-4">
-                                        <label class="mb-0">Group</label>
-                                    </div>
-                                    <div class="col-md-8 d-flex gap-1">
-                                        <select id="groupnew" name="groupnew" class="form-control form-control-sm">
+                                    <div class="col-md-4"><label class="mb-0">Group</label></div>
+                                    <div class="col-md-8">
+                                        <select id="groupnew" class="form-control form-control-sm">
+                                            <option value=""></option>
                                             @foreach (var item in listfromandfuc)
                                             {
                                                 <option value="@item.ID">@item.Name</option>
@@ -171,58 +128,28 @@
                                         </select>
                                     </div>
                                 </div>
-
-                                <!-- Is Hide -->
                                 <div class="row align-items-center">
                                     <div class="col-md-4"></div>
                                     <div class="col-md-8">
                                         <div class="form-check">
                                             <input class="form-check-input me-2" type="checkbox" id="chkHide">
-                                            <label class="form-check-label" for="chkHide">
-                                                Is Hide
-                                            </label>
+                                            <label class="form-check-label" for="chkHide">Is Hide</label>
                                         </div>
                                     </div>
                                 </div>
                             </fieldset>
                         </div>
-
-                        <!-- RIGHT: SHORTCUTS -->
                         <div class="col-md-5">
                             <fieldset class="border p-2 h-100">
-                                <legend class="float-none w-auto px-2 small fw-bold">
-                                    Shortcuts
-                                </legend>
-
-                                <!-- Keys -->
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input me-2" type="checkbox" id="chkShift">
-                                    <label class="form-check-label" for="chkShift">
-                                        Keys Shift
-                                    </label>
-                                </div>
-
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input me-2" type="checkbox" id="chkCtrl">
-                                    <label class="form-check-label" for="chkCtrl">
-                                        Keys Ctrl
-                                    </label>
-                                </div>
-
-                                <div class="form-check mb-3">
-                                    <input class="form-check-input me-2" type="checkbox" id="chkAlt">
-                                    <label class="form-check-label" for="chkAlt">
-                                        Keys Alt
-                                    </label>
-                                </div>
-
-                                <!-- Function Keys -->
+                                <legend class="float-none w-auto px-2 small fw-bold">Shortcuts</legend>
+                                <div class="form-check mb-2"><input class="form-check-input me-2" type="checkbox" id="chkShift"><label>Keys Shift</label></div>
+                                <div class="form-check mb-2"><input class="form-check-input me-2" type="checkbox" id="chkCtrl"><label>Keys Ctrl</label></div>
+                                <div class="form-check mb-3"><input class="form-check-input me-2" type="checkbox" id="chkAlt"><label>Keys Alt</label></div>
                                 <div class="row align-items-center">
-                                    <div class="col-md-5">
-                                        <label class="mb-0">Functions Keys</label>
-                                    </div>
+                                    <div class="col-md-5"><label class="mb-0">Functions Keys</label></div>
                                     <div class="col-md-7">
-                                        <select id="functionkeynew"  name="functionkeynew" class="form-control form-control-sm">
+                                        <select id="functionkeynew" class="form-control form-control-sm">
+                                            <option value=""></option>
                                             @foreach (var item in listsc)
                                             {
                                                 <option value="@item.Name">@item.Name</option>
@@ -232,154 +159,317 @@
                                 </div>
                             </fieldset>
                         </div>
-
                     </div>
                 </div>
-
-
-                <!-- GRID -->
-                <div id="logGridContainer"
-                     class="gridContainer mt-2"
-                     style="max-height:250px; overflow:auto;">
-                </div>
-
+                <div id="logGridContainer" class="gridContainer mt-2" style="max-height:250px; overflow:auto;"></div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="mui-card">
-    <div id="gridContainer" class="gridContainer mt-2"></div>
-</div>
-<div id="loadingSpinner"
-     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
-</div>
 <script>
+    window.openShortcutModal = function () {
+        $("#shortcutModal").modal("show");
+        shortcut_Module.init();
+    };
 
-    let parsedBusinessDate = null;
-    $(document).ready(function () {
-
-        document.getElementById("reportTitle").innerText = 'Add Funcitions To List';
-
-       $("#btnPrint").trigger("click");
-
-
+    $("#shortcutModal").on("hidden.bs.modal", function () {
+        shortcut_Module.destroy && shortcut_Module.destroy();
     });
 
+    var shortcut_Module = {
+        selectedRowData: null,
 
-    $('#btnClosePopup, #overlay').click(function () {
-       $('#popupNewGrid').modal('hide');
+        init: function () {
+            const self = this;
+            $(document).ready(function () {
+                self.loadData();
+            });
+            self.bindEvents();
+        },
 
+        bindEvents: function () {
+            const self = this;
 
-        $('#fromDatenew').val(formatDate(parsedBusinessDate));
-        $('#attendantnew').val('').trigger('change');
-        $('#username').val('');
-        $('#point').val('');
-        $('#txtid').val('');
-    });
-    $('#btnNewTheKeyboard').click(function () {
+            $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+                self.loadData();
+            });
 
-       $('#popupNewGrid').modal('show');;
-    });
- 
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        var rightsType = $('input[name="rightsType"]:checked').val();
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/Security/AddFuncitionsToListData',
-            type: 'GET',
-            data: {
-                codetag: $("#codetag").val(),
-                namerights: $("#namerights").val(),
-                isDataRight: rightsType,
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                console.log(result);
-                initializeAddFuncitionsToListGrid(result);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
+            $(document).off("click", "#btnClose").on("click", "#btnClose", function () {
+                $("#shortcutModal").modal("hide");
+            });
 
-    let selectedRowData = null;
+            $("#btnNewTheKeyboard").click(function () {
+                self.clearForm();
+                $("#popupNewGrid").modal("show");
+            });
 
-     function initializeAddFuncitionsToListGrid(data) {
-        $("#gridContainer").dxTreeList({
-            dataSource: data,
-            keyExpr: "id",
-            parentIdExpr: "parentID",
-            rootValue: 0,
+            $("#btnEditAppoin").off("click").on("click", function () {
+                self.editSelected();
+            });
 
-            height: 500,
-            showBorders: true,
-            columnAutoWidth: true,
-            autoExpandAll: false,
-            columns: [
-                {
-                    dataField: "name",
-                    caption: "Name Rights",
-                    width: "30%"
+            $("#btnDeleteAppoin").off("click").on("click", function () {
+                self.deleteSelected();
+            });
+
+            $("#btnSaveAtt").off("click").on("click", function () {
+                self.saveForm();
+            });
+
+            $("#btnExportExcel").off("click").on("click", function () {
+                self.exportToExcel();
+            });
+        },
+        loadData: function () {
+              const self = this;
+            $("#loadingSpinner").show();
+            const rightsType = $('input[name="rightsType"]:checked').val();
+
+            $.ajax({
+                url: '/Security/AddFuncitionsToListData',
+                type: 'GET',
+                data: {
+                    codetag: $("#codetag").val(),
+                    namerights: $("#namerights").val(),
+                    isDataRight: rightsType,
                 },
-                {
-                    dataField: "code",
-                    caption: "Code Tag",
-                    width: "20%"
+                traditional: true,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (result) {
+                    console.log(result);
+                    self.initializeGrid(result);
+                    $("#loadingSpinner").hide();
                 },
-                {
-                    dataField: "mappingLinkWeb",
-                    caption: "Mapping Link Web",
-                    width: "20%"
-                },
-                booleanColumn("shiftKey", "Shift", "6%"),
-                booleanColumn("ctrlKey", "Ctrl", "6%"),
-                booleanColumn("altKey", "Alt", "6%"),
-                {
-                    dataField: "shortcutKey",
-                    caption: "The Keyboard Shortcut",
-                    width: "20%"
-                },
-                booleanColumn("isHide", "Hide", "6%")
-            ],
-            selection: {
-                mode: "single"
-            },
-
-            filterRow: { visible: true },
-            headerFilter: { visible: true },
-
-            paging: {
-                enabled: false
-            },
-
-            scrolling: {
-                mode: "standard"
-            },
-            onRowClick: function (e) {
-                selectedRowData = e.data;
-
-                console.log("Row clicked:", selectedRowData);
-            },
-            onRowPrepared: function (e) {
-                if (e.rowType === "data" && e.node.hasChildren) {
-                    e.rowElement.css({
-                        "font-weight": "bold",
-                        "background-color": "#f8f9fa"
-                    });
+                error: function () {
+                    alert("Không thể tải báo cáo.");
+                    $("#loadingSpinner").hide();
                 }
+            });
+        },
+        initializeGrid: function (data) {
+            const self = this;
+            $("#gridContainer").dxTreeList({
+                dataSource: data,
+                keyExpr: "id",
+                parentIdExpr: "parentID",
+                rootValue: 0,
+                height: 500,
+                showBorders: true,
+                columnAutoWidth: true,
+                autoExpandAll: false,
+                columns: [
+                    { dataField: "name", caption: "Name Rights", width: "30%" },
+                    { dataField: "code", caption: "Code Tag", width: "20%" },
+                    { dataField: "mappingLinkWeb", caption: "Mapping Link Web", width: "20%" },
+                    booleanColumn("shiftKey", "Shift", "6%"),
+                    booleanColumn("ctrlKey", "Ctrl", "6%"),
+                    booleanColumn("altKey", "Alt", "6%"),
+                    { dataField: "shortcutKey", caption: "The Keyboard Shortcut", width: "20%" },
+                    booleanColumn("isHide", "Hide", "6%")
+                ],
+                selection: { mode: "single" },
+                filterRow: { visible: true },
+                headerFilter: { visible: true },
+                paging: { enabled: false },
+                scrolling: { mode: "standard" },
+                onRowClick: function (e) {
+                    self.selectedRowData = e.data;
+                    console.log("Selected:", self.selectedRowData);
+                },
+                onRowPrepared: function (e) {
+                    if (e.rowType === "data" && e.node.hasChildren) {
+                        e.rowElement.css({ "font-weight": "bold", "background-color": "#f8f9fa" });
+                    }
+                }
+            });
+        },
+
+        editSelected: function () {
+            const self = this;
+            if (!self.selectedRowData) {
+                showToast('Warning', 'Vui lòng chọn một dòng trước khi chỉnh sửa.', false);
+                return;
             }
-        });
+
+            const rightsType = $('input[name="rightsType"]:checked').val();
+            $("#loadingSpinner").show();
+
+            $.ajax({
+                url: '/Security/AddFuncitionsToListDetail',
+                type: 'GET',
+                data: {
+                    id: self.selectedRowData.id,
+                    isDataRight: rightsType,
+                },
+                traditional: true,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (res) {
+                    const result = res[0] || {};
+                    self.populateForm(result, rightsType);
+                    $("#popupNewGrid").modal("show");
+                    $("#loadingSpinner").hide();
+                },
+                error: function () {
+                    alert("Không thể tải chi tiết.");
+                    $("#loadingSpinner").hide();
+                }
+            });
+        },
+
+        populateForm: function (data, rightsType) {
+            $("#txtid").val(data.id || "");
+            $("#codetagnew").val(data.code || "");
+            $("#namerightnew").val(data.name || "");
+            $("#descriptionnew").val(data.description || data.name || "");
+            $("#mappingLinkWeb").val(data.mappingLinkWeb || "");
+            $("#chkHide").prop("checked", data.isHide === true);
+
+            if (rightsType == "1") {
+                $("#groupnew").val(data.formAndFunctionDataGroupID || "");
+            } else {
+                $("#chkShift").prop("checked", data.shiftKey === true);
+                $("#chkCtrl").prop("checked", data.ctrlKey === true);
+                $("#chkAlt").prop("checked", data.altKey === true);
+                $("#functionkeynew").val(data.shortcutKey || "");
+                $("#groupnew").val(data.formAndFunctionGroupID || "");
+            }
+        },
+
+        clearForm: function () {
+            $("#txtid").val("");
+            $("#codetagnew").val("");
+            $("#namerightnew").val("");
+            $("#descriptionnew").val("");
+            $("#mappingLinkWeb").val("");
+            $("#groupnew").val("");
+            $("#chkHide").prop("checked", false);
+            $("#chkShift").prop("checked", false);
+            $("#chkCtrl").prop("checked", false);
+            $("#chkAlt").prop("checked", false);
+            $("#functionkeynew").val("");
+        },
+
+        saveForm: function () {
+            const self = this;
+            const rightsType = $('input[name="rightsType"]:checked').val();
+
+            const data = {
+                ID: $("#txtid").val(),
+                codetagnew: $("#codetagnew").val(),
+                namerightnew: $("#namerightnew").val(),
+                descriptionnew: $("#descriptionnew").val(),
+                mappingLinkWeb: $("#mappingLinkWeb").val(),
+                groupnew: $("#groupnew").val(),
+                isHide: $('#chkHide').is(':checked') ? 1 : 0,
+                isShift: $('#chkShift').is(':checked') ? 1 : 0,
+                isCtrl: $('#chkCtrl').is(':checked') ? 1 : 0,
+                isAlt: $('#chkAlt').is(':checked') ? 1 : 0,
+                functionkeynew: $("#functionkeynew").val(),
+                _IsDataRight: rightsType,
+                userName: JSON.parse(localStorage.getItem("Loginname")),
+                userID: JSON.parse(localStorage.getItem("userID"))
+            };
+
+            $.ajax({
+                url: '/Security/UpdateFormAndFunction',
+                type: 'POST',
+                data: data,
+                traditional: true,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (response) {
+                    if (response.success) {
+                        showToast('Success', response.message, true);
+                        $("#popupNewGrid").modal("hide");
+                        self.loadData();
+                        self.clearForm();
+                    } else {
+                        showToast('Warning', response.message, false);
+                    }
+                },
+                error: function () {
+                    showToast('Error', 'Không thể lưu dữ liệu.', false);
+                }
+            });
+        },
+
+        deleteSelected: function () {
+            const self = this;
+            if (!self.selectedRowData) {
+                showToast('Warning', 'Vui lòng chọn một dòng trước khi xóa.', false);
+                return;
+            }
+
+            if (!confirm("Bạn chắc chắn muốn xóa mục này?")) return;
+
+            $.ajax({
+                url: '/Security/DeleteFormAndFunction', // sửa endpoint nếu backend khác
+                type: 'POST',
+                data: { ID: self.selectedRowData.id },
+                traditional: true,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (response) {
+                    if (response.success) {
+                        showToast('Success', response.message, true);
+                        self.loadData();
+                        self.selectedRowData = null;
+                    } else {
+                        showToast('Warning', response.message, false);
+                    }
+                },
+                error: function () {
+                    showToast('Error', 'Không thể xóa.', false);
+                }
+            });
+        },
+
+        exportToExcel: function () {
+            const grid = $("#gridContainer").dxTreeList("instance");
+            const selectedReport = 'AddFuncitionsToList';
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            worksheet.addRow(['Công ty Cổ phần Giải pháp Công nghệ CS-Solution']);
+            worksheet.mergeCells('A1:E1');
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+            const now = new Date();
+            worksheet.addRow(['', '', '', '', ' ' + now.toLocaleString("vi-VN")]);
+            worksheet.mergeCells('E2:H2');
+            worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
+
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            const reportRow = worksheet.addRow(['', '', selectedReport]);
+            worksheet.mergeCells('C5:F5');
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            worksheet.addRow([]);
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.getCell(`A${lastRow}`).value = "--- END ---";
+                worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                let fileName = selectedReport + ".xlsx";
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                });
+            });
+        }
     }
-       function booleanColumn(field, caption, width) {
+
+    function booleanColumn(field, caption, width) {
         return {
             dataField: field,
             caption: caption,
@@ -399,220 +489,4 @@
             }
         };
     }
-
-
-    $('#btnEditAppoin').on('click', function () {
-         var rightsType = $('input[name="rightsType"]:checked').val();
-         console.log(rightsType);
-        if (!selectedRowData) {
-            showToast('Warning', 'Please select a row before clicking Edit.', false);
-            return;
-        }
-         $.ajax({
-            url: '/Security/AddFuncitionsToListDetail',
-            type: 'GET',
-            data: {
-                id: selectedRowData.id,
-                isDataRight: rightsType,
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (res) {
-
-                
-                var result   =res[0];
-                  console.log(result);
-                if(rightsType == 1){
-                     $('#txtid').val(result.id);
-                    $('#codetagnew').val(result.code || '');
-                    $('#namerightnew').val(result.name || '');
-                    $('#descriptionnew').val(result.description || '');
-                    $('#chkHide').prop('checked', result.isHide === true);
-                        $('#groupnew').val(result.formAndFunctionDataGroupID || '');
-                    $("#loadingSpinner").hide();
-                }else{
-                    $('#txtid').val(result.id);
-                    $('#codetagnew').val(result.code || '');
-                    $('#namerightnew').val(result.name || '');
-                    $('#descriptionnew').val(result.name || '');
-                    $('#mappingLinkWeb').val(result.mappingLinkWeb || '');
-                    $('#chkHide').prop('checked', result.isHide === true);
-                    $('#chkShift').prop('checked', result.shiftKey === true);
-                    $('#chkCtrl').prop('checked', result.ctrlKey === true);
-                    $('#chkAlt').prop('checked', result.altKey === true);
-                         $('#functionkeynew').val(result.shortcutKey || '');
-                    $('#groupnew').val(result.formAndFunctionGroupID || '');
-                    $("#loadingSpinner").hide();
-                }
-             
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-        // Hiện popup
-        $('#popupNewGrid').modal('show');;
-    });
-
-    $(document).off("click", "#btnDeleteAppoin").on("click", "#btnDeleteAppoin", function () {
-        console.log(selectedRowData);
-        if (!selectedRowData) {
-            showToast('Warning', 'Please select a row before clicking Edit.', false);
-            return;
-        }
-
-
-
-        // Send AJAX
-        $.ajax({
-            url: '/HouseKeeping/DeleteAttendantPoint',
-            type: 'POST',
-            data: {
-                ID: selectedRowData.id,
-
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (response) {
-                if (response.success) {
-                    showToast('Success', response.message, true);
-                    $("#btnPrint").trigger("click");
-                    selectedRowData = null;
-                } else {
-                    showToast('Warning', response.message, false);
-                }
-            },
-            error: function () {
-                showToast('Warning', response.message, false);
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-
-
-   $(document).off("click", "#btnSaveAtt").on("click", "#btnSaveAtt", function () {
-            var rightsType = $('input[name="rightsType"]:checked').val();
-            var codetagnew = $("#codetagnew").val();
-            var namerightnew = $("#namerightnew").val();
-            var descriptionnew = $("#descriptionnew").val();
-            var mappingLinkWeb = $("#mappingLinkWeb").val();
-            var groupnew = $("#groupnew").val();
-            var isHide = $('#chkHide').is(':checked') ? 1 : 0;
-            var isShift = $('#chkShift').is(':checked') ? 1 : 0;
-            var isCtrl = $('#chkCtrl').is(':checked') ? 1 : 0;
-            var isAlt = $('#chkAlt').is(':checked') ? 1 : 0;
-            var functionkeynew = $("#functionkeynew").val();
-            var ID = $("#txtid").val();
-           const userName = JSON.parse(localStorage.getItem("Loginname"));
-           const userID = JSON.parse(localStorage.getItem("userID"));
-
-        // Send AJAX
-        $.ajax({
-            url: '/Security/UpdateFormAndFunction',
-            type: 'POST',
-            data: {
-                ID: ID,
-                codetagnew:codetagnew,
-                namerightnew:namerightnew,
-                descriptionnew:descriptionnew,
-                mappingLinkWeb:mappingLinkWeb,
-                groupnew:groupnew,
-                isHide:isHide,
-                isShift:isShift,
-                isCtrl:isCtrl,
-                isAlt:isAlt,
-                functionkeynew:functionkeynew,
-                 _IsDataRight: rightsType,
-                 userName:userName,
-                userID:userID
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (response) {
-                if (response.success) {
-                    showToast('Success', response.message, true);
-                    $('#fromDatenew').val(formatDate(parsedBusinessDate));
-                    $('#attendantnew').val('').trigger('change');
-                    $('#username').val('');
-                    $('#point').val('');
-                    $('#txtid').val('');
-
-                $('#popupNewGrid').modal('hide');
-                    $("#btnPrint").trigger("click");
-
-                } else {
-                    showToast('Warning', response.message, false);
-                }
-            },
-            error: function () {
-                showToast('Warning', response.message, false);
-                $("#loadingSpinner").hide();
-            }
-        });
-   });
-
-
-
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance");
-        var selectedReport = 'AddFuncitionsToList';
-        if (!selectedReport) {
-            alert("Vui lòng ch?n báo cáo tru?c khi xu?t Excel.");
-            return;
-        }
-
-        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === T?o header công ty (dòng 1) ===
-        worksheet.addRow(['Công ty C? ph?n Gi?i pháp Công ngh? CS-Solution']);
-        worksheet.mergeCells('A1:E1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Th?i gian xu?t (ph?i) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
-        worksheet.mergeCells('E2:H2');
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: Tr?ng
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tên báo cáo ? gi?a ===
-        const reportRow = worksheet.addRow(['', '', selectedReport]);
-        worksheet.mergeCells('C5:F5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
-        worksheet.addRow([]);
-
-        // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
-        }).then(function () {
-            // Footer
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
-            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = selectedReport + ".xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
-            });
-        });
-    });
 </script>
