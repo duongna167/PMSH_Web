@@ -25,5 +25,21 @@ namespace Security.Services.Implements
             DataTable myTable = DataTableHelper.getTableData("spPermissionAndShortcutKey_Search", param);
             return myTable;
         }
+        public DataTable UsersManagementData(string lastName, string firstName, string loginName, int userStatus, int cashierStatus, string jobtitle, string department)
+        {
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@LastName", lastName),
+                new SqlParameter("@FirstName", firstName),
+                new SqlParameter("@LoginName", loginName),
+                new SqlParameter("@Status", userStatus),
+                new SqlParameter("@Cashier", cashierStatus),
+                new SqlParameter("@JobTitle", jobtitle),
+                new SqlParameter("@Department", department),
+            };
+
+            DataTable myTable = DataTableHelper.getTableData("spSearchUsers", param);
+            return myTable;
+        }
     }
 }

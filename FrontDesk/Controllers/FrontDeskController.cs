@@ -851,7 +851,7 @@ namespace FrontDesk.Controllers
         public IActionResult PostingToRoom()
         {
 
-            return View();
+            return PartialView();
         }
         [HttpPost]
         public IActionResult PostToRoom(DateTime fromDate, string roomNos, string userName, int userID)
@@ -3784,7 +3784,7 @@ namespace FrontDesk.Controllers
         public IActionResult MapTransactionCode()
         {
 
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult MapTransactionCodeData()
