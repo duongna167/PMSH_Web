@@ -292,8 +292,67 @@ namespace Security.Controllers
         {
             List<UserGroupModel> listug = PropertyUtils.ConvertToList<UserGroupModel>(UserGroupBO.Instance.FindAll());
             ViewBag.UserGroupList = listug;
-
+            List<JobTitleModel> listjt = PropertyUtils.ConvertToList<JobTitleModel>(JobTitleBO.Instance.FindAll());
+            ViewBag.JobTitleList = listjt;
             return View();
+        }
+        [HttpGet]
+        public IActionResult UsersManagementData(string lastName, string firstName, string loginName,int userStatus,int cashierStatus,string jobtitle,string department)
+        {
+            lastName ??= "";
+            firstName ??= "";
+            loginName ??= "";
+            jobtitle ??= "";
+            department ??= "";
+            try
+            {
+
+
+                DataTable dataTable = _iSecurityService.UsersManagementData(lastName, firstName, loginName, userStatus, cashierStatus, jobtitle, department);
+                var result = (from d in dataTable.AsEnumerable()
+                              select new
+                              {
+                                  ID = d["ID"] != DBNull.Value ? d["ID"].ToString() : "",
+
+                                  Status = d["Status"] != DBNull.Value ? Convert.ToInt32(d["Status"]) : 0,
+                                  StatusText = d["StatusText"] != DBNull.Value ? d["StatusText"].ToString() : "",
+
+                                  FullName = d["FullName"] != DBNull.Value ? d["FullName"].ToString() : "",
+                                  LoginName = d["LoginName"] != DBNull.Value ? d["LoginName"].ToString() : "",
+                                  JobTitle = d["JobTitle"] != DBNull.Value ? d["JobTitle"].ToString() : "",
+                                  Sex = d["Sex"] != DBNull.Value ? d["Sex"].ToString() : "",
+
+                                  BirthOfDate = d["BirthOfDate"] != DBNull.Value
+                                ? Convert.ToDateTime(d["BirthOfDate"])
+                                : (DateTime?)null,
+
+                                  Telephone = d["Telephone"] != DBNull.Value ? d["Telephone"].ToString() : "",
+                                  HandPhone = d["HandPhone"] != DBNull.Value ? d["HandPhone"].ToString() : "",
+                                  HomeAddress = d["HomeAddress"] != DBNull.Value ? d["HomeAddress"].ToString() : "",
+                                  Resident = d["Resident"] != DBNull.Value ? d["Resident"].ToString() : "",
+                                  PostalCode = d["PostalCode"] != DBNull.Value ? d["PostalCode"].ToString() : "",
+
+                                  IsCashier = d["IsCashier"] != DBNull.Value ? Convert.ToBoolean(d["IsCashier"]) : false,
+                                  Department = d["Department"] != DBNull.Value ? d["Department"].ToString() : "",
+
+                                  CreateDate = d["CreateDate"] != DBNull.Value
+                               ? Convert.ToDateTime(d["CreateDate"])
+                               : (DateTime?)null,
+                                  CreateBy = d["CreateBy"] != DBNull.Value ? d["CreateBy"].ToString() : "",
+
+                                  UpdateDate = d["UpdateDate"] != DBNull.Value
+                               ? Convert.ToDateTime(d["UpdateDate"])
+                               : (DateTime?)null,
+                                  UpdateBy = d["UpdateBy"] != DBNull.Value ? d["UpdateBy"].ToString() : ""
+
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+            
         }
         #endregion
     }
