@@ -335,7 +335,7 @@ namespace FrontDesk.Controllers
         {
             List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
             ViewBag.ZoneList = listzo;
-            return View(); // View này sẽ chứa DataGrid + script gọi API
+            return PartialView(); // View này sẽ chứa DataGrid + script gọi API
         }
         [HttpGet]
         public IActionResult GetDialingInformation(DateTime fromDate, DateTime toDate, string phoneNo, int view, string zone)
