@@ -1,151 +1,287 @@
 ﻿@using DevExpress.XtraReports.UI
 
 @{
-    var listzone = ViewBag.lafZoneList;
+    var laf_listzone = ViewBag.lafZoneList;
 }
-<style>
-    #sendDate:disabled {
-        background-color: #f5f5f5;
-        color: #999;
-        cursor: not-allowed;
-    }
-</style>
-@* <link href="~/css/reservation.css" rel="stylesheet" /> *@
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px">Lost And Found</div>
-<div class="mt-3">
-    <div class="content-right">
-        <div style="display:flex;column-gap:12px">
-            <button id="btnView" class="mui-button mui-button-new">View</button>
-            <button id="btnNew" class="mui-button mui-button-new" type="button">
-                New
-            </button>
-            <button id="btnEditLostFound" class="mui-button mui-button-new" type="button">   Edit</button>
-            <button id="btnDelete" class="mui-button mui-button-new" type="button">  Delete</button>
-            <button id="btnExportExcel" class="mui-button mui-button-new" type="button">   Excel</button>
 
-        </div>
-        <div class="d-flex flex-column mb-2 ">
-            <div class="d-flex align-items-center" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-                <div class="d-flex align-items-center me-2">
-                    <label class="me-2 mb-0">From Date: </label>
-                    <input type="date" id="fromDate" name="fromDate" class="form-control form-control-sm w-auto" />
-                </div>
-
-                <div class="d-flex align-items-center me-2">
-                    <label class="me-2 mb-0">To Date: </label>
-                    <input type="date" id="toDate" name="toDate" class="form-control form-control-sm w-auto" />
-                </div>
-            </div>
-        </div>
-       
-        <div id="loadingSpinnerRateCode" style="display: none; text-align: center; padding: 20px;">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        </div>
-        <div class="mui-card">
-            <div id="gridContainerRateCode" class="mt-2 gridContainer"></div>
-        </div>
-    </div>
-
-</div>
-<div class="modal fade" id="lostFoundModal" tabindex="-1" aria-labelledby="lostFoundLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+<!-- MAIN VIEW AS BS5 MODAL -->
+<div class="modal fade" id="laf_modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
 
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="laf_reportTitle">Lost And Found</h5>
+            </div>
+
+            <div class="modal-body p-2">
+
+                <div class="mt-1">
+                    <div class="search-filter">
+
+                        <div>
+                            <button id="laf_btnView" class="mui-button mui-button-new">View</button>
+                            <button id="laf_btnNew" class="mui-button mui-button-new" type="button">
+                                New
+                            </button>
+                            <button id="laf_btnEditLostFound" class="mui-button mui-button-new" type="button">
+                                Edit
+                            </button>
+                            <button id="laf_btnDelete" class="mui-button mui-button-new" type="button"> Delete</button>
+                            <button id="laf_btnExportExcel" class="mui-button mui-button-new" type="button">
+                                Excel
+                            </button>
+                            <button class="mui-button mui-button-new" data-bs-dismiss="modal" aria-label="Close">
+                                Close
+                            </button>
+                        </div>
+
+                        <div class="d-flex flex-column mb-2 mt-2">
+                            <div class="d-flex align-items-center">
+                                <div class="d-flex align-items-center me-2">
+                                    <label class="me-2 mb-0">From Date: </label>
+                                    <div class="clearable" data-date-input data-format="DD/MM/YYYY"
+                                         data-name="laf_fromDate">
+                                        <input id="laf_showfromDate" name="laf_fromDate" type="text"
+                                               class="date-ui form-control " autocomplete="off" />
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center me-2">
+                                    <label class="me-2 mb-0">To Date: </label>
+                                    <div class="clearable" data-date-input data-format="DD/MM/YYYY"
+                                         data-name="laf_toDate">
+                                        <input id="laf_showtoDate" name="laf_toDate" type="text"
+                                               class="date-ui form-control " autocomplete="off" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="laf_loadingSpinnerRateCode" style="display: none; text-align: center; padding: 20px;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+
+                        <div class="mui-card">
+                            <div id="laf_gridContainerRateCode" class="mt-2 gridContainer"></div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FORM MODAL -->
+<div class="modal fade" id="laf_lostFoundModal" tabindex="-1" aria-labelledby="laf_lostFoundLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="lostFoundLabel">Lost And Found</h5>
-               @*  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> *@
+                <h5 class="modal-title" id="laf_lostFoundLabel">New/Edit Lost And Found</h5>
+                @*  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> *@
             </div>
 
             <div class="modal-body">
-                <form id="lostFoundForm" class="row g-3">
+                <form id="laf_lostFoundForm" class="mt-1 mb-2">
 
-                    <div class="py-2">
-                        <button type="button" class="mui-button mui-button-new" id="btnSaveLostFound">Save</button>
-                        <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
-                    </div>
-                    <!-- Transaction Date / Status -->
-                    <div class="col-md-6">
-                        <label for="transactionDate" class="me-2 mb-0">Transaction Date</label>
-                        <input type="date" id="transactionDate" name="transactionDate" class="form-control form-control-sm" />
-                    </div>
-                    <div class="col-md-6">
-                        <label for="statusID" class="me-2 mb-0">Status</label>
-                        <select id="statusID" name="statusID" class="form-control form-control-sm">
-                            <option value="">-- Select --</option>
-                            <option value="1">Done</option>
-                            <option value="2">Pending</option>
-                            <option value="3">Transferred</option>
-                        </select>
-                    </div>
-
-                    <!-- Send Date + Checkbox -->
-                    <div class="col-md-6">
-                        <label for="sendDate" class="me-2 mb-0">Send Date</label>
-                        <div class="input-group">
-                            <input type="date" id="sendDate" name="sendDate" class="form-control form-control-sm" disabled />
-                            <span class="input-group-text">
-                                <input type="checkbox" id="chkSendDate" class="form-check-input mt-0" />
-                            </span>
+                    <!-- Action buttons -->
+                    <div class="row g-2 mb-2">
+                        <div class="col-12 d-flex gap-2">
+                            <button type="button" class="mui-button mui-button-new" id="laf_btnSaveLostFound">
+                                Save
+                            </button>
+                            <button type="button" class="mui-button mui-button-new" id="laf_btnUpdateLostFound">
+                                Save
+                            </button>
+                            <button type="button" class="mui-button mui-button-new" id="laf_btnCloseForm">
+                                Close
+                            </button>
                         </div>
-                        <small class="text-muted">Check to enable</small>
                     </div>
 
-                    <!-- Description -->
-                    <div class="col-12">
-                        <label for="description" class="me-2 mb-0">Description</label>
-                        <input type="text" id="description" name="description" class="form-control form-control-sm" />
-                    </div>
+                    <div class="row g-2 align-items-center">
 
-                    <!-- Location / Finder / Receiver -->
-                    <div class="col-md-4">
-                        <label for="location" class="me-2 mb-0">Location</label>
-                        <input type="text" id="location" name="location" class="form-control form-control-sm" />
-                    </div>
-                    <div class="col-md-4">
-                        <label for="finder" class="me-2 mb-0">Finder</label>
-                        <input type="text" id="finder" name="finder" class="form-control form-control-sm" />
-                    </div>
-                    <div class="col-md-4">
-                        <label for="signatureName" class="me-2 mb-0">Receiver</label>
-                        <input type="text" id="signatureName" name="signatureName" class="form-control form-control-sm" />
-                    </div>
+                        <!-- Transaction Date -->
+                        <div class="col-12 col-md-6">
+                            <div class="row g-1 align-items-center">
+                                <label class="col-4 text-md-end mb-0">
+                                    Transaction Date
+                                </label>
+                                <div class="col-8">
+                                    <div class="clearable" data-date-input data-format="DD/MM/YYYY"
+                                         data-name="laf_transactionDate" business-date>
+                                        <input type="text" class="date-ui form-control " autocomplete="off" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                    <!-- Surrender By / Quality Type / Zone -->
-                    <div class="col-md-4">
-                        <label for="surrenderBy" class="me-2 mb-0">Surrender By</label>
-                        <input type="text" id="surrenderBy" name="surrenderBy" class="form-control form-control-sm" />
-                    </div>
-                    <div class="col-md-4">
-                        <label for="qualityTypeID" class="me-2 mb-0">Quality Type</label>
-                        <select id="qualityTypeID" name="qualityTypeID" class="form-control form-control-sm">
-                            <option value="">-- Select --</option>
-                            <option value="1">None Value</option>
-                            <option value="2">Value</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label for="zoneID" class="me-2 mb-0">Zone</label>
-                        <select id="zoneID" name="zoneID"    class="form-control form-control-sm">
-                            @foreach (var sg in ViewBag.lafZoneList)
-                            {
-                                <option value="@sg.ID">@sg.Code</option>
-                            }
-                        </select>
-                    </div>
+                        <!-- Status -->
+                        <div class="col-12 col-md-6">
+                            <div class="row g-1 align-items-center">
+                                <label for="laf_statusID" class="col-4 text-md-end mb-0">
+                                    Status
+                                </label>
+                                <div class="col-8">
+                                    <select id="laf_statusID" name="laf_statusID">
+                                        <option value="">-- Select --</option>
+                                        <option value="1">Done</option>
+                                        <option value="2">Pending</option>
+                                        <option value="3">Transferred</option>
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
 
-                    <!-- Notes -->
-                    <div class="col-12">
-                        <label for="notes" class="me-2 mb-0">Notes</label>
-                        <textarea id="notes" name="notes" class="form-control form-control-sm" rows="3"></textarea>
-                    </div>
+                        <!-- Send Date + Checkbox -->
+                        <div class="col-12 col-md-6">
+                            <div class="row g-1 align-items-center">
+                                <label class="col-4 text-md-end mb-0">
+                                    Send Date
+                                </label>
 
+                                <div class="col-8">
+                                    <div class="input-group input-group-sm flex-nowrap">
+
+                                        <div class="clearable flex-grow-1" data-date-input data-format="DD/MM/YYYY"
+                                             data-name="laf_sendDate" business-date>
+                                            <input type="text" class="date-ui form-control " autocomplete="off"
+                                                   disabled />
+                                        </div>
+
+                                        <span class="input-group-text d-flex align-items-center"
+                                              style="height: 28px !important;">
+                                            <input type="checkbox" id="laf_chkSendDate" class=" m-0" />
+                                        </span>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- Description -->
+                        <div class="col-12 col-md-6">
+                            <div class="row g-1 align-items-center">
+                                <label for="laf_description" class="col-4 text-md-end mb-0">
+                                    Description
+                                </label>
+                                <div class="col-8">
+                                    <input type="text" id="laf_description" name="laf_description"
+                                           class="form-control " />
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Location -->
+                        <div class="col-12 col-md-6">
+                            <div class="row g-1 align-items-center">
+                                <label for="laf_location" class="col-4 text-md-end mb-0">
+                                    Location
+                                </label>
+                                <div class="col-8">
+                                    <input type="text" id="laf_location" name="laf_location" class="form-control " />
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Finder -->
+                        <div class="col-12 col-md-6">
+                            <div class="row g-1 align-items-center">
+                                <label for="laf_finder" class="col-4 text-md-end mb-0">
+                                    Finder
+                                </label>
+                                <div class="col-8">
+                                    <input type="text" id="laf_finder" name="laf_finder" class="form-control " />
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Receiver -->
+                        <div class="col-12 col-md-6">
+                            <div class="row g-1 align-items-center">
+                                <label for="laf_signatureName" class="col-4 text-md-end mb-0">
+                                    Receiver
+                                </label>
+                                <div class="col-8">
+                                    <input type="text" id="laf_signatureName" name="laf_signatureName"
+                                           class="form-control " />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Surrender By -->
+                        <div class="col-12 col-md-6">
+                            <div class="row g-1 align-items-center">
+                                <label for="laf_surrenderBy" class="col-4 text-md-end mb-0">
+                                    Surrender By
+                                </label>
+                                <div class="col-8">
+                                    <input type="text" id="laf_surrenderBy" name="laf_surrenderBy"
+                                           class="form-control " />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quality Type -->
+                        <div class="col-12 col-md-6">
+                            <div class="row g-1 align-items-center">
+                                <label for="laf_qualityTypeID" class="col-4 text-md-end mb-0">
+                                    Quality Type
+                                </label>
+                                <div class="col-8">
+                                    <select id="laf_qualityTypeID" name="laf_qualityTypeID">
+                                        <option value="">-- Select --</option>
+                                        <option value="1">None Value</option>
+                                        <option value="2">Value</option>
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Zone -->
+                        <div class="col-12 col-md-6">
+                            <div class="row g-1 align-items-center">
+                                <label for="laf_zoneID" class="col-4 text-md-end mb-0">
+                                    Zone
+                                </label>
+                                <div class="col-8">
+                                    <select id="laf_zoneID" name="laf_zoneID">
+                                        @foreach (var sg in ViewBag.lafZoneList)
+                                        {
+                                            <option value="@sg.ID">@sg.Code</option>
+                                        }
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notes (full width để dễ nhập) -->
+                        <div class="col-12">
+                            <div class="row g-1 align-items-start">
+                                <label for="laf_notes" class="col-md-2 text-md-end mb-0">
+                                    Notes
+                                </label>
+                                <div class="col-md-10">
+                                    <textarea id="laf_notes" name="laf_notes" rows="3" style="height: 50px;">
+                                    </textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
                 </form>
             </div>
-
 
         </div>
     </div>
@@ -153,91 +289,109 @@
 
 
 <script>
-    const statusMap = {
-        "Done": 1,
-        "Pending": 2,
-        "Transferred": 3
-    };
+    var laf_Module = {
+        statusMap: null,
+        qualityTypeMap: null,
+        zoneMap: null,
+        selectedRowData: null,
 
-    // Map QualityType code -> ID
-    const qualityTypeMap = {
-        "NV": 1, // None Value
-        "V": 2  // Value
-    };
+        init: function () {
+            const self = this;
 
-    // Map Zone code -> ID (build từ ViewBag)
-    const zoneMap = {
-            @foreach (var z in ViewBag.lafZoneList)
-        {
-            @: "@z.Code": "@z.ID",
-            }
-        };
-    DevExpress.localization.locale("vi");
-    let selectedRowData = null;
+            self.statusMap = {
+                Done: 1,
+                Pending: 2,
+                Transferred: 3
+            };
 
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        let day = date.getDate().toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        return `${year}-${month}-${day}`;
-    }
+            // Map QualityType code -> ID
+            self.qualityTypeMap = {
+                NV: 1, // None Value
+                V: 2   // Value
+            };
 
-    $(document).ready(function () {
-        getBusinessDate();
-        
+            // Map Zone code -> ID (build từ ViewBag)
+            self.zoneMap = {
+                @foreach (var z in ViewBag.lafZoneList)
+                {
+                    @: "@z.Code": "@z.ID",
+                    }
+            };
 
-        $("#chkSendDate").change(function () {
-            if ($(this).is(":checked")) {
-                // enable cho phép chọn ngày
-                $("#sendDate").prop("disabled", false);
+        DevExpress.localization.locale("vi");
+        self.selectedRowData = null;
 
-                // gán mặc định ngày hôm nay
-                let today = new Date().toISOString().split('T')[0];
-                $("#sendDate").val(today);
-            } else {
-                // disable và xoá giá trị
-                $("#sendDate").prop("disabled", true);
-            }
-        });
+        self.bindEvents();
 
-    });
-    function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                  const baseDateStr = result.split('T')[0]; // YYYY-MM-DD
+        $(document).ready(function () {
+            self.getBusinessDate();
 
-                  const baseDate = new Date(baseDateStr);
-                  const toDate = new Date(baseDate);
-                  toDate.setDate(toDate.getDate() + 30);
+            $("#laf_chkSendDate").change(function () {
+                if ($(this).is(":checked")) {
+                    // enable cho phép chọn ngày
+                    $("#laf_sendDate").prop("disabled", false);
 
-                  // format YYYY-MM-DD
-                  const formatDate = (d) => d.toISOString().split('T')[0];
-
-                  $('#fromDate').val(formatDate(baseDate));
-                  $('#toDate').val(formatDate(baseDate));
-                  $("#sendDate").prop("disabled", true);
-                          reloadGrid();
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
+                    // gán mặc định ngày hôm nay
+                    let today = new Date().toISOString().split("T")[0];
+                    $("#laf_sendDate").val(today);
+                } else {
+                    // disable và xoá giá trị
+                    $("#laf_sendDate").prop("disabled", true);
                 }
-            }
+            });
         });
+    },
+
+        destroy: function () {
+            try {
+                const gridInstance = $("#laf_gridContainerRateCode").dxDataGrid("instance");
+    if (gridInstance) {
+        gridInstance.dispose();
     }
-    function formatDate(date) {
+            } catch (e) {
+        // keep silent
+    }
+
+    try {
+        $("#laf_gridContainerRateCode").empty();
+    } catch (e) {
+        // keep silent
+    }
+
+    this.statusMap = null;
+    this.qualityTypeMap = null;
+    this.zoneMap = null;
+    this.selectedRowData = null;
+        },
+
+    formatDate: function (date) {
         let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        let day = date.getDate().toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
+        let month = (date.getMonth() + 1).toString().padStart(2, "0");
+        let day = date.getDate().toString().padStart(2, "0");
         return `${year}-${month}-${day}`;
-    }
-    function loadGrid(data) {
-        $("#gridContainerRateCode").dxDataGrid({
+    },
+
+    getBusinessDate: function () {
+        const self = this;
+
+        UI.setHiddenDate("laf_fromDate", dateSystem);
+        UI.setHiddenDate("laf_toDate", dateSystem);
+        $("#laf_sendDate").prop("disabled", true);
+
+        self.reloadGrid();
+    },
+
+    formatDate_duplicate: function (date) {
+        let year = date.getFullYear();
+        let month = (date.getMonth() + 1).toString().padStart(2, "0");
+        let day = date.getDate().toString().padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    },
+
+    loadGrid: function (data) {
+        const self = this;
+
+        $("#laf_gridContainerRateCode").dxDataGrid({
             dataSource: data,
             height: 500,
             width: "100%",
@@ -245,86 +399,78 @@
             allowColumnResizing: true,
             columnResizingMode: "widget",
             selection: { mode: "single" },
+
             columns: [
-                { dataField: "name", caption: "Status", width: "11%" },
-                { dataField: "transactionDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: "11%" },
-                { dataField: "description", caption: "Description of Lost & Found Item", width: "23%" },
-                { dataField: "code", caption: "Zone", width: "11%" },
-                { dataField: "location", caption: "Location", width: "11%" },
-                { dataField: "finder", caption: "Finder", width: "11%" },
-                { dataField: "surrenderBy", caption: "Surrender By", width: "11%" },
-                { dataField: "signatureName", caption: "Reciever", width: "11%" },
-                { dataField: "sendDate", caption: "Date to", width: "11%" },
-                { dataField: "codeQualityType", caption: "Quality Type", width: "11%" },
-                { dataField: "notes", caption: "Note", width: "11%" },
-                { dataField: "createdBy", caption: "Created By", width: "11%" },
-                { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy", width: "11%" },
-                { dataField: "updatedBy", caption: "Updated By", width: "11%" },
-                { dataField: "updateDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy", width: "11%" },
+                { dataField: "name", caption: "Status", width: 100 },
+                { dataField: "transactionDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 110, },
+                { dataField: "description", caption: "Description of Lost & Found Item", width: 300 }, // Ưu tiên rộng nhất
+                { dataField: "code", caption: "Zone", width: 100 },
+                { dataField: "location", caption: "Location", width: 150 },
+                { dataField: "finder", caption: "Finder", width: 150 },
+                { dataField: "surrenderBy", caption: "Surrender By", width: 150 },
+                { dataField: "signatureName", caption: "Receiver", width: 150 },
+                { dataField: "sendDate", caption: "Date to", dataType: "date", format: "dd/MM/yyyy", width: 110, },
+                { dataField: "codeQualityType", caption: "Quality Type", width: 120 },
+                { dataField: "notes", caption: "Note", width: 250 }, // Note thường dài nên để rộng một chút
+                { dataField: "createdBy", caption: "Created By", width: 120 },
+                { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy", width: 110 },
+                { dataField: "updatedBy", caption: "Updated By", width: 120 },
+                { dataField: "updateDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy", width: 110 }
             ],
+
             filterRow: { visible: true, applyFilter: "auto" },
+
             paging: { pageSize: 20 },
+
             pager: {
                 visible: true,
-                allowedPageSizes: [20, 50, 'all'],
+                allowedPageSizes: [20, 50, "all"],
                 showPageSizeSelector: true,
                 showInfo: true,
                 showNavigationButtons: true
             },
-            scrolling: { mode: "standard", showScrollbar: "always", scrollByContent: true },
+
+            scrolling: {
+                mode: "standard",
+                showScrollbar: "always",
+                scrollByContent: true,
+                useNative: true,
+
+            },
+
             onSelectionChanged: function (e) {
-                selectedRowData = e.selectedRowsData.length > 0 ? e.selectedRowsData[0] : null;
-                console.log("Selected Row:", selectedRowData);
+                self.selectedRowData =
+                    e.selectedRowsData.length > 0 ? e.selectedRowsData[0] : null;
+
+                console.log("Selected Row:", self.selectedRowData);
             }
         });
-    }
+    },
 
-    // Reload grid với filter từ form
-    function reloadGrid() {
-        $("#loadingSpinnerRateCode").show();
+    reloadGrid: function () {
+        const self = this;
+        $("#laf_loadingSpinnerRateCode").show();
 
         $.ajax({
-            url: '/HouseKeeping/GetLostAndFound',
-            type: 'GET',
+            url: "/HouseKeeping/GetLostAndFound",
+            type: "GET",
             data: {
-                fromDate: $("#fromDate").val(),
-                toDate: $("#toDate").val(),
-
+                fromDate: $("#laf_fromDate").val() || dateSystem,
+                toDate: $("#laf_toDate").val() || dateSystem
             },
             success: function (data) {
                 console.log(data);
-                loadGrid(data);
-                $("#loadingSpinnerRateCode").hide();
+                self.loadGrid(data);
+                $("#laf_loadingSpinnerRateCode").hide();
             },
             error: function (xhr, status, error) {
                 alert("Không thể tải dữ liệu");
-                $("#loadingSpinnerRateCode").hide();
+                $("#laf_loadingSpinnerRateCode").hide();
             }
         });
-    }
+    },
 
-    // Nút view click
-    $("#btnView").click(function () {
-        reloadGrid();
-    });
-    $("#btnNew").click(function () {
-        // reset form
-        $("#lostFoundForm")[0].reset();
-
-        // set default Transaction Date = hôm nay
-        const today = new Date().toISOString().split('T')[0];
-        $("#transactionDate").val(today);
-        $("#sendDate").val("1900-01-01");
-
-        // ✅ Reset nút: chỉ hiển thị Save, ẩn Update
-        $("#btnSaveLostFound").show();
-        $("#btnUpdateLostFound").hide();
-
-        // mở modal
-        $("#lostFoundModal").modal("show");
-    });
-
-    function parseDateString(dateStr) {
+    parseDateString: function (dateStr) {
         if (!dateStr) return null;
 
         // Nếu là default SQL
@@ -347,210 +493,272 @@
         }
 
         return dateStr;
-    }
+    },
+
+    bindEvents: function () {
+        const self = this;
+
+        $('#laf_chkSendDate').on('change', function () {
+            const isChecked = $(this).is(':checked');
+
+            // Tìm wrapper chứa bộ Date qua data-name
+            const $wrapper = $('[data-name="laf_sendDate"]');
+
+            // Khóa/Mở tất cả input bên trong (bao gồm cả ô text hiển thị và ô ẩn)
+            $wrapper.find('input').prop('disabled', isChecked);
+
+        });
+
+        $(document).on("click", "#laf_btnCloseForm", function () {
+            $("#laf_lostFoundModal").modal("hide");
+        });
+        // Nút view click
+        $("#laf_btnView").click(function () {
+            self.reloadGrid();
+        });
+
+        $("#laf_btnNew").click(function () {
+            // Đảm báo date được render
+            initDateInputs();
+            applyValidationErrors([], "#laf_lostFoundForm")
 
 
+            // reset form
+            $("#laf_lostFoundForm")[0].reset();
 
+            // Reset nút: chỉ hiển thị Save, ẩn Update
+            $("#laf_btnSaveLostFound").show();
+            $("#laf_btnUpdateLostFound").hide();
 
-    $("#btnEditLostFound").click(function () {
-        var grid = $("#gridContainerRateCode").dxDataGrid("instance");
-        var selected = grid.getSelectedRowsData();
+            // mở modal
+            $("#laf_lostFoundModal").modal("show");
+        });
 
-        if (selected.length === 0) {
-            alert("Vui lòng chọn 1 dòng để sửa!");
-            return;
-        }
+        $("#laf_btnEditLostFound").click(function () {
+            initDateInputs();
+            applyValidationErrors([], "#laf_lostFoundForm")
 
-        var row = selected[0];
+            var grid = $("#laf_gridContainerRateCode").dxDataGrid("instance");
+            var selected = grid.getSelectedRowsData();
 
+            if (selected.length === 0) {
+                showToast("Warning", "Please select one line to edit!", false);
+                return;
+            }
 
-        // Map dữ liệu lên form
-        $("#transactionDate").val(row.transactionDate ? row.transactionDate.split('T')[0] : "");
-        $("#statusID").val(statusMap[row.name]).trigger("change");   // name -> id
-        $("#description").val(row.description);
-        $("#location").val(row.location);
-        $("#finder").val(row.finder);
-        $("#signatureName").val(row.signatureName);
-        $("#surrenderBy").val(row.surrenderBy);
-        $("#qualityTypeID").val(qualityTypeMap[row.codeQualityType]).trigger("change"); // code -> id
-        $("#zoneID").val(zoneMap[row.code]).trigger("change");       // code -> id
-        $("#notes").val(row.notes);
+            var row = selected[0];
 
-        // sendDate + checkbox
-        var sendDateFormatted = parseDateString(row.sendDate);
+            // Map dữ liệu lên form
+            $("#laf_transactionDate").val(row.transactionDate ? row.transactionDate.split("T")[0] : "");
+            $("#laf_statusID").val(self.statusMap[row.name]).trigger("change");
+            $("#laf_description").val(row.description);
+            $("#laf_location").val(row.location);
+            $("#laf_finder").val(row.finder);
+            $("#laf_signatureName").val(row.signatureName);
+            $("#laf_surrenderBy").val(row.surrenderBy);
+            $("#laf_qualityTypeID").val(self.qualityTypeMap[row.codeQualityType]).trigger("change");
+            $("#laf_zoneID").val(self.zoneMap[row.code]).trigger("change");
+            $("#laf_notes").val(row.notes);
 
-        if (sendDateFormatted) {
-            $("#chkSendDate").prop("checked", true);
-            $("#sendDate").prop("disabled", false).val(sendDateFormatted);
-        } else {
-            $("#chkSendDate").prop("checked", false);
-            $("#sendDate").prop("disabled", true).val("");
-        }
-        console.log("Raw sendDate:", row.sendDate);
-        console.log("Parsed sendDate:", parseDateString(row.sendDate));
+            // sendDate + checkbox
+            var sendDateFormatted = self.parseDateString(row.sendDate);
+            console.log('row.sendDate', row.sendDate);
 
+            if (sendDateFormatted) {
+                $("#laf_chkSendDate").prop("checked", true);
+                //$("#laf_sendDate").prop("disabled", false).val(sendDateFormatted);
+                UI.setHiddenDate("laf_sendDate", dateSystem);
+            } else {
+                $("#laf_chkSendDate").prop("checked", false);
+                $("#laf_sendDate").prop("disabled", true).val("");
+            }
 
-        // Mở modal
-        $("#lostFoundModal").modal("show");
+            console.log("Raw sendDate:", row.sendDate);
+            console.log("Parsed sendDate:", self.parseDateString(row.sendDate));
 
-        // Show nút Update
-        $("#btnSaveLostFound").hide();
-        if ($("#btnUpdateLostFound").length === 0) {
-            $(".modal-footer").prepend('<button type="button" class="btn btn-primary" id="btnUpdateLostFound">Update</button>');
-        } else {
-            $("#btnUpdateLostFound").show();
-        }
-    });
+            // Mở modal
+            $("#laf_lostFoundModal").modal("show");
 
+            // Show nút Update
+            $("#laf_btnSaveLostFound").hide();
 
-
-    $("#btnSaveLostFound").click(function () {
-        const formData = $("#lostFoundForm").serialize();
-
-        $.ajax({
-            url: "/HouseKeeping/InsertLostAndFound",
-            type: "POST",
-            data: formData,
-            success: function (res) {
-                if (res.success) {
-                    showToast("Seccess", "Insert success", true);
-                    $("#lostFoundModal").modal("hide");
-                    reloadGrid(); // reload lại grid
-                } else {
-
-                    showToast("Failed", "Insert Failed!", false);
-                }
-            },
-            error: function (xhr, status, error) {
-                showToast("Error", "Insert error!", false);
+            if ($("#laf_btnUpdateLostFound").length === 0) {
+                $(".modal-footer").prepend(
+                    '<button type="button" class="btn btn-primary" id="laf_btnUpdateLostFound">Update</button>'
+                );
+            } else {
+                $("#laf_btnUpdateLostFound").show();
             }
         });
-    });
 
-    $(document).on("click", "#btnUpdateLostFound", function () {
-        let formData = $("#lostFoundForm").serialize();
+        $("#laf_btnSaveLostFound").click(function () {
+            const formData = $("#laf_lostFoundForm").serialize();
 
-        // Thêm ID vào formData (nếu API cần ID để update)
-        if (selectedRowData && selectedRowData.id) {
-            formData += "&ID=" + encodeURIComponent(selectedRowData.id);
-        }
-
-        $.ajax({
-            url: "/HouseKeeping/UpdateLostAndFound",
-            type: "POST",
-            data: formData,
-            success: function (res) {
-                if (res.success) {
-                    showToast("Success", "Updated successfully!", true);
-                    $("#lostFoundModal").modal("hide");
-                    reloadGrid(); // reload lại grid
-                } else {
-                    showToast("Error", res.message || "Update failed!", false);
-                }
-            },
-            error: function (xhr) {
-                console.error("Update error detail:", xhr.responseText);
-                showToast("Error", "Update error! " + xhr.responseText, false);
-            }
-        });
-    });
-
-    $("#btnDelete").click(function () {
-        if (!selectedRowData) {
-            DevExpress.ui.notify("Please select a row first!", "warning", 2000);
-            return;
-        }
-
-        const id = selectedRowData.id;
-
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "This action cannot be undone.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!',
-            cancelButtonText: 'Cancel',
-            customClass: {
-                popup: 'swal-small'
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // AJAX xóa chỉ chạy khi người dùng confirm
-                $.ajax({
-                    url: "/HouseKeeping/DeleteLostAndFound",
-                    type: "POST",
-                    data: { id: id }, // 👈 gửi đúng key "id"
-                    success: function (res) {
-                        if (res.code === 0) {
-                            showToast("Success", res.msg, true);
-                            reloadGrid();
-                            selectedRowData = null;
-                        } else {
-                            showToast("Error", res.msg, false);
-                        }
-                    },
-                    error: function (xhr, status, error) {
-                        console.error("Delete error:", xhr.responseText);
-                        showToast("Error", "Delete error!", false);
+            $.ajax({
+                url: "/HouseKeeping/InsertLostAndFound",
+                type: "POST",
+                data: formData,
+                success: function (res) {
+                    if (res.success) {
+                        showToast("Seccess", "Insert success", true);
+                        $("#laf_lostFoundModal").modal("hide");
+                        self.reloadGrid();
+                    } else {
+                        showToast("Error", "Insert Failed!", false);
+                        applyValidationErrors(res.errors, "#laf_lostFoundForm")
                     }
-                });
-
-            }
-        });
-    });
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainerRateCode").dxDataGrid("instance");   // 🔥 khai báo grid
-
-        const workbook = new ExcelJS.Workbook();
-        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === Dòng 1: Tên công ty (merge theo 4 cột) ===
-        worksheet.addRow([companyName]);
-        worksheet.mergeCells('A1:D1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Ngày giờ xuất (bên phải) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', exportDate]);
-        worksheet.mergeCells('D2:D2');  // cột D thôi
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: trống
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-        const reportRow = worksheet.addRow(['Lost And Found']);
-        worksheet.mergeCells('A5:D5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: trống
-        worksheet.addRow([]);
-
-        // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 }
-        }).then(function () {
-            // Footer (sau cùng)
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = "Lost And Found.xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                },
+                error: function (xhr, status, error) {
+                    showToast("Error", "Insert error!", false);
+                }
             });
         });
+
+        $(document).on("click", "#laf_btnUpdateLostFound", function () {
+            let formData = $("#laf_lostFoundForm").serialize();
+
+            // Thêm ID vào formData (nếu API cần ID để update)
+            if (self.selectedRowData && self.selectedRowData.id) {
+                formData += "&ID=" + encodeURIComponent(self.selectedRowData.id);
+            }
+
+            $.ajax({
+                url: "/HouseKeeping/UpdateLostAndFound",
+                type: "POST",
+                data: formData,
+                success: function (res) {
+                    if (res.success) {
+                        showToast("Success", "Updated successfully!", true);
+                        $("#laf_lostFoundModal").modal("hide");
+                        self.reloadGrid();
+                    } else {
+                        showToast("Error", res.message || "Update failed!", false);
+                        applyValidationErrors(res.errors, "#laf_lostFoundForm")
+                    }
+                },
+                error: function (xhr) {
+                    console.error("Update error detail:", xhr.responseText);
+                    showToast("Error", "Update error! " + xhr.responseText, false);
+                }
+            });
+        });
+
+        $("#laf_btnDelete").click(function () {
+            if (!self.selectedRowData) {
+                showToast("Warning", "Please select a row first!", false);
+                return;
+            }
+
+            const id = self.selectedRowData.id;
+
+            Swal.fire({
+                title: "Are you sure?",
+                text: "This action cannot be undone.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Yes, delete it!",
+                cancelButtonText: "Cancel",
+                customClass: {
+                    popup: "swal-small"
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // AJAX xóa chỉ chạy khi người dùng confirm
+                    $.ajax({
+                        url: "/HouseKeeping/DeleteLostAndFound",
+                        type: "POST",
+                        data: { id: id },
+                        success: function (res) {
+                            if (res.code === 0) {
+                                showToast("Success", res.msg, true);
+                                self.reloadGrid();
+                                self.selectedRowData = null;
+                            } else {
+                                showToast("Error", res.msg, false);
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            console.error("Delete error:", xhr.responseText);
+                            showToast("Error", "Delete error!", false);
+                        }
+                    });
+                }
+            });
+        });
+
+        $("#laf_btnExportExcel").click(function () {
+            const grid = $("#laf_gridContainerRateCode").dxDataGrid("instance");
+
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            // Dòng 1: Tên công ty (merge theo 4 cột)
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells("A1:D1");
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "left" };
+
+            // Dòng 2: Ngày giờ xuất (bên phải)
+            const now = new Date();
+            const exportDate = now.toLocaleString("vi-VN");
+            worksheet.addRow(["", "", "", exportDate]);
+            worksheet.mergeCells("D2:D2");
+            worksheet.getRow(2).alignment = { vertical: "middle", horizontal: "right" };
+
+            // Dòng 3–4: trống
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            // Dòng 5: Tiêu đề báo cáo (ở giữa)
+            const reportRow = worksheet.addRow(["Lost And Found"]);
+            worksheet.mergeCells("A5:D5");
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: "middle", horizontal: "center" };
+
+            // Dòng 6: trống
+            worksheet.addRow([]);
+
+            // Xuất dữ liệu grid bắt đầu từ dòng 7
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                // Footer (sau cùng)
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: "center" };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                // Ghi file
+                let fileName = "Lost And Found.xlsx";
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                });
+            });
+        });
+    }
+    };
+
+    // Global entry points
+    window.openModalLAF = function () {
+        laf_Module.init();
+        $("#laf_modal").modal("show");
+    };
+
+    // Auto cleanup: any modal id starts with laf_
+    $(document).on("hidden.bs.modal", function (e) {
+        const modalId = e.target && e.target.id ? e.target.id : "";
+
+        // Chỉ destroy khi đóng Modal chính (laf_modal)
+        if (modalId === "laf_modal") {
+            laf_Module.destroy();
+        }
+        // Khi đóng laf_lostFoundModal, nó sẽ không lọt vào đây, 
+        // giúp Grid ở Modal cha được giữ nguyên.
     });
 </script>

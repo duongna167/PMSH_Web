@@ -42,7 +42,7 @@ namespace Security.Controllers
 
             List<FormAndFunctionGroupModel> listfromFuc = PropertyUtils.ConvertToList<FormAndFunctionGroupModel>(FormAndFunctionGroupBO.Instance.FindAll());
             ViewBag.FormAndFunctionGroupList = listfromFuc;
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult AddFuncitionsToListData(string codetag, string namerights, int isDataRight)
@@ -200,16 +200,16 @@ namespace Security.Controllers
             }
         }
         [HttpPost]
-        public IActionResult UpdateFormAndFunction(int ID, string codetagnew, string namerightnew, string descriptionnew,string mappingLinkWeb,int groupnew,int isHide,int isShift,int isCtrl,int isAlt,string functionkeynew,int _IsDataRight,string userName,int  userID)
+        public IActionResult UpdateFormAndFunction(int ID, string codetagnew, string namerightnew, string descriptionnew, string mappingLinkWeb, int groupnew, int isHide, int isShift, int isCtrl, int isAlt, string functionkeynew, int _IsDataRight, string userName, int userID)
         {
             ProcessTransactions pt = new ProcessTransactions();
             try
             {
                 pt.OpenConnection();
                 pt.BeginTransaction();
-                if (_IsDataRight==1)
+                if (_IsDataRight == 1)
                 {
-                    
+
                     #region Insert/update quyền dữ liệu
                     FormAndFunctionDataModel _model;
                     if (ID > 0)
@@ -248,9 +248,9 @@ namespace Security.Controllers
                     _model.Name = namerightnew;
                     _model.Description = descriptionnew;
                     _model.FormAndFunctionGroupID = groupnew;
-                    _model.ShiftKey = isShift==1;
-                    _model.CtrlKey = isCtrl==1;
-                    _model.AltKey = isAlt==1;
+                    _model.ShiftKey = isShift == 1;
+                    _model.CtrlKey = isCtrl == 1;
+                    _model.AltKey = isAlt == 1;
                     _model.ShortcutKey = functionkeynew;
                     _model.UpdatedDate = TextUtils.GetSystemDate();
                     _model.UpdatedBy = userName;
@@ -294,10 +294,10 @@ namespace Security.Controllers
             ViewBag.UserGroupList = listug;
             List<JobTitleModel> listjt = PropertyUtils.ConvertToList<JobTitleModel>(JobTitleBO.Instance.FindAll());
             ViewBag.JobTitleList = listjt;
-            return View();
+            return PartialView();
         }
         [HttpGet]
-        public IActionResult UsersManagementData(string lastName, string firstName, string loginName,int userStatus,int cashierStatus,string jobtitle,string department)
+        public IActionResult UsersManagementData(string lastName, string firstName, string loginName, int userStatus, int cashierStatus, string jobtitle, string department)
         {
             lastName ??= "";
             firstName ??= "";
@@ -352,7 +352,7 @@ namespace Security.Controllers
             {
                 return Json(ex.Message);
             }
-            
+
         }
         #endregion
     }
