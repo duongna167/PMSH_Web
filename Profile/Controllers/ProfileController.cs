@@ -1042,6 +1042,10 @@ namespace Profile.Controllers
         {
             return View();
         }
+        public IActionResult ExportProfile()
+        {
+            return View();
+        }
         [HttpGet]
         public async Task<IActionResult> SearchProfileExport(DateTime fromDate, DateTime toDate)
         {
