@@ -10,113 +10,131 @@
 }
 
 <style>
-    /* Date input */
-    [data-date-input] {
-        display: inline-flex;
+    #loadingSpinnerRateCode {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 999;
+        background: rgba(255, 255, 255, 0.55);
+        backdrop-filter: blur(2px);
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-        [data-date-input] .date-ui {
-            width: 110px;
-            height: 30px;
-            font-size: 13px;
-            padding: 2px 8px;
-        }
 </style>
 
-<div class="text-center" id="reportTitle" style="font-size: 20px">Out of Order and Service </div>
-
-<div class="search-filter">
-
-    <div class="">
-        <button id="btnView" class="mui-button mui-button-new">View</button>
-        <button id="btnNew" class="mui-button mui-button-new">New</button>
-        <button id="btnEdit" class="mui-button mui-button-new">Edit</button>
-        <button id="btnDelete" class="mui-button mui-button-new">Delete</button>
-        <button id="btnHistory" class="mui-button mui-button-new">History</button>
-    </div>
-
-    <div class="container-fluid px-0 py-2">
-        <div class="row g-2 align-items-center">
-
-            <!-- Date -->
-            <div class="col-auto">
-                <label class="col-form-label mb-0">Date:</label>
+<div class="modal fade" id="ooos_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Out of Order and Service</h5>
             </div>
-            <div class="col-auto d-flex gap-1">
-                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
-                    <input type="text" class="date-ui form-control form-control-sm" placeholder="From">
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button id="btnView" class="mui-button mui-button-view">View</button>
+                    <button id="btnNew" class="mui-button mui-button-new">New</button>
+                    <button id="btnEdit" class="mui-button mui-button-edit">Edit</button>
+                    <button id="btnDelete" class="mui-button mui-button-delete">Delete</button>
+                    <button id="btnHistory" class="mui-button mui-button-new">History</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
                 </div>
-                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="toDate">
-                    <input type="text" class="date-ui form-control form-control-sm" placeholder="To">
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
+
+                    <div class="p-2 flex-shrink-0">
+                        <div class="row g-2 align-items-center ooos-filter">
+
+                            <!-- Date -->
+                            <div class="col-xl-3 col-lg-4 col-md-6">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 fw-semibold">Date:</label>
+                                    <div class="d-flex gap-1 flex-grow-1">
+                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
+                                            <input type="text" class="date-ui form-control form-control-sm" placeholder="From">
+                                        </div>
+                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="toDate">
+                                            <input type="text" class="date-ui form-control form-control-sm" placeholder="To">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Room -->
+                            <div class="col-xl-3 col-lg-4 col-md-6">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 fw-semibold">Room:</label>
+                                    <select id="room" class="tomselect-custom flex-grow-1" multiple>
+                                        @foreach (var u in ViewBag.RoomList)
+                                        {
+                                            <option value="@u.RoomNo">@u.RoomNo</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Class -->
+                            <div class="col-xl-2 col-lg-2 col-md-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 fw-semibold">Class:</label>
+                                    <select id="roomClass" class="tomselect-custom flex-grow-1">
+                                        @foreach (var g in ViewBag.RoomClassList)
+                                        {
+                                            <option value="@g.ID">@g.Code</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Zone -->
+                            <div class="col-xl-2 col-lg-2 col-md-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 fw-semibold">Zone:</label>
+                                    <select id="zone" class="tomselect-custom flex-grow-1" multiple>
+                                        @foreach (var z in ViewBag.ZoneList)
+                                        {
+                                            <option value="@z.Code">@z.Code</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Type -->
+                            <div class="col-xl-2 col-lg-4 col-md-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 fw-semibold">Type:</label>
+                                    <div class="d-flex gap-2 border rounded px-2 py-1 bg-white">
+                                        <label class="mb-0">
+                                            <input type="checkbox" id="outofOrder" checked> OOO
+                                        </label>
+                                        <label class="mb-0">
+                                            <input type="checkbox" id="outofService" checked> OOS
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1 overflow-auto">
+                        <div id="gridContainer"></div>
+
+                        <div id="loadingSpinnerRateCode" style="display: none;">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
-
-            <!-- Room (3) -->
-            <div class="col-auto">
-                <label class="col-form-label mb-0">Room:</label>
-            </div>
-            <div class="col-md-2 col-sm-6">
-                <select id="room" class="tomselect-custom" multiple>
-                    @foreach (var u in ViewBag.RoomList)
-                    {
-                        <option value="@u.RoomNo">@u.RoomNo</option>
-                    }
-                </select>
-            </div>
-
-            <!-- Class (1) ✅ FIX -->
-            <div class="col-auto">
-                <label class="col-form-label mb-0">Class:</label>
-            </div>
-            <div class="col-md-1 col-sm-4">
-                <select id="roomClass" class="tomselect-custom">
-                    @foreach (var g in ViewBag.RoomClassList)
-                    {
-                        <option value="@g.ID">@g.Code</option>
-                    }
-                </select>
-            </div>
-
-            <!-- Zone (2) -->
-            <div class="col-auto">
-                <label class="col-form-label mb-0">Zone:</label>
-            </div>
-            <div class="col-md-1 col-sm-4">
-                <select id="zone" class="tomselect-custom" multiple>
-                    @foreach (var z in ViewBag.ZoneList)
-                    {
-                        <option value="@z.Code">@z.Code</option>
-                    }
-                </select>
-            </div>
-
-            <!-- Type (auto) -->
-            <div class="col-auto">
-                <label class="col-form-label mb-0">Type:</label>
-            </div>
-            <div class="col-auto d-flex gap-2 border rounded px-2 py-1">
-                <label class="mb-0">
-                    <input type="checkbox" id="outofOrder" checked> OOO
-                </label>
-                <label class="mb-0">
-                    <input type="checkbox" id="outofService" checked> OOS
-                </label>
-            </div>
-
-        </div>
-
+        </div>  
     </div>
-
 </div>
 
-<div class="mui-card mt-2">
-
-    <div class="gridContainer mt-2">
-        <div id="gridContainer"></div>
-    </div>
-
-
-</div>
 <!-- Modal Popup for New Item -->
 <div class="modal fade" id="itemModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="itemModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -291,11 +309,9 @@
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 <script>
-    let selectedRowData = null;
 
-    $(document).ready(async function () {
-        await window.businessDateReady;
-        window.initDateInputs();
+    window.openModalOOOS = function () {
+        let selectedRowData = null;
 
         initTomSelect(".tomselect-custom");
         $("#btnView").trigger("click");
@@ -315,6 +331,25 @@
                 ValidationAdapter.clearField(this);
             }
         });
+    };
+
+    $("#ooos_modal").on("hidden.bs.modal", function () {
+
+        /* === Destroy DevExtreme Grid === */
+        if ($("#gridContainer").data("dxDataGrid")) {
+            $("#gridContainer").dxDataGrid("dispose");
+            $("#gridContainer").empty();
+        }
+
+        /* === Destroy TomSelect === */
+        destroyTomSelect([
+            "#room",
+            "#roomClass",
+            "#zone"
+        ]);
+
+        /* === Clear state === */
+        selectedRowData = null;
     });
 
     document.getElementById("comment").addEventListener("change", function () {
@@ -335,58 +370,72 @@
     function loadHistoryOOOGrid(data) {
             $("#gridContainer").dxDataGrid({
             dataSource: data,
-            height: 500,
+            height: "100%",
             width: "100%",
+            showBorders: true,
+            hoverStateEnabled: true,
             columnAutoWidth: false,
+            wordWrapEnabled: true, // Tự động xuống dòng nếu tiêu đề dài
             allowColumnResizing: true,
             columnResizingMode: "widget",
             selection: { mode: "single" },
             columns: [
-            { dataField: "id", visible:false},
-            { dataField: "roomID", visible:false},
-            { dataField: "reasonID", visible:false},
-            { dataField: "code", caption: "Code", width: "8%" },
-            { dataField: "roomNo", caption: "Room No", width: "7%" },
-            { dataField: "roomType", caption: "Room Type", width: "7%" },
-            { dataField: "floor", caption: "Floor", width: "6%" },
-            { dataField: "zone", caption: "Zone", width: "6%" },
-            { dataField: "fromDate", caption: "From Date", width: "8%", dataType: "date", format: "dd/MM/yyyy" },
-            { dataField: "toDate", caption: "To Date", width: "8%", dataType: "date", format: "dd/MM/yyyy" },
-            { dataField: "noOfNights", caption: "Nights", width: "8%" },
-            { dataField: "reason", caption: "Reason", width: "15%" },
-            { dataField: "status", caption: "Status", width: "7%" },
-            { dataField: "userCreate", caption: "User Create", width: "6%" },
-            { dataField: "createdDate", caption: "Create Date", dataType: "date", format: "dd/MM/yyyy", width: "8%" },
-            { dataField: "userUpdate", caption: "User Update", width: "6%" },
-            { dataField: "updatedDate", caption: "Update Date", dataType: "date", format: "dd/MM/yyyy", width: "8%" },
-        ],
+                { dataField: "id", visible:false},
+                { dataField: "roomID", visible:false},
+                { dataField: "reasonID", visible:false},
+                { dataField: "code", caption: "Code", width: 90 },
+                { dataField: "roomNo", caption: "Room No", alignment: "right" , width: 70 },
+                { dataField: "roomType", caption: "Room Type", width: 70 },
+                { dataField: "floor", caption: "Floor", alignment: "right",width: 50 },
+                { dataField: "zone", caption: "Zone", width: 50 },
+                { dataField: "fromDate", caption: "From Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "toDate", caption: "To Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "noOfNights", caption: "Nights", width: 50 },
+                { dataField: "reason", caption: "Reason", width: 150 },
+                { dataField: "status", caption: "Status", width: 50 },
+                { dataField: "userCreate", caption: "User Create", width: 100 },
+                { dataField: "createdDate", caption: "Create Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "userUpdate", caption: "User Update", width: 100 },
+                { dataField: "updatedDate", caption: "Update Date", width: 80, dataType: "date", format: "dd/MM/yyyy" }
+            ],
             scrolling: {
-                    mode: "standard",
-                    showScrollbar: "always",
-                    scrollByContent: true
-                },
-                paging: {
-                    pageSize: 20
-                },
-                pager: {
-                    visible: true,
-                    allowedPageSizes: [20, 50, 'all'],
-                    showPageSizeSelector: true,
-                    showInfo: true,
-                    showNavigationButtons: true
-                },
-                columnAutoWidth: true,
-                    filterRow: {
+                mode: "standard",
+                showScrollbar: "always",
+                scrollByContent: true,
+                scrollByThumb: true,
+                useNative: true
+            },
+            paging: {
+                pageSize: 20
+            },
+            pager: {
+                visible: true,
+                allowedPageSizes: [20, 50, 100],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            },
+            columnAutoWidth: true,
+            filterRow: {
                 visible: true,
                 applyFilter: "auto"
             },
-                summary: {
-                totalItems: [{
-                    column: "noOfNights",
-                    summaryType: "sum",
-                    displayFormat: "Total: {0}",
-                    showInColumn: "noOfNights"
-                }]
+            summary: {
+                totalItems: [
+                    {
+                        showInColumn: "reason",
+                        summaryType: "custom",
+                        name: "TotalNights",
+                        displayFormat: "Total Nights: {0}",
+                        alignment: "left"
+                    }
+                ],
+                calculateCustomSummary: function (options) {
+                    if (options.name === "TotalNights") {
+                        if (options.summaryProcess === "start") options.totalValue = 0;
+                        if (options.summaryProcess === "calculate") options.totalValue += (options.value.noOfNights || 0);
+                    }
+                }
             },
             onSelectionChanged: function (e) {
                 if (e.selectedRowsData.length > 0) {
@@ -398,7 +447,7 @@
                 }
             }
         });
-        }
+    }
 
     $(document).off("click", "#btnView").on("click", "#btnView", function () {
          reloadGrid();
@@ -468,7 +517,7 @@
         });
     });
 
-    const OOO_STATUS_MAP = {
+    var OOO_STATUS_MAP = {
         "OOO": "1",
         "OOS": "2"
     };

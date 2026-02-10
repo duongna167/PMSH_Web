@@ -35,17 +35,16 @@ using Report.Services.Interfaces;
 using Reservation.Controllers;
 using Reservation.Services.Implements;
 using Reservation.Services.Interfaces;
-using Security.Controllers;
-using Security.Services.Implements;
-using Security.Services.Interfaces;
 using RoomManagement.Controllers;
 using RoomManagement.Services.Implements;
 using RoomManagement.Services.Interfaces;
+using Security.Controllers;
+using Security.Services.Implements;
+using Security.Services.Interfaces;
 using System.Globalization;
 using User.Controllers;
 using User.Services.Implements;
 using User.Services.Interfaces;
-
 using WebApp.Commons.Containts;
 using static BaseBusiness.Global;
 
@@ -273,11 +272,11 @@ if (app.Environment.IsDevelopment())
 
 app.MapHub<TagScanHub>("/tagScanHub");
 app.UseHttpsRedirection();
+app.UseResponseCompression(); // ??t sau UseStaticFiles và tr??c UseRouting
 app.UseRouting();
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseResponseCompression(); // ??t sau UseStaticFiles và tr??c UseRouting
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=User}/{action=Index}/{id?}");

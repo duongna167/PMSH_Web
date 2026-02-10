@@ -630,12 +630,6 @@ namespace RoomManagement.Controllers
             {
                 return Json(ex.Message);
             }
-            //  report.DataSource = dataTable;
-
-            // Không cần gán parameter
-            // report.RequestParameters = false;
-
-            // return PartialView("_ReportViewerPartial", report);
         }
         public IActionResult OOOSload()
         {
@@ -647,7 +641,7 @@ namespace RoomManagement.Controllers
             ViewBag.RoomClassList = listrclass;
             List<CommentModel> listcmt = PropertyUtils.ConvertToList<CommentModel>(CommentBO.Instance.FindAll());
             ViewBag.CommentList = listcmt;
-            return View();
+            return PartialView();
         }
 
         #region out of order/service management
