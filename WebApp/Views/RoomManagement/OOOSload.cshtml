@@ -319,17 +319,17 @@
 <div class="modal fade" id="ooos_historyModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="historyModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <!-- rộng hơn để chứa grid -->
-        <div class="modal-content" ">
+        <div class="modal-content modal-full-height d-flex flex-column">
             <div class="modal-header">
                 <h5 class="modal-title" id="ooos_historyModalLabel">Room Change History</h5>
             </div>
 
-            <div class="modal-body">
+            <div class="modal-body d-flex flex-column overflow-hidden">
                 <div class="item-modal-actions py-2">
                     <button class="mui-button mui-button-new" id="ooos_btnHistorySearch">Search</button>
                     <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                 </div>
-                <div class="d-flex flex-wrap align-items-center gap-2 mb-2" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
 
                     <div class="d-flex align-items-center me-2">
                         <label class="me-2 mb-0">Room:</label>
@@ -352,11 +352,9 @@
                         </div>
                     </div>
 
-
                 </div>
 
-
-                <div class="gridContainer mt-2">
+                <div class="gridContainer mt-2  flex-grow-1 overflow-hidden">
                     <div id="ooos_historyGrid"></div>
                 </div>
             </div>
@@ -414,20 +412,32 @@
             window.openModalOOOS = function () {
                 initTomSelect(".tomselect-custom");
                 self.reloadGrid();
-                
-                $('#itemModal').on('hidden.bs.modal', function () {
+
+                $('#ooos_modal').on('hidden.bs.modal', function () {
                     self.disposeGrid("#ooos_gridContainer");
                     destroyTomSelect(["#ooos_room", "#ooos_roomClass", "#ooos_zone"]);
+                    reloadBusinessDate();
                     self.selectedRowData = null;
                 });
 
-                $("#formContainer").on("input", "input, textarea", function () {
+                $('#ooos_itemModal').on('hidden.bs.modal', function () {
+                    clearMultipleTomSelect(["#ooos_roomSelect", "#ooos_rtStatus", "#ooos_comment"]);
+                    reloadBusinessDate();
+                });
+
+                $('#ooos_historyModal').on('hidden.bs.modal', function () {
+                    self.disposeGrid("#ooos_historyGrid");
+                    reloadBusinessDate();
+                    self.selectedRowData = null;
+                });
+
+                $("#ooos_formContainer").on("input", "input, textarea", function () {
                     if ($(this).hasClass("is-invalid")) {
                         ValidationAdapter.clearField(this);
                     }
                 });
 
-                $("#formContainer").on("change", "select.tomselect-custom", function () {
+                $("#ooos_formContainer").on("change", "select.tomselect-custom", function () {
                     if (this.tomselect) {
                         ValidationAdapter.clearField(this);
                     }
@@ -452,6 +462,7 @@
             $("#ooos_btnDelete").on("click", () => self.confirmDelete());
             $("#ooos_btnExportExcel").on("click", () => self.exportToExcel());
             $("#ooos_btnHistory").on("click", () => self.openModalHistory());
+            $("#ooos_btnHistorySearch").on("click", () => self.fetchHistoryData());
         },
 
         reloadGrid: function () {
@@ -527,6 +538,47 @@
 
         },
 
+        fetchHistoryData: function () {
+            const self = this;
+
+            $("#loadingSpinner").show();
+
+            $.ajax({
+                url: "/RoomManagement/GetRoomStatusHistoryOOO",
+                type: "GET",
+                data: {
+                    roomNo: $("#ooos_historyRoom").val(),
+                    userName: $("#ooos_historyUser").val(),
+                    fromDate: $("#ooos_historyFromDate").val() || dateSystem,
+                    toDate: $("#ooos_historyToDate").val() || dateSystem
+                },
+                success: function (data) {
+                    self.renderHistoryGrid(data);
+                    $("#loadingSpinner").hide();
+                },
+                error: function () {
+                    showToast("Error", "Lỗi khi load dữ liệu history", false);
+                    $("#loadingSpinner").hide();
+                }
+            });
+        },
+
+        renderHistoryGrid: function (data) {
+            const self = this;
+
+            self.initGrid("#ooos_historyGrid", {
+                dataSource: data,
+                columns: [
+                    { dataField: "roomNo", caption: "Room No", width: "10%" },
+                    { dataField: "action", caption: "Action", width: "10%" },
+                    { dataField: "oldValue", caption: "Old Value", width: "30%" },
+                    { dataField: "newValue", caption: "New Value", width: "30%" },
+                    { dataField: "userName", caption: "User", width: "10%" },
+                    { dataField: "changeDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy HH:mm" }
+                ]
+            });
+        },
+
         openNewModal: function () {
             $("#ooos_itemModal").modal("show");
             initDateInputs();
@@ -544,6 +596,15 @@
             $("#ooos_itemModalLabel").text("Update Out of Order/Service");
             self.fillEditForm(self.selectedRowData);
             $("#ooos_itemModal").modal("show");
+        },
+
+        openModalHistory: function () {
+            const self = this;
+            initDateInputs();
+
+            $("#ooos_historyModal").modal("show");
+
+            self.fetchHistoryData();
         },
 
         fillEditForm: function (data) {
@@ -570,8 +631,8 @@
             formData.append("rtStatus", getTomSelectData("#ooos_rtStatus")?.value || "");
             formData.append("comment", getTomSelectData("#ooos_comment")?.value || "");
             formData.append('txtReasonDesc', $("#ooos_txtReasonDesc").val());
-            formData.append('itemFromDate', $("[data-name='itemFromDate'] input").val());
-            formData.append('itemToDate', $("[data-name='itemToDate'] input").val());
+            formData.append('itemFromDate', $("#ooos_itemFromDate").val());
+            formData.append('itemToDate', $("#ooos_itemToDate").val());
             formData.append('userName', JSON.parse(localStorage.getItem("Loginname")));
             formData.append('userID', JSON.parse(localStorage.getItem("userID")));
 
@@ -587,7 +648,7 @@
                         $("#ooos_itemModal").modal("hide");
                         self.reloadGrid();
                     } else {
-                        ValidationAdapter.apply(res.errors || [], "#formContainer");
+                        ValidationAdapter.apply(res.errors || [], "#ooos_formContainer");
                         showToast("Warning", res.message, false);
                     }
                 }
@@ -697,37 +758,7 @@
             }
         },
 
-        openModalHistory: function () {
-            const self = this;
-            $("#ooos_historyModal").modal("show");
-
-            $.ajax({
-                url: "/RoomManagement/GetRoomStatusHistoryOOO",
-                type: "GET",
-                data: {
-                    roomNo: $("#ooos_historyRoom").val(),
-                    userName: $("#ooos_historyUser").val(),
-                    fromDate: $("#ooos_historyFromDate").val(),
-                    toDate: $("#ooos_historyToDate").val()
-                },
-                success: function (data) {
-                    self.initGrid("#ooos_historyGrid", {
-                        dataSource: data,
-                        // height: 500, 
-                        // paging: { pageSize: 20 }, 
-                         columns: [
-                            { dataField: "roomNo", caption: "Room No" , width: "6%"},
-                            { dataField: "action", caption: "Action", width: "9%" },
-                            { dataField: "oldValue", caption: "Old Value", width: "32%" },
-                            { dataField: "newValue", caption: "New Value" , width: "32%"},
-                            { dataField: "userName", caption: "User" , width: "5%"},
-                            { dataField: "computerName", caption: "Computer" , width: "6%"},
-                            { dataField: "changeDate", caption: "Change Date", dataType: "date", format: "dd/MM/yyyy HH:mm", width: "9%" }
-                        ]
-                    });
-                }
-            });
-        },
+  
     };
 
     $(document).ready(function () {
