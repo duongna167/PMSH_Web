@@ -294,7 +294,7 @@ namespace Security.Controllers
             ViewBag.UserGroupList = listug;
             List<JobTitleModel> listjt = PropertyUtils.ConvertToList<JobTitleModel>(JobTitleBO.Instance.FindAll());
             ViewBag.JobTitleList = listjt;
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult UsersManagementData(string lastName, string firstName, string loginName,int userStatus,int cashierStatus,string jobtitle,string department)
