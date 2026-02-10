@@ -42,7 +42,7 @@ namespace Security.Controllers
 
             List<FormAndFunctionGroupModel> listfromFuc = PropertyUtils.ConvertToList<FormAndFunctionGroupModel>(FormAndFunctionGroupBO.Instance.FindAll());
             ViewBag.FormAndFunctionGroupList = listfromFuc;
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult AddFuncitionsToListData(string codetag, string namerights, int isDataRight)
@@ -294,7 +294,8 @@ namespace Security.Controllers
             ViewBag.UserGroupList = listug;
             List<JobTitleModel> listjt = PropertyUtils.ConvertToList<JobTitleModel>(JobTitleBO.Instance.FindAll());
             ViewBag.JobTitleList = listjt;
-            return View();
+            return PartialView();
+
         }
         [HttpGet]
         public IActionResult UsersManagementData(string lastName, string firstName, string loginName,int userStatus,int cashierStatus,string jobtitle,string department)
