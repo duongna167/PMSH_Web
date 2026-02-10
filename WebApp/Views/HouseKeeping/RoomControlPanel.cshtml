@@ -1,44 +1,43 @@
 ﻿@using DevExpress.XtraReports.UI
-@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
 @{
     ViewBag.Title = ViewBag.ReportHeader;
     var zoneList = ViewBag.ZoneList;
 }
-@* <link asp-append-version="true" href="~/css/reservation.css" rel="stylesheet" /> *@
-<style>
 
-</style>
 <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px">Room Control Panel</div>
-<div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+
+<!-- ========================= -->
+<!-- RCP: Bootstrap 5 Modal -->
+<!-- ========================= -->
+<div class="modal fade" id="rcp_reportModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content modal-full-height">
 
             <!-- Modal Header -->
             <div class="modal-header">
-                <h5 class="modal-title" id="reportTitle" style="font-size:20px"> Room Control Panel</h5>
+                <h5 class="modal-title" id="rcp_reportTitle">Room Control Panel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <!-- Modal Body -->
             <div class="modal-body">
                 <div class="search-filter">
                     <div class="">
-                        <button id="btnPrint" class="mui-button mui-button-new">View</button>
-                        <button id="btnExportExcel" class="mui-button mui-button-new" type="button"> Excel</button>
-                        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">
+                        <button id="rcp_btnPrint" class="mui-button mui-button-new">View</button>
+                        <button id="rcp_btnExportExcel" class="mui-button mui-button-new" type="button"> Excel</button>
+                        <button id="rcp_btnExportPdf" class="mui-button mui-button-new" type="button">
                             PDF
                         </button>
-                        <button id="btnCloseAva" class="mui-button mui-button-new" type="button"> Close</button>
+                        <button class="mui-button mui-button-new" type="button" data-bs-dismiss="modal" aria-label="Close"> Close</button>
                     </div>
+
                     <div class="filter-panel d-flex align-items-center flex-nowrap gap-3 mt-2 mb-1">
 
                         <!-- Zone -->
                         <div class="d-flex align-items-center zone-wrap">
                             <label class="me-2 mb-0">Zone:</label>
-                            <select id="zone" name="zone" class="tomselect-custom" multiple>
+                            <select id="rcp_zone" name="rcp_zone" class="tomselect-custom" multiple>
                                 @foreach (var item in zoneList)
                                 {
                                     if (item == zoneList[0])
@@ -57,7 +56,7 @@
                         <div class="d-flex align-items-center pb-2">
                             <label class="me-2 mb-0">From:</label>
                             <div class="date-wrap">
-                                <div class="clearable" data-date-input data-format="DD/MM/YYYY" data-name="fromDate">
+                                <div class="clearable" data-date-input data-format="DD/MM/YYYY" data-name="rcp_fromDate">
                                     <input type="text" class="date-ui form-control" autocomplete="off" />
                                 </div>
                             </div>
@@ -67,7 +66,7 @@
                         <div class="d-flex align-items-center pb-2">
                             <label class="me-2 mb-0">To:</label>
                             <div class="date-wrap">
-                                <div class="clearable" data-date-input data-format="DD/MM/YYYY" data-name="toDate">
+                                <div class="clearable" data-date-input data-format="DD/MM/YYYY" data-name="rcp_toDate">
                                     <input type="text" class="date-ui form-control" autocomplete="off" />
                                 </div>
                             </div>
@@ -78,11 +77,11 @@
                 </div>
 
                 <div class="mui-card">
-                    @*     <div style="font-size: 20px;" class="mt-1" id="reportTitle"></div> *@
-                    <div id="gridContainer" class="gridContainer mt-2"></div>
+                    <div id="rcp_gridContainer" class="gridContainer mt-2"></div>
                 </div>
-                <div id="loadingSpinner"
-                    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+
+                <div id="rcp_loadingSpinner"
+                     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
                     <i class="fa-solid fa-spinner fa-spin"></i>
                 </div>
             </div>
@@ -91,273 +90,326 @@
 </div>
 
 <script>
-    $(document).ready(function () {
-        initializeTomSelects();
-        getBusinessDate();
-         $('#reportModal').modal('show');
-    });
-    $(document).on('click', '#btnCloseAva', function () {
-        window.location.href = '/Home/Index';
-    });
+    // ============================================
+    // RCP MODULE
+    // ============================================
+    const rcp_Module = {
+        gridInstance: null,
+        tomSelectInstance: null,
 
-    function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
+        init: function () {
+            rcp_Module.bindEvents();
+            rcp_Module.initializeTomSelects();
+            rcp_Module.getBusinessDate();
+        },
 
-                const fromDateStr = result.split('T')[0];
-                const fromDate = new Date(fromDateStr);
-
-                // cộng thêm 13 ngày
-                const toDate = new Date(fromDate);
-                toDate.setDate(toDate.getDate() + 15);
-       
-                // format yyyy-MM-dd
-                const toDateStr = toDate.toISOString().split('T')[0];
-                 UI.setHiddenDate("toDate", toDateStr);
-                 UI.setHiddenDate("fromDate", fromDateStr);
-                $("#btnPrint").trigger("click");
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
+        destroy: function () {
+            try {
+                if (rcp_Module.gridInstance) {
+                    rcp_Module.gridInstance.dispose();
                 }
-            }
-        });
-    }
+            } catch (e) { }
 
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        let day = date.getDate().toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        return `${year}-${month}-${day}`;
-    }
-    function initializeTomSelects() {
-        const selectors = ["#zone"];
+            try {
+                $("#rcp_gridContainer").empty();
+            } catch (e) { }
 
-        for (const id of selectors) {
-            const el = document.querySelector(id);
-            if (!el) continue;
+            try {
+                const zoneEl = document.querySelector("#rcp_zone");
+                if (zoneEl && zoneEl.tomselect) {
+                    zoneEl.tomselect.destroy();
+                }
+            } catch (e) { }
 
-            if (el.tomselect) el.tomselect.destroy();
+            rcp_Module.gridInstance = null;
+            rcp_Module.tomSelectInstance = null;
+        },
 
-            const ts = new TomSelect(el, {
-                plugins: ['remove_button'],
-                create: false,
-                maxItems: null,
-                allowEmptyOption: true,
-                placeholder: '',
-                persist: false,
-                render: {
-                    option: function (data, escape) {
-                        return `<div>${escape(data.text)}</div>`;
+        bindEvents: function () {
+
+            $(document).off("click.rcp", "#rcp_btnPrint").on("click.rcp", "#rcp_btnPrint", function () {
+                $("#rcp_reportModal.mui-card").hide();
+                $("#rcp_gridContainer").hide();
+                $("#rcp_loadingSpinner").show();
+                $.ajax({
+                    url: '/HouseKeeping/RoomControlPanelData',
+                    type: 'GET',
+                    data: {
+                        fromDate: $("#rcp_fromDate").val(),
+                        toDate: $("#rcp_toDate").val(),
+                        zone: $("#rcp_zone").val().join(",")
+                    },
+                    traditional: true,
+                    crossDomain: false,
+                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                    success: function (result) {
+                        // $("#reportViewerContainer").html(result);
+                        // $("#loadingSpinner").hide();
+                        console.log(result);
+                        rcp_Module.initializeReservationSummaryGrid(result, $("#rcp_fromDate").val(), $("#rcp_toDate").val());
+                        $("#rcp_reportModal.mui-card").show();
+                        $("#rcp_gridContainer").show();
+                        $("#rcp_loadingSpinner").hide();
+                    },
+                    error: function () {
+                        showToast("Error", "Unable to load data.", false);
+                        $("#rcp_reportModal.mui-card").show();
+                        $("#rcp_gridContainer").show();
+                        $("#rcp_loadingSpinner").hide();
                     }
-                }
+                });
             });
 
-        }
-    }
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/HouseKeeping/RoomControlPanelData',
-            type: 'GET',
-            data: {
-                fromDate: $("#fromDate").val(),
-                toDate: $("#toDate").val(),
-                zone: $("#zone").val().join(",")
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                console.log(result);
-                initializeReservationSummaryGrid(result, $("#fromDate").val(), $("#toDate").val());
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                showToast("Error", "Unable to load data.", false);
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
+            $("#rcp_btnExportExcel").off("click.rcp").on("click.rcp", function () {
+                const grid = $("#rcp_gridContainer").dxDataGrid("instance"); var selectedReport2 = '@ViewBag.ReportTitle';
+                var selectedReport = '@ViewBag.ReportTitle';
+                if (!selectedReport) {
+                    showToast("Error", "Please select the report before exporting to Excel.", false);
+                    return;
+                }
 
+                const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+                const worksheet = workbook.addWorksheet("Sheet 1");
 
-    function generateDateColumns(fromDate, toDate) {
-        const columns = [];
-        const start = new Date(fromDate);
-        const end = new Date(toDate);
+                // === T?o header công ty (dòng 1) ===
+                worksheet.addRow(['Công ty Cổ phần Giải pháp Công nghệ CS-Solution']);
+                worksheet.mergeCells('A1:E1');
+                worksheet.getRow(1).font = { bold: true };
+                worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
 
-        while (start <= end) {
-            const dateStr = start.toISOString().split("T")[0]; // yyyy-MM-dd
+                // === Dòng 2: Th?i gian xu?t (ph?i) ===
+                const now = new Date();
+                const exportDate = now.toLocaleString("vi-VN");
+                worksheet.addRow(['', '', '', '', ' ' + exportDate]);
+                worksheet.mergeCells('E2:H2');
+                worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
 
-            const day = start.getDate().toString().padStart(2, '0');
-            const month = start.toLocaleString('en-US', { month: 'short' }); // "Jul"
-            const weekday = start.toLocaleString('en-US', { weekday: 'short' }); // "Mon"
-            const weekNumber = getWeekNumber(start); // CW
+                // === Dòng 3–4: Tr?ng
+                worksheet.addRow([]);
+                worksheet.addRow([]);
 
-            const captionHtml = `${day}-${month}<br>${weekday}<br>CW${-weekNumber}`;
+                // === Dòng 5: Tên báo cáo ? gi?a ===
+                const reportRow = worksheet.addRow(['', '', selectedReport]);
+                worksheet.mergeCells('C5:F5');
+                reportRow.font = { bold: true, size: 14 };
+                reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-            columns.push({
-                dataField: dateStr,
-                width: 110,
-                dataType: "number",
-                format: {
-                    type: "fixedPoint",
-                    precision: 1 // luôn có 1 ch? s? th?p phân
+                // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
+                worksheet.addRow([]);
+
+                // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
+                DevExpress.excelExporter.exportDataGrid({
+                    component: grid,
+                    worksheet: worksheet,
+                    autoFilterEnabled: true,
+                    topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
+                }).then(function () {
+                    // Footer
+                    const lastRow = worksheet.lastRow.number + 2;
+                    worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
+                    worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
+                    worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                    worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                    // Ghi file
+                    let fileName = selectedReport + ".xlsx";
+                    workbook.xlsx.writeBuffer().then(function (buffer) {
+                        saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                    });
+                });
+            });
+
+            $("#rcp_btnExportPdf").off("click.rcp").on("click.rcp", function () {
+                const { jsPDF } = window.jspdf; // ?? B? sung dòng này
+
+                const doc = new jsPDF();
+
+                DevExpress.pdfExporter.exportDataGrid({
+                    jsPDFDocument: doc,
+                    component: $("#rcp_gridContainer").dxDataGrid("instance"),
+                    autoTableOptions: {
+                        styles: { cellPadding: 2, fontSize: 8 },
+                        margin: { top: 20 }
+                    }
+                }).then(() => {
+                    doc.save("BaoCao.pdf");
+                });
+            });
+        },
+
+        getBusinessDate: function () {
+            return $.ajax({
+                url: '/Reservation/GetBusinessDate',
+                type: 'get',
+                dataType: 'json',
+                crossDomain: false,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (result) {
+
+                    const fromDateStr = result.split('T')[0];
+                    const fromDate = new Date(fromDateStr);
+
+                    // cộng thêm 13 ngày
+                    const toDate = new Date(fromDate);
+                    toDate.setDate(toDate.getDate() + 15);
+
+                    // format yyyy-MM-dd
+                    const toDateStr = toDate.toISOString().split('T')[0];
+                    UI.setHiddenDate("rcp_toDate", toDateStr);
+                    UI.setHiddenDate("rcp_fromDate", fromDateStr);
+                    $("#rcp_btnPrint").trigger("click");
                 },
-                alignment: "center",
-                headerCellTemplate: function (container) {
-                    container.html(`<div style="white-space: normal; text-align:center; font-size:11px;">${captionHtml}</div>`);
-                }
-            });
-
-            start.setDate(start.getDate() + 1);
-        }
-
-        return columns;
-    }
-
-
-    function getWeekNumber(date) {
-        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-        const dayNum = d.getUTCDay() || 7;
-        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    }
-
-
-
-    function initializeReservationSummaryGrid(data, fromDate, toDate) {
-        const columnWidth = 120;
-
-
-
-        const dateColumns = generateDateColumns(fromDate, toDate);
-        console.log(dateColumns);
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            allowColumnResizing: true,
-            columnAutoWidth: true,
-            columns: [
-                { dataField: "Statisticname", caption: "Statistic Name", width: columnWidth + 40 },
-                ...dateColumns
-            ],
-
-            paging: { pageSize: 25 },
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
-            selection: { mode: "multiple", showCheckBoxesMode: "none" },
-            showBorders: true,
-            onRowPrepared: function (e) {
-                if (e.rowType === "data") {
-
-                    if (e.data?.isTotal) {
-                        e.rowElement.css({
-                            "font-weight": "bold",
-                            "background-color": "#f6f6f6"
-                        });
+                error: function (xhr, statusText, err) {
+                    if (xhr.status == 401) {
+                        sessionTimeout();
                     }
                 }
-            }
-        });
-    }
-
-
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance"); var selectedReport2 = '@ViewBag.ReportTitle';
-        var selectedReport = '@ViewBag.ReportTitle';
-        if (!selectedReport) {
-            showToast("Error", "Please select the report before exporting to Excel.", false);
-            return;
-        }
-
-        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === T?o header công ty (dòng 1) ===
-        worksheet.addRow(['Công ty Cổ phần Giải pháp Công nghệ CS-Solution']);
-        worksheet.mergeCells('A1:E1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Th?i gian xu?t (ph?i) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
-        worksheet.mergeCells('E2:H2');
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: Tr?ng
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tên báo cáo ? gi?a ===
-        const reportRow = worksheet.addRow(['', '', selectedReport]);
-        worksheet.mergeCells('C5:F5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
-        worksheet.addRow([]);
-
-        // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
-        }).then(function () {
-            // Footer
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
-            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = selectedReport + ".xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
             });
-        });
-    });
+        },
 
+        formatDate: function (date) {
+            let year = date.getFullYear();
+            let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
+            let day = date.getDate().toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
+            return `${year}-${month}-${day}`;
+        },
 
+        initializeTomSelects: function () {
+            const selectors = ["#rcp_zone"];
 
-    // Nút xu?t PDF
-    $("#btnExportPdf").click(function () {
-        const { jsPDF } = window.jspdf; // ?? B? sung dòng này
+            for (const id of selectors) {
+                const el = document.querySelector(id);
+                if (!el) continue;
 
-        const doc = new jsPDF();
+                if (el.tomselect) el.tomselect.destroy();
 
-        DevExpress.pdfExporter.exportDataGrid({
-            jsPDFDocument: doc,
-            component: $("#gridContainer").dxDataGrid("instance"),
-            autoTableOptions: {
-                styles: { cellPadding: 2, fontSize: 8 },
-                margin: { top: 20 }
+                const ts = new TomSelect(el, {
+                    plugins: ['remove_button'],
+                    create: false,
+                    maxItems: null,
+                    allowEmptyOption: true,
+                    placeholder: '',
+                    persist: false,
+                    render: {
+                        option: function (data, escape) {
+                            return `<div>${escape(data.text)}</div>`;
+                        }
+                    }
+                });
+
             }
-        }).then(() => {
-            doc.save("BaoCao.pdf");
-        });
+        },
+
+        generateDateColumns: function (fromDate, toDate) {
+            const columns = [];
+            const start = new Date(fromDate);
+            const end = new Date(toDate);
+
+            while (start <= end) {
+                const dateStr = start.toISOString().split("T")[0]; // yyyy-MM-dd
+
+                const day = start.getDate().toString().padStart(2, '0');
+                const month = start.toLocaleString('en-US', { month: 'short' }); // "Jul"
+                const weekday = start.toLocaleString('en-US', { weekday: 'short' }); // "Mon"
+                const weekNumber = rcp_Module.getWeekNumber(start); // CW
+
+                const captionHtml = `${day}-${month}<br>${weekday}<br>CW${-weekNumber}`;
+
+                columns.push({
+                    dataField: dateStr,
+                    width: 70,
+                    dataType: "number",
+                    format: {
+                        type: "fixedPoint",
+                        precision: 1 // luôn có 1 ch? s? th?p phân
+                    },
+                    alignment: "center",
+                    headerCellTemplate: function (container) {
+                        container.html(`<div style="white-space: normal; text-align:center; font-size:11px;">${captionHtml}</div>`);
+                    }
+                });
+
+                start.setDate(start.getDate() + 1);
+            }
+
+            return columns;
+        },
+
+        getWeekNumber: function (date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        },
+
+        initializeReservationSummaryGrid: function (data, fromDate, toDate) {
+            const columnWidth = 120;
+
+            const dateColumns = rcp_Module.generateDateColumns(fromDate, toDate);
+            console.log(dateColumns);
+
+            $("#rcp_gridContainer").dxDataGrid({
+                dataSource: data,
+                allowColumnResizing: true,
+                columnAutoWidth: true,
+                columns: [
+                    { dataField: "Statisticname", caption: "Statistic Name", width: columnWidth + 40 },
+                    ...dateColumns
+                ],
+
+                paging: { pageSize: 25 },
+                scrolling: {
+                    useNative: true,
+                    showScrollbar: "always"
+                },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [25, 50, 'all'],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: { visible: true, applyFilter: "auto" },
+                headerFilter: { visible: true },
+                selection: { mode: "multiple", showCheckBoxesMode: "none" },
+                showBorders: true,
+                onRowPrepared: function (e) {
+                    if (e.rowType === "data") {
+
+                        if (e.data?.isTotal) {
+                            e.rowElement.css({
+                                "font-weight": "bold",
+                                "background-color": "#f6f6f6"
+                            });
+                        }
+                    }
+                }
+            });
+
+            rcp_Module.gridInstance = $("#rcp_gridContainer").dxDataGrid("instance");
+        }
+    };
+
+    // ============================================
+    // Global Entry Points (REQUIRED)
+    // ============================================
+    window.openModalRcp = function () {
+        const modalEl = document.getElementById("rcp_reportModal");
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+
+        rcp_Module.init();
+    };
+
+
+    // ============================================
+    // Global Auto Cleanup (REQUIRED)
+    // ============================================
+    $(document).off("hidden.bs.modal.rcp_cleanup").on("hidden.bs.modal.rcp_cleanup", ".modal", function () {
+        const id = this.id || "";
+        if (id.startsWith("rcp_")) {
+            rcp_Module.destroy();
+        }
     });
 </script>
