@@ -31,6 +31,8 @@ namespace RoomManagement.Controllers
             _httpContextAccessor = httpContextAccessor;
         }
         // Define your actions here
+        #region Discrepancy
+
         public IActionResult Discrepancy()
         {
             List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
@@ -76,6 +78,9 @@ namespace RoomManagement.Controllers
 
             // return PartialView("_ReportViewerPartial", report);
         }
+
+        #endregion
+
 
         [HttpPost("UpdateHKFOStatus")]
         public IActionResult UpdateHKFOStatus([FromBody] List<RoomUpdateDTO> dto)
@@ -431,7 +436,6 @@ namespace RoomManagement.Controllers
             return View();
         }
         [HttpPost]
-        [HttpPost]
         public int InsertItem([FromBody] ItemDto model)
         {
             using (SqlConnection conn = new SqlConnection(DBUtils.GetDBConnectionString()))
@@ -574,7 +578,6 @@ namespace RoomManagement.Controllers
         }
 
         [HttpPost]
-        [HttpPost]
         public IActionResult DeleteItem(int id)
         {
             try
@@ -594,57 +597,9 @@ namespace RoomManagement.Controllers
                 return BadRequest(new { error = ex.Message });
             }
         }
-        [HttpGet]
-        public IActionResult GetOOOSload(int status, string roomNo, int roomClassID, DateTime fromDate, DateTime toDate, string zone)
-        {
-            try
-            {
-                DataTable dataTable = _iRoomManagementService.OOOSload(status, roomNo, roomClassID, fromDate, toDate, zone);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"] : "",
-                                  Code = !string.IsNullOrEmpty(d["Code"].ToString()) ? d["Code"] : "",
-                                  RoomNo = !string.IsNullOrEmpty(d["Room No"].ToString()) ? d["Room No"] : "",
-                                  RoomID = !string.IsNullOrEmpty(d["RoomID"].ToString()) ? d["RoomID"] : "",
-                                  RoomType = !string.IsNullOrEmpty(d["Room Type"].ToString()) ? d["Room Type"] : "",
-                                  Floor = !string.IsNullOrEmpty(d["Floor"].ToString()) ? d["Floor"] : "",
-                                  Zone = !string.IsNullOrEmpty(d["Zone"].ToString()) ? d["Zone"] : "",
-                                  FromDate = !string.IsNullOrEmpty(d["From Date"].ToString()) ? d["From Date"] : "",
-                                  ToDate = !string.IsNullOrEmpty(d["To Date"].ToString()) ? d["To Date"] : "",
-                                  NoOfNights = !string.IsNullOrEmpty(d["No Of Nights"].ToString()) ? d["No Of Nights"] : "",
-                                  ReasonCode = !string.IsNullOrEmpty(d["Reason Code"].ToString()) ? d["Reason Code"] : "",
-                                  Reason = !string.IsNullOrEmpty(d["Reason"].ToString()) ? d["Reason"] : "",
-                                  ReasonID = !string.IsNullOrEmpty(d["ReasonID"].ToString()) ? d["ReasonID"] : "",
-                                  ReturnStatusID = !string.IsNullOrEmpty(d["ReturnStatusID"].ToString()) ? d["ReturnStatusID"] : "",
-                                  ReturnStatus = !string.IsNullOrEmpty(d["Return Status"].ToString()) ? d["Return Status"] : "",
-                                  Status = !string.IsNullOrEmpty(d["Status"].ToString()) ? d["Status"] : "",
-                                  UserCreate = !string.IsNullOrEmpty(d["User Create"].ToString()) ? d["User Create"] : "",
-                                  CreatedDate = !string.IsNullOrEmpty(d["Created Date"].ToString()) ? d["Created Date"] : "",
-                                  UserUpdate = !string.IsNullOrEmpty(d["User Update"].ToString()) ? d["User Update"] : "",
-                                  UpdatedDate = !string.IsNullOrEmpty(d["Updated Date"].ToString()) ? d["Updated Date"] : "",
-                              }).ToList();
-                return Json(result);
-            }
-            catch (Exception ex)
-            {
-                return Json(ex.Message);
-            }
-        }
-        public IActionResult OOOSload()
-        {
-            List<RoomModel> listroom = PropertyUtils.ConvertToList<RoomModel>(RoomBO.Instance.FindAll());
-            ViewBag.RoomList = listroom;
-            List<ZoneModel> listzone = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
-            ViewBag.ZoneList = listzone;
-            List<RoomClassModel> listrclass = PropertyUtils.ConvertToList<RoomClassModel>(RoomClassBO.Instance.FindAll());
-            ViewBag.RoomClassList = listrclass;
-            List<CommentModel> listcmt = PropertyUtils.ConvertToList<CommentModel>(CommentBO.Instance.FindAll());
-            ViewBag.CommentList = listcmt;
-            return PartialView();
-        }
 
-        #region out of order/service management
+
+        #region avaiable room search
         [HttpGet]
         public IActionResult GetAvailableRoomsSearchOOO(string isDummy, string smoking, string floor, string roomTypeCode, string foStatus, string hkStatusID, string roomNo, DateTime fromDate, DateTime toDate, string zoneCode)
         {
@@ -677,39 +632,6 @@ namespace RoomManagement.Controllers
 
             // return PartialView("_ReportViewerPartial", report);
         }
-        [HttpGet]
-        public IActionResult GetRoomStatusHistoryOOO(string roomNo, DateTime fromDate, DateTime toDate, string userName)
-        {
-            try
-            {
-                DataTable dataTable = _iRoomManagementService.RoomStatusHistoryOOO(roomNo, fromDate, toDate, userName);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-
-                                  RoomNo = !string.IsNullOrEmpty(d["RoomNo"].ToString()) ? d["RoomNo"] : "",
-                                  OldValue = !string.IsNullOrEmpty(d["OldValue"].ToString()) ? d["OldValue"] : "",
-                                  NewValue = !string.IsNullOrEmpty(d["NewValue"].ToString()) ? d["NewValue"] : "",
-                                  UserName = !string.IsNullOrEmpty(d["UserName"].ToString()) ? d["UserName"] : "",
-                                  Action = !string.IsNullOrEmpty(d["Action"].ToString()) ? d["Action"] : "",
-                                  ComputerName = !string.IsNullOrEmpty(d["ComputerName"].ToString()) ? d["ComputerName"] : "",
-                                  ChangeDate = !string.IsNullOrEmpty(d["ChangeDate"].ToString()) ? d["ChangeDate"] : "",
-
-                              }).ToList();
-                return Json(result);
-            }
-            catch (Exception ex)
-            {
-                return Json(ex.Message);
-            }
-            //  report.DataSource = dataTable;
-
-            // Không cần gán parameter
-            // report.RequestParameters = false;
-
-            // return PartialView("_ReportViewerPartial", report);
-        }
-
 
         //[HttpPost]
         //public ActionResult SaveOOOS()
@@ -758,26 +680,6 @@ namespace RoomManagement.Controllers
         //}
         #endregion
 
-        [HttpPost]
-        public IActionResult DeleteBusinessBlock(int id)
-        {
-            try
-            {
-                string sql = "DELETE FROM BusinessBlock WHERE ID = @ID";
-
-                SqlParameter[] parameters = {
-                new SqlParameter("@ID", id)
-        };
-
-                int rows = DataTableHelper.ExecuteNonQueryText(sql, parameters);
-
-                return Json(new { deleted = rows });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
-        }
         [HttpGet]
         public IActionResult GetCards()
         {
@@ -862,6 +764,111 @@ namespace RoomManagement.Controllers
                 pt.CloseConnection();
             }
         }
+
+
+        #region Out of Order/Service (OOOS)
+        [HttpGet]
+        public IActionResult GetOOOSload(int status, string roomNo, int roomClassID, DateTime fromDate, DateTime toDate, string zone)
+        {
+            try
+            {
+                DataTable dataTable = _iRoomManagementService.OOOSload(status, roomNo, roomClassID, fromDate, toDate, zone);
+                var result = (from d in dataTable.AsEnumerable()
+                              select new
+                              {
+                                  ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"] : "",
+                                  Code = !string.IsNullOrEmpty(d["Code"].ToString()) ? d["Code"] : "",
+                                  RoomNo = !string.IsNullOrEmpty(d["Room No"].ToString()) ? d["Room No"] : "",
+                                  RoomID = !string.IsNullOrEmpty(d["RoomID"].ToString()) ? d["RoomID"] : "",
+                                  RoomType = !string.IsNullOrEmpty(d["Room Type"].ToString()) ? d["Room Type"] : "",
+                                  Floor = !string.IsNullOrEmpty(d["Floor"].ToString()) ? d["Floor"] : "",
+                                  Zone = !string.IsNullOrEmpty(d["Zone"].ToString()) ? d["Zone"] : "",
+                                  FromDate = !string.IsNullOrEmpty(d["From Date"].ToString()) ? d["From Date"] : "",
+                                  ToDate = !string.IsNullOrEmpty(d["To Date"].ToString()) ? d["To Date"] : "",
+                                  NoOfNights = !string.IsNullOrEmpty(d["No Of Nights"].ToString()) ? d["No Of Nights"] : "",
+                                  ReasonCode = !string.IsNullOrEmpty(d["Reason Code"].ToString()) ? d["Reason Code"] : "",
+                                  Reason = !string.IsNullOrEmpty(d["Reason"].ToString()) ? d["Reason"] : "",
+                                  ReasonID = !string.IsNullOrEmpty(d["ReasonID"].ToString()) ? d["ReasonID"] : "",
+                                  ReturnStatusID = !string.IsNullOrEmpty(d["ReturnStatusID"].ToString()) ? d["ReturnStatusID"] : "",
+                                  ReturnStatus = !string.IsNullOrEmpty(d["Return Status"].ToString()) ? d["Return Status"] : "",
+                                  Status = !string.IsNullOrEmpty(d["Status"].ToString()) ? d["Status"] : "",
+                                  UserCreate = !string.IsNullOrEmpty(d["User Create"].ToString()) ? d["User Create"] : "",
+                                  CreatedDate = !string.IsNullOrEmpty(d["Created Date"].ToString()) ? d["Created Date"] : "",
+                                  UserUpdate = !string.IsNullOrEmpty(d["User Update"].ToString()) ? d["User Update"] : "",
+                                  UpdatedDate = !string.IsNullOrEmpty(d["Updated Date"].ToString()) ? d["Updated Date"] : "",
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+        public IActionResult OOOSload()
+        {
+            List<RoomModel> listroom = PropertyUtils.ConvertToList<RoomModel>(RoomBO.Instance.FindAll());
+            ViewBag.RoomList = listroom;
+            List<ZoneModel> listzone = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
+            ViewBag.ZoneList = listzone;
+            List<RoomClassModel> listrclass = PropertyUtils.ConvertToList<RoomClassModel>(RoomClassBO.Instance.FindAll());
+            ViewBag.RoomClassList = listrclass;
+            List<CommentModel> listcmt = PropertyUtils.ConvertToList<CommentModel>(CommentBO.Instance.FindAll());
+            ViewBag.CommentList = listcmt;
+            return PartialView();
+        }
+        [HttpPost]
+        public IActionResult DeleteBusinessBlock(int id)
+        {
+            try
+            {
+                string sql = "DELETE FROM BusinessBlock WHERE ID = @ID";
+
+                SqlParameter[] parameters = {
+                new SqlParameter("@ID", id)
+        };
+
+                int rows = DataTableHelper.ExecuteNonQueryText(sql, parameters);
+
+                return Json(new { deleted = rows });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+        [HttpGet]
+        public IActionResult GetRoomStatusHistoryOOO(string roomNo, DateTime fromDate, DateTime toDate, string userName)
+        {
+            try
+            {
+                DataTable dataTable = _iRoomManagementService.RoomStatusHistoryOOO(roomNo, fromDate, toDate, userName);
+                var result = (from d in dataTable.AsEnumerable()
+                              select new
+                              {
+
+                                  RoomNo = !string.IsNullOrEmpty(d["RoomNo"].ToString()) ? d["RoomNo"] : "",
+                                  OldValue = !string.IsNullOrEmpty(d["OldValue"].ToString()) ? d["OldValue"] : "",
+                                  NewValue = !string.IsNullOrEmpty(d["NewValue"].ToString()) ? d["NewValue"] : "",
+                                  UserName = !string.IsNullOrEmpty(d["UserName"].ToString()) ? d["UserName"] : "",
+                                  Action = !string.IsNullOrEmpty(d["Action"].ToString()) ? d["Action"] : "",
+                                  ComputerName = !string.IsNullOrEmpty(d["ComputerName"].ToString()) ? d["ComputerName"] : "",
+                                  ChangeDate = !string.IsNullOrEmpty(d["ChangeDate"].ToString()) ? d["ChangeDate"] : "",
+
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+            //  report.DataSource = dataTable;
+
+            // Không cần gán parameter
+            // report.RequestParameters = false;
+
+            // return PartialView("_ReportViewerPartial", report);
+        }
+
         [HttpPost]
         public IActionResult UpdateandInsertBusinessBlock()
         {
@@ -959,7 +966,7 @@ namespace RoomManagement.Controllers
                 pt.CloseConnection();
             }
         }
-
+        #endregion
 
     }
 
