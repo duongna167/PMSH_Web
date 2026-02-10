@@ -103,6 +103,7 @@ namespace Security.Controllers
 
             // return PartialView("_ReportViewerPartial", report);
         }
+        [HttpGet]
         public IActionResult AddFuncitionsToListDetail(int id, int isDataRight)
         {
             try
@@ -294,6 +295,8 @@ namespace Security.Controllers
             ViewBag.UserGroupList = listug;
             List<JobTitleModel> listjt = PropertyUtils.ConvertToList<JobTitleModel>(JobTitleBO.Instance.FindAll());
             ViewBag.JobTitleList = listjt;
+            List<DepartmentModel> listdp = PropertyUtils.ConvertToList<DepartmentModel>(DepartmentBO.Instance.FindAll());
+            ViewBag.DepartmentList = listdp;
             return PartialView();
 
         }
@@ -354,6 +357,20 @@ namespace Security.Controllers
                 return Json(ex.Message);
             }
             
+        }
+        [HttpGet]
+        public IActionResult UsersManagementDetail(int id)
+        {
+            try
+            {
+                UsersModel modelRoom = (UsersModel)UsersBO.Instance.FindByPrimaryKey(id);
+
+                return Json(modelRoom);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
         }
         #endregion
     }
