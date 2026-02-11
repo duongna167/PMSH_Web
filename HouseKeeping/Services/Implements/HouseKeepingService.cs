@@ -39,7 +39,7 @@ namespace HouseKeeping.Services.Implements
             DataTable myTable = DataTableHelper.getTableData("spRmgRoomFacilityForecastReport", param);
             return myTable;
         }
-        public DataTable GuestServiceStatusData(int  servicestatsu, string room, string roomStatus, string zone)
+        public DataTable GuestServiceStatusData(int servicestatsu, string room, string roomStatus, string zone)
         {
             SqlParameter[] param = new SqlParameter[]
             {
@@ -277,7 +277,7 @@ namespace HouseKeeping.Services.Implements
                     new SqlParameter("@FacilityCode",facilityCode),
             };
 
-            DataTable myTable = DataTableHelper.getTableData("spTurndownTasksheetDailySearch", param);
+            DataTable myTable = DataTableHelper.getTableData("spTurndownTasksheetDailySearchV2Web", param);
             return myTable;
         }
         public DataTable TurndownTasksheet(DateTime fromDate, string attendant, string roomStatus)
