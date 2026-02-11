@@ -1,4 +1,4 @@
-﻿@using DevExpress.XtraReports.UI
+@using DevExpress.XtraReports.UI
 @*
     For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 *@
@@ -509,7 +509,7 @@
             top:50%;
             left:50%;
             transform:translate(-50%, -50%);
-            z-index:1000;
+            z-index:150;
             text-align:center;">
     
     <i class="fa-solid fa-spinner fa-spin" style="font-size:36px;"></i>
@@ -638,18 +638,26 @@
             }
         });
     }
-  
-        function parseVNDateOnly(str) {
+
+    function parseVNDateOnly(str) {
         if (!str) return null;
 
-        // "23/03/2025 00:00:00" → "23/03/2025"
-        const datePart = str.split(" ")[0];
-        const [dd, MM, yyyy] = datePart.split("/").map(Number);
+        // format: "dd/MM/yyyy HH:mm:ss"
+        // lấy trực tiếp ký tự
+        const dd = (str.charCodeAt(0) - 48) * 10 + (str.charCodeAt(1) - 48);
+        const MM = (str.charCodeAt(3) - 48) * 10 + (str.charCodeAt(4) - 48);
+        const yyyy =
+            (str.charCodeAt(6) - 48) * 1000 +
+            (str.charCodeAt(7) - 48) * 100 +
+            (str.charCodeAt(8) - 48) * 10 +
+            (str.charCodeAt(9) - 48);
 
         if (!dd || !MM || !yyyy) return null;
 
-        return new Date(yyyy, MM - 1, dd); // 00:00:00
+        return new Date(yyyy, MM - 1, dd);
     }
+
+
 
 
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
@@ -745,49 +753,50 @@
         /* =======================
          * APPOINTMENTS
          * ======================= */
-        const appointments = schedulerData
-            .filter(d => {
-                const a = parseVNDateOnly(d.arrivalDate);
-                const dep = parseVNDateOnly(d.departureDate);
+         const appointments = [];
 
-                return (
-                    d.roomID &&
-                    validRoomIDs.has(d.roomID.toString()) &&
-                    a && dep &&
-                    a <= to && dep >= from
-                );
-            })
-            .map(d => {
-                const a = parseVNDateOnly(d.arrivalDate);
-                const dep = parseVNDateOnly(d.departureDate);
+        for (let i = 0, l = schedulerData.length; i < l; i++) {
 
-                return {
-                    text: d.lastName || "",
-                    startDate: a < from ? from : a,
-                    endDate: dep > to ? to : dep,
-                    roomID: d.roomID.toString(),
+            const d = schedulerData[i];
+            if (!d.roomID) continue;
 
-                    type: d.type || "",
-                    reservationStatus: d.reservationStatus,
-                    reservationID:
-                        !d.reservationID || String(d.reservationID) === "0"
-                            ? d.oooid
-                            : d.reservationID,
+            const roomID = d.roomID.toString();
+            if (!validRoomIDs.has(roomID)) continue;
 
-                    roomTypeCode: d.roomTypeCode || "",
-                    oooStatus: d.oooStatus || "",
-                    roomNumber: d.roomNumber || "",
+            const a = parseVNDateOnly(d.arrivalDate);
+            const dep = parseVNDateOnly(d.departureDate);
 
-                    tooltipData: {
-                        company: d.company,
-                        agent: d.agent,
-                        paymentMethod: d.paymentMethod,
-                        comment: d.comment,
-                        confirmationNo: d.confirmationNo,
-                        code: d.code
-                    }
-                };
+            if (!a || !dep) continue;
+            if (a > to || dep < from) continue;
+
+            appointments.push({
+                text: d.lastName || "",
+                startDate: a < from ? from : a,
+                endDate: dep > to ? to : dep,
+                roomID,
+
+                type: d.type || "",
+                reservationStatus: d.reservationStatus,
+                reservationID:
+                    !d.reservationID || String(d.reservationID) === "0"
+                        ? d.oooid
+                        : d.reservationID,
+
+                roomTypeCode: d.roomTypeCode || "",
+                oooStatus: d.oooStatus || "",
+                roomNumber: d.roomNumber || "",
+
+                tooltipData: {
+                    company: d.company,
+                    agent: d.agent,
+                    paymentMethod: d.paymentMethod,
+                    comment: d.comment,
+                    confirmationNo: d.confirmationNo,
+                    code: d.code
+                }
             });
+        }
+
 
         /* =======================
          * INIT SCHEDULER

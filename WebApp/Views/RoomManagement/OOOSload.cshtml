@@ -218,9 +218,7 @@
                                                 class="tomselect-custom w-100">
                                             @foreach (var dpm in ViewBag.CommentList)
                                             {
-                                                <option value="@dpm.ID">
-                                                    @dpm.Code - @dpm.Description
-                                                </option>
+                                                <option value="@dpm.ID" data-desc="@dpm.Description">@dpm.Code - @dpm.Description</option>
                                             }
                                         </select>
                                         <div class="invalid-feedback"></div>
@@ -413,15 +411,17 @@
                 initTomSelect(".tomselect-custom");
                 self.reloadGrid();
 
+                // handler close modal
                 $('#ooos_modal').on('hidden.bs.modal', function () {
                     self.disposeGrid("#ooos_gridContainer");
-                    destroyTomSelect(["#ooos_room", "#ooos_roomClass", "#ooos_zone"]);
+                    clearMultipleTomSelect(["#ooos_room", "#ooos_roomClass", "#ooos_zone"]);
                     reloadBusinessDate();
                     self.selectedRowData = null;
                 });
 
                 $('#ooos_itemModal').on('hidden.bs.modal', function () {
-                    clearMultipleTomSelect(["#ooos_roomSelect", "#ooos_rtStatus", "#ooos_comment"]);
+                    ValidationAdapter.clear("#ooos_formContainer");
+                    clearMultipleTomSelect(["#ooos_roomSelect", "#ooos_comment"]);
                     reloadBusinessDate();
                 });
 
@@ -431,12 +431,14 @@
                     self.selectedRowData = null;
                 });
 
+                // events input
                 $("#ooos_formContainer").on("input", "input, textarea", function () {
                     if ($(this).hasClass("is-invalid")) {
                         ValidationAdapter.clearField(this);
                     }
                 });
 
+                // event tomselect
                 $("#ooos_formContainer").on("change", "select.tomselect-custom", function () {
                     if (this.tomselect) {
                         ValidationAdapter.clearField(this);
@@ -445,8 +447,13 @@
 
                 // Tự động điền note khi chọn Reason
                 $(document).on("change", "#ooos_comment", function () {
-                    var desc = $(this).find(":selected").data("desc");
-                    $("#ooos_txtReasonDesc").val(desc || "");
+                    const ts = this.tomselect;
+                    if (!ts) return;
+
+                    const value = ts.getValue();
+                    const option = ts.options[value];
+
+                    $("#ooos_txtReasonDesc").val(option?.desc || "");
                 });
 
             };
@@ -458,7 +465,7 @@
             $("#ooos_btnView").on("click", () => self.reloadGrid());
             $("#ooos_btnNew").on("click", () => self.openNewModal());
             $("#ooos_btnEdit").on("click", () => self.openEditModal());
-            $("#ooos_btnSaveItem").on("click", () => self.saveOOOS());
+            $("#ooos_btnSaveItem").on("click", () => self.saveBusinessBlock());
             $("#ooos_btnDelete").on("click", () => self.confirmDelete());
             $("#ooos_btnExportExcel").on("click", () => self.exportToExcel());
             $("#ooos_btnHistory").on("click", () => self.openModalHistory());
@@ -471,8 +478,8 @@
                 status: self.getStatusValue(),
                 roomNo: (getTomSelectData("#ooos_room") || []).map(x => x.value).join(","),
                 roomClassID: getTomSelectData("#ooos_roomClass")?.value,
-                fromDate: $("#fromDate").val() || dateSystem ,
-                toDate: $("#toDate").val() || dateSystem,
+                fromDate: $("#ooos_fromDate").val() || dateSystem ,
+                toDate: $("#ooos_toDate").val() || dateSystem,
                 zone: (getTomSelectData("#ooos_zone") || []).map(x => x.value).join(",")
             };
             $("#loadingSpinnerRateCode").show();
@@ -589,12 +596,14 @@
 
         openEditModal: function (){
             const self = this;
+            initDateInputs();
             if (!self.selectedRowData) {
                 showToast("Warning", "Please select a row first!", false);
                 return;
             }
             $("#ooos_itemModalLabel").text("Update Out of Order/Service");
             self.fillEditForm(self.selectedRowData);
+
             $("#ooos_itemModal").modal("show");
         },
 
@@ -617,40 +626,74 @@
             setTomSelectValue("#ooos_comment", data.reasonID);
             $("#ooos_txtReasonDesc").val(data.reason || "");
 
-            $("[data-name='ooos_itemFromDate'] input").val(formatDate(data.fromDate));
-            $("[data-name='ooos_itemToDate'] input").val(formatDate(data.toDate));
+            UI.setHiddenDate("ooos_itemFromDate", data.fromDate);
+            UI.setHiddenDate("ooos_itemToDate", data.toDate);
+
         },
 
-        saveOOOS: function () {
+        saveBusinessBlock: function () {
             const self = this;
-            var formData = new FormData();
 
-            formData.append("id", $("#ooos_id").val());
-            formData.append("roomSelect", (getTomSelectData("#ooos_roomSelect") || []).map(x => x.value).join(","));
-            formData.append("oooOrS", $("input[name='oooOrS']:checked").val());
-            formData.append("rtStatus", getTomSelectData("#ooos_rtStatus")?.value || "");
-            formData.append("comment", getTomSelectData("#ooos_comment")?.value || "");
-            formData.append('txtReasonDesc', $("#ooos_txtReasonDesc").val());
-            formData.append('itemFromDate', $("#ooos_itemFromDate").val());
-            formData.append('itemToDate', $("#ooos_itemToDate").val());
-            formData.append('userName', JSON.parse(localStorage.getItem("Loginname")));
-            formData.append('userID', JSON.parse(localStorage.getItem("userID")));
+            const loginName = (localStorage.getItem("Loginname") || "")
+            .trim()
+            .replace(/^"(.*)"$/, '$1');
+            const loginUser = parseInt(localStorage.getItem("userID")) || 0;
+
+            const roomSelectData = getTomSelectData("#ooos_roomSelect") || [];
+
+            if (!roomSelectData.length) {
+                ValidationAdapter.apply([
+                    { field: "roomSelect", message: "Haven't selected a room yet!" }
+                ], "#ooos_formContainer");
+
+                showToast("Warning", "Check for incorrect input fields.", false);
+                return;
+            }
+                
+            const payload = roomSelectData.map(r => ({
+                id: parseInt($("#ooos_id").val() || 0),
+
+                fromDateOOO: $("#ooos_itemFromDate").val() || dateSystem,
+                toDateOOO: $("#ooos_itemToDate").val() || dateSystem,
+
+                reasonID: parseInt(toBackendValue(getTomSelectData("#ooos_comment"), "value") || 0),
+                reasonNote: $("#ooos_txtReasonDesc").val() || "",
+
+                roomID: parseInt(r.value),
+                roomNo: r.text,
+
+                UserInsertID: loginUser,
+                UserUpdateID: loginUser,
+                ReturnStatus: parseInt(toBackendValue(getTomSelectData("#ooos_rtStatus"), "value") || 0),
+                OOOStatus: parseInt($("input[name='oooOrS']:checked").val() || 0),
+                CutOffDate: $("#ooos_itemFromDate").val() || dateSystem
+            }));
 
             $.ajax({
-                url: '/RoomManagement/UpdateandInsertBusinessBlock',
-                type: 'POST',
-                processData: false,
-                contentType: false,
-                data: formData,
+                url: "/RoomManagement/SaveBusinessBlock",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
                 success: function (res) {
                     if (res.success) {
                         showToast("Success", res.message, true);
                         $("#ooos_itemModal").modal("hide");
                         self.reloadGrid();
                     } else {
-                        ValidationAdapter.apply(res.errors || [], "#ooos_formContainer");
-                        showToast("Warning", res.message, false);
+
+                        // nếu có validation errors
+                        if (res.errors && res.errors.length > 0) {
+                            ValidationAdapter.apply(res.errors, "#ooos_formContainer");
+                            showToast("Warning", "Check for incorrect input fields.", false);
+                        }
+                        else {
+                            // nếu là lỗi exception
+                            showToast("Error", res.message || "Something went wrong.", false);
+                        }
                     }
+                },
+                error: function () {
+                    showToast("Error", "Server error occurred.", false);
                 }
             });
         },
@@ -676,6 +719,7 @@
                         self.reloadGrid();
                         showToast("Success","Delete Successfully!",true);
                     } else {
+                        self.reloadGrid();
                         showToast("Error",result.message,false);
                     }
                },
