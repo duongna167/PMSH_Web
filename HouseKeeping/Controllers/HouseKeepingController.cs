@@ -118,7 +118,7 @@ namespace HouseKeeping.Controllers
             ViewBag.BusinessDate = businessDateModel[0].BusinessDate;
             List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
             ViewBag.ZoneList = listzo;
-            return View();
+            return PartialView();
         }
 
 

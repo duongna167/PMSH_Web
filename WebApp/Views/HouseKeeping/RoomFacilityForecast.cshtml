@@ -3,49 +3,11 @@
 @{
     var zoneList = ViewBag.ZoneList;
 }
-<style>
-    #loadingSpinnerRateCode {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 999;
-        background: rgba(255, 255, 255, 0.55);
-        backdrop-filter: blur(2px);
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
 
-    .modal-full-height {
-        height: 95vh;
-    }
-
-    .modal-body {
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-
-    .mui-card {
-        display: flex;
-        flex-direction: column;
-        flex: 1 1 auto;
-        min-height: 0;
-    }
-
-    .gridContainer {
-        position: relative;
-        flex: 1 1 auto;
-        min-height: 0;
-    }
-</style>
-
-<div class="modal fade" id="reportModal" data-bs-backdrop="static" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content modal-full-height">
+<!-- MAIN VIEW MUST BE BS5 MODAL -->
+<div class="modal fade" id="rff_reportModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable modal-4by3">
+        <div class="modal-content">
 
             <!-- HEADER -->
             <div class="modal-header bg-light py-2">
@@ -53,26 +15,22 @@
             </div>
 
             <!-- BODY -->
-            <div class="modal-body">
-
-                <!-- ACTION BAR -->
-                <div class="py-2 flex-shrink-0">
-                    <button id="btnPrint" class="mui-button mui-button-new">View</button>
-                    <button id="btnExportExcel" class="mui-button mui-button-new">Excel</button>
-                    <button id="btnExportPdf" class="mui-button mui-button-new">PDF</button>
-                    <button id="btnCloseAva" class="mui-button mui-button-new">Close</button>
-                </div>
-
-                <!-- CARD = FILTER + GRID -->
-                <div class="mui-card mb-2 bg-light border-0">
-
+            <div class="modal-body rff_modal-body">
+                <div class="search-filter">
+                    <!-- ACTION BAR -->
+                    <div>
+                        <button id="rff_btnPrint" class="mui-button mui-button-new">View</button>
+                        <button id="rff_btnExportExcel" class="mui-button mui-button-new">Excel</button>
+                        <button id="rff_btnExportPdf" class="mui-button mui-button-new">PDF</button>
+                        <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                    </div>
                     <!-- FILTER -->
                     <div class="d-flex gap-3 align-items-center mb-2 flex-shrink-0">
 
                         <div class="d-flex align-items-center">
                             <label class="fw-bold me-2 mb-0">Zone</label>
                             <div style="width: 200px;">
-                                <select id="zone" name="zone" class="tomselect-custom" multiple>
+                                <select id="rff_zone" name="rff_zone" class="tomselect-custom" multiple>
                                     @foreach (var item in zoneList)
                                     {
                                         <option value="@item.Code">@item.Code</option>
@@ -84,8 +42,8 @@
                         <div class="d-flex align-items-center">
                             <label class="fw-bold me-2 mb-0">From</label>
                             <div class="date-group">
-                                <div data-date-input data-format="DD/MM/YYYY"                       data-name="fromDate">
-                                    <input type="text"                       class="form-control form-control-sm date-ui"
+                                <div data-date-input data-format="DD/MM/YYYY" data-name="rff_fromDate">
+                                    <input type="text" class="form-control form-control-sm date-ui"
                                            placeholder="dd/mm/yyyy" />
                                 </div>
                             </div>
@@ -94,20 +52,29 @@
                         <div class="d-flex align-items-center">
                             <label class="fw-bold me-2 mb-0">To</label>
                             <div class="date-group">
-                                <div data-date-input data-format="DD/MM/YYYY" data-name="toDate">
-                                    <input type="text"                         class="form-control form-control-sm date-ui"
+                                <div data-date-input data-format="DD/MM/YYYY" data-name="rff_toDate">
+                                    <input type="text" class="form-control form-control-sm date-ui"
                                            placeholder="dd/mm/yyyy" />
                                 </div>
                             </div>
                         </div>
 
                     </div>
+                </div>
+
+
+
+                <!-- CARD = FILTER + GRID -->
+                <div class="mui-card mb-2 bg-light border-0">
+
 
                     <!-- GRID -->
                     <div class="gridContainer mt-2">
-                        <div id="gridContainer"></div>
+                        <div id="rff_gridContainer"></div>
 
-                        <div id="loadingSpinnerRateCode" style="display:none">
+                        <div id="rff_loadingSpinnerRateCode" style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+                            z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+                            height: 100%;display: flex;align-items: center;justify-content: center;">
                             <div class="spinner-border text-primary"></div>
                         </div>
                     </div>
@@ -119,283 +86,337 @@
     </div>
 </div>
 
-
 <script>
-    var parsedBusinessDate = null;
+    // =========================================================
+    // rff_Module (Room Facility Forecast) - STRICT REFACTOR
+    // - No logic truncation
+    // - Prefix all ids/names with rff_
+    // - Must be BS5 modal (including main view)
+    // - Must have init/destroy + global openModal
+    // - Must auto cleanup on hidden.bs.modal for modals starting with rff_
+    // =========================================================
 
-    $(document).ready(function () {
+    var rff_Module = {
 
-        initTomSelect(".tomselect-custom");
-        getBusinessDate();
-        $('#reportModal').modal('show');
-    });
+        parsedBusinessDate: null,
+        gridInstance: null,
 
-    $(document).on('click', '#btnCloseAva', function () {
-        window.location.href = '/Home/Index';
-    });
-    function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
+        init: function () {
+            initTomSelect(".tomselect-custom");
+            this.getBusinessDate();
+            $('#rff_reportModal').modal('show');
+            this.bindEvents();
+        },
 
-                const fromDateStr = result.split('T')[0];
-                const fromDate = new Date(fromDateStr);
+        destroy: function () {
 
-                // cộng thêm 13 ngày
-                const toDate = new Date(fromDate);
-                toDate.setDate(toDate.getDate() + 15);
-
-                // format yyyy-MM-dd
-                const toDateStr = toDate.toISOString().split('T')[0];
-                UI.setHiddenDate("toDate", toDateStr);
-                UI.setHiddenDate("fromDate", fromDateStr);
-                $("#btnPrint").trigger("click");
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
+            // Dispose DevExtreme Grid instances
+            try {
+                if (rff_Module.gridInstance) {
+                    rff_Module.gridInstance.dispose();
                 }
-            }
-        });
-    }
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+            } catch (e) { }
+
+            // Empty grid containers
+            try {
+                $("#rff_gridContainer").empty();
+            } catch (e) { }
+
+            // Null / reset internal state
+            rff_Module.parsedBusinessDate = null;
+            rff_Module.gridInstance = null;
+        },
+
+        bindEvents: function () {
+
+            // IMPORTANT:
+            // Must keep logic, but avoid duplicate binding -> use .off().on()
 
 
-        $("#loadingSpinnerRateCode").show();
-        $.ajax({
-            url: '/HouseKeeping/RoomFacilityForecastData',
-            type: 'GET',
-            data: {
-                fromDate: $("#fromDate").val(),
-                toDate: $("#toDate").val(),
-                zone: $("#zone").val().join(","),
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                initializeReservationSummaryGrid(result, $("#fromDate").val(), $("#toDate").val());
-                $("#loadingSpinnerRateCode").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinnerRateCode").hide();
-            }
-        });
-    });
+            $(document).off("click", "#rff_btnPrint").on("click", "#rff_btnPrint", function () {
 
-    function initializeReservationSummaryGrid(data, fromDate, toDate) {
-        const columnWidth = 160;
-        const dateColumns = generateDateColumns(fromDate, toDate);
+                $("#rff_loadingSpinnerRateCode").show();
+                $.ajax({
+                    url: '/HouseKeeping/RoomFacilityForecastData',
+                    type: 'GET',
+                    data: {
+                        fromDate: $("#rff_fromDate").val(),
+                        toDate: $("#rff_toDate").val(),
+                        zone: $("#rff_zone").val().join(","),
+                    },
+                    traditional: true,
+                    crossDomain: false,
+                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                    success: function (result) {
+                        rff_Module.initializeReservationSummaryGrid(result, $("#rff_fromDate").val(), $("#rff_toDate").val());
+                        $("#rff_loadingSpinnerRateCode").hide();
+                    },
+                    error: function () {
+                        alert("Không th? t?i báo cáo.");
+                        $("#rff_loadingSpinnerRateCode").hide();
+                    }
+                });
+            });
 
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            allowColumnResizing: true,
-            columnAutoWidth: false, // Để width của dateColumns ổn định hơn
-            height: "100%",
-            showBorders: true,
-            columns: [
-                {
-                    dataField: "Statisticname",
-                    caption: "Statistic Name",
-                    width: columnWidth,
-                    fixed: true // Cố định cột tên để dễ theo dõi khi scroll ngang
+            $("#rff_btnExportExcel").off("click").on("click", function () {
+                const grid = $("#rff_gridContainer").dxDataGrid("instance"); var selectedReport2 = '@ViewBag.ReportTitle';
+                var selectedReport = '@ViewBag.ReportTitle';
+                if (!selectedReport) {
+                    alert("Vui lòng ch?n báo cáo tru?c khi xu?t Excel.");
+                    return;
+                }
+
+                const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+                const worksheet = workbook.addWorksheet("Sheet 1");
+
+                // === T?o header công ty (dòng 1) ===
+                worksheet.addRow(['Công ty C? ph?n Gi?i pháp Công ngh? CS-Solution']);
+                worksheet.mergeCells('A1:E1');
+                worksheet.getRow(1).font = { bold: true };
+                worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+                // === Dòng 2: Th?i gian xu?t (ph?i) ===
+                const now = new Date();
+                const exportDate = now.toLocaleString("vi-VN");
+                worksheet.addRow(['', '', '', '', ' ' + exportDate]);
+                worksheet.mergeCells('E2:H2');
+                worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
+
+                // === Dòng 3–4: Tr?ng
+                worksheet.addRow([]);
+                worksheet.addRow([]);
+
+                // === Dòng 5: Tên báo cáo ? gi?a ===
+                const reportRow = worksheet.addRow(['', '', selectedReport]);
+                worksheet.mergeCells('C5:F5');
+                reportRow.font = { bold: true, size: 14 };
+                reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+                // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
+                worksheet.addRow([]);
+
+                // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
+                DevExpress.excelExporter.exportDataGrid({
+                    component: grid,
+                    worksheet: worksheet,
+                    autoFilterEnabled: true,
+                    topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
+                }).then(function () {
+                    // Footer
+                    const lastRow = worksheet.lastRow.number + 2;
+                    worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
+                    worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
+                    worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                    worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                    // Ghi file
+                    let fileName = selectedReport + ".xlsx";
+                    workbook.xlsx.writeBuffer().then(function (buffer) {
+                        saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                    });
+                });
+            });
+
+            // Nút xu?t PDF
+            $("#rff_btnExportPdf").off("click").on("click", function () {
+                const { jsPDF } = window.jspdf; // ?? B? sung dòng này
+
+                const doc = new jsPDF();
+
+                DevExpress.pdfExporter.exportDataGrid({
+                    jsPDFDocument: doc,
+                    component: $("#rff_gridContainer").dxDataGrid("instance"),
+                    autoTableOptions: {
+                        styles: { cellPadding: 2, fontSize: 8 },
+                        margin: { top: 20 }
+                    }
+                }).then(() => {
+                    doc.save("BaoCao.pdf");
+                });
+            });
+        },
+
+        getBusinessDate: function () {
+            return $.ajax({
+                url: '/Reservation/GetBusinessDate',
+                type: 'get',
+                dataType: 'json',
+                crossDomain: false,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (result) {
+
+                    const fromDateStr = result.split('T')[0];
+                    const fromDate = new Date(fromDateStr);
+
+                    // cộng thêm 13 ngày
+                    const toDate = new Date(fromDate);
+                    toDate.setDate(toDate.getDate() + 15);
+
+                    // format yyyy-MM-dd
+                    const toDateStr = toDate.toISOString().split('T')[0];
+                    UI.setHiddenDate("rff_toDate", toDateStr);
+                    UI.setHiddenDate("rff_fromDate", fromDateStr);
+                    $("#rff_btnPrint").trigger("click");
                 },
-                ...dateColumns
-            ],
-            paging: { pageSize: 20 },
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [20, 50, 100],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
-            onRowPrepared: function (e) {
-                if (e.rowType === "data") {
-                    if (e.data?.isTotal) {
-                        e.rowElement.css({
-                            "font-weight": "bold",
-                            "background-color": "#f6f6f6"
-                        });
+                error: function (xhr, statusText, err) {
+                    if (xhr.status == 401) {
+                        sessionTimeout();
                     }
                 }
-            }
-        });
-    }
+            });
+        },
 
-    function generateDateColumns(fromDate, toDate) {
-        const columns = [];
-        const start = new Date(fromDate);
-        const end = new Date(toDate);
+        initializeReservationSummaryGrid: function (data, fromDate, toDate) {
+            const columnWidth = 160;
+            const dateColumns = rff_Module.generateDateColumns(fromDate, toDate);
 
-        let index = 1; // Bắt đầu từ date1, date2...
+            $("#rff_gridContainer").dxDataGrid({
+                dataSource: data,
+                allowColumnResizing: true,
+                columnAutoWidth: false, // Để width của dateColumns ổn định hơn
+                height: "100%",
+                showBorders: true,
+                columns: [
+                    {
+                        dataField: "Statisticname",
+                        caption: "Statistic Name",
+                        width: columnWidth,
+                        fixed: true // Cố định cột tên để dễ theo dõi khi scroll ngang
+                    },
+                    ...dateColumns
+                ],
+                paging: { pageSize: 20 },
+                scrolling: {
+                    useNative: true,
+                    showScrollbar: "always"
+                },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [20, 50, 100],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: { visible: true, applyFilter: "auto" },
+                headerFilter: { visible: true },
+                onRowPrepared: function (e) {
+                    if (e.rowType === "data") {
+                        if (e.data?.isTotal) {
+                            e.rowElement.css({
+                                "font-weight": "bold",
+                                "background-color": "#f6f6f6"
+                            });
+                        }
+                    }
+                }
+            });
 
-        while (start <= end) {
-            const day = start.getDate().toString().padStart(2, '0');
-            const month = start.toLocaleString('en-US', { month: 'short' });
-            const weekday = start.toLocaleString('en-US', { weekday: 'short' });
-            const weekNumber = getWeekNumber(start);
+            // store instance for destroy()
+            rff_Module.gridInstance = $("#rff_gridContainer").dxDataGrid("instance");
+        },
 
-            const captionHtml = `${day}-${month}<br>${weekday}<br>CW${weekNumber}`;
+        generateDateColumns: function (fromDate, toDate) {
+            const columns = [];
+            const start = new Date(fromDate);
+            const end = new Date(toDate);
 
-            columns.push({
-                dataField: `date${index}`,   // Ví dụ: date1, date2...
-                width: 100,                  // Tăng nhẹ độ rộng để hiển thị đủ text
-                alignment: "center",
-                dataType: "number",
-                cellTemplate: function (container, options) {
-                    let value = options.value;
-                    let num = parseFloat(value);
+            let index = 1; // Bắt đầu từ date1, date2...
 
-                    // Format số (1,000; 1,234.5 ...)
-                    const formatNumber = (val) =>
-                        new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(val);
+            while (start <= end) {
+                const day = start.getDate().toString().padStart(2, '0');
+                const month = start.toLocaleString('en-US', { month: 'short' });
+                const weekday = start.toLocaleString('en-US', { weekday: 'short' });
+                const weekNumber = rff_Module.getWeekNumber(start);
 
-                    // Logic định dạng dựa trên cột Statisticname (hoặc roomType tùy API của bạn)
-                    // Lưu ý: Tôi dùng options.data.Statisticname vì trong code cũ của bạn field là Statisticname
-                    let rowType = options.data.Statisticname || options.data.roomType;
+                const captionHtml = `${day}-${month}<br>${weekday}<br>CW${weekNumber}`;
 
-                    if (rowType === "% OCC") {
-                        if (value !== null && value !== undefined && value !== "") {
-                            if (!isNaN(num)) {
-                                container.text(num + " %");
+                columns.push({
+                    dataField: `date${index}`,   // Ví dụ: date1, date2...
+                    width: 80,                  // Tăng nhẹ độ rộng để hiển thị đủ text
+                    alignment: "center",
+                    dataType: "number",
+                    cellTemplate: function (container, options) {
+                        let value = options.value;
+                        let num = parseFloat(value);
+
+                        // Format số (1,000; 1,234.5 ...)
+                        const formatNumber = (val) =>
+                            new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(val);
+
+                        // Logic định dạng dựa trên cột Statisticname (hoặc roomType tùy API của bạn)
+                        // Lưu ý: Tôi dùng options.data.Statisticname vì trong code cũ của bạn field là Statisticname
+                        let rowType = options.data.Statisticname || options.data.roomType;
+
+                        if (rowType === "% OCC") {
+                            if (value !== null && value !== undefined && value !== "") {
+                                if (!isNaN(num)) {
+                                    container.text(num + " %");
+                                } else {
+                                    container.text(value + " %");
+                                }
                             } else {
-                                container.text(value + " %");
+                                container.text("");
                             }
-                        } else {
-                            container.text("");
                         }
-                    }
-                    else if (rowType === "R.Night") {
-                        if (!num || num === 0) {
-                            container.text("0").css("color", "red");
-                        } else {
-                            container.text(formatNumber(num));
-                        }
-                    }
-                    else if (rowType === "Allotment") {
-                        container.text(num ? formatNumber(num) : "0");
-                    }
-                    else {
-                        if (!isNaN(num)) {
-                            if (num <= 0) {
-                                container.text(formatNumber(num)).css("color", "red");
+                        else if (rowType === "R.Night") {
+                            if (!num || num === 0) {
+                                container.text("0").css("color", "red");
                             } else {
                                 container.text(formatNumber(num));
                             }
-                        } else {
-                            container.text("");
                         }
+                        else if (rowType === "Allotment") {
+                            container.text(num ? formatNumber(num) : "0");
+                        }
+                        else {
+                            if (!isNaN(num)) {
+                                if (num <= 0) {
+                                    container.text(formatNumber(num)).css("color", "red");
+                                } else {
+                                    container.text(formatNumber(num));
+                                }
+                            } else {
+                                container.text("");
+                            }
+                        }
+                    },
+                    headerCellTemplate: function (container) {
+                        container.html(
+                            `<div style="white-space: normal; text-align:center; font-size:11px;">${captionHtml}</div>`
+                        );
                     }
-                },
-                headerCellTemplate: function (container) {
-                    container.html(
-                        `<div style="white-space: normal; text-align:center; font-size:11px;">${captionHtml}</div>`
-                    );
-                }
-            });
+                });
 
-            start.setDate(start.getDate() + 1);
-            index++;
-        }
-
-        return columns;
-    }
-
-    function getWeekNumber(date) {
-        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-        const dayNum = d.getUTCDay() || 7;
-        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    }
-
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance"); var selectedReport2 = '@ViewBag.ReportTitle';
-        var selectedReport = '@ViewBag.ReportTitle';
-        if (!selectedReport) {
-            alert("Vui lòng ch?n báo cáo tru?c khi xu?t Excel.");
-            return;
-        }
-
-        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === T?o header công ty (dòng 1) ===
-        worksheet.addRow(['Công ty C? ph?n Gi?i pháp Công ngh? CS-Solution']);
-        worksheet.mergeCells('A1:E1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Th?i gian xu?t (ph?i) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
-        worksheet.mergeCells('E2:H2');
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: Tr?ng
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tên báo cáo ? gi?a ===
-        const reportRow = worksheet.addRow(['', '', selectedReport]);
-        worksheet.mergeCells('C5:F5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
-        worksheet.addRow([]);
-
-        // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
-        }).then(function () {
-            // Footer
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
-            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = selectedReport + ".xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
-            });
-        });
-    });
-
-    // Nút xu?t PDF
-    $("#btnExportPdf").click(function () {
-        const { jsPDF } = window.jspdf; // ?? B? sung dòng này
-
-        const doc = new jsPDF();
-
-        DevExpress.pdfExporter.exportDataGrid({
-            jsPDFDocument: doc,
-            component: $("#gridContainer").dxDataGrid("instance"),
-            autoTableOptions: {
-                styles: { cellPadding: 2, fontSize: 8 },
-                margin: { top: 20 }
+                start.setDate(start.getDate() + 1);
+                index++;
             }
-        }).then(() => {
-            doc.save("BaoCao.pdf");
-        });
+
+            return columns;
+        },
+
+        getWeekNumber: function (date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        },
+    };
+
+    // =========================================================
+    // Global handlers (ModalManager entry points)
+    // =========================================================
+    window.openModalRFF = function () {
+        rff_Module.init();
+    };
+
+    // =========================================================
+    // Automatic cleanup for any BS5 modal with id starting rff_
+    // =========================================================
+    $(document).off("hidden.bs.modal.rff").on("hidden.bs.modal.rff", ".modal[id^='rff_']", function () {
+        try {
+            rff_Module.destroy();
+        } catch (e) { }
     });
 
 </script>
