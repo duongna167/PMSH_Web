@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using BaseBusiness.bc;
-
+using System.Security.Cryptography;
 namespace BaseBusiness.util
 {
 	/// <summary>
@@ -23,8 +23,13 @@ namespace BaseBusiness.util
 			// TODO: Add constructor logic here
 			//
 		}
-
-		public static string GetDBConnectionString()
+        public static string passPhrase = "Pas5pr@se";        // can be any string
+        public static string saltValue = "s@1tValue";        // can be any string
+        public static string hashAlgorithm = "SHA1";             // can be "MD5"
+        public static int passwordIterations = 2;                  // can be any number
+        public static string initVector = "@CSS@CSS@CSS@CSS"; // must be 16 bytes
+        public static int keySize = 256;
+        public static string GetDBConnectionString()
 		{
 			try
 			{
@@ -109,8 +114,95 @@ namespace BaseBusiness.util
 				sql += " WHERE " + exp.ToString();
 			return sql;
 		}
+        public static string Decrypt(string cipherText,
+                             string passPhrase,
+                             string saltValue,
+                             string hashAlgorithm,
+                             int passwordIterations,
+                             string initVector,
+                             int keySize)
+        {
+            byte[] initVectorBytes = Encoding.ASCII.GetBytes(initVector);
+            byte[] saltValueBytes = Encoding.ASCII.GetBytes(saltValue);
 
-		public static SqlDbType ConvertToSQLType(Type type)
+            // Convert our ciphertext into a byte array.
+            byte[] cipherTextBytes = Convert.FromBase64String(cipherText);
+
+            PasswordDeriveBytes password = new PasswordDeriveBytes(
+                                                            passPhrase,
+                                                            saltValueBytes,
+                                                            hashAlgorithm,
+                                                            passwordIterations);
+
+            byte[] keyBytes = password.GetBytes(keySize / 8);
+
+            RijndaelManaged symmetricKey = new RijndaelManaged();
+            symmetricKey.Mode = CipherMode.CBC;
+
+            ICryptoTransform decryptor = symmetricKey.CreateDecryptor(
+                                                             keyBytes,
+                                                             initVectorBytes);
+            MemoryStream memoryStream = new MemoryStream(cipherTextBytes);
+            CryptoStream cryptoStream = new CryptoStream(memoryStream,
+                                                          decryptor,
+                                                          CryptoStreamMode.Read);
+
+            byte[] plainTextBytes = new byte[cipherTextBytes.Length];
+            int decryptedByteCount = cryptoStream.Read(plainTextBytes,
+                                                       0,
+                                                       plainTextBytes.Length);
+            memoryStream.Close();
+            cryptoStream.Close();
+            string plainText = Encoding.UTF8.GetString(plainTextBytes,
+                                                       0,
+                                                       decryptedByteCount);
+
+            // Return decrypted string.   
+            return plainText;
+        }
+        public static string Encrypt(string plainText,
+                                    string passPhrase,
+                                    string saltValue,
+                                    string hashAlgorithm,
+                                    int passwordIterations,
+                                    string initVector,
+                                    int keySize)
+        {
+            byte[] initVectorBytes = Encoding.ASCII.GetBytes(initVector);
+            byte[] saltValueBytes = Encoding.ASCII.GetBytes(saltValue);
+
+            byte[] plainTextBytes = Encoding.UTF8.GetBytes(plainText);
+
+            PasswordDeriveBytes password = new PasswordDeriveBytes(
+                                                            passPhrase,
+                                                            saltValueBytes,
+                                                            hashAlgorithm,
+                                                            passwordIterations);
+
+            byte[] keyBytes = password.GetBytes(keySize / 8);
+            RijndaelManaged symmetricKey = new RijndaelManaged();
+
+            symmetricKey.Mode = CipherMode.CBC;
+            ICryptoTransform encryptor = symmetricKey.CreateEncryptor(
+                                                             keyBytes,
+                                                             initVectorBytes);
+
+            MemoryStream memoryStream = new MemoryStream();
+            CryptoStream cryptoStream = new CryptoStream(memoryStream,
+                                                         encryptor,
+                                                         CryptoStreamMode.Write);
+            cryptoStream.Write(plainTextBytes, 0, plainTextBytes.Length);
+            cryptoStream.FlushFinalBlock();
+
+            byte[] cipherTextBytes = memoryStream.ToArray();
+
+            memoryStream.Close();
+            cryptoStream.Close();
+            string cipherText = Convert.ToBase64String(cipherTextBytes);
+
+            return cipherText;
+        }
+        public static SqlDbType ConvertToSQLType(Type type)
 		{
 			if (type == typeof (string))
 			{
