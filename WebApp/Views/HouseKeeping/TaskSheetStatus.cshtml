@@ -188,6 +188,7 @@
                 data: filters, // Truyền trực tiếp filters, không cần bọc { filters } nếu backend nhận trực tiếp
                 traditional: true,
                 success: function (result) {
+                    console.log(result);
                     // SỬA LỖI Ở ĐÂY: Dùng self thay vì this
                     self.initializeTaskSheetStatusGrid(result);
 
@@ -207,39 +208,69 @@
         },
 
         initializeTaskSheetStatusGrid: function (data) {
+
             $("#tss_gridContainer").dxDataGrid({
                 dataSource: data,
                 allowColumnResizing: true,
                 columnAutoWidth: true,
                 height: "100%",
+
+                groupPanel: {
+                    visible: true   // hiển thị khu vực group phía trên
+                },
+
+                grouping: {
+                    autoExpandAll: true   // tự động expand group
+                },
+
                 columns: [
                     { dataField: "colIndex", caption: "No", width: 50 },
+
                     { dataField: "roomNo", caption: "RoomNo" },
+
                     { dataField: "hkstatusID", caption: "Room Status" },
+
                     { dataField: "fostatus", caption: "FOStatus" },
-                    { dataField: "attendant", caption: "Attendant" },
+
+                    {
+                        dataField: "attendant",
+                        caption: "Attendant",
+                        groupIndex: 0   // 🔥 GROUP THEO ATTENDANT
+                    },
+
                     {
                         dataField: "taskDate",
                         caption: "Task Date",
                         dataType: "date",
                         format: "dd/MM/yyyy"
                     },
+
                     { dataField: "complete", caption: "Status" }
                 ],
-                // ... Giữ các cấu hình khác của bạn (onCellPrepared, paging...)
+
                 onCellPrepared: function (e) {
+
                     if (e.rowType === "data" && e.column.dataField === "hkstatusID") {
+
                         const status = (e.value || "").toLowerCase();
+
                         if (status.includes("dirty")) {
-                            e.cellElement.css({ "background-color": "Red", "color": "white" });
-                        } else if (status.includes("clean")) {
-                            e.cellElement.css({ "background-color": "green", "color": "white" });
+                            e.cellElement.css({
+                                "background-color": "red",
+                                "color": "white"
+                            });
                         }
-                        // Thêm các điều kiện khác ở đây...
+                        else if (status.includes("clean")) {
+                            e.cellElement.css({
+                                "background-color": "green",
+                                "color": "white"
+                            });
+                        }
                     }
                 }
             });
         },
+
 
         initializeTaskSheetStatusPopGrid: function (data) {
             // Tương tự, dùng ID chuẩn logGridContainer
