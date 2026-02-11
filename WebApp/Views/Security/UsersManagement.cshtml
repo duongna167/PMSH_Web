@@ -62,7 +62,7 @@
                                         <div class="row align-items-center">
                                             <label class="col-md-4 col-form-label text-end">User Group</label>
                                             <div class="col-md-8">
-                                                <select id="usergroup"                                                        name="usergroup"
+                                                <select id="usergroup"   name="usergroup"
                                                         class="form-control form-control-sm">
                                                     <option value=""></option>
                                                     @foreach (var item in listusg)
@@ -162,7 +162,7 @@
                 </div>
                 <div class="container-fluid">
                     <div class="row g-2">
-
+                        <input type="hidden" id="txtid" name="txtid" />
                         <!-- LEFT -->
                         <div class="col-md-6">
 
@@ -189,11 +189,11 @@
                                     <div class="col-md-4 text-end text-nowrap">Sex</div>
                                     <div class="col-md-8">
                                         <div class="form-check form-check-inline">
-                                            <input  type="radio" name="sex">
+                                            <input  type="radio" name="sex" value="1">
                                             <label class="form-check-label">Male</label>
                                         </div>
                                         <div class="form-check form-check-inline">
-                                            <input  type="radio" name="sex" checked>
+                                            <input  type="radio" name="sex" checked value="0">
                                             <label class="form-check-label">Female</label>
                                         </div>
                                     </div>
@@ -251,7 +251,7 @@
                                     <div class="col-md-4 text-end text-nowrap">Date of Birth</div>
                                     <div class="col-md-8">
                                         <div data-date-input data-format="DD/MM/YYYY" data-name="dateofbirth"
-                                             business-date>
+                                             >
                                             <input type="text" class="date-ui form-control form-control-sm"
                                                    placeholder="dd/mm/yyyy" autocomplete="off" />
                                         </div>
@@ -263,7 +263,7 @@
                                     <div class="col-md-4 text-end text-nowrap">Working Date</div>
                                     <div class="col-md-8">
                                         <div data-date-input data-format="DD/MM/YYYY" data-name="workingdate"
-                                             business-date>
+                                             >
                                             <input type="text" class="date-ui form-control form-control-sm"
                                                    placeholder="dd/mm/yyyy" autocomplete="off" />
                                         </div>
@@ -324,7 +324,7 @@
                                 <div class="row g-2 align-items-center mb-1">
                                     <div class="col-md-4 text-end text-nowrap">Login Name</div>
                                     <div class="col-md-8">
-                                        <input id="loginName" class="form-control form-control-sm">
+                                        <input id="loginNamenew" class="form-control form-control-sm">
                                     </div>
                                 </div>
 
@@ -344,14 +344,14 @@
 
                                 <div class="row g-2 align-items-center mb-1">
                                     <div class="col-md-4 text-end text-nowrap">Pws expire date</div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-5">
                                         <div data-date-input data-format="DD/MM/YYYY" data-name="expiredate"
-                                             business-date>
+                                             >
                                             <input type="text" class="date-ui form-control form-control-sm"
                                                    placeholder="dd/mm/yyyy" autocomplete="off" />
                                         </div>
                                     </div>
-                                    <div class="col-md-4 d-flex align-items-center">
+                                    <div class="col-md-3 d-flex align-items-center">
                                         <button id="resetpass" type="button" class="btn btn-outline-secondary btn-sm px-2 py-0">
                                             Reset
                                         </button>
@@ -459,16 +459,26 @@
 
             $(document).off("click", "#btnClose").on("click", "#btnClose", function () {
                 $("#ousm_modal").modal("hide");
+                  self.clearForm();
             });
 
             $("#btnEditUsermana").off("click").on("click", function () {
                 self.editSelected();
             });
             $("#btnNewUsermana").click(function () {
-                initDateInputs();
+               UI.setHiddenDate("dateofbirth", dateSystem);
+               UI.setHiddenDate("workingdate", dateSystem);
+               UI.setHiddenDate("expiredate", dateSystem);
+                self.clearForm();
                 $("#popupNewGrid").modal("show");
             });
 
+            $("#btnSaveAtt").click(function () {
+                self.saveForm();
+            });
+            $("#resetpass").click(function () {
+                self.resetPass();
+            });
         },
         usersManagementData:  function () {
              const self = this;
@@ -520,7 +530,7 @@
                 success: function (res) {
                    console.log(res);
                     self.populateForm(res);
-                           initDateInputs();
+                    
                     $("#popupNewGrid").modal("show");
                     $("#loadingSpinner").hide();
                 },
@@ -530,9 +540,110 @@
                 }
             });
         },
-        populateForm: function (data) {
-            if (!data) return;
+        saveForm: function () {
+            const self = this;
 
+            const data = {
+                ID: $("#txtid").val() || 0,
+
+                LoginName: $("#loginNamenew").val(),
+                PasswordHash: $("#passWord").val(), // backend sẽ encrypt
+            
+                FirstName: $("#firstNamenew").val(),
+                LastName: $("#lastNamenew").val(),
+                MiddleName: $("#middleNamenew").val(),
+
+                Sex: $("input[name='sex']:checked").index("input[name='sex']"),
+
+                BirthOfDate:   $("#dateofbirth").val(),
+
+                Telephone: $("#telephone").val(),
+                HandPhone: $("#handPhone").val(),
+                HomeAddress: $("#address").val(),
+                Resident: $("#resident").val(),
+                PostalCode: $("#postalCode").val(),
+
+                DepartmentID: parseInt($("#department").val()) || 0,
+                Status: parseInt($("#statusNew").val()) || 1,
+
+                Communication: $("#communication").val(),
+
+                PassExpireDate:  $("#expiredate").val(),
+
+                IsCashier: $("#ischeckCashier").is(":checked"),
+                CashierNo: parseInt($("#cachierNo").val()) || 0,
+
+                Email: $("#emailAdress").val(),
+
+                StartWorking:$("#workingdate").val(),
+
+                UserInsertID: JSON.parse(localStorage.getItem("userID")),
+                UserUpdateID: JSON.parse(localStorage.getItem("userID")),
+
+                JobTitleID: parseInt($("#jobtitlenew").val()) || 0,
+                UserGroupID: parseInt($("#usergroupnew").val()) || 0,
+                FullName: $("#loginNamenew").val(),
+
+                IsShow: true
+            };
+
+            $.ajax({
+                url: '/Security/UpdateUsersManagement',
+                type: 'POST',
+                data: data,
+                traditional: true,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (response) {
+                    if (response.success) {
+                        showToast('Success', response.message, true);
+                        $("#popupNewGrid").modal("hide");
+                        self.usersManagementData();
+                        self.clearForm();
+                    } else {
+                        showToast('Warning', response.message, false);
+                    }
+                },
+                error: function () {
+                    showToast('Error', 'Không thể lưu dữ liệu.', false);
+                }
+            });
+        },
+         saveForm: function () {
+            const self = this;
+
+            const data = {
+                ID: $("#txtid").val() || 0,
+
+                UserInsertID: JSON.parse(localStorage.getItem("userID")),
+                UserUpdateID: JSON.parse(localStorage.getItem("userID")),
+
+            };
+
+            $.ajax({
+                url: '/Security/ResetPassUsersManagement',
+                type: 'POST',
+                data: data,
+                traditional: true,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (response) {
+                    if (response.success) {
+                        showToast('Success', response.message, true);
+                        $("#popupNewGrid").modal("hide");
+                        self.usersManagementData();
+                        self.clearForm();
+                    } else {
+                        showToast('Warning', response.message, false);
+                    }
+                },
+                error: function () {
+                    showToast('Error', 'Không thể lưu dữ liệu.', false);
+                }
+            });
+        },
+        populateForm: function (data) {
+                   initDateInputs();
+            if (!data) return;
+             $("#txtid").val(data.id || "");
             /* ===== BASIC INFO ===== */
             $("#lastNamenew").val(data.lastName ?? "");
             $("#firstNamenew").val(data.firstName ?? "");
@@ -549,12 +660,11 @@
             $("#jobtitlenew").val(data.jobTitleID ?? "");
             $("#department").val(data.departmentID ?? "");
             $("#usergroupnew").val(data.userGroupID ?? "");
-
+            console.log(data.birthOfDate);
             // Date of birth
-            $("#dateofbirth").val(data.dateofbirth ?? "");
+             UI.setHiddenDate("dateofbirth", data.birthOfDate);
             // Working date
-             $("#workingdate").val(data.startWorking ?? "");;
-
+              UI.setHiddenDate("workingdate", data.startWorking);
             /* ===== ADDRESS ===== */
             $("#address").val(data.homeAddress ?? "");
             $("#telephone").val(data.telephone ?? "");
@@ -564,14 +674,15 @@
             $("#resident").val(data.resident ?? "");
 
             /* ===== ACCOUNT ===== */
-            $("#loginName").val(data.loginName ?? "");
+            $("#loginNamenew").val(data.loginName ?? "");
 
             // Không auto fill password
-            $("#passWord").val("");
-            $("#confirmPass").val("");
+            $("#passWord").val(data.passwordHash);
+            $("#confirmPass").val(data.passwordHash);
 
             // Password expire date
-             $("#expiredate").val(data.passExpireDate ?? "");;
+            UI.setHiddenDate("expiredate", data.passExpireDate);
+           
             $("#emailAdress").val(data.email ?? "");
 
             /* ===== CASHIER ===== */
@@ -580,6 +691,45 @@
 
             /* ===== STATUS ===== */
             $("#statusNew").val(data.status ?? 1);
+        },
+        clearForm: function () {
+
+            /* ===== ID ===== */
+            $("#txtid").val("");
+
+            /* ===== BASIC INFO ===== */
+            $("#lastNamenew").val("");
+            $("#firstNamenew").val("");
+            $("#middleNamenew").val("");
+
+            // Default Male
+            $("input[name='sex']").prop("checked", false);
+            $("input[name='sex']").eq(0).prop("checked", true);
+
+            $("#jobtitlenew").val("");
+            $("#department").val("");
+            $("#usergroupnew").val("");
+
+            /* ===== ADDRESS ===== */
+            $("#address").val("");
+            $("#telephone").val("");
+            $("#handPhone").val("");
+            $("#communication").val("");
+            $("#postalCode").val("");
+            $("#resident").val("");
+
+            /* ===== ACCOUNT ===== */
+            $("#loginNamenew").val("");
+            $("#passWord").val("");
+            $("#confirmPass").val("");
+            $("#emailAdress").val("");
+
+            /* ===== CASHIER ===== */
+            $("#ischeckCashier").prop("checked", false);
+            $("#cachierNo").val("");
+
+            /* ===== STATUS ===== */
+            $("#statusNew").val(1);
         },
 
       initializeDataGridSearch: function (data) {

@@ -364,11 +364,86 @@ namespace Security.Controllers
             {
                 UsersModel modelRoom = (UsersModel)UsersBO.Instance.FindByPrimaryKey(id);
 
+                if (modelRoom != null && !string.IsNullOrEmpty(modelRoom.PasswordHash))
+                {
+                    modelRoom.PasswordHash = DBUtils.Decrypt(
+                        modelRoom.PasswordHash,
+                        DBUtils.passPhrase,
+                        DBUtils.saltValue,
+                        DBUtils.hashAlgorithm,
+                        DBUtils.passwordIterations,
+                        DBUtils.initVector,
+                        DBUtils.keySize
+                    );
+                }
+
                 return Json(modelRoom);
+
             }
             catch (Exception ex)
             {
                 return Json(new { error = ex.Message });
+            }
+        }
+        [HttpPost]
+        public IActionResult UpdateUsersManagement(UsersModel modelRoom)
+        {
+            try
+            {
+                modelRoom.PasswordHash = DBUtils.Encrypt(
+                    modelRoom.PasswordHash,
+                    DBUtils.passPhrase,
+                    DBUtils.saltValue,
+                    DBUtils.hashAlgorithm,
+                    DBUtils.passwordIterations,
+                    DBUtils.initVector,
+                    DBUtils.keySize
+                );
+
+                if (modelRoom.ID == 0)
+                {
+                    // Insert
+                    int pID = (int)UsersBO.Instance.Insert(modelRoom);
+                    modelRoom.ID = pID;
+
+                    if (modelRoom.IsCashier == true)
+                        modelRoom.CashierNo = modelRoom.ID * 17;
+
+                    UsersBO.Instance.Update(modelRoom);
+
+                    return Json(new { success = true, message = "User inserted successfully." });
+                }
+                else
+                {
+                    // Update
+                    UsersBO.Instance.Update(modelRoom);
+
+                    return Json(new { success = true, message = "User updated successfully." });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+        [HttpPost]
+        public IActionResult ResetPassUsersManagement(UsersModel modelRoom)
+        {
+            try
+            {
+
+
+                modelRoom.PasswordHash = "hYCF/unmJPi2vhV1I/WGmw==";
+                modelRoom.UpdateDate = TextUtils.GetSystemDate();
+                // Update
+                UsersBO.Instance.Update(modelRoom);
+
+                    return Json(new { success = true, message = "User Reset Pass successfully." });
+                
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
             }
         }
         #endregion
