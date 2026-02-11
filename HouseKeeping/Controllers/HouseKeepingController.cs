@@ -2100,7 +2100,7 @@ namespace HouseKeeping.Controllers
                 return PartialView("RoomAttendentDailyWorksheet");
             }
 
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult RoomAttendentDailyWorksheetData(DateTime fromDate, string attendant, string tasksheet, string roomStatus)

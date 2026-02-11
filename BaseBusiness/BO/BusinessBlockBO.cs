@@ -1,12 +1,12 @@
-﻿using System;
+﻿using BaseBusiness.bc;
+using BaseBusiness.Facade;
+using BaseBusiness.Model;
+using Microsoft.Data.SqlClient;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using BaseBusiness.bc;
-using BaseBusiness.Facade;
-using BaseBusiness.Model;
-using Microsoft.Data.SqlClient;
 namespace BaseBusiness.BO
 {
     using Dapper;
@@ -34,6 +34,20 @@ namespace BaseBusiness.BO
         {
             string sql = "UPDATE BusinessBlock SET Code = @Code WHERE ID = @Id";
             conn.Execute(sql, new { Code = code, Id = id }, tx);
+        }
+
+        public bool IsDuplicateCode(string code, long id = 0)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                return false;
+
+            return IsDuplicateCode(
+             "BusinessBlock",
+             "Code",
+             code.Trim(),
+             id
+            );
+
         }
 
     }

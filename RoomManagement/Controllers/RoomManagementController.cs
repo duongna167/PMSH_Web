@@ -2,12 +2,14 @@
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using Dapper;
+using DevExpress.CodeParser;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Crypto;
 using RoomManagement.Services.Interfaces;
 using System.Data;
 using static BaseBusiness.util.ValidationUtils;
@@ -870,105 +872,91 @@ namespace RoomManagement.Controllers
         }
 
         [HttpPost]
-        public IActionResult UpdateandInsertBusinessBlock()
+        public IActionResult SaveBusinessBlock([FromBody] List<BusinessBlockModel> models)
         {
-            ProcessTransactions pt = new ProcessTransactions();
-
             try
             {
-                string roomIdStr = Request.Form["roomSelect"].ToString() ?? "";
-                string roomNoStr = Request.Form["roomNo"].ToString() ?? "";
-                string fromDateStr = Request.Form["itemFromDate"].ToString();
-                string toDateStr = Request.Form["itemToDate"].ToString();
-                string commentStr = Request.Form["comment"].ToString();
-                string idStr = Request.Form["id"].ToString();
-
-                DateTime.TryParse(fromDateStr, out DateTime fromDate);
-                DateTime.TryParse(toDateStr, out DateTime toDate);
-
                 var listErrors = GetErrors(
-                    Check(string.IsNullOrWhiteSpace(roomIdStr), "roomSelect", "Haven't selected a room yet!"),
-
-                    Check(fromDate == default, "itemFromDate", "From Date is required!"),
-                    Check(toDate == default, "itemToDate", "To Date is required!"),
-                    Check(toDate <= fromDate && fromDate != default, "itemToDate", "To Date must be greater than From Date!"),
-
-                    Check(string.IsNullOrWhiteSpace(commentStr), "comment", "Please select a reason!")
+                    Check(models, "general", "No data received."),
+                    Check(models != null && models.Count == 0, "general", "No data received.")
                 );
 
                 if (listErrors.Count > 0)
-                    return Json(new { success = false, errors = listErrors });
-
-
-                pt.OpenConnection();
-                pt.BeginTransaction();
-
-                string[] roomIds = roomIdStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                string[] roomNos = roomNoStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                int userId = HttpContext.Session.GetInt32("UserID") ?? 0;
-                byte oooStatus = byte.TryParse(Request.Form["oooOrS"], out byte b) ? b : (byte)0;
-                int returnStatus = int.TryParse(Request.Form["rtStatus"], out int rs) ? rs : 0;
-                int reasonId = int.Parse(commentStr);
-                string reasonNote = Request.Form["txtReasonDesc"].ToString();
-                int blockId = int.TryParse(idStr, out int bid) ? bid : 0;
-
-                for (int i = 0; i < roomIds.Length; i++)
                 {
-                    int roomID = int.Parse(roomIds[i]);
-                    string roomNo = roomNos[i];
+                    return Json(new { success = false, errors = listErrors });
+                }
 
-                    BusinessBlockModel bbModel;
-                    if (blockId > 0)
-                    {
-                        bbModel = (BusinessBlockModel)BusinessBlockBO.Instance.FindByPrimaryKey(blockId) ?? new BusinessBlockModel();
-                    }
-                    else
-                    {
-                        bbModel = new BusinessBlockModel();
-                    }
+                foreach (var model in models)
+                {
+                    var itemErrors = GetErrors(
+                            Check(model, "general", "Invalid data"),
+                            Check(model.FromDateOOO == default, "itemFromDate", "From Date is required."),
+                            Check(model.ToDateOOO == default, "itemToDate", "To Date is required."),
+                            Check(model.FromDateOOO >= model.ToDateOOO, "itemToDate", "To Date must be >= From Date"),
+                            Check(model.ReasonID, "comment", "Please select a reason!"),
+                            Check(model.RoomID, "roomSelect", "Haven't selected a room yet!")
+                    );
 
-                    // GÁN DỮ LIỆU
-                    bbModel.Code = $"OOOS{blockId}";
-                    bbModel.RoomID = roomID;
-                    bbModel.RoomNo = roomNo;
-                    bbModel.Name = "OutOfOrder/Service";
-                    bbModel.FromDateOOO = fromDate;
-                    bbModel.ToDateOOO = toDate;
-                    bbModel.OOOStatus = oooStatus;
-                    bbModel.ReturnStatus = returnStatus;
-                    bbModel.ReasonID = reasonId;
-                    bbModel.ReasonNote = reasonNote;
-                    bbModel.UserUpdateID = userId;
-                    bbModel.UpdateDate = DateTime.Now;
-
-                    if (blockId > 0)
+                    if (itemErrors.Count > 0)
                     {
-                        BusinessBlockBO.Instance.Update(bbModel);
-                    }
-                    else
-                    {
-                        bbModel.UserInsertID = userId;
-                        bbModel.CreateDate = DateTime.Now;
-                        BusinessBlockBO.Instance.Insert(bbModel);
+                        return Json(new { success = false, errors = itemErrors });
                     }
                 }
 
-                pt.CommitTransaction();
-                return Json(new { success = true });
+                var businessDates = PropertyUtils.ConvertToList<BusinessDateModel>(
+                    BusinessDateBO.Instance.FindAll()
+                );
+
+                DateTime businessDate = businessDates[0].BusinessDate;
+
+                foreach (var model in models)
+                {
+                    if (model.ID > 0)
+                    {
+                        var oldData = (BusinessBlockModel)BusinessBlockBO.Instance.FindByPrimaryKey(model.ID);
+                        model.CreateDate = oldData.CreateDate;
+                        model.UserInsertID = oldData.UserInsertID;
+                        model.Name = oldData.Name;
+                        model.Code = oldData.Code;
+                        model.UpdateDate = DateTime.Now;
+                        BusinessBlockBO.Instance.Update(model);
+                    } else {
+                        string newCode;
+                        int maxTry = 20; // tránh loop vô hạn
+                        int tryCount = 0;
+
+                        do
+                        {
+                            newCode = GenerateOOOSCode();
+                            tryCount++;
+
+                            if (tryCount > maxTry)
+                                throw new Exception("Unable to generate unique code.");
+                        }
+                        while (BusinessBlockBO.Instance.IsDuplicateCode(newCode, 0));
+                        model.Code = newCode;
+                        model.Name = "OutOfOrder/Service";
+                        model.CreateDate = businessDate;
+                        model.UpdateDate = DateTime.Now;
+                        BusinessBlockBO.Instance.Insert(model);
+                    }
+                }
+
+                return Json(new { success = true, message = "Save successfully" });
+            
+            } catch (Exception ex) {
+                 return Json(new { success = false, message = "Error: " + ex.Message });   
             }
-            catch (Exception ex)
-            {
-                pt.RollBack();
-                return Json(new { success = false, message = ex.Message });
-            }
-            finally
-            {
-                pt.CloseConnection();
-            }
+
         }
+        private string GenerateOOOSCode()
+        {
+            var random = new Random();
+            return $"OOOS{random.Next(0, 999999):D6}";
+        }
+
+
         #endregion
 
     }
-
-
 }
