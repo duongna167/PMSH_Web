@@ -434,6 +434,7 @@ namespace Security.Controllers
 
 
                 modelRoom.PasswordHash = "hYCF/unmJPi2vhV1I/WGmw==";
+                modelRoom.UpdateDate = TextUtils.GetSystemDate();
                 // Update
                 UsersBO.Instance.Update(modelRoom);
 
