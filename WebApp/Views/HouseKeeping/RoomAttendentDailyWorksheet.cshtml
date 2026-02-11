@@ -7,564 +7,706 @@
 }
 
 <style>
+    .color-clean-uncheck {
+        background-color: cyan;
+    }
+
+    .color-dirty {
+        background-color: red;
+    }
+
+    .color-outoforder {
+        background-color: lightgray;
+    }
+
+    .color-pickup {
+        background-color: yellow;
+    }
+
+    .color-clean {
+        background-color: lime;
+    }
+
+    .color-outofservices {
+        background-color: lightgray;
+    }
+
+
+    .legend-panel {
+        font-size: 0.85rem; /* Cỡ chữ nhỏ hơn một chút cho giống legend */
+        color: #333;
+    }
+    .legend-item {
+        white-space: nowrap;
+        margin-right: 15px;
+    }
+    .legend-item strong {
+        color: #027c75 !important; /* Màu đỏ đậm đặc trưng của legend */
+        margin-right: 2px;
+    }
+    /* Khoảng cách giữa các mục nếu dùng flex-wrap */
+    .gap-x-3 {
+        column-gap: 1rem;
+    }
 </style>
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="mb-2">
-        <button id="btnPrint" class="mui-button mui-button-new">View</button>
-        <button id="btnReport" class="mui-button mui-button-new" type="button">
-            Report
-        </button>
 
-        <button id="btnExportExcel" class="mui-button mui-button-new" type="button"> Excel</button>
+<!-- =========================
+     MAIN MODAL (BS5)
+========================= -->
+<div class="modal fade" id="radw_modal"  tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-4by3">
+        <div class="modal-content">
 
-    </div>
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1 filter-panel">
-        <!-- From Date -->
-        <div class="d-flex flex-column">
-            <div class="d-flex align-items-center me-3">
-                <label class="mb-1 me-2">Room Status: </label>
-                <div class="form-check d-flex align-items-center status-item">
-                    <span class="status-color-box color-clean-uncheck"></span>
-                    <input class="form-check-input ms-1 me-1" type="checkbox" id="cleanUncheck" value="1" checked>
-                    <label class="form-check-label" for="cleanUncheck">Clean Non-Checked</label>
+            <!-- HEADER -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="radw_reportTitle"></h5>
+            </div>
+
+            <!-- BODY -->
+            <div class="modal-body p-2" >
+
+                <div class="search-filter">
+                    <div class="mb-2">
+                        <button id="radw_btnPrint" class="mui-button mui-button-new">View</button>
+
+                        <button id="radw_btnReport" class="mui-button mui-button-new" type="button">
+                            Report
+                        </button>
+
+                        <button id="radw_btnExportExcel" class="mui-button mui-button-new" type="button">
+                            Excel
+                        </button>
+                        <button class="mui-button mui-button-new"data-bs-dismiss="modal" aria-label="Close">Close</button>
+                    </div>
+
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1 mt-1 filter-panel">
+                        <!-- Room Status -->
+                        <div class="d-flex flex-column">
+                            <div class="d-flex align-items-center me-3">
+                                <label class="mb-1 me-2">Room Status: </label>
+
+                                <div class="form-check d-flex align-items-center status-item">
+                                    <span class="status-color-box color-clean-uncheck"></span>
+                                    <input class="ms-1 me-1" type="checkbox" id="radw_cleanUncheck" name="radw_includeOptions" value="1" checked>
+                                    <label class="form-check-label" for="radw_cleanUncheck">Clean Non-Checked</label>
+                                </div>
+
+                                <div class="form-check d-flex align-items-center status-item">
+                                    <span class="status-color-box color-dirty"></span>
+                                    <input class="ms-1 me-1" type="checkbox" id="radw_dirty" name="radw_includeOptions" value="2" checked>
+                                    <label class="form-check-label" for="radw_dirty">Dirty</label>
+                                </div>
+
+                                <div class="form-check d-flex align-items-center status-item">
+                                    <span class="status-color-box color-outoforder"></span>
+                                    <input class="ms-1 me-1" type="checkbox" id="radw_outofOrder" name="radw_includeOptions" value="5" checked>
+                                    <label class="form-check-label" for="radw_outofOrder">Out of Order</label>
+                                </div>
+
+                                <div class="form-check d-flex align-items-center status-item">
+                                    <span class="status-color-box color-pickup"></span>
+                                    <input class="ms-1 me-1" type="checkbox" id="radw_pickup" name="radw_includeOptions" value="3" checked>
+                                    <label class="form-check-label" for="radw_pickup">Pickup</label>
+                                </div>
+
+                                <div class="form-check d-flex align-items-center status-item">
+                                    <span class="status-color-box color-clean"></span>
+                                    <input class="ms-1 me-1" type="checkbox" id="radw_clean" name="radw_includeOptions" value="4" checked>
+                                    <label class="form-check-label" for="radw_clean">Clean</label>
+                                </div>
+
+                                <div class="form-check d-flex align-items-center status-item">
+                                    <span class="status-color-box color-outofservices"></span>
+                                    <input class="ms-1 me-1" type="checkbox" id="radw_outofServices" name="radw_includeOptions" value="6" checked>
+                                    <label class="form-check-label" for="radw_outofServices">Out of Services</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="filter-panel mb-1">
+                            <div class="row g-2 align-items-center">
+
+                                <!-- Attendant ID -->
+                                <div class="col-md-6">
+                                    <div class="row align-items-center">
+                                        <label class="col-md-5 mb-0 text-nowrap">Attendant ID:</label>
+                                        <div class="col-md-7">
+                                            <select id="radw_attendant" name="radw_attendant"
+                                                    class="tomselect-custom" multiple>
+                                                @foreach (var item in listatt)
+                                                {
+                                                    <option value="@item.ID">@item.Name</option>
+                                                }
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Task Sheet -->
+                                <div class="col-md-5">
+                                    <div class="row align-items-center">
+                                        <label class="col-md-6 mb-0 text-nowrap">Task Sheet:</label>
+                                        <div class="col-md-6">
+                                            <select id="radw_tasksheet" name="radw_tasksheet"
+                                                    class="form-select form-select-sm">
+                                                <option value=""></option>
+                                                @foreach (var item in listhkpTS)
+                                                {
+                                                    <option value="@item.TaskSheetNo">@item.TaskSheetNo</option>
+                                                }
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Task Date (hidden) -->
+                                <div class="col-md-1 d-none">
+                                    <div class="row align-items-center">
+                                        <label class="col-md-5 mb-0 text-nowrap">Task Date:</label>
+                                        <div class="col-md-7">
+                                            <input type="date" id="radw_fromDate" name="radw_fromDate"
+                                                   class="form-control form-control-sm">
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-wrap align-items-center gap-3 border-top legend-panel">
+                            <label class="fw-bold text-decoration-underline me-1">Legends:</label>
+                            
+                            <div class="d-flex flex-wrap gap-x-3 gap-y-1">
+                                <span class="legend-item"><strong class="text-danger">MW</strong> - Mineral Water</span>
+                                <span class="legend-item"><strong class="text-danger">BR</strong> - Bath Robe</span>
+                                <span class="legend-item"><strong class="text-danger">YK</strong> - Yukata</span>
+                                <span class="legend-item"><strong class="text-danger">SL</strong> - Slipper</span>
+                                <span class="legend-item"><strong class="text-danger">BT</strong> - Bath Towel</span>
+                                <span class="legend-item"><strong class="text-danger">FT</strong> - Face Towel</span>
+                                <span class="legend-item"><strong class="text-danger">TB</strong> - Tissue box</span>
+                                <span class="legend-item"><strong class="text-danger">TR</strong> - Toilet roll</span>
+                                <span class="legend-item"><strong class="text-danger">HT</strong> - Hand Towel</span>
+                                <span class="legend-item"><strong class="text-danger">BM</strong> - Bathmat</span>
+                                <span class="legend-item"><strong class="text-danger">AM</strong> - Amenities</span>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
 
-                <div class="form-check  d-flex align-items-center status-item">
-                    <span class="status-color-box color-dirty"></span>
-                    <input class="form-check-input ms-1 me-1" type="checkbox" id="dirty" value="2" checked>
-                    <label class="form-check-label" for="dirty">Dirty</label>
+                <!-- MAIN GRID -->
+                <div class="mui-card">
+                    <!-- FIXED HEIGHT REQUIRED -->
+                    <div id="radw_gridContainer" class="gridContainer mt-2" style="height: 520px;"></div>
                 </div>
-
-                <div class="form-check  d-flex align-items-center status-item">
-                    <span class="status-color-box color-outoforder"></span>
-                    <input class="form-check-input ms-1 me-1" type="checkbox" id="outofOrder" value="5" checked>
-                    <label class="form-check-label" for="outofOrder">Out of Order</label>
-                </div>
-
-                <div class="form-check d-flex align-items-center status-item">
-                    <span class="status-color-box color-pickup"></span>
-                    <input class="form-check-input ms-1 me-1" type="checkbox" id="pickup" value="3" checked>
-                    <label class="form-check-label" for="pickup">Pickup</label>
-                </div>
-
-                <div class="form-check  d-flex align-items-center status-item">
-                    <span class="status-color-box color-clean"></span>
-                    <input class="form-check-input ms-1 me-1" type="checkbox" id="clean" value="4" checked>
-                    <label class="form-check-label" for="clean">Clean</label>
-                </div>
-
-                <div class="form-check d-flex align-items-center status-item">
-                    <span class="status-color-box color-outofservices"></span>
-                    <input class="form-check-input ms-1 me-1" type="checkbox" id="outofServices" value="6" checked>
-                    <label class="form-check-label" for="outofServices">Out of Services</label>
-                </div>
-
 
             </div>
         </div>
-        <div class="filter-panel mb-1">
-            <div class="row g-2 align-items-center">
-
-                <!-- Attendant ID -->
-                <div class="col-md-6">
-                    <div class="row align-items-center">
-                        <label class="col-md-5 mb-0 text-nowrap">Attendant ID:</label>
-                        <div class="col-md-7">
-                            <select id="attendant" name="attendant"
-                                    class="tomselect-custom" multiple>
-                                @foreach (var item in listatt)
-                                {
-                                    <option value="@item.ID">@item.Name</option>
-                                }
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Task Sheet -->
-                <div class="col-md-5">
-                    <div class="row align-items-center">
-                        <label class="col-md-6 mb-0 text-nowrap">Task Sheet:</label>
-                        <div class="col-md-6">
-                            <select id="tasksheet" name="tasksheet"
-                                    class="form-select form-select-sm">
-                                <option value=""></option>
-                                @foreach (var item in listhkpTS)
-                                {
-                                    <option value="@item.TaskSheetNo">@item.TaskSheetNo</option>
-                                }
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Task Date (ẩn) -->
-                <div class="col-md-1 d-none">
-                    <div class="row align-items-center">
-                        <label class="col-md-5 mb-0 text-nowrap">Task Date:</label>
-                        <div class="col-md-7">
-                            <input type="date" id="fromDate" name="fromDate"
-                                   class="form-control form-control-sm">
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-
-
     </div>
-
 </div>
-<div class="modal fade" id="popupNewGrid" tabindex="-1" aria-hidden="true">
+
+<!-- =========================
+     POPUP MODAL (BS5)
+========================= -->
+<div class="modal fade" id="radw_popupNewGrid" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content" style="max-height:800px;">
 
             <!-- HEADER -->
             <div class="modal-header">
-                <h5 class="modal-title" id="attendantPointTitle">
+                <h5 class="modal-title" id="radw_attendantPointTitle">
                     Turndown Tasksheet
                 </h5>
-
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <!-- BODY -->
             <div class="modal-body p-3" style="overflow:auto;">
                 <div class="d-flex justify-content-start mb-3 gap-2">
-                    <button id="btnExportpopExcel" class="mui-button mui-button-new" type="button">
+                    <button id="radw_btnExportpopExcel" class="mui-button mui-button-new" type="button">
                         Excel
                     </button>
-                    <button type="button" id="btnClosePopup" class="mui-button mui-button-new">Close</button>
+                    <button type="button" id="radw_btnClosePopup" class="mui-button mui-button-new">Close</button>
                 </div>
 
-                <div id="logGridContainer" class="gridContainer mt-2">
-                </div>
+                <div id="radw_logGridContainer" class="gridContainer mt-2" style="height: 600px;"></div>
             </div>
 
         </div>
     </div>
 </div>
 
-<div class="mui-card">
-    <div id="gridContainer" class="gridContainer mt-2"></div>
-</div>
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+<!-- LOADING -->
+<div id="radw_loadingSpinner"
+     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
+
 <script>
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        let day = date.getDate().toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        return `${year}-${month}-${day}`;
-    }
+    var radw_Module = {
 
+        selectedRowData: null,
+        gridInstance: null,
+        logGridInstance: null,
+        isInitialized: false,
 
-    $(document).ready(function () {
+        init: function () {
+            $('#radw_modal').modal('show');
+            
+            document.getElementById("radw_reportTitle").innerText = 'Room Attendent Daily Worksheet';
+            this.getBusinessDate();
+            initTomSelect(".tomselect-custom");
 
-        document.getElementById("reportTitle").innerText = 'Room Attendent Daily Worksheet';
-        getBusinessDate();
-        initTomSelect(".tomsselect-custom");
-        // initializeTomSelectstasksheet();
-        var taskSheetNew = '@(ViewBag.TaskSheetNew ?? "")';
+            var taskSheetNew = '@(ViewBag.TaskSheetNew ?? "")';
 
-        if (taskSheetNew && taskSheetNew.trim() !== "" && $("#tasksheet option[value='" + taskSheetNew + "']").length) {
-            console.log(taskSheetNew);
-            $('#tasksheet').val(taskSheetNew);
-            $("#btnExportExcel, #btnReport").attr("style", "display: none !important");
-        } else {
-            console.log("Không tìm thấy option khớp với", taskSheetNew);
-            $('#tasksheet').val('').trigger('change');
-        }
+            if (taskSheetNew && taskSheetNew.trim() !== "" && $("#radw_tasksheet option[value='" + taskSheetNew + "']").length) {
+                console.log(taskSheetNew);
+                $('#radw_tasksheet').val(taskSheetNew);
+                $("#radw_btnExportExcel, #radw_btnReport").attr("style", "display: none !important");
+            } else {
+                console.log("Không tìm thấy option khớp với", taskSheetNew);
+                $('#radw_tasksheet').val('').trigger('change');
+            }
 
+            this.bindEvents();
+        },
 
-    });
+        destroy: function () {
 
-    function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
+            if (this.gridInstance) {
+                this.gridInstance.dispose();
+                this.gridInstance = null;
+            }
+            if (this.logGridInstance) {
+                this.logGridInstance.dispose();
+                this.logGridInstance = null;
+            }
 
-                const fromDateStr = result.split('T')[0];
-                $('#fromDate').val(fromDateStr);
-                $("#btnPrint").trigger("click");
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
+            $("#radw_gridContainer").empty();
+            $("#radw_logGridContainer").empty();
+
+            this.selectedRowData = null;
+            this.isInitialized = false;
+        },
+
+        formatDate: function (date) {
+            let year = date.getFullYear();
+            let month = (date.getMonth() + 1).toString().padStart(2, '0');
+            let day = date.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        },
+
+        getBusinessDate: function () {
+            return $.ajax({
+                url: '/Reservation/GetBusinessDate',
+                type: 'get',
+                dataType: 'json',
+                crossDomain: false,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (result) {
+
+                    const fromDateStr = result.split('T')[0];
+                    $('#radw_fromDate').val(fromDateStr);
+                    $("#radw_btnPrint").trigger("click");
+                },
+                error: function (xhr, statusText, err) {
+                    if (xhr.status == 401) {
+                        sessionTimeout();
+                    }
                 }
-            }
-        });
-    }
+            });
+        },
 
-    $("#btnReport").on("click", function () {
+        bindEvents: function () {
+            const self = this;
 
-        $('#popupNewGrid').modal('show');
-    });
-    $('#btnClosePopup, #overlay').click(function () {
-        $('#popupNewGrid').modal('hide');
+            $("#radw_btnReport").off("click").on("click", function () {
+                $('#radw_popupNewGrid').modal('show');
+            });
 
-    });
+            $('#radw_btnClosePopup, #radw_overlay').off("click").on("click", function () {
+                $('#radw_popupNewGrid').modal('hide');
+            });
 
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        $("#loadingSpinner").show();
-        var selectedStatuses = $("input[name='includeOptions']:checked")
-            .map(function () {
-                return this.value;
-            }).get().join(",");
-        $.ajax({
-            url: '/HouseKeeping/RoomAttendentDailyWorksheetData',
-            type: 'GET',
-            data: {
-                fromDate: $("#fromDate").val(),
-                attendant: $("#attendant").val().join(","),
-                tasksheet: $("#tasksheet").val(),
-                roomStatus: selectedStatuses,
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (data) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                console.log(data);
-                initializeRoomAttendentDailyWorksheetGrid(data.result1);
-                initializeTurndownTasksheetGrid(data.result2);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
+            $(document).off("click", "#radw_btnPrint").on("click", "#radw_btnPrint", function () {
 
-    function initializeRoomAttendentDailyWorksheetGrid(data) {
-        const columnWidth = 120;
+                $("#radw_loadingSpinner").show();
 
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            allowColumnResizing: true,
-            columnAutoWidth: true,
-            height: 500,
-            columns: [
-                { dataField: "colIndex", caption: "No", width: columnWidth - 40 },
-                {
-                    dataField: "hkstatusID_color",
-                    caption: "C",
-                    width: columnWidth - 40,
-                    cellTemplate: function (container, options) {
-                        let colorClass = "";
-                        switch (options.value) {
-                            case "Clean Non-Checked":
-                                colorClass = "color-clean-uncheck";
-                                break;
-                            case "Dirty":
-                                colorClass = "color-dirty";
-                                break;
-                            case "Out Of Order":
-                                colorClass = "color-outoforder";
-                                break;
-                            case "Pickup":
-                                colorClass = "color-pickup";
-                                break;
-                            case "Clean":
-                                colorClass = "color-clean";
-                                break;
-                            case "Out Of Services":
-                                colorClass = "color-outofservices";
-                                break;
-                            default:
-                                colorClass = "";
+                var selectedStatuses = $("input[name='radw_includeOptions']:checked")
+                    .map(function () {
+                        return this.value;
+                    }).get().join(",");
+
+                $.ajax({
+                    url: '/HouseKeeping/RoomAttendentDailyWorksheetData',
+                    type: 'GET',
+                    data: {
+                        fromDate: $("#radw_fromDate").val(),
+                        attendant: $("#radw_attendant").val().join(","),
+                        tasksheet: $("#radw_tasksheet").val(),
+                        roomStatus: selectedStatuses,
+                    },
+                    traditional: true,
+                    crossDomain: false,
+                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                    success: function (data) {
+
+                        console.log(data);
+
+                        if (data && data.result1) {
+                            self.initializeRoomAttendentDailyWorksheetGrid(data.result1);
                         }
 
-                        $(container)
-                            .addClass(colorClass)
-                            .css({
-                                "text-align": "center",
-                                "color": "#000" // màu chữ
-                            });
-                    }
-                },
-                { dataField: "roomNo", caption: "Room No", width: columnWidth },
-                { dataField: "attendant", caption: "Attendant", width: columnWidth, groupIndex: 0, visible: false }, // <-- Group theo Attendant
-                { dataField: "roomType", caption: "Room Type", width: columnWidth },
-                { dataField: "credits", caption: "Credits", width: columnWidth, dataType: "number", format: "#,##0" },
-                { dataField: "facilityTask", caption: "Facility Task", width: columnWidth },
-                { dataField: "hkstatusID_color", caption: "HKStatusID", width: columnWidth },
-                { dataField: "timeIn", caption: "Time In", width: columnWidth },
-                { dataField: "timeOut", caption: "Time Out", width: columnWidth },
-                { dataField: "fostatus", caption: "FOStatus", width: columnWidth },
-
-                { dataField: "chocolate", caption: "Chocolate", width: columnWidth },
-                { dataField: "mw", caption: "MW", width: columnWidth - 50 },
-                { dataField: "br", caption: "BR", width: columnWidth - 50 },
-
-                { dataField: "yk", caption: "YK", width: columnWidth - 50 },
-                { dataField: "sl", caption: "SL", width: columnWidth - 50 },
-                { dataField: "bt", caption: "BT", width: columnWidth - 50 },
-
-                { dataField: "ht", caption: "HT", width: columnWidth - 50 },
-                { dataField: "bm", caption: "BM", width: columnWidth - 50 },
-                { dataField: "ft", caption: "FT", width: columnWidth - 50 },
-
-
-                { dataField: "tb", caption: "TB", width: columnWidth - 50 },
-                { dataField: "tr", caption: "TR", width: columnWidth - 50 },
-                { dataField: "am", caption: "AM", width: columnWidth - 50 },
-                { dataField: "description", caption: "Description", width: columnWidth },
-                { dataField: "complete", caption: "Status", width: columnWidth }
-            ],
-
-
-            paging: { pageSize: 25 },
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
-            selection: { mode: "multiple", showCheckBoxesMode: "none" },
-            showBorders: true,
-
-            onRowClick: function (e) {
-                selectedRowData = e.data; // lưu dòng được chọn
-            }
-            // , onCellPrepared: function (e) {
-            //         if (e.rowType === "data" && e.column.dataField === "hkstatusID_color") {
-            //             const status = (e.value || "").toLowerCase();
-
-            //             if (status.includes("dirty")) {
-            //                 e.cellElement.css("background-color", "Red"); // d? nh?t
-            //                   e.cellElement.css("color", "white");
-            //             } else if (status.includes("pickup")) {
-            //                 e.cellElement.css("background-color", "#f740f4"); // tím nh?t
-            //             } else if (status.includes("clean non-checked")) {
-            //                 e.cellElement.css("background-color", "#1bdff5"); // xanh nu?c bi?n nh?t
-            //             } else if (status.includes("out of order")) {
-            //                 e.cellElement.css("background-color", "#d1dfe3"); // h?ng
-            //                   e.cellElement.css("color", "black");
-            //             } else if (status.includes("clean")) {
-            //                 e.cellElement.css("background-color", "green"); // xanh lá
-            //                 e.cellElement.css("color", "white"); // ch? tr?ng cho d? nhìn
-            //             }
-            //         }
-            //     },
-        });
-    }
-    function initializeTurndownTasksheetGrid(data) {
-        const columnWidth = 120;
-
-        $("#logGridContainer").dxDataGrid({
-            dataSource: data,
-            allowColumnResizing: true,
-            columnAutoWidth: true,
-            height: 600,
-            columns: [
-                { dataField: "roomNo", caption: "RoomNo", width: columnWidth },
-                { dataField: "hkStatusID", caption: "Room Status", width: columnWidth + 20 },
-                { dataField: "foStatus", caption: "FOStatus", width: columnWidth },
-                {
-                    dataField: "attendant",
-                    caption: "Attendant",
-                    width: columnWidth,
-                    groupIndex: 0,
-                    visible: false,
-                    groupCellTemplate: function (cellElement, cellInfo) {
-                        const groupAttendant = cellInfo.value;
-                        const groupData = cellInfo.data.items || [];
-
-                        if (groupData.length > 0) {
-                            const firstItem = groupData[0];
-                            const taskDate = firstItem.taskDate ? DevExpress.localization.formatDate(new Date(firstItem.taskDate), "dd/MM/yyyy") : "";
-                            const taskSheetNo = firstItem.taskSheetNo || "";
-
-                            // Tạo HTML nhiều dòng
-                            const html = `
-                            <div><strong>Task Date:</strong> ${taskDate}</div>
-                            <div><strong>Attendant ID and Name:</strong> ${groupAttendant}</div>
-                            <div><strong>Task Sheet No.:</strong> ${taskSheetNo}</div>
-                        `;
-                            cellElement.html(html);
-                        } else {
-                            cellElement.text(groupAttendant);
+                        if (data && data.result2) {
+                            self.initializeTurndownTasksheetGrid(data.result2);
                         }
+
+                        $("#radw_loadingSpinner").hide();
+                    },
+                    error: function () {
+                        alert("Không thể tải báo cáo.");
+                        $("#radw_loadingSpinner").hide();
                     }
-                },
-                { dataField: "credits", caption: "Credits", width: columnWidth, dataType: "number", format: "#,##0" },
-                { dataField: "section", caption: "Section", width: columnWidth },
-                { dataField: "status", caption: "Status", width: columnWidth },
-                { dataField: "turndownStatus", caption: "Turndown Status", width: columnWidth + 30 },
-                { dataField: "lastName", caption: "Name", width: columnWidth + 40 },
-                { dataField: "arrivalDate", caption: "Arr.", width: columnWidth, dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "arrivalTime", caption: "Arrival Time", width: columnWidth },
-                { dataField: "departureDate", caption: "Dep.", width: columnWidth, dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "vip", caption: "VIP", width: columnWidth },
-                { dataField: "adult", caption: "A", width: columnWidth, dataType: "number", format: "#,##0" },
-                { dataField: "child", caption: "C", width: columnWidth, dataType: "number", format: "#,##0" },
-                { dataField: "specials", caption: "Specials", width: columnWidth },
-                { dataField: "facilityTask", caption: "Facility Task", width: columnWidth },
-            ],
-            grouping: { autoExpandAll: true },
-            groupPanel: { visible: false },
-            paging: { pageSize: 25 },
-            scrolling: { useNative: true, showScrollbar: "always" },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
-            selection: { mode: "multiple", showCheckBoxesMode: "none" },
-            showBorders: true,
-            summary: {
-                groupItems: [
-                    { column: "roomNo", summaryType: "count", displayFormat: "Total Room :{0}", showInGroupFooter: true },
-                    { column: "adult", summaryType: "sum", displayFormat: "{0}", showInGroupFooter: true },
-                    { column: "child", summaryType: "sum", displayFormat: "{0}", showInGroupFooter: true },
-                    { column: "credits", summaryType: "sum", displayFormat: "{0}", showInGroupFooter: true }
-                ]
+                });
+            });
+
+            $("#radw_btnExportExcel").off("click").on("click", function () {
+
+                const grid = $("#radw_gridContainer").dxDataGrid("instance");
+                var selectedReport = 'Room Attendent Daily Worksheet';
+
+                if (!selectedReport) {
+                    alert("Vui lòng chọn báo cáo trước khi xuất Excel.");
+                    return;
+                }
+
+                const workbook = new ExcelJS.Workbook();
+                const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+                const worksheet = workbook.addWorksheet("Sheet 1");
+
+                worksheet.addRow(['Công ty Cổ phần Giải pháp Công nghệ CS-Solution']);
+                worksheet.mergeCells('A1:E1');
+                worksheet.getRow(1).font = { bold: true };
+                worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+                const now = new Date();
+                const exportDate = now.toLocaleString("vi-VN");
+                worksheet.addRow(['', '', '', '', ' ' + exportDate]);
+                worksheet.mergeCells('E2:H2');
+                worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
+
+                worksheet.addRow([]);
+                worksheet.addRow([]);
+
+                const reportRow = worksheet.addRow(['', '', selectedReport]);
+                worksheet.mergeCells('C5:F5');
+                reportRow.font = { bold: true, size: 14 };
+                reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+                worksheet.addRow([]);
+
+                DevExpress.excelExporter.exportDataGrid({
+                    component: grid,
+                    worksheet: worksheet,
+                    autoFilterEnabled: true,
+                    topLeftCell: { row: 7, column: 1 }
+                }).then(function () {
+
+                    const lastRow = worksheet.lastRow.number + 2;
+                    worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
+                    worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
+                    worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                    worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                    let fileName = selectedReport + ".xlsx";
+                    workbook.xlsx.writeBuffer().then(function (buffer) {
+                        saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                    });
+                });
+            });
+
+            $("#radw_btnExportpopExcel").off("click").on("click", function () {
+
+                const grid = $("#radw_logGridContainer").dxDataGrid("instance");
+                var selectedReport = 'Turndown Tasksheet Report';
+
+                if (!selectedReport) {
+                    alert("Vui lòng chọn báo cáo trước khi xuất Excel.");
+                    return;
+                }
+
+                const workbook = new ExcelJS.Workbook();
+                const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+                const worksheet = workbook.addWorksheet("Sheet 1");
+
+                worksheet.addRow(['Công ty Cổ phần Giải pháp Công nghệ CS-Solution']);
+                worksheet.mergeCells('A1:E1');
+                worksheet.getRow(1).font = { bold: true };
+                worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+                const now = new Date();
+                const exportDate = now.toLocaleString("vi-VN");
+                worksheet.addRow(['', '', '', '', ' ' + exportDate]);
+                worksheet.mergeCells('E2:H2');
+                worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
+
+                worksheet.addRow([]);
+                worksheet.addRow([]);
+
+                const reportRow = worksheet.addRow(['', '', selectedReport]);
+                worksheet.mergeCells('C5:F5');
+                reportRow.font = { bold: true, size: 14 };
+                reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+                worksheet.addRow([]);
+
+                DevExpress.excelExporter.exportDataGrid({
+                    component: grid,
+                    worksheet: worksheet,
+                    autoFilterEnabled: true,
+                    topLeftCell: { row: 7, column: 1 }
+                }).then(function () {
+
+                    const lastRow = worksheet.lastRow.number + 2;
+                    worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
+                    worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
+                    worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                    worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                    let fileName = selectedReport + ".xlsx";
+                    workbook.xlsx.writeBuffer().then(function (buffer) {
+                        saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                    });
+                });
+            });
+
+            $("#radw_modal").off("shown.bs.modal").on("shown.bs.modal", function () {
+
+                if (!self.isInitialized) {
+                    self.isInitialized = true;
+                    self.init();
+                } else {
+                    const grid = $("#radw_gridContainer").dxDataGrid("instance");
+                    if (grid) {
+                        grid.updateDimensions();
+                    }
+                }
+            });
+
+            $("#radw_popupNewGrid").off("shown.bs.modal").on("shown.bs.modal", function () {
+                const grid = $("#radw_logGridContainer").dxDataGrid("instance");
+                if (grid) {
+                    grid.updateDimensions();
+                }
+            });
+        },
+
+        initializeRoomAttendentDailyWorksheetGrid: function (data) {
+
+            const columnWidth = 120;
+
+            if (this.gridInstance) {
+                this.gridInstance.dispose();
+                this.gridInstance = null;
             }
-        });
-    }
+            $("#radw_gridContainer").empty();
 
+            this.gridInstance = $("#radw_gridContainer").dxDataGrid({
+                dataSource: data,
+                allowColumnResizing: true,
+                columnAutoWidth: true,
+                height: 500,
+                columns: [
+                    { dataField: "colIndex", caption: "No", width: columnWidth - 60 },
+                    {
+                        dataField: "hkstatusID_color",
+                        caption: "Status",
+                        width: columnWidth,
+                        cellTemplate: function (container, options) {
+                            let colorClass = "";
+                            switch (options.value) {
+                                case "Clean Non-Checked":
+                                    colorClass = "color-clean-uncheck";
+                                    break;
+                                case "Dirty":
+                                    colorClass = "color-dirty";
+                                    break;
+                                case "Out Of Order":
+                                    colorClass = "color-outoforder";
+                                    break;
+                                case "Pickup":
+                                    colorClass = "color-pickup";
+                                    break;
+                                case "Clean":
+                                    colorClass = "color-clean";
+                                    break;
+                                case "Out Of Services":
+                                    colorClass = "color-outofservices";
+                                    break;
+                                default:
+                                    colorClass = "";
+                            }
 
+                            $(container)
+                                .addClass(colorClass)
+                                .text(options.value)
+                                .css({
+                                    "text-align": "center",
+                                    "color": "#000"
+                                });
+                        }
+                    },
+                    { dataField: "roomNo", caption: "Room No", width: columnWidth - 40},
+                    { dataField: "attendant", caption: "Attendant", width: columnWidth, groupIndex: 0, visible: false },
+                    { dataField: "roomType", caption: "Room Type", width: columnWidth - 20 },
+                    { dataField: "credits", caption: "Credits", width: columnWidth, dataType: "number", format: "#,##0" },
+                    { dataField: "facilityTask", caption: "Facility Task", width: columnWidth },
+                    { dataField: "timeIn", caption: "Time In", width: columnWidth },
+                    { dataField: "timeOut", caption: "Time Out", width: columnWidth },
+                    { dataField: "fostatus", caption: "FOStatus", width: columnWidth },
 
+                    { dataField: "chocolate", caption: "Chocolate", width: columnWidth },
+                    { dataField: "mw", caption: "MW", width: columnWidth - 50 },
+                    { dataField: "br", caption: "BR", width: columnWidth - 50 },
 
+                    { dataField: "yk", caption: "YK", width: columnWidth - 50 },
+                    { dataField: "sl", caption: "SL", width: columnWidth - 50 },
+                    { dataField: "bt", caption: "BT", width: columnWidth - 50 },
 
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance");
-        var selectedReport = 'Room Attendent Daily Worksheet';
-        if (!selectedReport) {
-            alert("Vui lòng ch?n báo cáo tru?c khi xu?t Excel.");
-            return;
+                    { dataField: "ht", caption: "HT", width: columnWidth - 50 },
+                    { dataField: "bm", caption: "BM", width: columnWidth - 50 },
+                    { dataField: "ft", caption: "FT", width: columnWidth - 50 },
+
+                    { dataField: "tb", caption: "TB", width: columnWidth - 50 },
+                    { dataField: "tr", caption: "TR", width: columnWidth - 50 },
+                    { dataField: "am", caption: "AM", width: columnWidth - 50 },
+                    { dataField: "description", caption: "Description", width: columnWidth },
+                    { dataField: "complete", caption: "Status", width: columnWidth }
+                ],
+
+                paging: { pageSize: 25 },
+                scrolling: {
+                    useNative: true,
+                    showScrollbar: "always"
+                },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [25, 50, 'all'],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: { visible: true, applyFilter: "auto" },
+                headerFilter: { visible: true },
+                selection: { mode: "multiple", showCheckBoxesMode: "none" },
+                showBorders: true,
+
+                onRowClick: (e) => {
+                    this.selectedRowData = e.data;
+                }
+            }).dxDataGrid("instance");
+        },
+
+        initializeTurndownTasksheetGrid: function (data) {
+
+            const columnWidth = 120;
+
+            if (this.logGridInstance) {
+                this.logGridInstance.dispose();
+                this.logGridInstance = null;
+            }
+            $("#radw_logGridContainer").empty();
+
+            this.logGridInstance = $("#radw_logGridContainer").dxDataGrid({
+                dataSource: data,
+                allowColumnResizing: true,
+                columnAutoWidth: true,
+                height: 600,
+                columns: [
+                    { dataField: "roomNo", caption: "RoomNo", width: columnWidth },
+                    { dataField: "hkStatusID", caption: "Room Status", width: columnWidth + 20 },
+                    { dataField: "foStatus", caption: "FOStatus", width: columnWidth },
+                    {
+                        dataField: "attendant",
+                        caption: "Attendant",
+                        width: columnWidth,
+                        groupIndex: 0,
+                        visible: false,
+                        groupCellTemplate: function (cellElement, cellInfo) {
+                            const groupAttendant = cellInfo.value;
+                            const groupData = cellInfo.data.items || [];
+
+                            if (groupData.length > 0) {
+                                const firstItem = groupData[0];
+                                const taskDate = firstItem.taskDate ? DevExpress.localization.formatDate(new Date(firstItem.taskDate), "dd/MM/yyyy") : "";
+                                const taskSheetNo = firstItem.taskSheetNo || "";
+
+                                const html = `
+                                    <div><strong>Task Date:</strong> ${taskDate}</div>
+                                    <div><strong>Attendant ID and Name:</strong> ${groupAttendant}</div>
+                                    <div><strong>Task Sheet No.:</strong> ${taskSheetNo}</div>
+                                `;
+                                cellElement.html(html);
+                            } else {
+                                cellElement.text(groupAttendant);
+                            }
+                        }
+                    },
+                    { dataField: "credits", caption: "Credits", width: columnWidth, dataType: "number", format: "#,##0" },
+                    { dataField: "section", caption: "Section", width: columnWidth },
+                    { dataField: "status", caption: "Status", width: columnWidth },
+                    { dataField: "turndownStatus", caption: "Turndown Status", width: columnWidth + 30 },
+                    { dataField: "lastName", caption: "Name", width: columnWidth + 40 },
+                    { dataField: "arrivalDate", caption: "Arr.", width: columnWidth, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "arrivalTime", caption: "Arrival Time", width: columnWidth },
+                    { dataField: "departureDate", caption: "Dep.", width: columnWidth, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "vip", caption: "VIP", width: columnWidth },
+                    { dataField: "adult", caption: "A", width: columnWidth, dataType: "number", format: "#,##0" },
+                    { dataField: "child", caption: "C", width: columnWidth, dataType: "number", format: "#,##0" },
+                    { dataField: "specials", caption: "Specials", width: columnWidth },
+                    { dataField: "facilityTask", caption: "Facility Task", width: columnWidth },
+                ],
+                grouping: { autoExpandAll: true },
+                groupPanel: { visible: false },
+                paging: { pageSize: 25 },
+                scrolling: { useNative: true, showScrollbar: "always" },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [25, 50, 'all'],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: { visible: true, applyFilter: "auto" },
+                headerFilter: { visible: true },
+                selection: { mode: "multiple", showCheckBoxesMode: "none" },
+                showBorders: true,
+                summary: {
+                    groupItems: [
+                        { column: "roomNo", summaryType: "count", displayFormat: "Total Room :{0}", showInGroupFooter: true },
+                        { column: "adult", summaryType: "sum", displayFormat: "{0}", showInGroupFooter: true },
+                        { column: "child", summaryType: "sum", displayFormat: "{0}", showInGroupFooter: true },
+                        { column: "credits", summaryType: "sum", displayFormat: "{0}", showInGroupFooter: true }
+                    ]
+                }
+            }).dxDataGrid("instance");
         }
+    };
 
-        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
+    // =========================
+    // GLOBAL ENTRY POINTS
+    // =========================
+    window.openModalRADW = function () {
+        radw_Module.init();
+    };
 
-        // === T?o header công ty (dòng 1) ===
-        worksheet.addRow(['Công ty C? ph?n Gi?i pháp Công ngh? CS-Solution']);
-        worksheet.mergeCells('A1:E1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Th?i gian xu?t (ph?i) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
-        worksheet.mergeCells('E2:H2');
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: Tr?ng
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tên báo cáo ? gi?a ===
-        const reportRow = worksheet.addRow(['', '', selectedReport]);
-        worksheet.mergeCells('C5:F5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
-        worksheet.addRow([]);
-
-        // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
-        }).then(function () {
-            // Footer
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
-            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = selectedReport + ".xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
-            });
-        });
-    });
-    $("#btnExportpopExcel").click(function () {
-        const grid = $("#logGridContainer").dxDataGrid("instance");
-        var selectedReport = 'Turndown Tasksheet Report';
-        if (!selectedReport) {
-            alert("Vui lòng ch?n báo cáo tru?c khi xu?t Excel.");
-            return;
+    // =========================
+    // GLOBAL AUTO CLEANUP
+    // =========================
+    $(document).off("hidden.bs.modal.radw_cleanup").on("hidden.bs.modal.radw_cleanup", function (e) {
+        const modalId = e.target && e.target.id ? e.target.id : "";
+        if (modalId && modalId.startsWith("radw_")) {
+            radw_Module.destroy();
         }
-
-        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === T?o header công ty (dòng 1) ===
-        worksheet.addRow(['Công ty C? ph?n Gi?i pháp Công ngh? CS-Solution']);
-        worksheet.mergeCells('A1:E1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Th?i gian xu?t (ph?i) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
-        worksheet.mergeCells('E2:H2');
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: Tr?ng
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tên báo cáo ? gi?a ===
-        const reportRow = worksheet.addRow(['', '', selectedReport]);
-        worksheet.mergeCells('C5:F5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
-        worksheet.addRow([]);
-
-        // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
-        }).then(function () {
-            // Footer
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
-            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = selectedReport + ".xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
-            });
-        });
     });
 </script>

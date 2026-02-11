@@ -55,7 +55,7 @@ namespace HouseKeeping.Controllers
             ViewBag.BusinessDate = businessDateModel[0].BusinessDate;
             List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
             ViewBag.ZoneList = listzo;
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult RoomControlPanelData(DateTime fromDate, DateTime toDate, string zone)
@@ -118,7 +118,7 @@ namespace HouseKeeping.Controllers
             ViewBag.BusinessDate = businessDateModel[0].BusinessDate;
             List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
             ViewBag.ZoneList = listzo;
-            return View();
+            return PartialView();
         }
 
 
@@ -691,7 +691,7 @@ namespace HouseKeeping.Controllers
             ViewBag.RoomTypeList = listrt;
             List<RoomModel> listroom = PropertyUtils.ConvertToList<RoomModel>(RoomBO.Instance.FindAll());
             ViewBag.RoomList = listroom;
-            return View();
+            return PartialView();
         }
 
         [HttpPost]
@@ -2100,7 +2100,7 @@ namespace HouseKeeping.Controllers
                 return PartialView("RoomAttendentDailyWorksheet");
             }
 
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult RoomAttendentDailyWorksheetData(DateTime fromDate, string attendant, string tasksheet, string roomStatus)

@@ -6,339 +6,369 @@
     var listroom = ViewBag.RoomList;
     var listzo = ViewBag.ZoneList;
 }
-<style>
-    .filter-box {
-        border-radius: 6px;
-        padding: 8px 10px;
-        background: #fff;
-    }
 
+<style>
     /* Mỗi cụm label + control */
-    .filter-item {
+    .rmd_filter-item {
         display: flex;
         align-items: center;
         gap: 6px;
         white-space: nowrap;
     }
-
-    /* Label gọn */
-    .filter-item>label {
-        margin: 0;
-        font-weight: 500;
-    }
-
-    /* Group checkbox Show */
-    .show-group {
-        gap: 12px;
-    }
-
-    /* Checkbox gọn hàng */
-    .show-group .form-check {
-        display: flex;
-        align-items: center;
-        margin: 0;
-    }
-
-    .show-group .form-check-label {
-        margin-left: 4px;
-        padding-top: 0;
-        cursor: pointer;
-    }
 </style>
-<div class="text-center" id="reportTitle" style="font-size: 20px">Room Discrepancy</div>
-<div class="search-filter">
-    <div class="">
-        <button id="btnPrint" class="mui-button mui-button-new">View</button>
-        <button id=" btnSave" class="mui-button mui-button-new" type="button"> Save</button>
 
+<!-- MAIN VIEW MUST BE BS5 MODAL -->
+<div class="modal fade" id="rmd_reportModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg-4by3">
+        <div class="modal-content">
+
+            <!-- HEADER -->
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title" id="rmd_reportTitle" style="font-size: 20px">Room Discrepancy</h5>
+            </div>
+
+            <!-- BODY -->
+            <div class="modal-body">
+
+                <div class="search-filter">
+
+                    <div class="">
+                        <button id="rmd_btnPrint" class="mui-button mui-button-new">View</button>
+                        <button id="rmd_btnSave" class="mui-button mui-button-new" type="button"> Save</button>
+                    </div>
+
+                    <div class="filter-box d-flex flex-wrap align-items-center gap-3 mt-1 mb-1">
+
+                        <div class="rmd_filter-item">
+                            <label>Floor:</label>
+                            <select id="rmd_floor" name="rmd_floor" class="form-control form-control-sm w-auto">
+                                <option value="">-- All --</option>
+                                @foreach (var u in ViewBag.FloorList)
+                                {
+                                    <option value="@u.Code">@u.Code</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="rmd_filter-item">
+                            <label>Room:</label>
+                            <select id="rmd_room" name="rmd_room" class="tomselect-custom" multiple style="width:200px">
+                                @foreach (var g in ViewBag.RoomList)
+                                {
+                                    <option value="@g.RoomNo">@g.RoomNo - @g.RoomName</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="rmd_filter-item">
+                            <label>Zone:</label>
+                            <select id="rmd_zone" name="rmd_zone" class="tomselect-custom" multiple style="width:200px">
+                                @foreach (var sg in ViewBag.ZoneList)
+                                {
+                                    <option value="@sg.ID">@sg.Code</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="rmd_filter-item">
+                            <label>Room Class:</label>
+                            <select id="rmd_roomClass" name="rmd_roomClass" class="tomselect-custom" multiple
+                                    style="width:220px">
+                                @foreach (var tr in ViewBag.RoomClassList)
+                                {
+                                    <option value="@tr.ID">@tr.Code - @tr.Description</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="rmd_filter-item rmd_show-group">
+                            <label>Show:</label>
+
+                            <div class="form-check">
+                                <input type="checkbox" id="rmd_sleeps" checked>
+                                <label class="form-check-label " for="rmd_sleeps">Sleeps</label>
+                            </div>
+
+                            <div class="form-check">
+                                <input type="checkbox" id="rmd_skips" checked>
+                                <label class="form-check-label " for="rmd_skips">Skips</label>
+                            </div>
+
+                            <div class="form-check">
+                                <input type="checkbox" id="rmd_personsDiscrepancy" checked>
+                                <label class="form-check-label " for="rmd_personsDiscrepancy">
+                                    Persons Discrepancy
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="mui-card">
+                    <div id="rmd_gridContainer" class="gridContainer"></div>
+                </div>
+
+                <div id="rmd_loadingSpinner" style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+                    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+                    height: 100%;display: flex;align-items: center;justify-content: center;">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+
+            </div>
+
+        </div>
     </div>
-    <div class="filter-box d-flex flex-wrap align-items-center gap-3 mb-1">
-
-        <div class="filter-item">
-            <label>Floor:</label>
-            <select id="floor" class="form-control form-control-sm w-auto">
-                <option value="">-- All --</option>
-                @foreach (var u in ViewBag.FloorList)
-                {
-                    <option value="@u.Code">@u.Code</option>
-                }
-            </select>
-        </div>
-
-        <div class="filter-item">
-            <label>Room:</label>
-            <select id="room" class="tomselect-custom" multiple style="width:200px">
-                @foreach (var g in ViewBag.RoomList)
-                {
-                    <option value="@g.RoomNo">@g.RoomNo - @g.RoomName</option>
-                }
-            </select>
-        </div>
-
-        <div class="filter-item">
-            <label>Zone:</label>
-            <select id="zone" class="tomselect-custom" multiple style="width:200px">
-                @foreach (var sg in ViewBag.ZoneList)
-                {
-                    <option value="@sg.ID">@sg.Code</option>
-                }
-            </select>
-        </div>
-
-        <div class="filter-item">
-            <label>Room Class:</label>
-            <select id="roomClass" class="tomselect-custom" multiple style="width:220px">
-                @foreach (var tr in ViewBag.RoomClassList)
-                {
-                    <option value="@tr.ID">@tr.Code - @tr.Description</option>
-                }
-            </select>
-        </div>
-
-        <div class="filter-item show-group">
-            <label>Show:</label>
-
-            <div class="form-check">
-                <input type="checkbox" id="sleeps" checked>
-                <label class="form-check-label " for="sleeps">Sleeps</label>
-            </div>
-
-            <div class="form-check">
-                <input type="checkbox" id="skips" checked>
-                <label class="form-check-label " for="skips">Skips</label>
-            </div>
-
-            <div class="form-check">
-                <input type="checkbox" id="personsDiscrepancy" checked>
-                <label class="form-check-label " for="personsDiscrepancy">
-                    Persons Discrepancy
-                </label>
-            </div>
-        </div>
-
-    </div>
-
 </div>
 
-<div class="mui-card">
-
-    <div id="gridContainer" class="gridContainer"></div>
-</div>
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
-</div>
 <script>
-    $(document).ready(function () {
-        initTomSelect(".tomselect-custom");
-        $("#btnPrint").trigger("click");
-    });
+    // =========================================================
+    // rmd_Module (Room Discrepancy) - STRICT REFACTOR
+    // - No logic truncation
+    // - Prefix all ids/names with rmd_
+    // - Must be BS5 modal (including main view)
+    // - Must have init/destroy + global openModal
+    // - Must auto cleanup on hidden.bs.modal for modals starting with rmd_
+    // =========================================================
 
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        $("#loadingSpinner").show();
+    var rmd_Module = {
 
-        $.ajax({
-            url: '/RoomManagement/GetDiscrepancy',
-            type: 'GET',
-            data: {
-                sleep: $("#sleeps").is(":checked") ? 1 : 0,
-                skip: $("#skips").is(":checked") ? 1 : 0,
-                person: $("#personsDiscrepancy").is(":checked") ? 1 : 0,
-                floor: $("#floor").val(),
-                room: $("#room").val(),
-                zone: $("#zone").val(),
-                roomClass: $("#roomClass").val(),
-            },
-            success: function (data) {
-                console.log(data);
-                loadDiscrepancyGrid(data);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không thể tải dữ liệu");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-    // Map numeric ↔ tên hiển thị
-    const hkStatusMap = { 0: "Vacant", 1: "Occupied" };
-    const hkStatusMapReverse = { "Vacant": 0, "Occupied": 1 };
+        gridInstance: null,
 
-    function loadDiscrepancyGrid(data) {
-        // Map dữ liệu DB (string) sang số
-        data.forEach(item => {
-            item.hkStatusId = hkStatusMapReverse[item.hkStatus] ?? null;
-        });
+        // Map numeric ↔ tên hiển thị
+        hkStatusMap: { 0: "Vacant", 1: "Occupied" },
+        hkStatusMapReverse: { "Vacant": 0, "Occupied": 1 },
 
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            keyExpr: "id",
-            allowColumnResizing: true,
-            selection: { mode: "single" }, // chỉ chọn 1 dòng
-            editing: { mode: "batch", allowUpdating: true },
-            height: 500,
-            columns: [
-                { dataField: "id", caption: "ID", visible: false },
-                { dataField: "roomNo", caption: "Room No", allowEditing: false },
-                {
-                    dataField: "hkStatusId",
-                    caption: "HK Status",
-                    lookup: {
-                        dataSource: [
-                            { id: 0, name: "Vacant" },
-                            { id: 1, name: "Occupied" }
-                        ],
-                        valueExpr: "id",
-                        displayExpr: "name"
+        init: function () {
+            initTomSelect(".tomselect-custom");
+            $('#rmd_reportModal').modal('show');
+            this.bindEvents();
+            $("#rmd_btnPrint").trigger("click");
+        },
+
+        destroy: function () {
+
+            // Dispose DevExtreme Grid instances
+            try {
+                if (rmd_Module.gridInstance) {
+                    rmd_Module.gridInstance.dispose();
+                }
+            } catch (e) { }
+
+            // Empty grid containers
+            try {
+                $("#rmd_gridContainer").empty();
+            } catch (e) { }
+
+            // Reset internal state
+            rmd_Module.gridInstance = null;
+        },
+
+        bindEvents: function () {
+
+            $(document).off("click", "#rmd_btnPrint").on("click", "#rmd_btnPrint", function () {
+                $("#rmd_loadingSpinner").show();
+                $.ajax({
+                    url: '/RoomManagement/GetDiscrepancy',
+                    type: 'GET',
+                    data: {
+                        sleep: $("#rmd_sleeps").is(":checked") ? 1 : 0,
+                        skip: $("#rmd_skips").is(":checked") ? 1 : 0,
+                        person: $("#rmd_personsDiscrepancy").is(":checked") ? 1 : 0,
+                        floor: $("#rmd_floor").val(),
+                        room: $("#rmd_room").val(),
+                        zone: $("#rmd_zone").val(),
+                        roomClass: $("#rmd_roomClass").val(),
                     },
-                    cellTemplate: function (cellElement, cellInfo) {
+                    success: function (data) {
+                        console.log(data);
+                        rmd_Module.loadDiscrepancyGrid(data);
+                        $("#rmd_loadingSpinner").hide();
+                    },
+                    error: function () {
+                        alert("Không thể tải dữ liệu");
+                        $("#rmd_loadingSpinner").hide();
+                    }
+                });
+            });
 
-                        cellElement
-                            .addClass("dx-editor-cell")
-                            .attr("tabindex", 0);
+            $(document).off("click", "#rmd_btnSave").on("click", "#rmd_btnSave", function () {
+                if (rmd_Module.gridInstance) {
+                    console.log('hADIagdjhffssu');
 
-                        $("<div>").dxSelectBox({
+                    rmd_Module.gridInstance.saveEditData();
+                }
+            });
+        },
+
+        loadDiscrepancyGrid: function (data) {
+
+            // Map dữ liệu DB (string) sang số
+            data.forEach(item => {
+                item.hkStatusId = rmd_Module.hkStatusMapReverse[item.hkStatus] ?? null;
+            });
+
+            $("#rmd_gridContainer").dxDataGrid({
+                dataSource: data,
+                keyExpr: "id",
+                allowColumnResizing: true,
+                selection: { mode: "single" }, // chỉ chọn 1 dòng
+                editing: { mode: "batch", allowUpdating: true },
+                height: "100%",
+                columns: [
+                    { dataField: "id", caption: "ID", visible: false },
+                    { dataField: "roomNo", caption: "Room No", allowEditing: false },
+                    {
+                        dataField: "hkStatusId",
+                        caption: "HK Status",
+                        lookup: {
                             dataSource: [
                                 { id: 0, name: "Vacant" },
                                 { id: 1, name: "Occupied" }
                             ],
                             valueExpr: "id",
-                            displayExpr: "name",
-                            value: cellInfo.value,
-                            buttons: ["dropDown"],
-                            width: "100%",
-                            onValueChanged(e) {
-                                cellInfo.component.cellValue(
-                                    cellInfo.rowIndex,
-                                    "hkStatusId",
-                                    e.value
-                                );
-                            }
-                        }).appendTo(cellElement);
-                    }
-                },
-                { dataField: "roomStatus", caption: "Room Status", allowEditing: false },
-                { dataField: "foStatus", caption: "FO Status", allowEditing: false },
-                { dataField: "hkPersons", caption: "HK Persons", allowEditing: false },
-                { dataField: "foPersons", caption: "FO Persons", allowEditing: false },
-                { dataField: "discrepancy", caption: "Discrepancy", allowEditing: false }
-            ],
-            scrolling: {
-                mode: "standard", // Không dùng virtual để footer hiển thị đúng
-                showScrollbar: "always",
-                scrollByContent: true
-            },
-            paging: {
-                pageSize: 50
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [50, 100, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            toolbar: {
-                visible: false
-            },
-            onCellPrepared: function (e) {
-                if (e.rowType === "data" && e.column.dataField === "roomStatus") {
-                    const status = (e.value || "").toLowerCase();
+                            displayExpr: "name"
+                        },
+                        cellTemplate: function (cellElement, cellInfo) {
 
-                    if (status.includes("dirty")) {
-                        e.cellElement.css("background-color", "Red"); // d? nh?t
-                        e.cellElement.css("color", "white");
-                    } else if (status.includes("pickup")) {
-                        e.cellElement.css("background-color", "#f740f4"); // tím nh?t
-                    } else if (status.includes("clean non-checked")) {
-                        e.cellElement.css("background-color", "#1bdff5"); // xanh nu?c bi?n nh?t
-                    } else if (status.includes("out of order")) {
-                        e.cellElement.css("background-color", "#cf159a"); // h?ng
-                        e.cellElement.css("color", "white");
-                    } else if (status.includes("clean")) {
-                        e.cellElement.css("background-color", "green"); // xanh lá
-                        e.cellElement.css("color", "white"); // ch? tr?ng cho d? nhìn
-                    }
-                }
-            },
-            onSaving: function (e) {
-                const editRows = e.changes;
-                console.log('edtRows', editRows);
-                if (editRows.length < 1) {
-                    showToast("Warning", "There are no changes to save.", false);
-                    return;
-                }
-                var userId = localStorage.getItem("userID");
-                const payload = editRows
-                    .filter(c => c.type === "update")
-                    .map(c => ({
-                        roomIds: c.key,
-                        newHKFOStatus: c.data.hkStatusId,
-                        updateByID: userId
-                    }))
-                    .filter(p => p.newHKFOStatus !== undefined);
-                console.log('payload', payload);
-                $.ajax({
-                    url: '/UpdateHKFOStatus',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(payload),
-                    success: function (res) {
-                        if (res.success) {
-                            const skippedText = res.skipped && res.skipped.length > 0 ? res.skipped.join(", ") : "no";
-                            showToast("Success", `Update success ${res.updated} room(s), skipped room(s): ${skippedText}`, true);
-                            grid.refresh();
-                        } else {
-                            showToast('Error: ', res.message, false);
+                            cellElement
+                                .addClass("dx-editor-cell")
+                                .attr("tabindex", 0);
+
+                            $("<div>").dxSelectBox({
+                                dataSource: [
+                                    { id: 0, name: "Vacant" },
+                                    { id: 1, name: "Occupied" }
+                                ],
+                                valueExpr: "id",
+                                displayExpr: "name",
+                                value: cellInfo.value,
+                                buttons: ["dropDown"],
+                                width: "100%",
+                                onValueChanged(e) {
+                                    cellInfo.component.cellValue(
+                                        cellInfo.rowIndex,
+                                        "hkStatusId",
+                                        e.value
+                                    );
+                                }
+                            }).appendTo(cellElement);
                         }
                     },
-                    error: function (xhr, status, error) {
-                        // Nếu có mảng errors thì hiển thị từng cái
-                        if (Array.isArray(xhr.responseJSON?.errors)) {
-                            xhr.responseJSON.errors.forEach((err, index) => {
-                                setTimeout(() => {
-                                    showToast("Error", err, false);
-                                }, index * 1000); // delay 300ms mỗi toast
-                            });
+                    { dataField: "roomStatus", caption: "Room Status", allowEditing: false },
+                    { dataField: "foStatus", caption: "FO Status", allowEditing: false },
+                    { dataField: "hkPersons", caption: "HK Persons", allowEditing: false },
+                    { dataField: "foPersons", caption: "FO Persons", allowEditing: false },
+                    { dataField: "discrepancy", caption: "Discrepancy", allowEditing: false }
+                ],
+                scrolling: {
+                    mode: "standard", // Không dùng virtual để footer hiển thị đúng
+                    showScrollbar: "always",
+                    scrollByContent: true
+                },
+                paging: {
+                    pageSize: 50
+                },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [50, 100, 'all'],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: {
+                    visible: true,
+                    applyFilter: "auto"
+                },
+                toolbar: {
+                    visible: false
+                },
+                onCellPrepared: function (e) {
+                    if (e.rowType === "data" && e.column.dataField === "roomStatus") {
+                        const status = (e.value || "").toLowerCase();
+
+                        if (status.includes("dirty")) {
+                            e.cellElement.css("background-color", "Red"); // d? nh?t
+                            e.cellElement.css("color", "white");
+                        } else if (status.includes("pickup")) {
+                            e.cellElement.css("background-color", "#f740f4"); // tím nh?t
+                        } else if (status.includes("clean non-checked")) {
+                            e.cellElement.css("background-color", "#1bdff5"); // xanh nu?c bi?n nh?t
+                        } else if (status.includes("out of order")) {
+                            e.cellElement.css("background-color", "#cf159a"); // h?ng
+                            e.cellElement.css("color", "white");
+                        } else if (status.includes("clean")) {
+                            e.cellElement.css("background-color", "green"); // xanh lá
+                            e.cellElement.css("color", "white"); // ch? tr?ng cho d? nhìn
+                        }
+                    }
+                },
+                onSaving: function (e) {
+                    const editRows = e.changes;
+                    if (editRows.length < 1) {
+                        showToast("Warning", "There are no changes to save.", false);
+                        return;
+                    }
+                    var userId = localStorage.getItem("userID");
+                    const payload = editRows
+                        .filter(c => c.type === "update")
+                        .map(c => ({
+                            roomIds: c.key,
+                            newHKFOStatus: c.data.hkStatusId,
+                            updateByID: userId
+                        }))
+                        .filter(p => p.newHKFOStatus !== undefined);
+                    console.log('payload', payload);
+                    $.ajax({
+                        url: '/UpdateHKFOStatus',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(payload),
+                        success: function (res) {
+                            if (res.success) {
+                                const skippedText = res.skipped && res.skipped.length > 0 ? res.skipped.join(", ") : "no";
+                                showToast("Success", `Update success ${res.updated} room(s), skipped room(s): ${skippedText}`, true);
+                                $("#rmd_btnPrint").trigger("click");
+                            } else {
+                                showToast('Error: ', res.message, false);
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            // Nếu có mảng errors thì hiển thị từng cái
+                            if (Array.isArray(xhr.responseJSON?.errors)) {
+                                xhr.responseJSON.errors.forEach((err, index) => {
+                                    setTimeout(() => {
+                                        showToast("Error", err, false);
+                                    }, index * 1000); // delay 300ms mỗi toast
+                                });
+                            }
+
                         }
 
-                    }
+                    });
+                }
+            });
 
-                });
+            // store instance for destroy()
+            rmd_Module.gridInstance = $("#rmd_gridContainer").dxDataGrid("instance");
+        },
+    };
 
+    // =========================================================
+    // Global handlers (ModalManager entry points)
+    // =========================================================
+    window.openModalRMD = function () {
+        rmd_Module.init();
+    };
 
-
-            }
-        });
-    }
-
-    $('#btnSave').click(function () {
-        var grid = $("#gridContainer").dxDataGrid("instance");
-        //    var selectedRow = grid.getSelectedRowsData()[0]; // chỉ lấy 1 phòng
-        grid.saveEditData();
-
-        @* if (!selectedRow) {
-            alert('Vui lòng chọn 1 phòng.');
-            return;
-        } *@
-
-            @* var payload = {
-            roomNo: selectedRow.roomNo,      // **string, không phải mảng**
-            newHKFOStatus: selectedRow.hkStatusId
-        }; *@
-
-            @* console.log("Payload gửi lên server:", payload); *@
+    // =========================================================
+    // Automatic cleanup for any BS5 modal with id starting rmd_
+    // =========================================================
+    $(document).off("hidden.bs.modal.rmd").on("hidden.bs.modal.rmd", ".modal[id^='rmd_']", function () {
+        try {
+            rmd_Module.destroy();
+        } catch (e) { }
     });
-
-
-
-
-
-
-
 
 </script>

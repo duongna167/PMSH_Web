@@ -45,7 +45,7 @@ namespace RoomManagement.Controllers
             ViewBag.RoomList = listroom;
             List<FloorModel> listfloor = PropertyUtils.ConvertToList<FloorModel>(FloorBO.Instance.FindAll());
             ViewBag.FloorList = listfloor;
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult GetDiscrepancy(int sleep, int skip, int person, string floor, string room, string zone, string roomClass)
