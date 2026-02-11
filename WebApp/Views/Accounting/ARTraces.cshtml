@@ -5,27 +5,62 @@
     var selectedReport = @ViewBag.ReportHeader;
 
 }
+<style>
+    #loadingSpinnerRateCode {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 999;
+        background: rgba(255, 255, 255, 0.55);
+        backdrop-filter: blur(2px);
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+<div class="modal fade" id="arTraceModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">AR Trace</h5>
+            </div>
 
-<div class="text-center" id="reportTitle" style="font-size: 20px">AR Trace</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="">
-        <button id="btnPrint" class="mui-button button-report-view"> View</button>
-        <button id="btnNew" class="mui-button mui-button-new"> New</button>
-        <button id="btnUpdate" class="mui-button mui-button-edit"> Edit</button>
-        <button id="btnDelete" class="mui-button button-report-delete">
-            Delete</button>
-        <button id="btnResolve" class="mui-button mui-button-resolve"> Resolve</button>
-        <button id="btnUnsolve" class="mui-button mui-button-unsolve">
-            Unsolve</button>
-        <button id="btnExportExcel" class="mui-button mui-button-export" type="button"> Excel</button>
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button id="btnPrint" class="mui-button button-report-view"> View</button>
+                    <button id="btnNew" class="mui-button mui-button-new"> New</button>
+                    <button id="btnUpdate" class="mui-button mui-button-edit"> Edit</button>
+                    <button id="btnDelete" class="mui-button button-report-delete">
+                        Delete
+                    </button>
+                    <button id="btnResolve" class="mui-button mui-button-resolve"> Resolve</button>
+                    <button id="btnUnsolve" class="mui-button mui-button-unsolve">
+                        Unsolve
+                    </button>
+                    <button id="btnExportExcel" class="mui-button mui-button-export" type="button"> Excel</button>
+                    <button class="mui-button mui-button-new"
+                            onclick="window.location.href='/Home/Index'">
+                        Close
+                    </button>
+                </div>
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
 
+                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1" style="min-height: 0;">
+                        <div id="gridContainer"></div>
+
+                        <div id="loadingSpinnerRateCode" style="display: none;">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-<div class="mui-card">
-    @*     <div style="font-size: 20px;" class="mt-1" id="reportTitle"></div> *@
-    <div id="gridContainer" class="gridContainer mt-2"></div>
-</div>
-<div id="overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999;"></div>
 
 <div class="modal fade" id="popupNewArtraces" tabindex="-1" aria-labelledby="popupNewArtracesLabel" aria-hidden="true">
     <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
@@ -140,6 +175,8 @@
         $("#btnResolve").hide();
         $("#btnUnsolve").hide();
         $("#btnPrint").trigger("click");
+        $('#arTraceModal').modal('show');
+
     });
 
     function toDateOnly(value) {
@@ -186,17 +223,29 @@
     function initializeARTracesGrid(data) {
         $("#gridContainer").dxDataGrid({
             dataSource: data,
+            height: "100%",
+            width: "100%",
             showBorders: true,
+            hoverStateEnabled: true,
+            wordWrapEnabled: true,
+            allowColumnResizing: true,
+            columnResizingMode: "widget",
+            columnAutoWidth: true,
             selection: { mode: "single" },
+            scrolling: {
+                mode: "standard",
+                showScrollbar: "always",
+                useNative: true
+            },
             paging: { pageSize: 20 },
             pager: {
-                showPageSizeSelector: true,
+                visible: true,
                 allowedPageSizes: [20, 50, 100],
-                showInfo: true
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
             },
-            width: "100%",
-            height: "500px",
-            filterRow: { visible: true },
+            filterRow: { visible: true, applyFilter: "auto" },
             columns: [
                 { dataField: "id", caption: "ID", visible: false },
 
@@ -216,25 +265,7 @@
 
                 { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy", width: "16%" }
             ],
-            scrolling: {
-                mode: "standard", // Không dùng virtual để footer hiển thị đúng
-                showScrollbar: "always",
-                scrollByContent: true
-            },
-            paging: {
-                pageSize: 50
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [50, 100, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
+            
             // 🔥 Quan trọng: gán selectedRowData khi click chọn
             onRowClick: function (e) {
                 selectedRowData = e.data; // 🔥 lấy data của row vừa click
