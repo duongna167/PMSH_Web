@@ -691,7 +691,7 @@ namespace HouseKeeping.Controllers
             ViewBag.RoomTypeList = listrt;
             List<RoomModel> listroom = PropertyUtils.ConvertToList<RoomModel>(RoomBO.Instance.FindAll());
             ViewBag.RoomList = listroom;
-            return View();
+            return PartialView();
         }
 
         [HttpPost]
