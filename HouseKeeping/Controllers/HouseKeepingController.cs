@@ -2224,7 +2224,7 @@ namespace HouseKeeping.Controllers
 
 
 
-            return View();
+            return PartialView();
         }
 
         [HttpGet]
