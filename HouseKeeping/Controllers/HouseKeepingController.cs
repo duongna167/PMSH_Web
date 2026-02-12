@@ -2883,7 +2883,7 @@ namespace HouseKeeping.Controllers
 
             List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
             ViewBag.ZoneList = listzo;
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult GuestServiceStatusData(int servicestatsu, string room, string roomStatus, string zone)
