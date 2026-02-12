@@ -820,7 +820,7 @@ namespace Cashiering.Controllers
         {
             List<UsersModel> listuser = PropertyUtils.ConvertToList<UsersModel>(UsersBO.Instance.FindAll());
             ViewBag.UsersList = listuser;
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult GetSearchPostingHistoryDetail(string invoiceNo)

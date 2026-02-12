@@ -7,7 +7,13 @@
 }
 
 <style>
-    .status-color-box {
+    #gss_modal {
+        z-index: 1053;
+    }
+    #gss_editModal {
+        z-index: 1054;
+    }
+    .gss-status-box {
         display: inline-block;
         width: 18px;
         height: 18px;
@@ -16,591 +22,788 @@
         border: 1px solid #ccc;
     }
 
-    .color-clean-uncheck {
+    .gss-color-clean-uncheck {
         background-color: cyan;
     }
 
-    .color-dirty {
+    .gss-color-dirty {
         background-color: red;
     }
 
-    .color-outoforder {
+    .gss-color-outoforder {
         background-color: lightgray;
     }
 
-    .color-pickup {
+    .gss-color-pickup {
         background-color: yellow;
     }
 
-    .color-clean {
+    .gss-color-clean {
         background-color: lime;
     }
 
-    .color-outofservices {
+    .gss-color-outofservices {
         background-color: lightgray;
     }
 
-    .hk-clean-uncheck {
+    .gss-hk-clean-uncheck {
         background-color: cyan;
         color: black;
     }
 
-    .hk-dirty {
+    .gss-hk-dirty {
         background-color: red;
         color: white;
     }
 
-    .hk-outoforder {
+    .gss-hk-outoforder {
         background-color: lightgray;
         color: black;
     }
 
-    .hk-pickup {
+    .gss-hk-pickup {
         background-color: yellow;
         color: black;
     }
 
-    .hk-clean {
+    .gss-hk-clean {
         background-color: lime;
         color: black;
     }
 
-    .hk-outofservices {
+    .gss-hk-outofservices {
         background-color: lightgray;
         color: black;
     }
+
+    /* IMPORTANT: fixed height to avoid dx grid 0 height */
+    #gss_gridContainer {
+        height: 550px;
+        width: 100%;
+    }
+
+    /* optional */
+    #gss_logGridContainer {
+        height: 250px;
+        width: 100%;
+        overflow: auto;
+    }
 </style>
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
-<div class="search-filter">
-    <div class="mb-2">
-        <button id="btnPrint" class="mui-button mui-button-new">View</button>
-        <button id="btnExportExcel" class="mui-button mui-button-new" type="button"> Excel</button>
-        <button style="border-radius: 4px; margin-right: 6px; " id="btnResvGuest" class="mui-button mui-button-search"
-            type="button">
-            Resv
-        </button>
-        <button style="border-radius: 4px; margin-right: 6px; " id="btnEditGuest" class="mui-button mui-button-edit"
-            type="button">
-            Edit
-        </button>
-    </div>
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1 filter-panel">
-        <!-- From Date -->
-
-        <div class="d-flex flex-column ">
-
-            <div class="d-flex align-items-center">
-                <div class="d-flex align-items-center me-3">
-                    <label class="me-2 mb-0">Service Status:</label>
-                    <select id="servicestatsu" name="servicestatsu" class="form-control form-control-sm w-auto">
-                        <option value="0">All</option>
-                        <option value="1">Make Up Room</option>
-                        <option value="2">Do Not Disturd</option>
-                    </select>
-                </div>
-                <div class="d-flex align-items-center me-3">
-                    <label class="me-2 mb-0">Room:</label>
-                    <select id="room" name="room" class="tomselect-custom" multiple>
-                        @foreach (var item in roomList)
-                        {
-                            <option value="@item.RoomNo">@item.RoomNo</option>
-                        }
-                    </select>
-
-                </div>
-                <div class="d-flex align-items-center me-1">
-                    <label class="me-2 mb-0">Zone:</label>
-                    <select id="zone" name="zone" class="tomselect-custom" multiple>
-                        @foreach (var item in zoneList)
-                        {
-                            <option value="@item.Code">@item.Code</option>
-                        }
-                    </select>
-
-                </div>
-            </div>
-        </div>
-        <div class="d-flex flex-column">
-            <div class="d-flex align-items-center me-3">
-                <label class="mb-1 me-2">Room Status: </label>
-
-                <!-- Clean Uncheck -->
-                <div class="form-check me-3">
-                    <span class="status-color-box color-clean-uncheck"></span>
-                    <input type="checkbox" id="cleanUncheck" name="includeOptions" value="1" checked>
-                    <label class="form-check-label" for="cleanUncheck">Clean Uncheck</label>
-                </div>
-
-                <!-- Dirty -->
-                <div class="form-check me-3">
-                    <span class="status-color-box color-dirty"></span>
-                    <input type="checkbox" id="dirty" name="includeOptions" value="2" checked>
-                    <label class="form-check-label" for="dirty">Dirty</label>
-                </div>
-
-                <!-- Out of Order -->
-                <div class="form-check me-3">
-                    <span class="status-color-box color-outoforder"></span>
-                    <input type="checkbox" id="outofOrder" name="includeOptions" value="5" checked>
-                    <label class="form-check-label" for="outofOrder">Out of Order</label>
-                </div>
-
-                <!-- Pickup -->
-                <div class="form-check me-3">
-                    <span class="status-color-box color-pickup"></span>
-                    <input type="checkbox" id="pickup" name="includeOptions" value="3" checked>
-                    <label class="form-check-label" for="pickup">Pickup</label>
-                </div>
-
-                <!-- Clean -->
-                <div class="form-check me-3">
-                    <span class="status-color-box color-clean"></span>
-                    <input type="checkbox" id="clean" name="includeOptions" value="4" checked>
-                    <label class="form-check-label" for="clean">Clean</label>
-                </div>
-
-                <!-- Out of Services -->
-                <div class="form-check me-3">
-                    <span class="status-color-box color-outofservices"></span>
-                    <input type="checkbox" id="outofServices" name="includeOptions" value="6" checked>
-                    <label class="form-check-label" for="outofServices">Out of Services</label>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-</div>
-
-
-<div class="modal fade" id="popupNewGrid" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-md">
-        <div class="modal-content" style="max-width:520px;">
+<!-- =========================
+     GSS MAIN MODAL (BS5)
+========================= -->
+<div class="modal fade" id="gss_modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
 
             <!-- HEADER -->
             <div class="modal-header py-2">
-                <h6 class="modal-title" id="attendantPointTitle">Edit</h6>
+                <h6 class="modal-title" id="gss_title">Guest Service Status</h6>
             </div>
 
             <!-- BODY -->
-            <div class="modal-body p-3" style="overflow-y:auto;">
+            <div class="modal-body p-2">
 
-                <!-- BUTTON -->
+                <!-- ACTIONS -->
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                    <button id="gss_btnView" class="mui-button mui-button-new" type="button">View</button>
+                    <button id="gss_btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+
+                    <button id="gss_btnResvGuest" class="mui-button mui-button-search" type="button">
+                        Resv
+                    </button>
+
+                    <button id="gss_btnEditGuest" class="mui-button mui-button-edit" type="button">
+                        Edit
+                    </button>
+                    <button class="mui-button mui-button-edit" data-bs-dismiss="modal" aria-label="Close">Close</button>
+                </div>
+
+                <!-- FILTER PANEL -->
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="mb-0 text-nowrap">Service Status:</label>
+                        <select id="gss_servicestatus" name="gss_servicestatus"
+                                class="form-control form-control-sm w-auto">
+                            <option value="0">All</option>
+                            <option value="1">Make Up Room</option>
+                            <option value="2">Do Not Disturb</option>
+                        </select>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2" style="width: 240px;">
+                        <label class="mb-0 text-nowrap">Room:</label>
+                        <select id="gss_room" name="gss_room" class="tomselect-custom" multiple>
+                            @foreach (var item in roomList)
+                        {
+                            <option value="@item.RoomNo">@item.RoomNo</option>
+                        }
+                        </select>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2" style="width: 240px;">
+                        <label class="mb-0 text-nowrap">Zone:</label>
+                        <select id="gss_zone" name="gss_zone" class="tomselect-custom" multiple>
+                            @foreach (var item in zoneList)
+                        {
+                            <option value="@item.Code">@item.Code</option>
+                        }
+                        </select>
+                    </div>
+                </div>
+
+                <!-- ROOM STATUS CHECKBOXES -->
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="mb-0 text-nowrap">Room Status:</label>
+                    </div>
+
+                    <div class="form-check">
+                        <span class="gss-status-box gss-color-clean-uncheck"></span>
+                        <input type="checkbox" id="gss_cleanUncheck" name="gss_includeOptions" value="1" checked>
+                        <label class="form-check-label" for="gss_cleanUncheck">Clean Uncheck</label>
+                    </div>
+
+                    <div class="form-check">
+                        <span class="gss-status-box gss-color-dirty"></span>
+                        <input type="checkbox" id="gss_dirty" name="gss_includeOptions" value="2" checked>
+                        <label class="form-check-label" for="gss_dirty">Dirty</label>
+                    </div>
+
+                    <div class="form-check">
+                        <span class="gss-status-box gss-color-outoforder"></span>
+                        <input type="checkbox" id="gss_outofOrder" name="gss_includeOptions" value="5" checked>
+                        <label class="form-check-label" for="gss_outofOrder">Out of Order</label>
+                    </div>
+
+                    <div class="form-check">
+                        <span class="gss-status-box gss-color-pickup"></span>
+                        <input type="checkbox" id="gss_pickup" name="gss_includeOptions" value="3" checked>
+                        <label class="form-check-label" for="gss_pickup">Pickup</label>
+                    </div>
+
+                    <div class="form-check">
+                        <span class="gss-status-box gss-color-clean"></span>
+                        <input type="checkbox" id="gss_clean" name="gss_includeOptions" value="4" checked>
+                        <label class="form-check-label" for="gss_clean">Clean</label>
+                    </div>
+
+                    <div class="form-check">
+                        <span class="gss-status-box gss-color-outofservices"></span>
+                        <input type="checkbox" id="gss_outofServices" name="gss_includeOptions" value="6" checked>
+                        <label class="form-check-label" for="gss_outofServices">Out of Services</label>
+                    </div>
+
+                </div>
+
+                <!-- GRID -->
+                <div class="mui-card">
+                    <div id="gss_gridContainer" class="gridContainer mt-2"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- =========================
+     EDIT MODAL
+========================= -->
+<div class="modal fade" id="gss_editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-md">
+        <div class="modal-content" style="max-width:520px;">
+
+            <div class="modal-header py-2">
+                <h6 class="modal-title">Edit</h6>
+            </div>
+
+            <div class="modal-body p-3">
+
                 <div class="d-flex justify-content-start mb-3 gap-2">
-                    <button id="btnSaveAtt" class="mui-button mui-button-search">
+                    <button id="gss_btnSaveEdit" class="mui-button mui-button-search" type="button">
                         Save
                     </button>
 
-                    <button type="button" id="btnClosePopup" class="mui-button mui-button-new">
+                    <button type="button" id="gss_btnCloseEdit" class="mui-button mui-button-new"
+                            data-bs-dismiss="modal">
                         Close
                     </button>
                 </div>
 
-                <!-- FORM -->
                 <div class="mb-3">
-                    <div class="d-flex align-items-center">
-                        <label class="me-2 mb-0">Service Status:</label>
-                        <select id="servicestatsusedit" class="form-control form-control-sm" style="width:200px">
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="mb-0 text-nowrap">Service Status:</label>
+                        <select id="gss_servicestatus_edit" class="form-control form-control-sm" style="width:200px">
                             <option value="0"></option>
                             <option value="1">Make Up Room</option>
                             <option value="2">Do Not Disturb</option>
                         </select>
                     </div>
                 </div>
-
-                <!-- GRID -->
-                <div id="logGridContainer" class="gridContainer mt-2" style="max-height:250px; overflow:auto;">
-                </div>
-
             </div>
         </div>
     </div>
 </div>
 
 
-<div class="mui-card">
-    <div id="gridContainer" class="gridContainer mt-2"></div>
+<!-- =========================
+     RESERVATION MODAL (existing)
+     (Your system must already have this)
+========================= -->
+<div class="modal fade" id="newReservationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title">Reservation</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body"></div>
+        </div>
+    </div>
 </div>
 
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
+
+<!-- =========================
+     LOADING SPINNER
+========================= -->
+<div id="gss_loadingSpinner" style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+    height: 100%;display: flex;align-items: center;justify-content: center;">
+    <div class="spinner-border text-primary"></div>
 </div>
+
 <script>
-    function formatDate(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
+    /* global bootstrap, TomSelect, DevExpress, ExcelJS, saveAs */
 
-    $(document).ready(function () {
+    var gss_Module = (function () {
 
-        document.getElementById("reportTitle").innerText = 'Guest Service Status';
+        // ====== Private state ======
+        let _modalEl = null;
+        let _modal = null;
 
-        initializeTomSelects();
-        initializeTomSelectszone();
-        $("#btnPrint").trigger("click");
-    });
-    function initializeTomSelectszone() {
-        const selectors = ["#zone"];
+        let _editModalEl = null;
+        let _editModal = null;
 
-        for (const id of selectors) {
-            const el = document.querySelector(id);
-            if (!el) continue;
+        let _grid = null;
 
-            // Nếu đã khởi tạo rồi thì destroy
-            if (el.tomselect) el.tomselect.destroy();
+        let _tomRoom = null;
+        let _tomZone = null;
 
-            const ts = new TomSelect(el, {
-                plugins: ['remove_button'],
-                create: false,
-                maxItems: null,
-                allowEmptyOption: true,
-                placeholder: '',
-                persist: false,
-                render: {
-                    option: function (data, escape) {
-                        return `<div>${escape(data.text)}</div>`;
-                    }
-                }
-            });
+        let _lastData = null;
+        let _selectedRow = null;
+        let _selectedRows = [];
 
+        // prevent double init grid
+        let _gridInitializedOnce = false;
+
+        // ====== DOM helpers ======
+        function $id(id) { return $("#" + id); }
+
+        function showLoading() { $id("gss_loadingSpinner").show(); }
+        function hideLoading() { $id("gss_loadingSpinner").hide(); }
+
+        function getSelectedRoomStatusesCsv() {
+            return $("input[name='gss_includeOptions']:checked")
+                .map(function () { return this.value; })
+                .get()
+                .join(",");
         }
-    }
-    function closeModalEdit() {
-        $('#modalEdit').modal('hide');
-    }
-    function initializeTomSelects() {
-        const selectors = ["#room"];
 
-        for (const id of selectors) {
-            const el = document.querySelector(id);
-            if (!el) continue;
+        function getFilters() {
+            const roomVal = $id("gss_room").val() || [];
+            const zoneVal = $id("gss_zone").val() || [];
 
-            if (el.tomselect) el.tomselect.destroy();
-
-            const ts = new TomSelect(el, {
-                plugins: ['remove_button'],
-                create: false,
-                maxItems: null,
-                allowEmptyOption: true,
-                placeholder: '',
-                persist: false,
-                render: {
-                    option: function (data, escape) {
-                        return `<div>${escape(data.text)}</div>`;
-                    }
-                }
-            });
-
+            return {
+                servicestatsu: $id("gss_servicestatus").val(),
+                room: roomVal,
+                roomStatus: getSelectedRoomStatusesCsv(),
+                zone: zoneVal.join(",")
+            };
         }
-    }
 
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        $("#loadingSpinner").show();
-        var selectedStatuses = $("input[name='includeOptions']:checked")
-            .map(function () {
-                return this.value;
-            }).get().join(",");
+        // ====== TomSelect ======
+        function initTomSelects() {
+            // Room
 
-        $.ajax({
-            url: '/HouseKeeping/GuestServiceStatusData',
-            type: 'GET',
-            data: {
-                servicestatsu: $("#servicestatsu").val(),
-                room: $("#room").val(),
-                roomStatus: selectedStatuses,
-                zone: $("#zone").val().join(",")
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                console.log(result);
-                initializeGuestServiceStatusGrid(result);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
+            const roomEl = document.querySelector("#gss_room");
+            if (roomEl) {
+                if (roomEl.tomselect) roomEl.tomselect.destroy();
 
-    let selectedRowData = null;
-    let selectedRowsData = [];
-    function initializeGuestServiceStatusGrid(data) {
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            allowColumnResizing: true,
-            columnAutoWidth: true,
-            height: 550,
-            width: "100%",
-            columns: [
-                { dataField: "roomNo", caption: "Room" },
-                { dataField: "roomTypeCode", caption: "Room Type" },
-                {
-                    dataField: "hkstatus",
-                    caption: "Room Status",
-                    cellTemplate: function (container, options) {
-                        let colorClass = "";
-                        switch (options.value) {
-                            case "Clean Uncheck":
-                                colorClass = "hk-clean-uncheck";
-                                break;
-                            case "Clean Non-Checked":
-                                colorClass = "hk-clean-uncheck";
-                                break;
-                            case "Dirty":
-                                colorClass = "hk-dirty";
-                                break;
-                            case "Out Of Order":
-                                colorClass = "hk-outoforder";
-                                break;
-                            case "Pickup":
-                                colorClass = "hk-pickup";
-                                break;
-                            case "Clean":
-                                colorClass = "hk-clean";
-                                break;
-                            case "Out Of Services":
-                                colorClass = "hk-outofservices";
-                                break;
-                            default:
-                                colorClass = "";
+                _tomRoom = new TomSelect(roomEl, {
+                    plugins: ['remove_button'],
+                    create: false,
+                    maxItems: null,
+                    allowEmptyOption: true,
+                    placeholder: '',
+                    persist: false,
+                    render: {
+                        option: function (data, escape) {
+                            return `<div>${escape(data.text)}</div>`;
                         }
-
-                        $("<div>")
-                            .addClass(colorClass)
-                            .css({
-
-                                "border-radius": "4px",
-                                "text-align": "center",
-                                "font-weight": "bold"
-                            })
-                            .text(options.value)
-                            .appendTo(container);
                     }
+                });
+            }
+
+            // Zone
+            const zoneEl = document.querySelector("#gss_zone");
+            if (zoneEl) {
+                if (zoneEl.tomselect) zoneEl.tomselect.destroy();
+                _tomZone = new TomSelect(zoneEl, {
+                    plugins: ['remove_button'],
+                    create: false,
+                    maxItems: null,
+                    allowEmptyOption: true,
+                    placeholder: '',
+                    persist: false,
+                    render: {
+                        option: function (data, escape) {
+                            return `<div>${escape(data.text)}</div>`;
+                        }
+                    }
+                });
+            }
+        }
+
+        // ====== Grid ======
+        function disposeMainGrid() {
+            try {
+                const inst = $("#gss_gridContainer").dxDataGrid("instance");
+                if (inst) inst.dispose();
+            } catch (e) { }
+            $("#gss_gridContainer").empty();
+            _grid = null;
+            _gridInitializedOnce = false;
+        }
+
+        function buildMainGrid(data) {
+            if (!Array.isArray(data)) return false;
+
+            // Important: always dispose before rebuild
+            disposeMainGrid();
+
+            _grid = $("#gss_gridContainer").dxDataGrid({
+                dataSource: data,
+                allowColumnResizing: true,
+                columnAutoWidth: true,
+                height: 550,
+                width: "100%",
+                columns: [
+                    { dataField: "roomNo", caption: "Room" },
+                    { dataField: "roomTypeCode", caption: "Room Type" },
+                    {
+                        dataField: "hkstatus",
+                        caption: "Room Status",
+                        cellTemplate: function (container, options) {
+                            let colorClass = "";
+                            switch (options.value) {
+                                case "Clean Uncheck":
+                                case "Clean Non-Checked":
+                                    colorClass = "gss-hk-clean-uncheck"; break;
+                                case "Dirty":
+                                    colorClass = "gss-hk-dirty"; break;
+                                case "Out Of Order":
+                                    colorClass = "gss-hk-outoforder"; break;
+                                case "Pickup":
+                                    colorClass = "gss-hk-pickup"; break;
+                                case "Clean":
+                                    colorClass = "gss-hk-clean"; break;
+                                case "Out Of Services":
+                                    colorClass = "gss-hk-outofservices"; break;
+                                default:
+                                    colorClass = "";
+                            }
+
+                            $("<div>")
+                                .addClass(colorClass)
+                                .css({
+                                    "border-radius": "4px",
+                                    "text-align": "center",
+                                    "font-weight": "bold",
+                                    "padding": "2px 6px"
+                                })
+                                .text(options.value || "")
+                                .appendTo(container);
+                        }
+                    },
+                    { dataField: "fostatus", caption: "FO Status" },
+                    { dataField: "guestServiceStatus", caption: "Service Status" },
+                    { dataField: "floor", caption: "Floor" },
+                    { dataField: "reservationStatus", caption: "Reservation Status" },
+                    { dataField: "updatedBy", caption: "Updated By" },
+                    { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "createdBy", caption: "Created By" },
+                    { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy" }
+                ],
+                paging: { pageSize: 25 },
+                scrolling: {
+                    useNative: true,
+                    showScrollbar: "always"
                 },
-                { dataField: "fostatus", caption: "FO Status" },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [25, 50, 'all'],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: { visible: true, applyFilter: "auto" },
+                headerFilter: { visible: true },
+                selection: { mode: "multiple", showCheckBoxesMode: "none" },
+                showBorders: true,
 
-                { dataField: "guestServiceStatus", caption: "Service Status" },
-                { dataField: "floor", caption: "Floor", dataType: "number", format: "#,##0" },
-                { dataField: "reservationStatus", caption: "Reservation Status" },
-                { dataField: "updatedBy", caption: "Updated By" },
-                { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "createdBy", caption: "Created By" },
-                { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy" },
-            ],
-
-            paging: { pageSize: 25 },
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
-            selection: { mode: "multiple", showCheckBoxesMode: "none" },
-            showBorders: true,
-            onRowClick: function (e) {
-                selectedRowData = e.data; // lưu dòng được chọn
-            },
-            onSelectionChanged: function (e) {
-                selectedRowsData = e.selectedRowsData; // Mảng các dòng đang được chọn
-
-            },
-            onRowPrepared: function (e) {
-                if (e.rowType === "data") {
-
-                    if (e.data?.isTotal) {
+                onRowClick: function (e) {
+                    _selectedRow = e.data || null;
+                },
+                onSelectionChanged: function (e) {
+                    _selectedRows = e.selectedRowsData || [];
+                },
+                onRowPrepared: function (e) {
+                    if (e.rowType === "data" && e.data?.isTotal) {
                         e.rowElement.css({
                             "font-weight": "bold",
                             "background-color": "#f6f6f6"
                         });
                     }
                 }
+            }).dxDataGrid("instance");
+
+            _gridInitializedOnce = true;
+            return true;
+        }
+
+        // ====== AJAX flow ======
+        function loadDataAndRenderGrid() {
+            showLoading();
+
+            const filters = getFilters();
+
+            return $.ajax({
+                url: "/HouseKeeping/GuestServiceStatusData",
+                type: "GET",
+                data: filters,
+                traditional: true,
+                crossDomain: false,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() }
+            })
+                .done(function (result) {
+
+                    // STRICT: only render grid if valid data returned
+                    if (!Array.isArray(result)) {
+                        hideLoading();
+                        alert("Invalid response: expected array.");
+                        return;
+                    }
+
+                    _lastData = result;
+
+                    // IMPORTANT: only build grid if modal is shown (height not 0)
+                    // If called too early, postpone until shown.
+                    if (_modalEl && $(_modalEl).hasClass("show")) {
+                        buildMainGrid(result);
+                    }
+
+                    hideLoading();
+                })
+                .fail(function () {
+                    hideLoading();
+                    alert("Cannot load report.");
+                });
+        }
+
+        // ====== Reservation flow ======
+        function openReservation(resvId) {
+            if (!resvId) {
+                alert("Reservation ID not found.");
+                return;
             }
-        });
-    }
-    $("#btnResvGuest").on("click", function () {
-        if (!selectedRowData) {
-            alert("Please select a row first.");
-            return;
-        }
 
-        const idReservation = selectedRowData.resvID; // hoặc field phù hợp như reservationId
-        if (!idReservation) {
-            alert("Reservation ID not found in selected row.");
-            return;
-        }
-        goReview(idReservation);
-    });
+            const modal = $("#newReservationModal");
+            modal.find(".modal-body").html(`
+      <div class="text-center py-5">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3">Loading reservation...</p>
+      </div>
+    `);
 
-    function goReview(idReservation) {
-        var modal = $('#newReservationModal');
+            modal.modal("show");
 
-        // Luôn hiển thị loading
-        modal.find('.modal-body').html(`
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-3">Loading reservation...</p>
-            </div>
-        `);
+            $.ajax({
+                url: "/Reservation/EncryptId",
+                type: "POST",
+                data: { id: resvId }
+            })
+                .done(function (response) {
+                    if (!response?.success) {
+                        modal.modal("hide");
+                        alert("EncryptId failed.");
+                        return;
+                    }
 
-        modal.modal('show');
-
-        $.ajax({
-            url: '/Reservation/EncryptId',
-            type: 'POST',
-            data: { id: idReservation },
-            success: function (response) {
-                if (response.success) {
                     $.ajax({
-                        url: '/Reservation/NewReservation',
-                        type: 'GET',
+                        url: "/Reservation/NewReservation",
+                        type: "GET",
                         data: { key: response.encryptedId },
-                        cache: false,
-                        success: function (html) {
-                            modal.find('.modal-body').html(html);
-
-                        },
-                        error: function () {
-                            modal.find('.modal-body').html(`
-                                <div class="alert alert-danger m-4">
-                                    <strong>Lỗi!</strong> Không thể tải thông tin đặt chỗ.
-                                </div>
-                            `);
-                        }
-                    });
-                } else {
-                    modal.modal('hide');
-                    alert('Lỗi khi mã hóa ID');
-                }
-            },
-            error: function () {
-                modal.modal('hide');
-                alert('Lỗi kết nối server');
-            }
-        });
-    }
-
-    $('#btnClosePopup, #overlay').click(function () {
-        $('#popupNewGrid').modal('hide');
-
-        $('#servicestatsusedit').val('');
-    });
-    $("#btnEditGuest").on("click", function () {
-        if (!selectedRowsData) {
-            alert("Please select a row first.");
-            return;
-        }
-        $('#popupNewGrid').modal('show');
-
-    });
-    $("#btnSaveAtt").on("click", function () {
-
-        EditGuestServiceStatus(selectedRowsData);
-    });
-    function EditGuestServiceStatus(selectedRowsData) {
-        $.ajax({
-            url: '/HouseKeeping/EditGuestService',
-            type: 'post',
-            dataType: 'json',
-            data: {
-                Ids: selectedRowsData,
-                servicestatus: $("#servicestatsusedit").val()
-            },
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                showToast('Success', result.message, true);
-                $('#popupNewGrid').modal('hide');
-
-
-
-                $('#servicestatsusedit').val('');
-                $("#btnPrint").trigger("click");
-
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                } else {
-                }
-            }
-        });
-    }
-
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance");
-        var selectedReport = 'Attendant Point';
-        if (!selectedReport) {
-            alert("Vui lòng ch?n báo cáo tru?c khi xu?t Excel.");
-            return;
+                        cache: false
+                    })
+                        .done(function (html) {
+                            modal.find(".modal-body").html(html);
+                        })
+                        .fail(function () {
+                            modal.find(".modal-body").html(`
+              <div class="alert alert-danger m-4">
+                <strong>Error!</strong> Cannot load reservation.
+              </div>
+            `);
+                        });
+                })
+                .fail(function () {
+                    modal.modal("hide");
+                    alert("Server connection error.");
+                });
         }
 
-        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
+        // ====== Edit flow ======
+        function openEditModal() {
+            if (!_selectedRows || _selectedRows.length < 1) {
+                alert("Please select row(s) first.");
+                return;
+            }
+            _editModal.show();
+        }
 
-        // === T?o header công ty (dòng 1) ===
-        worksheet.addRow(['Công ty C? ph?n Gi?i pháp Công ngh? CS-Solution']);
-        worksheet.mergeCells('A1:E1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+        function saveEdit() {
+            if (!_selectedRows || _selectedRows.length < 1) {
+                alert("No selected rows.");
+                return;
+            }
 
-        // === Dòng 2: Th?i gian xu?t (ph?i) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
-        worksheet.mergeCells('E2:H2');
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
+            const newStatus = $id("gss_servicestatus_edit").val();
+            if (!newStatus) {
+                alert("Please choose Service Status.");
+                return;
+            }
 
-        // === Dòng 3–4: Tr?ng
-        worksheet.addRow([]);
-        worksheet.addRow([]);
+            showLoading();
 
-        // === Dòng 5: Tên báo cáo ? gi?a ===
-        const reportRow = worksheet.addRow(['', '', selectedReport]);
-        worksheet.mergeCells('C5:F5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+            $.ajax({
+                url: "/HouseKeeping/EditGuestService",
+                type: "POST",
+                dataType: "json",
+                data: {
+                    Ids: _selectedRows,
+                    servicestatus: newStatus
+                },
+                crossDomain: false,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() }
+            })
+                .done(function (result) {
+                    hideLoading();
 
-        // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
-        worksheet.addRow([]);
+                    if (result?.message) showToast("Success", result.message, true);
 
-        // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
-        }).then(function () {
-            // Footer
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
-            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
+                    _editModal.hide();
+                    $id("gss_servicestatus_edit").val("0");
 
-            // Ghi file
-            let fileName = selectedReport + ".xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                    // reload
+                    loadDataAndRenderGrid();
+                })
+                .fail(function (xhr) {
+                    hideLoading();
+                    if (xhr.status === 401) sessionTimeout();
+                });
+        }
+
+        // ====== Export ======
+        function exportExcel() {
+            const grid = $("#gss_gridContainer").dxDataGrid("instance");
+            if (!grid) {
+                alert("Grid not ready.");
+                return;
+            }
+
+            const selectedReport = "Guest Service Status";
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            worksheet.addRow(["Công ty Cổ phần Giải pháp Công nghệ CS-Solution"]);
+            worksheet.mergeCells("A1:E1");
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "left" };
+
+            const now = new Date();
+            const exportDate = now.toLocaleString("vi-VN");
+            worksheet.addRow(["", "", "", "", " " + exportDate]);
+            worksheet.mergeCells("E2:H2");
+            worksheet.getRow(2).alignment = { vertical: "middle", horizontal: "right" };
+
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            const reportRow = worksheet.addRow(["", "", selectedReport]);
+            worksheet.mergeCells("C5:F5");
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: "middle", horizontal: "center" };
+
+            worksheet.addRow([]);
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.getCell(`A${lastRow}`).value = "--- END ---";
+                worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: "center" };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                const fileName = selectedReport + ".xlsx";
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                });
             });
-        });
+        }
+
+        // ====== Events ======
+        function bindEvents() {
+
+            // view
+            $(document).off("click.gss", "#gss_btnView").on("click.gss", "#gss_btnView", function () {
+                loadDataAndRenderGrid();
+            });
+
+            // export
+            $(document).off("click.gss", "#gss_btnExportExcel").on("click.gss", "#gss_btnExportExcel", function () {
+                exportExcel();
+            });
+
+            // resv
+            $(document).off("click.gss", "#gss_btnResvGuest").on("click.gss", "#gss_btnResvGuest", function () {
+                if (!_selectedRow) {
+                    alert("Please select a row first.");
+                    return;
+                }
+                openReservation(_selectedRow.resvID);
+            });
+
+            // edit open
+            $(document).off("click.gss", "#gss_btnEditGuest").on("click.gss", "#gss_btnEditGuest", function () {
+                openEditModal();
+            });
+
+            // edit save
+            $(document).off("click.gss", "#gss_btnSaveEdit").on("click.gss", "#gss_btnSaveEdit", function () {
+                saveEdit();
+            });
+
+            // when edit modal hidden => reset
+            $(_editModalEl).off("hidden.bs.modal.gss").on("hidden.bs.modal.gss", function () {
+                $id("gss_servicestatus_edit").val("0");
+                $("#gss_logGridContainer").empty();
+            });
+        }
+
+        // ====== Modal lifecycle ======
+        function initModals() {
+            _modalEl = document.getElementById("gss_modal");
+            _editModalEl = document.getElementById("gss_editModal");
+
+            if (!_modalEl || !_editModalEl) {
+                console.warn("gss modal elements not found.");
+                return;
+            }
+
+            _modal = bootstrap.Modal.getOrCreateInstance(_modalEl, { backdrop: "static" });
+            _editModal = bootstrap.Modal.getOrCreateInstance(_editModalEl, { backdrop: "static" });
+
+            // IMPORTANT: Grid must be initialized only in shown.bs.modal
+            const onModalOpen = function () {
+                console.log("GSS Module: Executing onModalOpen...");
+                initTomSelects();
+
+                if (Array.isArray(_lastData) && !_gridInitializedOnce) {
+                    buildMainGrid(_lastData);
+                }
+
+                if (!_lastData) {
+                    loadDataAndRenderGrid();
+                }
+            };
+
+            // FIX: Kiểm tra nếu modal đã có class 'show' (đang hiển thị) thì chạy luôn
+            if (_modalEl.classList.contains('show')) {
+                onModalOpen();
+            }
+
+            // cleanup on hide
+            $(_modalEl).off("hidden.bs.modal.gss").on("hidden.bs.modal.gss", function () {
+                destroy();
+            });
+        }
+
+        // ====== Public API ======
+        function init() {
+            initModals();
+            bindEvents();
+        }
+
+        function openModal() {
+            if (!_modal) init();
+            _modal.show();
+        }
+
+        function destroy() {
+
+            // dispose grids
+            disposeMainGrid();
+
+            // clear selections
+            _selectedRow = null;
+            _selectedRows = [];
+            _lastData = null;
+
+            // destroy tomselect
+            try { if (_tomRoom) _tomRoom.destroy(); } catch (e) { }
+            try { if (_tomZone) _tomZone.destroy(); } catch (e) { }
+            _tomRoom = null;
+            _tomZone = null;
+
+            // unbind events
+            $(document).off(".gss");
+
+            // empty containers
+            $("#gss_gridContainer").empty();
+            $("#gss_logGridContainer").empty();
+
+            hideLoading();
+        }
+
+        return {
+            init: init,
+            openModal: openModal,
+            destroy: destroy
+        };
+
+    })();
+
+
+    // ===== Global entry =====
+    window.openModalGss = function () {
+        gss_Module.openModal();
+    };
+
+
+    // ===== Global cleanup for all gss_ modals =====
+    $(document).off("hidden.bs.modal.gss_global").on("hidden.bs.modal.gss_global", ".modal[id^='gss_']", function () {
+        // Only destroy when MAIN modal hidden
+        if (this.id === "gss_modal") {
+            gss_Module.destroy();
+        }
     });
 </script>
