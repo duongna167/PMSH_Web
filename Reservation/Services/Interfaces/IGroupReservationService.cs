@@ -26,5 +26,6 @@ namespace Reservation.Services.Interfaces
         /// <param name="transactionCode">transaction code</param>
         /// <returns>Data table chứa danh sách reservation group</returns>
         decimal CalculatePriceFromNet(decimal priceAfter, string transactionCode);
+        DataTable GetRoomTypeAvailableDetail(DateTime fromDate);
     }
 }

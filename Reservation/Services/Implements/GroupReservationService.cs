@@ -35,7 +35,25 @@ namespace Reservation.Services.Implements
                 throw new Exception($"ERROR: {ex.Message}", ex);
             }
         }
+        public DataTable GetRoomTypeAvailableDetail(DateTime fromDate)
+        {
+            try
+            {
+                SqlParameter[] param = new SqlParameter[]
+                {
+                    new SqlParameter("@Date", fromDate),
 
+                };
+
+                DataTable myTable = DataTableHelper.getTableData("spAvailableRoomDetail", param);
+                return myTable;
+            }
+            catch (SqlException ex)
+            {
+
+                throw new Exception($"ERROR: {ex.Message}", ex);
+            }
+        }
         public decimal CalculatePriceFromNet(decimal priceAfter, string transactionCode)
         {
             try
