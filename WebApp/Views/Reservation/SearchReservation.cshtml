@@ -1,14 +1,19 @@
-﻿﻿@* <link href="~/css/pages/reservation.css" rel="stylesheet" asp-append-version="true" /> *@
+﻿@* <link href="~/css/pages/reservation.css" rel="stylesheet" asp-append-version="true" /> *@
 @* <div class="header mt-2" style="border-bottom:none;justify-content:center">
     <h3 id="content-title">
         Search Reservation
     </h3>
 </div> *@
+
+<style>
+
+</style>
 <div class="mt-1">
     <div class="row">
         <!-- Menu trái -->
         <div class="col-md-3 mb-2" id="leftMenu">
-            <div class="mui-card">
+            <!-- Filter -->
+            <div class="mui-card px-3">
                 <div class="header" style="justify-content:space-between">
                     <div class="header2">
                         <i class="fa-solid fa-sliders" style="background-color:#027C75;color:white;padding:4px"></i>
@@ -21,7 +26,7 @@
                             title="Click to hide filter"></i>
                     </div>
                     <div class="header2">
-                        <i class="fa-solid fa-magnifying-glass" onclick="searchReservation();"></i>
+                        <span data-tooltip="Search"><i class="fa-solid fa-magnifying-glass" onclick="searchReservation();" style="cursor:pointer;"></i></span>
                     </div>
                 </div>
                 <div id="filter" class="tab-pane">
@@ -126,12 +131,12 @@
                         </div>
 
                         <!-- Checkboxes -->
-                        <div class="col-12 col-md-6 d-flex align-items-center gap-2 mt-2">
+                        <div class="col-12 col-md-6 d-flex align-items-center gap-2 mt-2 pb-2">
                             <input type="checkbox" id="reservationOnline" name="reservationOnline" value="1">
                             <label class="mb-0">Rsv Online</label>
                         </div>
 
-                        <div class="col-12 col-md-6 d-flex align-items-center gap-2 mt-2">
+                        <div class="col-12 col-md-6 d-flex align-items-center gap-2 mt-2 pb-2">
                             <input type="checkbox" id="roomShare" name="roomShare" value="IncludeRS" checked>
                             <label class="mb-0">Room Sharer</label>
                         </div>
@@ -140,7 +145,8 @@
 
                 </div>
             </div>
-            <div class="mui-card mt-2">
+            <!-- Function and Options -->
+            <div class="mui-card mt-1 px-3">
                 <div class="header">
                     <i class="fa-solid fa-sliders" style="background-color:#027C75;color:white;padding:4px"></i>
                     <h3 id="content-title">
@@ -219,8 +225,8 @@
             </div>
         </div>
         <!-- Nội dung bên phải -->
-        <div class="col-md-9" id="rightContent">
-            <div class="header" style="border:none;display:flex;justify-content:space-between">
+        <div class="col-md-9 bg-white px-0" id="rightContent">
+            <div class="header px-3" style="border:none;display:flex;justify-content:space-between">
                 <h3 id="content-title">
                     Search reservation
                 </h3>
@@ -228,14 +234,14 @@
                     <div class="box-function" onclick="toggleLeftMenu();" id="toggleLeftWrapper">
                         <i class="fa-solid fa-filter-circle-xmark" id="toggleLeftMenu"></i>
                     </div>
-                    <div class="box-function" onclick="openVisibleColumns();"><i class="fa-solid fa-gear"></i></div>
-                    <div class="box-function" onclick="exportExcel();"><i class="fa-solid fa-file-excel"></i></div>
+                    <div class="box-function" id="setttingGrid" onclick="openVisibleColumns();"><i class="fa-solid fa-gear"></i></div>
+                    <div class="box-function" id="exportExcelReservation" onclick="exportExcel();"><i class="fa-solid fa-file-excel"></i></div>
 
 
                 </div>
             </div>
             <div class="content-right">
-                <div class="mui-card">
+                <div class="mui-card mx-1">
                     <div class="row">
                         <div class="col-md-8">
 
@@ -288,6 +294,7 @@
         </div>
     </div>
 </div>
+
 <div class="offcanvas offcanvas-end" tabindex="-1" id="columnOffcanvas" aria-labelledby="columnOffcanvasLabel">
     <div class="offcanvas-header">
         <h5 class="offcanvas-title" id="columnOffcanvasLabel">Select column to add into grid</h5>
@@ -380,13 +387,15 @@
         if (leftMenu.is(':visible')) {
             leftMenu.hide();
             rightContent.removeClass('col-md-9 col-md-8').addClass('col-md-12');
-            toggleIcon.removeClass('fa-solid fa-filter-circle-xmark').addClass('fa-solid fa-filter');
-            toggleIcon.attr('title', 'Show left menu');
+            toggleIcon.removeClass('fa-solid fa-filter-circle-xmark')
+                      .addClass('fa-solid fa-filter');
+            // toggleLeftWrapper.attr('data-tooltip', 'Show left menu');
         } else {
             leftMenu.show();
             rightContent.removeClass('col-md-12 col-md-8').addClass('col-md-9');
-            toggleIcon.removeClass('fa-solid fa-filter').addClass('fa-solid fa-filter-circle-xmark');
-            toggleIcon.attr('title', 'Hide left menu');
+            toggleIcon.removeClass('fa-solid fa-filter')
+                      .addClass('fa-solid fa-filter-circle-xmark');
+            // toggleLeftWrapper.attr('data-tooltip', 'Hide left menu');
         }
     }
 
@@ -427,6 +436,16 @@
         setupDefaultCaret();
         const urlParams = new URLSearchParams(window.location.search);
         const type = urlParams.get("type");
+        const leftMenu = $('#leftMenu');
+        const toggleLeftWrapper = $('#toggleLeftWrapper');
+
+        if (leftMenu.is(':visible')) {
+            toggleLeftWrapper.attr('data-tooltip', 'Hide left menu');
+        } else {
+            toggleLeftWrapper.attr('data-tooltip', 'Show left menu');
+        }
+        $('#setttingGrid').attr('data-tooltip', 'Setting table');
+        $('#exportExcelReservation').attr('data-tooltip', 'Export Excel');
 
         // ===== Mapping type -> searchType =====
         const typeMapping = {
@@ -814,15 +833,15 @@
             dataSource: processedData,
             allowColumnResizing: true,
             columnAutoWidth: true,
-            paging: { enabled: true, pageSize: 24 },
+            paging: { enabled: true, pageSize: 23 },
             pager: {
                 visible: true,
-                allowedPageSizes: [24, 30, 35],
+                allowedPageSizes: [23, 30, 35],
                 showPageSizeSelector: true,
                 showInfo: true,
                 showNavigationButtons: true
             },
-            scrolling: { mode: 'standard', showScrollbar: 'always', useNative: false },
+            scrolling: { mode: 'standard', showScrollbar: 'always', useNative: true },
             filterRow: { visible: true, applyFilter: "auto" },
             selection: { mode: "single" },
             columns: columns,

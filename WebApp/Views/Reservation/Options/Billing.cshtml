@@ -1,4 +1,4 @@
-﻿<link rel="stylesheet" href="~/css/pages/billing.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/pages/billing.css" asp-append-version="true" />
 
 <div class="modal fade" id="modalBilling" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabelBilling" aria-hidden="true">
     <div class="modal-dialog modal-xl billing-module-dialog">
@@ -229,7 +229,6 @@
     function openBilling0(){ searchFolioDetail(0); }
     function openBilling1(){ searchFolioDetail(1); }
     function openBilling2(){ searchFolioDetail(0); }
-
     function searchFolioDetail(type) {
          var $gridElement = $("#gridContainerBilling");
 
@@ -255,6 +254,7 @@
              }
          });
     }
+    
     invoiceNoPosting = 0;
 
     function getFolioNo() {
@@ -315,10 +315,9 @@
                                 ${result[i].folioNo}
                             </div>
                             ${lockIcon}
-                            <i class="fas fa-times delete-icon ${deleteClass}"
-                               ${deleteAction}
-                               title="Delete">
-                            </i>
+                            <span data-tooltip="Delete">
+                                <i class="fas fa-times delete-icon ${deleteClass}"${deleteAction}></i>
+                            </span>
                         </li>`;
                     }
                 }
@@ -351,7 +350,6 @@
             }
         });
     }
-
     function filterByFolioNo(folioNo, index, element){
         $('.folio-item').removeClass('active');
 
@@ -376,7 +374,7 @@
     var folioDetailID = 0;
     var transCodeBilling = "";
     
-    //NGHIỆP VỤ TÍNH TOÁN BALANCE & TOTAL ---
+    //TÍNH TOÁN BALANCE & TOTAL ---
     function updateBillingHeaderStats(data) {
         let totalBalance = 0; 
         let totalCharges = 0;
@@ -397,7 +395,6 @@
         $('#totalBilling').text(totalCharges.toLocaleString('vi-VN'));
         $('#balanceBillingMaster').text(totalBalance.toLocaleString('vi-VN'));
     }
-
     function initializeDataGridBilling(data) {
         updateBillingHeaderStats(data);
 
@@ -549,27 +546,37 @@
             ],
             filterRow: { visible: true, applyFilter: "auto" },
             selection: { mode: "multiple", showCheckBoxesMode: "always" },
+            onContextMenuPreparing: function(e) {
+                if (e.row && e.row.rowType === "data") {
+                    // Lưu lại thông tin dòng được click để các hàm bên trong menu sử dụng
+                    invoiceNoPosting = e.row.data.invoiceNo;
+                    folioDetailID = e.row.data.id;
+
+                    // Tự động select dòng đó khi chuột phải (tùy chọn)
+                    e.component.selectRows([e.row.key], false);
+
+                    const menu = $("#functionMenu");
+                    menu.css({
+                        display: "block",
+                        left: e.event.pageX + "px",
+                        top: e.event.pageY + "px"
+                    });
+
+                    // Ngăn chặn menu mặc định của trình duyệt
+                    e.event.preventDefault();
+                }
+            },
+            // Bạn có thể bỏ đoạn code hiển thị menu trong onRowClick cũ để tránh xung đột
             onRowClick: function(e) {
                 if (e.rowType === "data") {
-                    invoiceNoPosting = e.data.invoiceNo;
-                    folioDetailID = e.data.id;
-
                     var component = e.component;
                     var key = e.key;
-
                     if (component.isRowSelected(key)) {
                         component.deselectRows([key]);
-                        $("#functionMenu").hide();
-
                     } else {
                         component.selectRows([key], true);
-                        const menu = $("#functionMenu");
-                        menu.css({
-                            display: "block",
-                            left: e.event.pageX + 5 + "px", // Cách con trỏ 5px
-                            top: e.event.pageY + 5 + "px"
-                        });
                     }
+                    $("#functionMenu").hide(); // Ẩn menu khi click trái bình thường
                 }
             },
             onContentReady: function(e) {
@@ -596,7 +603,6 @@
             },
         });
     }
-
     function clearSelectedRowsBilling() {
         const grid = $("#gridContainerBilling").dxDataGrid("instance");
         if (grid) {
@@ -607,7 +613,6 @@
             $("#functionMenu").hide();
         }
     }
-
     $("#deleteTransactionBilling").on("click", function() {
         var grid = $("#gridContainerBilling").dxDataGrid("instance");
 
@@ -628,7 +633,6 @@
         }
 
     });
-
     function confirmDelete(){
         var grid = $("#gridContainerBilling").dxDataGrid("instance");
 
@@ -660,7 +664,6 @@
             error: function (xhr, statusText, err) { }
         });
     }
-
     function openModalBilling(){
         if(reservationStatus == 0 || reservationStatus == 3){
             showToast('Error', 'Booking status must not be Reservation or Cancel', false);
@@ -674,7 +677,6 @@
         $('#staticBackdropLabelBilling').text('Billing [' + lastname + ' - ' + 'RoomNo: ' + roomNo + ']');
         $('#modalBilling').modal('show');
     }
-
     function closeModalBilling(){
         $('#modalBilling').modal('hide');
     }
@@ -920,7 +922,6 @@
             error: function (xhr, statusText, err) { }
         });
     }
-
     function openModalConfirmTransaction(){
         $('#modalConfirmDeleteTransaction').modal('show');
     }
@@ -1217,4 +1218,5 @@
         window.open(doc.output("bloburl"), "_blank");
     }
     // end print
+
 </script>
