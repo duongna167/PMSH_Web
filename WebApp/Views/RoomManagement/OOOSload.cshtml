@@ -521,23 +521,45 @@
                     { dataField: "userUpdate", caption: "User Update", width: 100 },
                     { dataField: "updatedDate", caption: "Update Date", width: 80, dataType: "date", format: "dd/MM/yyyy" }
                 ],
-                summary: {
-                    totalItems: [
-                        {
-                            showInColumn: "reason",
-                            summaryType: "custom",
-                            name: "TotalNights",
-                            displayFormat: "Total Nights: {0}",
-                            alignment: "left"
-                        }
-                    ],
-                    calculateCustomSummary: function (options) {
-                        if (options.name === "TotalNights") {
-                            if (options.summaryProcess === "start") options.totalValue = 0;
-                            if (options.summaryProcess === "calculate") options.totalValue += (options.value.noOfNights || 0);
-                        }
-                    }
-                },
+                    summary: {
+        totalItems: [
+            // CODE column → hiện chữ Total
+            {
+                column: "code",
+                summaryType: "count",
+                displayFormat: "Total room",
+                alignment: "left"
+            },
+
+            // ROOM NO → đếm số phòng
+            {
+                column: "roomNo",
+                summaryType: "count",
+                displayFormat: "{0}",
+                alignment: "right"
+            },
+
+            // NIGHTS → giữ cách tính custom
+            {
+                showInColumn: "reason",
+                summaryType: "custom",
+                name: "TotalNights",
+                displayFormat: "Total Nights: {0}",
+                alignment: "right"
+            }
+        ],
+
+        calculateCustomSummary: function (options) {
+            if (options.name === "TotalNights") {
+                if (options.summaryProcess === "start")
+                    options.totalValue = 0;
+
+                if (options.summaryProcess === "calculate")
+                    options.totalValue += (options.value.noOfNights || 0);
+            }
+        }
+    },
+
                 onSelectionChanged: function (e) {
                     self.selectedRowData = e.selectedRowsData[0] || null;
                 }
