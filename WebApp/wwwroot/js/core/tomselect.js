@@ -36,7 +36,7 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
                 return `<div class="p-2">${escape(data.text)}</div>`;
             },
             item(data, escape) {
-                return `<div title="${escape(data.text)}">${escape(data.text)}</div>`;
+                return `<div><span class="ts-item-text" data-tooltip="${escape(data.text)}">${escape(data.text)}</span></div>`;
             }
         }
     };
@@ -80,43 +80,71 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
                     ...baseOptions.plugins,
                     ...(options.plugins || {}),
                     'clear_button': {
-                        'title': isMultiple ? 'Clear all' : 'Clear'
+                        'title': '',
+                        'html': (data) => {
+                            // Đảm bảo class "clear-button" luôn tồn tại
+                            const label = isMultiple ? "Clear all" : "Clear";
+                            return `<div class="clear-button" data-tooltip="${label}">×</div>`;
+                        }
                     }
                 }
-
             };
+
             if (isMultiple) {
-                tsOptions.plugins['remove_button'] = { title: 'Remove' };
+                tsOptions.plugins['remove_button'] = {
+                    title: '', // Để trống title mặc định
+                    label: `<span data-tooltip="Delete">×</span>` // Thêm tooltip cho nút x từng item
+                };
             }
+
             try {
                 if (el.value === undefined) el.value = '';
-
                 const ts = new TomSelect(el, tsOptions);
+
+                // Sự kiện khi xóa 1 item
+                ts.on('item_remove', function () {
+                    if (typeof window.hideTooltip === "function") window.hideTooltip();
+                    this.setTextboxValue(''); // Xóa từ khóa search
+                    this.refreshOptions(false); // Hiện lại item trong dropdown
+                });
+
+                // Sự kiện khi nhấn nút Clear All
+                ts.on('clear', function () {
+                    if (typeof window.hideTooltip === "function") window.hideTooltip();
+                    this.setTextboxValue('');
+                    this.refreshOptions(false); // Trả lại toàn bộ data
+                });
+
+                // Gán trực tiếp cho nút Clear Button để xóa mảng dứt khoát
+                const clearBtn = ts.control.querySelector('.clear-button');
+                if (clearBtn) {
+                    clearBtn.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        ts.setValue([]); // Xóa sạch mảng chọn
+                        ts.refreshOptions(false);
+                        if (typeof window.hideTooltip === "function") window.hideTooltip();
+                    };
+                }
+
+                // LOAD DỮ LIỆU TỪ API
                 if (apiUrl) {
                     fetch(apiUrl)
                         .then(res => res.json())
                         .then(data => {
                             const vField = tsOptions.valueField || 'value';
                             const lField = tsOptions.labelField || 'text';
-
                             const formattedData = data.map(i => ({
-                                value: i[vField], // Truy cập động theo tên field
+                                value: i[vField],
                                 text: i[lField]
                             }));
-
                             ts.addOptions(formattedData);
                             ts.refreshOptions(false);
                         });
                 }
-                ts.on('clear', function () {
-                    this.close();
-                    if (this.control_input) this.control_input.blur();
-                    this.refreshOptions(false);
-                });
             } catch (e) {
-                // log
+                console.error("Lỗi TomSelect:", e);
             }
-
 
         });
     });
