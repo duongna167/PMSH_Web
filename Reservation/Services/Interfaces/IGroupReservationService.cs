@@ -18,6 +18,7 @@ namespace Reservation.Services.Interfaces
         /// <returns>Data table chứa danh sách reservation group</returns>
         DataTable GetGroupReservation(DateTime fromDate,DateTime toDate, int noOfRoom);
 
+        (DataTable, int) GetGroupReservationTest(DateTime fromDate, DateTime toDate, int noOfRoom, int skip, int take);
 
         /// <summary>
         /// DatVP: Tính tiền price của rate code group reservation theo net

@@ -35,6 +35,31 @@ namespace Reservation.Services.Implements
                 throw new Exception($"ERROR: {ex.Message}", ex);
             }
         }
+        public (DataTable,int ) GetGroupReservationTest(DateTime fromDate, DateTime toDate, int noOfRoom,int skip, int take)
+        {
+            try
+            {
+                SqlParameter[] param = new SqlParameter[]
+                {
+                    new SqlParameter("@FromDate", fromDate),
+                    new SqlParameter("@ToDate", toDate),
+                    new SqlParameter("@NoOfRoom", noOfRoom.ToString()),
+                    new SqlParameter("@Skip", skip),
+                    new SqlParameter("@Take", take),
+
+                };
+                DataSet ds = DataTableHelper.GetDataSet("spRptGroupReservationReport_Test", param);
+                DataTable myTable = ds.Tables[0];
+                int totalCount = Convert.ToInt32(ds.Tables[1].Rows[0][0]);
+                return (myTable, totalCount);
+            }
+            catch (SqlException ex)
+            {
+
+                throw new Exception($"ERROR: {ex.Message}", ex);
+            }
+        }
+        
         public DataTable GetRoomTypeAvailableDetail(DateTime fromDate)
         {
             try

@@ -3386,6 +3386,50 @@ namespace Reservation.Controllers
                 return Json(ex.Message);
             }
         }
+        public async Task<IActionResult> SearchGroupReservationTest(DateTime fromDate, DateTime toDate, int noOfNight, int skip = 0, int take = 20)
+        {
+            try
+            {
+
+                (DataTable myData,int totalCount ) = _iGroupReservationService.GetGroupReservationTest(fromDate, toDate, noOfNight, skip, take);
+
+                var result = (from d in myData.AsEnumerable()
+
+                              select new
+                              {
+                                  ConfirmationNo = d["ConfirmationNo"].ToString(),
+                                  CRSNo = d["CRSNo"].ToString(),
+                                  ReservationTypeCode = d["ReservationTypeCode"].ToString(),
+                                  TotalRoom = d["TotalRoom"].ToString(),
+                                  ArrivalDate = d.Field<DateTime?>("ArrivalDate"),
+                                  Nights = d["Nights"].ToString(),
+                                  DepartureDate = d.Field<DateTime?>("DepartureDate"),
+                                  GroupCode = d["GroupCode"].ToString(),
+                                  ReservationHolder = d["ReservationHolder"].ToString(),
+                                  SaleInCharge = d["SaleInCharge"].ToString(),
+                                  Persons = d["Persons"].ToString(),
+                                  RoomOccupancy = d["RoomOccupancy"].ToString(),
+                                  MarketCode = d["MarketCode"].ToString(),
+                                  SourceCode = d["SourceCode"].ToString(),
+                                  ReservationDate = d.Field<DateTime?>("ReservationDate"),
+                                  Price = d["Price"].ToString(),
+                                  AmountBeforTax = d["AmountBeforTax"].ToString(),
+                                  AmountAfterTax = d["AmountAfterTax"].ToString(),
+                                  CurrencyID = d["CurrencyID"].ToString(),
+                                  OptionDate = d["OptionDate"].ToString(),
+                                  OptionDateDesc = d["OptionDateDesc"].ToString(),
+                                  PersonRoom = d.Table.Columns.Contains("PersonRoom") ? d["PersonRoom"].ToString() : "0",
+                                  RoomNight = d.Table.Columns.Contains("RoomNight") ? d["RoomNight"].ToString() : "0",
+                              }).ToList();
+
+
+                return Json(new { data = result, totalCount = totalCount });
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
 
 
         [HttpGet]
