@@ -675,7 +675,7 @@ namespace Cashiering.Controllers
         {
             ViewBag.cboZone = ListItemHelper.GetZoneProvider();
 
-            return View();
+            return PartialView();
         }
 
         [HttpGet]
