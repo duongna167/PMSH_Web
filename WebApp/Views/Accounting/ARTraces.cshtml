@@ -27,7 +27,7 @@
                         <div id="ar_trace_gridContainer"></div>
                         <div id="ar_trace_loading" style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
                         z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
-                        height: 100%;display: flex;align-items: center;justify-content: center; display:none;">
+                        height: 100%;display: flex;align-items: center;justify-content: center;">
                             <div class="spinner-border text-primary" role="status"></div>
                         </div>
                     </div>
@@ -44,7 +44,7 @@
                 <h5 class="modal-title" id="ar_trace_textPopup">AR Trace New</h5>
             </div>
             <div class="modal-body">
-                <div class="d-flex justify-content-start gap-2 flex-wrap mb-3">
+                <div class="d-flex justify-content-start gap-2 flex-wrap py-2">
                     <button id="ar_trace_btnSearchAuto" class="mui-button mui-button-advance" type="button"> Search </button>
                     <button id="ar_trace_btnOkAutoUpdate" class="mui-button mui-button-advance" type="button" style="display:none;"> Save </button>
                     <button id="ar_trace_btnSaveAuto" class="mui-button mui-button-new" type="button"> Save </button>
@@ -80,7 +80,7 @@
                 <h5 class="modal-title">AR Trace - Select Account</h5>
             </div>
             <div class="modal-body">
-                <div class="d-flex justify-content-start gap-2">
+                <div class="d-flex justify-content-start gap-2 py-2">
                     <button id="ar_trace_btnOkSelect" class="mui-button mui-button-advance" type="button"> Ok </button>
                     <button class="mui-button mui-button-new" data-bs-dismiss="modal" type="button"> Close </button>
                 </div>
@@ -366,24 +366,59 @@
 
         exportExcel: function () {
             const grid = $("#ar_trace_gridContainer").dxDataGrid("instance");
-            if (!grid) return;
-
+            if (!grid) {
+                showToast("Warning", "No data to export!", false);
+                return;
+            }
             const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet("AR Trace");
-            const companyName = localStorage.getItem("CompanyName") || "System";
+            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const worksheet = workbook.addWorksheet("Sheet 1");
 
+            // === Dòng 1: Tên công ty (merge theo 4 cột) ===
             worksheet.addRow([companyName]);
-            worksheet.addRow(["Export Date: " + new Date().toLocaleString()]);
-            worksheet.addRow([]);
-            worksheet.addRow(["AR TRACE REPORT"]);
+            worksheet.mergeCells('A1:D1');
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
 
+            // === Dòng 2: Ngày giờ xuất (Sửa lỗi hiển thị ở đây) ===
+            const now = new Date();
+            const exportDateStr = "Export Date: " + now.toLocaleString("vi-VN");
+            const row2 = worksheet.getRow(2);
+            row2.getCell(1).value = exportDateStr; // Gán vào ô đầu tiên của vùng merge (A2)
+            worksheet.mergeCells('A2:D2');
+            row2.alignment = { vertical: 'middle', horizontal: 'left' };
+            row2.font = { italic: true };
+
+            // === Dòng 3–4: trống
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
+            const reportRow = worksheet.addRow(['AR Trace Export']);
+            worksheet.mergeCells('A5:D5');
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            // === Dòng 6: trống
+            worksheet.addRow([]);
+
+            // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
             DevExpress.excelExporter.exportDataGrid({
                 component: grid,
                 worksheet: worksheet,
-                topLeftCell: { row: 6, column: 1 }
-            }).then(() => {
-                workbook.xlsx.writeBuffer().then(buffer => {
-                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "ARTrace.xlsx");
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                // Footer (sau cùng)
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                // Ghi file
+                let fileName = "ARTrace.xlsx";
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
                 });
             });
         },
