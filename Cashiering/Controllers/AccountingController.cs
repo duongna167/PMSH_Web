@@ -48,7 +48,7 @@ namespace Cashiering.Controllers
             ViewBag.cboCity = ListItemHelper.GetCity();
             ViewBag.cboCity2 = ListItemHelper.GetCityText();
 
-            return View(); // View này sẽ chứa DataGrid + script gọi API
+            return PartialView(); // View này sẽ chứa DataGrid + script gọi API
         }
 
 
@@ -718,7 +718,7 @@ namespace Cashiering.Controllers
 
             List<CurrencyModel> listcurr = PropertyUtils.ConvertToList<CurrencyModel>(CurrencyBO.Instance.FindAll());
             ViewBag.CurrencyList = listcurr;
-            return PartialView(); 
+            return PartialView();
         }
 
         [HttpGet]
@@ -1002,7 +1002,7 @@ namespace Cashiering.Controllers
         {
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
             ViewBag.BusinessDate = businessDateModel[0].BusinessDate;
-            return PartialView(); 
+            return PartialView();
         }
         [HttpGet]
         public IActionResult ARTracesData()
