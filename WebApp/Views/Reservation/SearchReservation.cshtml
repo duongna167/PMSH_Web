@@ -1,4 +1,4 @@
-﻿@* <link href="~/css/pages/reservation.css" rel="stylesheet" asp-append-version="true" /> *@
+@* <link href="~/css/pages/reservation.css" rel="stylesheet" asp-append-version="true" /> *@
 @* <div class="header mt-2" style="border-bottom:none;justify-content:center">
     <h3 id="content-title">
         Search Reservation
@@ -384,19 +384,28 @@
         const leftMenu = $('#leftMenu');
         const rightContent = $('#rightContent');
         const toggleIcon = $('#toggleLeftMenu');
-        if (leftMenu.is(':visible')) {
+        const toggleLeftWrapper = $('#toggleLeftWrapper');
+
+        // Kiểm tra trạng thái hiện tại (nếu đang ẩn thì chuẩn bị hiện và ngược lại)
+        const isCurrentlyVisible = leftMenu.is(':visible');
+
+        if (isCurrentlyVisible) {
             leftMenu.hide();
             rightContent.removeClass('col-md-9 col-md-8').addClass('col-md-12');
-            toggleIcon.removeClass('fa-solid fa-filter-circle-xmark')
-                      .addClass('fa-solid fa-filter');
-            // toggleLeftWrapper.attr('data-tooltip', 'Show left menu');
+            toggleIcon.removeClass('fa-solid fa-filter-circle-xmark').addClass('fa-solid fa-filter');
+
+            // Cập nhật tooltip thành "Hiện"
+            toggleLeftWrapper.attr('data-tooltip', 'Show left menu');
         } else {
             leftMenu.show();
             rightContent.removeClass('col-md-12 col-md-8').addClass('col-md-9');
-            toggleIcon.removeClass('fa-solid fa-filter')
-                      .addClass('fa-solid fa-filter-circle-xmark');
-            // toggleLeftWrapper.attr('data-tooltip', 'Hide left menu');
+            toggleIcon.removeClass('fa-solid fa-filter').addClass('fa-solid fa-filter-circle-xmark');
+
+            // Cập nhật tooltip thành "Ẩn"
+            toggleLeftWrapper.attr('data-tooltip', 'Hide left menu');
         }
+
+        if(typeof UI !== 'undefined' && UI.refreshTooltips) UI.refreshTooltips();
     }
 
     if (document.getElementById('btnViewIndividual')) bindIndividualSearchButton();
@@ -439,11 +448,10 @@
         const leftMenu = $('#leftMenu');
         const toggleLeftWrapper = $('#toggleLeftWrapper');
 
-        if (leftMenu.is(':visible')) {
-            toggleLeftWrapper.attr('data-tooltip', 'Hide left menu');
-        } else {
-            toggleLeftWrapper.attr('data-tooltip', 'Show left menu');
-        }
+        // Khởi tạo trạng thái Tooltip ban đầu dựa trên thực tế hiển thị
+        const initialVisible = leftMenu.is(':visible');
+        toggleLeftWrapper.attr('data-tooltip', initialVisible ? 'Hide left menu' : 'Show left menu');
+
         $('#setttingGrid').attr('data-tooltip', 'Setting table');
         $('#exportExcelReservation').attr('data-tooltip', 'Export Excel');
 

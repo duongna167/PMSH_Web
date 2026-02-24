@@ -1002,7 +1002,7 @@ namespace Cashiering.Controllers
         {
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
             ViewBag.BusinessDate = businessDateModel[0].BusinessDate;
-            return View(); // View này sẽ chứa DataGrid + script gọi API
+            return PartialView(); 
         }
         [HttpGet]
         public IActionResult ARTracesData()
