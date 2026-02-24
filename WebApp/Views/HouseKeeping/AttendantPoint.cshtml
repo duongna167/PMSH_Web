@@ -1,520 +1,507 @@
-﻿@using DevExpress.XtraReports.UI
-@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
     ViewBag.Title = ViewBag.ReportHeader;
     var listatt = ViewBag.hkpAttendantList;
 }
-@* <link asp-append-version="true" href="~/css/reservation.css" rel="stylesheet" /> *@
 
-<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="">
-        <button id="btnPrint" class="mui-button mui-button-view">View</button>
-        <button id="btnExportExcel" class="mui-button button-report-excel" type="button"> Excel</button>
-        <button id="btnNewAppoin" class="mui-button mui-button-new" type="button"> New </button>
-        <button id="btnEditAppoin" class="mui-button mui-button-edit" type="button">Edit </button>
-        <button id="btnDeleteAppoin" class="mui-button mui-button-delete" type="button">
-            Delete
-        </button>
-    </div>
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1 pt-2 filter-panel">
-        <!-- From Date -->
+<style>
+    #adp_modalForm.ts-wrapper:not(.form-control,.form-select).single .ts-control {
+    background-image: none !important;
+    }
+</style>
 
-        <div class="row g-3 align-items-center filter-panel">
+<!-- ========================= -->
+<!-- MAIN MODAL (XL REQUIRED) -->
+<!-- ========================= -->
+<div class="modal fade" id="adp_modalMain" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
 
-            <div class="col-md-auto">
-                <div class="d-flex align-items-center">
-                    <label class="me-2 mb-0 text-nowrap" for="fromDate">From:</label>
-                    <input type="date"
-                           id="fromDate"
-                           name="fromDate"
-                           class="form-control form-control-sm w-auto" />
-                </div>
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="adp_reportTitle">Attendant Point</h5>
             </div>
 
-            <div class="col-md-auto">
-                <div class="d-flex align-items-center">
-                    <label class="me-2 mb-0 text-nowrap" for="toDate">To:</label>
-                    <input type="date"
-                           id="toDate"
-                           name="toDate"
-                           class="form-control form-control-sm w-auto" />
-                </div>
-            </div>
+            <div class="modal-body">
 
-            <div class="col-md-auto">
-                <div class="d-flex align-items-center">
-                    <label class="me-2 mb-0 text-nowrap" for="attendant">Attendant ID:</label>
-                    <select id="attendant"
-                            name="attendant"
-                            class="tomselect-custom"
-                            multiple>
-                        @foreach (var item in listatt)
-                        {
-                            <option value="@item.ID">@item.Name</option>
-                        }
-                    </select>
-                </div>
-            </div>
+                <div class="search-filter">
+                    <!-- ACTION BUTTONS -->
+                    <div class="mb-2">
+                        <button id="adp_btnView" class="mui-button mui-button-view">View</button>
+                        <button id="adp_btnExportExcel" class="mui-button button-report-excel">Excel</button>
+                        <button id="adp_btnNew" class="mui-button mui-button-new">New</button>
+                        <button id="adp_btnEdit" class="mui-button mui-button-edit">Edit</button>
+                        <button id="adp_btnDelete" class="mui-button mui-button-delete">Delete</button>
+                        <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
 
+                    </div>
+
+                   <!-- FILTER -->
+                    <div class="mt-1">
+                        <div class="row g-2 px-1 align-items-center">
+
+                            <!-- From -->
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-2 col-xl-2">
+                                <div class="d-flex align-items-center gap-2">
+
+                                    <label class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 
+                                                small fw-bold mb-0 text-nowrap text-md-end">
+                                        From:
+                                    </label>
+
+                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8" data-date-input data-format="DD/MM/YYYY" business-date data-name="adp_fromDate">
+                                        <input type="text"
+                                            class="date-ui form-control form-control-sm "
+                                            placeholder="dd/mm/yyyy" autocomplete="off" />
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <!-- To -->
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-2 col-xl-2">
+                                <div class="d-flex align-items-center gap-2">
+
+                                    <label class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 
+                                                small fw-bold mb-0 text-nowrap text-md-end">
+                                        To:
+                                    </label>
+
+                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8" data-date-input data-format="DD/MM/YYYY" business-date data-name="adp_toDate">
+                                        <input type="text"
+                                            class="date-ui form-control form-control-sm "
+                                            placeholder="dd/mm/yyyy" autocomplete="off" />
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <!-- Attendant -->
+                            <div class="col-12 col-sm-6 col-md-8 col-lg-4 col-xl-4">
+                                <div class="d-flex align-items-center gap-2">
+
+                                    <label class="col-4 col-sm-4 col-md-3 col-lg-4 col-xl-4 
+                                                small fw-bold mb-0 text-nowrap text-md-end">
+                                        Attendant ID:
+                                    </label>
+
+                                    <div class="col-8 col-sm-8 col-md-9 col-lg-8 col-xl-8">
+                                        <select id="adp_attendant"
+                                                name="adp_attendant"
+                                                class="tomselect-custom w-100"
+                                                multiple>
+                                            @foreach (var item in listatt)
+                                            {
+                                                <option value="@item.ID">@item.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LOADING -->
+                <div id="adp_loadingSpinner" style="display:none; text-align:center;">
+                    <div class="spinner-border"></div>
+                </div>
+
+                <!-- GRID (FIXED HEIGHT) -->
+                <div class="mui-card">
+                    <div id="adp_gridContainer" class="gridContainer" style="height:500px;"></div>
+                </div>
+
+            </div>
         </div>
-
     </div>
-
 </div>
 
-
-<div class="modal fade" id="popupNewGrid" tabindex="-1" aria-hidden="true">
+<!-- ========================= -->
+<!-- NEW / EDIT MODAL -->
+<!-- ========================= -->
+<div class="modal fade" id="adp_modalForm" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-md">
-        <div class="modal-content" style="max-width:520px;">
+        <div class="modal-content">
 
-            <!-- HEADER -->
             <div class="modal-header py-2">
-                <h5 id="attendantPointTitle" class="modal-title">
-                    New AttendantPoint
-                </h5>
+                <h5 class="modal-title" id="adp_formTitle">New AttendantPoint</h5>
             </div>
 
-            <!-- BODY -->
-            <div class="modal-body p-3" style="max-height:600px; overflow-y:auto;">
+            <div class="modal-body">
 
-                <!-- BUTTON -->
-                <div class="d-flex justify-content-start mb-3 gap-2">
-                    <button id="btnSaveAtt"
-                            class="mui-button mui-button-search">
-                        Save
-                    </button>
-
-                    <button type="button"
-                            id="btnClosePopup"
-                            class="mui-button mui-button-new"
-                            data-bs-dismiss="modal">
-                        Close
-                    </button>
+                <div class="search-filter">
+                    <button id="adp_btnSave" class="mui-button mui-button-search">Save</button>
+                    <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                 </div>
 
-                <!-- FORM -->
+                <input type="hidden" id="adp_txtid" name="adp_txtid">
+
                 <div class="container-fluid">
 
-                    <input type="hidden" id="txtid" name="txtid" />
+                    <!-- ROW 1 -->
+                    <div class="row g-2 mb-2">
 
-                    <div class="row mb-2">
-                        <div class="col-md-6">
-                            <label class="form-label">Date:</label>
-                            <input type="date"
-                                   id="fromDatenew"
-                                   name="fromDatenew"
-                                   class="form-control form-control-sm" />
+                        <div class="col-12 col-md-6">
+                            <div class="row align-items-center g-2">
+                                <label for="adp_fromDatenew"
+                                    class="col-4 col-form-label col-form-label-sm text-md-end">
+                                    Date
+                                </label>
+                                <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8" data-date-input data-format="DD/MM/YYYY" business-date data-name="adp_fromDatenew">
+                                    <input type="text"
+                                        class="date-ui form-control form-control-sm "
+                                        placeholder="dd/mm/yyyy" autocomplete="off" />
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Attendant ID:</label>
-                            <select id="attendantnew"
-                                    name="attendantnew"
-                                    class="form-control form-control-sm">
-                                <option value=""></option>
-                                @foreach (var item in listatt)
-                                {
-                                    <option value="@item.ID">@item.Name</option>
-                                }
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row mb-2">
-                        <div class="col-md-6">
-                            <label class="form-label">Name:</label>
-                            <input id="username"
-                                   type="text"
-                                   class="form-control form-control-sm"
-                                   placeholder="Enter user name">
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label">Point:</label>
-                            <input id="point"
-                                   type="text"
-                                   class="form-control form-control-sm"
-                                   placeholder="Enter point">
+                        <div class="col-12 col-md-6">
+                            <div class="row align-items-center g-2">
+                                <label for="adp_attendantnew"
+                                    class="col-5 col-form-label col-form-label-sm text-md-end">
+                                    Attendant ID
+                                </label>
+                                <div class="col-7">
+                                    <select id="adp_attendantnew"
+                                            name="adp_attendantnew"
+                                            class="tomselect-custom">
+                                        <option value=""></option>
+                                        @foreach (var item in listatt)
+                                        {
+                                            <option value="@item.ID">@item.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                </div>
+                    <!-- ROW 2 -->
+                    <div class="row g-2 mb-2">
 
-                <!-- GRID -->
-                <div id="logGridContainer"
-                     class="gridContainer mt-2"
-                     style="max-height:250px; overflow:auto;">
-                </div>
+                        <div class="col-12 col-md-6">
+                            <div class="row align-items-center g-2">
+                                <label for="adp_username"
+                                    class="col-4 col-form-label col-form-label-sm text-md-end">
+                                    Name
+                                </label>
+                                <div class="col-8">
+                                    <input id="adp_username"
+                                        class="form-control form-control-sm" readonly>
+                                </div>
+                            </div>
+                        </div>
 
+                        <div class="col-12 col-md-6">
+                            <div class="row align-items-center g-2">
+                                <label for="adp_point"
+                                    class="col-5 col-form-label col-form-label-sm text-md-end">
+                                    Point
+                                </label>
+                                <div class="col-7">
+                                    <input id="adp_point"
+                                        class="form-control form-control-sm">
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
             </div>
         </div>
     </div>
 </div>
-
-<div class="mui-card">
-    <div id="gridContainer" class="gridContainer mt-2"></div>
-</div>
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
-</div>
 <script>
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        let day = date.getDate().toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        return `${year}-${month}-${day}`;
-    }
+    // ======================================
+    // Attendant Point - Option A (adp_)
+    // ======================================
+    var adp_Module = (function () {
 
-    let parsedBusinessDate = null;
-    $(document).ready(function () {
+        let gridInstance = null;
+        let selectedRowData = null;
+        let modalMain = null;
+        let modalForm = null;
+        let tomAttendant = null;
+        let parsedBusinessDate = null;
+        let isInitialized = false;
 
-        document.getElementById("reportTitle").innerText = 'Attendant Point';
-        getBusinessDate();
+        function init() {
 
-        initializeTomSelects();
+            modalMain = bootstrap.Modal.getOrCreateInstance(
+                document.getElementById("adp_modalMain"),
+                { backdrop: "static", keyboard: false }
+            );
 
+            modalForm = bootstrap.Modal.getOrCreateInstance(
+                document.getElementById("adp_modalForm"),
+                { backdrop: "static", keyboard: false }
+            );
 
-    });
+            $("#adp_modalMain").off("shown.bs.modal").on("shown.bs.modal", async function () {
 
-    function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
+                if (!isInitialized) {
+                    isInitialized = true;
 
-                 const fromDateStr = result.split('T')[0];
-                $('#fromDate').val(fromDateStr);
-               $('#toDate').val(fromDateStr);
-                $('#fromDatenew').val(fromDateStr);
-                          $("#btnPrint").trigger("click");
+                    await getBusinessDate();
+                    initializeTomSelect();
+                    initTomSelect('#adp_attendantnew', {
 
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
+                        render: {
+                            option(data, escape) {
+                                // Dropdown vẫn hiển thị Name
+                                return `<div>${escape(data.text)}</div>`;
+                            },
+
+                            item(data, escape) {
+                                // Sau khi chọn hiển thị ID
+                                return `<div>${escape(data.value)}</div>`;
+                            }
+                        },
+
+                        onChange: function (value) {
+                            const input = document.querySelector('#adp_username');
+
+                            if (!value) {
+                                input.value = '';
+                                return;
+                            }
+
+                            const option = this.options[value];
+                            input.value = option.text || '';
+                        }
+
+                    });
+                    bindEvents();
                 }
-            }
-        });
-    }
 
-    $('#btnClosePopup, #overlay').click(function () {
-       $('#popupNewGrid').modal('hide');
-        
+                if (gridInstance) {
+                    gridInstance.repaint();
+                }
+            });
 
-        $('#fromDatenew').val(formatDate(parsedBusinessDate));
-        $('#attendantnew').val('').trigger('change');
-        $('#username').val('');
-        $('#point').val('');
-        $('#txtid').val('');
-    });
-    $('#btnNewAppoin').click(function () {
-        if ($('#txtid').val()) {
-            $('#attendantPointTitle').text('Edit AttendantPoint');
-        } else {
-            $('#attendantPointTitle').text('New AttendantPoint');
+            $(document).on("hidden.bs.modal", ".modal[id^='adp_modalMain']", function () {
+                destroy();
+            });
         }
-       $('#popupNewGrid').modal('show');;
-    });
-    function initializeTomSelects() {
-        const selectors = ["#attendant"];
 
-        for (const id of selectors) {
-            const el = document.querySelector(id);
-            if (!el) continue;
+        async function getBusinessDate() {
+            return $.ajax({
+                url: '/Reservation/GetBusinessDate',
+                type: 'GET',
+                success: function (result) {
+                    const fromDateStr = result.split('T')[0];
+                    parsedBusinessDate = new Date(fromDateStr);
+                    $("#adp_fromDate").val(fromDateStr);
+                    $("#adp_toDate").val(fromDateStr);
+                    $("#adp_fromDatenew").val(fromDateStr);
+                    loadGridData();
+                }
+            });
+        }
 
+        function initializeTomSelect() {
+            const el = document.querySelector("#adp_attendant");
             if (el.tomselect) el.tomselect.destroy();
 
-            const ts = new TomSelect(el, {
+            tomAttendant = new TomSelect(el, {
                 plugins: ['remove_button'],
-                create: false,
-                maxItems: null,
-                allowEmptyOption: true,
-                placeholder: '',
-                persist: false,
-                render: {
-                    option: function (data, escape) {
-                        return `<div>${escape(data.text)}</div>`;
-                    }
-                }
+                maxItems: null
+            });
+        }
+
+        function bindEvents() {
+
+            $("#adp_btnView").off().on("click", loadGridData);
+
+            $("#adp_btnNew").off().on("click", function () {
+                resetForm();
+                $("#adp_formTitle").text("New AttendantPoint");
+                initDateInputs();
+                modalForm.show();
             });
 
+            $("#adp_btnEdit").off().on("click", function () {
+                initDateInputs();
+                if (!selectedRowData) {
+                    showToast("Warning", "Please select a row before Edit.", false);
+                    return;
+                }
+
+                $("#adp_txtid").val(selectedRowData.id);
+                console.log('attendantID',selectedRowData.attendantDate);
+                
+                UI.setHiddenDate("adp_fromDatenew", selectedRowData.attendantDate);
+                setTomSelectValue("#adp_attendantnew",selectedRowData.attendantID);
+                $("#adp_point").val(selectedRowData.points);
+
+                $("#adp_formTitle").text("Edit AttendantPoint");
+                modalForm.show();
+            });
+
+            $("#adp_btnDelete").off().on("click", deleteRow);
+
+            $("#adp_btnSave").off().on("click", saveRow);
+
+            $("#adp_btnExportExcel").off().on("click", exportExcel);
         }
-    }
 
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/HouseKeeping/AttendantPointData',
-            type: 'GET',
-            data: {
-                fromDate: $("#fromDate").val(),
-                toDate: $("#toDate").val(),
-                attendant: $("#attendant").val(),
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                console.log(result);
-                initializeAttendantPointGrid(result);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
+        function loadGridData() {
+
+            $("#adp_loadingSpinner").show();
+
+            $.ajax({
+                url: '/HouseKeeping/AttendantPointData',
+                type: 'GET',
+                data: {
+                    fromDate: $("#adp_fromDate").val(),
+                    toDate: $("#adp_toDate").val(),
+                    attendant: $("#adp_attendant").val()
+                },
+                traditional: true,
+                success: function (result) {
+                    renderGrid(result);
+                    $("#adp_loadingSpinner").hide();
+                },
+                error: function () {
+                    $("#adp_loadingSpinner").hide();
+                }
+            });
+        }
+
+        function renderGrid(data) {
+
+            if (gridInstance) {
+                gridInstance.dispose();
+                $("#adp_gridContainer").empty();
             }
-        });
-    });
 
-    let selectedRowData = null;
-
-    function initializeAttendantPointGrid(data) {
-        const columnWidth = 215;
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            height:500,
-            allowColumnResizing: true,
-            columnAutoWidth: true,
-              columns: [
-                    { dataField: "attendantDate", caption: "Date", width: "14%", dataType: "date", format: "dd/MM/yyyy" },
-                    { dataField: "attendantID", caption: "Attendant ID", width: "14%" },
-                    { dataField: "points", caption: "Points", width: "10%" },
-                    { dataField: "updatedBy", caption: "Updated By", width: "14%" },
-                    { dataField: "updatedDate", caption: "Updated Date", width: "14%", dataType: "date", format: "dd/MM/yyyy" },
-                    { dataField: "createdBy", caption: "Created By", width: "14%" },
-                    { dataField: "createdDate", caption: "Created Date", width: "14%", dataType: "date", format: "dd/MM/yyyy" }
+            gridInstance = $("#adp_gridContainer").dxDataGrid({
+                dataSource: data,
+                height: 500,
+                selection: { mode: "single" },
+                columns: [
+                    { dataField: "attendantDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "attendantID", caption: "Attendant ID" },
+                    { dataField: "points", caption: "Points" },
+                    { dataField: "updatedBy", caption: "Updated By" },
+                    { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "createdBy", caption: "Created By" },
+                    { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy" }
                 ],
+                paging: { pageSize: 25 },
+                filterRow: { visible: true },
+                showBorders: true,
+                onRowClick: function (e) {
+                    selectedRowData = e.data;
+                }
+            }).dxDataGrid("instance");
+        }
 
+        function deleteRow() {
+            if (!selectedRowData) {
+                showToast("Warning", "Select row before delete.", false);
+                return;
+            }
 
-            paging: { pageSize: 25 },
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
-            selection: { mode: "multiple", showCheckBoxesMode: "none" },
-            showBorders: true,
-            onRowClick: function (e) {
-                selectedRowData = e.data; // lưu dòng được chọn
-            },
-
-
-            onRowPrepared: function (e) {
-                if (e.rowType === "data") {
-
-                    if (e.data?.isTotal) {
-                        e.rowElement.css({
-                            "font-weight": "bold",
-                            "background-color": "#f6f6f6"
-                        });
+            $.post('/HouseKeeping/DeleteAttendantPoint',
+                { ID: selectedRowData.id },
+                function (res) {
+                    if (res.success) {
+                        showToast("Success", res.message, true);
+                        loadGridData();
                     }
-                }
-            }
-        });
-    }
-    $('#btnEditAppoin').on('click', function () {
-        if (!selectedRowData) {
-            showToast('Warning', 'Please select a row before clicking Edit.', false);
-            return;
+                });
         }
 
-        // Đổ dữ liệu vào các input
-        $('#txtid').val(selectedRowData.id);
-        $('#fromDatenew').val(selectedRowData.attendantDate ? moment(selectedRowData.attendantDate).format('YYYY-MM-DD') : '');
-        $('#attendantnew').val(selectedRowData.attendantID).trigger('change');
-        $('#username').val(selectedRowData.updatedBy || selectedRowData.createdBy || '');
-        $('#point').val(selectedRowData.points || '');
-        console.log($('#txtid').val());
-        if ($('#txtid').val()) {
-            $('#attendantPointTitle').text('Edit AttendantPoint');
-        } else {
-            $('#attendantPointTitle').text('New AttendantPoint');
-        }
-        // Hiện popup
-    $('#popupNewGrid').modal('show');;
-    });
+        function saveRow() {
 
-    $(document).off("click", "#btnDeleteAppoin").on("click", "#btnDeleteAppoin", function () {
-        console.log(selectedRowData);
-        if (!selectedRowData) {
-            showToast('Warning', 'Please select a row before clicking Edit.', false);
-            return;
-        }
+            const payload = {
+                ID: $("#adp_txtid").val(),
+                Date: $("#adp_fromDatenew").val(),
+                AttendantID: $("#adp_attendantnew").val(),
+                UserName: $("#adp_username").val(),
+                Point: $("#adp_point").val(),
+                loginName: JSON.parse(localStorage.getItem("Loginname")),
+            };
 
+            $.post('/HouseKeeping/UpdateAttendantPoint',
+                payload,
+                function (res) {
+                    if (res.success) {
+                        showToast("Success", res.message, true);
+                        modalForm.hide();
+                        loadGridData();
+                    }
+                    else{
+                        showToast("Error", res.message, false);
 
-
-        // Send AJAX
-        $.ajax({
-            url: '/HouseKeeping/DeleteAttendantPoint',
-            type: 'POST',
-            data: {
-                ID: selectedRowData.id,
-
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (response) {
-                if (response.success) {
-                    showToast('Success', response.message, true);
-                    $("#btnPrint").trigger("click");
-                    selectedRowData = null;
-                } else {
-                    showToast('Warning', response.message, false);
-                }
-            },
-            error: function () {
-                showToast('Warning', response.message, false);
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-    $(document).off("click", "#btnSaveAtt").on("click", "#btnSaveAtt", function () {
-
-        var date = $("#fromDatenew").val();
-        var attendantId = $("#attendantnew").val();
-        var username = $("#username").val();
-        var point = $("#point").val();
-        var ID = $("#txtid").val();
-        // Validation and toast messages in English
-        if (!date) {
-            $("#loadingSpinner").hide();
-            showToast('Error', 'Please select a date.', false);
-            return;
+                    }
+                });
         }
 
-        if (!attendantId) {
-            $("#loadingSpinner").hide();
-            showToast('Error', 'Please select an Attendant ID.', false);
-            return;
-        }
+        function exportExcel() {
 
-        if (!username) {
-            $("#loadingSpinner").hide();
-            showToast('Error', 'Please enter the user name.', false);
-            return;
-        }
+            const grid = $("#adp_gridContainer").dxDataGrid("instance");
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Sheet 1");
 
-        if (!point) {
-            $("#loadingSpinner").hide();
-            showToast('Error', 'Please enter the point.', false);
-            return;
-        }
-
-
-
-        // Send AJAX
-        $.ajax({
-            url: '/HouseKeeping/UpdateAttendantPoint',
-            type: 'POST',
-            data: {
-                ID: ID,
-                Date: date,
-                AttendantID: attendantId,
-                UserName: username,
-                Point: point
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (response) {
-                if (response.success) {
-                    showToast('Success', response.message, true);
-                    $('#fromDatenew').val(formatDate(parsedBusinessDate));
-                    $('#attendantnew').val('').trigger('change');
-                    $('#username').val('');
-                    $('#point').val('');
-                    $('#txtid').val('');
-                    
-                $('#popupNewGrid').modal('hide');
-                    $("#btnPrint").trigger("click");
-
-                } else {
-                    showToast('Warning', response.message, false);
-                }
-            },
-            error: function () {
-                showToast('Warning', response.message, false);
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-
-
-
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance");
-        var selectedReport = 'Attendant Point';
-        if (!selectedReport) {
-            alert("Vui lòng ch?n báo cáo tru?c khi xu?t Excel.");
-            return;
-        }
-
-        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === T?o header công ty (dòng 1) ===
-        worksheet.addRow(['Công ty C? ph?n Gi?i pháp Công ngh? CS-Solution']);
-        worksheet.mergeCells('A1:E1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Th?i gian xu?t (ph?i) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
-        worksheet.mergeCells('E2:H2');
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: Tr?ng
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tên báo cáo ? gi?a ===
-        const reportRow = worksheet.addRow(['', '', selectedReport]);
-        worksheet.mergeCells('C5:F5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
-        worksheet.addRow([]);
-
-        // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
-        }).then(function () {
-            // Footer
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
-            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = selectedReport + ".xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                topLeftCell: { row: 1, column: 1 }
+            }).then(function () {
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer]), "AttendantPoint.xlsx");
+                });
             });
-        });
+        }
+
+        function resetForm() {
+            $("#adp_txtid").val('');
+            $("#adp_attendantnew").val('');
+            $("#adp_username").val('');
+            $("#adp_point").val('');
+            $("#adp_fromDatenew").val(parsedBusinessDate ?
+                parsedBusinessDate.toISOString().split('T')[0] : '');
+        }
+
+        function destroy() {
+
+            if (gridInstance) {
+                gridInstance.dispose();
+                $("#adp_gridContainer").empty();
+                gridInstance = null;
+            }
+
+            if (tomAttendant) {
+                tomAttendant.destroy();
+                tomAttendant = null;
+            }
+
+            selectedRowData = null;
+            isInitialized = false;
+        }
+
+        function openModal() {
+            if (!modalMain) init();
+            modalMain.show();
+        }
+
+        return {
+            init,
+            openModal,
+            destroy
+        };
+
+    })();
+
+    window.openModalAdp = function () {
+        adp_Module.openModal();
+    };
+
+    $(document).ready(function () {
+        adp_Module.init();
     });
 </script>

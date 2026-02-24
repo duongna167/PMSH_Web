@@ -1793,7 +1793,7 @@ namespace HouseKeeping.Controllers
             ViewBag.hkpAttendantList = listatt;
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
             ViewBag.BusinessDate = businessDateModel[0].BusinessDate;
-            return View();
+            return PartialView();
         }
 
         [HttpGet]
@@ -1844,20 +1844,22 @@ namespace HouseKeeping.Controllers
             }
         }
         [HttpPost]
-        public IActionResult UpdateAttendantPoint(string ID, DateTime Date, int AttendantID, string UserName, int Point)
+        public IActionResult UpdateAttendantPoint(string ID, DateTime? Date, int AttendantID, string loginName, string UserName, int Point = 0)
         {
             try
             {
-
+                if (AttendantID <= 0) return Json(new { success = false, message = "AttendantID is required." });
+                DateTime BusinessDate = TextUtils.GetBussinessDateTime();
                 hkpAttendantPointModel modelH = new hkpAttendantPointModel
                 {
-                    AttendantDate = Date,
+                    AttendantDate = Date ?? BusinessDate,
                     AttendantID = AttendantID,
                     Points = Point,
-                    CreatedBy = UserName,
+                    CreatedBy = loginName,
                     CreatedDate = DateTime.Now,
-                    UpdatedBy = UserName,
-                    UpdatedDate = DateTime.Now
+                    UpdatedBy = loginName,
+                    UpdatedDate = DateTime.Now,
+
                 };
 
                 if (string.IsNullOrEmpty(ID))
@@ -1869,7 +1871,7 @@ namespace HouseKeeping.Controllers
                     hkpAttendantPointModel modelhkpAtten = (hkpAttendantPointModel)hkpAttendantPointBO.Instance.FindByPrimaryKey(Convert.ToInt32(ID));
 
 
-                    modelhkpAtten.AttendantDate = Date;
+                    modelhkpAtten.AttendantDate = Date ?? BusinessDate;
                     modelhkpAtten.UpdatedBy = UserName;
                     modelhkpAtten.Points = Point;
                     modelhkpAtten.AttendantID = AttendantID;
