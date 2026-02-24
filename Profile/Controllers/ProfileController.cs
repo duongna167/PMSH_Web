@@ -1040,7 +1040,7 @@ namespace Profile.Controllers
         #region DatVP __ Profile Export
         public IActionResult ProfileExport()
         {
-            return View();
+            return PartialView();
         }
         public IActionResult ExportProfile()
         {

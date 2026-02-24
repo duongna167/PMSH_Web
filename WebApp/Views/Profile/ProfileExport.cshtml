@@ -2,85 +2,45 @@
 
 }
 
-<style>
-    #loadingSpinnerRateCode {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 999;
-        background: rgba(255, 255, 255, 0.55);
-        backdrop-filter: blur(2px);
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    /* modal-body phải là flex column */
-    .modal-body {
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-
-    /* card chứa filter + grid */
-    .mui-card {
-        display: flex;
-        flex-direction: column;
-        flex: 1 1 auto;
-        min-height: 0;
-    }
-
-    /* vùng grid */
-    .gridContainer {
-        position: relative;
-        flex: 1 1 auto;
-        min-height: 0;
-        /* CỰC QUAN TRỌNG */
-    }
-
-
-</style>
-<div class="modal fade" id="reportMealModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="pro_ex_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
-        <div class="modal-content report-meal-container modal-full-height">
+        <div class="modal-content modal-full-height">
             <div class="modal-header bg-light py-2">
                 <h5 class="modal-title">Profile Export</h5>
             </div>
 
-            <div class="modal-body">
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
                 <div class="py-2">
-                    <button class="mui-button mui-button-search" onclick="getAllProfilesSearch();">View</button>
-                    <button class="mui-button mui-button-export" onclick="exportExcel();">Excel</button>
-                    <button class="mui-button mui-button-export" onclick="exportXML();">XML</button>
-                    <button id="close" class="mui-button mui-button-new"
-                        onclick="window.location.href='/Home/Index'">Close</button>
+                    <button class="mui-button mui-button-search" id="pro_ex_view">View</button>
+                    <button class="mui-button mui-button-export" id="pro_ex_excel">Excel</button>
+                    <button class="mui-button mui-button-export" id="pro_ex_xml">XML</button>
+                    <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                 </div>
-                <div class="mui-card mb-2 bg-light border-0">
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
 
-                    <div class="d-flex gap-2 align-items-center mb-2">
+                    <div class="d-flex gap-2 align-items-center py-2">
 
                         <div class="d-flex align-items-center gap-2">
                             From
-                            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="profileExport_fromDate">
+                            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="pro_ex_fromDate">
                                 <input type="text" class="date-ui form-control form-control-sm" placeholder="From">
                             </div>
                         </div>
 
                         <div class="d-flex align-items-center gap-2">
                             To
-                            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="profileExport_toDate">
+                            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="pro_ex_toDate">
                                 <input type="text" class="date-ui form-control form-control-sm" placeholder="To">
                             </div>
                         </div>
 
                     </div>
 
-                    <div class="gridContainer">
-                        <div id="gridContainer"></div>
-                        <div id="loadingSpinnerRateCode" style="display: none;">
+                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1" style="min-height: 0;">
+                        <div id="pro_ex_gridContainer"></div>
+                        <div id="pro_ex_loading" style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+                        z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+                        height: 100%;display: flex;align-items: center;justify-content: center;">
                             <div class="spinner-border text-primary" role="status"></div>
                         </div>
                     </div>
@@ -92,147 +52,173 @@
 </div>
 
 <script>
-    $(document).ready(function () {
-        initDateInputs();
-        getAllProfilesSearch();
-        $('#reportMealModal').modal('show');
-        $('#reportMealModal').on('hidden.bs.modal',function () {
-            reloadBusinessDate();
-        });
-    });
+    var pro_ex_Module = {
+        selectedRowData: null,
 
-    function getAllProfilesSearch() {
-
-        $.ajax({
-            url: '/Profile/SearchProfileExport',
-            type: 'get',
-            dataType: 'json',
-            data: {
-                fromDate: $("#profileExport_fromDate").val() || dateSystem ,
-                toDate: $("#profileExport_toDate").val() || dateSystem,
-            },
-            beforeSend: function () {
-                $("#loadingSpinnerRateCode").show();
-                $("#gridContainer").css("opacity", "0.5");
-            },
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                $("#loadingSpinnerRateCode").hide();
-                $("#gridContainer").css("opacity", "1");
-                initializeDataGrid(result);
-            },
-            error: function () {
-                $("#loadingSpinnerRateCode").hide();
-                $("#gridContainer").css("opacity", "1");
-                showToast("Error", "Error loading service", false);
-            }
-        });
-    }
-
-    function exportXML() {
-        const from = getDateIso('#fromDate');
-        const to = getDateIso('#toDate');
-        window.location.href = `/Profile/ExportXML?fromDate=${from}&toDate=${to}`;
-    }
-
-    function initializeDataGrid(data) {
-
-        $("#gridContainer").dxDataGrid({
-
-            dataSource: data,
+        baseGridOptions: {
             height: "100%",
+            width: "100%",
+            showBorders: true,
+            hoverStateEnabled: true,
+            wordWrapEnabled: true,
             allowColumnResizing: true,
-            columns: [
-                { dataField: "Indexs", caption: "TT" },
-                { dataField: "AccountName", caption: "Name" },
-                { dataField: "ArrivalDate", caption: "Arrival" },
-                { dataField: "DepartureDate", caption: "Deparure" },
-                { dataField: "Nationality", caption: "Nationality" },
-                { dataField: "DateOfBirth", caption: "Date Of Birth" },
-                { dataField: "Address", caption: "Address" },
-                { dataField: "HandPhone", caption: "HandPhone" },
-                { dataField: "Telephone", caption: "Telephone" },
-            ],
-            paging: { pageSize: 25 },
+            columnResizingMode: "widget",
+            columnAutoWidth: true,
+            selection: { mode: "single" },
             scrolling: {
-                rowRenderingMode: 'virtual',
+                mode: "standard",
+                showScrollbar: "always",
+                useNative: true
             },
+            paging: { pageSize: 20 },
             pager: {
                 visible: true,
-                allowedPageSizes: [25, 50, 100],
+                allowedPageSizes: [20, 50, 100],
                 showPageSizeSelector: true,
                 showInfo: true,
-                showNavigationButtons: true,
+                showNavigationButtons: true
             },
+            filterRow: { visible: true, applyFilter: "auto" }
+        },
 
-            selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "none"
-            },
+        initGrid: function (containerId, options) {
+            const fullOption = $.extend(true, {}, this.baseGridOptions, options);
+            return $(containerId).dxDataGrid(fullOption);
+        },
 
-            showBorders: false,
-            onRowClick: function (e) {
-                console.log("ID được click:", e.data.id);
-            }
+        init: function () {
+            this.initEvents();
+            this.intitDOMEvents();
+        },
 
-        });
-    }
+        initEvents: function() {
+            // Sử dụng arrow function để giữ scope hoặc trỏ trực tiếp vào biến module
+            window.openModalProEx = () => {
+                this.reloadGrid();
 
-    function exportExcel() {
-        const grid = $("#gridContainer").dxDataGrid("instance");
+                $('#pro_ex_modal').on('hidden.bs.modal', function () {
+                    reloadBusinessDate();
+                    this.selectedRowData = null;
+                });
+            };
+        },
 
+        intitDOMEvents: function(){
+            $("#pro_ex_view").on("click", () => this.reloadGrid());
+            $("#pro_ex_excel").on("click", () => this.exportToExcel());
+            $("#pro_ex_xml").on("click", () => this.exportToXML());
+        },
 
-        const workbook = new ExcelJS.Workbook();
-        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === Tạo header công ty (dòng 1) ===
-        worksheet.addRow([companyName]);
-        worksheet.mergeCells('A1:E1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Thời gian xuất (phải) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
-        worksheet.mergeCells('E2:H2');
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: Trống
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tên báo cáo ở giữa ===
-        const reportRow = worksheet.addRow(['', '', 'Profile Export']);
-        worksheet.mergeCells('C5:F5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: Trống trước khi xuất dữ liệu
-        worksheet.addRow([]);
-
-        // === Export dữ liệu từ DevExtreme (bắt đầu từ dòng 7)
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 } // dữ liệu bắt đầu từ dòng 7
-        }).then(function () {
-            // Footer
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = "ProfilExport" + ".xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+        reloadGrid: function (){
+            const filterData = {
+                fromDate: $("#pro_ex_fromDate").val() || dateSystem ,
+                toDate: $("#pro_ex_toDate").val() || dateSystem,
+            };
+            $("#pro_ex_loading").show();
+            $.ajax({
+                url: '/Profile/SearchProfileExport',
+                type: 'GET',
+                data: filterData,
+                success: (data) => {
+                    this.renderGrid(data);
+                    $("#pro_ex_loading").hide();
+                },
+                error: function(){
+                    showToast("Error","Unable to load data" ,false)
+                    $("#pro_ex_loading").hide();
+                }
             });
-        });
+        },
+
+        renderGrid: function (data) {
+            const self = this;
+            self.initGrid("#pro_ex_gridContainer",{
+                dataSource: data,
+                columns: [
+                    { dataField: "Indexs", caption: "TT" },
+                    { dataField: "AccountName", caption: "Name" },
+                    { dataField: "ArrivalDate", caption: "Arrival" },
+                    { dataField: "DepartureDate", caption: "Deparure" },
+                    { dataField: "Nationality", caption: "Nationality" },
+                    { dataField: "DateOfBirth", caption: "Date Of Birth" },
+                    { dataField: "Address", caption: "Address" },
+                    { dataField: "HandPhone", caption: "HandPhone" },
+                    { dataField: "Telephone", caption: "Telephone" },
+                ],
+                onSelectionChanged: function(e){
+                    self.selectedRowData = e.selectedRowsData[0] || null;
+                }
+            });
+        },
+
+        exportToXML: function(){
+            const from = getDateIso('#pro_ex_fromDate');
+            const to = getDateIso('#pro_ex_toDate');
+            window.location.href = `/Profile/ExportXML?fromDate=${from}&toDate=${to}`;
+        },
+
+        exportToExcel: function () {
+            const grid = $("#pro_ex_gridContainer").dxDataGrid("instance");
+            if (!grid) {
+                showToast("Warning", "No data to export!", false);
+                return;
+            }
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            // === Dòng 1: Tên công ty (merge theo 4 cột) ===
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells('A1:D1');
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+            // === Dòng 2: Ngày giờ xuất (Sửa lỗi hiển thị ở đây) ===
+            const now = new Date();
+            const exportDateStr = "Export Date: " + now.toLocaleString("vi-VN");
+            const row2 = worksheet.getRow(2);
+            row2.getCell(1).value = exportDateStr; // Gán vào ô đầu tiên của vùng merge (A2)
+            worksheet.mergeCells('A2:D2');
+            row2.alignment = { vertical: 'middle', horizontal: 'left' };
+            row2.font = { italic: true };
+
+            // === Dòng 3–4: trống
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
+            const reportRow = worksheet.addRow(['Profile Export']);
+            worksheet.mergeCells('A5:D5');
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            // === Dòng 6: trống
+            worksheet.addRow([]);
+
+            // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                // Footer (sau cùng)
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                // Ghi file
+                let fileName = "ProfileExport.xlsx";
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                });
+            });
+        },
     }
 
+    $(document).ready(function(){
+        pro_ex_Module.init();
+    });
 
 </script>
