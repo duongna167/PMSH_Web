@@ -63,7 +63,7 @@ namespace Reservation.Controllers
         [HttpGet]
         public IActionResult AllotmentType()
         {
-            return View("~/Views/Reservation/Allotment/AllotmentType.cshtml");
+            return PartialView("~/Views/Reservation/Allotment/AllotmentType.cshtml");
         }
         [HttpPost]
         public IActionResult AllotmentTypeSave([FromBody] AllotmentTypeModel model)
@@ -188,7 +188,7 @@ namespace Reservation.Controllers
         }
         public IActionResult AllotmentStage()
         {
-            return View("~/Views/Reservation/Allotment/AllotmentStage.cshtml");
+            return PartialView("~/Views/Reservation/Allotment/AllotmentStage.cshtml");
         }
         [HttpPost]
         public IActionResult AllotmentStageSave([FromBody] AllotmentStageModel model)

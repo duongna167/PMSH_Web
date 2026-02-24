@@ -718,7 +718,7 @@ namespace Cashiering.Controllers
 
             List<CurrencyModel> listcurr = PropertyUtils.ConvertToList<CurrencyModel>(CurrencyBO.Instance.FindAll());
             ViewBag.CurrencyList = listcurr;
-            return View();
+            return PartialView();
         }
 
         [HttpGet]
