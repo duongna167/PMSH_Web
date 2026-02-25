@@ -21,7 +21,7 @@ namespace Administration.Controllers
         [HttpGet("RateCategory")] // Truyeenf DataGrid , script api
         public IActionResult RateCategory()
         {
-            return View("~/Views/Administration/RateCode/RateCategory.cshtml");
+            return PartialView("~/Views/Administration/RateCode/RateCategory.cshtml");
             // Truyền đường dẫn chuẩn vào để tìm đúng
         }
 
