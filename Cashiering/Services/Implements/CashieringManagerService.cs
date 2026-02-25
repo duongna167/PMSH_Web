@@ -1,14 +1,14 @@
-﻿using System;
+﻿using BaseBusiness.BO;
+using BaseBusiness.util;
+using Cashiering.Services.Interfaces;
+using Microsoft.Data.SqlClient;
+using Org.BouncyCastle.Tls;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using BaseBusiness.BO;
-using BaseBusiness.util;
-using Cashiering.Services.Interfaces;
-using Microsoft.Data.SqlClient;
-using Org.BouncyCastle.Tls;
 namespace Cashiering.Services.Implements
 {
     public class CashieringManagerService : ICashieringManagerService
@@ -31,12 +31,12 @@ namespace Cashiering.Services.Implements
                      new SqlParameter("@ArrivalDateTo", arrivalTo),
                      new SqlParameter("@DepartureDate", departure),
                      new SqlParameter("@CRSNo", crsNo ?? ""),
-                    new SqlParameter("@Package", package ?? ""),
-                    new SqlParameter("@OrderBy", "0"),
+                     new SqlParameter("@Package", package ?? ""),
+                     new SqlParameter("@OrderBy", "0"),
 
                      new SqlParameter("@GuestType", guestName ?? ""),
                      new SqlParameter("@ZoneID", zone),
-                    new SqlParameter("@TypeSearch", typeSearch),
+                     new SqlParameter("@TypeSearch", typeSearch),
 
                 };
 

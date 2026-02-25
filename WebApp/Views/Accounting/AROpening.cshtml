@@ -1,280 +1,265 @@
-﻿@using DevExpress.XtraReports.UI
-
+@using DevExpress.XtraReports.UI
 
 @{
-    var selectedReport = @ViewBag.ReportHeader;
-
-
+    var selectedReport = ViewBag.ReportHeader;
     var currencylist = ViewBag.CurrencyList;
 }
 
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px">AR - Balance brought forward</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="">
-        <button id="btnPrint" class="mui-button mui-button-new" style="display: none;">
+<div class="modal fade" id="ar_opening_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">AR - Balance brought forward</h5>
+            </div>
 
-        </button>
-        <button id="btnOkAuto" class="mui-button mui-button-new"> Ok</button>
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button id="ar_opening_btnPrint" class="mui-button mui-button-search" style="display: none;">View</button>
+                    <button id="ar_opening_btnOkAuto" class="mui-button mui-button-new">Ok</button>
+                    <button id="ar_opening_btnExportExcel" class="mui-button mui-button-export" type="button">Excel</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
+                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1" style="min-height: 0;">
+                        <div id="ar_opening_gridContainer"></div>
+                        <div id="ar_opening_loadingSpinner" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1001;">
+                            <i class="fa-solid fa-spinner fa-spin fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
-<div class="mui-card">
-    @*     <div style="font-size: 20px;" class="mt-1" id="reportTitle"></div> *@
-    <div id="gridContainer" class="gridContainer mt-2"></div>
-</div>
-
-
-
-
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 
 <script>
+    var ar_opening_Module = {
+        selectedRowData: null,
+        currencyList: @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.CurrencyList ?? new List<object>())),
+
+        init: function () {
+            this.initEvents();
+            this.initDOMEvents();
+        },
+
+        initEvents: function () {
+            window.openModalAROpening = () => {
+                $('#ar_opening_modal').modal('show');
+                this.reloadData();
+            };
+        },
+
+        initDOMEvents: function () {
+            $("#ar_opening_btnPrint").on("click", () => this.reloadData());
+            $("#ar_opening_btnOkAuto").on("click", () => this.saveData());
+            $("#ar_opening_btnExportExcel").on("click", () => this.exportExcel());
+
+            // Reset khi đóng modal
+            $('#ar_opening_modal').on('hidden.bs.modal', () => {
+                this.selectedRowData = null;
+            });
+        },
+
+        sortObjectKeysAlphabetically: function (dataArray) {
+            return dataArray.map(obj => {
+                const newObj = {};
+                Object.keys(obj)
+                    .sort((a, b) => a.localeCompare(b))
+                    .forEach(key => {
+                        const newKey = key.charAt(0).toLowerCase() + key.slice(1);
+                        newObj[newKey] = obj[key];
+                    });
+                return newObj;
+            });
+        },
+
+        reloadData: function () {
+            $("#ar_opening_loadingSpinner").show();
+            $.ajax({
+                url: '/Accounting/AROpeningData',
+                type: 'GET',
+                headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() },
+                success: (result) => {
+                    if (result) {
+                        const sortedKeysData = this.sortObjectKeysAlphabetically(result);
+                        const sortedByAccountName = sortedKeysData.sort((a, b) =>
+                            (a.accountName || "").localeCompare(b.accountName || "")
+                        );
+                        this.initializeGrid(sortedByAccountName);
+                    }
+                    $("#ar_opening_loadingSpinner").hide();
+                },
+                error: () => {
+                    showToast('Error', "Không thể tải báo cáo.", false);
+                    $("#ar_opening_loadingSpinner").hide();
+                }
+            });
+        },
+
+        initializeGrid: function (data) {
+            const self = this;
+            $("#ar_opening_gridContainer").dxDataGrid({
+                dataSource: data,
+                height: "100%",
+                width: "100%",
+                showBorders: true,
+                hoverStateEnabled: true,
+                wordWrapEnabled: true,
+                allowColumnResizing: true,
+                columnResizingMode: "widget",
+                columnAutoWidth: true,
+                selection: { mode: "single" },
+                scrolling: {
+                    mode: "standard",
+                    showScrollbar: "always",
+                    useNative: true
+                },
+                paging: { pageSize: 25 },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [25, 50, 100],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: { visible: true, applyFilter: "auto" },
+                columns: [
+                    { dataField: "id", visible: false },
+                    { dataField: "accountName", caption: "Account Name", width: "18%", allowEditing: false },
+                    { dataField: "city", caption: "City", width: "8%", allowEditing: false },
+                    { dataField: "balance", caption: "Balance", width: "10%", format: "#,##0.##", allowEditing: false },
+                    {
+                        dataField: "currencyID",
+                        caption: "Currency",
+                        width: "8%",
+                        allowEditing: true,
+                        lookup: {
+                            dataSource: this.currencyList,
+                            valueExpr: "ID",
+                            displayExpr: "ID"
+                        },
+                        setCellValue: function (rowData, value) {
+                            rowData.currencyID = value || null;
+                            if (self.selectedRowData && self.selectedRowData.id === rowData.id) {
+                                self.selectedRowData.currencyID = value || null;
+                            }
+                        }
+                    },
+                    { dataField: "contactName", caption: "Contact Name", width: "15%", allowEditing: false },
+                    { dataField: "type", caption: "Type", width: "7%", allowEditing: false },
+                    { dataField: "accountNo", caption: "Account No", width: "10%", allowEditing: false },
+                    { dataField: "createdBy", caption: "Created By", width: "8%", allowEditing: false },
+                    { dataField: "createdDate", caption: "Created Date", width: "10%", dataType: "date", format: "dd/MM/yyyy", allowEditing: false },
+                    { dataField: "updatedBy", caption: "Updated By", width: "8%", allowEditing: false },
+                    { dataField: "updatedDate", caption: "Updated Date", width: "10%", dataType: "date", format: "dd/MM/yyyy", allowEditing: false },
+                    { dataField: "arid", caption: "ARID", width: "5%", allowEditing: false }
+                ],
+                onRowClick: (e) => {
+                    this.selectedRowData = e.data;
+                }
+            });
+        },
+
+        saveData: function () {
+            if (!this.selectedRowData) {
+                showToast("Warning", "Please select 1 row.", false);
+                return;
+            }
+
+            $("#ar_opening_loadingSpinner").show();
+            const dataPost = {
+                ...this.selectedRowData,
+                user: localStorage.getItem("Loginname")
+            };
+
+            $.ajax({
+                url: '/Accounting/AROpeningSave',
+                type: 'POST',
+                data: dataPost,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() },
+                success: (result) => {
+                    if (result.success) {
+                        showToast('Success', result.message, true);
+                        this.reloadData();
+                    } else {
+                        showToast('Error', result.message || 'Save failed.', false);
+                    }
+                    $("#ar_opening_loadingSpinner").hide();
+                },
+                error: () => {
+                    showToast('Error', "Lỗi hệ thống khi lưu.", false);
+                    $("#ar_opening_loadingSpinner").hide();
+                }
+            });
+        },
+
+        exportExcel: function () {
+            const grid = $("#ar_opening_gridContainer").dxDataGrid("instance");
+            if (!grid) {
+                showToast("Warning", "No data to export!", false);
+                return;
+            }
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            // === Dòng 1: Tên công ty (merge theo 4 cột) ===
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells('A1:D1');
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+            // === Dòng 2: Ngày giờ xuất (Sửa lỗi hiển thị ở đây) ===
+            const now = new Date();
+            const exportDateStr = "Export Date: " + now.toLocaleString("vi-VN");
+            const row2 = worksheet.getRow(2);
+            row2.getCell(1).value = exportDateStr; // Gán vào ô đầu tiên của vùng merge (A2)
+            worksheet.mergeCells('A2:D2');
+            row2.alignment = { vertical: 'middle', horizontal: 'left' };
+            row2.font = { italic: true };
+
+            // === Dòng 3–4: trống
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
+            const reportRow = worksheet.addRow(['AR - Balance brought forward']);
+            worksheet.mergeCells('A5:D5');
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            // === Dòng 6: trống
+            worksheet.addRow([]);
+
+            // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                // Footer (sau cùng)
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                // Ghi file
+                let fileName = "AROpeningBalance.xlsx";
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                });
+            });
+        },
+
+    };
 
     $(document).ready(function () {
-        $("#btnPrint").trigger("click");
-
-    });
-    function sortObjectKeysAlphabetically(dataArray) {
-        return dataArray.map(obj => {
-            const newObj = {};
-            Object.keys(obj)
-                .sort((a, b) => a.localeCompare(b))
-                .forEach(key => {
-                    const newKey = key.charAt(0).toLowerCase() + key.slice(1);
-                    newObj[newKey] = obj[key];
-                });
-            return newObj;
-        });
-    }
-
-
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/Accounting/AROpeningData',
-            type: 'GET',
-            data: {
-
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                console.log(result);
-                if (result) {
-                    const sortedKeysData = sortObjectKeysAlphabetically(result);
-                    const sortedByAccountName = sortedKeysData.sort((a, b) =>
-                        (a.accountName || "").localeCompare(b.accountName || "")
-                    );
-
-
-
-                    // B3: Hiển thị lưới
-                    initializeAROpeningGrid(sortedByAccountName);
-                }
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-    var selectedRowData = null;
-    function initializeAROpeningGrid(data) {
-        var currencyList = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.CurrencyList ?? new List<object>()));
-
-        console.log(currencyList);
-
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            showBorders: true,
-            selection: { mode: "single" },
-            paging: { pageSize: 20 },
-            width: "100%",
-            pager: {
-                showPageSizeSelector: true,
-                allowedPageSizes: [20, 50, 100],
-                showInfo: true
-            },
-            filterRow: { visible: true },
-            columns: [
-                { dataField: "id", caption: "ID", visible: false },
-
-                { dataField: "accountName", caption: "Account Name", width: "18%", allowEditing: false },
-                { dataField: "city", caption: "City", width: "8%", allowEditing: false },
-                { dataField: "balance", caption: "Balance", width: "8%", format: "#,##0.##", allowEditing: false },
-
-                // ✅ Editable column
-                {
-                    dataField: "currencyID",
-                    caption: "Currency",
-                    width: "7%",
-                    allowEditing: true,
-                    lookup: {
-                        dataSource: currencyList,
-                        valueExpr: "ID",
-                        displayExpr: "ID"
-                    },
-                    setCellValue: function (rowData, value) {
-                        rowData.currencyID = value || null;
-
-                        if (selectedRowData && selectedRowData.id === rowData.id) {
-                            selectedRowData.currencyID = value || null;
-                        }
-                    }
-                },
-
-                { dataField: "contactName", caption: "Contact Name", width: "15%", allowEditing: false },
-                { dataField: "type", caption: "Type", width: "5%", allowEditing: false },
-                { dataField: "accountNo", caption: "Account No", width: "10%", allowEditing: false },
-
-                { dataField: "createdBy", caption: "Created By", width: "6%", allowEditing: false },
-                { dataField: "createdDate", caption: "Created Date", width: "7%", dataType: "date", format: "dd/MM/yyyy", allowEditing: false },
-
-                { dataField: "updatedBy", caption: "Updated By", width: "6%", allowEditing: false },
-                { dataField: "updatedDate", caption: "Updated Date", width: "7%", dataType: "date", format: "dd/MM/yyyy", allowEditing: false },
-
-                { dataField: "arid", caption: "ARID", width: "5%", allowEditing: false }
-            ],
-
-            editing: {
-                mode: "cell",
-                allowUpdating: true,
-                allowAdding: false,
-                allowDeleting: false
-            },
-
-            scrolling: {
-                mode: "standard",
-                showScrollbar: "always",
-                scrollByContent: true
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [50, 100, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            onRowClick: function (e) {
-                selectedRowData = e.data;
-
-            }
-        });
-    }
-
-
-
-    $(document).off("click", "#btnOkAuto").on("click", "#btnOkAuto", function () {
-        if (!selectedRowData) {
-            showToast("Warning", "Please select 1 row .", false);
-            return;
+        ar_opening_Module.init();
+        // Tự động View khi sẵn sàng (nếu modal mở sẵn)
+        if ($('#ar_opening_modal').hasClass('show')) {
+            ar_opening_Module.reloadData();
         }
-        console.log("Selected Row:", selectedRowData);
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/Accounting/AROpeningSave',
-            type: 'POST',
-            data: {
-                accountName: selectedRowData.accountName,
-                accountNo: selectedRowData.accountNo,
-                arid: selectedRowData.arid,
-                balance: selectedRowData.balance,
-                city: selectedRowData.city,
-                contactName: selectedRowData.contactName,
-                createdBy: selectedRowData.createdBy,
-                createdDate: selectedRowData.createdDate,
-                currencyID: selectedRowData.currencyID,
-                id: selectedRowData.id,
-                type: selectedRowData.type,
-                updatedBy: selectedRowData.updatedBy,
-                updatedDate: selectedRowData.updatedDate,
-                user: localStorage.getItem("Loginname")
-
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if (result.success) {
-                    showToast('Success', result.message, true);
-                    $("#loadingSpinner").hide();
-                    $("#btnPrint").trigger("click");
-
-                } else {
-                    showToast('Error', 'Please select a Task Code before saving.', false);
-                }
-
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-
-
-
-
-
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance");   // 🔥 khai báo grid
-
-        const workbook = new ExcelJS.Workbook();
-        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === Dòng 1: Tên công ty (merge theo 4 cột) ===
-        worksheet.addRow([companyName]);
-        worksheet.mergeCells('A1:D1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Ngày giờ xuất (bên phải) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', exportDate]);
-        worksheet.mergeCells('D2:D2');  // cột D thôi
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: trống
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-        const reportRow = worksheet.addRow(['Telephone Directory']);
-        worksheet.mergeCells('A5:D5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: trống
-        worksheet.addRow([]);
-
-        // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 }
-        }).then(function () {
-            // Footer (sau cùng)
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = "Telephone Directory.xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
-            });
-        });
     });
 </script>
