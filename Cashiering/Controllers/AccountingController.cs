@@ -1224,5 +1224,47 @@ namespace Cashiering.Controllers
             }
         }
         #endregion
+
+        #region ARPaymentReport
+        public IActionResult ARPaymentReport()
+        {
+            List<UsersModel> listUsers = PropertyUtils.ConvertToList<UsersModel>(UsersBO.Instance.FindAll());
+            ViewBag.ListUsers = listUsers;
+            return PartialView();
+        }
+
+        [HttpGet]
+        public IActionResult GETARPaymentReport(DateTime fromDate, DateTime toDate, string accountNo, string cashier, int viewBy = 0)
+        {
+            try
+            {
+
+                DataTable resultExchangeData = _iAccountingService.ARPaymentReport(fromDate, toDate, accountNo, cashier, viewBy);
+                var resultExchange = (from d in resultExchangeData.AsEnumerable()
+                                      select d.Table.Columns.Cast<DataColumn>()
+                                          //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
+                                          .ToDictionary(
+                                            col => col.ColumnName,
+                                            col =>
+                                            {
+                                                var value = d[col.ColumnName];
+                                                if (value == DBNull.Value) return null;
+
+                                                // CreatedDate: KHÔNG ToString
+                                                if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate")
+                                                    return value;
+
+                                                // Các field khác: ToString
+                                                return value.ToString();
+                                            }
+                                        )).ToList();
+                return Json(resultExchange);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+        #endregion
     }
 }
