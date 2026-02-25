@@ -591,7 +591,7 @@ namespace Cashiering.Controllers
         public IActionResult ExchangeCurrency()
         {
 
-            return View(); // View này sẽ chứa DataGrid + script gọi API
+            return PartialView(); // View này sẽ chứa DataGrid + script gọi API
         }
 
 
