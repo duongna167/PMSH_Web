@@ -11,562 +11,759 @@
 }
 
 <style>
+    /* Keep your tomselect sizing behavior */
     .ts-wrapper {
         width: 300px !important;
-        /* CHIỀU RỘNG CỐ ĐỊNH - điều chỉnh theo ý */
         display: inline-block !important;
-        /* Không chiếm full width */
         max-width: 250px !important;
         padding-left: 5px !important;
     }
 
-    /* ===== TOMSELECT - FOCUS KHÔNG KÉO GIÃN + CUỘN NGANG TAG + CUỘN DỌC DROPDOWN ===== */
-
-    /* Ô chọn chính - cố định kích thước, không giãn khi focus */
     .ts-control {
         min-height: calc(1.5em + .5rem + 2px) !important;
-        /* giống form-control-sm */
         height: calc(1.5em + .5rem + 2px) !important;
-        /* FIX CAO ĐỘ CỐ ĐỊNH */
         max-height: calc(1.5em + .5rem + 2px) !important;
-        /* Không cho cao hơn */
-
         padding: .25rem .5rem !important;
         display: flex !important;
         align-items: center !important;
-        /* Tag không xuống dòng */
         overflow-x: hidden !important;
-        /* CUỘN NGANG khi nhiều tag */
         overflow-y: auto !important;
-        /* Không cuộn dọc ô chọn */
     }
 </style>
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px">Posting Journal</div>
-<div class="search-filter">
-    <div>
-        <button id="btnPrint" class="mui-button mui-button-new">View</button>
-        <button id="btnExportExcel" class="mui-button mui-button-new" type="button"> Excel</button>
-    </div>
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-        <div class="d-flex flex-column ">
-            <div class="d-flex align-items-center">
-                <div class="d-flex align-items-center me-2">
-                    <label class="me-2 mb-0" for="fromDate">From Date:</label>
-                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
-                        <input type="text" class="date-ui form-control form-control-sm w-auto" placeholder="dd/mm/yyyy"
-                            autocomplete="off" />
+<!-- =========================
+     MAIN MODAL (BS5, XL)
+========================= -->
+<div class="modal fade" id="posj_modalMain" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="posj_modalTitle">Posting Journal</h5>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="search-filter">
+                        <!-- ACTIONS -->
+                    <div>
+                        <button id="posj_btnView" type="button" class="mui-button mui-button-new">View</button>
+                        <button id="posj_btnExportExcel" type="button" class="mui-button mui-button-new">Excel</button>
+                        <button class="mui-button mui-button-new" data-bs-dismiss="modal" aria-label="Close">Close</button>
+
+                    </div>
+
+                    <!-- FILTER -->
+                    <div class="mt-1">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+
+                            <!-- DATES -->
+                            <div class="d-flex flex-column">
+                                <div class="d-flex align-items-center">
+                                    <div class="d-flex align-items-center me-2">
+                                        <label class="me-2 mb-0" for="posj_fromDateUi">From Date:</label>
+                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="posj_fromDate">
+                                            <input id="posj_fromDateUi"
+                                                name="posj_fromDateUi"
+                                                type="text"
+                                                class="date-ui form-control form-control-sm w-auto"
+                                                placeholder="dd/mm/yyyy"
+                                                autocomplete="off" />
+                                        </div>
+                                        <input type="hidden" id="posj_fromDate" name="posj_fromDate" />
+                                    </div>
+
+                                    <div class="d-flex align-items-center me-2">
+                                        <label class="me-2 mb-0" for="posj_toDateUi">To Date:</label>
+                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="posj_toDate">
+                                            <input id="posj_toDateUi"
+                                                name="posj_toDateUi"
+                                                type="text"
+                                                class="date-ui form-control form-control-sm w-auto"
+                                                placeholder="dd/mm/yyyy"
+                                                autocomplete="off" />
+                                        </div>
+                                        <input type="hidden" id="posj_toDate" name="posj_toDate" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- CASHIER -->
+                            <div class="d-flex align-items-center me-2">
+                                <label class="me-2 mb-0" for="posj_cashierNo">Cashier.No:</label>
+                                <select id="posj_cashierNo" name="posj_cashierNo" class="tomselect-custom" multiple>
+                                    @foreach (var u in ViewBag.UsersList)
+                                    {
+                                        <option value="@u.LoginName">@u.LoginName</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- GROUP -->
+                            <div class="d-flex align-items-center me-2">
+                                <label class="me-2 mb-0" for="posj_groupCode">Group.Code:</label>
+                                <select id="posj_groupCode" name="posj_groupCode" class="form-control form-control-sm w-auto">
+                                    <option value="0">-- Select Group --</option>
+                                    @foreach (var g in ViewBag.TransactionGroupList)
+                                    {
+                                        <option value="@g.ID">@g.Code - @g.Description</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- SUBGROUP -->
+                            <div class="d-flex align-items-center me-2">
+                                <label class="me-2 mb-0" for="posj_subGroupCode">Subgroup.Code:</label>
+                                <select id="posj_subGroupCode" name="posj_subGroupCode" class="form-control form-control-sm w-auto">
+                                    <option value="0">-- Select SubGroup --</option>
+                                    @foreach (var sg in ViewBag.TransactionSubGroupList)
+                                    {
+                                        <option value="@sg.ID" data-posj-group="@sg.TransactionGroupID">@sg.Code - @sg.Description</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- TRANSACTION CODE -->
+                            <div class="d-flex align-items-center me-2">
+                                <label class="me-2 mb-0" for="posj_transactionCode">Transaction Code:</label>
+                                <select id="posj_transactionCode" name="posj_transactionCode" class="tomselect-custom" multiple>
+                                    @foreach (var tr in ViewBag.TransactionsList)
+                                    {
+                                        <option value="@tr.Code">@tr.Code - @tr.Description</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- ARRANGEMENT / ROOM LIST / REF -->
+                            <div class="d-flex align-items-center me-2">
+                                <label class="me-2 mb-0" for="posj_arrangementCode">Arrangement Code:</label>
+                                <input style="width: 80px;" type="text" id="posj_arrangementCode" name="posj_arrangementCode"
+                                    class="form-control form-control-sm" readonly />
+                            </div>
+
+                            <div class="d-flex align-items-center me-2">
+                                <label class="me-2 mb-0" for="posj_listOfRoom">List Of Room:</label>
+                                <input style="width: 120px;" type="text" id="posj_listOfRoom" name="posj_listOfRoom"
+                                    class="form-control form-control-sm" />
+                            </div>
+
+                            <div class="d-flex align-items-center me-2">
+                                <label class="me-2 mb-0" for="posj_ref">Ref.No:</label>
+                                <input style="width: 80px;" type="text" id="posj_ref" name="posj_ref"
+                                    class="form-control form-control-sm" readonly />
+                            </div>
+
+                            <!-- VIEW ONLY REBATE -->
+                            <label class="d-flex align-items-center me-2">View Mode:</label>
+                            <div class="d-flex align-items-center me-2">
+                                <input class="me-2" type="checkbox" id="posj_rebateCode" name="posj_rebateCode" value="Rebate">
+                                <label for="posj_rebateCode" class="mb-0">View Only Rebate Code</label>
+                            </div>
+
+                            <!-- OPTION FILTER -->
+                            <label class="mb-0">Option Filter:</label>
+                            <div class="d-flex align-items-center me-2">
+                                <input class="mt-0" type="radio" name="posj_optionFilter" id="posj_byTotal" value="Total" checked>
+                                <label for="posj_byTotal" class="mb-0 ms-1">By Total</label>
+                            </div>
+                            <div class="d-flex align-items-center me-2">
+                                <input type="radio" name="posj_optionFilter" id="posj_byDetail" value="Detail">
+                                <label for="posj_byDetail" class="mb-0 ms-1">By Detail</label>
+                            </div>
+                            <div class="d-flex align-items-center me-2">
+                                <input type="radio" name="posj_optionFilter" id="posj_byDetailVat" value="DetailVat">
+                                <label for="posj_byDetailVat" class="mb-0 ms-1">By Detail and VAT Information</label>
+                            </div>
+
+                        </div>
                     </div>
                 </div>
 
-                <div class="d-flex align-items-center me-2">
-                    <label class="me-2 mb-0" for="toDate">To Date:</label>
-                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="toDate">
-                        <input type="text" class="date-ui form-control form-control-sm w-auto" placeholder="dd/mm/yyyy"
-                            autocomplete="off" />
-                    </div>
+                <!-- GRID -->
+                <div class="mui-card">
+                    <div class="gridContainer" id="posj_gridContainer" style="height:500px;"></div>
                 </div>
+
+                <!-- LOADING -->
+                <div id="posj_loadingSpinner"
+                     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+                    <i class="fa-solid fa-spinner fa-spin"></i>
+                </div>
+
             </div>
         </div>
-        <div class="d-flex align-items-center me-2">
-            <label class="me-2 mb-0">Cashier.No:</label>
-            <select id="cashierNo" class="tomselect-custom" multiple>
-                @foreach (var u in ViewBag.UsersList)
-                {
-                    <option value="@u.LoginName">@u.LoginName</option>
-                }
-            </select>
-        </div>
-        <div class="d-flex align-items-center me-2">
-            <label class="me-2 mb-0">Group.Code:</label>
-            <select id="groupCode" class="form-control form-control-sm w-auto">
-
-                <option value="0">-- Select Group --</option>
-                @foreach (var g in ViewBag.TransactionGroupList)
-                {
-                    <option value="@g.ID">@g.Code - @g.Description</option>
-                }
-            </select>
-        </div>
-        <div class="d-flex align-items-center me-2">
-            <label class="me-2 mb-0">Subgroup.Code:</label>
-            <select id="subGroupCode" class="form-control form-control-sm w-auto">
-                <option value="0">-- Select SubGroup --</option>
-                @foreach (var sg in ViewBag.TransactionSubGroupList)
-                {
-                    <option value="@sg.ID" data-group="@sg.TransactionGroupID">@sg.Code - @sg.Description</option>
-                }
-            </select>
-        </div>
-        <div class="d-flex align-items-center me-2">
-            <label class="me-2 mb-0">Transaction Code:</label>
-            <select id="transactionCode" class="tomselect-custom" multiple>
-                @foreach (var tr in ViewBag.TransactionsList)
-                {
-                    <option value="@tr.Code">@tr.Code - @tr.Description</option>
-                }
-            </select>
-        </div>
-        <div class="d-flex align-items-center me-2">
-            <label class="me-2 mb-0">Arrangement Code:</label>
-            <input style="width: 40px;" type="text" id="arrangementCode" name="arrangementCode"
-                class="form-control form-control-sm " readonly />
-        </div>
-        <div class="d-flex align-items-center me-2">
-            <label class="me-2 mb-0">List Of Room:</label>
-            <input style="width: 40px;" type="text" id="listOfRoom" name="listOfRoom"
-                class="form-control form-control-sm " />
-        </div>
-        <div class="d-flex align-items-center me-2">
-            <label class="me-2 mb-0">Ref.No:</label>
-            <input style="width: 40px;" type="text" id="ref" name="ref" class="form-control form-control-sm" readonly />
-        </div>
-        <label class="d-flex align-items-center me-2">View Mode:</label>
-
-        <div class="d-flex align-items-center me-2">
-            <input class="me-2" type="checkbox" id="rebateCode" value="Rebate">
-            <label for="rebateCode">
-                View Only Rebate Code
-            </label>
-        </div>
-        <label class="mb-0">Option Filter:</label>
-        <div class="d-flex align-items-center me-2">
-            <input class="mt-0" type="radio" name="optionFilter" id="byTotal" value="Total" checked>
-            <label for="byTotal">
-                By Total
-            </label>
-        </div>
-
-        <div class="d-flex align-items-center me-2">
-            <input type="radio" name="optionFilter" id="byDetail" value="Detail">
-            <label for="byDetail">
-                By Detail
-            </label>
-        </div>
-
-        <div class="d-flex align-items-center me-2">
-            <input type="radio" name="optionFilter" id="byDetailVat" value="DetailVat">
-            <label for="byDetailVat">
-                By Detail and VAT Information
-            </label>
-        </div>
-
     </div>
-
 </div>
 
-<div class="mui-card">
-
-
-    <div class="gridContainer" id="gridContainer"></div>
-
-</div>
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
-</div>
 <script>
     DevExpress.localization.locale("vi");
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        let day = date.getDate().toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        return `${year}-${month}-${day}`;
-    }
-    $(document).ready(function () {
 
-        getBusinessDate();
-        initializeTomSelects();
-        loadPostingJournalGrid([]);
-        // let grid = $("#gridContainer").dxDataGrid("instance");
-        // if (grid) {
-        //     ["market", "source", "company", "group", "reservationHolder", "country"]
-        //         .forEach(field => grid.columnOption(field, "visible", false));
-        // }
-    });
-    function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
+    var posj_Module = (function () {
 
-                const fromDateStr = result.split('T')[0];
+        let mainModal = null;
 
+        // TomSelect instances
+        let tsCashier = null;
+        let tsTransaction = null;
 
-                $('#fromDate').val(fromDateStr);
-                $('#toDate').val(fromDateStr);
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-            }
-        });
-    }
-    function initializeTomSelects() {
-        const selectors = ["#cashierNo", "#transactionCode"];
+        // Grid state
+        let gridMain = null;
+        let cachedGrandTotal = null;
 
-        for (const id of selectors) {
-            const el = document.querySelector(id);
-            if (!el) continue;
+        const sel = {
+            modal: "#posj_modalMain",
 
-            if (el.tomselect) el.tomselect.destroy();
+            btnView: "#posj_btnView",
+            btnExcel: "#posj_btnExportExcel",
 
-            const ts = new TomSelect(el, {
-                plugins: ['remove_button'],
-                create: false,
-                maxItems: null,
-                allowEmptyOption: true,
-                placeholder: '',
-                persist: false,
-                render: {
-                    option: function (data, escape) {
-                        return `<div>${escape(data.text)}</div>`;
-                    }
-                }
+            loading: "#posj_loadingSpinner",
+
+            fromDateHidden: "#posj_fromDate",
+            toDateHidden: "#posj_toDate",
+
+            cashierNo: "#posj_cashierNo",
+            transactionCode: "#posj_transactionCode",
+
+            groupCode: "#posj_groupCode",
+            subGroupCode: "#posj_subGroupCode",
+
+            listOfRoom: "#posj_listOfRoom",
+
+            rebateCode: "#posj_rebateCode",
+
+            grid: "#posj_gridContainer",
+
+            optFilterName: "posj_optionFilter"
+        };
+
+        function init() {
+            mainModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modal), { backdrop: "static" });
+
+            $(sel.modal).off("shown.bs.modal.posj").on("shown.bs.modal.posj", async function () {
+                bindEvents();
+                initPickers();
+                initTomSelects();
+                await ensureBusinessDate(); // fills hidden ISO
+                // Per your strict rule: init grid ONLY in shown.bs.modal
+                // Do not render unless data valid; so we don't init grid yet.
+                await view(); // auto first load
             });
 
+            $(sel.modal).off("hidden.bs.modal.posj").on("hidden.bs.modal.posj", function () {
+                cleanup();
+            });
         }
-    }
-    $("#listOfRoom").on("input", function () {
-        var value = $(this).val();
 
-        var grid = $("#gridContainer").dxDataGrid("instance");
-
-        if (value) {
-            grid.filter(["room", "contains", value]);
-        } else {
-            grid.clearFilter();
+        function open() {
+            mainModal.show();
         }
-    });
-    $("#groupCode").on("change", function () {
-        var selectedGroupId = $(this).val();
 
-        $("#subGroupCode option").each(function () {
-            var parentId = $(this).data("group");
-            if (!parentId || selectedGroupId === "0") {
-                $(this).show();
-            } else {
-                if (parentId == selectedGroupId) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
+        function bindEvents() {
+            $(document)
+                .off("click.posj", sel.btnView).on("click.posj", sel.btnView, async function () { await view(); });
+
+            $(document)
+                .off("click.posj", sel.btnExcel).on("click.posj", sel.btnExcel, function () { exportExcel(); });
+
+            // room quick filter (client-side)
+            $(document)
+                .off("input.posj", sel.listOfRoom).on("input.posj", sel.listOfRoom, function () {
+                    const value = $(this).val();
+                    const grid = getGrid();
+                    if (!grid) return;
+
+                    if (value) grid.filter(["room", "contains", value]);
+                    else grid.clearFilter();
+                });
+
+            // group -> subgroup filter
+            $(document)
+                .off("change.posj", sel.groupCode).on("change.posj", sel.groupCode, function () {
+                    applySubGroupFilter($(this).val());
+                });
+
+            // option filter radios -> reload
+            $(document)
+                .off("change.posj", `input[name='${sel.optFilterName}']`)
+                .on("change.posj", `input[name='${sel.optFilterName}']`, async function () {
+                    await view();
+                });
+        }
+
+        function initPickers() {
+            if (typeof window.initDateInputs === "function") {
+                window.initDateInputs();
+            }
+        }
+
+        function initTomSelects() {
+            destroyTomSelects();
+
+            const cashierEl = document.querySelector(sel.cashierNo);
+            if (cashierEl) {
+                tsCashier = new TomSelect(cashierEl, {
+                    plugins: ['remove_button'],
+                    create: false,
+                    maxItems: null,
+                    allowEmptyOption: true,
+                    persist: false
+                });
+            }
+
+            const transEl = document.querySelector(sel.transactionCode);
+            if (transEl) {
+                tsTransaction = new TomSelect(transEl, {
+                    plugins: ['remove_button'],
+                    create: false,
+                    maxItems: null,
+                    allowEmptyOption: true,
+                    persist: false
+                });
+            }
+
+            // subgroup filter initial
+            applySubGroupFilter($(sel.groupCode).val());
+        }
+
+        function destroyTomSelects() {
+            try { if (tsCashier) { tsCashier.destroy(); tsCashier = null; } } catch { }
+            try { if (tsTransaction) { tsTransaction.destroy(); tsTransaction = null; } } catch { }
+        }
+
+        function applySubGroupFilter(selectedGroupId) {
+            const $sub = $(sel.subGroupCode);
+            $sub.find("option").each(function () {
+                const parentId = $(this).data("posj-group");
+                if (!parentId || selectedGroupId === "0") $(this).show();
+                else $(this).toggle(String(parentId) === String(selectedGroupId));
+            });
+            $sub.val("0");
+        }
+
+        async function ensureBusinessDate() {
+            // Prefer your DateInput/business-date pipeline if available
+            try {
+                if (typeof window.waitForBusinessDate === "function") {
+                    const fromIso = await window.waitForBusinessDate("posj_fromDate", 10000);
+                    const toIso = await window.waitForBusinessDate("posj_toDate", 10000);
+
+                    if (fromIso) $(sel.fromDateHidden).val(fromIso);
+                    if (toIso) $(sel.toDateHidden).val(toIso);
+
+                    if (fromIso && toIso) return;
                 }
-            }
-        });
-        $("#subGroupCode").val("0"); // reset về mặc định
-    });
-    let cachedGrandTotal = null;
-    function prepareDataWithSubtotal(data) {
-        let result = [];
-        let grouped = {};
+            } catch { }
 
-        // Biến cộng dồn Grand Total
-        let grandDebitVND = 0, grandCreditVND = 0, grandDebitUSD = 0, grandCreditUSD = 0;
-
-        // Gom nhóm theo transactionCode
-        data.forEach(item => {
-            if (!grouped[item.transactionCode]) {
-                grouped[item.transactionCode] = [];
-            }
-            grouped[item.transactionCode].push(item);
-
-            // ✅ Cộng dồn Grand Total trực tiếp từ item gốc
-            grandDebitVND += (item.debitVND || 0);
-            grandCreditVND += (item.creditVND || 0);
-            grandDebitUSD += (item.debitUSD || 0);
-            grandCreditUSD += (item.creditUSD || 0);
-        });
-
-        // Duyệt từng nhóm và chèn Subtotal
-        Object.keys(grouped).forEach(code => {
-            let items = grouped[code];
-            let subtotal = {
-                transactionCode: code,
-                description: "Subtotal :",
-                debitVND: items.reduce((s, x) => s + (x.debitVND || 0), 0),
-                creditVND: items.reduce((s, x) => s + (x.creditVND || 0), 0),
-                debitUSD: items.reduce((s, x) => s + (x.debitUSD || 0), 0),
-                creditUSD: items.reduce((s, x) => s + (x.creditUSD || 0), 0),
-                isSubtotal: true
-            };
-
-            result.push(...items);   // Thêm các dòng chi tiết
-            result.push(subtotal);   // Thêm dòng subtotal
-        });
-
-        // Thêm Grand Total cuối bảng
-        cachedGrandTotal = {
-            transactionCode: "",
-            description: "Grand Total :",
-            debitVND: grandDebitVND,
-            creditVND: grandCreditVND,
-            debitUSD: grandDebitUSD,
-            creditUSD: grandCreditUSD,
-            isGrandTotal: true
-        };
-        result.push(cachedGrandTotal);
-
-        return result;
-    }
-
-    function loadPostingJournal() {
-        let type = $("input[name='optionFilter']:checked").val(); // total | detail | vat
-        let url = "";
-
-        if (type === "Total") {
-            url = "/Cashiering/GetPostingJournal";
-        } else if (type === "Detail") {
-            url = "/Cashiering/GetSearchTransactionJournalByNotVatInfor";
-        } else if (type === "DetailVat") {
-            url = "/Cashiering/GetSearchTransactionJournalByVatInfor";
+            // Fallback: your existing endpoint
+            return $.ajax({
+                url: '/Reservation/GetBusinessDate',
+                type: 'get',
+                dataType: 'json',
+                crossDomain: false,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() },
+                success: function (result) {
+                    const iso = (result || "").split('T')[0];
+                    $(sel.fromDateHidden).val(iso);
+                    $(sel.toDateHidden).val(iso);
+                },
+                error: function (xhr) {
+                    if (xhr.status === 401) sessionTimeout();
+                }
+            });
         }
-        $.ajax({
-            url: url,
-            type: "GET",
-            data: {
-                cashierNo: $("#cashierNo").val()?.map(r => r.replace("''")).join("','") || "",
-                transactionCodeList: $("#transactionCode").val()?.map(r => r.replace("''")).join("','") || "",
-                roomNoList: $("#roomNoList").val(),
-                fromDate: $("#fromDate").val(),
-                toDate: $("#toDate").val(),
+
+        function getOptionFilter() {
+            return $(`input[name='${sel.optFilterName}']:checked`).val(); // Total | Detail | DetailVat
+        }
+
+        function buildUrlByMode(mode) {
+            if (mode === "Total") return "/Cashiering/GetPostingJournal";
+            if (mode === "Detail") return "/Cashiering/GetSearchTransactionJournalByNotVatInfor";
+            if (mode === "DetailVat") return "/Cashiering/GetSearchTransactionJournalByVatInfor";
+            return "/Cashiering/GetPostingJournal";
+        }
+
+        function getPayload() {
+            const cashierNo = ($(sel.cashierNo).val() || []).map(r => (r || "").replace("''")).join("','");
+            const transactionCodeList = ($(sel.transactionCode).val() || []).map(r => (r || "").replace("''")).join("','");
+
+            // NOTE: original code uses $("#roomNoList").val() but input id is listOfRoom.
+            // Strict refactor: use the actual field posj_listOfRoom.
+            const roomNoList = $(sel.listOfRoom).val() || "";
+
+            const fromDate = $(sel.fromDateHidden).val() || "";
+            const toDate = $(sel.toDateHidden).val() || "";
+
+            return {
+                cashierNo: cashierNo || "",
+                transactionCodeList: transactionCodeList || "",
+                roomNoList: roomNoList,
+                fromDate: fromDate,
+                toDate: toDate,
                 fromProfitCode: "1",
                 toProfitCode: "17",
-                groupID: $("#groupCode").val(),
-                subgroupID: $("#subGroupCode").val(),
-            },
-            success: function (data) {
-                console.log("Data loaded:", data);
-                loadPostingJournalGrid(data);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không thể tải dữ liệu");
-                $("#loadingSpinner").hide();
+                groupID: $(sel.groupCode).val(),
+                subgroupID: $(sel.subGroupCode).val(),
+            };
+        }
+
+        async function view() {
+            $(sel.loading).show();
+
+            const mode = getOptionFilter();
+            const url = buildUrlByMode(mode);
+            const payload = getPayload();
+
+            // strict: require dates
+            if (!payload.fromDate || !payload.toDate) {
+                $(sel.loading).hide();
+                showToast("Warning", "Please select From/To date.", false);
+                return;
             }
-        });
-    }
-    $("#btnPrint").on("click", function () {
-        loadPostingJournal();
-    });
 
-    // ✅ Khi đổi radio
-    $("input[name='optionFilter']").on("change", function () {
-        loadPostingJournal();
-    });
+            $.ajax({
+                url: url,
+                type: "GET",
+                data: payload,
+                success: function (data) {
+                    $(sel.loading).hide();
 
-    function loadPostingJournalGrid(data) {
-        let preparedData = prepareDataWithSubtotal(data);
-        $("#gridContainer").dxDataGrid({
-            dataSource: preparedData,
-            height: 400,
-            allowColumnResizing: true,
-            selection: { mode: "single" },
-            height: "500px",
-            columns: [
-                {
-                    caption: "Public Information",
-                    name: "profileInfo",
-                    columns: [
-                        { dataField: "transactionDate", caption: "Date", width: 100, dataType: "date", format: "dd/MM/yyyy" },
-                        { dataField: "roomType", caption: "R.Type", width: 100 },
-                        { dataField: "room", caption: "Room", width: 100 },
-                        { dataField: "folioNo", caption: "Folio.No", width: 100, dataType: "number" },
-                        { dataField: "profitCenterCode", caption: "PC", width: 100, dataType: "number" },
-                        { dataField: "transactionCode", caption: "TA.Code", width: 100, dataType: "number" },
-                        { dataField: "description", caption: "Description", width: 270 },
-                        {
-                            dataField: "debitVND", caption: "Debit(VND)", width: 180, dataType: "number", customizeText: function (e) {
-                                return e.value
-                                    .toLocaleString("vi-VN",
-                                        { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                            }
-                        },
-                        {
-                            dataField: "creditVND", caption: "Credit(VND)", width: 180, dataType: "number", customizeText: function (e) {
-                                return e.value
-                                    .toLocaleString("vi-VN",
-                                        { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                            }
-                        },
-                        {
-                            dataField: "debitUSD", caption: "Debit(USD)", width: 100, dataType: "number", customizeText: function (e) {
-                                return e.value
-                                    .toLocaleString("vi-VN",
-                                        { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                            }
-                        },
-                        {
-                            dataField: "creditUSD", caption: "Credit(USD)", width: 100, dataType: "number", customizeText: function (e) {
-                                return e.value
-                                    .toLocaleString("vi-VN",
-                                        { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                            }
-                        },
-                        { dataField: "confirmationNo", caption: "Confirm.No", width: 100, dataType: "number" },
-                        { dataField: "crsNo", caption: "CRS.No", width: 100, dataType: "number" },
-                        { dataField: "nationality", caption: "Nat", width: 100 },
-                        { dataField: "profileCode", caption: "Profile Code", width: 100, dataType: "number" },
-                        { dataField: "accountName", caption: "Account Name", width: 200 },
-                        { dataField: "arrivalDate", caption: "Arr.Date", width: 100, dataType: "date", format: "dd/MM/yyyy" },
-                        { dataField: "departureDate", caption: "Dep.Date", width: 100, dataType: "date", format: "dd/MM/yyyy" },
-                        { dataField: "time", caption: "Time", width: 100, dataType: "datetime", format: "HH:mm:ss" },
-                        { dataField: "cashierNo", caption: "Cashier", width: 100, dataType: "number" },
-                    ]
-                },
-                {
-                    caption: "Origin Profile Information",
-                    name: "originpro",
-                    columns: [
-                        { dataField: "market", caption: "Market", width: 100 },
-                        { dataField: "source", caption: "Source", width: 100 },
-                        { dataField: "company", caption: "Company", width: 100 },
-                        { dataField: "group", caption: "Group", width: 100 },
-                        { dataField: "reservationHolder", caption: "Reservation Holder", width: 170 },
-                        { dataField: "country", caption: "Country", width: 100 },
-                    ]
-                },
-                {
-                    caption: "Current Profile Information",
-                    name: "currentpro",
-                    columns: [
-                        { dataField: "market_C", caption: "Market", width: 100 },
-                        { dataField: "source_C", caption: "Source", width: 100 },
-                        { dataField: "origin_C", caption: "Origin", width: 100 },
-                        { dataField: "company_C", caption: "Company", width: 100 },
-                        { dataField: "group_C", caption: "Group", width: 100 },
-                        { dataField: "holderCode", caption: "Holder Code", width: 100 },
-                        { dataField: "reservationHolder_C", caption: "Reservation Holder", width: 170 },
-                        { dataField: "country_C", caption: "Country", width: 100 },
-                    ]
-                },
-
-                {
-                    caption: "More Information",
-                    name: "moreInfo",
-                    columns: [
-                        { dataField: "package", caption: "Pkg", width: 100 },
-                        { dataField: "supplement", caption: "Supplement", width: 200 },
-                        { dataField: "reference", caption: "Ref", width: 200 },
-                        { dataField: "subGroupCode", caption: "Sub.Code", width: 100 },
-                        { dataField: "groupCode", caption: "Group.Code", width: 100 }
-                    ]
-                }
-            ],
-            scrolling: {
-                mode: "standard", // Không dùng virtual để footer hiển thị đúng
-                showScrollbar: "always",
-                scrollByContent: true
-            },
-            paging: {
-                pageSize: 50
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [50, 100, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            showBorders: true,
-            summary: {
-                totalItems: [
-                    {
-                        column: "description",
-                        summaryType: "custom",
-                        name: "grandLabel",
-                        customizeText: () => "Grand Total :"
-                    },
-                    {
-                        column: "debitVND", summaryType: "custom", name: "sumDebitVND",
-                        customizeText: () => cachedGrandTotal?.debitVND.toLocaleString("vi-VN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                    },
-                    {
-                        column: "creditVND", summaryType: "custom", name: "sumCreditVND",
-                        customizeText: () => cachedGrandTotal?.creditVND.toLocaleString("vi-VN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                    },
-                    {
-                        column: "debitUSD", summaryType: "custom", name: "sumDebitUSD",
-                        customizeText: () => cachedGrandTotal?.debitUSD.toLocaleString("vi-VN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                    },
-                    {
-                        column: "creditUSD", summaryType: "custom", name: "sumCreditUSD",
-                        customizeText: () => cachedGrandTotal?.creditUSD.toLocaleString("vi-VN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    // strict: only render grid if valid data
+                    if (!Array.isArray(data) || data.length === 0) {
+                        destroyGrid(); // ensure no stale grid remains
+                        showToast("Warning", "No records to display", false);
+                        return;
                     }
-                ]
-            },
-            noDataText: "No records to display",
 
-            onRowPrepared: function (e) {
-                if (e.data && e.data.isSubtotal) {
-                    e.rowElement.css({ "font-weight": "bold" });
+                    renderGrid(data);
+                },
+                error: function () {
+                    $(sel.loading).hide();
+                    destroyGrid();
+                    showToast("Error", "Failed to load data", false);
                 }
-                if (e.data && e.data.isGrandTotal) {
-                    e.rowElement.css({ "font-weight": "bold" });
-                }
-            }
-        });
-    }
-
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance");   // 🔥 khai báo grid
-
-        const workbook = new ExcelJS.Workbook();
-        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === Dòng 1: Tên công ty (merge theo 4 cột) ===
-        worksheet.addRow([companyName]);
-        worksheet.mergeCells('A1:D1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Ngày giờ xuất (bên phải) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', exportDate]);
-        worksheet.mergeCells('D2:D2');  // cột D thôi
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: trống
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-        const reportRow = worksheet.addRow(['Posting Journal']);
-        worksheet.mergeCells('A5:D5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: trống
-        worksheet.addRow([]);
-
-        // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 }
-        }).then(function () {
-            // Footer (sau cùng)
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = "Posting Journal.xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
             });
-        });
+        }
+
+        function prepareDataWithSubtotal(data) {
+            let result = [];
+            let grouped = {};
+
+            let grandDebitVND = 0, grandCreditVND = 0, grandDebitUSD = 0, grandCreditUSD = 0;
+
+            data.forEach(item => {
+                if (!grouped[item.transactionCode]) grouped[item.transactionCode] = [];
+                grouped[item.transactionCode].push(item);
+
+                grandDebitVND += (item.debitVND || 0);
+                grandCreditVND += (item.creditVND || 0);
+                grandDebitUSD += (item.debitUSD || 0);
+                grandCreditUSD += (item.creditUSD || 0);
+            });
+
+            Object.keys(grouped).forEach(code => {
+                let items = grouped[code];
+
+                let subtotal = {
+                    transactionCode: code,
+                    description: "Subtotal :",
+                    debitVND: items.reduce((s, x) => s + (x.debitVND || 0), 0),
+                    creditVND: items.reduce((s, x) => s + (x.creditVND || 0), 0),
+                    debitUSD: items.reduce((s, x) => s + (x.debitUSD || 0), 0),
+                    creditUSD: items.reduce((s, x) => s + (x.creditUSD || 0), 0),
+                    isSubtotal: true
+                };
+
+                result.push(...items);
+                result.push(subtotal);
+            });
+
+            cachedGrandTotal = {
+                transactionCode: "",
+                description: "Grand Total :",
+                debitVND: grandDebitVND,
+                creditVND: grandCreditVND,
+                debitUSD: grandDebitUSD,
+                creditUSD: grandCreditUSD,
+                isGrandTotal: true
+            };
+            result.push(cachedGrandTotal);
+
+            return result;
+        }
+
+        function destroyGrid() {
+            try {
+                const inst = $(sel.grid).dxDataGrid("instance");
+                if (inst) inst.dispose();
+            } catch { }
+            $(sel.grid).empty();
+            gridMain = null;
+            cachedGrandTotal = null;
+        }
+
+        function getGrid() {
+            try { return $(sel.grid).dxDataGrid("instance"); } catch { return null; }
+        }
+
+        function renderGrid(data) {
+            // strict: re-init grid cleanly each time to avoid leaks
+            destroyGrid();
+
+            const preparedData = prepareDataWithSubtotal(data);
+
+            $(sel.grid).dxDataGrid({
+                dataSource: preparedData,
+                width: "100%",
+                height: 500, // fixed height requirement
+                allowColumnResizing: true,
+                columnAutoWidth: false,
+                selection: { mode: "single" },
+
+                columns: [
+                    {
+                        caption: "Public Information",
+                        name: "posj_publicInfo",
+                        columns: [
+                            { dataField: "transactionDate", caption: "Date", width: 100, dataType: "date", format: "dd/MM/yyyy" },
+                            { dataField: "roomType", caption: "R.Type", width: 100 },
+                            { dataField: "room", caption: "Room", width: 100 },
+                            { dataField: "folioNo", caption: "Folio.No", width: 100, dataType: "number" },
+                            { dataField: "profitCenterCode", caption: "PC", width: 100, dataType: "number" },
+                            { dataField: "transactionCode", caption: "TA.Code", width: 100, dataType: "number" },
+                            { dataField: "description", caption: "Description", width: 270 },
+
+                            {
+                                dataField: "debitVND",
+                                caption: "Debit(VND)",
+                                width: 180,
+                                dataType: "number",
+                                alignment: "right",
+                                customizeText: function (e) {
+                                    const v = e.value || 0;
+                                    return v.toLocaleString("vi-VN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                }
+                            },
+                            {
+                                dataField: "creditVND",
+                                caption: "Credit(VND)",
+                                width: 180,
+                                dataType: "number",
+                                alignment: "right",
+                                customizeText: function (e) {
+                                    const v = e.value || 0;
+                                    return v.toLocaleString("vi-VN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                }
+                            },
+                            {
+                                dataField: "debitUSD",
+                                caption: "Debit(USD)",
+                                width: 120,
+                                dataType: "number",
+                                alignment: "right",
+                                customizeText: function (e) {
+                                    const v = e.value || 0;
+                                    return v.toLocaleString("vi-VN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                }
+                            },
+                            {
+                                dataField: "creditUSD",
+                                caption: "Credit(USD)",
+                                width: 120,
+                                dataType: "number",
+                                alignment: "right",
+                                customizeText: function (e) {
+                                    const v = e.value || 0;
+                                    return v.toLocaleString("vi-VN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                }
+                            },
+
+                            { dataField: "confirmationNo", caption: "Confirm.No", width: 120, dataType: "number" },
+                            { dataField: "crsNo", caption: "CRS.No", width: 120, dataType: "number" },
+                            { dataField: "nationality", caption: "Nat", width: 100 },
+                            { dataField: "profileCode", caption: "Profile Code", width: 120, dataType: "number" },
+                            { dataField: "accountName", caption: "Account Name", width: 200 },
+                            { dataField: "arrivalDate", caption: "Arr.Date", width: 110, dataType: "date", format: "dd/MM/yyyy" },
+                            { dataField: "departureDate", caption: "Dep.Date", width: 110, dataType: "date", format: "dd/MM/yyyy" },
+                            { dataField: "time", caption: "Time", width: 110, dataType: "datetime", format: "HH:mm:ss" },
+                            { dataField: "cashierNo", caption: "Cashier", width: 110 },
+                        ]
+                    },
+
+                    {
+                        caption: "Origin Profile Information",
+                        name: "posj_originProfile",
+                        columns: [
+                            { dataField: "market", caption: "Market", width: 110 },
+                            { dataField: "source", caption: "Source", width: 110 },
+                            { dataField: "company", caption: "Company", width: 110 },
+                            { dataField: "group", caption: "Group", width: 110 },
+                            { dataField: "reservationHolder", caption: "Reservation Holder", width: 170 },
+                            { dataField: "country", caption: "Country", width: 110 },
+                        ]
+                    },
+
+                    {
+                        caption: "Current Profile Information",
+                        name: "posj_currentProfile",
+                        columns: [
+                            { dataField: "market_C", caption: "Market", width: 110 },
+                            { dataField: "source_C", caption: "Source", width: 110 },
+                            { dataField: "origin_C", caption: "Origin", width: 110 },
+                            { dataField: "company_C", caption: "Company", width: 110 },
+                            { dataField: "group_C", caption: "Group", width: 110 },
+                            { dataField: "holderCode", caption: "Holder Code", width: 120 },
+                            { dataField: "reservationHolder_C", caption: "Reservation Holder", width: 170 },
+                            { dataField: "country_C", caption: "Country", width: 110 },
+                        ]
+                    },
+
+                    {
+                        caption: "More Information",
+                        name: "posj_moreInfo",
+                        columns: [
+                            { dataField: "package", caption: "Pkg", width: 100 },
+                            { dataField: "supplement", caption: "Supplement", width: 200 },
+                            { dataField: "reference", caption: "Ref", width: 200 },
+                            { dataField: "subGroupCode", caption: "Sub.Code", width: 110 },
+                            { dataField: "groupCode", caption: "Group.Code", width: 110 }
+                        ]
+                    }
+                ],
+
+                scrolling: { mode: "standard", showScrollbar: "always", scrollByContent: true },
+                paging: { pageSize: 50 },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [50, 100, 'all'],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+
+                filterRow: { visible: true, applyFilter: "auto" },
+                showBorders: true,
+                noDataText: "No records to display",
+
+                summary: {
+                    totalItems: [
+                        { column: "description", summaryType: "custom", name: "posj_grandLabel",
+                        customizeText: () => "Grand Total :" },
+
+                        { column: "debitVND",  summaryType: "custom", name: "posj_sumDebitVND",
+                        customizeText: (e) => (e.value ?? 0).toLocaleString("vi-VN",{ minimumFractionDigits:2, maximumFractionDigits:2 }) },
+
+                        { column: "creditVND", summaryType: "custom", name: "posj_sumCreditVND",
+                        customizeText: (e) => (e.value ?? 0).toLocaleString("vi-VN",{ minimumFractionDigits:2, maximumFractionDigits:2 }) },
+
+                        { column: "debitUSD",  summaryType: "custom", name: "posj_sumDebitUSD",
+                        customizeText: (e) => (e.value ?? 0).toLocaleString("vi-VN",{ minimumFractionDigits:2, maximumFractionDigits:2 }) },
+
+                        { column: "creditUSD", summaryType: "custom", name: "posj_sumCreditUSD",
+                        customizeText: (e) => (e.value ?? 0).toLocaleString("vi-VN",{ minimumFractionDigits:2, maximumFractionDigits:2 }) },
+                    ],
+
+                    calculateCustomSummary: function(options) {
+                        // label item: không cần tính toán
+                        if (options.name === "posj_grandLabel") {
+                        if (options.summaryProcess === "start") options.totalValue = "";
+                        return;
+                        }
+
+                        // các cột số: cộng dồn
+                        const wanted = new Set(["posj_sumDebitVND","posj_sumCreditVND","posj_sumDebitUSD","posj_sumCreditUSD"]);
+                        if (!wanted.has(options.name)) return;
+
+                        if (options.summaryProcess === "start") {
+                        options.totalValue = 0;
+                        }
+
+                        if (options.summaryProcess === "calculate") {
+                        // bỏ qua các dòng subtotal / grandTotal do bạn tự thêm vào datasource
+                        const row = options.data;
+                        if (row && (row.isSubtotal || row.isGrandTotal)) return;
+
+                        options.totalValue += (options.value || 0);
+                        }
+                    } 
+                },
+                onRowPrepared: function (e) {
+                    if (e.data && e.data.isSubtotal) e.rowElement.css({ "font-weight": "bold" });
+                    if (e.data && e.data.isGrandTotal) e.rowElement.css({ "font-weight": "bold" });
+                }
+            });
+
+            gridMain = getGrid();
+        }
+
+        function exportExcel() {
+            const grid = getGrid();
+            if (!grid) {
+                showToast("Warning", "No data to export.", false);
+                return;
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells('A1:D1');
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+            const now = new Date();
+            const exportDate = now.toLocaleString("vi-VN");
+            worksheet.addRow(['', '', '', exportDate]);
+            worksheet.mergeCells('D2:D2');
+            worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
+
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            const reportRow = worksheet.addRow(['Posting Journal']);
+            worksheet.mergeCells('A5:D5');
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            worksheet.addRow([]);
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                let fileName = "Posting Journal.xlsx";
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                });
+            });
+        }
+
+        function cleanup() {
+            // strict memory management
+            destroyGrid();
+            destroyTomSelects();
+
+            // unbind module events (namespace-safe)
+            $(document).off(".posj");
+        }
+
+        return { init, open };
+
+    })();
+
+    // Global entry point (Option A style)
+    window.openModalPosj = function () {
+        posj_Module.open();
+    };
+
+    $(document).ready(function () {
+        posj_Module.init();
     });
 </script>

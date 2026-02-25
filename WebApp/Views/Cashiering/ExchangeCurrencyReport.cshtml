@@ -1,132 +1,340 @@
-﻿
-@{
+﻿@{
     ViewBag.Title = ViewBag.ReportHeader;
     var zoneList = ViewBag.ZoneList;
     var usersList = ViewBag.UsersList;
 }
 
-<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
-<div class="container-fluid p-2">
-    <div class="py-2">
-        <button id="btnPrint" class="mui-button mui-button-new">View</button>
-    </div>
+<!-- =========================
+     MAIN MODAL (BS5, XL)
+========================= -->
+<div class="modal fade" id="ecr_modalMain" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-4by3">
+        <div class="modal-content">
 
-    <div class="filter-panel bg-light p-1">
-        <div class="row g-3 align-items-end">
-            <div class="col-12 col-md-6 col-lg-3">
-                <label class="form-label small fw-bold mb-1" for="fromDate">Trans. Date:</label>
-                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
-                    <input type="text" class="date-ui form-control form-control-sm w-100"
-                           placeholder="dd/mm/yyyy" autocomplete="off" />
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="ecr_modalTitle">Exchange Currency Report</h5>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="search-filter">
+                    <div>
+                        <button id="ecr_btnView" type="button" class="mui-button mui-button-new">View</button>
+                        <button class="mui-button mui-button-new" data-bs-dismiss="modal"
+                                aria-label="Close">Close</button>
+                    </div>
+
+                    <!-- FILTER -->
+                    <div class="mt-1">
+                        <div class="row g-2 px-1 align-items-center">
+
+                            <!-- Trans. Date -->
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3">
+                                <div class="d-flex align-items-center gap-2">
+
+                                    <label for="ecr_fromDateUi"
+                                        class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4
+                                                small fw-bold mb-0 text-nowrap text-md-end">
+                                        Trans. Date:
+                                    </label>
+
+                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
+                                        <!-- DateInput wrapper (business-date) -->
+                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="ecr_fromDate">
+                                            <input id="ecr_fromDateUi"
+                                                name="ecr_fromDateUi"
+                                                type="text"
+                                                class="date-ui form-control form-control-sm"
+                                                placeholder="dd/mm/yyyy"
+                                                autocomplete="off" />
+                                        </div>
+
+                                        <!-- Hidden ISO source-of-truth -->
+                                        <input type="hidden" id="ecr_fromDate" name="ecr_fromDate" />
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <!-- Cashier -->
+                            <div class="col-12 col-sm-6 col-md-8 col-lg-4 col-xl-3">
+                                <div class="d-flex align-items-center gap-2">
+
+                                    <label for="ecr_cashier"
+                                        class="col-4 col-sm-4 col-md-3 col-lg-4 col-xl-4
+                                                small fw-bold mb-0 text-nowrap text-md-end">
+                                        Cashier:
+                                    </label>
+
+                                    <div class="col-8 col-sm-8 col-md-9 col-lg-8 col-xl-8">
+                                        <select id="ecr_cashier"
+                                                name="ecr_cashier"
+                                                class="tomselect-custom"
+                                                multiple>
+                                            @foreach (var item in usersList)
+                                            {
+                                                <option value="@item.ID">@item.LoginName</option>
+                                            }
+                                        </select>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <!-- Zone -->
+                            <div class="col-12 col-sm-6 col-md-8 col-lg-4 col-xl-3">
+                                <div class="d-flex align-items-center gap-2">
+
+                                    <label for="ecr_zonecode"
+                                        class="col-4 col-sm-4 col-md-3 col-lg-4 col-xl-4
+                                                small fw-bold mb-0 text-nowrap text-md-end">
+                                        Zone:
+                                    </label>
+
+                                    <div class="col-8 col-sm-8 col-md-9 col-lg-8 col-xl-8">
+                                        <select id="ecr_zonecode"
+                                                name="ecr_zonecode"
+                                                class="tomselect-custom"
+                                                multiple>
+                                            @foreach (var item in zoneList)
+                                            {
+                                                <option value="@item.ID">@item.Code</option>
+                                            }
+                                        </select>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="col-12 col-md-6 col-lg-4">
-                <label class="form-label small fw-bold mb-1" for="cachier">Cashier:</label>
-                <select id="cachier" name="cachier" class="tomselect-custom" multiple>
-                    @foreach (var item in usersList)
-                    {
-                        <option value="@item.ID">@item.LoginName</option>
-                    }
-                </select>
-            </div>
+                <!-- LOADING -->
+                <div id="ecr_loadingSpinner"
+                     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+                    <i class="fa-solid fa-spinner fa-spin"></i>
+                </div>
 
-            <div class="col-12 col-md-12 col-lg-4">
-                <label class="form-label small fw-bold mb-1" for="zonecode">Zone:</label>
-                <select id="zonecode" name="zonecode" class="tomselect-custom" multiple>
-                    @foreach (var item in zoneList)
-                    {
-                        <option value="@item.ID">@item.Code</option>
-                    }
-                </select>
+                <!-- REPORT CONTAINER (fixed height) -->
+                <div class="mui-card mt-2">
+                    <div id="ecr_reportContainer" class="gridContainer" style="height:800px;"></div>
+                </div>
+
             </div>
         </div>
     </div>
 </div>
-<div class="mui-card">
-    <div id="gridContainer" class="gridContainer mt-2"></div>
-</div>
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
-</div>
+
 <script>
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        let day = date.getDate().toString().padStart(2, '0'); // Ð?m b?o có 2 ch? s?
-        return `${year}-${month}-${day}`;
-    }
+    // ======================================
+    // Exchange Currency Report
+    // Option A Module (ecr_)
+    // ======================================
+    var ecr_Module = (function () {
 
-    let parsedBusinessDate = null;
+        let mainModal = null;
+        let tsCashier = null;
+        let tsZone = null;
+
+        const sel = {
+            modal: "#ecr_modalMain",
+
+            btnView: "#ecr_btnView",
+            loading: "#ecr_loadingSpinner",
+
+            fromDateHidden: "#ecr_fromDate",     // ISO yyyy-mm-dd (truth)
+            cashier: "#ecr_cashier",
+            zone: "#ecr_zonecode",
+
+            report: "#ecr_reportContainer",
+        };
+
+        function init() {
+            mainModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modal), { backdrop: "static" });
+
+            // Init + render strictly inside shown.bs.modal
+            $(sel.modal).off("shown.bs.modal.ecr").on("shown.bs.modal.ecr", async function () {
+                bindEvents();
+                initPickers();
+                initTomSelects();
+
+                // auto-load business date and run once
+                await ensureBusinessDate();
+                await renderReport();
+            });
+
+            // Cleanup for memory safety
+            $(sel.modal).off("hidden.bs.modal.ecr").on("hidden.bs.modal.ecr", function () {
+                cleanup();
+            });
+        }
+
+        function bindEvents() {
+            $(document).off("click.ecr", sel.btnView).on("click.ecr", sel.btnView, async function () {
+                await renderReport();
+            });
+        }
+
+        function initPickers() {
+            // If you have your DateInput module:
+            if (typeof window.initDateInputs === "function") {
+                window.initDateInputs();
+            }
+        }
+
+        function initTomSelects() {
+            // destroy first (strict)
+            destroyTomSelects();
+
+            const cashierEl = document.querySelector(sel.cashier);
+            if (cashierEl) {
+                tsCashier = new TomSelect(cashierEl, {
+                    plugins: ['remove_button'],
+                    create: false,
+                    maxItems: null,
+                    allowEmptyOption: true,
+                    persist: false
+                });
+            }
+
+            const zoneEl = document.querySelector(sel.zone);
+            if (zoneEl) {
+                tsZone = new TomSelect(zoneEl, {
+                    plugins: ['remove_button'],
+                    create: false,
+                    maxItems: null,
+                    allowEmptyOption: true,
+                    persist: false
+                });
+            }
+        }
+
+        function destroyTomSelects() {
+            try { if (tsCashier) { tsCashier.destroy(); tsCashier = null; } } catch { }
+            try { if (tsZone) { tsZone.destroy(); tsZone = null; } } catch { }
+        }
+
+        async function ensureBusinessDate() {
+            // Prefer your DateInput/business-date pipeline if present
+            // and keep hidden ISO as the source of truth.
+            try {
+                if (typeof window.waitForBusinessDate === "function") {
+                    const iso = await window.waitForBusinessDate("ecr_fromDate", 10000);
+                    if (iso) {
+                        $(sel.fromDateHidden).val(iso);
+                        return;
+                    }
+                }
+            } catch { }
+
+            // Fallback: your existing endpoint
+            return $.ajax({
+                url: '/Reservation/GetBusinessDate',
+                type: 'get',
+                dataType: 'json',
+                crossDomain: false,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() },
+                success: function (result) {
+                    const iso = (result || "").split('T')[0];
+                    $(sel.fromDateHidden).val(iso);
+                },
+                error: function (xhr) {
+                    if (xhr.status === 401) sessionTimeout();
+                }
+            });
+        }
+
+        function getFilterPayload() {
+            const fromDate = $(sel.fromDateHidden).val() || "";
+            const zonecode = ($(sel.zone).val() || []).join(",");
+            const cashier = ($(sel.cashier).val() || []).join(",");
+
+            return { fromDate, zonecode, cashier };
+        }
+
+        async function renderReport() {
+            const { fromDate, zonecode, cashier } = getFilterPayload();
+
+            // Strict: require date to render
+            if (!fromDate) {
+                showToast("Warning", "Please select Trans. Date.", false);
+                return;
+            }
+
+            $(sel.loading).show();
+
+            // Strict: cleanup before re-render
+            clearReport();
+
+            $.ajax({
+                url: "/Cashiering/ExchangeCurrencyReportData",
+                method: "GET",
+                data: { fromDate, zonecode, cachier: cashier }, // keep backend param name: cachier
+                success: function (response) {
+                    $(sel.loading).hide();
+
+                    // Strict: only render iframe if pdfBase64 exists
+                    if (response && response.pdfBase64) {
+                        // Your existing response appears to already be a valid src (e.g., data:application/pdf;base64,...)
+                        // Do not "guess" format; embed exactly what backend returns.
+                        const iframe = `
+                            <iframe
+                                id="ecr_reportFrame"
+                                src="${response.pdfBase64}"
+                                width="100%"
+                                height="800"
+                                style="border:none;"
+                                loading="lazy"></iframe>
+                        `;
+                        $(sel.report).html(iframe);
+                        return;
+                    }
+
+                    if (response && response.error) {
+                        showToast("Error", "Error: " + response.error, false);
+                        return;
+                    }
+
+                    showToast("Warning", "No report data returned.", false);
+                },
+                error: function () {
+                    $(sel.loading).hide();
+                    showToast("Error", "Failed to load report.", false);
+                }
+            });
+        }
+
+        function clearReport() {
+            // remove iframe/object to release memory
+            $(sel.report).empty();
+        }
+
+        function cleanup() {
+            // strict cleanup
+            clearReport();
+            destroyTomSelects();
+
+            // If you want to clear filters on close, uncomment:
+            // $(sel.fromDateHidden).val("");
+            // try { tsCashier?.clear(true); } catch {}
+            // try { tsZone?.clear(true); } catch {}
+        }
+
+        function open() {
+            mainModal.show();
+        }
+
+        return { init, open };
+
+    })();
+
+    // Global entry point for this module
+    window.openModalEcr = function () {
+        ecr_Module.open();
+    };
+
     $(document).ready(function () {
-        $("#btnPrint").trigger("click");
-        document.getElementById("reportTitle").innerText = 'Exchange Currency Report';
-        // var businessDateStr = '@ViewBag.BusinessDate'; // Ví dụ: '8/29/2024 12:00:00 AM'
-        // console.log(businessDateStr);
-        // // Lấy phần ngày tháng năm
-        // var dateOnly = businessDateStr.split(' ')[0]; // '8/29/2024'
-        // var dateParts = dateOnly.split('/'); // ['8', '29', '2024']
-
-        // // Parse đúng thứ tự: new Date(year, monthIndex, day)
-        // parsedBusinessDate = new Date(dateParts[2], dateParts[0] - 1, dateParts[1]);
-
-        // Gán vào input type="date"
-        // $('#fromDate').val(formatDate(parsedBusinessDate));
-
-        initTomSelect(".tomselect-custom");
-        getBusinessDate();
+        ecr_Module.init();
     });
-    function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-
-                const fromDateStr = result.split('T')[0];
-                $('#fromDate').val(fromDateStr);
-                
-                $("#btnPrint").trigger("click");
-
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-            }
-        });
-    }
-
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        $("#loadingSpinner").show();
-
-        const fromDate = $("#fromDate").val();
-        const zonecode = $("#zonecode").val().join(",");
-        const cachier = $("#cachier").val().join(",");
-
-        // Gọi API để lấy dữ liệu PDF dưới dạng base64
-        $.ajax({
-            url: `/Cashiering/ExchangeCurrencyReportData?fromDate=${fromDate}&zonecode=${zonecode}&cachier=${cachier}`,
-            method: "GET",
-            success: function (response) {
-                $("#loadingSpinner").hide();
-                if (response.pdfBase64) {
-                    // Nhúng PDF vào iframe bằng dữ liệu base64
-                    $("#gridContainer").html(
-                        `<iframe src="${response.pdfBase64}" width="100%" height="800px" style="border:none;"></iframe>`
-                    );
-                } else if (response.error) {
-                    alert("Lỗi: " + response.error);
-                }
-            },
-            error: function (xhr) {
-                $("#loadingSpinner").hide();
-                alert("Đã xảy ra lỗi khi tải báo cáo!");
-            }
-        });
-    });
-
 </script>
