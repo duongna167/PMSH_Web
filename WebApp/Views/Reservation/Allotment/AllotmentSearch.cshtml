@@ -1,74 +1,90 @@
 @using DevExpress.XtraReports.UI
 
 @{
-    var selectedReport = @ViewBag.ReportHeader;
-    var listroom = ViewBag.RoomList;
-    var listrclass = ViewBag.RoomClassList;
-    var listzone = ViewBag.ZoneList;
-    var listcmt = ViewBag.CommentList;
-    var rooms = ViewBag.AvailableRooms;
+   
 }
 
 <style>
+    /* Tiêu đề bảng */
+    .table-header-custom {
+        font-size: 14px;
+        font-weight: bold;
+        color: #000;
+        border-bottom: 2px solid #009444;
+        padding-bottom: 5px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
 
+    .grid-wrapper {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0; /* Quan trọng để flexbox tính toán đúng */
+        position: relative;
+    }
+
+    /* Đảm bảo bản thân component Grid chiếm trọn wrapper */
+    #allot_search_gridAllotInfor,
+    #allot_search_gridAllotDetail,
+    #allot_search_gridReservation {
+        flex-grow: 1;
+        height: 100% !important;
+        width: 100% !important;
+    }
+
+    /* Loại bỏ lề mặc định của container-fluid bên trong body modal nếu cần */
+    .modal-body .container-fluid {
+        display: flex;
+        flex-direction: column;
+    }
 </style>
-
-<div class="modal fade" id="ooos_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="allot_search_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
-        <div class="modal-content modal-full-height">
+        <div class="modal-content">
             <div class="modal-header bg-light py-2">
-                <h5 class="modal-title">Out of Order and Service</h5>
+                <h5 class="modal-title">Allotment Search</h5>
             </div>
 
             <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
                 <div class="py-2">
-                    <button id="ooos_btnView" class="mui-button mui-button-view">View</button>
-                    <button id="ooos_btnNew" class="mui-button mui-button-new">New</button>
-                    <button id="ooos_btnEdit" class="mui-button mui-button-edit">Edit</button>
-                    <button id="ooos_btnDelete" class="mui-button mui-button-delete">Delete</button>
-                    <button id="ooos_btnHistory" class="mui-button mui-button-new">History</button>
-                    <button id="ooos_btnExportExcel" class="mui-button mui-button-export">Excel</button>
+                    <button id="allot_search_btnView" class="mui-button mui-button-view">View</button>
+                    <button id="allot_search_btnNew" class="mui-button mui-button-new">New</button>
+                    <button id="allot_search_btnEdit" class="mui-button mui-button-edit">Edit</button>
+                    <button id="allot_search_btnDelete" class="mui-button mui-button-delete">Delete</button>
+                    @* <button id="allot_search_btnHistory" class="mui-button mui-button-new">History</button> *@
+                    <button id="allot_search_btnExportExcel" class="mui-button mui-button-export">Excel</button>
                     <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
                 </div>
                 <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
 
                     <div class="p-2 flex-shrink-0">
-                        <div class="row g-2 align-items-center ooos-filter">
+                        <div class="row g-3 align-items-center ooos-filter flex-wrap">
 
-                            <!-- Date -->
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label class="mb-0 fw-semibold">Date:</label>
-                                    <div class="d-flex gap-1 flex-grow-1">
-                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="ooos_fromDate">
-                                            <input type="text" class="date-ui form-control form-control-sm" placeholder="From">
-                                        </div>
-                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="ooos_toDate">
-                                            <input type="text" class="date-ui form-control form-control-sm" placeholder="To">
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="col-auto d-flex align-items-center">
+                                <label class="fw-bold small me-2 mb-0">Code</label>
+                                <input type="text" id="allot_search_code" class="form-control form-control-sm" style="width: 150px;" placeholder="Enter code...">
                             </div>
 
-                            <!-- Room -->
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label class="mb-0 fw-semibold">Room:</label>
-                                    <select id="ooos_room" class="tomselect-custom flex-grow-1" multiple>
-                                        @foreach (var u in ViewBag.RoomList)
+                            <div class="col-auto d-flex align-items-center">
+                                <label class="fw-bold small me-2 mb-0">Market</label>
+                                <div style="width: 150px;">
+                                    <select id="allot_search_market" class="tomselect-custom w-100">
+                                        @foreach (var z in ViewBag.MarketList)
                                         {
-                                            <option value="@u.RoomNo">@u.RoomNo</option>
+                                            <option value="@z.ID">@z.Code</option>
                                         }
                                     </select>
                                 </div>
                             </div>
 
-                            <!-- Class -->
-                            <div class="col-xl-2 col-lg-2 col-md-4">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label class="mb-0 fw-semibold">Class:</label>
-                                    <select id="ooos_roomClass" class="tomselect-custom flex-grow-1">
-                                        @foreach (var g in ViewBag.RoomClassList)
+                            <div class="col-auto d-flex align-items-center">
+                                <label class="fw-bold small me-2 mb-0">All.Type</label>
+                                <div style="width: 70px;">
+                                    <select id="allot_search_type" class="tomselect-custom w-100">
+                                        @foreach (var g in ViewBag.AllotTypeList)
                                         {
                                             <option value="@g.ID">@g.Code</option>
                                         }
@@ -76,11 +92,20 @@
                                 </div>
                             </div>
 
-                            <!-- Zone -->
-                            <div class="col-xl-2 col-lg-2 col-md-4">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label class="mb-0 fw-semibold">Zone:</label>
-                                    <select id="ooos_zone" class="tomselect-custom flex-grow-1" multiple>
+                            <div class="col-auto d-flex align-items-center">
+                                <label class="fw-bold small me-2 mb-0">Profile</label>
+                                <div class="d-flex gap-1">
+                                    <input id="allot_search_profileId" readonly class="form-control form-control-sm" style="width: 130px;" placeholder="" />
+                                    <button onclick="openModalSearchProfileAccompany()" class="" data-tooltip="Search Profile">
+                                        <i class="fa-solid fa-arrow-down text-dark"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="col-auto d-flex align-items-center">
+                                <label class="fw-bold small me-2 mb-0">Zone</label>
+                                <div style="width: 120px;">
+                                    <select id="allot_search_zone" class="tomselect-custom w-100" multiple>
                                         @foreach (var z in ViewBag.ZoneList)
                                         {
                                             <option value="@z.Code">@z.Code</option>
@@ -89,47 +114,72 @@
                                 </div>
                             </div>
 
-                            <!-- Type -->
-                            <div class="col-xl-2 col-lg-4 col-md-4">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label class="mb-0 fw-semibold">Type:</label>
-                                    <div class="d-flex gap-2 border rounded px-2 py-1 bg-white">
-                                        <label class="mb-0">
-                                            <input type="checkbox" id="ooos_outofOrder" checked> OOO
-                                        </label>
-                                        <label class="mb-0">
-                                            <input type="checkbox" id="ooos_outofService" checked> OOS
-                                        </label>
-                                    </div>
-                                </div>
+                            <div class="col-auto d-flex align-items-center">
+                                <input class="" type="checkbox" id="allot_search_default">
+                                <label class="form-check-label small ms-1" for="allot_search_default" style="font-size: 11px;">Default</label>
                             </div>
 
+                            <div class="col-auto d-flex align-items-center">
+                                <input class="" type="checkbox" id="allot_search_history">
+                                <label class="form-check-label small ms-1" for="allot_search_history" style="font-size: 11px;">Show history</label>
+                            </div>
                         </div>
 
                     </div>
 
-                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1 overflow-auto">
-                        <div id="ooos_gridContainer"></div>
+                    <div class="gridContainer flex-grow-1 position-relative py-2">
+                        <div class="container-fluid px-0 h-100">
+                            <div class="flex-grow-1 d-flex flex-column overflow-hidden h-100">
+                                <div class="row g-3 mb-3 flex-grow-1" style="min-height: 0; height:180px;">
+                                    <div class="col-md-7 d-flex flex-column h-100">
+                                        <div class="table-header-custom flex-shrink-0">
+                                            Allotment Information
+                                        </div>
+                                        <div class="grid-wrapper flex-grow-1">
+                                            <div id="allot_search_gridAllotInfor" class="h-100"></div>
+                                        </div>
+                                    </div>
 
-                        <div id="loadingSpinnerRateCode" style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
-                        z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
-                        height: 100%;display: flex;align-items: center;justify-content: center;">
+                                    <div class="col-md-5 d-flex flex-column h-100">
+                                        <div class="table-header-custom flex-shrink-0">
+                                            Allotment Detail
+                                        </div>
+                                        <div class="grid-wrapper flex-grow-1">
+                                            <div id="allot_search_gridAllotDetail" class="h-100"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row flex-grow-1" style="min-height: 0;">
+                                    <div class="col-12 d-flex flex-column h-100">
+                                        <div class="table-header-custom flex-shrink-0">
+                                            Reservation
+                                        </div>
+                                        <div class="grid-wrapper flex-grow-1" style="min-height: 0;">
+                                            <div id="allot_search_gridReservation" class="h-100"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="allot_search_loading" style="display:none; position: absolute;top: 0;left: 0;width: 100%;height: 100%;background: rgba(255,255,255,0.7);z-index: 9999;align-items: center;justify-content: center;">
                             <div class="spinner-border text-primary" role="status"></div>
                         </div>
                     </div>
 
                 </div>
             </div>
-        </div>  
+        </div>
     </div>
 </div>
 
 <!-- Modal Popup for New Item -->
-<div class="modal fade" id="ooos_itemModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="itemModalLabel" aria-hidden="true">
+<div class="modal fade" id="allot_search_itemModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="allot_search_label" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="ooos_itemModalLabel">Out of order/service management</h5>
+                <h5 class="modal-title" id="allot_search_label">Allotment Setup</h5>
             </div>
 
             <div class="modal-body">
@@ -196,7 +246,7 @@
                                 </div>
 
                                 <!-- Reason -->
-                                <div class="row mb-3 align-items-center">
+                                @* <div class="row mb-3 align-items-center">
                                     <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
                                         Reason
                                     </div>
@@ -211,7 +261,7 @@
                                         </select>
                                         <div class="invalid-feedback"></div>
                                     </div>
-                                </div>
+                                </div> *@
 
                                 <!-- Reason Note -->
                                 <div class="row mb-3 align-items-center">
@@ -228,7 +278,7 @@
                                 </div>
 
                                 <!-- Room Select -->
-                                <div class="row mb-3 align-items-center">
+                                @* <div class="row mb-3 align-items-center">
                                     <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
                                         Room Select
                                     </div>
@@ -244,7 +294,7 @@
                                         </select>
                                         <div class="invalid-feedback"></div>
                                     </div>
-                                </div>
+                                </div> *@
 
                             </div>
 
@@ -301,59 +351,9 @@
     </div>
 </div>
 
-<!-- History Modal -->
-<div class="modal fade" id="ooos_historyModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="historyModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <!-- rộng hơn để chứa grid -->
-        <div class="modal-content modal-full-height d-flex flex-column">
-            <div class="modal-header">
-                <h5 class="modal-title" id="ooos_historyModalLabel">Room Change History</h5>
-            </div>
-
-            <div class="modal-body d-flex flex-column overflow-hidden">
-                <div class="item-modal-actions py-2">
-                    <button class="mui-button mui-button-new" id="ooos_btnHistorySearch">Search</button>
-                    <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
-                </div>
-                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-
-                    <div class="d-flex align-items-center me-2">
-                        <label class="me-2 mb-0">Room:</label>
-                        <input type="text" id="ooos_historyRoom" class="form-control form-control-sm w-auto" />
-                    </div>
-                    <div class="d-flex align-items-center me-2">
-                        <label class="me-2 mb-0">User Name:</label>
-                        <input type="text" id="ooos_historyUser" class="form-control form-control-sm w-auto" />
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <div data-date-input data-format="DD/MM/YYYY" business-date
-                             data-name="ooos_historyFromDate" style="width: 130px;">
-                            <input type="text" class="date-ui form-control form-control-sm"
-                                   placeholder="dd/mm/yyyy" autocomplete="off" />
-                        </div>
-                        <div data-date-input data-format="DD/MM/YYYY" business-date
-                             data-name="ooos_historyToDate" style="width: 130px;">
-                            <input type="text" class="date-ui form-control form-control-sm"
-                                   placeholder="dd/mm/yyyy" autocomplete="off" />
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="gridContainer mt-2  flex-grow-1 overflow-hidden">
-                    <div id="ooos_historyGrid"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
-</div>
 <script>
-        
-    var ooos_Module = {
+
+    var allot_search_Module = {
         selectedRowData: null,
 
         baseGridOptions: {
@@ -361,23 +361,15 @@
             width: "100%",
             showBorders: true,
             hoverStateEnabled: true,
-            wordWrapEnabled: true,
+            wordWrapEnabled: false,
             allowColumnResizing: true,
             columnResizingMode: "widget",
-            columnAutoWidth: true,
+            columnAutoWidth: false,
             selection: { mode: "single" },
             scrolling: {
                 mode: "standard",
                 showScrollbar: "always",
                 useNative: true
-            },
-            paging: { pageSize: 20 },
-            pager: {
-                visible: true,
-                allowedPageSizes: [20, 50, 100],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
             },
             filterRow: { visible: true, applyFilter: "auto" }
         },
@@ -395,54 +387,13 @@
         initEvents: function () {
             const self = this;
 
-            window.openModalOOOS = function () {
+            window.openModalAllotSearch = function () {
                 initTomSelect(".tomselect-custom");
+                clearMultipleTomSelect([
+                    "#allot_search_market",
+                    "#allot_search_type"
+                ]);
                 self.reloadGrid();
-
-                // handler close modal
-                $('#ooos_modal').on('hidden.bs.modal', function () {
-                    self.disposeGrid("#ooos_gridContainer");
-                    clearMultipleTomSelect(["#ooos_room", "#ooos_roomClass", "#ooos_zone"]);
-                    reloadBusinessDate();
-                    self.selectedRowData = null;
-                });
-
-                $('#ooos_itemModal').on('hidden.bs.modal', function () {
-                    ValidationAdapter.clear("#ooos_formContainer");
-                    clearMultipleTomSelect(["#ooos_roomSelect", "#ooos_comment"]);
-                    reloadBusinessDate();
-                });
-
-                $('#ooos_historyModal').on('hidden.bs.modal', function () {
-                    self.disposeGrid("#ooos_historyGrid");
-                    reloadBusinessDate();
-                    self.selectedRowData = null;
-                });
-
-                // events input
-                $("#ooos_formContainer").on("input", "input, textarea", function () {
-                    if ($(this).hasClass("is-invalid")) {
-                        ValidationAdapter.clearField(this);
-                    }
-                });
-
-                // event tomselect
-                $("#ooos_formContainer").on("change", "select.tomselect-custom", function () {
-                    if (this.tomselect) {
-                        ValidationAdapter.clearField(this);
-                    }
-                });
-
-                // Tự động điền note khi chọn Reason
-                $(document).on("change", "#ooos_comment", function () {
-                    const ts = this.tomselect;
-                    if (!ts) return;
-
-                    const value = ts.getValue();
-                    const option = ts.options[value];
-
-                    $("#ooos_txtReasonDesc").val(option?.desc || "");
-                });
 
             };
 
@@ -450,45 +401,98 @@
 
         intitDOMEvents: function () {
             const self = this;
-            $("#ooos_btnView").on("click", () => self.reloadGrid());
-            $("#ooos_btnNew").on("click", () => self.openNewModal());
-            $("#ooos_btnEdit").on("click", () => self.openEditModal());
-            $("#ooos_btnSaveItem").on("click", () => self.saveBusinessBlock());
-            $("#ooos_btnDelete").on("click", () => self.confirmDelete());
-            $("#ooos_btnExportExcel").on("click", () => self.exportToExcel());
-            $("#ooos_btnHistory").on("click", () => self.openModalHistory());
-            $("#ooos_btnHistorySearch").on("click", () => self.fetchHistoryData());
+            $("#allot_search_btnView").on("click", () => self.reloadGrid());
+            $("#allot_search_btnNew").on("click", () => self.openNewModal());
+            $("#allot_search_btnEdit").on("click", () => self.openEditModal());
+            $("#allot_search_btnSaveItem").on("click", () => self.saveBusinessBlock());
+            $("#allot_search_btnDelete").on("click", () => self.confirmDelete());
+            $("#allot_search_btnExportExcel").on("click", () => self.exportToExcel());
+            $("#allot_search_btnHistory").on("click", () => self.openModalHistory());
+            $("#allot_search_btnHistorySearch").on("click", () => self.fetchHistoryData());
         },
 
         reloadGrid: function () {
             const self = this;
+
             const filterData = {
-                status: self.getStatusValue(),
-                roomNo: (getTomSelectData("#ooos_room") || []).map(x => x.value).join(","),
-                roomClassID: getTomSelectData("#ooos_roomClass")?.value,
-                fromDate: $("#ooos_fromDate").val() || dateSystem ,
-                toDate: $("#ooos_toDate").val() || dateSystem,
-                zone: (getTomSelectData("#ooos_zone") || []).map(x => x.value).join(",")
+                code: $("#allot_search_code").val(),
+                marketID: getTomSelectData("#allot_search_market")?.value,
+                allotmentTypeID: getTomSelectData("#allot_search_type")?.value,
+                profileID: $("#allot_search_profileId").val(),
+                zone: (getTomSelectData("#allot_search_zone") || []).map(x => x.value).join(","),
+                isDefault: $('#allot_search_default').is(':checked') ? 1 : 0
             };
-            $("#loadingSpinnerRateCode").show();
+            $("#allot_search_loading").show();
             $.ajax({
-                url: '/RoomManagement/GetOOOSload',
+                url: '/Allotment/GetAllotmentSearch',
                 type: 'GET',
                 data: filterData,
                 success: function (data) {
                     self.renderMainGrid(data);
-                    $("#loadingSpinnerRateCode").hide();
+                    // self.renderMainGrid1(data);
+                    // self.renderMainGrid2(data);
+                    $("#allot_search_loading").hide();
                 },
                 error: function (xhr, status, error) {
                     showToast("Error", "Unable to load data", false);
-                    $("#loadingSpinnerRateCode").hide();
+                    $("#allot_search_loading").hide();
                 }
             });
         },
 
         renderMainGrid: function (data) {
             const self = this;
-            self.initGrid("#ooos_gridContainer",{
+            var listMarket = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.MarketList ?? new List<object>()));
+            var listAllType = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.AllotTypeList ?? new List<object>()));
+
+            self.initGrid("#allot_search_gridAllotInfor",{
+                dataSource: data,
+                columns: [
+                    { dataField: "id", visible: false },
+                    { dataField: "profileID", visible: false },
+                    { dataField: "code",caption: "All.Code",width: 110 },
+                    { dataField: "allotmentName",caption: "All.Name",width: 180},
+                    { dataField: "accountName",caption: "Profile",width: 180},
+                    // { dataField: "marketID", visible: false },
+                    {
+                        dataField: "marketID",
+                        caption: "Market",
+                        width: 100,
+                        lookup: {
+                            dataSource: listMarket,
+                            valueExpr: "ID",
+                            displayExpr: "Name"
+                        }
+                    },
+                    // { dataField: "allotmentTypeID", visible: false },
+                    {
+                        dataField: "allotmentTypeID",
+                        caption: "All.Type",
+                        width: 100,
+                        lookup: {
+                            dataSource: listAllType,
+                            valueExpr: "ID",
+                            displayExpr: "Name"
+                        }
+                    },
+                    { dataField: "cuttOfDay", caption: "Cutt.Day",width: 90 },
+                    { dataField: "cuttOfDate", caption: "Cutt.Date", dataType: "date", format: "dd/MM/yyyy",  width: 110 },
+                    { dataField: "createBy", caption: "Created By", width: 120 },
+                    { dataField: "createDate",  caption: "Created Date", dataType: "date", format: "dd/MM/yyyy hh:mm", width: 110 }, 
+                    { dataField: "updateBy", caption: "Updated By", width: 120 },
+                    { dataField: "updateDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy hh:mm", width: 110 }
+                ],
+
+                onSelectionChanged: function (e) {
+                    self.selectedRowData = e.selectedRowsData[0] || null;
+                }
+            });
+
+        },
+
+        renderMainGrid1: function (data) {
+            const self = this;
+            self.initGrid("#allot_search_gridAllotDetail",{
                 dataSource: data,
                 columns: [
                     { dataField: "id", visible:false},
@@ -509,44 +513,36 @@
                     { dataField: "userUpdate", caption: "User Update", width: 100 },
                     { dataField: "updatedDate", caption: "Update Date", width: 80, dataType: "date", format: "dd/MM/yyyy" }
                 ],
-                summary: {
-                    totalItems: [
-                        // CODE column → hiện chữ Total
-                        {
-                            column: "code",
-                            summaryType: "count",
-                            displayFormat: "Total room",
-                            alignment: "left"
-                        },
 
-                        // ROOM NO → đếm số phòng
-                        {
-                            column: "roomNo",
-                            summaryType: "count",
-                            displayFormat: "{0}",
-                            alignment: "right"
-                        },
+                onSelectionChanged: function (e) {
+                    self.selectedRowData = e.selectedRowsData[0] || null;
+                }
+            });
 
-                        // NIGHTS → giữ cách tính custom
-                        {
-                            showInColumn: "reason",
-                            summaryType: "custom",
-                            name: "TotalNights",
-                            displayFormat: "Total Nights: {0}",
-                            alignment: "right"
-                        }
-                    ],
-
-                    calculateCustomSummary: function (options) {
-                        if (options.name === "TotalNights") {
-                            if (options.summaryProcess === "start")
-                                options.totalValue = 0;
-
-                            if (options.summaryProcess === "calculate")
-                                options.totalValue += (options.value.noOfNights || 0);
-                        }
-                    }
-                },
+        },
+        renderMainGrid2: function (data) {
+            const self = this;
+            self.initGrid("#allot_search_gridReservation",{
+                dataSource: data,
+                columns: [
+                    { dataField: "id", visible:false},
+                    { dataField: "roomID", visible:false},
+                    { dataField: "reasonID", visible:false},
+                    { dataField: "code", caption: "Code", width: 90 },
+                    { dataField: "roomNo", caption: "Room No", alignment: "right" , width: 60 },
+                    { dataField: "roomType", caption: "Room Type", width: 70 },
+                    { dataField: "floor", caption: "Floor", alignment: "right",width: 50 },
+                    { dataField: "zone", caption: "Zone", width: 50 },
+                    { dataField: "fromDate", caption: "From Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "toDate", caption: "To Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "noOfNights", caption: "Nights", width: 50 },
+                    { dataField: "reason", caption: "Reason", width: 150 },
+                    { dataField: "status", caption: "Status", width: 50 },
+                    { dataField: "userCreate", caption: "User Create", width: 100 },
+                    { dataField: "createdDate", caption: "Create Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "userUpdate", caption: "User Update", width: 100 },
+                    { dataField: "updatedDate", caption: "Update Date", width: 80, dataType: "date", format: "dd/MM/yyyy" }
+                ],
 
                 onSelectionChanged: function (e) {
                     self.selectedRowData = e.selectedRowsData[0] || null;
@@ -571,6 +567,7 @@
                 },
                 success: function (data) {
                     self.renderHistoryGrid(data);
+                    // self.renderHistoryGrid1(data);
                     $("#loadingSpinner").hide();
                 },
                 error: function () {
@@ -583,7 +580,7 @@
         renderHistoryGrid: function (data) {
             const self = this;
 
-            self.initGrid("#ooos_historyGrid", {
+            self.initGrid("#allot_search_gridAllotDetail", {
                 dataSource: data,
                 columns: [
                     { dataField: "roomNo", caption: "Room No", width: "10%" },
@@ -659,7 +656,7 @@
                 showToast("Warning", "Check for incorrect input fields.", false);
                 return;
             }
-                
+
             const payload = roomSelectData.map(r => ({
                 id: parseInt($("#ooos_id").val() || 0),
 
@@ -740,7 +737,7 @@
         },
 
         exportToExcel: function () {
-            const grid = $("#ooos_gridContainer").dxDataGrid("instance");
+            const grid = $("#allot_search_gridContainer").dxDataGrid("instance");
             if (!grid) {
                 showToast("Warning", "No data to export!", false);
                 return;
@@ -769,7 +766,7 @@
             worksheet.addRow([]);
 
             // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-            const reportRow = worksheet.addRow(['Out Of Order And Service']);
+            const reportRow = worksheet.addRow(['Allotment Data']);
             worksheet.mergeCells('A5:D5');
             reportRow.font = { bold: true, size: 14 };
             reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -791,7 +788,7 @@
                 worksheet.getCell(`A${lastRow}`).font = { italic: true };
 
                 // Ghi file
-                let fileName = "OutOfOrderAndService.xlsx";
+                let fileName = "AllotmentSearch.xlsx";
                 workbook.xlsx.writeBuffer().then(function (buffer) {
                     saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
                 });
@@ -812,11 +809,11 @@
             }
         },
 
-  
+
     };
 
     $(document).ready(function () {
-        ooos_Module.init();
+        allot_search_Module.init();
     });
 
 </script>

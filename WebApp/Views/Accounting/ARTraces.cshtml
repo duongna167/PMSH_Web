@@ -1,27 +1,10 @@
 @using DevExpress.XtraReports.UI
 
-
 @{
-    var selectedReport = @ViewBag.ReportHeader;
-
+    var selectedReport = ViewBag.ReportHeader;
 }
-<style>
-    #loadingSpinnerRateCode {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 999;
-        background: rgba(255, 255, 255, 0.55);
-        backdrop-filter: blur(2px);
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-</style>
-<div class="modal fade" id="arTraceModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+
+<div class="modal fade" id="ar_trace_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content modal-full-height">
             <div class="modal-header bg-light py-2">
@@ -30,658 +13,424 @@
 
             <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
                 <div class="py-2">
-                    <button id="btnPrint" class="mui-button button-report-view"> View</button>
-                    <button id="btnNew" class="mui-button mui-button-new"> New</button>
-                    <button id="btnUpdate" class="mui-button mui-button-edit"> Edit</button>
-                    <button id="btnDelete" class="mui-button button-report-delete">
-                        Delete
-                    </button>
-                    <button id="btnResolve" class="mui-button mui-button-resolve"> Resolve</button>
-                    <button id="btnUnsolve" class="mui-button mui-button-unsolve">
-                        Unsolve
-                    </button>
-                    <button id="btnExportExcel" class="mui-button mui-button-export" type="button"> Excel</button>
-                    <button class="mui-button mui-button-new"
-                            onclick="window.location.href='/Home/Index'">
-                        Close
-                    </button>
+                    <button id="ar_trace_btnPrint" class="mui-button button-report-view"> View</button>
+                    <button id="ar_trace_btnNew" class="mui-button mui-button-new"> New</button>
+                    <button id="ar_trace_btnUpdate" class="mui-button mui-button-edit"> Edit</button>
+                    <button id="ar_trace_btnDelete" class="mui-button button-report-delete"> Delete </button>
+                    <button id="ar_trace_btnResolve" class="mui-button mui-button-resolve"> Resolve</button>
+                    <button id="ar_trace_btnUnsolve" class="mui-button mui-button-unsolve"> Unsolve </button>
+                    <button id="ar_trace_btnExportExcel" class="mui-button mui-button-export" type="button"> Excel</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal"> Close </button>
                 </div>
                 <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
-
                     <div class="gridContainer mt-2 d-flex flex-column flex-grow-1" style="min-height: 0;">
-                        <div id="gridContainer"></div>
-
-                        <div id="loadingSpinnerRateCode" style="display: none;">
+                        <div id="ar_trace_gridContainer"></div>
+                        <div id="ar_trace_loading" style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+                        z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+                        height: 100%;display: flex;align-items: center;justify-content: center;">
                             <div class="spinner-border text-primary" role="status"></div>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="popupNewArtraces" tabindex="-1" aria-labelledby="popupNewArtracesLabel" aria-hidden="true">
+<div class="modal fade" id="new_ar_trace_modal" tabindex="-1" aria-labelledby="label_ar_trace" aria-hidden="true">
     <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-
-            <!-- Header -->
             <div class="modal-header">
-                <h5 class="modal-title" id="popupNewArtracesLabel">
-                    <span id="textPopup">AR Trace New</span>
-                </h5>
+                <h5 class="modal-title" id="ar_trace_textPopup">AR Trace New</h5>
             </div>
-
-            <!-- Body -->
             <div class="modal-body">
-
-                <!-- Action buttons -->
-                <div class="d-flex justify-content-start gap-2 flex-wrap">
-                    <button id="btnSearchAuto" class="mui-button mui-button-advance" type="button">
-                        Search
-                    </button>
-                    <button id="btnOkAutoUpdate" class="mui-button mui-button-advance" type="button">
-                        Save
-                    </button>
-                    <button id="btnSaveAuto" class="mui-button mui-button-new" type="button">
-                        Save
-                    </button>
-                    <button id="btnClosePopup" class="mui-button mui-button-new" data-bs-dismiss="modal" type="button">
-                        Close
-                    </button>
+                <div class="d-flex justify-content-start gap-2 flex-wrap py-2">
+                    <button id="ar_trace_btnSearchAuto" class="mui-button mui-button-advance" type="button"> Search </button>
+                    <button id="ar_trace_btnOkAutoUpdate" class="mui-button mui-button-advance" type="button" style="display:none;"> Save </button>
+                    <button id="ar_trace_btnSaveAuto" class="mui-button mui-button-new" type="button"> Save </button>
+                    <button class="mui-button mui-button-new" data-bs-dismiss="modal" type="button"> Close </button>
                 </div>
-
-                <!-- Sticky content -->
                 <div class="sticky-top bg-white p-2 shadow-sm">
-
-                    <!-- Selected account -->
                     <div class="mb-3">
-                        <div id="gridSelectedAccount" class="gridContainer"></div>
+                        <div id="ar_trace_gridSelectedAccount" class="gridContainer"></div>
                     </div>
-
-                    <!-- Hidden id -->
-                    <input type="text" id="idselectedRowData" name="idselectedRowData"
-                        style="display:none !important" />
-
-                    <!-- Trace info -->
+                    <input type="hidden" id="ar_trace_idselectedRowData" />
                     <div class="d-flex flex-wrap mb-3">
                         <div class="d-flex align-items-center me-4 mb-2">
                             <label class="me-2 mb-0">Trace Time:</label>
                             <div data-date-input data-format="DD/MM/YYYY" business-date>
-                                <input type="text" class="date-ui form-control" placeholder="dd/mm/yyyy"
-                                    autocomplete="off" id="tracetime" disabled />
+                                <input type="text" class="date-ui form-control" autocomplete="off" id="ar_trace_tracetime" disabled />
                             </div>
                         </div>
-
                         <div class="d-flex align-items-start mb-2">
                             <label class="me-2 mt-1">Trace Text:</label>
-                            <textarea id="traceText" class="form-control form-control-sm" rows="4"
-                                style="width:320px; height: 50px;"></textarea>
+                            <textarea id="ar_trace_traceText" class="form-control form-control-sm" rows="4" style="width:320px; height: 50px;"></textarea>
                         </div>
                     </div>
-
                 </div>
             </div>
-
         </div>
     </div>
 </div>
 
-
-<div class="modal fade" id="popupSearchArtraces" tabindex="-1" role="dialog" aria-labelledby="popupSearchArtracesLabel"
-    aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+<div class="modal fade" id="ar_trace_search_modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-
-            <!-- Header -->
             <div class="modal-header">
-                <h5 class="modal-title" id="popupSearchArtracesLabel">
-                    AR Trace - Select Account
-                </h5>
-                </button>
+                <h5 class="modal-title">AR Trace - Select Account</h5>
             </div>
-
-            <!-- Body -->
             <div class="modal-body">
-                <div class="d-flex justify-content-start gap-2">
-                    <button id="btnOkSelect" class="mui-button mui-button-advance" type="button">
-                        Ok
-                    </button>
-
-                    <button id="btnClosepSearchArtracesPopup" class="mui-button mui-button-new" data-bs-dismiss="modal"
-                        type="button">
-                        Close
-                    </button>
+                <div class="d-flex justify-content-start gap-2 py-2">
+                    <button id="ar_trace_btnOkSelect" class="mui-button mui-button-advance" type="button"> Ok </button>
+                    <button class="mui-button mui-button-new" data-bs-dismiss="modal" type="button"> Close </button>
                 </div>
-
                 <div class="mui-card">
-                    <div id="gridContainerSelectAccount" class="gridContainer mt-2"></div>
+                    <div id="ar_trace_gridContainerSelectAccount" class="gridContainer mt-2"></div>
                 </div>
             </div>
-
         </div>
     </div>
-</div>
-
-
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 
 <script>
-    $(document).ready(function () {
-        $("#btnResolve").hide();
-        $("#btnUnsolve").hide();
-        $("#btnPrint").trigger("click");
-        $('#arTraceModal').modal('show');
+    var ar_trace_Module = {
+        selectedRowData: null,
+        selectedAccounts: [],
 
-    });
+        init: function () {
+            this.initEvents();
+            this.initDOMEvents();
+            // Tự động load dữ liệu lần đầu
+            this.reloadMainGrid();
+        },
 
-    function toDateOnly(value) {
-        if (!value) return '';
-        return value.substring(0, 10);
-    }
+        initEvents: function () {
+            window.openModalArTrace = () => {
+                $('#ar_trace_modal').modal('show');
+                this.reloadMainGrid();
+            };
+        },
 
-    async function initializegridSelectedAccount(data) {
-        // Hiển thị danh sách đã chọn ở bảng thứ 2
-        $("#gridSelectedAccount").dxDataGrid({
-            dataSource: data,
-            showBorders: true,
-            height: "300px",
-            columns: [
-                { dataField: "accountName", caption: "Account Name", width: 466 }
-            ]
-        });
-    }
+        initDOMEvents: function () {
+            const self = this;
+            // Main Actions
+            $("#ar_trace_btnPrint").on("click", () => this.reloadMainGrid());
+            $("#ar_trace_btnNew").on("click", () => this.openNewModal());
+            $("#ar_trace_btnUpdate").on("click", () => this.openEditModal());
+            $("#ar_trace_btnDelete").on("click", () => this.deleteTrace());
+            $("#ar_trace_btnResolve").on("click", () => this.processResolve('/Accounting/ARTraceResolve'));
+            $("#ar_trace_btnUnsolve").on("click", () => this.processResolve('/Accounting/ARTraceUnresolve'));
+            $("#ar_trace_btnExportExcel").on("click", () => this.exportExcel());
 
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/Accounting/ARTracesData',
-            type: 'GET',
-            data: {
+            // Sub Actions
+            $("#ar_trace_btnSearchAuto").on("click", () => this.openSearchAccountModal());
+            $("#ar_trace_btnOkSelect").on("click", () => this.confirmAccountSelection());
+            $("#ar_trace_btnSaveAuto").on("click", () => this.saveNewTrace());
+            $("#ar_trace_btnOkAutoUpdate").on("click", () => this.updateTrace());
 
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
+            // Reset khi đóng modal
+            $('#new_ar_trace_modal').on('hidden.bs.modal', () => this.clearNewForm());
+        },
 
-                console.log(result);
-                initializeARTracesGrid(result);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-    var selectedRowData = null;
-    function initializeARTracesGrid(data) {
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            height: "100%",
-            width: "100%",
-            showBorders: true,
-            hoverStateEnabled: true,
-            wordWrapEnabled: true,
-            allowColumnResizing: true,
-            columnResizingMode: "widget",
-            columnAutoWidth: true,
-            selection: { mode: "single" },
-            scrolling: {
-                mode: "standard",
-                showScrollbar: "always",
-                useNative: true
-            },
-            paging: { pageSize: 20 },
-            pager: {
-                visible: true,
-                allowedPageSizes: [20, 50, 100],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: { visible: true, applyFilter: "auto" },
-            columns: [
-                { dataField: "id", caption: "ID", visible: false },
-
-                { dataField: "name", caption: "Name", width: "18%" },
-
-                { dataField: "traceAt", caption: "Trace Time", dataType: "date", format: "dd/MM/yyyy", width: "14%" },
-
-                { dataField: "resolvedAt", caption: "Resolved At", dataType: "date", format: "dd/MM/yyyy", width: "12%" },
-
-                { dataField: "resolvedBy", caption: "Resolved By", width: "9%" },
-
-                { dataField: "createdBy", caption: "Created By", width: "9%" },
-
-                { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy", width: "14%" },
-
-                { dataField: "updatedBy", caption: "Updated By", width: "8%" },
-
-                { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy", width: "16%" }
-            ],
-            
-            // 🔥 Quan trọng: gán selectedRowData khi click chọn
-            onRowClick: function (e) {
-                selectedRowData = e.data; // 🔥 lấy data của row vừa click
-                console.log("Selected Row (RowClick):", selectedRowData);
-                if (selectedRowData.resolvedBy === "Unresolved") {
-                    // Nếu chưa resolve
-                    $("#btnUnsolve").hide();
-                    $("#btnResolve").show();
-                } else {
-                    // Nếu đã resolve
-                    $("#btnResolve").hide();
-                    $("#btnUnsolve").show();
+        reloadMainGrid: function () {
+            $("#ar_trace_loading").show();
+            $.ajax({
+                url: '/Accounting/ARTracesData',
+                type: 'GET',
+                success: (result) => {
+                    this.renderMainGrid(result);
+                    $("#ar_trace_loading").hide();
+                },
+                error: () => {
+                    showToast("Error", "Unable to load data", false);
+                    $("#ar_trace_loading").hide();
                 }
-            }
-        });
-    }
-    $("#btnNew").on("click", function () {
-        $("#gridSelectedAccount").show();
-        initializegridSelectedAccount([]);
-        $("#btnOkAutoUpdate").hide();
-        $("#btnSearchAuto, #btnSaveAuto").show();
-
-        if (!selectedRowDatasa || selectedRowDatasa.length === 0) {
-            $("#btnSearchAuto").trigger("click");
-
-            $("#createdDate").closest('.d-flex').hide();
-        } else {
-            $("#createdDate").hide();
-        }
-
-        $("#textPopup").text("AR Trace New");
-
-        $('#popupNewArtraces').modal('show');
-    });
-
-    $("#btnUpdate").on("click", function () {
-        $("#btnOkAutoUpdate").show();
-        $("#gridSelectedAccount").hide();
-        $("#textPopup").text("AR Trace Edit");
-        if (!selectedRowData || selectedRowData.length === 0) {
-            showToast('Error', "Please select at least one account!", false);
-            return;
-        }
-        console.log('selectedRowData', selectedRowData);
-
-        $("#btnSearchAuto").hide();
-        $("#btnSaveAuto").hide();
-        $("#idselectedRowData").val(selectedRowData.id);
-        $("#tracetime").val(toDateOnly(selectedRowData.traceAt));
-        $("#traceText").val(selectedRowData.traceText);
-        $('#popupNewArtraces').modal('show');
-
-    });
-
-    $("#btnSearchAuto").on("click", function () {
-
-        // Hiển thị loading (nếu có)
-        $("#loadingSpinner").show();
-
-        // Mở modal đúng cách
-        const modalEl = document.getElementById('popupSearchArtraces');
-        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-        modal.show();
-
-        $.ajax({
-            url: '/Accounting/ARAccountReceivableSearch',
-            type: 'GET',
-            data: {},
-            traditional: true,
-            headers: {
-                "X-CSRF-TOKEN-HEADERNAME":
-                    $("input[name='__RequestVerificationToken']").val()
-            },
-            success: function (result) {
-                console.log(result);
-                initializeARAccountReceivableSearchGrid(result);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không thể tải dữ liệu.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-
-    var selectedRowDatasa = [];
-
-    function initializeARAccountReceivableSearchGrid(data) {
-        $("#gridContainerSelectAccount").dxDataGrid({
-            dataSource: data,
-            showBorders: true,
-            selection: {
-                mode: "multiple",        // ✅ Cho phép chọn nhiều dòng
-                showCheckBoxesMode: "always" // ✅ Hiển thị checkbox chọn
-            },
-            paging: { pageSize: 20 },
-            height: 500,
-            pager: {
-                showPageSizeSelector: true,
-                allowedPageSizes: [20, 50, 100],
-                showInfo: true
-            },
-            filterRow: { visible: true },
-            columns: [
-                { dataField: "id", caption: "ID", width: 80, visible: false },
-                { dataField: "accountName", caption: "Account Name", width: 200 },
-                { dataField: "accountNo", caption: "Account No", width: 200 },
-                { dataField: "contactName", caption: "Contact Name", width: 200 },
-                { dataField: "telePhone", caption: "Phone", width: 120 },
-                { dataField: "email", caption: "Email", width: 120 }
-            ],
-            scrolling: {
-                mode: "standard",
-                showScrollbar: "always",
-                scrollByContent: true
-            },
-            paging: {
-                pageSize: 50
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [50, 100, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-
-            // ✅ Sự kiện khi người dùng chọn/bỏ chọn dòng
-            onSelectionChanged: function (e) {
-                selectedRowDatasa = e.selectedRowsData; // Danh sách các dòng đã chọn
-                console.log("Selected Rows:", selectedRowDatasa);
-            }
-        });
-    }
-
-    $("#btnOkAutoUpdate").on("click", function () {
-
-        if (!selectedRowData || selectedRowData.length === 0) {
-            showToast('Error', "Please select at least one account!", false);
-            return;
-        }
-
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/Accounting/ARTraceUpdate',
-            type: 'POST',
-            data: {
-                idselectedRowData: $("#idselectedRowData").val(),
-                tracetime: $("#tracetime").val(),
-                traceText: $("#traceText").val(),
-                user: localStorage.getItem("Loginname")
-
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if (result.success) {
-                    showToast('Success', result.message, true);
-                    $('#popupNewArtraces').modal("hide");
-                    $("#btnPrint").trigger("click");
-                    clearNewArtraces();
-                } else {
-                    showToast('Error', 'Please select before saving.', false);
-                }
-                console.log(result);
-
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-    $("#btnSaveAuto").on("click", function () {
-
-        if (selectedRowDatasa.length === 0) {
-            showToast('Error', "Please select at least one account!", false);
-            return;
-        }
-
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/Accounting/ARTraceSave',
-            type: 'POST',
-            contentType: "application/json; charset=utf-8", // ✅ gửi JSON chuẩn
-            data: JSON.stringify({
-                tracetime: $("#tracetime").val(),
-                traceText: $("#traceText").val(),
-                user: localStorage.getItem("Loginname"),
-                selectedAccounts: selectedRowDatasa // ✅ gửi mảng sang server
-            }),
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if (result.success) {
-                    $('#popupNewArtraces').modal("hide");
-                    showToast('Success', result.message, true);
-                    clearNewArtraces();
-                    $("#btnPrint").trigger("click");
-                } else {
-                    showToast('Error', 'Please select.', false);
-                }
-                console.log(result);
-
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-    $("#btnResolve").on("click", function () {
-
-        if (selectedRowData.length === 0) {
-            showToast('Error', "Please select at least one account!", false);
-            return;
-        }
-
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/Accounting/ARTraceResolve',
-            type: 'POST',
-
-            data: {
-                id: selectedRowData.id,
-                user: localStorage.getItem("Loginname"),
-
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if (result.success) {
-
-                    $("#btnPrint").trigger("click");
-                } else {
-                    showToast('Error', 'Please select.', false);
-                }
-                console.log(result);
-
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-    $("#btnUnsolve").on("click", function () {
-
-        if (selectedRowData.length === 0) {
-            showToast('Error', "Please select at least one account!", false);
-            return;
-        }
-
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/Accounting/ARTraceUnresolve',
-            type: 'POST',
-
-            data: {
-                id: selectedRowData.id,
-                user: localStorage.getItem("Loginname"),
-
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if (result.success) {
-
-                    $("#btnPrint").trigger("click");
-                } else {
-                    showToast('Error', 'Please select.', false);
-                }
-                console.log(result);
-
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-    function clearNewArtraces() {
-
-        $("#traceText").val("");
-        initializegridSelectedAccount([]);
-        selectedRowDatasa = null;
-    }
-    $('#btnClosePopup, #overlay').click(function () {
-        $('#popupNewArtraces').modal('hide');
-        $('#popupSearchArtraces').modal('hide');
-        clearNewArtraces();
-    });
-
-    $('#btnClosepSearchArtracesPopup, #overlay').click(function () {
-
-        $('#popupSearchArtraces').modal('hide');
-    });
-
-    $("#btnOkSelect").on("click", function () {
-
-        if (selectedRowDatasa.length === 0) {
-            showToast('Error', "Please select at least one account!", false);
-            return;
-        }
-        $('#popupSearchArtraces').modal('hide');
-        $('#popupNewArtraces').modal('show');
-        // Tạo dữ liệu hiển thị cho bảng Selected
-        const selectedAccounts = selectedRowDatasa.map(item => ({
-            accountName: item.accountName
-        }));
-
-        initializegridSelectedAccount(selectedAccounts);
-
-        console.log("Đã chọn:", selectedAccounts);
-    });
-
-    $(document).off("click", "#btnDelete").on("click", "#btnDelete", function () {
-        if (!selectedRowData) {
-            showToast('Error', 'Please select 1 row to delete.', false);
-            return;
-        }
-
-        $.ajax({
-            url: '/Accounting/ARTraceDelete',
-            type: 'POST',
-            data: {
-                id: selectedRowData.id
-
-
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if (result.success) {
-
-                    $("#btnPrint").trigger("click");
-                } else {
-                    showToast('Error', 'Please select .', false);
-                }
-
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-
-
-    });
-
-
-
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance");   // 🔥 khai báo grid
-
-        const workbook = new ExcelJS.Workbook();
-        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === Dòng 1: Tên công ty (merge theo 4 cột) ===
-        worksheet.addRow([companyName]);
-        worksheet.mergeCells('A1:D1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Ngày giờ xuất (bên phải) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', exportDate]);
-        worksheet.mergeCells('D2:D2');  // cột D thôi
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: trống
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-        const reportRow = worksheet.addRow(['Telephone Directory']);
-        worksheet.mergeCells('A5:D5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: trống
-        worksheet.addRow([]);
-
-        // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 }
-        }).then(function () {
-            // Footer (sau cùng)
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = "ARTrace.xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
             });
-        });
+        },
+
+        renderMainGrid: function (data) {
+            $("#ar_trace_gridContainer").dxDataGrid({
+                dataSource: data,
+                height: "100%",
+                width: "100%",
+                showBorders: true,
+                hoverStateEnabled: true,
+                wordWrapEnabled: true,
+                allowColumnResizing: true,
+                columnResizingMode: "widget",
+                columnAutoWidth: true,
+                selection: { mode: "single" },
+                scrolling: {
+                    mode: "standard",
+                    showScrollbar: "always",
+                    useNative: true
+                },
+                paging: { pageSize: 25 },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [25, 50, 100],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: { visible: true, applyFilter: "auto" },
+                columns: [
+                    { dataField: "id", visible: false },
+                    { dataField: "name", caption: "Name", width: "18%" },
+                    { dataField: "traceAt", caption: "Trace Time", dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "resolvedAt", caption: "Resolved At", dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "resolvedBy", caption: "Resolved By" },
+                    { dataField: "createdBy", caption: "Created By" },
+                    { dataField: "createdDate", dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "updatedBy", caption: "Updated By" },
+                    { dataField: "updatedDate", dataType: "date", format: "dd/MM/yyyy" }
+                ],
+                onRowClick: (e) => {
+                    this.selectedRowData = e.data;
+                    if (e.data.resolvedBy === "Unresolved") {
+                        $("#ar_trace_btnResolve").show();
+                        $("#ar_trace_btnUnsolve").hide();
+                    } else {
+                        $("#ar_trace_btnResolve").hide();
+                        $("#ar_trace_btnUnsolve").show();
+                    }
+                }
+            });
+            // Ẩn nút resolve khi chưa chọn gì
+            $("#ar_trace_btnResolve, #ar_trace_btnUnsolve").hide();
+        },
+
+        openNewModal: function () {
+            $("#ar_trace_textPopup").text("AR Trace New");
+            $("#ar_trace_btnOkAutoUpdate").hide();
+            $("#ar_trace_btnSearchAuto, #ar_trace_btnSaveAuto").show();
+            this.renderSelectedAccountGrid([]);
+            $("#ar_trace_tracetime").val(typeof dateSystem !== 'undefined' ? dateSystem : "");
+            $('#new_ar_trace_modal').modal('show');
+            // Tự động mở search nếu là tạo mới
+            $("#ar_trace_btnSearchAuto").trigger("click");
+        },
+
+        openEditModal: function () {
+            if (!this.selectedRowData) {
+                showToast('Error', "Please select a row to edit!", false);
+                return;
+            }
+            $("#ar_trace_textPopup").text("AR Trace Edit");
+            $("#ar_trace_btnOkAutoUpdate").show();
+            $("#ar_trace_btnSearchAuto, #ar_trace_btnSaveAuto").hide();
+
+            $("#ar_trace_idselectedRowData").val(this.selectedRowData.id);
+            $("#ar_trace_tracetime").val(this.selectedRowData.traceAt ? this.selectedRowData.traceAt.substring(0, 10) : "");
+            $("#ar_trace_traceText").val(this.selectedRowData.traceText);
+
+            this.renderSelectedAccountGrid([{ accountName: this.selectedRowData.name }]);
+            $('#new_ar_trace_modal').modal('show');
+        },
+
+        openSearchAccountModal: function () {
+            $("#ar_trace_loading").show();
+            $.ajax({
+                url: '/Accounting/ARAccountReceivableSearch',
+                type: 'GET',
+                success: (result) => {
+                    this.renderSearchAccountGrid(result);
+                    $('#ar_trace_search_modal').modal('show');
+                    $("#ar_trace_loading").hide();
+                },
+                error: () => {
+                    showToast("Error", "Unable to load accounts", false);
+                    $("#ar_trace_loading").hide();
+                }
+            });
+        },
+
+        renderSearchAccountGrid: function (data) {
+            $("#ar_trace_gridContainerSelectAccount").dxDataGrid({
+                dataSource: data,
+                keyExpr: "id",
+                showBorders: true,
+                selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                height: 450,
+                filterRow: { visible: true },
+                columns: [
+                    { dataField: "accountName", caption: "Account Name" },
+                    { dataField: "accountNo", caption: "Account No" },
+                    { dataField: "contactName", caption: "Contact Name" },
+                    { dataField: "telePhone", caption: "Phone" }
+                ],
+                onSelectionChanged: (e) => {
+                    this.selectedAccounts = e.selectedRowsData;
+                }
+            });
+        },
+
+        confirmAccountSelection: function () {
+            if (this.selectedAccounts.length === 0) {
+                showToast('Error', "Please select at least one account!", false);
+                return;
+            }
+            const displayData = this.selectedAccounts.map(item => ({ accountName: item.accountName }));
+            this.renderSelectedAccountGrid(displayData);
+            $('#ar_trace_search_modal').modal('hide');
+        },
+
+        renderSelectedAccountGrid: function (data) {
+            $("#ar_trace_gridSelectedAccount").dxDataGrid({
+                dataSource: data,
+                showBorders: true,
+                height: 150,
+                columns: [{ dataField: "accountName", caption: "Selected Accounts" }]
+            });
+        },
+
+        saveNewTrace: function () {
+            if (this.selectedAccounts.length === 0) {
+                showToast('Error', "Please select accounts!", false);
+                return;
+            }
+            $("#ar_trace_loading").show();
+            $.ajax({
+                url: '/Accounting/ARTraceSave',
+                type: 'POST',
+                contentType: "application/json",
+                data: JSON.stringify({
+                    tracetime: $("#ar_trace_tracetime").val(),
+                    traceText: $("#ar_trace_traceText").val(),
+                    user: localStorage.getItem("Loginname"),
+                    selectedAccounts: this.selectedAccounts
+                }),
+                success: (result) => {
+                    if (result.success) {
+                        showToast('Success', result.message, true);
+                        $('#new_ar_trace_modal').modal("hide");
+                        this.reloadMainGrid();
+                    }
+                    $("#ar_trace_loading").hide();
+                }
+            });
+        },
+
+        updateTrace: function () {
+            $("#ar_trace_loading").show();
+            $.ajax({
+                url: '/Accounting/ARTraceUpdate',
+                type: 'POST',
+                data: {
+                    idselectedRowData: $("#ar_trace_idselectedRowData").val(),
+                    tracetime: $("#ar_trace_tracetime").val(),
+                    traceText: $("#ar_trace_traceText").val(),
+                    user: localStorage.getItem("Loginname")
+                },
+                success: (result) => {
+                    if (result.success) {
+                        showToast('Success', result.message, true);
+                        $('#new_ar_trace_modal').modal("hide");
+                        this.reloadMainGrid();
+                    }
+                    $("#ar_trace_loading").hide();
+                }
+            });
+        },
+
+        processResolve: function (url) {
+            if (!this.selectedRowData) return;
+            $("#ar_trace_loading").show();
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: { id: this.selectedRowData.id, user: localStorage.getItem("Loginname") },
+                success: () => {
+                    this.reloadMainGrid();
+                    $("#ar_trace_loading").hide();
+                }
+            });
+        },
+
+        deleteTrace: function () {
+            if (!this.selectedRowData) {
+                showToast('Error', 'Please select 1 row to delete.', false);
+                return;
+            }
+            if (!confirm("Are you sure you want to delete this trace?")) return;
+
+            $.ajax({
+                url: '/Accounting/ARTraceDelete',
+                type: 'POST',
+                data: { id: this.selectedRowData.id },
+                success: (result) => {
+                    if (result.success) this.reloadMainGrid();
+                }
+            });
+        },
+            
+        exportExcel: function () {
+            const grid = $("#ar_trace_gridContainer").dxDataGrid("instance");
+            if (!grid) {
+                showToast("Warning", "No data to export!", false);
+                return;
+            }
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            // === Dòng 1: Tên công ty (merge theo 4 cột) ===
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells('A1:D1');
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+            // === Dòng 2: Ngày giờ xuất (Sửa lỗi hiển thị ở đây) ===
+            const now = new Date();
+            const exportDateStr = "Export Date: " + now.toLocaleString("vi-VN");
+            const row2 = worksheet.getRow(2);
+            row2.getCell(1).value = exportDateStr; // Gán vào ô đầu tiên của vùng merge (A2)
+            worksheet.mergeCells('A2:D2');
+            row2.alignment = { vertical: 'middle', horizontal: 'left' };
+            row2.font = { italic: true };
+
+            // === Dòng 3–4: trống
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
+            const reportRow = worksheet.addRow(['AR Trace Export']);
+            worksheet.mergeCells('A5:D5');
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            // === Dòng 6: trống
+            worksheet.addRow([]);
+
+            // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                // Footer (sau cùng)
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                // Ghi file
+                let fileName = "ARTrace.xlsx";
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                });
+            });
+        },
+
+        clearNewForm: function () {
+            $("#ar_trace_traceText").val("");
+            this.selectedAccounts = [];
+            this.renderSelectedAccountGrid([]);
+        }
+    };
+
+    $(document).ready(function () {
+        ar_trace_Module.init();
     });
 </script>

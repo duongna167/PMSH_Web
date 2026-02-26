@@ -48,7 +48,7 @@ namespace Cashiering.Controllers
             ViewBag.cboCity = ListItemHelper.GetCity();
             ViewBag.cboCity2 = ListItemHelper.GetCityText();
 
-            return View(); // View này sẽ chứa DataGrid + script gọi API
+            return PartialView(); // View này sẽ chứa DataGrid + script gọi API
         }
 
 
@@ -718,7 +718,7 @@ namespace Cashiering.Controllers
 
             List<CurrencyModel> listcurr = PropertyUtils.ConvertToList<CurrencyModel>(CurrencyBO.Instance.FindAll());
             ViewBag.CurrencyList = listcurr;
-            return View(); 
+            return PartialView();
         }
 
         [HttpGet]
@@ -911,7 +911,7 @@ namespace Cashiering.Controllers
             List<CurrencyModel> listcurr = PropertyUtils.ConvertToList<CurrencyModel>(CurrencyBO.Instance.FindAll());
             ViewBag.CurrencyList = listcurr;
 
-            return View(); // View này sẽ chứa DataGrid + script gọi API
+            return PartialView(); // View này sẽ chứa DataGrid + script gọi API
         }
 
         [HttpGet]
@@ -1002,7 +1002,7 @@ namespace Cashiering.Controllers
         {
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
             ViewBag.BusinessDate = businessDateModel[0].BusinessDate;
-            return View(); // View này sẽ chứa DataGrid + script gọi API
+            return PartialView();
         }
         [HttpGet]
         public IActionResult ARTracesData()
@@ -1217,6 +1217,48 @@ namespace Cashiering.Controllers
                 ARTraceBO.Instance.Update(model);
 
                 return Json(new { success = true, message = "Success !" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+        #endregion
+
+        #region ARPaymentReport
+        public IActionResult ARPaymentReport()
+        {
+            List<UsersModel> listUsers = PropertyUtils.ConvertToList<UsersModel>(UsersBO.Instance.FindAll());
+            ViewBag.ListUsers = listUsers;
+            return PartialView();
+        }
+
+        [HttpGet]
+        public IActionResult GETARPaymentReport(DateTime fromDate, DateTime toDate, string accountNo, string cashier, int viewBy = 0)
+        {
+            try
+            {
+
+                DataTable resultExchangeData = _iAccountingService.ARPaymentReport(fromDate, toDate, accountNo, cashier, viewBy);
+                var resultExchange = (from d in resultExchangeData.AsEnumerable()
+                                      select d.Table.Columns.Cast<DataColumn>()
+                                          //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
+                                          .ToDictionary(
+                                            col => col.ColumnName,
+                                            col =>
+                                            {
+                                                var value = d[col.ColumnName];
+                                                if (value == DBNull.Value) return null;
+
+                                                // CreatedDate: KHÔNG ToString
+                                                if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate")
+                                                    return value;
+
+                                                // Các field khác: ToString
+                                                return value.ToString();
+                                            }
+                                        )).ToList();
+                return Json(resultExchange);
             }
             catch (Exception ex)
             {

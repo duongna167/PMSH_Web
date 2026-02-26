@@ -1,18 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Net;
-using System.Reflection;
-using System.Security.Policy;
-using System.ServiceModel.Channels;
-using System.Text;
-using System.Threading.Tasks;
-using BaseBusiness.BO;
+﻿using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using DevExpress.Charts.Native;
 using DevExpress.Data.ODataLinq;
+using DevExpress.DataAccess.DataFederation;
 using DevExpress.DataAccess.DataFederation;
 using DevExpress.XtraCharts.Native;
 using HouseKeeping.Commons.Helpers;
@@ -24,13 +15,22 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using static DevExpress.CodeParser.CodeStyle.Formatting.Rules;
-using DevExpress.DataAccess.DataFederation;
-using System.Reflection.Metadata;
 using Microsoft.VisualBasic;
+using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Net;
+using System.Reflection;
+using System.Reflection.Metadata;
+using System.Security.Policy;
+using System.ServiceModel.Channels;
+using System.Text;
+using System.Threading.Tasks;
 using static BaseBusiness.util.ValidationUtils;
+using static DevExpress.CodeParser.CodeStyle.Formatting.Rules;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace HouseKeeping.Controllers
 {
@@ -1793,7 +1793,7 @@ namespace HouseKeeping.Controllers
             ViewBag.hkpAttendantList = listatt;
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
             ViewBag.BusinessDate = businessDateModel[0].BusinessDate;
-            return View();
+            return PartialView();
         }
 
         [HttpGet]
@@ -1844,20 +1844,22 @@ namespace HouseKeeping.Controllers
             }
         }
         [HttpPost]
-        public IActionResult UpdateAttendantPoint(string ID, DateTime Date, int AttendantID, string UserName, int Point)
+        public IActionResult UpdateAttendantPoint(string ID, DateTime? Date, int AttendantID, string loginName, string UserName, int Point = 0)
         {
             try
             {
-
+                if (AttendantID <= 0) return Json(new { success = false, message = "AttendantID is required." });
+                DateTime BusinessDate = TextUtils.GetBussinessDateTime();
                 hkpAttendantPointModel modelH = new hkpAttendantPointModel
                 {
-                    AttendantDate = Date,
+                    AttendantDate = Date ?? BusinessDate,
                     AttendantID = AttendantID,
                     Points = Point,
-                    CreatedBy = UserName,
+                    CreatedBy = loginName,
                     CreatedDate = DateTime.Now,
-                    UpdatedBy = UserName,
-                    UpdatedDate = DateTime.Now
+                    UpdatedBy = loginName,
+                    UpdatedDate = DateTime.Now,
+
                 };
 
                 if (string.IsNullOrEmpty(ID))
@@ -1869,7 +1871,7 @@ namespace HouseKeeping.Controllers
                     hkpAttendantPointModel modelhkpAtten = (hkpAttendantPointModel)hkpAttendantPointBO.Instance.FindByPrimaryKey(Convert.ToInt32(ID));
 
 
-                    modelhkpAtten.AttendantDate = Date;
+                    modelhkpAtten.AttendantDate = Date ?? BusinessDate;
                     modelhkpAtten.UpdatedBy = UserName;
                     modelhkpAtten.Points = Point;
                     modelhkpAtten.AttendantID = AttendantID;
@@ -4512,8 +4514,7 @@ namespace HouseKeeping.Controllers
         #region HKPStatusData
         public IActionResult HKPStatus()
         {
-
-            return View();
+            return PartialView();
         }
 
         [HttpGet]

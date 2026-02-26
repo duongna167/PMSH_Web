@@ -52,7 +52,7 @@ namespace Cashiering.Controllers
             ViewBag.UsersList = user;
             List<TransactionsModel> trans = PropertyUtils.ConvertToList<TransactionsModel>(TransactionsBO.Instance.FindAll());
             ViewBag.TransactionsList = trans;
-            return View(); // View này sẽ chứa DataGrid + script gọi API
+            return PartialView(); // View này sẽ chứa DataGrid + script gọi API
         }
 
         [HttpGet]
@@ -309,7 +309,7 @@ namespace Cashiering.Controllers
             ViewBag.UsersList = user;
             List<TransactionsModel> trans = PropertyUtils.ConvertToList<TransactionsModel>(TransactionsBO.Instance.FindAll());
             ViewBag.TransactionsList = trans;
-            return View(); // View này sẽ chứa DataGrid + script gọi API
+            return PartialView(); // View này sẽ chứa DataGrid + script gọi API
         }
         [HttpGet]
         public IActionResult GetShiftDetail(int shiftID)
@@ -591,7 +591,7 @@ namespace Cashiering.Controllers
         public IActionResult ExchangeCurrency()
         {
 
-            return View(); // View này sẽ chứa DataGrid + script gọi API
+            return PartialView(); // View này sẽ chứa DataGrid + script gọi API
         }
 
 
@@ -675,7 +675,7 @@ namespace Cashiering.Controllers
         {
             ViewBag.cboZone = ListItemHelper.GetZoneProvider();
 
-            return View();
+            return PartialView();
         }
 
         [HttpGet]
@@ -1010,7 +1010,7 @@ namespace Cashiering.Controllers
             ViewBag.ZoneList = listzo;
             List<UsersModel> listus = PropertyUtils.ConvertToList<UsersModel>(UsersBO.Instance.FindAll());
             ViewBag.UsersList = listus;
-            return View(); // View này sẽ chứa DataGrid + script gọi API
+            return PartialView(); // View này sẽ chứa DataGrid + script gọi API
         }
 
         [HttpGet]

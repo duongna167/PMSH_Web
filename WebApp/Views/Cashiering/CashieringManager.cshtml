@@ -1,311 +1,248 @@
-﻿@* <link href="~/css/pages/reservation.css" rel="stylesheet" asp-append-version="true" /> *@
+@using DevExpress.XtraReports.UI
 
-<div class="header mt-2" style="border-bottom:none;justify-content:center">
-    <h3 id="content-title">
-        Cashiering Manager
-    </h3>
-</div>
-<div class="search-filter">
-    <div>
-        <button class="mui-button mui-button-new" onclick="searchReservation()">Search</button>
-
-        <button class="mui-button mui-button-new" onclick="resetForm()">Clear</button>
-    </div>
-    <div class="mt-1" id="guestSearchFilter">
-        <div class="row">
-
-            <!-- Room -->
-            <div class="col-12 col-md-2 mt-2">
-                <div class="row g-2">
-                    <label class="col-12 col-md-4 col-form-label text-md-end">Room</label>
-                    <div class="col-12 col-md-8">
-                        <input type="text" class="form-control clearable" id="room">
-                    </div>
-                </div>
+<div class="modal fade" id="ar_opening_cashier_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Cashiering Manager</h5>
             </div>
 
-            <!-- Conf No -->
-            <div class="col-12 col-md-2 mt-2">
-                <div class="row g-2">
-                    <label class="col-12 col-md-4 col-form-label text-md-end">Conf. No</label>
-                    <div class="col-12 col-md-8">
-                        <input type="text" class="form-control clearable" id="confirmationNo">
-                    </div>
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button class="mui-button mui-button-new" id="ar_opening_btnSearch">Search</button>
+                    <button class="mui-button mui-button-new" id="ar_opening_btnClear">Clear</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
                 </div>
-            </div>
 
-            <!-- Name -->
-            <div class="col-12 col-md-2 mt-2">
-                <div class="row g-2">
-                    <label class="col-12 col-md-4 col-form-label text-md-end">Name</label>
-                    <div class="col-12 col-md-8">
-                        <input type="text" class="form-control clearable" id="name">
-                    </div>
-                </div>
-            </div>
+                <div class="mui-card p-2 bg-light border-0 shadow-sm d-flex flex-column flex-grow-1 overflow-hidden" id="ar_opening_filterPanel">
+                    <div class="row g-2 flex-shrink-0">
+                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                            <label class="small fw-bold">Room</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_room">
+                        </div>
+                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                            <label class="small fw-bold">Conf. No</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_confirmationNo">
+                        </div>
+                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                            <label class="small fw-bold">Name</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_name">
+                        </div>
+                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                            <label class="small fw-bold">CRS No</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_crsNo">
+                        </div>
+                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                            <label class="small fw-bold">Group</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_group">
+                        </div>
+                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                            <label class="small fw-bold">Package</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_package">
+                        </div>
+                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                            <label class="small fw-bold">Company</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_company">
+                        </div>
+                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                            <label class="small fw-bold">Block</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_block">
+                        </div>
+                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                            <label class="small fw-bold">Zone</label>
+                            <select class="form-select form-select-sm" id="ar_opening_zone" asp-items="ViewBag.cboZone"></select>
+                        </div>
+                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                            <label class="small fw-bold">Guest Type</label>
+                            <select class="form-select form-select-sm" id="ar_opening_guestType">
+                                <option value="0" selected>All</option>
+                                <option value="1">Main Guest</option>
+                                <option value="2">Room Sharer</option>
+                            </select>
+                        </div>
 
-            <!-- CRS No -->
-            <div class="col-12 col-md-2 mt-2">
-                <div class="row g-2">
-                    <label class="col-12 col-md-4 col-form-label text-md-end">CRS No</label>
-                    <div class="col-12 col-md-8">
-                        <input type="text" class="form-control clearable" id="crsNo">
-                    </div>
-                </div>
-            </div>
+                        <div class="col-12 col-md-4 col-lg-3 col-xl-2">
+                            <label class="small fw-bold">Arrival From</label>
+                            <div class="input-group input-group-sm">
+                                <input type="date" class="form-control" id="ar_opening_arrivalForm" disabled>
+                                <div class="input-group-text"><input type="checkbox" id="ar_opening_chkArrivalForm"></div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4 col-lg-3 col-xl-2">
+                            <label class="small fw-bold">Arrival To</label>
+                            <div class="input-group input-group-sm">
+                                <input type="date" class="form-control" id="ar_opening_arrivalTo" disabled>
+                                <div class="input-group-text"><input type="checkbox" id="ar_opening_chkArrivalTo"></div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4 col-lg-3 col-xl-2">
+                            <label class="small fw-bold">Departure</label>
+                            <div class="input-group input-group-sm">
+                                <input type="date" class="form-control" id="ar_opening_departure" disabled>
+                                <div class="input-group-text"><input type="checkbox" id="ar_opening_chkDeparture"></div>
+                            </div>
+                        </div>
 
-            <!-- Group -->
-            <div class="col-12 col-md-2 mt-2">
-                <div class="row g-2">
-                    <label class="col-12 col-md-4 col-form-label text-md-end">Group</label>
-                    <div class="col-12 col-md-8">
-                        <input type="text" class="form-control clearable" id="group">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Package -->
-            <div class="col-12 col-md-2 mt-2">
-                <div class="row g-2">
-                    <label class="col-12 col-md-4 col-form-label text-md-end">Package</label>
-                    <div class="col-12 col-md-8">
-                        <input type="text" class="form-control clearable" id="package">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Company -->
-            <div class="col-12 col-md-2 mt-2">
-                <div class="row g-2">
-                    <label class="col-12 col-md-4 col-form-label text-md-end">Company</label>
-                    <div class="col-12 col-md-8">
-                        <input type="text" class="form-control clearable" id="company">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Block -->
-            <div class="col-12 col-md-2 mt-2">
-                <div class="row g-2">
-                    <label class="col-12 col-md-4 col-form-label text-md-end">Block</label>
-                    <div class="col-12 col-md-8">
-                        <input type="text" class="form-control clearable" id="block">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Zone -->
-            <div class="col-12 col-md-2 mt-2">
-                <div class="row g-2">
-                    <label class="col-12 col-md-4 col-form-label text-md-end">Zone</label>
-                    <div class="col-12 col-md-8">
-                        <select class="clearable" id="zone" asp-items="ViewBag.cboZone"></select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Guest Type -->
-            <div class="col-12 col-md-2 mt-2">
-                <div class="row g-2">
-                    <label class="col-12 col-md-4 col-form-label text-md-end">Guest Type</label>
-                    <div class="col-12 col-md-8">
-                        <select class="clearable" id="guestType">
-                            <option value="0" selected>All</option>
-                            <option value="1">Main Guest</option>
-                            <option value="2">Room Sharer</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row">
-                <!-- Arrival From -->
-                <div class="col-12 col-md-2 mt-2">
-                    <div class="row g-2">
-                        <label class="col-12 col-md-4 col-form-label text-md-end">Arrival From</label>
-                        <div class="col-12 col-md-8 d-flex align-items-center gap-2">
-                            <div class="col-12 col-md-8">
-                                <div class="clearable" data-date-input data-format="DD/MM/YYYY" business-date
-                                    data-name="chooseArrivalForm">
-                                    <input type="text" class="date-ui form-control clearable" placeholder="dd/mm/yyyy"
-                                        autocomplete="off" disabled />
+                        <div class="col-12 col-xl-6 mt-1">
+                            <label class="small fw-bold d-block mb-1">Search Type</label>
+                            <div class="d-flex flex-wrap gap-3 p-1 bg-white border rounded">
+                                <div class="form-check form-check-inline mb-0 ms-2">
+                                    <input type="radio" class="me-1" name="ar_opening_searchType" value="0" checked id="st0">
+                                    <label class="form-check-label small" for="st0">In House</label>
+                                </div>
+                                <div class="form-check form-check-inline mb-0">
+                                    <input type="radio" class="me-1" name="ar_opening_searchType" value="1" id="st1">
+                                    <label class="form-check-label small" for="st1">CO</label>
+                                </div>
+                                <div class="form-check form-check-inline mb-0">
+                                    <input type="radio" class="me-1" name="ar_opening_searchType" value="3" id="st3">
+                                    <label class="form-check-label small" for="st3">Due Out</label>
+                                </div>
+                                <div class="form-check form-check-inline mb-0">
+                                    <input type="radio" class="me-1" name="ar_opening_searchType" value="4" id="st4">
+                                    <label class="form-check-label small" for="st4">CO Today</label>
                                 </div>
                             </div>
-                            <input type="checkbox" class="clearable" id="chooseArrivalForm">
+                        </div>
+                    </div>
+                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1" style="min-height: 0;" ">
+                        <div id="ar_cashiering_gridContainer"></div>
+                        <div id="ar_cashiering_loading" style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+                        z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+                        height: 100%;display: flex;align-items: center;justify-content: center;">
+                            <div class="spinner-border text-primary" role="status"></div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Arrival To -->
-                <div class="col-12 col-md-2 mt-2">
-                    <div class="row g-2">
-                        <label class="col-12 col-md-4 col-form-label text-md-end">Arrival To</label>
-                        <div class="col-12 col-md-8 d-flex align-items-center gap-2">
-                            <input type="date" class="form-control clearable" id="arrivalTo" disabled>
-                            <input type="checkbox" class="clearable" id="chooseArrivalTo">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Departure -->
-                <div class="col-12 col-md-2 mt-2">
-                    <div class="row g-2">
-                        <label class="col-12 col-md-4 col-form-label text-md-end">Departure</label>
-                        <div class="col-12 col-md-8 d-flex align-items-center gap-2">
-                            <input type="date" class="form-control clearable" id="departure" disabled>
-                            <input type="checkbox" class="clearable" id="chooseDeparture">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Search Type -->
-                <div class="col-12 col-md-5 mt-2">
-                    <div class="row g-2">
-                        <label class="col-12 col-md-2 col-form-label text-md-end">Search Type</label>
-                        <div class="col-12 col-md-10 d-flex flex-wrap gap-3 align-items-center">
-                            <div>
-                                <input type="radio" class="clearable" name="searchType" value="0" checked>
-                                <label class="form-check-label">Guest In House</label>
-                            </div>
-                            <div>
-                                <input type="radio" class="clearable" name="searchType" value="1">
-                                <label class="form-check-label">Checked Out</label>
-                            </div>
-                            <div>
-                                <input type="radio" class="clearable" name="searchType" value="3">
-                                <label class="form-check-label">Due Out</label>
-                            </div>
-                            <div>
-                                <input type="radio" class="clearable" name="searchType" value="4">
-                                <label class="form-check-label">Checked Out Today</label>
-                            </div>
-                            <div>
-                                <input type="radio" class="clearable" name="searchType" value="5">
-                                <label class="form-check-label">Check Out Today</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
         </div>
     </div>
+</div>
 
-</div>
-<div class="mui-card">
-    <div id="gridContainer" class="gridContainer mt-2"></div>
-</div>
 <script>
-    $(document).ready(function () {
-        searchReservation();
-    });
-    function searchReservation() {
-        getBusinessDate().then(function () {
-            $.ajax({
-                url: '/Cashiering/GuestInHouse',
+    var ar_opening_cashier_Module = {
+        init: function () {
+            this.initEvents();
+            this.initDOMEvents();
+            // Mặc định load data khi mở
+            this.searchReservation();
+        },
+
+        initEvents: function () {
+            window.openModalCashiering = () => {
+                $('#ar_opening_cashier_modal').modal('show');
+                this.searchReservation();
+            };
+        },
+
+        initDOMEvents: function () {
+            // Button events
+            $("#ar_opening_btnSearch").on("click", () => this.searchReservation());
+            $("#ar_opening_btnClear").on("click", () => this.resetForm());
+
+            // Checkbox date toggle
+            this.toggleDateInput('ar_opening_chkArrivalForm', 'ar_opening_arrivalForm');
+            this.toggleDateInput('ar_opening_chkArrivalTo', 'ar_opening_arrivalTo');
+            this.toggleDateInput('ar_opening_chkDeparture', 'ar_opening_departure');
+        },
+
+        toggleDateInput: function (checkboxId, inputId) {
+            $('#' + checkboxId).on('change', function () {
+                $('#' + inputId).prop('disabled', !this.checked);
+            });
+        },
+
+        getBusinessDate: function () {
+            return $.ajax({
+                url: '/Reservation/GetBusinessDate',
                 type: 'get',
                 dataType: 'json',
-                data: {
-                    room: $('#room').val(),
-                    name: $('#name').val(),
-                    block: $('#block').val(),
-                    group: $('#group').val(),
-                    company: $('#company').val(),
-                    confirmationNo: $('#confirmationNo').val(),
-                    arrivalDate: $('#arrivalForm').val(),
-                    arrivalTo: $('#arrivalTo').val(),
-                    departure: $('#departure').val(),
-                    crsNo: $('#crsNo').val(),
-                    package: $('#package').val(),
-                    guestName: $('#guestType').val(),
-                    zone: $('#zone').val(),
-                    typeSearch: $('input[name="searchType"]:checked').val(),
-                    chooseArrivalFrom: $('#chooseArrivalForm').is(':checked') ? 1 : 0,
-                    chooseArrivalTo: $('#chooseArrivalTo').is(':checked') ? 1 : 0,
-                    chooseDeparture: $('#chooseDeparture').is(':checked') ? 1 : 0,
-
-                },
-                crossDomain: false,
-                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-                success: function (result) {
-                    initializeDataGridBilling(result);
-                },
-                error: function (xhr, statusText, err) {
-                    if (xhr.status == 401) {
-                        sessionTimeout();
-                    }
-                },
-
-            });
-        }).catch(function (xhr, statusText, err) {
-            if (xhr.status == 401) {
-                sessionTimeout();
-            }
-        });
-    }
-    function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                $('#arrivalForm').val(result.split('T')[0]);
-                $('#arrivalTo').val(result.split('T')[0]);
-                $('#departure').val(result.split('T')[0]);
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
+                headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() },
+                success: (result) => {
+                    const date = result.split('T')[0];
+                    $('#ar_opening_arrivalForm, #ar_opening_arrivalTo, #ar_opening_departure').val(date);
                 }
-            }
-        });
-    }
-    function initializeDataGridBilling(data) {
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            allowColumnResizing: true,
-            columnResizingMode: "widget", // cho phép kéo giãn cột mượt mà
-            columnAutoWidth: true,        // <<< Đây là dòng quan trọng nhất để cột tự động fit nội dung
+            });
+        },
 
-            paging: { pageSize: 15 },
-            scrolling: {
-                rowRenderingMode: 'virtual'
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [15, 20, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            selection: {
-                mode: "single"
-            },
+        searchReservation: function () {
+            this.getBusinessDate().then(() => {
 
+                $("#ar_cashiering_loading").show();
 
-        });
-    }
+                $.ajax({
+                    url: '/Cashiering/GuestInHouse',
+                    type: 'get',
+                    dataType: 'json',
+                    data: {
+                        room: $('#ar_opening_room').val(),
+                        name: $('#ar_opening_name').val(),
+                        block: $('#ar_opening_block').val(),
+                        group: $('#ar_opening_group').val(),
+                        company: $('#ar_opening_company').val(),
+                        confirmationNo: $('#ar_opening_confirmationNo').val(),
+                        arrivalDate: $('#ar_opening_arrivalForm').val(),
+                        arrivalTo: $('#ar_opening_arrivalTo').val(),
+                        departure: $('#ar_opening_departure').val(),
+                        crsNo: $('#ar_opening_crsNo').val(),
+                        package: $('#ar_opening_package').val(),
+                        guestName: $('#ar_opening_guestType').val(),
+                        zone: $('#ar_opening_zone').val(),
+                        typeSearch: $('input[name="ar_opening_searchType"]:checked').val(),
+                        chooseArrivalFrom: $('#ar_opening_chkArrivalForm').is(':checked') ? 1 : 0,
+                        chooseArrivalTo: $('#ar_opening_chkArrivalTo').is(':checked') ? 1 : 0,
+                        chooseDeparture: $('#ar_opening_chkDeparture').is(':checked') ? 1 : 0,
+                    },
+                    headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() },
+                    success: (result) => {
+                        this.initializeGrid(result);
+                        $("#ar_cashiering_loading").hide();
+                    },
+                    error: (xhr) => {
+                        if (xhr.status == 401 && typeof sessionTimeout === "function") sessionTimeout();
+                        $("#ar_cashiering_loading").hide();
+                    }
+                });
+            });
+        },
 
-    function toggleDateInput(checkboxId, inputId) {
-        const $checkbox = $('#' + checkboxId);
-        const $input = $('#' + inputId);
+        initializeGrid: function (data) {
+            $("#ar_cashiering_gridContainer").dxDataGrid({
+                dataSource: data,
+                width: "100%",
+                height: "100%",
+                allowColumnResizing: true,
+                columnResizingMode: "widget",
+                columnAutoWidth: true,
+                showBorders: true,
+                scrolling: {
+                    mode: "standard",
+                    showScrollbar: "always",
+                    useNative: true
+                },
+                paging: { pageSize: 25 },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [25, 50, 100],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: { visible: true, applyFilter: "auto" },
+            });
+        },
 
-        // Khi thay đổi trạng thái checkbox
-        $checkbox.on('change', function () {
-            if (this.checked) {
-                $input.prop('disabled', false);   // bật input
-            } else {
-                $input.prop('disabled', true);    // tắt input
-            }
-        });
-    }
-    toggleDateInput('chooseArrivalForm', 'arrivalForm');
-    toggleDateInput('chooseArrivalTo', 'arrivalTo');
-    toggleDateInput('chooseDeparture', 'departure');
+        resetForm: function () {
+            // Clear inputs
+            $('#ar_opening_filterPanel input[type="text"]').val('');
+            $('#ar_opening_filterPanel input[type="checkbox"]').prop('checked', false).trigger('change');
+            $('#ar_opening_filterPanel select').prop('selectedIndex', 0);
+            $('#st0').prop('checked', true);
+            this.searchReservation();
+        }
+    };
+
+    $(document).ready(function () {
+        ar_opening_cashier_Module.init();
+    });
 </script>
