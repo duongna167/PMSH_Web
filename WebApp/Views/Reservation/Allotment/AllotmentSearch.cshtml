@@ -1,0 +1,819 @@
+@using DevExpress.XtraReports.UI
+
+@{
+   
+}
+
+<style>
+    /* Tiêu đề bảng */
+    .table-header-custom {
+        font-size: 14px;
+        font-weight: bold;
+        color: #000;
+        border-bottom: 2px solid #009444;
+        padding-bottom: 5px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .grid-wrapper {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0; /* Quan trọng để flexbox tính toán đúng */
+        position: relative;
+    }
+
+    /* Đảm bảo bản thân component Grid chiếm trọn wrapper */
+    #allot_search_gridAllotInfor,
+    #allot_search_gridAllotDetail,
+    #allot_search_gridReservation {
+        flex-grow: 1;
+        height: 100% !important;
+        width: 100% !important;
+    }
+
+    /* Loại bỏ lề mặc định của container-fluid bên trong body modal nếu cần */
+    .modal-body .container-fluid {
+        display: flex;
+        flex-direction: column;
+    }
+</style>
+<div class="modal fade" id="allot_search_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Allotment Search</h5>
+            </div>
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button id="allot_search_btnView" class="mui-button mui-button-view">View</button>
+                    <button id="allot_search_btnNew" class="mui-button mui-button-new">New</button>
+                    <button id="allot_search_btnEdit" class="mui-button mui-button-edit">Edit</button>
+                    <button id="allot_search_btnDelete" class="mui-button mui-button-delete">Delete</button>
+                    @* <button id="allot_search_btnHistory" class="mui-button mui-button-new">History</button> *@
+                    <button id="allot_search_btnExportExcel" class="mui-button mui-button-export">Excel</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
+
+                    <div class="p-2 flex-shrink-0">
+                        <div class="row g-3 align-items-center ooos-filter flex-wrap">
+
+                            <div class="col-auto d-flex align-items-center">
+                                <label class="fw-bold small me-2 mb-0">Code</label>
+                                <input type="text" id="allot_search_code" class="form-control form-control-sm" style="width: 150px;" placeholder="Enter code...">
+                            </div>
+
+                            <div class="col-auto d-flex align-items-center">
+                                <label class="fw-bold small me-2 mb-0">Market</label>
+                                <div style="width: 150px;">
+                                    <select id="allot_search_market" class="tomselect-custom w-100">
+                                        @foreach (var z in ViewBag.MarketList)
+                                        {
+                                            <option value="@z.ID">@z.Code</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-auto d-flex align-items-center">
+                                <label class="fw-bold small me-2 mb-0">All.Type</label>
+                                <div style="width: 70px;">
+                                    <select id="allot_search_type" class="tomselect-custom w-100">
+                                        @foreach (var g in ViewBag.AllotTypeList)
+                                        {
+                                            <option value="@g.ID">@g.Code</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-auto d-flex align-items-center">
+                                <label class="fw-bold small me-2 mb-0">Profile</label>
+                                <div class="d-flex gap-1">
+                                    <input id="allot_search_profileId" readonly class="form-control form-control-sm" style="width: 130px;" placeholder="" />
+                                    <button onclick="openModalSearchProfileAccompany()" class="" data-tooltip="Search Profile">
+                                        <i class="fa-solid fa-arrow-down text-dark"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="col-auto d-flex align-items-center">
+                                <label class="fw-bold small me-2 mb-0">Zone</label>
+                                <div style="width: 120px;">
+                                    <select id="allot_search_zone" class="tomselect-custom w-100" multiple>
+                                        @foreach (var z in ViewBag.ZoneList)
+                                        {
+                                            <option value="@z.Code">@z.Code</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-auto d-flex align-items-center">
+                                <input class="" type="checkbox" id="allot_search_default">
+                                <label class="form-check-label small ms-1" for="allot_search_default" style="font-size: 11px;">Default</label>
+                            </div>
+
+                            <div class="col-auto d-flex align-items-center">
+                                <input class="" type="checkbox" id="allot_search_history">
+                                <label class="form-check-label small ms-1" for="allot_search_history" style="font-size: 11px;">Show history</label>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="gridContainer flex-grow-1 position-relative py-2">
+                        <div class="container-fluid px-0 h-100">
+                            <div class="flex-grow-1 d-flex flex-column overflow-hidden h-100">
+                                <div class="row g-3 mb-3 flex-grow-1" style="min-height: 0; height:180px;">
+                                    <div class="col-md-7 d-flex flex-column h-100">
+                                        <div class="table-header-custom flex-shrink-0">
+                                            Allotment Information
+                                        </div>
+                                        <div class="grid-wrapper flex-grow-1">
+                                            <div id="allot_search_gridAllotInfor" class="h-100"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-5 d-flex flex-column h-100">
+                                        <div class="table-header-custom flex-shrink-0">
+                                            Allotment Detail
+                                        </div>
+                                        <div class="grid-wrapper flex-grow-1">
+                                            <div id="allot_search_gridAllotDetail" class="h-100"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row flex-grow-1" style="min-height: 0;">
+                                    <div class="col-12 d-flex flex-column h-100">
+                                        <div class="table-header-custom flex-shrink-0">
+                                            Reservation
+                                        </div>
+                                        <div class="grid-wrapper flex-grow-1" style="min-height: 0;">
+                                            <div id="allot_search_gridReservation" class="h-100"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="allot_search_loading" style="display:none; position: absolute;top: 0;left: 0;width: 100%;height: 100%;background: rgba(255,255,255,0.7);z-index: 9999;align-items: center;justify-content: center;">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Popup for New Item -->
+<div class="modal fade" id="allot_search_itemModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="allot_search_label" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="allot_search_label">Allotment Setup</h5>
+            </div>
+
+            <div class="modal-body">
+
+                <!-- Action -->
+                <div class="py-2 d-flex gap-2 flex-column flex-sm-row">
+                    <button type="button"
+                            id="ooos_btnSaveItem"
+                            class="mui-button mui-button-new w-sm-auto">
+                        Save
+                    </button>
+                    <button type="button"
+                            class="mui-button mui-button-new w-sm-auto"
+                            data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+
+                <form id="ooos_formContainer">
+                    <div class="container-fluid px-2">
+
+                        <input type="hidden" id="ooos_id" name="id" value="0" />
+
+                        <div class="row g-4">
+
+                            <!-- LEFT COLUMN -->
+                            <div class="col-12 col-lg-7">
+
+                                <!-- Type -->
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
+                                        Type
+                                    </div>
+                                    <div class="col-12 col-md-8">
+                                        <div class="d-flex gap-4">
+                                            <div class="form-check m-0">
+                                                <input type="radio" name="oooOrS" id="ooos_ooo" value="1">
+                                                <label class="form-check-label">OOO</label>
+                                            </div>
+                                            <div class="form-check m-0">
+                                                <input type="radio" name="oooOrS" id="ooos_oos" value="2" checked>
+                                                <label class="form-check-label">OOS</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Return Status -->
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
+                                        Return Status
+                                    </div>
+                                    <div class="col-12 col-md-8">
+                                        <select id="ooos_rtStatus"
+                                                name="rtStatus"
+                                                class="tomselect-custom w-100">
+                                            <option value="2">Dirty</option>
+                                            <option value="1">Clean Non-Checked</option>
+                                            <option value="3">Pickup</option>
+                                            <option value="4">Clean</option>
+                                        </select>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Reason -->
+                                @* <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
+                                        Reason
+                                    </div>
+                                    <div class="col-12 col-md-8">
+                                        <select id="ooos_comment"
+                                                name="comment"
+                                                class="tomselect-custom w-100">
+                                            @foreach (var dpm in ViewBag.CommentList)
+                                            {
+                                                <option value="@dpm.ID" data-desc="@dpm.Description">@dpm.Code - @dpm.Description</option>
+                                            }
+                                        </select>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div> *@
+
+                                <!-- Reason Note -->
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
+                                        Reason Note
+                                    </div>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text"
+                                               id="ooos_txtReasonDesc"
+                                               name="txtReasonDesc"
+                                               class="form-control form-control-sm" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Room Select -->
+                                @* <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
+                                        Room Select
+                                    </div>
+                                    <div class="col-12 col-md-8">
+                                        <select id="ooos_roomSelect"
+                                                name="roomSelect"
+                                                class="tomselect-custom w-100"
+                                                multiple>
+                                            @foreach (var u in ViewBag.RoomList)
+                                            {
+                                                <option value="@u.ID">@u.RoomNo</option>
+                                            }
+                                        </select>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div> *@
+
+                            </div>
+
+                            <!-- RIGHT COLUMN -->
+                            <div class="col-12 col-lg-5">
+
+                                <!-- From -->
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
+                                        From
+                                    </div>
+                                    <div class="col-12 col-md-8">
+                                        <div data-date-input
+                                             data-format="DD/MM/YYYY"
+                                             business-date
+                                             data-name="ooos_itemFromDate"
+                                             name="itemFromDate">
+                                            <input type="text"
+                                                   class="date-ui form-control form-control-sm"
+                                                   placeholder="dd/MM/yyyy" />
+                                        </div>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+
+                                <!-- To -->
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
+                                        To
+                                    </div>
+                                    <div class="col-12 col-md-8">
+                                        <div data-date-input
+                                             data-format="DD/MM/YYYY"
+                                             business-date
+                                             data-name="ooos_itemToDate"
+                                             name="itemToDate">
+                                            <input type="text"
+                                                   class="date-ui form-control form-control-sm"
+                                                   placeholder="dd/MM/yyyy" />
+                                        </div>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                </form>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+
+    var allot_search_Module = {
+        selectedRowData: null,
+
+        baseGridOptions: {
+            height: "100%",
+            width: "100%",
+            showBorders: true,
+            hoverStateEnabled: true,
+            wordWrapEnabled: false,
+            allowColumnResizing: true,
+            columnResizingMode: "widget",
+            columnAutoWidth: false,
+            selection: { mode: "single" },
+            scrolling: {
+                mode: "standard",
+                showScrollbar: "always",
+                useNative: true
+            },
+            filterRow: { visible: true, applyFilter: "auto" }
+        },
+
+        initGrid: function (containerId, options) {
+            const fullOptions = $.extend(true, {}, this.baseGridOptions, options);
+            return $(containerId).dxDataGrid(fullOptions);
+        },
+
+        init: function () {
+            this.initEvents();
+            this.intitDOMEvents();
+        },
+
+        initEvents: function () {
+            const self = this;
+
+            window.openModalAllotSearch = function () {
+                initTomSelect(".tomselect-custom");
+                clearMultipleTomSelect([
+                    "#allot_search_market",
+                    "#allot_search_type"
+                ]);
+                self.reloadGrid();
+
+            };
+
+        },
+
+        intitDOMEvents: function () {
+            const self = this;
+            $("#allot_search_btnView").on("click", () => self.reloadGrid());
+            $("#allot_search_btnNew").on("click", () => self.openNewModal());
+            $("#allot_search_btnEdit").on("click", () => self.openEditModal());
+            $("#allot_search_btnSaveItem").on("click", () => self.saveBusinessBlock());
+            $("#allot_search_btnDelete").on("click", () => self.confirmDelete());
+            $("#allot_search_btnExportExcel").on("click", () => self.exportToExcel());
+            $("#allot_search_btnHistory").on("click", () => self.openModalHistory());
+            $("#allot_search_btnHistorySearch").on("click", () => self.fetchHistoryData());
+        },
+
+        reloadGrid: function () {
+            const self = this;
+
+            const filterData = {
+                code: $("#allot_search_code").val(),
+                marketID: getTomSelectData("#allot_search_market")?.value,
+                allotmentTypeID: getTomSelectData("#allot_search_type")?.value,
+                profileID: $("#allot_search_profileId").val(),
+                zone: (getTomSelectData("#allot_search_zone") || []).map(x => x.value).join(","),
+                isDefault: $('#allot_search_default').is(':checked') ? 1 : 0
+            };
+            $("#allot_search_loading").show();
+            $.ajax({
+                url: '/Allotment/GetAllotmentSearch',
+                type: 'GET',
+                data: filterData,
+                success: function (data) {
+                    self.renderMainGrid(data);
+                    // self.renderMainGrid1(data);
+                    // self.renderMainGrid2(data);
+                    $("#allot_search_loading").hide();
+                },
+                error: function (xhr, status, error) {
+                    showToast("Error", "Unable to load data", false);
+                    $("#allot_search_loading").hide();
+                }
+            });
+        },
+
+        renderMainGrid: function (data) {
+            const self = this;
+            var listMarket = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.MarketList ?? new List<object>()));
+            var listAllType = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.AllotTypeList ?? new List<object>()));
+
+            self.initGrid("#allot_search_gridAllotInfor",{
+                dataSource: data,
+                columns: [
+                    { dataField: "id", visible: false },
+                    { dataField: "profileID", visible: false },
+                    { dataField: "code",caption: "All.Code",width: 110 },
+                    { dataField: "allotmentName",caption: "All.Name",width: 180},
+                    { dataField: "accountName",caption: "Profile",width: 180},
+                    // { dataField: "marketID", visible: false },
+                    {
+                        dataField: "marketID",
+                        caption: "Market",
+                        width: 100,
+                        lookup: {
+                            dataSource: listMarket,
+                            valueExpr: "ID",
+                            displayExpr: "Name"
+                        }
+                    },
+                    // { dataField: "allotmentTypeID", visible: false },
+                    {
+                        dataField: "allotmentTypeID",
+                        caption: "All.Type",
+                        width: 100,
+                        lookup: {
+                            dataSource: listAllType,
+                            valueExpr: "ID",
+                            displayExpr: "Name"
+                        }
+                    },
+                    { dataField: "cuttOfDay", caption: "Cutt.Day",width: 90 },
+                    { dataField: "cuttOfDate", caption: "Cutt.Date", dataType: "date", format: "dd/MM/yyyy",  width: 110 },
+                    { dataField: "createBy", caption: "Created By", width: 120 },
+                    { dataField: "createDate",  caption: "Created Date", dataType: "date", format: "dd/MM/yyyy hh:mm", width: 110 }, 
+                    { dataField: "updateBy", caption: "Updated By", width: 120 },
+                    { dataField: "updateDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy hh:mm", width: 110 }
+                ],
+
+                onSelectionChanged: function (e) {
+                    self.selectedRowData = e.selectedRowsData[0] || null;
+                }
+            });
+
+        },
+
+        renderMainGrid1: function (data) {
+            const self = this;
+            self.initGrid("#allot_search_gridAllotDetail",{
+                dataSource: data,
+                columns: [
+                    { dataField: "id", visible:false},
+                    { dataField: "roomID", visible:false},
+                    { dataField: "reasonID", visible:false},
+                    { dataField: "code", caption: "Code", width: 90 },
+                    { dataField: "roomNo", caption: "Room No", alignment: "right" , width: 60 },
+                    { dataField: "roomType", caption: "Room Type", width: 70 },
+                    { dataField: "floor", caption: "Floor", alignment: "right",width: 50 },
+                    { dataField: "zone", caption: "Zone", width: 50 },
+                    { dataField: "fromDate", caption: "From Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "toDate", caption: "To Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "noOfNights", caption: "Nights", width: 50 },
+                    { dataField: "reason", caption: "Reason", width: 150 },
+                    { dataField: "status", caption: "Status", width: 50 },
+                    { dataField: "userCreate", caption: "User Create", width: 100 },
+                    { dataField: "createdDate", caption: "Create Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "userUpdate", caption: "User Update", width: 100 },
+                    { dataField: "updatedDate", caption: "Update Date", width: 80, dataType: "date", format: "dd/MM/yyyy" }
+                ],
+
+                onSelectionChanged: function (e) {
+                    self.selectedRowData = e.selectedRowsData[0] || null;
+                }
+            });
+
+        },
+        renderMainGrid2: function (data) {
+            const self = this;
+            self.initGrid("#allot_search_gridReservation",{
+                dataSource: data,
+                columns: [
+                    { dataField: "id", visible:false},
+                    { dataField: "roomID", visible:false},
+                    { dataField: "reasonID", visible:false},
+                    { dataField: "code", caption: "Code", width: 90 },
+                    { dataField: "roomNo", caption: "Room No", alignment: "right" , width: 60 },
+                    { dataField: "roomType", caption: "Room Type", width: 70 },
+                    { dataField: "floor", caption: "Floor", alignment: "right",width: 50 },
+                    { dataField: "zone", caption: "Zone", width: 50 },
+                    { dataField: "fromDate", caption: "From Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "toDate", caption: "To Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "noOfNights", caption: "Nights", width: 50 },
+                    { dataField: "reason", caption: "Reason", width: 150 },
+                    { dataField: "status", caption: "Status", width: 50 },
+                    { dataField: "userCreate", caption: "User Create", width: 100 },
+                    { dataField: "createdDate", caption: "Create Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "userUpdate", caption: "User Update", width: 100 },
+                    { dataField: "updatedDate", caption: "Update Date", width: 80, dataType: "date", format: "dd/MM/yyyy" }
+                ],
+
+                onSelectionChanged: function (e) {
+                    self.selectedRowData = e.selectedRowsData[0] || null;
+                }
+            });
+
+        },
+
+        fetchHistoryData: function () {
+            const self = this;
+
+            $("#loadingSpinner").show();
+
+            $.ajax({
+                url: "/RoomManagement/GetRoomStatusHistoryOOO",
+                type: "GET",
+                data: {
+                    roomNo: $("#ooos_historyRoom").val(),
+                    userName: $("#ooos_historyUser").val(),
+                    fromDate: $("#ooos_historyFromDate").val() || dateSystem,
+                    toDate: $("#ooos_historyToDate").val() || dateSystem
+                },
+                success: function (data) {
+                    self.renderHistoryGrid(data);
+                    // self.renderHistoryGrid1(data);
+                    $("#loadingSpinner").hide();
+                },
+                error: function () {
+                    showToast("Error", "Lỗi khi load dữ liệu history", false);
+                    $("#loadingSpinner").hide();
+                }
+            });
+        },
+
+        renderHistoryGrid: function (data) {
+            const self = this;
+
+            self.initGrid("#allot_search_gridAllotDetail", {
+                dataSource: data,
+                columns: [
+                    { dataField: "roomNo", caption: "Room No", width: "10%" },
+                    { dataField: "action", caption: "Action", width: "10%" },
+                    { dataField: "oldValue", caption: "Old Value", width: "30%" },
+                    { dataField: "newValue", caption: "New Value", width: "30%" },
+                    { dataField: "userName", caption: "User", width: "10%" },
+                    { dataField: "changeDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy HH:mm" }
+                ]
+            });
+        },
+
+        openNewModal: function () {
+            $("#ooos_itemModal").modal("show");
+            initDateInputs();
+            $("#ooos_id").val(0);
+            $("#ooos_itemModalLabel").text("New Out of Order/Service");
+            clearMultipleTomSelect(["#ooos_roomSelect", "#ooos_comment"]);
+        },
+
+        openEditModal: function (){
+            const self = this;
+            initDateInputs();
+            if (!self.selectedRowData) {
+                showToast("Warning", "Please select a row first!", false);
+                return;
+            }
+            $("#ooos_itemModalLabel").text("Update Out of Order/Service");
+            self.fillEditForm(self.selectedRowData);
+
+            $("#ooos_itemModal").modal("show");
+        },
+
+        openModalHistory: function () {
+            const self = this;
+            initDateInputs();
+
+            $("#ooos_historyModal").modal("show");
+
+            self.fetchHistoryData();
+        },
+
+        fillEditForm: function (data) {
+            $("#ooos_id").val(data.id);
+            const statusVal = data.status === "OOO" ? "1" : "2";
+            $(`input[name='oooOrS'][value='${statusVal}']`).prop("checked", true);
+
+            setTomSelectValue("#ooos_roomSelect", data.roomID);
+            setTomSelectValue("#ooos_rtStatus", data.returnStatusID);
+            setTomSelectValue("#ooos_comment", data.reasonID);
+            $("#ooos_txtReasonDesc").val(data.reason || "");
+
+            UI.setHiddenDate("ooos_itemFromDate", data.fromDate);
+            UI.setHiddenDate("ooos_itemToDate", data.toDate);
+
+        },
+
+        saveBusinessBlock: function () {
+            const self = this;
+
+            const loginName = (localStorage.getItem("Loginname") || "")
+            .trim()
+            .replace(/^"(.*)"$/, '$1');
+            const loginUser = parseInt(localStorage.getItem("userID")) || 0;
+
+            const roomSelectData = getTomSelectData("#ooos_roomSelect") || [];
+
+            if (!roomSelectData.length) {
+                ValidationAdapter.apply([
+                    { field: "roomSelect", message: "Haven't selected a room yet!" }
+                ], "#ooos_formContainer");
+
+                showToast("Warning", "Check for incorrect input fields.", false);
+                return;
+            }
+
+            const payload = roomSelectData.map(r => ({
+                id: parseInt($("#ooos_id").val() || 0),
+
+                fromDateOOO: $("#ooos_itemFromDate").val() || dateSystem,
+                toDateOOO: $("#ooos_itemToDate").val() || dateSystem,
+
+                reasonID: parseInt(toBackendValue(getTomSelectData("#ooos_comment"), "value") || 0),
+                reasonNote: $("#ooos_txtReasonDesc").val() || "",
+
+                roomID: parseInt(r.value),
+                roomNo: r.text,
+
+                UserInsertID: loginUser,
+                UserUpdateID: loginUser,
+                ReturnStatus: parseInt(toBackendValue(getTomSelectData("#ooos_rtStatus"), "value") || 0),
+                OOOStatus: parseInt($("input[name='oooOrS']:checked").val() || 0),
+                CutOffDate: $("#ooos_itemFromDate").val() || dateSystem
+            }));
+
+            $.ajax({
+                url: "/RoomManagement/SaveBusinessBlock",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                success: function (res) {
+                    if (res.success) {
+                        showToast("Success", res.message, true);
+                        $("#ooos_itemModal").modal("hide");
+                        self.reloadGrid();
+                    } else {
+
+                        // nếu có validation errors
+                        if (res.errors && res.errors.length > 0) {
+                            ValidationAdapter.apply(res.errors, "#ooos_formContainer");
+                            showToast("Warning", "Check for incorrect input fields.", false);
+                        }
+                        else {
+                            // nếu là lỗi exception
+                            showToast("Error", res.message || "Something went wrong.", false);
+                        }
+                    }
+                },
+                error: function () {
+                    showToast("Error", "Server error occurred.", false);
+                }
+            });
+        },
+
+        confirmDelete: function() {
+            const self = this;
+            if (!self.selectedRowData) {
+                showToast("Warning","Please select a line to delete.", false);
+                return;
+            }
+
+            if (!confirm("Are you sure you want to delete this record? This action cannot be undone.")) {
+                return;
+           }
+           $.ajax({
+               url: `/RoomManagement/DeleteBusinessBlock/`+ self.selectedRowData.id,
+               type: "POST",
+               traditional: true,
+               crossDomain: false,
+               headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+               success: function(result){
+                    if(result.success){
+                        self.reloadGrid();
+                        showToast("Success","Delete Successfully!",true);
+                    } else {
+                        self.reloadGrid();
+                        showToast("Error",result.message,false);
+                    }
+               },
+               error: function(){
+                    showToast("Error","Delete failed!" ,false);
+               },
+           });
+        },
+
+        exportToExcel: function () {
+            const grid = $("#allot_search_gridContainer").dxDataGrid("instance");
+            if (!grid) {
+                showToast("Warning", "No data to export!", false);
+                return;
+            }
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            // === Dòng 1: Tên công ty (merge theo 4 cột) ===
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells('A1:D1');
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+            // === Dòng 2: Ngày giờ xuất (Sửa lỗi hiển thị ở đây) ===
+            const now = new Date();
+            const exportDateStr = "Export Date: " + now.toLocaleString("vi-VN");
+            const row2 = worksheet.getRow(2);
+            row2.getCell(1).value = exportDateStr; // Gán vào ô đầu tiên của vùng merge (A2)
+            worksheet.mergeCells('A2:D2');
+            row2.alignment = { vertical: 'middle', horizontal: 'left' };
+            row2.font = { italic: true };
+
+            // === Dòng 3–4: trống
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
+            const reportRow = worksheet.addRow(['Allotment Data']);
+            worksheet.mergeCells('A5:D5');
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            // === Dòng 6: trống
+            worksheet.addRow([]);
+
+            // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                // Footer (sau cùng)
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                // Ghi file
+                let fileName = "AllotmentSearch.xlsx";
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                });
+            });
+        },
+
+        getStatusValue: function () {
+            const isOOO = $('#ooos_outofOrder').is(':checked');
+            const isOOS = $('#ooos_outofService').is(':checked');
+            if (isOOO && isOOS) return 0;
+            return isOOO ? 1 : (isOOS ? 2 : 3);
+        },
+
+        disposeGrid: function (containerId) {
+            if ($(containerId).data("dxDataGrid")) {
+                $(containerId).dxDataGrid("dispose");
+                $(containerId).empty();
+            }
+        },
+
+
+    };
+
+    $(document).ready(function () {
+        allot_search_Module.init();
+    });
+
+</script>

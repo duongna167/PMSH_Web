@@ -52,5 +52,34 @@ namespace Reservation.Services.Implements
             DataTable myTable = DataTableHelper.getTableData("spFrmAllotmentStageSearch", param);
             return myTable;
         }
+
+        public DataTable AllotmentSearch(string code, string marketId, string allotmentTypeId, string profileId, string isDefault, string zone)
+        {
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@Code", code ?? ""),
+                new SqlParameter("@MarketID", marketId ?? ""),
+                new SqlParameter("@AllotmentTypeID", allotmentTypeId ?? ""),
+                new SqlParameter("@ProfileID", profileId ?? ""),
+                new SqlParameter("@IsDefault", isDefault ?? ""),
+                new SqlParameter("@Zone", zone ?? ""),
+            };
+
+            DataTable myTable = DataTableHelper.getTableData("spAllotmentSearch", param);
+            return myTable;
+        }
+
+        //public DataTable AllotmentReport(string code, string marketId, string allotmentTypeId)
+        //{
+        //    SqlParameter[] param = new SqlParameter[]
+        //    {
+        //        new SqlParameter("@Code", code ?? ""),
+        //        new SqlParameter("@MarketID", marketId ?? ""),
+        //        new SqlParameter("@AllotmentTypeID", allotmentTypeId ?? "")
+        //    };
+
+        //    DataTable myTable = DataTableHelper.getTableData("spAllotmentSearch", param);
+        //    return myTable;
+        //}
     }
 }
