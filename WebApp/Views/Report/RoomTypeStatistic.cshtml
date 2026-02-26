@@ -1,4 +1,4 @@
-﻿@using DevExpress.XtraReports.UI
+@using DevExpress.XtraReports.UI
 @*
     For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 *@
@@ -36,28 +36,7 @@
         color: white;
     }
 
-    #gridContainer .dx-datagrid-rowsview .dx-selection {
-        background-color: #01579b !important; /* màu xanh ngọc */
-        color: white !important; /* chữ trắng */
-    }
-
-        #gridContainer .dx-datagrid-rowsview .dx-selection * {
-            color: white !important;
-        }
-
-    #gridContainer .dx-datagrid-headers .dx-header-row > td {
-        padding: 5px !important;
-        height: 24px !important;
-        font-size: 12px !important;
-        line-height: 1.1 !important;
-    }
-
-    #gridContainer .dx-datagrid-rowsview .dx-row > td,
-    #gridContainer .dx-datagrid .dx-summary-row > td,
-    #gridContainer .dx-datagrid .dx-total-footer td,
-    #gridContainer .dx-datagrid .dx-footer-row td {
-        font-size: 11px !important;
-    }
+ 
 
     .sticky-header .form-control-sm {
         padding: .1rem .35rem;
@@ -121,13 +100,7 @@
         line-height: 1.1 !important;
     }
 
-    #gridContainer .dx-datagrid-rowsview .dx-row > td,
-    #gridContainer .dx-datagrid .dx-summary-row > td,
-    #gridContainer .dx-datagrid .dx-total-footer td,
-    #gridContainer .dx-datagrid .dx-footer-row td {
-        font-size: 11px !important;
-    }
-
+  
     .report-bar {
         position: relative;
         margin-bottom: 1rem; /* = mb-3 của bạn */
@@ -176,18 +149,24 @@
         <!-- From Date -->
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">From Date:</label>
-            <input type="date" id="fromDate" name="fromDate" class="form-control form-control-sm w-auto" />
+            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
+                <input type="text" class="date-ui form-control form-control-sm"
+                       placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
         </div>
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">To Date:</label>
-            <input type="date" id="toDate" name="toDate" class="form-control form-control-sm w-auto" />
+            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="toDate">
+                <input type="text" class="date-ui form-control form-control-sm"
+                       placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
         </div>
         <div class="d-flex align-items-center me-3">
                 <label class=" d-flex align-items-center me-2">Room Type:</label>
                 <select id="roomTypeCsv" name="roomTypeCsv" class="tomselect-custom" multiple>
                 @foreach (var item in roomList)
                 {
-                    <option value="@item.Code">@item.Code</option>
+                    <option value="@item.ID">@item.Code</option>
                 }
             </select>
         </div>
@@ -213,49 +192,14 @@
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 <script>
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        let day = date.getDate().toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        return `${year}-${month}-${day}`;
-    }
+  
 
      $(document).ready(function () {
-        const today = new Date();
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-        $('#fromDate').val(formatDate(firstDayOfMonth));
-        $('#toDate').val(formatDate(lastDayOfMonth));
-        initializeTomSelects();
+       window.initDateInputs();
+        initTomSelect(".tomselect-custom");
         document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
     });
-            function initializeTomSelects() {
-        const selectors = ["#roomTypeCsv"];
-        for (const id of selectors) {
-            const el = document.querySelector(id);
-            if (!el) continue;
-
-            // Nếu đã khởi tạo rồi thì destroy
-            if (el.tomselect) el.tomselect.destroy();
-
-            // Gán lại tomselect để đảm bảo có giá trị
-            el.tomselect = new TomSelect(el, {
-                plugins: ['remove_button'],
-                create: false,
-                maxItems: null,
-                allowEmptyOption: true,
-                placeholder: '',
-                persist: false,
-                render: {
-                    option: function (data, escape) {
-                        return `<div>${escape(data.text)}</div>`;
-                    }
-                }
-            });
-        }
-    }
-
+        
    
 
 
@@ -285,7 +229,7 @@
     });
        
     function initializReveunueByGrid(data) {
-        const columnWidth = 180;
+        const columnWidth = 200;
         $("#gridContainer").dxDataGrid({
        dataSource: data,         height: 500, allowColumnResizing: true,
             columns: [
@@ -304,7 +248,7 @@
             {
                 column: "description",
                 summaryType: "sum",
-                displayFormat: "Grand Total =",
+                displayFormat: "Grand Total",
                 valueFormat: "#,##0"
             },
             {

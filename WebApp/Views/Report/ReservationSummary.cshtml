@@ -1,4 +1,4 @@
-﻿@using DevExpress.XtraReports.UI
+@using DevExpress.XtraReports.UI
 @*
     For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 *@
@@ -17,11 +17,7 @@
         padding: 18px 0px 0px 14px;
         border-radius: 8px;
     }
-
-    .gridContainer {
-        margin: 0px 8px;
-    }
-
+ 
     .button_wrapper {
         display: flex;
         column-gap: 12px;
@@ -36,15 +32,7 @@
         background-color: #4CAF50; /* Màu xanh */
         color: white;
     }
-
-    #gridContainer .dx-datagrid-rowsview .dx-selection {
-        background-color: #01579b !important; /* màu xanh ngọc */
-        color: white !important; /* chữ trắng */
-    }
-
-        #gridContainer .dx-datagrid-rowsview .dx-selection * {
-            color: white !important;
-        }
+ 
 
     .sticky-header label,
     .sticky-header .form-control-sm {
@@ -62,12 +50,7 @@
         margin-right: .5rem !important;
     }
 
-    #gridContainer .dx-datagrid-headers .dx-header-row > td {
-        padding: 5px !important;
-        height: 24px !important;
-        font-size: 12px !important;
-        line-height: 1.1 !important;
-    }
+ 
 
     .sticky-header label,
     .sticky-header .form-control-sm {
@@ -85,12 +68,7 @@
         margin-right: .5rem !important;
     }
 
-    #gridContainer .dx-datagrid-headers .dx-header-row > td {
-        padding: 5px !important;
-        height: 24px !important;
-        font-size: 12px !important;
-        line-height: 1.1 !important;
-    }
+ 
 
     .tomselect-custom {
         width: 500px;
@@ -114,17 +92,23 @@
         <!-- From Date -->
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">From Date:</label>
-            <input type="date" id="fromDate" name="fromDate" class="form-control form-control-sm w-auto" />
+            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
+                <input type="text" class="date-ui form-control form-control-sm"
+                       placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
         </div>
 
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">To Date:</label>
-            <input type="date" id="toDate" name="toDate" class="form-control form-control-sm w-auto" />
+            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="toDate">
+                <input type="text" class="date-ui form-control form-control-sm"
+                       placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
         </div>
        
         <div class="d-flex align-items-center me-1">
             <label class="me-2 mb-0">Room Type:</label>
-            <select id="roomType" name="roomType" class="tomselect-custom " style="width: 70px;" multiple>
+            <select id="roomType" name="roomType" class="tomselect-custom " multiple>
                 @foreach (var item in rtList)
                 {
                     <option value="@item.Code">@item.Code</option>
@@ -134,7 +118,7 @@
 
         <div class="d-flex align-items-center me-1">
             <label class="me-2 mb-0">Zone:</label>
-            <select id="zone" name="zone" class="tomselect-custom" style="width: 70px;" multiple>
+            <select id="zone" name="zone" class="tomselect-custom"   multiple>
                 @foreach (var item in zoneList)
                 {
                     <option value="@item.Code">@item.Code</option>
@@ -145,7 +129,7 @@
 
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">Market:</label>
-            <select id="market" name="market" class="tomselect-custom " style="width: 170px;" multiple>
+            <select id="market" name="market" class="tomselect-custom "   multiple>
                 @foreach (var item in mkList)
                 {
                     <option value="@item.Code">@item.Description</option>
@@ -182,60 +166,15 @@
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 <script>
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        let day = date.getDate().toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        return `${year}-${month}-${day}`;
-    }
-       
+ 
     $(document).ready(function () {
          document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
-        const today = new Date();
-
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        // Lấy ngày cuối cùng của tháng
-        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-        // Định dạng theo local time
-        const formattedFirstDay = formatDate(firstDayOfMonth);
-        const formattedLastDay = formatDate(lastDayOfMonth);
-
-        console.log(formattedFirstDay); // Kiểm tra giá trị đúng chưa
-        console.log(formattedLastDay); // Kiểm tra giá trị đúng chưa
-        // Gán giá trị cho input date
-        document.getElementById('fromDate').value = formattedFirstDay;
-        document.getElementById('toDate').value = formattedLastDay;
-        initializeTomSelects();
+                  window.initDateInputs();
+               initTomSelect(".tomselect-custom");
 
 
     });
-        function initializeTomSelects() {
-        const selectors = ["#roomType","#zone","#market"];
-
-            for (const id of selectors) {
-                const el = document.querySelector(id);
-                if (!el) continue;
-
-                // Nếu đã khởi tạo rồi thì destroy
-                if (el.tomselect) el.tomselect.destroy();
-
-                const ts = new TomSelect(el, {
-                    plugins: ['remove_button'],
-                    create: false,
-                    maxItems: null,
-                    allowEmptyOption: true,
-                    placeholder: '',
-                    persist: false,
-                    render: {
-                        option: function (data, escape) {
-                            return `<div>${escape(data.text)}</div>`;
-                        }
-                    }
-                });
-
-            }
-        }
+       
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
         $("#loadingSpinner").show();
         $.ajax({

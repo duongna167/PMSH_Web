@@ -1,6 +1,7 @@
 using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
+using DocumentFormat.OpenXml.Bibliography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Reservation.Services.Interfaces;
 using System.Data;
 using static BaseBusiness.util.ValidationUtils;
+using static Microsoft.Extensions.Logging.EventSource.LoggingEventSource;
 
 namespace Reservation.Controllers
 {
@@ -284,6 +286,53 @@ namespace Reservation.Controllers
         }
         #endregion
 
+        #region Allotment Search
+        [HttpGet]
+        public IActionResult GetAllotmentSearch(string code, string marketId, string allotmentTypeId, string profileId, string isDefault, string zone)
+        {
+            try
+            {
+                DataTable dataTable = _iAllotmentService.AllotmentSearch(code, marketId, allotmentTypeId, profileId, isDefault, zone);
+                var result = (from d in dataTable.AsEnumerable()
+                              select new
+                              {
+                                  Code = !string.IsNullOrEmpty(d["Code"].ToString()) ? d["Code"] : "",
+                                  AllotmentName = !string.IsNullOrEmpty(d["AllotmentName"].ToString()) ? d["AllotmentName"] : "",
+                                  AccountName = !string.IsNullOrEmpty(d["AccountName"].ToString()) ? d["AccountName"] : "",
+                                  MarketID = !string.IsNullOrEmpty(d["MarketID"].ToString()) ? d["MarketID"] : "",
+                                  CuttOfDay = !string.IsNullOrEmpty(d["CuttOfDay"].ToString()) ? d["CuttOfDay"] : "",
+                                  CuttOfDate = !string.IsNullOrEmpty(d["CuttOfDate"].ToString()) ? d["CuttOfDate"] : "",
+                                  AllotmentTypeID = !string.IsNullOrEmpty(d["AllotmentTypeID"].ToString()) ? d["AllotmentTypeID"] : "",
+                                  CreateBy = !string.IsNullOrEmpty(d["CreateBy"].ToString()) ? d["CreateBy"] : "",
+                                  CreateDate = !string.IsNullOrEmpty(d["CreateDate"].ToString()) ? d["CreateDate"] : "",
+                                  UpdateBy = !string.IsNullOrEmpty(d["UpdateBy"].ToString()) ? d["UpdateBy"] : "",
+                                  UpdateDate = !string.IsNullOrEmpty(d["UpdateDate"].ToString()) ? d["UpdateDate"] : "",
+                                  ProfileID = !string.IsNullOrEmpty(d["ProfileID"].ToString()) ? d["ProfileID"] : "",
+                                  ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"] : "",
+                                  IsDefault = !string.IsNullOrEmpty(d["IsDefault"].ToString()) ? d["IsDefault"] : "",
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+        public IActionResult AllotmentSearch()
+        {
+            List<MarketModel> listMarket = PropertyUtils.ConvertToList<MarketModel>(MarketBO.Instance.FindAll());
+            ViewBag.MarketList = listMarket;
+
+            List<AllotmentTypeModel> listAllotType = PropertyUtils.ConvertToList<AllotmentTypeModel>(AllotmentTypeBO.Instance.FindAll());
+            ViewBag.AllotTypeList = listAllotType;
+
+            List<ZoneModel> listZone = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
+            ViewBag.ZoneList = listZone;
+
+            return PartialView("~/Views/Reservation/Allotment/AllotmentSearch.cshtml");
+        }
+        
+        #endregion
 
     }
 }
