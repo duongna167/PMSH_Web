@@ -23,7 +23,7 @@ namespace Administration.Controllers
             List<RateCategoryModel> listRateCate = PropertyUtils.ConvertToList<RateCategoryModel>(RateCategoryBO.Instance.FindAll());
             ViewBag.RateCodeList = listRateCode;
             ViewBag.RateCateList = listRateCate;
-            return View("~/Views/Administration/RateCode/RateCodeDetail.cshtml");
+            return PartialView("~/Views/Administration/RateCode/RateCodeDetail.cshtml");
             // Truyền đường dẫn chuẩn vào để tìm đúng
         }
 
