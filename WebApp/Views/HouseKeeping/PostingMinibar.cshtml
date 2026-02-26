@@ -1,4 +1,4 @@
-﻿@using DevExpress.XtraReports.UI
+@using DevExpress.XtraReports.UI
 @*
     For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 *@
@@ -14,26 +14,38 @@
 
 
 </style>
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px">Posting Minibar</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
+<div class="modal fade" id="postingMinibarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-4by3 modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Functions To List</h5>
+            </div>
+            <div class="modal-body">
+                <div class="sticky-header bg-white p-2 shadow-sm z-3">
 
 
-    <div class="">
-        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+                    <div class="">
+                        <button id="btnPrint" class="mui-button mui-button-new">View</button>
 
-        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">  Excel</button>
-        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">
-            PDF
-        </button>
-        <button id="btnUpdateMinibar" class="mui-button mui-button-new" type="button">  Update</button>
+                        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">  Excel</button>
+                        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">
+                            PDF
+                        </button>
+                        <button id="btnUpdateMinibar" class="mui-button mui-button-new" type="button">  Update</button>
+                        <button class="mui-button mui-button-new" id="btnClose">Close</button>
+                    </div>
+                    <div class="mui-card">
+                        <div id="gridContainer" class="gridContainer mt-2"></div>
+                    </div>
+                    <div id="loadingSpinner"
+                         style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                    </div>
 
-
-
+                </div>
+            </div>
+        </div>
     </div>
-  
-
 </div>
 <div class="modal fade" id="popupChooseFolio" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-md">
@@ -103,472 +115,434 @@
     </div>
 </div>
 
-<div class="mui-card">
-    @*     <div style="font-size: 20px;" class="mt-1" id="reportTitle"></div> *@
-    <div id="gridContainer" class="gridContainer mt-2"></div>
-</div>
-<div id="loadingSpinner"
-     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
-</div>
+
 <script>
 
+     window.openPostingMinibarModal = function () {
+            $("#postingMinibarModal").modal("show");
+            openPostingMinibar.init();
+    };
 
 
-    $(document).ready(function () {
+    var openPostingMinibar = {
 
-
-        $("#btnPrint").trigger("click");
-
-
-
-    });
-
-
-
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-
-        $.ajax({
-            url: '/HouseKeeping/HKPStatusData',
-            type: 'GET',
-            crossDomain: false,
-            headers: {
-                "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
+             selectedRoom : null,
+             selectedFolio : null,
+             selectedArticle : null,
+            init: function () {
+                const self = this;
+                $(document).ready(function () {
+                    self.loadData();
+                });
+                self.bindEvents();
             },
-            success: function (result) {
-                console.log(result);
-                initializeRoomStatusGrid(result);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không thể tải báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
 
-     $(document).off("click", "#btnSave").on("click", "#btnSave", function () {
-         const userName = JSON.parse(localStorage.getItem("Loginname"));
-        const userID = JSON.parse(localStorage.getItem("userID"));
-        if (!selectedArticle) {
-            showToast('Warning', 'Please select an article before posting.', false);
-            return;
-        }
-        $.ajax({
-            url: '/HouseKeeping/PostingFolio',
-            type: 'POST',
-             data: {
-                roomId: selectedRoom.id,
-                roomNo: selectedRoom.roomNo,
-                roomTypeCode: selectedRoom.roomTypeCode,
-                roomTypeID: selectedRoom.roomTypeID,
-                folioid: selectedFolio.id,
-                accountName: selectedFolio.accountName,
-                _RsvID: selectedFolio.reservationID,
-                transactionCode: selectedArticle.transactionCode,
-                _CurrencyID: selectedArticle.currencyID,
-                quantity: selectedArticle.quantity,
-                articleCode: selectedArticle.code,
-                price: selectedArticle.defaultPrice,
-                  userID:userID,
-                  userName:userName
-            },
-            crossDomain: false,
-            headers: {
-                "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
-            },
-            success: function (result) {
-                if (result.success) {
-                    $('#popupChooseFolio').modal('hide');
-                        $('#popupChooseArticle').modal('hide');
-                    showToast('Success', result.message, true);
+            bindEvents: function () {
+                const self = this;
 
-                } else {
-                    showToast('Error', result.message, false);
-                    // xử lý khi sai
+                $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+                    self.loadData();
+                });
+
+                $(document).off("click", "#btnClose").on("click", "#btnClose", function () {
+                        $("#postingMinibarModal").modal("hide");
+                });
+                $(document).off("click", "#btnSave").on("click", "#btnSave", function () {
+                      self.editSave();
+                });
+
+               $("#btnUpdateMinibar").click(function () {
+          
+                      self.loadMinibarByRoomId();
+               });
+
+                $("#btnContinue").off("click").on("click", function () {
+                     self.loadMinibarByArticle();
+                });
+
+                $("#btnClosePopup").off("click").on("click", function () {
+                               $('#popupChooseFolio').modal('hide');
+                });
+                    $("#btnClosePopupArticle").off("click").on("click", function () {
+                                $('#popupChooseArticle').modal('hide');
+                });
+                $("#btnExportExcel").off("click").on("click", function () {
+                    self.exportToExcel();
+                });
+                 $("#btnExportPdf").off("click").on("click", function () {
+                    self.exportToPDF();
+                });
+            },
+            loadData: function () {
+                  const self = this;
+                $("#loadingSpinner").show();
+
+                $.ajax({
+                    url: '/HouseKeeping/HKPStatusData',
+                    type: 'GET',
+                    crossDomain: false,
+                    headers: {
+                        "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
+                    },
+                    success: function (result) {
+                        console.log(result);
+                        self.initializeGrid(result);
+                        $("#loadingSpinner").hide();
+                    },
+                    error: function () {
+                        alert("Không thể tải báo cáo.");
+                        $("#loadingSpinner").hide();
+                    }
+                });
+            },
+            initializeGrid: function (data) {
+                const self = this;
+                $("#gridContainer").dxDataGrid({
+                    dataSource: data,
+                    keyExpr: "id",
+                    allowColumnResizing: true,
+                    height: 500,
+                    columnAutoWidth: false,
+                    columns: [
+                        { dataField: "id", caption: "ID", visible: false },
+                        { dataField: "roomNo", caption: "Room No", width: "10%" },
+                        { dataField: "roomTypeCode", caption: "Room Type", width: "10%" },
+                        { dataField: "roomName", caption: "Room Name", width: "20%" },
+                        { dataField: "roomStatus", caption: "Room Status", width: "15%" },
+                        { dataField: "floor", caption: "Floor", width: "8%", dataType: "number", format: "#,##0" },
+                        { dataField: "createdDate", caption: "Create Date", width: "8%", dataType: "date", format: "dd/MM/yyyy" },
+                        { dataField: "updatedDate", caption: "Update Date", width: "9%", dataType: "date", format: "dd/MM/yyyy" }
+                    ],
+                    selection: { mode: "single" },
+                    filterRow: { visible: true },
+                    headerFilter: { visible: true },
+                    paging: { enabled: false },
+                    scrolling: { mode: "standard" },
+                    onSelectionChanged: function (e) {
+                        self.selectedRoom = e.selectedRowsData[0] || null;
+                    },
+
+                    onRowPrepared: function (e) {
+                        if (e.rowType === "data" && e.data?.isTotal) {
+                            e.rowElement.css({
+                                "font-weight": "bold",
+                                "background-color": "#f6f6f6"
+                            });
+                        }
+                    }
+                });
+            },
+            loadMinibarByRoomId: function () {
+                    const self = this;
+                   console.log(self.selectedRoom);
+                  if (!self.selectedRoom) {
+                         showToast('Warning', "Please select a row first", false);
+                        return;
+                   }
+                $("#loadingSpinner").show();
+
+                $.ajax({
+                    url: '/HouseKeeping/GetFolioMiniBar',
+                    type: 'GET',
+                    data: {
+                        roomId: self.selectedRoom.id
+                    },
+                    headers: {
+                        "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
+                    },
+                    success: function (result) {
+
+                        self.initializeGetFolioGrid(result);
+
+                        $('#popupChooseFolio').modal('show');
+                    },
+                    error: function () {
+                        alert("Không thể tải dữ liệu minibar.");
+                    },
+                    complete: function () {
+                        $("#loadingSpinner").hide();
+                    }
+                });
+            },
+            initializeGetFolioGrid: function (data) {
+                 const self = this;
+                $("#logGridContainer").dxDataGrid({
+                    dataSource: data,
+                    keyExpr: "id",
+                    allowColumnResizing: true,
+                    height: 500,
+                    columnAutoWidth: false,
+
+                    columns: [
+                        { dataField: "id", caption: "ID", visible: false },
+                        { dataField: "folioDate", caption: "Folio Date", width: "20%", dataType: "date", format: "dd/MM/yyyy" },
+                        { dataField: "folioNo", caption: "Folio No", width: "30%" },
+                        { dataField: "accountName", caption: "Account Name", width: "50%" }
+                    ],
+
+                    selection: {
+                        mode: "single"
+                    },
+
+                    paging: { pageSize: 25 },
+
+                    scrolling: {
+                        useNative: true,
+                        showScrollbar: "always"
+                    },
+
+                    pager: {
+                        visible: true,
+                        allowedPageSizes: [25, 50, 'all'],
+                        showPageSizeSelector: true,
+                        showInfo: true,
+                        showNavigationButtons: true
+                    },
+
+                    filterRow: { visible: true, applyFilter: "auto" },
+                    headerFilter: { visible: true },
+                    showBorders: true,
+
+                    /* 🔴 TỰ ĐỘNG CHỌN HÀNG ĐẦU TIÊN */
+                    onContentReady: function (e) {
+                        const grid = e.component;
+
+                        if (grid.getVisibleRows().length > 0 && !grid.option("selectedRowKeys")?.length) {
+                            grid.selectRowsByIndexes([0]);
+                        }
+                    },
+
+                    /* 🔴 LẤY HÀNG ĐƯỢC CHỌN */
+                    onSelectionChanged: function (e) {
+                        self.selectedFolio = e.selectedRowsData[0] || null;
+
+                        if (self.selectedFolio) {
+                            console.log("selectedFolio:", self.selectedFolio);
+                        }
+                    }
+                });
+            },
+            loadMinibarByArticle: function () {
+                $("#loadingSpinner").show();
+                  const self = this;
+                $.ajax({
+                    url: '/HouseKeeping/GetMinibarByArticle',
+                    type: 'GET',
+                    data: {
+
+                    },
+                    headers: {
+                        "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
+                    },
+                    success: function (result) {
+
+                        self.initializeGetMinibarByArticleGrid(result);
+
+                        $('#popupChooseArticle').modal('show');
+                    },
+                    error: function () {
+                        alert("Không thể tải dữ liệu minibar.");
+                    },
+                    complete: function () {
+                        $("#loadingSpinner").hide();
+                    }
+                });
+            },
+            initializeGetMinibarByArticleGrid: function (data) {
+                const self = this;
+                 data.forEach(item => {
+                    if (item.quantity === undefined || item.quantity === null) {
+                        item.quantity = 1;
+                    }
+                });
+
+                $("#logGridArticleContainer").dxDataGrid({
+                    dataSource: data,
+                    keyExpr: "id",
+                    height: 500,
+                    allowColumnResizing: true,
+                    columnAutoWidth: false,
+
+                    /* 🔴 KHÔNG CHO EDIT TỰ DO */
+                    editing: {
+                        mode: "cell",
+                        allowUpdating: false
+                    },
+
+                    columns: [
+                        { dataField: "id", visible: false },
+
+                        { dataField: "code", caption: "Code", width: "20%" },
+
+                        { dataField: "description", caption: "Description", width: "30%" },
+
+                        { dataField: "transactionCode", caption: "Transaction Code", width: "20%" },
+
+                        { dataField: "defaultPrice", caption: "Price", width: "20%" , dataType: "number", format: "#,##0"},
+
+                        {
+                            dataField: "quantity",
+                            caption: "Quantity",
+                            width: "20%",
+                            dataType: "number",
+                            editorOptions: {
+                                min: 1,
+                                showSpinButtons: false
+                            }
+                        }
+                    ],
+                    /* 🔴 CHỈ CHỌN 1 HÀNG */
+                    selection: {
+                        mode: "single"
+                    },
+
+                    paging: { pageSize: 25 },
+
+                    pager: {
+                        visible: true,
+                        allowedPageSizes: [25, 50, "all"],
+                        showPageSizeSelector: true,
+                        showInfo: true,
+                        showNavigationButtons: true
+                    },
+
+                    filterRow: { visible: true, applyFilter: "auto" },
+                    headerFilter: { visible: true },
+                    showBorders: true,
+
+                    /* 🔴 LOGIC CHỈ EDIT CỘT QUANTITY */
+                    onCellClick: function (e) {
+                        if (e.rowType !== "data") return;
+
+                        const grid = e.component;
+                        const selectedRowKey = grid.getSelectedRowKeys()[0];
+
+                        // Phải click đúng hàng đang được chọn
+                        if (selectedRowKey !== e.key) return;
+
+                        // Chỉ cho edit cột quantity
+                        if (e.column.dataField === "quantity") {
+                            grid.editCell(e.rowIndex, e.columnIndex);
+                        }
+                    },
+
+                    onRowClick: function (e) {
+                        self.selectedArticle = e.data || null;
+                    }
+                });
+            },
+            editSave: function () {
+                const userName = JSON.parse(localStorage.getItem("Loginname"));
+                const userID = JSON.parse(localStorage.getItem("userID"));
+                const self = this;
+                console.log(self);
+                if (!self.selectedArticle) {
+                    showToast('Warning', 'Please select an article before posting.', false);
+                    return;
                 }
+                $.ajax({
+                    url: '/HouseKeeping/PostingFolio',
+                    type: 'POST',
+                     data: {
+                        roomId: self.selectedRoom.id,
+                        roomNo: self.selectedRoom.roomNo,
+                        roomTypeCode: self.selectedRoom.roomTypeCode,
+                        roomTypeID: self.selectedRoom.roomTypeID,
+                        folioid: self.selectedFolio.id,
+                        accountName: self.selectedFolio.accountName,
+                        _RsvID: self.selectedFolio.reservationID,
+                        transactionCode: self.selectedArticle.transactionCode,
+                        _CurrencyID: self.selectedArticle.currencyID,
+                        quantity: self.selectedArticle.quantity,
+                        articleCode: self.selectedArticle.code,
+                        price: self.selectedArticle.defaultPrice,
+                          userID:userID,
+                          userName:userName
+                    },
+                    crossDomain: false,
+                    headers: {
+                        "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
+                    },
+                    success: function (result) {
+                        if (result.success) {
+                            $('#popupChooseFolio').modal('hide');
+                                $('#popupChooseArticle').modal('hide');
+                            showToast('Success', result.message, true);
 
+                        } else {
+                            showToast('Error', result.message, false);
+                            // xử lý khi sai
+                        }
+
+                    },
+                    error: function () {
+                        alert("Không thể tải báo cáo.");
+                        $("#loadingSpinner").hide();
+                    }
+                });
             },
-            error: function () {
-                alert("Không thể tải báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-    let selectedRoom = null;
-    let selectedFolio = null;
-    let selectedArticle = null;
-    function initializeRoomStatusGrid(data) {
+            exportToExcel: function () {
+                const grid = $("#gridContainer").dxTreeList("instance");
+                    const selectedReport = 'PostingMinibar';
 
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            keyExpr: "id",
-            allowColumnResizing: true,
-            height: 500,
-            columnAutoWidth: false,
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet("Sheet 1");
 
-            columns: [
-                { dataField: "id", caption: "ID", visible: false },
-                { dataField: "roomNo", caption: "Room No", width: "10%" },
-                { dataField: "roomTypeCode", caption: "Room Type", width: "10%" },
-                { dataField: "roomName", caption: "Room Name", width: "20%" },
-                { dataField: "roomStatus", caption: "Room Status", width: "15%" },
-                { dataField: "floor", caption: "Floor", width: "8%", dataType: "number", format: "#,##0" },
-                { dataField: "createdDate", caption: "Create Date", width: "8%", dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "updatedDate", caption: "Update Date", width: "9%", dataType: "date", format: "dd/MM/yyyy" }
-            ],
+                worksheet.addRow(['Công ty Cổ phần Giải pháp Công nghệ CS-Solution']);
+                worksheet.mergeCells('A1:E1');
+                worksheet.getRow(1).font = { bold: true };
+                worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
 
-            /* 🔴 CHỈ CHỌN 1 HÀNG */
-            selection: {
-                mode: "single"
-            },
+                const now = new Date();
+                worksheet.addRow(['', '', '', '', ' ' + now.toLocaleString("vi-VN")]);
+                worksheet.mergeCells('E2:H2');
+                worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
 
-            paging: { pageSize: 25 },
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
+                worksheet.addRow([]);
+                worksheet.addRow([]);
 
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
+                const reportRow = worksheet.addRow(['', '', selectedReport]);
+                worksheet.mergeCells('C5:F5');
+                reportRow.font = { bold: true, size: 14 };
+                reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-            filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
-            showBorders: true,
+                worksheet.addRow([]);
 
-            /* 🔴 LẤY GIÁ TRỊ HÀNG ĐƯỢC CHỌN */
-            onSelectionChanged: function (e) {
-                selectedRoom = e.selectedRowsData[0] || null;
+                DevExpress.excelExporter.exportDataGrid({
+                    component: grid,
+                    worksheet: worksheet,
+                    autoFilterEnabled: true,
+                    topLeftCell: { row: 7, column: 1 }
+                }).then(function () {
+                    const lastRow = worksheet.lastRow.number + 2;
+                    worksheet.getCell(`A${lastRow}`).value = "--- END ---";
+                    worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
+                    worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                    worksheet.getCell(`A${lastRow}`).font = { italic: true };
 
-                if (selectedRoom) {
-                    console.log("Selected Room:", selectedRoom);
-                    console.log("Room ID:", selectedRoom.id);
-                    console.log("Room No:", selectedRoom.roomNo);
-                }
-            },
-
-            onRowPrepared: function (e) {
-                if (e.rowType === "data" && e.data?.isTotal) {
-                    e.rowElement.css({
-                        "font-weight": "bold",
-                        "background-color": "#f6f6f6"
+                    let fileName = selectedReport + ".xlsx";
+                    workbook.xlsx.writeBuffer().then(function (buffer) {
+                        saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
                     });
-                }
+                });
+            },
+            exportToPDF: function () {
+               const { jsPDF } = window.jspdf; // ?? B? sung dòng này
+
+                const doc = new jsPDF();
+
+                DevExpress.pdfExporter.exportDataGrid({
+                    jsPDFDocument: doc,
+                    component: $("#gridContainer").dxDataGrid("instance"),
+                    autoTableOptions: {
+                        styles: { cellPadding: 2, fontSize: 8 },
+                        margin: { top: 20 }
+                    }
+                }).then(() => {
+                    doc.save("BaoCao.pdf");
+                });
             }
-        });
     }
 
-    $("#btnUpdateMinibar").on("click", function () {
-        if (!selectedRoom) {
-             showToast('Warning', "Please select a row first", false);
-     
-            return;
-        }       
-        loadMinibarByRoomId(selectedRoom.id);
 
-    });
-
-     $("#btnContinue").on("click", function () {
- 
-        loadMinibarByArticle();
-
-    });
-
-
-     function loadMinibarByRoomId(roomId) {
-
-        $("#loadingSpinner").show();
-
-        $.ajax({
-            url: '/HouseKeeping/GetFolioMiniBar',
-            type: 'GET', 
-            data: {
-                roomId: roomId
-            },
-            headers: {
-                "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
-            },
-            success: function (result) {
-   
-                initializeGetFolioGrid(result);
-
-                $('#popupChooseFolio').modal('show');
-            },
-            error: function () {
-                alert("Không thể tải dữ liệu minibar.");
-            },
-            complete: function () {
-                $("#loadingSpinner").hide();
-            }
-        });
-    }
-
-    function initializeGetFolioGrid(data) {
-
-        $("#logGridContainer").dxDataGrid({
-            dataSource: data,
-            keyExpr: "id",
-            allowColumnResizing: true,
-            height: 500,
-            columnAutoWidth: false,
-
-            columns: [
-                { dataField: "id", caption: "ID", visible: false },
-                { dataField: "folioDate", caption: "Folio Date", width: "20%", dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "folioNo", caption: "Folio No", width: "30%" },
-                { dataField: "accountName", caption: "Account Name", width: "50%" }
-            ],
-
-            selection: {
-                mode: "single"
-            },
-
-            paging: { pageSize: 25 },
-
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
-
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-
-            filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
-            showBorders: true,
-
-            /* 🔴 TỰ ĐỘNG CHỌN HÀNG ĐẦU TIÊN */
-            onContentReady: function (e) {
-                const grid = e.component;
-
-                if (grid.getVisibleRows().length > 0 && !grid.option("selectedRowKeys")?.length) {
-                    grid.selectRowsByIndexes([0]);
-                }
-            },
-
-            /* 🔴 LẤY HÀNG ĐƯỢC CHỌN */
-            onSelectionChanged: function (e) {
-                selectedFolio = e.selectedRowsData[0] || null;
-
-                if (selectedFolio) {
-                    console.log("selectedFolio:", selectedFolio);
-                }
-            }
-        });
-    }
-
-     $("#btnContinue").on("click", function () {
-
-        loadMinibarByArticle();
-
-    });
-     function loadMinibarByArticle() {
-
-        $("#loadingSpinner").show();
-
-        $.ajax({
-            url: '/HouseKeeping/GetMinibarByArticle',
-            type: 'GET',
-            data: {
-              
-            },
-            headers: {
-                "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
-            },
-            success: function (result) {
-
-                initializeGetMinibarByArticleGrid(result);
-
-                $('#popupChooseArticle').modal('show');
-            },
-            error: function () {
-                alert("Không thể tải dữ liệu minibar.");
-            },
-            complete: function () {
-                $("#loadingSpinner").hide();
-            }
-        });
-    }
-    function initializeGetMinibarByArticleGrid(data) {
-
-    data.forEach(item => {
-        if (item.quantity === undefined || item.quantity === null) {
-            item.quantity = 1;
-        }
-    });
-
-    $("#logGridArticleContainer").dxDataGrid({
-        dataSource: data,
-        keyExpr: "id",
-        height: 500,
-        allowColumnResizing: true,
-        columnAutoWidth: false,
-
-        /* 🔴 KHÔNG CHO EDIT TỰ DO */
-        editing: {
-            mode: "cell",
-            allowUpdating: false
-        },
-
-        columns: [
-            { dataField: "id", visible: false },
-
-            { dataField: "code", caption: "Code", width: "20%" },
-
-            { dataField: "description", caption: "Description", width: "30%" },
-
-            { dataField: "transactionCode", caption: "Transaction Code", width: "20%" },
-
-            { dataField: "defaultPrice", caption: "Price", width: "20%" , dataType: "number", format: "#,##0"},
-
-            {
-                dataField: "quantity",
-                caption: "Quantity",
-                width: "20%",
-                dataType: "number",
-                editorOptions: {
-                    min: 1,
-                    showSpinButtons: false
-                }
-            }
-        ],
-
-        /* 🔴 CHỈ CHỌN 1 HÀNG */
-        selection: {
-            mode: "single"
-        },
-
-        paging: { pageSize: 25 },
-
-        pager: {
-            visible: true,
-            allowedPageSizes: [25, 50, "all"],
-            showPageSizeSelector: true,
-            showInfo: true,
-            showNavigationButtons: true
-        },
-
-        filterRow: { visible: true, applyFilter: "auto" },
-        headerFilter: { visible: true },
-        showBorders: true,
-
-        /* 🔴 LOGIC CHỈ EDIT CỘT QUANTITY */
-        onCellClick: function (e) {
-            if (e.rowType !== "data") return;
-
-            const grid = e.component;
-            const selectedRowKey = grid.getSelectedRowKeys()[0];
-
-            // Phải click đúng hàng đang được chọn
-            if (selectedRowKey !== e.key) return;
-
-            // Chỉ cho edit cột quantity
-            if (e.column.dataField === "quantity") {
-                grid.editCell(e.rowIndex, e.columnIndex);
-            }
-        },
-
-        onSelectionChanged: function (e) {
-            selectedArticle = e.selectedRowsData[0] || null;
-        }
-    });
-}
-
-    $('#btnClosePopup').click(function () {
-      $('#popupChooseFolio').modal('hide');
-
-    });
-
-     $('#btnClosePopupArticle').click(function () {
-        $('#popupChooseArticle').modal('hide');
-
-    });
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance");
-            var selectedReport = 'PostingMinibar';
-        if (!selectedReport) {
-            alert("Vui lòng ch?n báo cáo tru?c khi xu?t Excel.");
-            return;
-        }
-
-        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === T?o header công ty (dòng 1) ===
-        worksheet.addRow(['Công ty C? ph?n Gi?i pháp Công ngh? CS-Solution']);
-        worksheet.mergeCells('A1:E1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Th?i gian xu?t (ph?i) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
-        worksheet.mergeCells('E2:H2');
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: Tr?ng
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tên báo cáo ? gi?a ===
-        const reportRow = worksheet.addRow(['', '', selectedReport]);
-        worksheet.mergeCells('C5:F5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: Tr?ng tru?c khi xu?t d? li?u
-        worksheet.addRow([]);
-
-        // === Export d? li?u t? DevExtreme (b?t d?u t? dòng 7)
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 } // d? li?u b?t d?u t? dòng 7
-        }).then(function () {
-            // Footer
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.getCell(`A${lastRow}`).value = "--- END  ---";
-            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = selectedReport + ".xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
-            });
-        });
-    });
-
-
-
-    // Nút xu?t PDF
-    $("#btnExportPdf").click(function () {
-        const { jsPDF } = window.jspdf; // ?? B? sung dòng này
-
-        const doc = new jsPDF();
-
-        DevExpress.pdfExporter.exportDataGrid({
-            jsPDFDocument: doc,
-            component: $("#gridContainer").dxDataGrid("instance"),
-            autoTableOptions: {
-                styles: { cellPadding: 2, fontSize: 8 },
-                margin: { top: 20 }
-            }
-        }).then(() => {
-            doc.save("BaoCao.pdf");
-        });
-    });
 </script>

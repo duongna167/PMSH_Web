@@ -1,4 +1,4 @@
-﻿@using DevExpress.XtraReports.UI
+@using DevExpress.XtraReports.UI
 @*
     For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 *@
@@ -35,15 +35,6 @@
         color: white;
     }
 
-    #gridContainer .dx-datagrid-rowsview .dx-selection {
-        background-color: #01579b !important; /* màu xanh ngọc */
-        color: white !important; /* chữ trắng */
-    }
-
-        #gridContainer .dx-datagrid-rowsview .dx-selection * {
-            color: white !important;
-        }
-
     .sticky-header label,
     .sticky-header .form-control-sm {
         font-size: 0.75rem;
@@ -67,27 +58,20 @@
         line-height: 1.1 !important;
     }
 
-    .tomselect-custom {
-        width: 70px;
-        min-height: 30px; /* hoặc tùy theo chiều cao bạn muốn */
-        font-size: 0.65rem;
-    }
-
-        .tomselect-custom .ts-control {
-            padding-left: 8px !important; /* hoặc bất kỳ giá trị nào bạn muốn */
-        }
-
+ 
 
 </style>
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+ 
 <div class="text-center" id="reportTitle" style="font-size: 20px">LeadtimeReports</div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
     <div class="d-flex flex-wrap align-items-center gap-2 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
         <!-- From Date -->
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">Date:</label>
-            <input type="date" id="fromDate" name="fromDate" class="form-control form-control-sm w-auto" />
+            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
+                <input type="text" class="date-ui form-control form-control-sm"
+                       placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
         </div>
 
       
@@ -138,60 +122,17 @@
 </div>
 <script>
 
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        let day = date.getDate().toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        return `${year}-${month}-${day}`;
-    }
+ 
 
     $(document).ready(function () {
          document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
-        const today = new Date();
-
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        // Lấy ngày cuối cùng của tháng
-        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-        // Định dạng theo local time
-        const formattedFirstDay = formatDate(firstDayOfMonth);
-        const formattedLastDay = formatDate(lastDayOfMonth);
-
-        console.log(formattedFirstDay); // Kiểm tra giá trị đúng chưa
-        console.log(formattedLastDay); // Kiểm tra giá trị đúng chưa
-        // Gán giá trị cho input date
-        document.getElementById('fromDate').value = formattedFirstDay;
+              window.initDateInputs();
         // document.getElementById('toDate').value = formattedLastDay;
-        initializeTomSelects();
+           initTomSelect(".tomselect-custom");
 
 
     });
-    function initializeTomSelects() {
-        const selectors = ["#zone"];
-
-            for (const id of selectors) {
-                const el = document.querySelector(id);
-                if (!el) continue;
-
-                // Nếu đã khởi tạo rồi thì destroy
-                if (el.tomselect) el.tomselect.destroy();
-
-                const ts = new TomSelect(el, {
-                    plugins: ['remove_button'],
-                    create: false,
-                    maxItems: null,
-                    allowEmptyOption: true,
-                    placeholder: '',
-                    persist: false,
-                    render: {
-                        option: function (data, escape) {
-                            return `<div>${escape(data.text)}</div>`;
-                        }
-                    }
-                });
-
-            }
-        }
+  
     $(".include-option").on("change", function () {
         $(".include-option").not(this).prop("checked", false);
     });
