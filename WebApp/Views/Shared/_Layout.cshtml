@@ -1208,50 +1208,60 @@
 
 <!-- Script để load modal -->
 <script>
-    const ModalManager = {
+    var ModalManager = {
+        getOrCreateContainer: function (modalId) {
+            let containerId = "container_" + modalId;
+            let $container = $("#" + containerId);
+            if ($container.length === 0) {
+                $("body").append(`<div id="${containerId}"></div>`);
+                $container = $("#" + containerId);
+            }
+            return $container;
+        },
+
         load: function (url, modalId, callback) {
-            const $container = $("#modalContainer");
-            $container.empty();
+            const $container = this.getOrCreateContainer(modalId);
+            $container.empty(); // Xóa nội dung cũ để tránh trùng lặp script/ID
+
             $container.load(url, function (response, status, xhr) {
-                if (status === "error") {
-                    console.error(`Lỗi load file: ${xhr.status} ${xhr.statusText}`);
-                    return;
-                }
+                if (status === "error") return;
 
                 const modalEl = document.getElementById(modalId);
+                if (modalEl) {
+                    const modal = new bootstrap.Modal(modalEl);
+                    modal.show();
 
-                if (!modalEl) {
-                    console.error(`Không tìm thấy phần tử ID: ${modalId} trong nội dung vừa tải!`);
-                    return;
-                }
+                    modalEl.addEventListener("hidden.bs.modal", function () {
+                        modal.dispose();
+                        $container.remove();
+                        if ($('.modal.show').length > 0) {
+                            $('body').addClass('modal-open');
+                        }
+                    });
 
-                if (typeof initDateInputs === "function") initDateInputs(modalEl);
-
-                const modal = new bootstrap.Modal(modalEl);
-
-                modalEl.addEventListener("shown.bs.modal", function () {
-
-                    // Kiểm tra callback
+                    // Xử lý thực thi callback sau khi HTML/Script đã được nạp vào DOM
                     if (typeof callback === "function") {
                         callback();
-                    } else if (typeof window[callback] === "function") {
-                        // Nếu truyền vào dạng string 'openModalSearchGroupReservation'
-                        window[callback]();
-                    } else {
-                        console.warn(`Không tìm thấy hàm callback để thực thi.`);
+                    } else if (typeof callback === "string") {
+                        // Chờ một chút để script trong file vừa load kịp đăng ký hàm vào window
+                        setTimeout(() => {
+                            if (typeof window[callback] === "function") {
+                                window[callback]();
+                            } else {
+                                // Nếu truyền String mà không có hàm global, thử tìm Module mặc định
+                                const moduleName = modalId.replace('_modal', '_Module');
+                                if (window[moduleName] && typeof window[moduleName].init === 'function') {
+                                    window[moduleName].init();
+                                }
+                            }
+                        }, 100);
                     }
-                }, { once: true });
-
-                modalEl.addEventListener("hidden.bs.modal", function () {
-                    modal.dispose();
-                    $container.empty();
-                });
-
-                modal.show();
+                }
             });
         }
     };
- //Phần cho reservation
+
+     //Phần cho reservation
  //
  //
     function openSearchGroupReservation() {
@@ -1601,12 +1611,12 @@
         );
     }
 
-    function openProSearch() {
+       function openProSearch(callback) {
         const url = '/Profile/SearchProfile';
         const modalId = 'pro_search_mainModal';
 
         ModalManager.load(url, modalId, function() {
-            pro_search_Module.init();
+               pro_search_Module.init(callback);
         });
     }
 
