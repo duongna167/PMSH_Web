@@ -26,7 +26,7 @@ namespace Administration.Controllers
             ViewBag.RateCodeList = listRateCode;
             ViewBag.RateCateList = listRateCate;
             ViewBag.RateClass = listRateClass;
-            return View("~/Views/Administration/RateCode/RateCode.cshtml");
+            return PartialView("~/Views/Administration/RateCode/RateCode.cshtml");
         }
         [HttpGet("GetAllRateCode")]
         public IActionResult GetAllRateCode(string rateCode, string rateCategory)
@@ -109,11 +109,7 @@ namespace Administration.Controllers
         {
             try
             {
-                if (model == null)
-                {
-                    return BadRequest(new { success = false, message = "Payload is null" });
-                }
-
+                Console.WriteLine($"Model: {System.Text.Json.JsonSerializer.Serialize(model)}");
                 // Collect validation errors as field-message pairs
                 var errors = new List<object>();
 
@@ -296,8 +292,5 @@ namespace Administration.Controllers
             public bool IndividualOnly { get; set; } = false;
             public bool IsModifiable { get; set; } = false;
         }
-
-
-
     }
 }

@@ -20,7 +20,7 @@ namespace Administration.Controllers
         [HttpGet("RateClass")] // Truyeenf DataGrid , script api
         public IActionResult RateClass()
         {
-            return View("~/Views/Administration/RateCode/RateClass.cshtml");
+            return PartialView("~/Views/Administration/RateCode/RateClass.cshtml");
             // Truyền đường dẫn chuẩn vào để tìm đúng
         }
 

@@ -352,6 +352,30 @@ namespace Cashiering.Services.Implements
             return new ApiResponseAddError<ValidationErrorDto> { Success = false, Message = $"{entityName} not found" };
         }
 
+        public DataTable ARPaymentReport(DateTime FromDate, DateTime ToDate, string AccountNo, string Cashier, int ViewBy = 0)
+        {
+            try
+            {
+                SqlParameter[] param =
+                [
+                     new SqlParameter("@FromDate", FromDate),
+
+                     new SqlParameter("@ToDate", ToDate ),
+                     new SqlParameter("@AccountNo", AccountNo ?? ""),
+                     new SqlParameter("@Cashier", Cashier ?? ""),
+                     new SqlParameter("@ViewBy", ViewBy),
+                ];
+
+                DataTable myTable = DataTableHelper.getTableData("spRptARPaymentReport", param);
+                return myTable;
+            }
+            catch (SqlException ex)
+            {
+
+                throw new Exception($"ERROR: {ex.Message}", ex);
+            }
+        }
+
         #endregion
     }
 }

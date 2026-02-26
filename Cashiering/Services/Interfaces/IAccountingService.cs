@@ -55,6 +55,8 @@ namespace Cashiering.Services.Interfaces
         DataTable AROpeningData();
         DataTable ARTracesData();
         DataTable ARAccountReceivableSearch();
+        DataTable ARPaymentReport(DateTime FromDate, DateTime ToDate, string AccountNo, string Cashier, int ViewBy = 0);
+
         // Tuan:ADd
         ApiResponseAddError<ValidationErrorDto> SaveARAccount(SaveARAccountRequestDto dto);
     }
