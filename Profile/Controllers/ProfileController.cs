@@ -426,7 +426,7 @@ namespace Profile.Controllers
         {
             ViewBag.cboMemberType = ListItemHelper.GetMemberTypeProvider();
 
-            return View();
+            return PartialView();
         }
 
         [HttpGet]
