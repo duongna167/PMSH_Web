@@ -1,4 +1,4 @@
-﻿@using DevExpress.XtraReports.UI
+@using DevExpress.XtraReports.UI
 @*
     For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 *@
@@ -38,14 +38,7 @@
         color: white;
     }
 
-    #gridContainer .dx-datagrid-rowsview .dx-selection {
-        background-color: #01579b !important; /* màu xanh ngọc */
-        color: white !important; /* chữ trắng */
-    }
-
-        #gridContainer .dx-datagrid-rowsview .dx-selection * {
-            color: white !important;
-        }
+    
 
     .bold {
         font-weight: bold !important;
@@ -79,12 +72,7 @@
         margin-right: .5rem !important;
     }
 
-    #gridContainer .dx-datagrid-headers .dx-header-row > td {
-        padding: 5px !important;
-        height: 24px !important;
-        font-size: 12px !important;
-        line-height: 1.1 !important;
-    }
+ 
 
     .sticky-header input[type="date"].form-control-sm {
         font-size: 12px !important; /* đúng 12 px */
@@ -130,7 +118,10 @@
         <div class="d-flex align-items-center me-3">
             <label class="fw-bold me-2 mb-0">Date:</label>
             <label class="me-2 mb-0">Stay Date:</label>
-            <input type="date" id="date" class="form-control form-control-sm w-auto">
+            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="date">
+                <input type="text" class="date-ui form-control form-control-sm"
+                       placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
         </div>
 
         <div class="d-flex align-items-center me-3">
@@ -220,57 +211,28 @@
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 <script>
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); 
-        let day = date.getDate().toString().padStart(2, '0'); 
-        return `${year}-${month}-${day}`;
-    }
+ 
 
        $(document).ready(function () {        
         const today = new Date();
         const formattedToday = formatDate(today);
         const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        $('#date').val(formatDate(firstDayOfMonth));
+        window.initDateInputs();
         document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
-        initializeTomSelects();
-        const dtpInput = document.getElementById('date');
-        if (dtpInput) {
-            dtpInput.value = formattedToday;
-        }
+        initTomSelect(".tomselect-custom");
     });
-     function initializeTomSelects() {
-        const selectors = ["#reservationStatusBox"];
-
-        for (const id of selectors) {
-            const el = document.querySelector(id);
-            if (!el) continue;
-
-            if (el.tomselect) el.tomselect.destroy();
-
-            const ts = new TomSelect(el, {
-                plugins: ['remove_button'],
-                create: false,
-                maxItems: null,
-                allowEmptyOption: true,
-                placeholder: '',
-                persist: false,
-                render: {
-                    option: function (data, escape) {
-                        return `<div>${escape(data.text)}</div>`;
-                    }
-                }
-            });
-
-        }
-    }
-
+     
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
         $("#loadingSpinner").show();
         const status = $("#reservationStatusBox").val() || [];
-        const requestData = {
+
+
+        $.ajax({
+            url: '/Report/ReservationRateCheck',
+            type: 'GET',
+            data: {
                 date: $('#date').val(),
-                status: status.join(','),
+                status: $("#reservationStatusBox").val(),
                 ind: $('#ind').is(":checked") ? 1 : 0,
                 pseudo: $('#pseudo').is(":checked") ? 1 : 0,
                 variance: $('#variance').is(":checked") ? 1 : 0,
@@ -282,12 +244,7 @@
                 sort: $('#sort').val(),
                 showFixCharge: $('#fixCharge').is(":checked") ? 1 : 0,
                 showAlerts: $('#alerts').is(":checked") ? 1 : 0
-            };
-
-        $.ajax({
-            url: '/Report/ReservationRateCheck',
-            type: 'GET',
-            data: requestData,                        
+            },
             traditional: true,
               crossDomain: false,
                 headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },

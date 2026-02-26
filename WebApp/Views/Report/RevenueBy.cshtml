@@ -1,4 +1,4 @@
-﻿@using DevExpress.XtraReports.UI
+@using DevExpress.XtraReports.UI
 @*
     For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 *@
@@ -35,45 +35,7 @@
         background-color: #4CAF50; /* Màu xanh */
         color: white;
     }
-
-    #gridContainer .dx-datagrid-rowsview .dx-selection {
-        background-color: #01579b !important; /* màu xanh ngọc */
-        color: white !important; /* chữ trắng */
-    }
-
-        #gridContainer .dx-datagrid-rowsview .dx-selection * {
-            color: white !important;
-        }
-
-    .sticky-header label,
-    .sticky-header .form-control-sm {
-        font-size: 0.75rem;
-        line-height: 1.2;
-    }
-
-
-    .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
-    }
-
-    .sticky-header label[class*="me-"] {
-        margin-right: .5rem !important;
-    }
-
-    #gridContainer .dx-datagrid-headers .dx-header-row > td {
-        padding: 5px !important;
-        height: 24px !important;
-        font-size: 12px !important;
-        line-height: 1.1 !important;
-    }
-
-    #gridContainer .dx-datagrid-rowsview .dx-row > td,
-    #gridContainer .dx-datagrid .dx-summary-row > td,
-    #gridContainer .dx-datagrid .dx-total-footer td,
-    #gridContainer .dx-datagrid .dx-footer-row td {
-        font-size: 11px !important;
-    }
+ 
 
     .report-bar {
         position: relative;
@@ -94,21 +56,10 @@
             top: 50%;
             transform: translateY(-50%);
         }
-
-    .tomselect-custom {
-        width: 300px;
-        min-height: 30px; /* hoặc tùy theo chiều cao bạn muốn */
-        font-size: 0.65rem;
-        margin-left: 5px;
-    }
-
-        .tomselect-custom .ts-control {
-            padding-left: 8px !important; /* hoặc bất kỳ giá trị nào bạn muốn */
-        }
+ 
 
 </style>
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+ 
 <div class="text-center" id="reportTitle" style="font-size: 20px"></div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
 
@@ -119,12 +70,18 @@
 
             <div class="d-flex align-items-center me-1">
                 <label class="me-0 mb-0">From:</label>
-                <input type="date" id="fromDate" class="form-control form-control-sm w-auto" />
+                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
+                    <input type="text" class="date-ui form-control form-control-sm"
+                           placeholder="dd/mm/yyyy" autocomplete="off" />
+                </div>
             </div>
 
             <div class="d-flex align-items-center me-1">
                 <label class="me-0 mb-0">To:</label>
-                <input type="date" id="toDate" class="form-control form-control-sm w-auto" />
+                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="toDate">
+                    <input type="text" class="date-ui form-control form-control-sm"
+                           placeholder="dd/mm/yyyy" autocomplete="off" />
+                </div>
             </div>
         </div>
 
@@ -133,7 +90,7 @@
             <div class="d-flex align-items-center me-1">
                 <label class="fw-bold me-3">Filter:</label>
                 <label class="me-2 mb-0">Room Type:</label>
-                <select id="roomType" class="tomselect-custom" style="width: 70px;" multiple>
+                <select id="roomType" class="tomselect-custom"  multiple>
                     @foreach (var rt in rtList)
                     {
                         <option value="@rt.Code">@rt.Code</option>
@@ -143,7 +100,7 @@
             <div class="d-flex align-items-center">
                 <div class="d-flex align-items-center me-3">
                     <label class="me-2 mb-0">Zone:</label>
-                    <select id="zone" class="tomselect-custom" style="width: 70px;" multiple>
+                    <select id="zone" class="tomselect-custom"   multiple>
                         @foreach (var z in zoneList)
                         {
                             <option value="@z.Code">@z.Code</option>
@@ -210,59 +167,15 @@
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 <script>
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        let day = date.getDate().toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        return `${year}-${month}-${day}`;
-    }
+  
 
     $(document).ready(function () {
          DevExpress.localization.locale("vi");
          document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
-        const today = new Date();
-
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        // Lấy ngày cuối cùng của tháng
-        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-        // Định dạng theo local time
-        const formattedFirstDay = formatDate(firstDayOfMonth);
-        const formattedLastDay = formatDate(lastDayOfMonth);
-
-        console.log(formattedFirstDay); // Kiểm tra giá trị đúng chưa
-        console.log(formattedLastDay); 
-        // Gán giá trị cho input date
-        document.getElementById('fromDate').value = formattedFirstDay;
-        document.getElementById('toDate').value = formattedLastDay;
-        initializeTomSelects();
+              window.initDateInputs();
+          initTomSelect(".tomselect-custom");
     });
-    function initializeTomSelects() {
-        const selectors = ["#roomType", "#zone"];
-
-        for (const id of selectors) {
-            const el = document.querySelector(id);
-            if (!el) continue;
-
-            // Nếu đã khởi tạo rồi thì destroy
-            if (el.tomselect) el.tomselect.destroy();
-
-            const ts = new TomSelect(el, {
-                plugins: ['remove_button'],
-                create: false,
-                maxItems: null,
-                allowEmptyOption: true,
-                placeholder: '',
-                persist: false,
-                render: {
-                    option: function (data, escape) {
-                        return `<div>${escape(data.text)}</div>`;
-                    }
-                }
-            });
-
-        }
-    }
+     
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
          let selectedZones = $("#zone").val();
             let zoneParam = "";

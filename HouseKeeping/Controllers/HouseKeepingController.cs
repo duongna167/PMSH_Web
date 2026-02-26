@@ -4641,7 +4641,7 @@ namespace HouseKeeping.Controllers
         public IActionResult PostingMinibar()
         {
 
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult GetFolioMiniBar(int roomId)
