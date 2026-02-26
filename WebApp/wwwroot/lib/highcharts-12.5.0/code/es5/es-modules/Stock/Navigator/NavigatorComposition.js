@@ -1,0 +1,64 @@
+/* *
+ *
+ *  (c) 2010-2026 Highsoft AS
+ *  Author: Torstein Honsi
+ *
+ *  A commercial license may be required depending on use.
+ *  See www.highcharts.com/license
+ *
+ *
+ * */
+'use strict';
+import D from '../../Core/Defaults.js';
+var defaultOptions = D.defaultOptions;
+import H from '../../Core/Globals.js';
+var composed = H.composed;
+import NavigatorAxisAdditions from '../../Core/Axis/NavigatorAxisComposition.js';
+import NavigatorDefaults from './NavigatorDefaults.js';
+import NavigatorSymbols from './NavigatorSymbols.js';
+import RendererRegistry from '../../Core/Renderer/RendererRegistry.js';
+var getRendererType = RendererRegistry.getRendererType;
+import StockUtilities from '../../Stock/Utilities/StockUtilities.js';
+var setFixedRange = StockUtilities.setFixedRange;
+import U from '../../Core/Utilities.js';
+var addEvent = U.addEvent, extend = U.extend, pushUnique = U.pushUnique;
+/* *
+ *
+ *  Variables
+ *
+ * */
+/* *
+ *
+ *  Functions
+ *
+ * */
+/**
+ * @private
+ */
+function compose(ChartClass, AxisClass, SeriesClass) {
+    NavigatorAxisAdditions.compose(AxisClass);
+    if (pushUnique(composed, 'Navigator')) {
+        ChartClass.prototype.setFixedRange = setFixedRange;
+        extend(getRendererType().prototype.symbols, NavigatorSymbols);
+        extend(defaultOptions, { navigator: NavigatorDefaults });
+        addEvent(SeriesClass, 'afterUpdate', onSeriesAfterUpdate);
+    }
+}
+/**
+ * Handle updating series
+ * @private
+ */
+function onSeriesAfterUpdate() {
+    if (this.chart.navigator && !this.options.isInternal) {
+        this.chart.navigator.setBaseSeries(null, false);
+    }
+}
+/* *
+ *
+ *  Default Export
+ *
+ * */
+var NavigatorComposition = {
+    compose: compose
+};
+export default NavigatorComposition;
