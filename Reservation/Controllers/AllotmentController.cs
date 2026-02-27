@@ -593,6 +593,7 @@ namespace Reservation.Controllers
                     var oldData = (AllotmentModel)AllotmentBO.Instance.FindByPrimaryKey(model.ID);
                     if (oldData == null) return Json(new { success = false, message = "Data not found." });
 
+                    model.Code = oldData.Code;
                     model.CreateDate = oldData.CreateDate;
                     model.CreateBy = oldData.CreateBy;
 
