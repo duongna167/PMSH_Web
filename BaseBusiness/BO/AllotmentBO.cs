@@ -22,5 +22,19 @@ namespace BaseBusiness.BO
         {
             get { return instance; }
         }
+
+        public bool IsDuplicateCode(string code, long id = 0)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                return false;
+
+            return IsDuplicateCode(
+             "Allotment",
+             "Code",
+             code.Trim(),
+             id
+            );
+
+        }
     }
 }

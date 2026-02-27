@@ -20,7 +20,7 @@ namespace BaseBusiness.Model
         public int AllotmentTypeID { get; set; }
         public bool IsDefault { get; set; }
         public string CreateBy { get; set;}
-        public DateTime CreatDate { get; set; }
+        public DateTime CreateDate { get; set; }
         public string UpdateBy { get; set; }
         public DateTime UpdateDate { get; set; }
     }

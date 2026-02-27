@@ -554,33 +554,59 @@ namespace Reservation.Controllers
         #endregion
 
         #region new/edit/delete
-        //public IActionResult SaveAllotment([FromBody] AllotmentModel model)
-        //{
-        //    try
-        //    {
-        //        var listErrors = GetErrors(
-        //            Check(model, "general", "No data received."),
-        //            Check(model != null && model.Count == 0, "general", "No data received.")
-        //        );
+        [HttpPost]
+        public IActionResult SaveAllotment([FromBody] AllotmentModel model)
+        {
+            try
+            {
+                var listErrors = GetErrors(
+                    Check(model == null, "general", "No data received."),
+                    Check(model?.Code, "allot_setup_code", "Code is not blank."),
+                    Check(model?.ProfileID, "allot_setup_profileID", "Profile is not blank."),
+                    Check(model?.AllotmentTypeID, "allot_setup_type", "Allotment Type is not blank.")
+                );
 
-        //        if (listErrors.Count > 0)
-        //        {
-        //            return Json(new { success = false, errors = listErrors });
-        //        }
+                if (listErrors.Count == 0 && model != null)
+                {
+                    bool isDuplicate = AllotmentBO.Instance.IsDuplicateCode(model.Code, model.ID);
+                    var duplicateError = CheckDuplicate(isDuplicate, "code", $"This code already exists: [{model.Code}]");
+                    if (duplicateError != null) listErrors.Add(duplicateError);
+                }
 
-               
+                if (listErrors.Count > 0)
+                {
+                    return Json(new { success = false, errors = listErrors });
+                }
 
-        //        return Json(new { success = true, message = "Save successfully" });
+                DateTime businessDate = TextUtils.GetBusinessDate();
 
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return Json(new { success = false, message = "Error: " + ex.Message });
-        //    }
+                if (model.ID == 0) // Thêm mới (New)
+                {
+                    model.CreateDate = businessDate;
+                    model.UpdateDate = DateTime.Now;
 
-        //}
+                    AllotmentBO.Instance.Insert(model);
+                    return Json(new { success = true, message = "Insert successfully!" });
+                }
+                else // Chỉnh sửa (Edit)
+                {
+                    var oldData = (AllotmentModel)AllotmentBO.Instance.FindByPrimaryKey(model.ID);
+                    if (oldData == null) return Json(new { success = false, message = "Data not found." });
 
+                    model.CreateDate = oldData.CreateDate;
+                    model.CreateBy = oldData.CreateBy;
 
+                    model.UpdateDate = DateTime.Now;
+
+                    AllotmentBO.Instance.Update(model);
+                    return Json(new { success = true, message = "Update successfully!" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error: " + ex.Message });
+            }
+        }
         #endregion
 
         #endregion
