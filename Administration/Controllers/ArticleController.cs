@@ -46,7 +46,7 @@ namespace Administration.Controllers
 
             List<CurrencyModel> listCurr = PropertyUtils.ConvertToList<CurrencyModel>(CurrencyBO.Instance.FindAll());
             ViewBag.CurrencyList = listCurr;
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult SearchArticle(string tranCode, string articleCode, string articleDescription, string articleSupplement)
