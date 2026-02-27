@@ -1,4 +1,4 @@
-﻿@* <link href="~/css/pages/reservation.css" rel="stylesheet" asp-append-version="true"/> *@
+@* <link href="~/css/pages/reservation.css" rel="stylesheet" asp-append-version="true"/> *@
 <style>
     .form-control:not([readonly]):not(:disabled) {
         background: white !important;
@@ -9,7 +9,7 @@
 
         <div class="col-md-12">
             <div class="content-right">
-                <div class="mt-1">
+                <div class="mt-2">
                     <button class="mui-button mui-button-new" onclick="OkReservation(0)">Ok</button>
                     <button class="mui-button mui-button-new" onclick="SaveReservation(0)">Save</button>
                     <button class="mui-button mui-button-new" onclick="openModalOption();"
@@ -948,7 +948,23 @@
         <span><strong>Original Arrival :</strong> <span id="lblOriginalArrival"></span></span>
         <span><strong>Original Departure :</strong> <span id="lblOriginalDeparture"></span></span>
     </div>
-
+    <div class="mt-2">
+        <button class="mui-button mui-button-new" id="addonButton" onclick="openModalAddOn();">Add On</button>
+        <button class="mui-button mui-button-new" id="billingButton" onclick="openModalBilling();">Billing</button>
+        <button class="mui-button mui-button-new" id="packageButton" onclick="openModalPackage();">Package</button>
+        <button class="mui-button mui-button-new" id="depositButton" onclick="openModalDeposit();">Deposit</button>
+        <button class="mui-button mui-button-new" id="wucButton" onclick="openModalWakeupCall();">Wake Up Call</button>
+        <button class="mui-button mui-button-new" id="waitlistButton" onclick="openModalWaitList();">Wait List</button>
+        <button class="mui-button mui-button-new" id="recaButton" onclick="openModalRegistrationCard();">Regis.Card</button>
+        <button class="mui-button mui-button-new" id="sharesButton" onclick="openModalShare();">Share</button>
+        <button class="mui-button mui-button-new" id="accompanyButton" onclick="openModalAccompanying();">Accompany</button>
+        <button class="mui-button mui-button-new" id="routingButton" onclick="openModalRouting();">Routing</button>
+        <button class="mui-button mui-button-new" id="roommoveButton" onclick="openRoomMove();">Room Move</button>
+        <button class="mui-button mui-button-new" id="messageButton" onclick="openModalMessage();">Message</button>
+        <button class="mui-button mui-button-new" id="deleteButton" onclick="openConfirm();">Delete</button>
+        <button class="mui-button mui-button-new" id="fixchaButton" onclick="openModalFixedCharges();">Fixed Charges</button>
+        <button class="mui-button mui-button-new" id="cancelButton" onclick="openModalCancel();">Cancel</button>
+    </div>
 
 </div>
 
@@ -1073,7 +1089,7 @@
 
     $(document).ready(async function () {
         await window.initDateInputs();
-
+      
         checkEdit = false;
         var result = @Json.Serialize(ViewBag.Reservation);
         console.log(result);
@@ -1084,6 +1100,7 @@
 
             checkEdit = true;
             idReservation = result.id;
+              showButton(result);
             await setUpReservation(result);
             $('#btnOption').show();
             $('#btnClear').hide();
@@ -1098,7 +1115,7 @@
 
 
     async function setUpReservation(result) {
-
+           
         let arrivalDate = $('#arrival').val();
         let departureDate = $('#departure').val();
         let txtDob = $('#txtDob').val();
@@ -1256,6 +1273,7 @@
 
 
         getItemInvetory(result.id);
+     
     }
     function intToHexColor(colorInt) {
         // Chuyển số âm thành số không dấu 32-bit
@@ -1940,6 +1958,55 @@
         calculateNet($('#arrival').val(), $('#departure').val(), 0,
             $('#txtRoomType').val(), 'VND', 0, 0, cleanValue, '', cleanValueDiscountPercent, cleanValueDiscountAmount);
     });
+     function showButton() {
+     
+        $.ajax({
+            url: '/Reservation/ReservationOptions',
+            type: 'get',
+            dataType: 'json',
+            data: {
+                id:idReservation
+            },
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+               console.log(result);
+                applyButtonVisibility(result);
+            },
+            error: function (xhr, statusText, err) {
+                if (xhr.status == 401) {
+                    sessionTimeout();
+                }
+            },
+
+        });
+
+    }
+
+    function applyButtonVisibility(result) {
+
+        const map = {
+            addOn: "addonButton",
+            billing: "billingButton",
+            packageOption: "packageButton",
+            depositCancelation: "depositButton",
+            wakeUpCall: "wucButton",
+            waitList: "waitlistButton",
+            registerCard: "recaButton",
+            shares: "sharesButton",
+            accompany: "accompanyButton",
+            routing: "routingButton",
+            roomMove: "roommoveButton",
+            messages: "messageButton",
+            del: "deleteButton",
+            fixedCharges: "fixchaButton",
+            cancel: "cancelButton"
+        };
+
+        Object.entries(map).forEach(([key, id]) => {
+            $("#" + id).toggle(!!result[key]);
+        });
+    }
     function SaveReservation(type) {
 
         let WalkIn = "0";
