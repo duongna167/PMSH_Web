@@ -1,9 +1,7 @@
 ﻿window.ValidationAdapter = (function () {
 
     function findFieldContainer($el) {
-        return $el.closest(
-            ".form-group, .form-floating, .input-group, .col, [class^='col-']"
-        );
+        return $el.closest(".col-12, .col, [class^='col-'], .row");
     }
     function apply(errors, formSelector) {
         clear(formSelector);
@@ -11,8 +9,16 @@
         errors.forEach(err => {
             if (err.field === "general") return;
 
-            const $field = $(`${formSelector} [name='${err.field}']`);
-            if ($field.length === 0) return;
+            // Ưu tiên tìm theo name, nếu không thấy thì tìm theo id
+            let $field = $(`${formSelector} [name='${err.field}']`);
+            if ($field.length === 0) {
+                $field = $(`${formSelector} #${err.field}`);
+            }
+
+            if ($field.length === 0) {
+                console.warn("ValidationAdapter: Không tìm thấy field:", err.field);
+                return;
+            }
 
             // TomSelect
             if ($field[0].tomselect) {
@@ -30,12 +36,20 @@
     function markInputInvalid($el, message) {
         $el.addClass("is-invalid");
 
+        if ($el.parent().hasClass("input-group")) {
+            $el.parent().addClass("is-invalid");
+        }
+
         const $container = findFieldContainer($el);
+        // Tìm tất cả invalid-feedback bên trong container đó
         const $feedback = $container.find(".invalid-feedback").first();
 
-        if ($feedback.length === 0) return;
-
-        $feedback.text(message).show();
+        if ($feedback.length > 0) {
+            $feedback.text(message).show();
+        } else {
+            // Backup: Nếu không thấy trong container, tìm sibling ngay sau nó
+            $el.siblings(".invalid-feedback").text(message).show();
+        }
     }
 
     function markTomSelectInvalid($el, message) {

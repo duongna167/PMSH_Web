@@ -5,6 +5,34 @@
 }
 
 <style>
+    /* Đẩy lề phải cho cột Total để không bị giáp lề */
+    .grid-column-total {
+        padding-right: 15px !important;
+        font-weight: bold;
+        color: #000;
+    }
+
+    /* Đảm bảo toàn bộ các ô căn lề phải có khoảng cách an toàn */
+    .dx-datagrid-rowsview .dx-row > td {
+        padding-right: 8px !important;
+    }
+
+    .dx-loadpanel-content {
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    .dx-overlay-shader {
+        background: rgba(255,255,255,0.55) !important;
+    }
+
+    .custom-loader-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
     /* Tiêu đề bảng */
     .table-header-custom {
         font-size: 14px;
@@ -16,6 +44,18 @@
         display: flex;
         align-items: center;
         gap: 8px;
+    }
+
+    /* Cố định chiều cao hàng chứa 2 bảng trên */
+    .row-top-grids {
+        height: 300px !important; /* Điều chỉnh con số này theo ý bạn */
+        flex-shrink: 0; /* Không cho phép hàng này bị bóp nhỏ lại */
+    }
+
+    /* Hàng chứa bảng Reservation bên dưới sẽ tự chiếm phần còn lại */
+    .row-bottom-resv {
+        flex-grow: 1;
+        min-height: 0;
     }
 
     .grid-wrapper {
@@ -86,7 +126,7 @@
                                     <select id="allot_search_type" class="tomselect-custom w-100">
                                         @foreach (var g in ViewBag.AllotTypeList)
                                         {
-                                            <option value="@g.ID">@g.Code-@g.Name</option>
+                                            <option value="@g.ID">@g.Code</option>
                                         }
                                     </select>
                                 </div>
@@ -128,44 +168,34 @@
 
                     </div>
 
-                    <div class="gridContainer flex-grow-1 position-relative py-2">
-                        <div class="container-fluid px-0 h-100">
-                            <div class="flex-grow-1 d-flex flex-column overflow-hidden h-100">
-                                <div class="row g-3 mb-3 flex-grow-1" style="min-height: 0; height:180px;">
-                                    <div class="col-md-7 d-flex flex-column h-100">
-                                        <div class="table-header-custom flex-shrink-0">
-                                            Allotment Information
-                                        </div>
-                                        <div class="grid-wrapper flex-grow-1">
-                                            <div id="allot_search_gridAllotInfor" class="h-100"></div>
-                                        </div>
-                                    </div>
+                    <div class="gridContainer flex-grow-1 d-flex flex-column position-relative py-2">
+                        <div class="container-fluid px-0 h-100 d-flex flex-column">
 
-                                    <div class="col-md-5 d-flex flex-column h-100">
-                                        <div class="table-header-custom flex-shrink-0">
-                                            Allotment Detail
-                                        </div>
-                                        <div class="grid-wrapper flex-grow-1">
-                                            <div id="allot_search_gridAllotDetail" class="h-100"></div>
-                                        </div>
+                            <div class="row g-3 mb-3 row-top-grids">
+                                <div class="col-md-6 d-flex flex-column h-100">
+                                    <div class="table-header-custom flex-shrink-0">Allotment Information</div>
+                                    <div class="grid-wrapper">
+                                        <div id="allot_search_gridAllotInfor"></div> 
                                     </div>
                                 </div>
 
-                                <div class="row flex-grow-1" style="min-height: 0;">
-                                    <div class="col-12 d-flex flex-column h-100">
-                                        <div class="table-header-custom flex-shrink-0">
-                                            Reservation
-                                        </div>
-                                        <div class="grid-wrapper flex-grow-1" style="min-height: 0;">
-                                            <div id="allot_search_gridReservation" class="h-100"></div>
-                                        </div>
+                                <div class="col-md-6 d-flex flex-column h-100">
+                                    <div class="table-header-custom flex-shrink-0">Allotment Detail</div>
+                                    <div class="grid-wrapper">
+                                        <div id="allot_search_gridAllotDetail"></div> 
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div id="allot_search_loading" style="display:none; position: absolute;top: 0;left: 0;width: 100%;height: 100%;background: rgba(255,255,255,0.7);z-index: 9999;align-items: center;justify-content: center;">
-                            <div class="spinner-border text-primary" role="status"></div>
+                            <div class="row row-bottom-resv">
+                                <div class="col-12 d-flex flex-column h-100">
+                                    <div class="table-header-custom flex-shrink-0">Reservation</div>
+                                    <div class="grid-wrapper">
+                                        <div id="allot_search_gridReservation"></div> 
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 
@@ -176,166 +206,113 @@
 </div>
 
 <!-- Modal Popup for New Item -->
-<div class="modal fade" id="allot_search_itemModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="allot_search_label" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+<div class="modal fade" id="allot_setup_itemModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="allot_setup_label" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="allot_search_label">Allotment Setup</h5>
+                <h5 class="modal-title" id="allot_setup_label">Allotment Setup</h5>
             </div>
 
             <div class="modal-body">
 
                 <!-- Action -->
-                <div class="py-2 d-flex gap-2 flex-column flex-sm-row">
-                    <button type="button"
-                            id="ooos_btnSaveItem"
-                            class="mui-button mui-button-new w-sm-auto">
-                        Save
-                    </button>
-                    <button type="button"
-                            class="mui-button mui-button-new w-sm-auto"
-                            data-bs-dismiss="modal">
-                        Close
-                    </button>
+                <div class="py-2">
+                    <button id="allot_setup_btnSaveItem" class="mui-button mui-button-save">Save</button>
+                    <button data-bs-dismiss="modal" class="mui-button mui-button-close">Close</button>
+
                 </div>
 
-                <form id="ooos_formContainer">
+                <form id="allot_setup_formContainer">
                     <div class="container-fluid px-2">
 
-                        <input type="hidden" id="ooos_id" name="id" value="0" />
+                        <input type="hidden" id="allot_setup_id" name="id" value="0" />
 
                         <div class="row g-4">
 
-                            <!-- LEFT COLUMN -->
-                            <div class="col-12 col-lg-7">
+                            <div class="col-12 col-lg-9">
 
-                                <!-- Type -->
+                                <!-- Code -->
                                 <div class="row mb-3 align-items-center">
-                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
-                                        Type
+                                    <div class="col-12 col-md-4 fw-semibold mb-1 mb-md-0 text-end">
+                                        Code <span class="text-danger">*</span>
                                     </div>
-                                    <div class="col-12 col-md-8">
-                                        <div class="d-flex gap-4">
-                                            <div class="form-check m-0">
-                                                <input type="radio" name="oooOrS" id="ooos_ooo" value="1">
-                                                <label class="form-check-label">OOO</label>
-                                            </div>
-                                            <div class="form-check m-0">
-                                                <input type="radio" name="oooOrS" id="ooos_oos" value="2" checked>
-                                                <label class="form-check-label">OOS</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Return Status -->
-                                <div class="row mb-3 align-items-center">
-                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
-                                        Return Status
-                                    </div>
-                                    <div class="col-12 col-md-8">
-                                        <select id="ooos_rtStatus"
-                                                name="rtStatus"
-                                                class="tomselect-custom w-100">
-                                            <option value="2">Dirty</option>
-                                            <option value="1">Clean Non-Checked</option>
-                                            <option value="3">Pickup</option>
-                                            <option value="4">Clean</option>
-                                        </select>
-                                        <div class="invalid-feedback"></div>
-                                    </div>
-                                </div>
-
-                                <!-- Reason -->
-                                @* <div class="row mb-3 align-items-center">
-                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
-                                        Reason
-                                    </div>
-                                    <div class="col-12 col-md-8">
-                                        <select id="ooos_comment"
-                                                name="comment"
-                                                class="tomselect-custom w-100">
-                                            @foreach (var dpm in ViewBag.CommentList)
-                                            {
-                                                <option value="@dpm.ID" data-desc="@dpm.Description">@dpm.Code - @dpm.Description</option>
-                                            }
-                                        </select>
-                                        <div class="invalid-feedback"></div>
-                                    </div>
-                                </div> *@
-
-                                <!-- Reason Note -->
-                                <div class="row mb-3 align-items-center">
-                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
-                                        Reason Note
-                                    </div>
-                                    <div class="col-12 col-md-8">
+                                    <div class="col-12 col-md-8 text-start">
                                         <input type="text"
-                                               id="ooos_txtReasonDesc"
-                                               name="txtReasonDesc"
+                                               id="allot_setup_code"
+                                               name="allot_setup_code"
                                                class="form-control form-control-sm" />
                                         <div class="invalid-feedback"></div>
                                     </div>
                                 </div>
 
-                                <!-- Room Select -->
-                                @* <div class="row mb-3 align-items-center">
-                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
-                                        Room Select
+                                <!-- Name -->
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0 text-end">
+                                        Name
                                     </div>
                                     <div class="col-12 col-md-8">
-                                        <select id="ooos_roomSelect"
-                                                name="roomSelect"
-                                                class="tomselect-custom w-100"
-                                                multiple>
-                                            @foreach (var u in ViewBag.RoomList)
-                                            {
-                                                <option value="@u.ID">@u.RoomNo</option>
-                                            }
-                                        </select>
+                                        <input type="text"
+                                               id="allot_setup_name"
+                                               name="allot_setup_name"
+                                               class="form-control form-control-sm" />
                                         <div class="invalid-feedback"></div>
                                     </div>
-                                </div> *@
+                                </div>
 
-                            </div>
-
-                            <!-- RIGHT COLUMN -->
-                            <div class="col-12 col-lg-5">
-
-                                <!-- From -->
+                                <!-- Profile -->
                                 <div class="row mb-3 align-items-center">
-                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
-                                        From
+                                    <div class="col-12 col-md-4 fw-semibold mb-1 mb-md-0 text-end">
+                                        Profile <span class="text-danger">*</span>
                                     </div>
                                     <div class="col-12 col-md-8">
-                                        <div data-date-input
-                                             data-format="DD/MM/YYYY"
-                                             business-date
-                                             data-name="ooos_itemFromDate"
-                                             name="itemFromDate">
-                                            <input type="text"
-                                                   class="date-ui form-control form-control-sm"
-                                                   placeholder="dd/MM/yyyy" />
+                                        <div class="input-group input-group-sm">
+                                            <input id="allot_setup_profileID" type="hidden" />
+                                            <input id="allot_setup_profileName"
+                                                   class="form-control"
+                                                   placeholder="..."
+                                                   readonly />
+                                            <button class="btn btn-outline-secondary"
+                                                    type="button"
+                                                    onclick="allot_search_Module.openProAllotModal()"
+                                                    data-tooltip="Search Profile">
+                                                <i class="fa-solid fa-arrow-down text-dark"></i>
+                                            </button>
                                         </div>
                                         <div class="invalid-feedback"></div>
                                     </div>
                                 </div>
 
-                                <!-- To -->
+                                <!-- Market -->
                                 <div class="row mb-3 align-items-center">
-                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0">
-                                        To
+                                    <div class="col-12 col-md-4 fw-bold mb-1 mb-md-0 text-end">
+                                        Market
                                     </div>
                                     <div class="col-12 col-md-8">
-                                        <div data-date-input
-                                             data-format="DD/MM/YYYY"
-                                             business-date
-                                             data-name="ooos_itemToDate"
-                                             name="itemToDate">
-                                            <input type="text"
-                                                   class="date-ui form-control form-control-sm"
-                                                   placeholder="dd/MM/yyyy" />
-                                        </div>
+                                        <select id="allot_setup_marketID"
+                                                name="allot_setup_marketID"
+                                                class="tomselect-custom w-100">
+                                            @foreach (var u in ViewBag.MarketList)
+                                            {
+                                                <option value="@u.ID">@u.Code - @u.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Allotment Type -->
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-12 col-md-4 fw-semibold mb-1 mb-md-0 text-end">
+                                        All.Type <span class="text-danger">*</span>
+                                    </div>
+                                    <div class="col-12 col-md-8">
+                                        <select id="allot_setup_type"
+                                                name="allot_setup_type"
+                                                class="tomselect-custom w-100">
+                                            @foreach (var u in ViewBag.AllotTypeList)
+                                            {
+                                                <option value="@u.ID">@u.Code - @u.Name</option>
+                                            }
+                                        </select>
                                         <div class="invalid-feedback"></div>
                                     </div>
                                 </div>
@@ -371,7 +348,10 @@
             scrolling: {
                 mode: "standard",
                 showScrollbar: "always",
-                useNative: true
+                useNative: false
+            },
+            loadPanel: {
+                enabled: false
             },
             filterRow: { visible: true, applyFilter: "auto" }
         },
@@ -397,6 +377,24 @@
                 ]);
                 self.reloadGrid();
 
+                $('#allot_setup_itemModal').on('hidden.bs.modal', function () {
+                    ValidationAdapter.clear("#allot_setup_formContainer");
+                });
+
+                 // events input
+                $("#allot_setup_formContainer").on("input", "input, textarea", function () {
+                    if ($(this).hasClass("is-invalid")) {
+                        ValidationAdapter.clearField(this);
+                    }
+                });
+
+                // event tomselect
+                $("#allot_setup_formContainer").on("change", "select.tomselect-custom", function () {
+                    if (this.tomselect) {
+                        ValidationAdapter.clearField(this);
+                    }
+                });
+
             };
 
         },
@@ -406,7 +404,7 @@
             $("#allot_search_btnView").on("click", () => self.reloadGrid());
             $("#allot_search_btnNew").on("click", () => self.openNewModal());
             $("#allot_search_btnEdit").on("click", () => self.openEditModal());
-            $("#allot_search_btnSaveItem").on("click", () => self.saveBusinessBlock());
+            $("#allot_setup_btnSaveItem").on("click", () => self.saveAllotment());
             $("#allot_search_btnDelete").on("click", () => self.confirmDelete());
             $("#allot_search_btnExportExcel").on("click", () => self.exportToExcel());
             $("#allot_search_btnHistory").on("click", () => self.openModalHistory());
@@ -430,20 +428,34 @@
                 zone: (getTomSelectData("#allot_search_zone") || []).map(x => x.value).join(","),
                 isDefault: $('#allot_search_default').is(':checked') ? 1 : 0
             };
-            $("#allot_search_loading").show();
+
+            self.renderDetailGrid([]);
+            self.renderResvGrid([]);
+
+            // $("#allot_search_loading").show();
             $.ajax({
                 url: '/Allotment/GetAllotmentSearch',
                 type: 'GET',
                 data: filterData,
                 success: function (data) {
                     self.renderMainGrid(data);
-                    // self.renderMainGrid1(data);
-                    // self.renderMainGrid2(data);
-                    $("#allot_search_loading").hide();
+
+                    if (data && data.length > 0) {
+                        const firstRow = data[0];
+                        self.selectedRowData = firstRow; 
+
+                        self.fetchAllotmentDetail(firstRow.id);
+                        self.fetchReservation(firstRow.id, "");
+                    } else {
+                        self.renderDetailGrid([]);
+                        self.renderResvGrid([]);
+                    }
+
+                    // $("#allot_search_loading").hide();
                 },
                 error: function (xhr, status, error) {
                     showToast("Error", "Unable to load data", false);
-                    $("#allot_search_loading").hide();
+                    // $("#allot_search_loading").hide();
                 }
             });
         },
@@ -483,283 +495,198 @@
                             displayExpr: "Name"
                         }
                     },
-                    { dataField: "cuttOfDay", caption: "Cutt.Day",width: 90 },
+                    { dataField: "cuttOfDay", caption: "Cutt.Day",width: 70 },
                     { dataField: "cuttOfDate", caption: "Cutt.Date", dataType: "date", format: "dd/MM/yyyy",  width: 110 },
-                    { dataField: "createBy", caption: "Created By", width: 120 },
+                    { dataField: "createBy", caption: "Created By", width: 90 },
                     { dataField: "createDate",  caption: "Created Date", dataType: "date", format: "dd/MM/yyyy hh:mm", width: 110 }, 
-                    { dataField: "updateBy", caption: "Updated By", width: 120 },
+                    { dataField: "updateBy", caption: "Updated By", width: 90 },
                     { dataField: "updateDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy hh:mm", width: 110 }
                 ],
 
                 onSelectionChanged: function (e) {
-                    self.selectedRowData = e.selectedRowsData[0] || null;
+                    const selectedRow = e.selectedRowsData[0];
+                    if (selectedRow) {
+                        self.selectedRowData = selectedRow;
+
+                        self.resetDetailGrids();
+
+                        self.fetchAllotmentDetail(selectedRow.id);
+                        self.fetchReservation(selectedRow.id, "");
+                    }
                 }
             });
 
         },
 
-        renderMainGrid1: function (data) {
+        fetchAllotmentDetail: function(allotmentId) {
             const self = this;
-            self.initGrid("#allot_search_gridAllotDetail",{
-                dataSource: data,
-                columns: [
-                    { dataField: "id", visible:false},
-                    { dataField: "roomID", visible:false},
-                    { dataField: "reasonID", visible:false},
-                    { dataField: "code", caption: "Code", width: 90 },
-                    { dataField: "roomNo", caption: "Room No", alignment: "right" , width: 60 },
-                    { dataField: "roomType", caption: "Room Type", width: 70 },
-                    { dataField: "floor", caption: "Floor", alignment: "right",width: 50 },
-                    { dataField: "zone", caption: "Zone", width: 50 },
-                    { dataField: "fromDate", caption: "From Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
-                    { dataField: "toDate", caption: "To Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
-                    { dataField: "noOfNights", caption: "Nights", width: 50 },
-                    { dataField: "reason", caption: "Reason", width: 150 },
-                    { dataField: "status", caption: "Status", width: 50 },
-                    { dataField: "userCreate", caption: "User Create", width: 100 },
-                    { dataField: "createdDate", caption: "Create Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
-                    { dataField: "userUpdate", caption: "User Update", width: 100 },
-                    { dataField: "updatedDate", caption: "Update Date", width: 80, dataType: "date", format: "dd/MM/yyyy" }
-                ],
+            const isHistory = $("#allot_search_history").is(":checked");
 
-                onSelectionChanged: function (e) {
-                    self.selectedRowData = e.selectedRowsData[0] || null;
-                }
-            });
-
-        },
-        renderMainGrid2: function (data) {
-            const self = this;
-            self.initGrid("#allot_search_gridReservation",{
-                dataSource: data,
-                columns: [
-                    { dataField: "id", visible:false},
-                    { dataField: "roomID", visible:false},
-                    { dataField: "reasonID", visible:false},
-                    { dataField: "code", caption: "Code", width: 90 },
-                    { dataField: "roomNo", caption: "Room No", alignment: "right" , width: 60 },
-                    { dataField: "roomType", caption: "Room Type", width: 70 },
-                    { dataField: "floor", caption: "Floor", alignment: "right",width: 50 },
-                    { dataField: "zone", caption: "Zone", width: 50 },
-                    { dataField: "fromDate", caption: "From Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
-                    { dataField: "toDate", caption: "To Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
-                    { dataField: "noOfNights", caption: "Nights", width: 50 },
-                    { dataField: "reason", caption: "Reason", width: 150 },
-                    { dataField: "status", caption: "Status", width: 50 },
-                    { dataField: "userCreate", caption: "User Create", width: 100 },
-                    { dataField: "createdDate", caption: "Create Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
-                    { dataField: "userUpdate", caption: "User Update", width: 100 },
-                    { dataField: "updatedDate", caption: "Update Date", width: 80, dataType: "date", format: "dd/MM/yyyy" }
-                ],
-
-                onSelectionChanged: function (e) {
-                    self.selectedRowData = e.selectedRowsData[0] || null;
-                }
-            });
-
-        },
-
-        fetchHistoryData: function () {
-            const self = this;
-
-            $("#loadingSpinner").show();
-
-            $.ajax({
-                url: "/RoomManagement/GetRoomStatusHistoryOOO",
-                type: "GET",
-                data: {
-                    roomNo: $("#ooos_historyRoom").val(),
-                    userName: $("#ooos_historyUser").val(),
-                    fromDate: $("#ooos_historyFromDate").val() || dateSystem,
-                    toDate: $("#ooos_historyToDate").val() || dateSystem
-                },
-                success: function (data) {
-                    self.renderHistoryGrid(data);
-                    // self.renderHistoryGrid1(data);
-                    $("#loadingSpinner").hide();
-                },
-                error: function () {
-                    showToast("Error", "Lỗi khi load dữ liệu history", false);
-                    $("#loadingSpinner").hide();
-                }
+            $.get('/Allotment/GetAllotmentDetail', { allotmentId: allotmentId, isHistoryChecked: isHistory }, function(res) {
+                self.renderDetailGrid(res.data, res.roomTypeColumns);;
             });
         },
 
-        renderHistoryGrid: function (data) {
+        renderDetailGrid: function (data, roomTypeColumns) {
             const self = this;
+
+            // Định nghĩa các cột cố định ban đầu
+            let dynamicColumns = [
+                { dataField: "From Date", caption: "From Date", width: 90 },
+                { dataField: "To Date", caption: "To Date", width: 90 },
+                { dataField: "Stage", caption: "Stage", width: 70 },
+                { dataField: "CutOff", caption: "CutOff", width: 60 }
+            ];
+
+            // Thêm các cột RoomType dựa trên danh sách từ Server (luôn có dù data rỗng)
+            if (roomTypeColumns) {
+                roomTypeColumns.forEach(colName => {
+                    dynamicColumns.push({
+                        dataField: colName,
+                        caption: colName,
+                        width: 60,
+                        alignment: "right"
+                    });
+                });
+            }
+
+            // Thêm cột Total cuối cùng và xử lý lề (padding)
+            dynamicColumns.push({
+                dataField: "Total",
+                caption: "Total",
+                width: 70,
+                alignment: "right",
+                cssClass: "grid-column-total"
+            });
 
             self.initGrid("#allot_search_gridAllotDetail", {
                 dataSource: data,
+                columns: dynamicColumns,
+                columnAutoWidth: false,
+                wordWrapEnabled: false
+            });
+        },
+
+        resetDetailGrids: function () {
+            const detailGrid = $("#allot_search_gridAllotDetail").dxDataGrid("instance");
+            const reservationGrid = $("#allot_search_gridReservation").dxDataGrid("instance");
+
+            if (detailGrid) {
+                detailGrid.option("dataSource", []);
+            }
+
+            if (reservationGrid) {
+                reservationGrid.option("dataSource", []);
+            }
+        },
+
+        fetchReservation: function(allotmentId, roomTypeCode) {
+            const self = this;
+            // $("#allot_search_loading").show();
+
+            $.get('/Allotment/GetAllotmentResvSearch', {
+                allotmentId: allotmentId,
+                roomTypeCode: roomTypeCode
+            }, function(res) {
+                self.renderResvGrid(res);
+                // $("#allot_search_loading").hide();
+            }).fail(function() {
+                showToast("Error", "Lỗi khi load danh sách Reservation", false);
+                // $("#allot_search_loading").hide();
+            });
+        },
+
+        renderResvGrid: function (data) {
+            const self = this;
+            self.initGrid("#allot_search_gridReservation", {
+                dataSource: data,
                 columns: [
-                    { dataField: "roomNo", caption: "Room No", width: "10%" },
-                    { dataField: "action", caption: "Action", width: "10%" },
-                    { dataField: "oldValue", caption: "Old Value", width: "30%" },
-                    { dataField: "newValue", caption: "New Value", width: "30%" },
-                    { dataField: "userName", caption: "User", width: "10%" },
-                    { dataField: "changeDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy HH:mm" }
-                ]
+                    { dataField: "reservationID", visible: false },
+                    { dataField: "confNo", caption: "Conf. No", width: 90 },
+                    { dataField: "mg", caption: "MG", width: 40 },
+                    { dataField: "nat", caption: "Nat", width: 60 },
+                    { dataField: "guestName", caption: "Guest Name", width: 180 },
+                    { dataField: "rms", caption: "Rms", width: 50 },
+                    { dataField: "roNo", caption: "Ro. No", width: 70 },
+                    { dataField: "roType", caption: "Ro. Type", width: 80 },
+                    { dataField: "arr", caption: "Arr.", width: 90 },
+                    { dataField: "n", caption: "N", width: 40 },
+                    { dataField: "dep", caption: "Dep.", width: 90},
+                    { dataField: "adults", caption: "A", width: 30},
+                    { dataField: "child", caption: "C", width: 30},
+                    { dataField: "child1", caption: "C1", width: 30},
+                    { dataField: "child2", caption: "C2", width: 30},
+                    { dataField: "status", caption: "Status", width: 100 },
+                    { dataField: "price", caption: "Price", format: "#,##0.##", width: 100 },
+                    { dataField: "priceNet", caption: "PriceNet", format: "#,##0.##", width: 100 },
+                    { dataField: "curr", caption: "Curr.", width: 50 },
+                    { dataField: "packages", caption: "Packages", width: 80 },
+                    { dataField: "marketCode", caption: "Market", width: 100 },
+                    { dataField: "createBy", caption: "CreatedBy", width: 80 },
+                    { dataField: "createDate", caption: "CreateDate", width: 110 },
+                    { dataField: "updateBy", caption: "UpdateBy", width: 80 },
+                    { dataField: "updateDate", caption: "UpdateDate", width: 110 }
+                ],
+                //mở new reservation
+                onRowDblClick: function(e) {
+                    // if (e.data && e.data.ReservationID) {
+                    //     if (typeof openReservationDetail === "function") {
+                    //         openReservationDetail(e.data.ReservationID);
+                    //     }
+                    // }
+                }
             });
         },
 
         openNewModal: function () {
-            $("#ooos_itemModal").modal("show");
-            initDateInputs();
-            $("#ooos_id").val(0);
-            $("#ooos_itemModalLabel").text("New Out of Order/Service");
-            clearMultipleTomSelect(["#ooos_roomSelect", "#ooos_comment"]);
+            $("#allot_setup_itemModal").modal("show");
+            $("#allot_setup_code").prop("disabled",false);
+
+            $("#allot_setup_id").val(0);
+            $("#allot_setup_label").text("Allotment Setup");
+            $("#allot_setup_formContainer")[0].reset();
+            clearMultipleTomSelect(["#allot_setup_marketID", "#allot_setup_type"]);
         },
 
         openEditModal: function (){
             const self = this;
-            initDateInputs();
             if (!self.selectedRowData) {
-                showToast("Warning", "Please select a row first!", false);
+                showToast("Warning", "Please select a row to edit!", false);
                 return;
             }
-            $("#ooos_itemModalLabel").text("Update Out of Order/Service");
+            $("#allot_setup_label").text("Allotment Setup");
+            $("#allot_setup_code").prop("disabled",true);
             self.fillEditForm(self.selectedRowData);
-
-            $("#ooos_itemModal").modal("show");
+            $("#allot_setup_itemModal").modal("show");
         },
 
-        openModalHistory: function () {
-            const self = this;
-            initDateInputs();
-
-            $("#ooos_historyModal").modal("show");
-
-            self.fetchHistoryData();
-        },
-
-        openProSearchModalTest: function() {
+        saveAllotment: function () { 
             const self = this;
 
-            // 1. Tạo một container riêng cho Profile Search nếu chưa có
-            if ($("#profileSearchContainer").length === 0) {
-                $("body").append('<div id="profileSearchContainer"></div>');
-            }
-            const $subContainer = $("#profileSearchContainer");
-
-            const url = '/Profile/SearchProfile';
-            const modalId = 'pro_search_mainModal';
-
-            // 2. Tải modal vào container riêng này
-            $subContainer.load(url, function () {
-                // Khởi tạo Module Profile
-                pro_search_Module.init(function(selectedData) {
-                    console.log("Dữ liệu nhận được:", selectedData);
-
-                    // 3. Gán dữ liệu vào Allotment
-                    $("#allot_search_profileName").val(selectedData.account);
-                    $("#allot_search_profileId").val(selectedData.id);
-
-                    // 4. Đóng modal Profile bằng tay để kiểm soát
-                    const modalEl = document.getElementById(modalId);
-                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
-                    if (modalInstance) modalInstance.hide();
-
-                    // 5. Quan trọng: Khôi phục trạng thái cho Modal Allotment (cha)
-                    setTimeout(() => {
-                        $('body').addClass('modal-open');
-                        $('.modal-backdrop').not(':last').remove(); // Xóa backdrop thừa nếu có
-                    }, 400);
-                });
-
-                // Hiển thị modal Profile
-                const modalEl = document.getElementById(modalId);
-                const modalInstance = new bootstrap.Modal(modalEl);
-                modalInstance.show();
-
-                // Dọn dẹp container khi modal Profile đóng hẳn
-                modalEl.addEventListener('hidden.bs.modal', function () {
-                    $subContainer.empty();
-                });
-            });
-        },
-
-        openProSearchModal: function() {
-            // Gọi hàm global từ Layout
-            openProSearch((selectedData) => {
-                // 1. Điền dữ liệu
-                $("#allot_search_profileName").val(selectedData.account);
-                $("#allot_search_profileId").val(selectedData.id);
-
-                // Modal Allotment (cha) sẽ TỰ ĐỘNG hiển thị lại vì nó nằm ở container khác
-            });
-        },
-
-        fillEditForm: function (data) {
-            $("#ooos_id").val(data.id);
-            const statusVal = data.status === "OOO" ? "1" : "2";
-            $(`input[name='oooOrS'][value='${statusVal}']`).prop("checked", true);
-
-            setTomSelectValue("#ooos_roomSelect", data.roomID);
-            setTomSelectValue("#ooos_rtStatus", data.returnStatusID);
-            setTomSelectValue("#ooos_comment", data.reasonID);
-            $("#ooos_txtReasonDesc").val(data.reason || "");
-
-            UI.setHiddenDate("ooos_itemFromDate", data.fromDate);
-            UI.setHiddenDate("ooos_itemToDate", data.toDate);
-
-        },
-
-        saveBusinessBlock: function () {
-            const self = this;
-
-            const loginName = (localStorage.getItem("Loginname") || "")
-            .trim()
-            .replace(/^"(.*)"$/, '$1');
-            const loginUser = parseInt(localStorage.getItem("userID")) || 0;
-
-            const roomSelectData = getTomSelectData("#ooos_roomSelect") || [];
-
-            if (!roomSelectData.length) {
-                ValidationAdapter.apply([
-                    { field: "roomSelect", message: "Haven't selected a room yet!" }
-                ], "#ooos_formContainer");
-
-                showToast("Warning", "Check for incorrect input fields.", false);
-                return;
-            }
-
-            const payload = roomSelectData.map(r => ({
-                id: parseInt($("#ooos_id").val() || 0),
-
-                fromDateOOO: $("#ooos_itemFromDate").val() || dateSystem,
-                toDateOOO: $("#ooos_itemToDate").val() || dateSystem,
-
-                reasonID: parseInt(toBackendValue(getTomSelectData("#ooos_comment"), "value") || 0),
-                reasonNote: $("#ooos_txtReasonDesc").val() || "",
-
-                roomID: parseInt(r.value),
-                roomNo: r.text,
-
-                UserInsertID: loginUser,
-                UserUpdateID: loginUser,
-                ReturnStatus: parseInt(toBackendValue(getTomSelectData("#ooos_rtStatus"), "value") || 0),
-                OOOStatus: parseInt($("input[name='oooOrS']:checked").val() || 0),
-                CutOffDate: $("#ooos_itemFromDate").val() || dateSystem
-            }));
+            const payload = {
+                id: parseInt($("#allot_setup_id").val() || 0),
+                code: $("#allot_setup_code").val(),
+                allotmentName: $("#allot_setup_name").val(),
+                profileID: parseInt($("#allot_setup_profileID").val() || 0),
+                marketID: parseInt(toBackendValue(getTomSelectData("#allot_setup_marketID"), "value") || 0),
+                allotmentTypeID: parseInt(toBackendValue(getTomSelectData("#allot_setup_type"), "value") || 0)
+            };
 
             $.ajax({
-                url: "/RoomManagement/SaveBusinessBlock",
+                url: "/Allotment/SaveAllotment",
                 method: "POST",
                 contentType: "application/json",
                 data: JSON.stringify(payload),
                 success: function (res) {
                     if (res.success) {
                         showToast("Success", res.message, true);
-                        $("#ooos_itemModal").modal("hide");
-                        self.reloadGrid();
+                        $("#allot_setup_itemModal").modal("hide");
+                        self.reloadGrid(); 
                     } else {
-
-                        // nếu có validation errors
                         if (res.errors && res.errors.length > 0) {
-                            ValidationAdapter.apply(res.errors, "#ooos_formContainer");
-                            showToast("Warning", "Check for incorrect input fields.", false);
-                        }
-                        else {
-                            // nếu là lỗi exception
+                            ValidationAdapter.apply(res.errors, "#allot_setup_formContainer");
+                            showToast("Warning", "Please check your input *", false);
+                        } else {
                             showToast("Error", res.message || "Something went wrong.", false);
                         }
                     }
@@ -770,35 +697,41 @@
             });
         },
 
-        confirmDelete: function() {
+        fillEditForm: function (data) {
             const self = this;
-            if (!self.selectedRowData) {
-                showToast("Warning","Please select a line to delete.", false);
-                return;
-            }
+            
+            $("#allot_setup_id").val(data.id);
+            $("#allot_setup_code").val(data.code);
+            $("#allot_setup_name").val(data.allotmentName);
 
-            if (!confirm("Are you sure you want to delete this record? This action cannot be undone.")) {
-                return;
-           }
-           $.ajax({
-               url: `/RoomManagement/DeleteBusinessBlock/`+ self.selectedRowData.id,
-               type: "POST",
-               traditional: true,
-               crossDomain: false,
-               headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-               success: function(result){
-                    if(result.success){
-                        self.reloadGrid();
-                        showToast("Success","Delete Successfully!",true);
-                    } else {
-                        self.reloadGrid();
-                        showToast("Error",result.message,false);
-                    }
-               },
-               error: function(){
-                    showToast("Error","Delete failed!" ,false);
-               },
-           });
+            $("#allot_setup_profileID").val(data.profileID);
+            $("#allot_setup_profileName").val(data.accountName);
+
+            setTomSelectValue("#allot_setup_marketID", data.marketID);
+            setTomSelectValue("#allot_setup_type", data.allotmentTypeID);
+
+            // $("#allot_setup_isDefault").prop("checked", data.isDefault === "True" || data.isDefault === true);
+        },
+
+        openProSearchModal: function() {
+            // Gọi hàm global từ Layout
+            openProSearch((selectedData) => {
+
+                $("#allot_search_profileName").val(selectedData.account);
+                $("#allot_search_profileId").val(selectedData.id);
+
+            });
+        },
+
+        openProAllotModal: function() {
+            // Gọi hàm global từ Layout
+            openProSearch((selectedData) => {
+                
+                $("#allot_setup_name").val(selectedData.account);
+                $("#allot_setup_profileName").val(selectedData.account);
+                $("#allot_setup_profileID").val(selectedData.id);
+
+            });
         },
 
         exportToExcel: function () {
@@ -858,13 +791,6 @@
                     saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
                 });
             });
-        },
-
-        getStatusValue: function () {
-            const isOOO = $('#ooos_outofOrder').is(':checked');
-            const isOOS = $('#ooos_outofService').is(':checked');
-            if (isOOO && isOOS) return 0;
-            return isOOO ? 1 : (isOOS ? 2 : 3);
         },
 
         disposeGrid: function (containerId) {
