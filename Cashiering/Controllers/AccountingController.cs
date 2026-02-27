@@ -85,6 +85,29 @@ namespace Cashiering.Controllers
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
+
+        [HttpGet]
+        public IActionResult AccountingOCL()
+        {
+            try
+            {
+
+                DataTable dt = TextUtils.Select("select AccountName, AccountNo from ARAccountReceivable where StatusInactive = 0 and Balances > CreditLimit");
+
+                var result = (from d in dt.AsEnumerable()
+                              select new
+                              {
+                                  AccountName = d["AccountName"]?.ToString(),
+                                  AccountNo = d["AccountNo"]?.ToString(),
+
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
         #endregion
 
         #region DatVP __ Accounting: Add
@@ -134,7 +157,19 @@ namespace Cashiering.Controllers
                               select d.Table.Columns.Cast<DataColumn>()
                                   .ToDictionary(
                                       col => col.ColumnName,
-                                      col => d[col.ColumnName]?.ToString()
+                                      col =>
+                                      {
+                                          var value = d[col.ColumnName];
+
+                                          if (value == DBNull.Value || value == null)
+                                              return null;
+
+                                          // Format ngày dd/MM/yyyy
+                                          if (col.DataType == typeof(DateTime))
+                                              return ((DateTime)value).ToString("dd/MM/yyyy");
+
+                                          return value.ToString();
+                                      }
                                   )).ToList();
                 return Json(result);
             }

@@ -42,7 +42,7 @@ namespace BaseBusiness.Model
         public bool TrackIt { get; set; }
         public bool WaitList { get; set; }
         public bool WakeUpCall { get; set; }
-        public int ItemInv { get; set; }
+        public bool ItemInv { get; set; }
         public bool GroupOptions { get; set; }
         public bool MoreFields { get; set; }
     }
