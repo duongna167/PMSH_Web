@@ -27,7 +27,7 @@ namespace Administration.Controllers
             ViewBag.UserList = listUser;
 
 
-            return View("~/Views/Administration/RateCode/RateCodeUserRight.cshtml");
+            return PartialView("~/Views/Administration/RateCode/RateCodeUserRight.cshtml");
             // Truyền đường dẫn chuẩn vào để tìm đúng
         }
 
@@ -128,7 +128,7 @@ namespace Administration.Controllers
                 );
 
                 if (isDuplicate)
-                    errors.Add(new { field = "user", message ="This user already has permission for this RateCode."});
+                    errors.Add(new { field = "user", message = "This user already has permission for this RateCode." });
 
                 // ===== RETURN ERRORS =====
                 if (errors.Count != 0)
