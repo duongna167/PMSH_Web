@@ -1,802 +1,1008 @@
 @using DevExpress.XtraReports.UI
 
 @{
-    dynamic? listRateCode = @ViewBag.RateCodeList;
-    dynamic? listRateCate = @ViewBag.RateCateList;
-    dynamic? listRoomType = @ViewBag.RoomTypeList;
-    dynamic? listTransaction = @ViewBag.TransactionList;
-    dynamic? listPackage = @ViewBag.PackageList;
+    dynamic? rtCD_listRateCode = @ViewBag.RateCodeList;
+    dynamic? rtCD_listRateCate = @ViewBag.RateCateList;
+    dynamic? rtCD_listRoomType = @ViewBag.RoomTypeList;
+    dynamic? rtCD_listTransaction = @ViewBag.TransactionList;
+    dynamic? rtCD_listPackage = @ViewBag.PackageList;
 }
 
-@*style*@
 <style>
-    .dx-datagrid-headers .dx-header-row td {
-        white-space: pre-line !important;
-        text-align: center;
-        font-size: 11px;
-    }
-
-    .dx-datagrid .dx-data-row td {
-        font-size: 11px !important;
-        padding: 6px 8px !important;
-        text-align: left !important;
-    }
-
-    .dx-datagrid .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default,
-    .dx-datagrid-container .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default {
-        display: none;
-    }
-
-    .filter_wrapper {
-        padding: 18px 0px 0px 14px;
-        border-radius: 8px;
-    }
-
-    .gridContainer {
-        margin: 0px 8px;
-    }
-
-    .button_wrapper {
-        display: flex;
-        column-gap: 12px;
-        margin: 0px 8px;
-    }
-
-    .button_wrapper .fa-solid {
-        margin-right: 5px;
-    }
-
-    .selected {
-        background-color: #4CAF50;
-        color: white;
-    }
-
-    .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
-    }
-
-    .sticky-header label[class*="me-"] {
-        margin-right: .5rem !important;
-    }
-
-    .sticky-header input[type="date"].form-control-sm {
-        font-size: 12px !important;
-        height: calc(1.1em + .2rem + 2px);
-    }
-
-    .sticky-header label {
-        font-size: 12px !important;
-        line-height: 1.2;
-    }
-
-    .tomselect-custom {
-        width: 250px;
-        min-height: 30px;
-        font-size: 0.65rem;
-    }
-
-    .sort-select {
-        max-width: 130px;
-        font-size: 12px;
-        padding: 0.15rem 0.5rem;
-    }
-
-    .sort-select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-image: none !important;
-        padding-right: 10px !important;
-    }
-
-    button:disabled {
-        pointer-events: none;
-        opacity: 0.6;
-        cursor: not-allowed;
-
-    }
-
-    .grid-container {
+    /* local layout only (kept minimal; main pattern is Bootstrap ERP grid) */
+    .rtCD_gridLayout {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        /* 2 cột bằng nhau */
-        grid-template-rows: auto auto;
-        /* 2 hàng */
-        gap: 5px;
-        /* khoảng cách giữa các bảng */
+        grid-template-columns: 1fr 1fr;  /* 2 cột bằng nhau */
+        grid-template-rows: 40vh 40vh;
+        height: 85vh;
         width: 100%;
         box-sizing: border-box;
     }
-
-    /* bảng hàng 1 trái */
-    .grid-left {
-        grid-column: 1;
-        /* cột 1 */
-        background: #fff;
-    }
-
-    /* bảng hàng 1 phải */
-    .grid-top-right {
-        grid-column: 2;
-        /* cột 2 */
-    }
-
-    /* bảng hàng 2 chiếm 2 cột */
-    .grid-bottom {
-        grid-column: 1 / span 2;
-        /* trải rộng 2 cột */
-
-    }
+    .rtCD_gridLeft { grid-column: 1; background: #fff; min-height: 0;  }
+    .rtCD_gridTopRight { grid-column: 2; min-height: 0; }
+    .rtCD_gridBottom { grid-column: 1 / span 2; min-height: 0; }
+    
 </style>
 
-<div class="text-center" id="reportTitle" style="font-size: 20px">Rate Code Detail</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="d-flex align-items-center me-2 gap-2" style="padding:8px">
-        <label class="me-2 mb-0">Rate Code:</label>
+<!-- MAIN MODAL (XL) -->
+<div class="modal fade" id="rtCD_modalMain" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
 
-        <select id="code" class="form-control form-control-sm w-auto">
-            <option value="">-- Rate Code --</option>
-            @foreach (dynamic u in ViewBag.RateCodeList)
-            {
-                <option value="@u.RateCode">@u.RateCode</option>
-            }
-        </select>
-        <label class="me-2 mb-0">Rate Category:</label>
-        <select id="category" class="form-control form-control-sm w-auto">
-            <option value="">-- Select Rate Category --</option>
-            @foreach (dynamic u in ViewBag.RateCateList)
-            {
-                <option value="@u.Code">@u.Code</option>
-            }
-        </select>
-        <label class="me-2 mb-0">Choose type of date:</label>
-        <select id="typeDate" class="form-control form-control-sm w-auto">
-            <option value="0">--Not choose--</option>
-            <option value="1">See date</option>
-        </select>
-        <div class="d-flex align-items-center">
-            <div class="d-flex align-items-center me-3">
-                <label class="me-2 mb-0">From :</label>
-                <input type="date" id="fromDate" name="fromDate" class="form-control form-control-sm w-auto" />
+            <div class="modal-header py-2 bg-light">
+                <h5 class="modal-title fw-bold text-primary" id="rtCD_modalTitle">Rate Code Detail</h5>
             </div>
 
-            <div class="d-flex align-items-center me-3">
-                <label class="me-2 mb-0">To :</label>
-                <input type="date" id="toDate" name="toDate" class="form-control form-control-sm w-auto" />
-            </div>
-        </div>
+            <div class="modal-body">
 
-    </div>
-</div>
-<div>
-    <button id="btnPrint" class="mui-button mui-button-new"> View</button>
-    <button id="btnNew" class="mui-button mui-button-new"> New</button>
-    <button id="btnUpdate" class="mui-button mui-button-edit"> Edit</button>
-    <button id="btnDelete" class="mui-button button-report-delete">
-        Delete</button>
-    <button id="btnExportExcel" class="mui-button mui-button-export" type="button"> Excel</button>
-</div>
-</div>
-<div class="mui-card">
-    <div class="grid-container"><!-- Left Grid: Rate Codes -->
-        <div class="grid-left">
-            <div class="grid-title">Rate Codes</div>
-            <div class="grid-content gridContainer mt-2" id="gridRateCodes"></div>
-        </div>
-
-        <!-- Top Right Grid: Rate Details Grouped -->
-        <div class="grid-top-right">
-            <div class="grid-title">Rate Details Grouped</div>
-            <div class="grid-content gridContainer mt-2" id="gridRateDetailsGrouped"></div>
-        </div>
-
-        <!-- Bottom Right Grid: Details -->
-        <div class="grid-bottom grid-details">
-            <div class="grid-title">Details</div>
-            <div class=" grid-content gridContainer mt-2" id="gridDetails"></div>
-        </div>
-    </div>
-</div>
-<div id="overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999;"></div>
-
-@*Popup Detail*@
-<div id="popupDetail" style="display: none; position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); background: white; 
-            padding: 20px; border-radius: 10px; z-index: 1050; 
-            box-shadow: 0 0 10px rgba(0,0,0,0.3); min-width: 600px; max-width: 700px; 
-            max-height: 700px; overflow-y: auto;">
-
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0" id="popupTitle">Rate Code Detail</h5>
-        <button id="btnClosePopup" onclick="closePopup()" class="btn btn-sm btn-outline-secondary"
-            style="border-radius: 4px;">
-
-        </button>
-    </div>
-
-    <!-- Buttons -->
-    <div class="d-flex justify-content-start mb-3 gap-2">
-        <button id="btnSave" class="mui-button mui-button-new" type="button">
-            Save
-        </button>
-        <button id="btnSaveClose" class="mui-button mui-button-new" type="button">
-            Save and Close
-        </button>
-    </div>
-
-    <!-- Form Body -->
-    <div class="sticky-header bg-white p-2 shadow-sm rounded">
-        <input type="hidden" id="modalDetailId" name="id" value="0" />
-
-        <div class="d-flex flex-wrap gap-4">
-            <!-- Column 1 -->
-            <div class="flex-fill">
-                <h6 class="mb-2">Basic Information</h6>
-
-                <div class="mb-2 d-flex align-items-center">
-                    <label for="txtRateCode" class="me-2 mb-0" style="width: 120px;">Rate Code:</label>
-                    <input type="text" id="txtRateCode" name="rateCode" class="form-control form-control-sm flex-fill"
-                        disabled />
+                <div class="search-filter">
+                    <!-- ACTION BAR -->
+                <div>
+                    <button id="rtCD_btnView" type="button" class="mui-button mui-button-new">View</button>
+                    @* <button id="rtCD_btnNew" type="button" class="mui-button mui-button-new">New</button>
+                    <button id="rtCD_btnEdit" type="button" class="mui-button mui-button-edit">Edit</button> *@
+                    @* <button id="rtCD_btnDelete" type="button" class="mui-button button-report-delete">Delete</button> *@
+                    <button id="rtCD_btnExportExcel" type="button" class="mui-button mui-button-export">Excel</button>
+                    <button id="rtCD_btnClose" type="button" class="mui-button mui-button-new">Close</button>
                 </div>
 
-                <div class="mb-2 d-flex align-items-center">
-                    <label for="selRoomType" class="me-2 mb-0" style="width: 120px;">Room Type:</label>
-                    <select id="selRoomType" name="roomTypeID" class="form-control form-control-sm flex-fill">
-                        <option value="">--Select--</option>
-                        @if (listRoomType != null)
-                        {
-                            @foreach (dynamic u in listRoomType)
-                            {
-                                <option value="@u.ID">@u.Code</option>
-                            }
-                        }
-                    </select>
+                <!-- FILTER (Bootstrap 5 ERP-style: dense grid, right-aligned labels, nested rows, compact spacing) -->
+                <div class="mt-1">
+                    <div class="row g-2">
+
+                        <div class="col-12 col-md-6 col-xl-3">
+                            <div class="row g-1 align-items-center">
+                                <label for="rtCD_code" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Rate Code
+                                </label>
+                                <div class="col-md-8">
+                                    <select id="rtCD_code" name="rtCD_code" class="tomselect-custom">
+                                        <option value=""></option>
+                                        @if (rtCD_listRateCode != null)
+                                        {
+                                            foreach (dynamic u in rtCD_listRateCode)
+                                            {
+                                                <option value="@u.RateCode">@u.RateCode</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6 col-xl-3">
+                            <div class="row g-1 align-items-center">
+                                <label for="rtCD_category" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Category
+                                </label>
+                                <div class="col-md-8">
+                                    <select id="rtCD_category" name="rtCD_category" class="tomselect-custom">
+                                        <option value=""></option>
+                                        @if (rtCD_listRateCate != null)
+                                        {
+                                            foreach (dynamic u in rtCD_listRateCate)
+                                            {
+                                                <option value="@u.Code">@u.Code</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6 col-xl-2">
+                            <div class="row g-1 align-items-center">
+                                <label for="rtCD_typeDate" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Type Date
+                                </label>
+                                <div class="col-md-8">
+                                    <select id="rtCD_typeDate" name="rtCD_typeDate" class="tomselect-custom">
+                                        <option value=""></option>
+                                        <option value="1">See date</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6 col-xl-2">
+                            <div class="row g-1 align-items-center">
+                                <label for="rtCD_fromDateUi" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    From
+                                </label>
+                                <div class="col-md-8">
+                                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="rtCD_fromDate">
+                                        <input id="rtCD_fromDateUi" name="rtCD_fromDateUi"
+                                               type="text" class="date-ui form-control form-control-sm"
+                                               placeholder="dd/mm/yyyy" autocomplete="off" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6 col-xl-2">
+                            <div class="row g-1 align-items-center">
+                                <label for="rtCD_toDateUi" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    To
+                                </label>
+                                <div class="col-md-8">
+                                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="rtCD_toDate">
+                                        <input id="rtCD_toDateUi" name="rtCD_toDateUi"
+                                               type="text" class="date-ui form-control form-control-sm"
+                                               placeholder="dd/mm/yyyy" autocomplete="off" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
                 </div>
 
-                <div class="mb-2 d-flex align-items-center">
-                    <label for="txtBeginDate" class="me-2 mb-0" style="width: 120px;">Begin Date:</label>
-                    <input type="date" id="txtBeginDate" name="beginDate"
-                        class="form-control form-control-sm flex-fill" />
+                <!-- CONTENT -->
+                <div class="flex-grow-1 bg-white position-relative">
+                    <div class="mui-card">
+                        <div class="rtCD_gridLayout">
+
+                            <div class="rtCD_gridLeft">
+                                <div class="fw-bold small">Rate Codes</div>
+                                <div id="rtCD_gridRateCodes" class="gridContainer mt-2"></div>
+                            </div>
+
+                            <div class="rtCD_gridTopRight">
+                                <div class="fw-bold small">Rate Details Grouped</div>
+                                <div id="rtCD_gridRateDetailsGrouped" class="gridContainer mt-2"></div>
+                            </div>
+
+                            <div class="rtCD_gridBottom">
+                                <div class="fw-bold small">Details</div>
+                                <div id="rtCD_gridDetails" class="gridContainer mt-2"></div>
+                            </div>
+
+                        </div>
+                    </div>
                 </div>
 
-                <div class="mb-2 d-flex align-items-center">
-                    <label for="txtEndDate" class="me-2 mb-0" style="width: 120px;">End Date:</label>
-                    <input type="date" id="txtEndDate" name="endDate" class="form-control form-control-sm flex-fill" />
+                <!-- LOADING -->
+                <div id="rtCD_loadingSpinner"
+                    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+                    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+                    height: 100%;display: flex;align-items: center;justify-content: center;">
+                    <div class="spinner-border text-primary"></div>
                 </div>
 
-                <div class="mb-2 d-flex align-items-center">
-                    <label for="selTransaction" class="me-2 mb-0" style="width: 120px;">Transaction:</label>
-                    <select id="selTransaction" name="transactionID" class="form-control form-control-sm flex-fill">
-                        <option value="">--Select--</option>
-                        @if (listTransaction != null)
-                        {
-                            @foreach (dynamic u in listTransaction)
-                            {
-                                <option value="@u.ID">@u.Code</option>
-                            }
-                        }
-                    </select>
-                </div>
-
-                <div class="mb-2 d-flex align-items-center">
-                    <label for="selPackage" class="me-2 mb-0" style="width: 120px;">Package:</label>
-                    <select id="selPackage" name="packageID" class="form-control form-control-sm flex-fill">
-                        <option value="">--Select--</option>
-                        @if (listPackage != null)
-                        {
-                            @foreach (dynamic u in listPackage)
-                            {
-                                <option value="@u.ID">@u.Code</option>
-                            }
-                        }
-                    </select>
-                </div>
-            </div>
-
-            <!-- Column 2 -->
-            <div class="flex-fill">
-                <h6 class="mb-2">Rate Information</h6>
-
-                <div class="mb-2 d-flex align-items-center">
-                    <label for="txtCurrency" class="me-2 mb-0" style="width: 120px;">Currency:</label>
-                    <input type="text" id="txtCurrency" name="currency" class="form-control form-control-sm flex-fill"
-                        placeholder="VND" />
-                </div>
-
-                <div class="mb-2 d-flex align-items-center">
-                    <label for="txtMinLOS" class="me-2 mb-0" style="width: 120px;">Min LOS:</label>
-                    <input type="number" id="txtMinLOS" name="minLOS" class="form-control form-control-sm flex-fill"
-                        min="0" />
-                </div>
-
-                <div class="mb-2 d-flex align-items-center">
-                    <label for="txtMaxLOS" class="me-2 mb-0" style="width: 120px;">Max LOS:</label>
-                    <input type="number" id="txtMaxLOS" name="maxLOS" class="form-control form-control-sm flex-fill"
-                        min="0" />
-                </div>
-
-                <div class="mb-2 d-flex align-items-center">
-                    <label for="txtAmount" class="me-2 mb-0" style="width: 120px;">Amount:</label>
-                    <input type="number" id="txtAmount" name="amount" class="form-control form-control-sm flex-fill"
-                        step="0.01" />
-                </div>
-
-                <div class="mb-2 d-flex align-items-center">
-                    <label for="txtPercentage" class="me-2 mb-0" style="width: 120px;">Percentage:</label>
-                    <input type="number" id="txtPercentage" name="percentage"
-                        class="form-control form-control-sm flex-fill" step="0.01" />
-                </div>
-
-                <div class="mb-2 d-flex align-items-center">
-                    <label for="txtDescription" class="me-2 mb-0" style="width: 120px;">Description:</label>
-                    <input type="text" id="txtDescription" name="description"
-                        class="form-control form-control-sm flex-fill" />
-                </div>
-
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="chkActive" name="active" value="1">
-                    <label class="form-check-label" for="chkActive">Active</label>
-                </div>
             </div>
         </div>
     </div>
 </div>
 
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
+<!-- UPSERT MODAL (XL) -->
+<div class="modal fade" id="rtCD_modalUpsert" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h6 class="modal-title" id="rtCD_upsertTitle">Rate Code Detail</h6>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="d-flex gap-2 mb-2">
+                    <button id="rtCD_btnSave" type="button" class="mui-button mui-button-save">Save</button>
+                    <button id="rtCD_btnSaveClose" type="button" class="mui-button mui-button-save">Save and Close</button>
+                    <button type="button" data-bs-dismiss="modal" class="mui-button mui-button-close">Close</button>
+                </div>
+
+                <div class="mt-1">
+                    <form id="rtCD_form" novalidate>
+                        <input type="hidden" id="rtCD_modalDetailId" name="rtCD_modalDetailId" value="0" />
+
+                        <div class="row g-2">
+
+                            <!-- LEFT COLUMN -->
+                            <div class="col-12 col-lg-6">
+                                <div class="row g-2">
+
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label for="rtCD_txtRateCode" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                Rate Code <span class="text-danger">*</span>
+                                            </label>
+                                            <div class="col-md-8">
+                                                <input type="text" id="rtCD_txtRateCode" name="rtCD_txtRateCode" class="form-control form-control-sm" />
+                                                <div class="invalid-feedback"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label for="rtCD_selRoomType" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                Room Type
+                                            </label>
+                                            <div class="col-md-8">
+                                                <select id="rtCD_selRoomType" name="rtCD_selRoomType" class="form-control form-control-sm">
+                                                    <option value=""></option>
+                                                    @if (rtCD_listRoomType != null)
+                                                    {
+                                                        foreach (dynamic u in rtCD_listRoomType)
+                                                        {
+                                                            <option value="@u.ID">@u.Code</option>
+                                                        }
+                                                    }
+                                                </select>
+                                                <div class="invalid-feedback"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label for="rtCD_txtBeginDate" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                Begin Date <span class="text-danger">*</span>
+                                            </label>
+                                            <div class="col-md-8">
+                                                <input type="date" id="rtCD_txtBeginDate" name="rtCD_txtBeginDate" class="form-control form-control-sm" />
+                                                <div class="invalid-feedback"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label for="rtCD_txtEndDate" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                End Date <span class="text-danger">*</span>
+                                            </label>
+                                            <div class="col-md-8">
+                                                <input type="date" id="rtCD_txtEndDate" name="rtCD_txtEndDate" class="form-control form-control-sm" />
+                                                <div class="invalid-feedback"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label for="rtCD_selTransaction" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                Transaction
+                                            </label>
+                                            <div class="col-md-8">
+                                                <select id="rtCD_selTransaction" name="rtCD_selTransaction" class="form-control form-control-sm">
+                                                    <option value=""></option>
+                                                    @if (rtCD_listTransaction != null)
+                                                    {
+                                                        foreach (dynamic u in rtCD_listTransaction)
+                                                        {
+                                                            <option value="@u.ID">@u.Code</option>
+                                                        }
+                                                    }
+                                                </select>
+                                                <div class="invalid-feedback"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label for="rtCD_selPackage" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                Package
+                                            </label>
+                                            <div class="col-md-8">
+                                                <select id="rtCD_selPackage" name="rtCD_selPackage" class="form-control form-control-sm">
+                                                    <option value=""></option>
+                                                    @if (rtCD_listPackage != null)
+                                                    {
+                                                        foreach (dynamic u in rtCD_listPackage)
+                                                        {
+                                                            <option value="@u.ID">@u.Code</option>
+                                                        }
+                                                    }
+                                                </select>
+                                                <div class="invalid-feedback"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <!-- RIGHT COLUMN -->
+                            <div class="col-12 col-lg-6">
+                                <div class="row g-2">
+
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label for="rtCD_txtCurrency" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                Currency
+                                            </label>
+                                            <div class="col-md-8">
+                                                <input type="text" id="rtCD_txtCurrency" name="rtCD_txtCurrency" class="form-control form-control-sm" placeholder="VND" />
+                                                <div class="invalid-feedback"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label for="rtCD_txtMinLOS" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                Min LOS
+                                            </label>
+                                            <div class="col-md-8">
+                                                <input type="number" id="rtCD_txtMinLOS" name="rtCD_txtMinLOS" class="form-control form-control-sm text-end" min="0" />
+                                                <div class="invalid-feedback"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label for="rtCD_txtMaxLOS" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                Max LOS
+                                            </label>
+                                            <div class="col-md-8">
+                                                <input type="number" id="rtCD_txtMaxLOS" name="rtCD_txtMaxLOS" class="form-control form-control-sm text-end" min="0" />
+                                                <div class="invalid-feedback"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label for="rtCD_txtAmount" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                Amount
+                                            </label>
+                                            <div class="col-md-8">
+                                                <input type="number" id="rtCD_txtAmount" name="rtCD_txtAmount" class="form-control form-control-sm text-end" step="0.01" />
+                                                <div class="invalid-feedback"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label for="rtCD_txtPercentage" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                Percentage
+                                            </label>
+                                            <div class="col-md-8">
+                                                <input type="number" id="rtCD_txtPercentage" name="rtCD_txtPercentage" class="form-control form-control-sm text-end" step="0.01" />
+                                                <div class="invalid-feedback"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label for="rtCD_txtDescription" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                Description
+                                            </label>
+                                            <div class="col-md-8">
+                                                <input type="text" id="rtCD_txtDescription" name="rtCD_txtDescription" class="form-control form-control-sm" />
+                                                <div class="invalid-feedback"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                Active
+                                            </label>
+                                            <div class="col-md-8">
+                                                <div class="form-check mb-0">
+                                                    <input class="form-check-input mt-0" type="checkbox" id="rtCD_chkActive" name="rtCD_chkActive" value="1">
+                                                    <label class="form-check-label" for="rtCD_chkActive">Yes</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
 </div>
+
 <script>
+    const rtCD_Module = (function () {
 
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('toDate').value = today;
-    document.getElementById('fromDate').value = '2000-01-01';
+        let mainModal = null;
+        let upsertModal = null;
 
-    $(document).ready(function () {
-        $("#btnPrint").trigger("click");
-    });
+        let gridRateCodes = null;
+        let gridGrouped = null;
+        let gridDetails = null;
 
-    var selectedRowData = null;
-    var selectedRateCode = null;
-    var selectedRateCodeDetail = null;
+        let selectedRateCodesRow = null;   // from left grid
+        let selectedGroupedRow = null;     // from grouped grid
+        let selectedDetailId = null;       // from bottom grid selection
 
-    function closePopup() {
-        $("#popupDetail").hide();
-        clearForm();
-    }
+        const sel = {
+            modalMain: "#rtCD_modalMain",
+            modalUpsert: "#rtCD_modalUpsert",
 
-    function clearForm() {
-        $("#modalDetailId").val("0");
-        $("#txtRateCode").val("");
-        $("#selRoomType").val("");
-        $("#txtBeginDate").val("");
-        $("#txtEndDate").val("");
-        $("#selTransaction").val("");
-        $("#selPackage").val("");
-        $("#txtCurrency").val("VND");
-        $("#txtMinLOS").val("");
-        $("#txtMaxLOS").val("");
-        $("#txtAmount").val("");
-        $("#txtPercentage").val("");
-        $("#txtDescription").val("");
-        $("#chkActive").prop("checked", false);
-    }
+            btnView: "#rtCD_btnView",
+            btnNew: "#rtCD_btnNew",
+            btnEdit: "#rtCD_btnEdit",
+            btnDelete: "#rtCD_btnDelete",
+            btnExportExcel: "#rtCD_btnExportExcel",
+            btnClose: "#rtCD_btnClose",
 
-    async function RateCodeGroupDataByID(rateCodeID) {
-        try {
+            code: "#rtCD_code",
+            category: "#rtCD_category",
+            typeDate: "#rtCD_typeDate",
+            fromDateUi: "#rtCD_fromDateUi",
+            toDateUi: "#rtCD_toDateUi",
+
+            gridRateCodes: "#rtCD_gridRateCodes",
+            gridGrouped: "#rtCD_gridRateDetailsGrouped",
+            gridDetails: "#rtCD_gridDetails",
+
+            loading: "#rtCD_loadingSpinner",
+
+            form: "#rtCD_form",
+            upsertTitle: "#rtCD_upsertTitle",
+            btnSave: "#rtCD_btnSave",
+            btnSaveClose: "#rtCD_btnSaveClose",
+
+            modalDetailId: "#rtCD_modalDetailId",
+            txtRateCode: "#rtCD_txtRateCode",
+            selRoomType: "#rtCD_selRoomType",
+            txtBeginDate: "#rtCD_txtBeginDate",
+            txtEndDate: "#rtCD_txtEndDate",
+            selTransaction: "#rtCD_selTransaction",
+            selPackage: "#rtCD_selPackage",
+            txtCurrency: "#rtCD_txtCurrency",
+            txtMinLOS: "#rtCD_txtMinLOS",
+            txtMaxLOS: "#rtCD_txtMaxLOS",
+            txtAmount: "#rtCD_txtAmount",
+            txtPercentage: "#rtCD_txtPercentage",
+            txtDescription: "#rtCD_txtDescription",
+            chkActive: "#rtCD_chkActive"
+        };
+
+        function init() {
+            DevExpress.localization.locale("vi");
+
+            mainModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modalMain), { backdrop: "static" });
+            upsertModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modalUpsert), { backdrop: "static" });
+
+            $(sel.modalMain).off("shown.bs.modal.rtCD").on("shown.bs.modal.rtCD", async function () {
+                bindEvents();
+
+                // Init selects + date inputs (reuse your shared helpers if present)
+                try { if (typeof window.initTomSelect === "function") window.initTomSelect(".tomselect-custom"); } catch { }
+                try { if (typeof window.initDateInputs === "function") await window.initDateInputs(); } catch { }
+
+                await reloadAll(isInitial = true);
+            });
+
+            $(sel.modalMain).off("hidden.bs.modal.rtCD").on("hidden.bs.modal.rtCD", function () {
+                cleanup();
+            });
+
+            $(sel.modalUpsert).off("hidden.bs.modal.rtCD").on("hidden.bs.modal.rtCD", function () {
+                clearForm();
+                if (typeof window.applyValidationErrors === "function") applyValidationErrors([], sel.form);
+            });
+        }
+
+        function open() {
+            mainModal.show();
+        }
+
+        function bindEvents() {
+            $(document).off("click.rtCD", sel.btnView).on("click.rtCD", sel.btnView, function () {
+                reloadAll(false);
+            });
+
+            $(document).off("click.rtCD", sel.btnNew).on("click.rtCD", sel.btnNew, function () {
+                openNew();
+            });
+
+            $(document).off("click.rtCD", sel.btnEdit).on("click.rtCD", sel.btnEdit, function () {
+                openEdit();
+            });
+
+            $(document).off("click.rtCD", sel.btnDelete).on("click.rtCD", sel.btnDelete, function () {
+                doDelete();
+            });
+
+            $(document).off("click.rtCD", sel.btnExportExcel).on("click.rtCD", sel.btnExportExcel, function () {
+                exportExcel();
+            });
+
+            $(document).off("click.rtCD", sel.btnClose).on("click.rtCD", sel.btnClose, function () {
+                mainModal.hide();
+            });
+
+            $(document).off("click.rtCD", sel.btnSave).on("click.rtCD", sel.btnSave, function () {
+                save(false);
+            });
+
+            $(document).off("click.rtCD", sel.btnSaveClose).on("click.rtCD", sel.btnSaveClose, function () {
+                save(true);
+            });
+        }
+
+        function cleanup() {
+            $(document).off(".rtCD");
+            destroyGrid(sel.gridRateCodes, gridRateCodes); gridRateCodes = null;
+            destroyGrid(sel.gridGrouped, gridGrouped); gridGrouped = null;
+            destroyGrid(sel.gridDetails, gridDetails); gridDetails = null;
+
+            selectedRateCodesRow = null;
+            selectedGroupedRow = null;
+            selectedDetailId = null;
+        }
+
+        function showLoading(on) {
+            if (on) $(sel.loading).show(); else $(sel.loading).hide();
+        }
+
+        // --------- API ---------
+        async function apiGetAllRateCodeDetail() {
+            return $.ajax({
+                url: "/Administration/RateCode/GetAllRateCodeDetail",
+                type: "GET",
+                data: {
+                    rateCode: $(sel.code).val(),
+                    rateCategory: $(sel.category).val(),
+                    typeOfDate: $(sel.typeDate).val(),
+                    fromDate: $("#rtCD_fromDate").val() || $(sel.fromDateUi).val(), // allow hidden ISO if you use DateInput
+                    toDate: $("#rtCD_toDate").val() || $(sel.toDateUi).val()
+                },
+                traditional: true,
+                crossDomain: false,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() }
+            });
+        }
+
+        async function apiRateCodeGroupDataByID(rateCodeID) {
             return $.ajax({
                 url: "/Administration/RateCode/RateCodeGroupDataByID",
                 type: "GET",
                 data: { rateCodeID: rateCodeID }
             });
-        } catch (error) {
-            console.error(error);
-            showToast('Error', "The report could not be loaded.", false);
-        } finally {
-            $("#loadingSpinner").hide(); // luôn hide spinner ở cuối
         }
 
-    }
-
-    async function updateDetailsGrid(selectedGroupDetail) {
-        try {
-            $("#loadingSpinner").show();
-
-            // Lấy dữ liệu chính
+        async function apiGetDetails(groupRow) {
             return $.ajax({
                 url: "/Administration/RateCode/GetDetails",
                 type: "GET",
                 data: {
-                    RateCodeID: selectedGroupDetail.rateCodeID,
-                    BeginDate: selectedGroupDetail.beginDate,
-                    EndDate: selectedGroupDetail.endDate,
-                    RoomType: selectedGroupDetail.roomType,
-                    TransCode: selectedGroupDetail.transaction,
-                    CurrencyID: selectedGroupDetail.curr,
-                    PackageID: selectedGroupDetail.packageID,
-                    A1: selectedGroupDetail.a1,
-                    A2: selectedGroupDetail.a2,
-                    A3: selectedGroupDetail.a3,
-                    A4: selectedGroupDetail.a4,
-                    A5: selectedGroupDetail.a5,
-                    A6: selectedGroupDetail.a6,
-                    C1: selectedGroupDetail.c1,
-                    C2: selectedGroupDetail.c2,
-                    C3: selectedGroupDetail.c3,
-                    MinLOS: selectedGroupDetail.minLOS,
-                    MaxLOS: selectedGroupDetail.maxLOS,
-                    MinRoom: selectedGroupDetail.minNoOfRoom,
-                    MaxRoom: selectedGroupDetail.maxNoOfRoom
+                    RateCodeID: groupRow.rateCodeID,
+                    BeginDate: groupRow.beginDate,
+                    EndDate: groupRow.endDate,
+                    RoomType: groupRow.roomType,
+                    TransCode: groupRow.transaction,
+                    CurrencyID: groupRow.curr,
+                    PackageID: groupRow.packageID,
+                    A1: groupRow.a1,
+                    A2: groupRow.a2,
+                    A3: groupRow.a3,
+                    A4: groupRow.a4,
+                    A5: groupRow.a5,
+                    A6: groupRow.a6,
+                    C1: groupRow.c1,
+                    C2: groupRow.c2,
+                    C3: groupRow.c3,
+                    MinLOS: groupRow.minLOS,
+                    MaxLOS: groupRow.maxLOS,
+                    MinRoom: groupRow.minNoOfRoom,
+                    MaxRoom: groupRow.maxNoOfRoom
                 },
                 traditional: true,
                 crossDomain: false,
-                headers: {
-                    "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
-                }
+                headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() }
             });
-        } catch (error) {
-            console.error(error);
-            showToast('Error', "The report could not be loaded.", false);
-        } finally {
-            $("#loadingSpinner").hide(); // luôn hide spinner ở cuối
-        }
-    }
-
-    async function loadRateCodeReport() {
-        try {
-            $("#loadingSpinner").show();
-
-            // Lấy dữ liệu chính
-            let result = await $.ajax({
-                url: "/Administration/RateCode/GetAllRateCodeDetail",
-                type: "GET",
-                data: {
-                    rateCode: $("#code").val(),
-                    rateCategory: $("#category").val(),
-                    typeOfDate: $("#typeDate").val(),
-                    fromDate: $("#fromDate").val(),
-                    toDate: $("#toDate").val()
-                },
-                traditional: true,
-                crossDomain: false,
-                headers: {
-                    "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
-                }
-            });
-
-            if (result && result.length > 0) {
-                let ids = result[0].idRateCode;
-                // Lấy dữ liệu group
-                let groupData = await RateCodeGroupDataByID(ids);
-
-                let idGroup = groupData[0];
-
-                let detail = await updateDetailsGrid(idGroup)
-
-                // Gọi initialize grids sau khi có dữ liệu
-                initializeGrids(result, groupData, detail);
-            } else {
-                initializeGrids([]);
-                showToast('Warning', 'No Rate Code data not found.', false);
-                console.log(`Error: ${result.message}`);
-            }
-
-        } catch (error) {
-            console.error(error);
-            showToast('Error', "The report could not be loaded.", false);
-            initializeGrids([]);
-        } finally {
-            $("#loadingSpinner").hide(); // luôn hide spinner ở cuối
-        }
-    }
-
-    // Gắn sự kiện
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", loadRateCodeReport);
-
-    async function initializeGrids(rateCodes, rateDetails, detail) {
-        // Left Grid: Rate Codes
-        $("#gridRateCodes").dxDataGrid({
-            dataSource: rateCodes,
-            showBorders: true,
-            selection: { mode: "single" },
-            paging: { pageSize: 20 },
-            height: 350,
-            width: "100%",
-            pager: {
-                showPageSizeSelector: true,
-                allowedPageSizes: [20, 50, 100],
-                showInfo: true
-            },
-            filterRow: { visible: true },
-            columns: [
-                { dataField: "id", caption: "ID", width: 80, visible: false },
-                { dataField: "rateCode", caption: "Rate Code", width: "40%" },
-                { dataField: "rateCategory", caption: "Rate Category", width: "40%" },
-                { dataField: "beginDate", caption: "Begin Date", width: "10%", dataType: "date", format: "dd/MM/yyyy  ", width: 160 },
-                { dataField: "endDate", caption: "End Date", width: "10%", dataType: "date", format: "dd/MM/yyyy  ", width: 160 }
-            ],
-            scrolling: { mode: "standard" },
-            paging: { pageSize: 20 },
-            onSelectionChanged: async function (e) {
-                if (e.selectedRowsData.length > 0) {
-                    selectedRateCode = e.selectedRowsData[0].idRateCode;
-                    // Update grouped grid
-                    const newGroupData = await RateCodeGroupDataByID(selectedRateCode);
-
-                    const gridGroup = $("#gridRateDetailsGrouped").dxDataGrid("instance");
-                    gridGroup.option("dataSource", newGroupData);
-
-                    let detail = [];
-                    if (newGroupData.length > 0) {
-                        detail = await updateDetailsGrid(newGroupData[0]);
-                    }
-
-                    // Cập nhật grid chi tiết
-                    const gridDetails = $("#gridDetails").dxDataGrid("instance");
-                    gridDetails.option("dataSource", detail);
-                }
-            }
-        });
-
-        // Top Right Grid: Rate Details Grouped
-        $("#gridRateDetailsGrouped").dxDataGrid({
-            dataSource: rateDetails,
-            showBorders: true,
-            selection: { mode: "single" },
-            pager: {
-                showPageSizeSelector: true,
-                allowedPageSizes: [20, 50, 100],
-                showInfo: true
-            },
-            width: "100%",
-            height: 350,
-            columns: [
-                { dataField: "code", caption: "Code", width: "20%" },
-                { dataField: "roomType", caption: "Room Type", width: "20%" },
-                { dataField: "transaction", caption: "Transaction", width: "10%" },
-                { dataField: "package", caption: "Package", width: "10%" },
-                { dataField: "beginDate", caption: "Begin Date", width: "15%", dataType: "date", format: "dd/MM/yyyy  " },
-                { dataField: "endDate", caption: "End Date", width: "15%", dataType: "date", format: "dd/MM/yyyy  " },
-                { dataField: "curr", caption: "Curr.", width: "10%" }
-            ],
-            scrolling: { mode: "standard" },
-            paging: { pageSize: 20 },
-            onSelectionChanged: async function (e) {
-                if (e.selectedRowsData.length > 0) {
-                    selectedRowData = e.selectedRowsData[0];
-                    // Update bottom details grid
-                    const data = await updateDetailsGrid(selectedRowData);
-                    const gridDetails = $("#gridDetails").dxDataGrid("instance");
-                    gridDetails.option("dataSource", data);
-                }
-            }
-        });
-
-        // Bottom Grid: Details
-        $("#gridDetails").dxDataGrid({
-            dataSource: detail,
-            showBorders: true,
-            selection: { mode: "single" },
-            filterRow: { visible: true },
-            height: "350px",
-            paging: {
-                pageSize: 10,  // Shows the second page
-            },
-            pager: {
-                showPageSizeSelector: true,
-                allowedPageSizes: [10, 20, 50, 100],
-                showInfo: true
-            },
-            width: "100%",
-            columns: [
-                { dataField: "id", caption: "ID", width: 80, visible: false },
-                { dataField: "roomTypeID", caption: "RoomTypeID", width: 80, visible: false },
-                { dataField: "rateCode", caption: "Code", width: "100px", dataType: "string" },
-                { dataField: "roomType", caption: "Room Type", width: "120px" },
-                { dataField: "rateDate", caption: "Date", width: "100px", dataType: "date", format: "dd/mm/yyyy" },
-                { dataField: "transactionCode", caption: "Transaction", width: "120px" },
-                { dataField: "currencyID", caption: "Curr.", width: "70px" },
-                { dataField: "a1AfterTax", caption: "A1 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "a2AfterTax", caption: "A2 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "a3AfterTax", caption: "A3 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "a4AfterTax", caption: "A4 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "a5AfterTax", caption: "A5 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "a6AfterTax", caption: "A6 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "a7fterTax", caption: "A7 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "a81AfterTax", caption: "A8 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "a9AfterTax", caption: "A9 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "a10AfterTax", caption: "A10 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "a11AfterTax", caption: "A11 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "a12AfterTax", caption: "A12 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "a13AfterTax", caption: "A13 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "a14AfterTax", caption: "A14 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "a15AfterTax", caption: "A15 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "c1AfterTax", caption: "C1 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "c2AfterTax", caption: "C2 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "c3AfterTax", caption: "C3 Net", width: "100px", format: "#,##0", dataType: "number", },
-                { dataField: "adultExtraTax", caption: "Aldul Extra", width: "100px", format: "#,##0", dataType: "number", },
-            ],
-            scrolling: { mode: "standard" },
-            onSelectionChanged: async function (e) {
-                if (e.selectedRowsData.length > 0) {
-
-                    const row = e.selectedRowsData[0];
-
-                    selectedRateCodeDetail = row.id; // Lấy id chi tiết
-
-                    console.log("Selected Detail:", selectedRateCodeDetail);
-                }
-            }
-        });
-    }
-
-    $(document).off("click", "#btnNew").on("click", "#btnNew", function () {
-        clearForm();
-        $("#popupTitle").text("New Rate Code Detail");
-        $("#txtRateCode").prop("disabled", false);
-        $("#popupDetail").show();
-    });
-
-    $(document).off("click", "#btnUpdate").on("click", "#btnUpdate", function () {
-        if (!selectedRowData) {
-            showToast('Warning', 'Please select a row to edit.', false);
-            return;
         }
 
-        let id = selectedRowData.id;
+        // --------- LOAD ---------
+        async function reloadAll(isInitial = false) {
+            try {
+                showLoading(true);
 
-        $.ajax({
-            url: '/Administration/RateCode/GetRateCodeDetailByID',
-            type: 'GET',
-            data: { id: id },
-            success: function (res) {
-                if (!res.success) {
-                    showToast('Error', res.message || 'Failed to load data', false);
+                // Optional: wait for business date if your DateInput sets hidden ISO fields
+                // If you want strict ISO, you can adapt to your `waitForBusinessDate` helpers.
+                if (isInitial) {
+                    try {
+                        if (typeof window.waitForBusinessDate === "function") {
+                            // if your date inputs are named rtCD_fromDate/rtCD_toDate
+                            await waitForBusinessDate("rtCD_fromDate", 10000);
+                            await waitForBusinessDate("rtCD_toDate", 10000);
+                        }
+                    } catch { }
+                }
+
+                const rateCodes = await apiGetAllRateCodeDetail();
+
+                if (!Array.isArray(rateCodes) || !rateCodes.length) {
+                    renderAllGrids([], [], []);
+                    showToast("Warning", "No Rate Code data found.", false);
                     return;
                 }
 
-                let data = res.data;
-                $("#modalDetailId").val(data.id);
-                $("#popupTitle").text("Edit Rate Code Detail");
-                $("#txtRateCode").val(data.rateCode).prop("disabled", true);
-                $("#selRoomType").val(data.roomTypeID || "");
-                $("#txtBeginDate").val(data.beginDate ? data.beginDate.split('T')[0] : "");
-                $("#txtEndDate").val(data.endDate ? data.endDate.split('T')[0] : "");
-                $("#selTransaction").val(data.transactionID || "");
-                $("#selPackage").val(data.packageID || "");
-                $("#txtCurrency").val(data.currency || "VND");
-                $("#txtMinLOS").val(data.minLOS || "");
-                $("#txtMaxLOS").val(data.maxLOS || "");
-                $("#txtAmount").val(data.amount || "");
-                $("#txtPercentage").val(data.percentage || "");
-                $("#txtDescription").val(data.description || "");
-                $("#chkActive").prop("checked", data.active === true);
+                // default pick first row's idRateCode (kept behavior)
+                const firstRateCodeID = rateCodes[0].idRateCode;
+                const grouped = await apiRateCodeGroupDataByID(firstRateCodeID);
 
-                $("#popupDetail").show();
-            },
-            error: function () {
-                showToast('Error', 'Failed to load data.', false);
+                const firstGroupRow = Array.isArray(grouped) && grouped.length ? grouped[0] : null;
+                const details = firstGroupRow ? await apiGetDetails(firstGroupRow) : [];
+
+                renderAllGrids(rateCodes, grouped || [], details || []);
+
+            } catch (err) {
+                console.error(err);
+                renderAllGrids([], [], []);
+                showToast("Error", "The report could not be loaded.", false);
+            } finally {
+                showLoading(false);
             }
-        });
-    });
-
-    $(document).off("click", "#btnDelete").on("click", "#btnDelete", function () {
-        if (!selectedRowData) {
-            showToast('Error', 'Please select a row to delete.', false);
-            return;
         }
 
-        if (!confirm("Are you sure you want to delete this record?")) {
-            return;
+        // --------- GRID HELPERS ---------
+        function destroyGrid(containerSelector, instance) {
+            try {
+                if (instance) instance.dispose();
+            } catch { }
+            $(containerSelector).empty();
         }
 
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/Administration/RateCode/DeleteRateCodeDetail',
-            type: 'POST',
-            data: { id: selectedRowData.id },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                $("#loadingSpinner").hide();
-                if (result.success) {
-                    $("#btnPrint").trigger("click");
-                    showToast('Success', result.message || 'Deleted successfully', true);
-                } else {
-                    showToast('Error', result.message || 'Delete failed', false);
-                }
-            },
-            error: function () {
-                $("#loadingSpinner").hide();
-                showToast('Error', 'Unable to delete record', false);
-            }
-        });
-    });
-
-    $(document).off("click", "#btnExportExcel").on("click", "#btnExportExcel", function () {
-        if (!selectedRowData || !selectedRowData.id) {
-            showToast('Error', 'Please select a row to export.', false);
-            return;
+        function renderAllGrids(rateCodes, grouped, details) {
+            renderRateCodes(rateCodes);
+            renderGrouped(grouped);
+            renderDetails(details);
         }
 
-        window.location.href = '/Administration/RateCode/ExportRateCodeDetail?id=' + selectedRowData.id;
-    });
+        function renderRateCodes(data) {
+            destroyGrid(sel.gridRateCodes, gridRateCodes);
 
-    function saveDetail(closeAfter) {
-        var data = {
-            id: parseInt($("#modalDetailId").val()) || 0,
-            rateCode: $("#txtRateCode").val(),
-            roomTypeID: parseInt($("#selRoomType").val()) || 0,
-            beginDate: $("#txtBeginDate").val(),
-            endDate: $("#txtEndDate").val(),
-            transactionID: parseInt($("#selTransaction").val()) || 0,
-            packageID: parseInt($("#selPackage").val()) || 0,
-            currency: $("#txtCurrency").val(),
-            minLOS: parseInt($("#txtMinLOS").val()) || 0,
-            maxLOS: parseInt($("#txtMaxLOS").val()) || 0,
-            amount: parseFloat($("#txtAmount").val()) || 0,
-            percentage: parseFloat($("#txtPercentage").val()) || 0,
-            description: $("#txtDescription").val(),
-            active: $("#chkActive").is(":checked"),
-            userID: parseInt(localStorage.getItem("userID")) || 0
-        };
+            gridRateCodes = $(sel.gridRateCodes).dxDataGrid({
+                dataSource: data,
+                showBorders: true,
+                width: "100%",
+                height: "100%",
+                selection: { mode: "single" },
+                paging: { pageSize: 20 },
+                pager: {
+                    visible: true,
+                    showPageSizeSelector: true,
+                    allowedPageSizes: [20, 50, 100, "all"],
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: { visible: true, applyFilter: "auto" },
+                columns: [
+                    { dataField: "id", visible: false },
+                    { dataField: "rateCode", caption: "Rate Code", width: 120 },
+                    { dataField: "rateCategory", caption: "Rate Category", width: 140 },
+                    { dataField: "beginDate", caption: "Begin Date", dataType: "date", format: "dd/MM/yyyy", width: 140 },
+                    { dataField: "endDate", caption: "End Date", dataType: "date", format: "dd/MM/yyyy", width: 140 }
+                ],
+                onSelectionChanged: async function (e) {
+                    const row = e.selectedRowsData[0] || null;
+                    selectedRateCodesRow = row;
 
-        // Validation
-        if (!data.rateCode) {
-            showToast('Error', 'Rate Code is required', false);
-            return;
-        }
-        if (!data.beginDate) {
-            showToast('Error', 'Begin Date is required', false);
-            return;
-        }
-        if (!data.endDate) {
-            showToast('Error', 'End Date is required', false);
-            return;
-        }
+                    if (!row?.idRateCode) return;
 
-        $("#loadingSpinner").show();
+                    try {
+                        showLoading(true);
+                        const newGrouped = await apiRateCodeGroupDataByID(row.idRateCode);
+                        if (gridGrouped) gridGrouped.option("dataSource", newGrouped || []);
 
-        $.ajax({
-            url: "/Administration/RateCode/SaveRateCodeDetail",
-            type: "POST",
-            contentType: "application/x-www-form-urlencoded; charset=UTF-8",
-            data: $.param(data),
-            success: function (res) {
-                $("#loadingSpinner").hide();
-                if (res.success) {
-                    showToast('Success', res.message || 'Saved successfully', true);
-                    if (closeAfter) {
-                        closePopup();
+                        const firstGroup = Array.isArray(newGrouped) && newGrouped.length ? newGrouped[0] : null;
+                        const newDetails = firstGroup ? await apiGetDetails(firstGroup) : [];
+                        if (gridDetails) gridDetails.option("dataSource", newDetails || []);
+
+                        selectedGroupedRow = firstGroup || null;
+                        selectedDetailId = null;
+                    } catch (err) {
+                        console.error(err);
+                        showToast("Error", "Unable to load group/details.", false);
+                    } finally {
+                        showLoading(false);
                     }
-                    $("#btnPrint").trigger("click");
-                } else {
-                    showToast('Error', res.message || 'Validation failed', false);
                 }
-            },
-            error: function (xhr, status, error) {
-                $("#loadingSpinner").hide();
-                if (Array.isArray(xhr.responseJSON?.errors)) {
-                    xhr.responseJSON.errors.forEach((err, index) => {
-                        setTimeout(() => {
-                            showToast("Error", err, false);
-                        }, index * 800);
-                    });
-                } else {
-                    showToast('Error', 'An error occurred while saving', false);
+            }).dxDataGrid("instance");
+        }
+
+        function renderGrouped(data) {
+            destroyGrid(sel.gridGrouped, gridGrouped);
+
+            gridGrouped = $(sel.gridGrouped).dxDataGrid({
+                dataSource: data,
+                showBorders: true,
+                width: "100%",
+                height: "100%",
+                selection: { mode: "single" },
+                paging: { pageSize: 20 },
+                pager: {
+                    visible: true,
+                    showPageSizeSelector: true,
+                    allowedPageSizes: [20, 50, 100, "all"],
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: { visible: true, applyFilter: "auto" },
+                columns: [
+                    { dataField: "code", caption: "Code", width: 100 },
+                    { dataField: "roomType", caption: "Room Type", width: 120 },
+                    { dataField: "transaction", caption: "Transaction", width: 110 },
+                    { dataField: "package", caption: "Package", width: 110 },
+                    { dataField: "beginDate", caption: "Begin Date", dataType: "date", format: "dd/MM/yyyy", width: 140 },
+                    { dataField: "endDate", caption: "End Date", dataType: "date", format: "dd/MM/yyyy", width: 140 },
+                    { dataField: "curr", caption: "Curr.", width: 80 }
+                ],
+                onSelectionChanged: async function (e) {
+                    const row = e.selectedRowsData[0] || null;
+                    selectedGroupedRow = row;
+
+                    if (!row) return;
+
+                    try {
+                        showLoading(true);
+                        const newDetails = await apiGetDetails(row);
+                        if (gridDetails) gridDetails.option("dataSource", newDetails || []);
+                        selectedDetailId = null;
+                    } catch (err) {
+                        console.error(err);
+                        showToast("Error", "Unable to load details.", false);
+                    } finally {
+                        showLoading(false);
+                    }
                 }
+            }).dxDataGrid("instance");
+        }
+
+        function renderDetails(data) {
+            destroyGrid(sel.gridDetails, gridDetails);
+
+            gridDetails = $(sel.gridDetails).dxDataGrid({
+                dataSource: data,
+                showBorders: true,
+                width: "100%",
+                height: "100%",
+                selection: { mode: "single" },
+                paging: { pageSize: 10 },
+                pager: {
+                    visible: true,
+                    showPageSizeSelector: true,
+                    allowedPageSizes: [10, 20, 50, 100, "all"],
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: { visible: true, applyFilter: "auto" },
+                columns: [
+                    { dataField: "id", visible: false },
+                    { dataField: "roomTypeID", visible: false },
+                    { dataField: "rateCode", caption: "Code", width: 100 },
+                    { dataField: "roomType", caption: "Room Type", width: 120 },
+                    { dataField: "rateDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 120 },
+                    { dataField: "transactionCode", caption: "Transaction", width: 120 },
+                    { dataField: "currencyID", caption: "Curr.", width: 80 },
+                    { dataField: "a1AfterTax", caption: "A1 Net", width: 110, dataType: "number", format: "#,##0" },
+                    { dataField: "a2AfterTax", caption: "A2 Net", width: 110, dataType: "number", format: "#,##0" },
+                    { dataField: "a3AfterTax", caption: "A3 Net", width: 110, dataType: "number", format: "#,##0" },
+                    { dataField: "a4AfterTax", caption: "A4 Net", width: 110, dataType: "number", format: "#,##0" },
+                    { dataField: "a5AfterTax", caption: "A5 Net", width: 110, dataType: "number", format: "#,##0" },
+                    { dataField: "a6AfterTax", caption: "A6 Net", width: 110, dataType: "number", format: "#,##0" },
+                    { dataField: "c1AfterTax", caption: "C1 Net", width: 110, dataType: "number", format: "#,##0" },
+                    { dataField: "c2AfterTax", caption: "C2 Net", width: 110, dataType: "number", format: "#,##0" },
+                    { dataField: "c3AfterTax", caption: "C3 Net", width: 110, dataType: "number", format: "#,##0" },
+                    { dataField: "adultExtraTax", caption: "Adult Extra", width: 120, dataType: "number", format: "#,##0" }
+                ],
+                onSelectionChanged: function (e) {
+                    const row = e.selectedRowsData[0] || null;
+                    selectedDetailId = row?.id || null;
+                }
+            }).dxDataGrid("instance");
+        }
+
+        // --------- UPSERT ---------
+        function clearForm() {
+            $(sel.modalDetailId).val(0);
+            $(sel.txtRateCode).val("").prop("disabled", false);
+            $(sel.selRoomType).val("");
+            $(sel.txtBeginDate).val("");
+            $(sel.txtEndDate).val("");
+            $(sel.selTransaction).val("");
+            $(sel.selPackage).val("");
+            $(sel.txtCurrency).val("VND");
+            $(sel.txtMinLOS).val("");
+            $(sel.txtMaxLOS).val("");
+            $(sel.txtAmount).val("");
+            $(sel.txtPercentage).val("");
+            $(sel.txtDescription).val("");
+            $(sel.chkActive).prop("checked", false);
+        }
+
+        function openNew() {
+            clearForm();
+            if (typeof window.applyValidationErrors === "function") applyValidationErrors([], sel.form);
+            $(sel.upsertTitle).text("New Rate Code Detail");
+            upsertModal.show();
+        }
+
+        function openEdit() {
+            if (!selectedGroupedRow) {
+                showToast("Warning", "Please select 1 row in 'Rate Details Grouped' to edit.", false);
+                return;
             }
-        });
-    }
 
-    $(document).off("click", "#btnSave").on("click", "#btnSave", function () {
-        saveDetail(false);
-    });
+            const id = selectedGroupedRow.id;
+            if (!id) {
+                showToast("Warning", "Selected row has no id.", false);
+                return;
+            }
 
-    $(document).off("click", "#btnSaveClose").on("click", "#btnSaveClose", function () {
-        saveDetail(true);
+            if (typeof window.applyValidationErrors === "function") applyValidationErrors([], sel.form);
+            showLoading(true);
+
+            $.ajax({
+                url: "/Administration/RateCode/GetRateCodeDetailByID",
+                type: "GET",
+                data: { id: id },
+                success: function (res) {
+                    if (!res?.success) {
+                        showToast("Error", res?.message || "Failed to load data", false);
+                        return;
+                    }
+
+                    const d = res.data;
+                    clearForm();
+
+                    $(sel.modalDetailId).val(d.id);
+                    $(sel.txtRateCode).val(d.rateCode).prop("disabled", true);
+                    $(sel.selRoomType).val(d.roomTypeID || "");
+                    $(sel.txtBeginDate).val(d.beginDate ? d.beginDate.split("T")[0] : "");
+                    $(sel.txtEndDate).val(d.endDate ? d.endDate.split("T")[0] : "");
+                    $(sel.selTransaction).val(d.transactionID || "");
+                    $(sel.selPackage).val(d.packageID || "");
+                    $(sel.txtCurrency).val(d.currency || "VND");
+                    $(sel.txtMinLOS).val(d.minLOS ?? "");
+                    $(sel.txtMaxLOS).val(d.maxLOS ?? "");
+                    $(sel.txtAmount).val(d.amount ?? "");
+                    $(sel.txtPercentage).val(d.percentage ?? "");
+                    $(sel.txtDescription).val(d.description ?? "");
+                    $(sel.chkActive).prop("checked", d.active === true);
+
+                    $(sel.upsertTitle).text("Edit Rate Code Detail");
+                    upsertModal.show();
+                },
+                error: function () {
+                    showToast("Error", "Failed to load data.", false);
+                },
+                complete: function () {
+                    showLoading(false);
+                }
+            });
+        }
+
+        function validatePayload(p) {
+            if (!p.rateCode) return "Rate Code is required";
+            if (!p.beginDate) return "Begin Date is required";
+            if (!p.endDate) return "End Date is required";
+            return null;
+        }
+
+        function buildPayload() {
+            return {
+                id: parseInt($(sel.modalDetailId).val()) || 0,
+                rateCode: $(sel.txtRateCode).val(),
+                roomTypeID: parseInt($(sel.selRoomType).val()) || 0,
+                beginDate: $(sel.txtBeginDate).val(),
+                endDate: $(sel.txtEndDate).val(),
+                transactionID: parseInt($(sel.selTransaction).val()) || 0,
+                packageID: parseInt($(sel.selPackage).val()) || 0,
+                currency: $(sel.txtCurrency).val(),
+                minLOS: parseInt($(sel.txtMinLOS).val()) || 0,
+                maxLOS: parseInt($(sel.txtMaxLOS).val()) || 0,
+                amount: parseFloat($(sel.txtAmount).val()) || 0,
+                percentage: parseFloat($(sel.txtPercentage).val()) || 0,
+                description: $(sel.txtDescription).val(),
+                active: $(sel.chkActive).is(":checked"),
+                userID: parseInt(localStorage.getItem("userID")) || 0
+            };
+        }
+
+        function save(closeAfter) {
+            const payload = buildPayload();
+            const err = validatePayload(payload);
+
+            if (err) {
+                showToast("Error", err, false);
+                return;
+            }
+
+            showLoading(true);
+
+            $.ajax({
+                url: "/Administration/RateCode/SaveRateCodeDetail",
+                type: "POST",
+                contentType: "application/x-www-form-urlencoded; charset=UTF-8",
+                data: $.param(payload),
+                success: function (res) {
+                    if (res?.success) {
+                        showToast("Success", res.message || "Saved successfully", true);
+                        if (closeAfter) upsertModal.hide();
+                        reloadAll(false);
+                    } else {
+                        showToast("Error", res?.message || "Validation failed", false);
+                    }
+                },
+                error: function (xhr) {
+                    const errs = xhr.responseJSON?.errors;
+                    if (Array.isArray(errs) && errs.length) {
+                        errs.forEach((m, i) => setTimeout(() => showToast("Error", m, false), i * 600));
+                    } else {
+                        showToast("Error", xhr.responseJSON?.message || "An error occurred while saving", false);
+                    }
+                },
+                complete: function () {
+                    showLoading(false);
+                }
+            });
+        }
+
+        // --------- DELETE / EXPORT ---------
+        function doDelete() {
+            if (!selectedGroupedRow?.id) {
+                showToast("Error", "Please select a row in 'Rate Details Grouped' to delete.", false);
+                return;
+            }
+            if (!confirm("Are you sure you want to delete this record?")) return;
+
+            showLoading(true);
+
+            $.ajax({
+                url: "/Administration/RateCode/DeleteRateCodeDetail",
+                type: "POST",
+                data: { id: selectedGroupedRow.id },
+                traditional: true,
+                crossDomain: false,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() },
+                success: function (result) {
+                    if (result?.success) {
+                        showToast("Success", result.message || "Deleted successfully", true);
+                        reloadAll(false);
+                    } else {
+                        showToast("Error", result?.message || "Delete failed", false);
+                    }
+                },
+                error: function () {
+                    showToast("Error", "Unable to delete record", false);
+                },
+                complete: function () {
+                    showLoading(false);
+                }
+            });
+        }
+
+        function exportExcel() {
+            if (!selectedGroupedRow?.id) {
+                showToast("Error", "Please select a row in 'Rate Details Grouped' to export.", false);
+                return;
+            }
+            window.location.href = "/Administration/RateCode/ExportRateCodeDetail?id=" + selectedGroupedRow.id;
+        }
+
+        return { init, open };
+
+    })();
+
+    // Option A global entry
+    window.openModalRtCD = function () {
+        rtCD_Module.open();
+    };
+
+    $(document).ready(function () {
+        rtCD_Module.init();
+        // auto-open if desired:
+        // window.openModalRtCD();
     });
 </script>

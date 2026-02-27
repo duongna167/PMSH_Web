@@ -1,438 +1,583 @@
 <style>
-    #modalWakeUpCall {
-        z-index: 1060;
-    }
-
     .wake-container {
         display: flex;
         gap: 30px;
         justify-content: center;
-        margin: 20px 0;
-        /*         background: white; */
+        margin: 10px 0 0 0;
     }
 
-    .group-box-wakeup {
+    .group-box {
         border: 1px solid #ccc;
         padding: 15px;
         border-radius: 5px;
-        min-width: 200px;
         background: white;
+        width: 360px;
+        min-height: 290px;
+        box-sizing: border-box;
     }
 
-    .radio-inline {
-        margin-bottom: 15px;
-    }
-
-    .form-group-wakeup {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin-top: 10px;
-    }
-
-
-
-    .browse-btn {
-        width: 30px;
-        height: 25px;
-        padding: 0;
-        margin-left: 5px;
-    }
-
-    .btn-row-wakeup {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-        margin-top: 20px;
-    }
-
-
-
-
-    .hidden-important {
-        display: none !important;
-    }
-
-    .show-important {
-        display: flex !important;
-    }
-
-    .show-important1 {
-        display: block !important;
-    }
-
-    #popupviewGrid {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: white;
-        padding: 20px;
-        border-radius: 0;
-        /* full màn không cần bo góc */
-        z-index: 1000;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-        overflow-y: auto;
-        /* bật scroll dọc nếu nội dung vượt quá */
-    }
+    .hidden-important { display: none !important; }
+    .show-important1 { display: block !important; }
 
     .ellipsis-icon {
         margin-left: 10px;
-        left: 0;
-        top: 0;
         position: relative;
+        cursor: pointer;
+    }
+
+    #popupWakeUpCall {
+        z-index: 1060;
+        align-items: center;
+        justify-content: center;
+    }
+    #popupviewGrid{
+        z-index: 1061;
+        /* Blur nền phía sau */
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        background: rgba(255,255,255,0.6);
+    }
+
+
+
+    #popupWakeUpCall .modal-content {
+        display: inline-block;
+    }
+
+    #loadingSpinner {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 2000;
     }
 </style>
-<div class="modal fade modal-xl" id="modalWakeUpCall" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-     aria-labelledby="staticBackdropLabel" aria-hidden="true">
-    <div class="modal-dialog">
+
+<!-- ======================= MAIN MODAL ======================= -->
+<div class="modal fade" id="popupWakeUpCall" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-centered wakeup-fit">
         <div class="modal-content">
 
             <div class="modal-header">
-                <h5 class="modal-title" id="staticBackdropLabel">WakeUpCall</h5>
-                <button type="button" class="btn-close" onclick="closeModalWakeUpCall()"></button>
+                <h5 class="modal-title">Wake Up Call</h5>
+            </div>
+            <div class="modal-body">
+                <!-- Top buttons (layout cũ) -->
+                <div class="search-filter">
+                    <button id="btnCancelwakeup" class="mui-button mui-button-cancel" type="button">Delete</button>
+                    <button id="btnSetwakeup" class="mui-button mui-button-card" type="button">Set</button>
+                    <button id="btnViewwakeup" class="mui-button mui-button-new" type="button">View</button>
+                    <button id="btnCloseWakeup" class="mui-button mui-button-new" type="button">Close</button>
+                </div>
+                <div class="wake-container">
+                    <!-- LEFT: radio mode -->
+                    <div class="group-box mb-3">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-12">
+                                <div class="row g-1 align-items-center">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div class="form-check mb-0">
+                                            <input 
+                                                type="radio"
+                                                name="wake"
+                                                value="set"
+                                                id="rdoSet"
+                                                checked>
+                                            <label class="form-check-label" for="rdoSet">
+                                                Set Wake Up Call
+                                            </label>
+                                        </div>
+                                        <div class="form-check mb-0">
+                                            <input 
+                                                type="radio"
+                                                name="wake"
+                                                value="cancel"
+                                                id="rdoCancle">
+                                            <label class="form-check-label" for="rdoCancle">
+                                                Cancel Wake Up Call
+                                            </label>
+                                        </div>
+                                        <div class="form-check mb-0">
+                                            <input 
+                                                type="radio"
+                                                name="wake"
+                                                value="view"
+                                                id="rdoView">
+                                            <label class="form-check-label" for="rdoView">
+                                                View Wake Up Calls
+                                            </label>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MIDDLE: Set/Cancel panel -->
+                    <div class="group-box mb-3" id="setWakeup">
+                        <div class="row g-2 align-items-center">
+                            <!-- Call Type: Date / Daily -->
+                            <div class="col-12">
+                                <div class="row g-1 align-items-center">
+                                    <label class="col-4 col-form-label col-form-label-sm text-md-end">
+                                        Call Type
+                                    </label>
+                                    <div class="col-8">
+                                        <div class="d-flex flex-wrap gap-4">
+                                            <div class="form-check mb-0">
+                                                <input 
+                                                    type="radio"
+                                                    name="call"
+                                                    id="rdoDate"
+                                                    value="date">
+                                                <label class="form-check-label" for="rdoDate">Date</label>
+                                            </div>
+
+                                            <div class="form-check mb-0">
+                                                <input 
+                                                    type="radio"
+                                                    name="call"
+                                                    id="rdoDaily"
+                                                    value="daily" checked>
+                                                <label class="form-check-label" for="rdoDaily">Daily</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Room No(s) -->
+                            <div class="col-12" id="roomnoGroup">
+                                <div class="row g-1 align-items-center">
+                                    <label class="col-4 col-form-label col-form-label-sm text-md-end">
+                                        Room No(s)
+                                    </label>
+                                    <div class="col-8">
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" id="roomno" class="form-control form-control-sm">
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary"
+                                                    id="listRoom"
+                                                    aria-label="Select rooms">
+                                                <i class="fas fa-ellipsis-h"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Schedule (cancel) -->
+                            <div class="col-12" id="scheduleGroup">
+                                <div class="row g-1 align-items-center">
+                                    <label id="scheduleLabel"
+                                        class="col-4 col-form-label col-form-label-sm text-md-end">
+                                        Schedule
+                                    </label>
+                                    <div class="col-8">
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" id="roomnoCancel" class="form-control form-control-sm">
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary"
+                                                    id="cancleRoom"
+                                                    aria-label="Select schedule">
+                                                <i class="fas fa-ellipsis-h"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- DATE SECTION -->
+                            <div class="col-12" id="dateSection">
+                                <div class="row g-2">
+
+                                    <!-- Date -->
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label class="col-4 col-form-label col-form-label-sm text-md-end">
+                                                Date
+                                            </label>
+                                            <div class="col-8">
+                                                <div data-date-input data-format="DD/MM/YYYY"
+                                                    business-date data-name="singleDate">
+                                                    <input id="singleDateUi"
+                                                        name="singleDateUi"
+                                                        type="text"
+                                                        class="date-ui form-control form-control-sm"
+                                                        placeholder="dd/mm/yyyy"
+                                                        autocomplete="off" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Time -->
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label class="col-4 col-form-label col-form-label-sm text-md-end">
+                                                Time
+                                            </label>
+                                            <div class="col-8">
+                                                <input type="time"
+                                                    id="timeDate"
+                                                    value="07:00"
+                                                    class="form-control form-control-sm">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <!-- DAILY SECTION -->
+                            <div class="col-12" id="dailySection">
+                                <div class="row g-2">
+
+                                    <!-- From Date -->
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label class="col-4 col-form-label col-form-label-sm text-md-end">
+                                                From Date
+                                            </label>
+                                            <div class="col-7">
+                                                <div data-date-input data-format="DD/MM/YYYY"
+                                                    business-date data-name="fromDate">
+                                                    <input id="fromDateUi"
+                                                        name="fromDateUi"
+                                                        type="text"
+                                                        class="date-ui form-control form-control-sm"
+                                                        placeholder="dd/mm/yyyy"
+                                                        autocomplete="off" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Time -->
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label class="col-4 col-form-label col-form-label-sm text-md-end">
+                                                Time
+                                            </label>
+                                            <div class="col-7">
+                                                <input type="time"
+                                                    id="timeDaily"
+                                                    value="07:00"
+                                                    class="form-control form-control-sm">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- To Date -->
+                                    <div class="col-12">
+                                        <div class="row g-1 align-items-center">
+                                            <label class="col-4 col-form-label col-form-label-sm text-md-end">
+                                                To Date
+                                            </label>
+                                            <div class="col-7">
+                                                <div data-date-input data-format="DD/MM/YYYY"
+                                                    business-date data-name="toDate">
+                                                    <input id="toDateUi"
+                                                        name="toDateUi"
+                                                        type="text"
+                                                        class="date-ui form-control form-control-sm"
+                                                        placeholder="dd/mm/yyyy"
+                                                        autocomplete="off" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: View panel -->
+                    <div class="group-box mb-3" id="viewWakeupcall">
+                         <div class="row g-2 align-items-center">
+                            <!-- Name -->
+                            <div class="col-12">
+                                <div class="row g-1 align-items-center">
+                                    <label class="col-4 col-form-label col-form-label-sm text-md-end">
+                                        Name
+                                    </label>
+                                    <div class="col-8">
+                                        <input type="text" id="nameView" class="form-control form-control-sm">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Group -->
+                            <div class="col-12">
+                                <div class="row g-1 align-items-center">
+                                    <label class="col-4 col-form-label col-form-label-sm text-md-end">
+                                        Group
+                                    </label>
+                                    <div class="col-8">
+                                        <input type="text" id="groupName" class="form-control form-control-sm">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Room -->
+                            <div class="col-12">
+                                <div class="row g-1 align-items-center">
+                                    <label class="col-4 col-form-label col-form-label-sm text-md-end">
+                                        Room
+                                    </label>
+                                    <div class="col-8">
+                                        <select id="roomview" asp-items="ViewBag.cboRoom"></select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- From Date -->
+                            <div class="col-12">
+                                <div class="row g-1 align-items-center">
+                                    <label class="col-4 col-form-label col-form-label-sm text-md-end">
+                                        From Date
+                                    </label>
+                                    <div class="col-8">
+                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDateview">
+                                            <input id="fromDateviewUi"
+                                                name="fromDateviewUi"
+                                                type="text"
+                                                class="date-ui form-control form-control-sm"
+                                                placeholder="dd/mm/yyyy"
+                                                autocomplete="off" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Time + Radio -->
+                            <div class="col-12">
+                                <div class="row g-1 align-items-center">
+                                    <label class="col-4 col-form-label col-form-label-sm text-md-end">
+                                        Time
+                                    </label>
+                                    <div class="col-8">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input type="time"
+                                                id="timeDailyview"
+                                                value="07:00"
+                                                class="form-control form-control-sm">
+                                            <div class="form-check mb-0">
+                                                <input class="form-check-input"
+                                                    type="radio"
+                                                    name="timeView"
+                                                    id="rdoTimeView">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- To Date -->
+                            <div class="col-12">
+                                <div class="row g-1 align-items-center">
+                                    <label class="col-4 col-form-label col-form-label-sm text-md-end">
+                                        To Date
+                                    </label>
+                                    <div class="col-8">
+                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="toDateview">
+                                            <input id="toDateviewUi"
+                                                name="toDateviewUi"
+                                                type="text"
+                                                class="date-ui form-control form-control-sm"
+                                                placeholder="dd/mm/yyyy"
+                                                autocomplete="off" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Room Class -->
+                            <div class="col-12">
+                                <div class="row g-1 align-items-center">
+                                    <label class="col-4 col-form-label col-form-label-sm text-md-end">
+                                        Room Class
+                                    </label>
+                                    <div class="col-8">
+                                        <select id="roomClass" 
+                                                asp-items="ViewBag.cboRoomClass"></select>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div><!-- wake-container -->
+            </div><!-- modal-body -->
+        </div>
+    </div>
+</div>
+
+<!-- ======================= FIND ROOM MODAL ======================= -->
+<div class="modal fade" id="popupLogGrid" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Wake Up Call Find Room</h5>
             </div>
 
             <div class="modal-body">
-                <div class="mui-divider"></div>
 
-                <div class="mui-card mt-2">
-                    <div class="wake-container">
+                <div class="d-flex justify-content-start mb-3 gap-2">
+                    <button id="btnSearchFindRoom" class="mui-button mui-button-new" type="button">Search</button>
+                    <button id="btnOkFindRoom" class="mui-button mui-button-edit" type="button">Ok</button>
+                    <button id="btnCheckAllFindRoom" class="mui-button mui-button-advance" type="button">Select All</button>
+                    <button id="btnCheckVisibleFindRoom" class="mui-button mui-button-advance" type="button">Select</button>
+                    <button type="button" class="mui-button mui-button-advance" data-bs-dismiss="modal">Close</button>
+                </div>
 
-                        <!-- Left Group -->
-                        <div class="group-box-wakeup">
-                            <label>
-                                <input type="radio" name="wake" value="set" id="rdoSet" checked>
-                                Set WakeUpCall
-                            </label>
-                            <br />
+                <div class="container mb-2">
+                    <div class="row g-2 align-items-center">
 
-                            <label>
-                                <input type="radio" name="wake" value="cancel" id="rdoCancle">
-                                Cancel WakeUpCall
-                            </label>
-                            <br />
-
-                            <label>
-                                <input type="radio" name="wake" value="view" id="rdoView">
-                                View Wake Up Calls
-                            </label>
-                        </div>
-
-                        <!-- Right Group -->
-                        <div class="group-box-wakeup" id="setWakeup">
-                            <div class="radio-inline">
-                                <label>
-                                    <input type="radio" name="call" id="rdoDate" value="date" checked>
-                                    Date
-                                </label>
-                                <label>
-                                    <input type="radio" name="call" id="rdoDaily" value="daily">
-                                    Daily
-                                </label>
-                            </div>
-
-                            <div class="form-group-wakeup">
-                                <!-- Room -->
-                                <div class="d-flex align-items-center me-3 mb-2" id="roomnoGroup">
-                                    <label class="me-2 mb-1 mt-1">Room No(s):</label>
-                                    <input type="text" id="roomno" name="roomno"
-                                           class="form-control form-control-sm w-auto" />
-                                    <i id="listRoom" class="fas fa-ellipsis-h ellipsis-icon"
-                                       style="cursor:pointer;margin-left: 10px; left: 0; top: 0; position: relative;"></i>
-                                </div>
-
-                                <div class="d-flex align-items-center me-3 mb-2" id="scheduleGroup">
-                                    <label id="scheduleLabel" class="me-2 mb-1 mt-1">Schedule:</label>
-                                    <input type="text" id="roomnoCancel" name="roomnoCancel"
-                                           class="form-control form-control-sm w-auto" />
-                                    <i id="cancleRoom" class="fas fa-ellipsis-h ellipsis-icon"
-                                       style="cursor:pointer;margin-left: 10px; left: 0; top: 0; position: relative;"></i>
-                                </div>
-
-                                <!-- Chỉ hiện khi chọn Date -->
-                                <div id="dateSection">
-                                    <div class="d-flex align-items-center me-3 mb-2">
-                                        <label class="me-2 mb-0">Date:</label>
-                                        <input type="date" id="singleDatewuk" name="singleDatewuk"
-                                               class="form-control form-control-sm w-auto" />
-                                    </div>
-
-                                    <div class="d-flex align-items-center me-3 mb-2">
-                                        <label class="me-2 mb-0">Time:</label>
-                                        <input type="time" id="timeDate" value="07:00"
-                                               class="form-control form-control-sm w-auto" />
-                                    </div>
-                                </div>
-
-                                <!-- Chỉ hiện khi chọn Daily -->
-                                <div id="dailySection">
-                                    <div class="d-flex align-items-center me-3 mb-2">
-                                        <label class="me-2 mb-0">From Date:</label>
-                                        <div class="clearable" data-date-input data-format="DD/MM/YYYY" business-date
-                                             data-name="fromDatewuk">
-                                            <input type="text" class="date-ui form-control clearable"
-                                                   placeholder="dd/mm/yyyy" autocomplete="off" />
-                                        </div>
-                                    </div>
-                                    @* <input type="date" id="fromDatewuk" name="fromDatewuk" class="form-control form-control-sm w-auto" /> *@
-                                </div>
-
-                                <div class="d-flex align-items-center me-3 mb-2">
-                                    <label class="me-2 mb-0">Time:</label>
-                                    <input type="time" id="timeDaily" value="07:00"
-                                           class="form-control form-control-sm w-auto" />
-                                </div>
-
-                                <div class="d-flex align-items-center me-3 mb-2">
-                                    <label class="me-2 mb-0">To Date:</label>
-                                    <div class="clearable" data-date-input data-format="DD/MM/YYYY" business-date
-                                         data-name="fromDateSearch">
-                                        <input type="text" class="date-ui form-control clearable"
-                                               placeholder="dd/mm/yyyy" autocomplete="off" />
-                                    </div>
+                        <div class="col-md-6">
+                            <div class="row align-items-center">
+                                <label class="col-md-4 col-form-label">Room No:</label>
+                                <div class="col-md-8">
+                                    <input id="roomNoset" type="text" class="form-control form-control-sm">
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="group-box-wakeup" id="viewWakeupcall">
-                        <div class="form-group-wakeup">
-
-                            <div class="d-flex align-items-center me-3 mb-2">
-                                <label class="me-2 mb-1 mt-1">Name:</label>
-                                <input type="text" id="nameView" name="nameView"
-                                       class="form-control form-control-sm w-auto" />
-                            </div>
-
-                            <div class="d-flex align-items-center me-3 mb-2">
-                                <label class="me-2 mb-1 mt-1">Group:</label>
-                                <input type="text" id="groupName" name="groupName"
-                                       class="form-control form-control-sm w-auto" />
-                            </div>
-
-                            <div class="d-flex align-items-center me-3 mb-2">
-                                <label class="me-2 mb-0">Room:</label>
-                                <select id="roomview" asp-items="ViewBag.cboRoom"></select>
-                            </div>
-
-                            <div class="d-flex align-items-center me-3 mb-2">
-                                <label class="me-2 mb-0">From Date:</label>
-                                <input type="date" id="fromDateviewwuk" name="fromDateviewwuk"
-                                       class="form-control form-control-sm w-auto" />
-                            </div>
-
-                            <div class="d-flex align-items-center me-3 mb-2">
-                                <label class="me-2 mb-0">Time:</label>
-                                <input type="time" id="timeDailyview" value="07:00"
-                                       class="form-control form-control-sm w-auto" />
-                                <input type="radio" name="timeView" id="rdoTimeView">
-                            </div>
-
-                            <div class="d-flex align-items-center me-3 mb-2">
-                                <label class="me-2 mb-0">To Date:</label>
-                                <input type="date" id="toDateviewwuk" name="toDateviewwuk"
-                                       class="form-control form-control-sm w-auto" />
-                            </div>
-
-                            <div class="d-flex align-items-center me-3">
-                                <label class="me-2 mb-1 mt-1">Room Class:</label>
-                                <select id="roomClass" asp-items="ViewBag.cboRoomClass"></select>
+                        <div class="col-md-6">
+                            <div class="row align-items-center">
+                                <label class="col-md-4 col-form-label">Zone:</label>
+                                <div class="col-md-8">
+                                    <select id="zonewuk" asp-items="ViewBag.cboZone"></select>
+                                </div>
                             </div>
                         </div>
+
+                        <div class="col-md-6">
+                            <div class="row align-items-center">
+                                <label class="col-md-4 col-form-label">Reservation Holder:</label>
+                                <div class="col-md-8">
+                                    <input id="reservationHolder" type="text" class="form-control form-control-sm">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="row align-items-center">
+                                <label class="col-md-4 col-form-label">Confirm No:</label>
+                                <div class="col-md-8">
+                                    <input id="confirmNo" type="text" class="form-control form-control-sm">
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
-                <div class="btn-row-wakeup">
-                    <button style="border-radius: 4px;  margin-right: 6px;" id="btnCancelwakeup"
-                            class="mui-button mui-button-cancel"           type="button">
-                        Delete
-                    </button>
-
-                    <button style="border-radius: 4px;  margin-right: 6px;" id="btnSetwakeup"
-                            class="mui-button mui-button-card" type="button">
-                        Set
-                    </button>
-
-                    <button style="border-radius: 4px;  margin-right: 6px;" id="btnViewwakeup"
-                            class="mui-button mui-button-new" type="button">
-                        View
-                    </button>
-                </div>
-
-                <div id="popupLogGrid" style="display: none; position: fixed; top: 50%; left: 50%;
-                    transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px;
-                    z-index: 1000; box-shadow: 0 0 10px rgba(0,0,0,0.3); min-width: 600px;">
-
-                    <div class="d-flex justify-content-start mb-3 gap-2">
-                        <h5 class="mb-0">Wake Up Call Find Room</h5>
-                    </div>
-
-                    <div class="d-flex justify-content-start mb-3 gap-2">
-                        <button style="border-radius: 4px;  margin-right: 6px;" id="btnSearch"
-                                class="mui-button mui-button-new">
-                            <i class="fa-solid fa-magnifying-glass"></i>Search
-                        </button>
-
-                        <button style="border-radius: 4px;  margin-right: 6px" id="btnOke"
-                                class="mui-button mui-button-edit">
-                            Ok
-                        </button>
-
-                        <button style="border-radius: 4px;  margin-right: 6px;" id="btnCheckAll"
-                                class="mui-button mui-button-advance"                    type="button">
-                            Select All
-                        </button>
-
-                        <button style="border-radius: 4px;  margin-right: 6px;" id="btnCheckone"
-                                class="mui-button mui-button-advance"                        type="button">
-                            Select
-                        </button>
-
-                        <button onclick="$('#popupLogGrid').hide()" id="btnClosePopup" class="btn btn-sm btn-danger"
-                                style="border-radius: 4px;">
-                            Close
-                        </button>
-                    </div>
-
-                    <div class="container mb-2">
-                        <div class="d-flex align-items-center flex-wrap mb-2">
-                            <div class="d-flex align-items-center me-3 mb-2">
-                                <label class="me-2 mb-0">Room No:</label>
-                                <input id="roomNoset" type="text" class="form-control form-control-sm" placeholder="">
-                            </div>
-
-                            <div class="d-flex align-items-center me-3 mb-2">
-                                <label class="me-2 mb-0">Zone:</label>
-                                <select id="zonewuk" asp-items="ViewBag.cboZone"></select>
-                            </div>
-
-                            <div class="d-flex align-items-center me-3 mb-2">
-                                <label class="me-2 mb-0">Reservation Holder:</label>
-                                <input id="reservationHolder" type="text" class="form-control form-control-sm"
-                                       placeholder="">
-                            </div>
-
-                            <div class="d-flex align-items-center me-3 mb-2">
-                                <label class="me-2 mb-0">Confirm No :</label>
-                                <input id="confirmNo" type="text" class="form-control form-control-sm" placeholder="">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="logGridContainer" class="gridContainer mt-2"></div>
-                </div>
-
-                <div id="popupcancleGrid" style="display: none; position: fixed; top: 50%; left: 50%;
-                    transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px;
-                    z-index: 1000; box-shadow: 0 0 10px rgba(0,0,0,0.3); min-width: 400px;">
-
-                    <div class="d-flex justify-content-start mb-3 gap-2">
-                        <h5 class="mb-0">Wake Up Call Deleting</h5>
-                    </div>
-
-                    <div class="d-flex justify-content-start mb-3 gap-2">
-                        <button style="border-radius: 4px;  margin-right: 6px" id="btnOke"
-                                class="mui-button mui-button-edit">
-                            Ok
-                        </button>
-
-                        <button style="border-radius: 4px;  margin-right: 6px;" id="btnCheckAllcalcel"
-                                class="mui-button mui-button-advance"         type="button">
-                            Select All
-                        </button>
-
-                        <button onclick="$('#popupcancleGrid').hide()" id="btnClosePopup" class="btn btn-sm btn-danger"
-                                style="border-radius: 4px;">
-                            Close
-                        </button>
-                    </div>
-
-                    <div class="container mb-2">
-                        <div class="d-flex align-items-center flex-wrap mb-2">
-                            <div class="d-flex align-items-center me-3 mb-2">
-                                <label class="me-2 mb-0">Search for Name:</label>
-                                <input id="searchforName" type="text" class="form-control form-control-sm"
-                                       placeholder="">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="logcancelContainer" class="gridContainer mt-2"></div>
-                </div>
-
-                <div id="popupviewGrid">
-                    <div class="d-flex justify-content-start mb-3 gap-2">
-                        <h5 class="mb-0">View Wake Up Call</h5>
-                    </div>
-
-                    <div class="d-flex justify-content-start mb-3 gap-2">
-                        <button id="btnExportExcel" class="mui-button mui-button-export" type="button">
-                            Excel
-                        </button>
-
-                        <button onclick="$('#popupviewGrid').hide()" id="btnClosePopup" class="btn btn-sm btn-danger"
-                                style="border-radius: 4px;">
-                            Close
-                        </button>
-                    </div>
-
-                    <div class="row" style="height: calc(100% - 120px);">
-                        <div id="logviewContainer" class="gridContainer col-10 border p-2 overflow-auto">
-                            <!-- nội dung list -->
-                        </div>
-
-                        <div id="logviewdetailContainer" class="gridContainer col-2 border p-2 overflow-auto">
-                            <!-- chi tiết -->
-                        </div>
-                    </div>
-                </div>
-
+                <div id="logGridContainer" class="gridContainer mt-2"></div>
             </div>
         </div>
-
     </div>
 </div>
+
+<!-- ======================= CANCEL LIST MODAL ======================= -->
+<div class="modal fade" id="popupcancleGrid" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Wake Up Call Deleting</h5>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="d-flex justify-content-start mb-3 gap-2">
+                    <button id="btnOkCancelList" class="mui-button mui-button-edit" type="button">Ok</button>
+                    <button id="btnCheckAllCancelList" class="mui-button mui-button-advance" type="button">Select All</button>
+                    <button type="button" class="mui-button mui-button-advance" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="container mb-2">
+                    <div class="d-flex align-items-center flex-wrap mb-2">
+                        <div class="d-flex align-items-center me-3 mb-2">
+                            <label class="me-2 mb-0">Search for Name:</label>
+                            <input id="searchforName" type="text" class="form-control form-control-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="logcancelContainer" class="gridContainer mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================= VIEW MODAL ======================= -->
+<div class="modal fade" id="popupviewGrid" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">View Wake Up Call</h5>
+            </div>
+
+            <div class="modal-body">
+                <div class="d-flex justify-content-start mb-3 gap-2">
+                    <button id="btnExportExcel" class="mui-button mui-button-export" type="button">Excel</button>
+                    <button type="button" class="mui-button mui-button-advance" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="row" style="min-height:60vh;">
+                    <div id="logviewContainer" class="gridContainer col-9 border p-2 overflow-auto"></div>
+                    <div id="logviewdetailContainer" class="gridContainer col-3 border p-2 overflow-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="loadingSpinner">
+    <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 
 <script>
 
-
-    function openModalWakeupCall() {
-        if (idReservation == 0) {
-            showToast("Error", "Please choose booking", false);
-            return;
-        }
-        $("#roomnoCancel").val(roomNo || roomNowuk);
-        $("#roomno").val(roomNo || roomNowuk);
-        $('#modalWakeUpCall').modal('show');
+     function openModalWakeupCall()  {
+        initializeTomSelects();
         getBusinessDate();
-    }
-    getBusinessDate();
-    function getBusinessDate() {
-        const formattedBusinessDate = window.dateSystem;
-        console.log(formattedBusinessDate);
-        //Date openModalWakeupCall
-        $('#singleDatewuk').val(formattedBusinessDate);
-        $('#fromDatewuk').val(formattedBusinessDate);
-        $('#toDatewuk').val(formattedBusinessDate);
-        $('#fromDateviewwuk').val(formattedBusinessDate);
-        $('#toDateviewwuk').val(formattedBusinessDate);
-    }
-    function closeModalWakeUpCall() {
-        $('#modalWakeUpCall').modal('hide');
+        $("#popupWakeUpCall").modal('show');
 
+        $("#viewWakeupcall").hide();
+        toggleSection();
+
+        $("input[name='call']").change(toggleSection);
+        $("input[name='wake']").change(toggleSection);
+
+        // radio timeView cho phép uncheck
+        $("#rdoTimeView").on("click", function () {
+            if ($(this).data("waschecked")) {
+                $(this).prop("checked", false);
+                $(this).data("waschecked", false);
+            } else {
+                $("input[name='timeView']").data("waschecked", false);
+                $(this).data("waschecked", true);
+            }
+        });
+
+        $("#btnCloseWakeup").on("click", function () {
+            $("#popupWakeUpCall").modal("hide");
+        });
     }
 
-    $("#viewWakeupcall").hide();
     function toggleSection() {
-        // Reset class
         $("#dateSection, #dailySection, #roomnoGroup, #scheduleGroup")
             .removeClass("show-important hidden-important show-important1");
 
-        // check call (Date / Daily)
+        // Date/Daily
         if ($("#rdoDate").is(":checked")) {
             $("#dateSection").addClass("show-important");
             $("#dailySection").addClass("hidden-important");
@@ -441,133 +586,102 @@
             $("#dailySection").addClass("show-important1");
         }
 
-        // check wake (Set / Cancel / View)
+        // Set/Cancel/View
         if ($("#rdoSet").is(":checked")) {
             $("#setWakeup").show();
             $("#viewWakeupcall").hide();
             $("#roomnoGroup").addClass("show-important");
             $("#scheduleGroup").addClass("hidden-important");
 
-            // đổi label radio về mặc định
-            $("#rdoDate").closest("label").contents().last()[0].nodeValue = " Date";
-            $("#rdoDaily").closest("label").contents().last()[0].nodeValue = " Daily";
-
-            // if ($("#rdoDaily").is(":checked")) {
-            //     $("#scheduleGroup").removeClass("hidden-important").addClass("show-important");
-            //     $("#scheduleLabel").text("Room:");
-            // } else {
-            //     $("#scheduleLabel").text("Schedule:");
-            // }
-
+            $("#rdoDate").next("label").text("Date");
+            $("#rdoDaily").next("label").text("Daily");
             $("#dateSection :input, #dailySection :input").prop("readonly", false);
-            // Ẩn/hiện nút
-            $("#btnSetwakeup").show();   // Delete ẩn
-            $("#btnCancelwakeup").hide(); // Set hiện
-            $("#btnViewwakeup").hide();   // Delete ẩn
 
+            $("#btnSetwakeup").show();
+            $("#btnCancelwakeup").hide();
+            $("#btnViewwakeup").hide();
 
         } else if ($("#rdoCancle").is(":checked")) {
             $("#setWakeup").show();
             $("#viewWakeupcall").hide();
             $("#roomnoGroup").addClass("hidden-important");
             $("#scheduleGroup").addClass("show-important");
-            $("#scheduleLabel").text("Schedule:");
 
-            // đổi text radio
-            $("#rdoDate").closest("label").contents().last()[0].nodeValue = " Special Call";
-            $("#rdoDaily").closest("label").contents().last()[0].nodeValue = " All Call";
+            $("#rdoDate").next("label").text("Special Call");
+            $("#rdoDaily").next("label").text("All Call");
 
-            if ($("#rdoDaily").is(":checked")) {
-                $("#scheduleGroup").removeClass("hidden-important").addClass("show-important");
-                $("#scheduleLabel").text("Room:");
-            } else {
-                $("#scheduleLabel").text("Schedule:");
-            }
+            $("#scheduleLabel").text($("#rdoDaily").is(":checked") ? "Room:" : "Schedule:");
+
             $("#dateSection :input, #dailySection :input").prop("readonly", true);
-            // Ẩn/hiện nút
-            $("#btnSetwakeup").hide();    // Delete hiện
-            $("#btnCancelwakeup").show(); // Set ẩn
-            $("#btnViewwakeup").hide();   // Delete ẩn
-        }
-        else if ($("#rdoView").is(":checked")) {
+
+            $("#btnSetwakeup").hide();
+            $("#btnCancelwakeup").show();
+            $("#btnViewwakeup").hide();
+
+        } else if ($("#rdoView").is(":checked")) {
             $("#setWakeup").hide();
             $("#viewWakeupcall").show();
 
             $("#roomnoGroup, #scheduleGroup").addClass("hidden-important");
 
-            // đổi label radio về mặc định
-            $("#rdoDate").closest("label").contents().last()[0].nodeValue = " Date";
-            $("#rdoDaily").closest("label").contents().last()[0].nodeValue = " Daily";
-            $("#btnSetwakeup").hide();    // Delete hiện
-            $("#btnCancelwakeup").hide(); // Set ẩn
-            $("#btnViewwakeup").show();   // Delete ẩn
-        } else {
-            // View mode
-            $("#roomnoGroup, #scheduleGroup").addClass("hidden-important");
-
-            // đổi label radio về mặc định
-            $("#rdoDate").closest("label").contents().last()[0].nodeValue = " Date";
-            $("#rdoDaily").closest("label").contents().last()[0].nodeValue = " Daily";
+            $("#rdoDate").next("label").text("Date");
+            $("#rdoDaily").next("label").text("Daily");
+            $("#btnSetwakeup").hide();
+            $("#btnCancelwakeup").hide();
+            $("#btnViewwakeup").show();
         }
     }
 
-    // Gọi khi load
-    toggleSection();
+    function getBusinessDate() {
+        return $.ajax({
+            url: '/Reservation/GetBusinessDate',
+            type: 'get',
+            dataType: 'json',
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+                const d = result.split('T')[0];
+                $('#singleDate').val(d);
+                $('#fromDate').val(d);
+                $('#toDate').val(d);
+                $('#fromDateview').val(d);
+                $('#toDateview').val(d);
+            },
+            error: function (xhr) {
+                if (xhr.status == 401) sessionTimeout();
+            }
+        });
+    }
 
-    // Bắt sự kiện
-    $("input[name='call']").change(toggleSection);
-    $("input[name='wake']").change(toggleSection);
-
-    $("#rdoTimeView").on("click", function () {
-        if ($(this).data("waschecked")) {
-            $(this).prop("checked", false);
-            $(this).data("waschecked", false);
-        } else {
-            $("input[name='timeView']").data("waschecked", false); // reset các radio khác
-            $(this).data("waschecked", true);
-        }
-    });
     function initializeTomSelects() {
-        const selectors = ["#zonewuk", "#roomview"];
-
+        const selectors = ["#zone", "#roomview"];
         for (const id of selectors) {
             const el = document.querySelector(id);
             if (!el) continue;
-
             if (el.tomselect) el.tomselect.destroy();
-
-            const ts = new TomSelect(el, {
+            new TomSelect(el, {
                 plugins: ['remove_button'],
                 create: false,
                 maxItems: null,
                 allowEmptyOption: true,
                 placeholder: '',
-                persist: false,
-                render: {
-                    option: function (data, escape) {
-                        return `<div>${escape(data.text)}</div>`;
-                    }
-                }
+                persist: false
             });
-
         }
     }
 
+    // ======================= SET WAKEUP =======================
     $(document).off("click", "#btnSetwakeup").on("click", "#btnSetwakeup", function () {
+        const callType = $("input[name='call']:checked").val();
+        $("#loadingSpinner").show();
 
-        let checkedRadio = $("input[name='call']:checked");
-        let callType = checkedRadio.val();   // "date" hoặc "daily"
-
-
-
-        let requestData = {
+        const requestData = {
             callType: callType,
             singleDate: $("#singleDate").val(),
             timeDate: $("#timeDate").val(),
-            toDate: $("#toDate").val(),
             fromDate: $("#fromDate").val(),
+            toDate: $("#toDate").val(),
             timeDaily: $("#timeDaily").val(),
-            selectedRows: selectedRowsDataGs,
+            selectedRows: selectedRowsData,
             userID: localStorage.getItem("userID")
         };
 
@@ -576,48 +690,37 @@
             type: 'POST',
             contentType: "application/json",
             data: JSON.stringify(requestData),
-            traditional: true,
-            crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                if (result.success) {
-                    showToast('Success', result.message, true);   // true: thành công
-                } else {
-                    showToast('Error', result.message, false);    // false: thất bại
-                }
+                showToast(result.success ? 'Success' : 'Error', result.message, result.success);
                 $("#loadingSpinner").hide();
             },
             error: function () {
-                alert("Không th? t?i báo cáo.");
+                alert("Không thể tải báo cáo.");
                 $("#loadingSpinner").hide();
             }
         });
     });
 
+    // ======================= CANCEL WAKEUP =======================
     $(document).off("click", "#btnCancelwakeup").on("click", "#btnCancelwakeup", function () {
-        let checkedRadio = $("input[name='call']:checked");
-        let callType = checkedRadio.val();   // "date" hoặc "daily"
-
-        // Thông báo khác nhau theo callType
-        let confirmMessage = callType === "date"
+        const callType = $("input[name='call']:checked").val();
+        const confirmMessage = callType === "date"
             ? "Are you sure to delete?"
             : "Are you sure to delete all wake up call schedule in those rooms?";
 
-        let confirmDelete = confirm(confirmMessage);
-        if (!confirmDelete) {
-            return; // Nếu chọn Cancel thì thoát
-        }
+        if (!confirm(confirmMessage)) return;
 
+        $("#loadingSpinner").show();
 
-
-        let requestData = {
+        const requestData = {
             callType: callType,
             singleDate: $("#singleDate").val(),
             timeDate: $("#timeDate").val(),
-            toDate: $("#toDate").val(),
             fromDate: $("#fromDate").val(),
+            toDate: $("#toDate").val(),
             timeDaily: $("#timeDaily").val(),
-            selectedRows: selectedRowsDataGs,
+            selectedRows: selectedRowsData,
             userID: localStorage.getItem("userID")
         };
 
@@ -626,145 +729,113 @@
             type: 'POST',
             contentType: "application/json",
             data: JSON.stringify(requestData),
-            traditional: true,
-            crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                if (result.success) {
-                    showToast('Success', result.message, true);   // true: thành công
-                } else {
-                    showToast('Error', result.message, false);    // false: thất bại
-                }
+                showToast(result.success ? 'Success' : 'Error', result.message, result.success);
                 $("#loadingSpinner").hide();
             },
             error: function () {
-                alert("Không th? t?i báo cáo.");
+                alert("Không thể tải báo cáo.");
                 $("#loadingSpinner").hide();
             }
         });
     });
 
+    // ======================= VIEW WAKEUP =======================
     $(document).off("click", "#btnViewwakeup").on("click", "#btnViewwakeup", function () {
-
-
-
-
+        $("#loadingSpinner").show();
 
         $.ajax({
             url: '/FrontDesk/ViewWakeUpCall',
             type: 'GET',
-            contentType: "application/json",
             data: {
                 name: $("#nameView").val(),
                 group: $("#groupName").val(),
-                roomview: $("#roomview").val(),
-                fromDateview: $("#fromDateviewwuk").val(),
+                roomview: ($("#roomview").val() || []).join(","),
+                fromDateview: $("#fromDateview").val(),
                 timeDailyview: $("#rdoTimeView").is(":checked") ? $("#timeDailyview").val() : null,
-                toDateview: $("#toDateviewwuk").val(),
-                roomClass: $("#roomClass").val(),
+                toDateview: $("#toDateview").val(),
+                roomClass: $("#roomClass").val()
             },
-            traditional: true,
-            crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                $("#loadingSpinner").hide();
                 initializeViewWakeUpCallGrid(result);
-                $("#popupviewGrid").show();
-
-                $('#popupviewGrid').fadeIn(200);
-
+                $("#popupviewGrid").modal('show');
+                $("#loadingSpinner").hide();
             },
             error: function () {
-                alert("Không th? t?i báo cáo.");
+                alert("Không thể tải báo cáo.");
                 $("#loadingSpinner").hide();
             }
         });
     });
 
-    $('#btnClosePopup, #overlay').click(function () {
-        $('#popupLogGrid').fadeOut(200);
-
-        $('#popupcancleGrid').fadeOut(200);
-        $('#popupviewGrid').fadeOut(200);
+    // ======================= OPEN FIND ROOM =======================
+    $(document).off("click", "#listRoom").on("click", "#listRoom", function () {
+        // mở grid lần đầu (hoặc search theo filter hiện tại)
+        $("#btnSearchFindRoom").trigger("click");
     });
 
-    $(document).off("click", "#listRoom, #btnSearch").on("click", "#listRoom, #btnSearch", function () {
+    // Search FindRoom
+    $(document).off("click", "#btnSearchFindRoom").on("click", "#btnSearchFindRoom", function () {
+        $("#loadingSpinner").show();
         $.ajax({
             url: '/FrontDesk/WakeUpCallFindRoom',
             type: 'GET',
             data: {
                 roomNoset: $("#roomNoset").val(),
                 reservationHolder: $("#reservationHolder").val(),
-                zone: $("#zonewuk").val(),
-                confirmNo: $("#confirmNo").val(),
+                zone: ($("#zone").val() || []).join(","),
+                confirmNo: $("#confirmNo").val()
             },
-            headers: {
-                "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val()
-            },
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                console.log(result);
-                if (result !== null && result !== undefined && result.length > 0) {
+                if (result && result.length > 0) {
                     initializeWakeUpCallFindRoomGrid(result);
-
-                    $("#popupLogGrid").show();
-
-                    $('#popupLogGrid').fadeIn(200);
+                    $("#popupLogGrid").modal('show');
                 } else {
-                    console.error("Dữ liệu trả về không hợp lệ:", result);
-                    alert("Dữ liệu không đúng định dạng hoặc rỗng!");
-
+                    showToast('Warning', 'The returned data is invalid or empty.', false);
                 }
                 $("#loadingSpinner").hide();
             },
-            error: function (xhr, status, error) {
-                console.error("Lỗi khi tải dữ liệu chi tiết:", error);
+            error: function () {
                 $("#loadingSpinner").hide();
             }
         });
     });
 
+    // ======================= OPEN CANCEL LIST =======================
     $(document).off("click", "#cancleRoom").on("click", "#cancleRoom", function () {
-
-
-        let checkedRadio = $("input[name='call']:checked");
-        let callType = checkedRadio.val();   // "date" hoặc "daily"
-
+        const callType = $("input[name='call']:checked").val();
+        $("#loadingSpinner").show();
 
         $.ajax({
             url: '/FrontDesk/WakeUpCallSearch',
             type: 'GET',
             data: {
-                currentDate: $("#singleDatewuk").val(),
+                currentDate: $("#singleDate").val(),
                 searchforName: $("#searchforName").val(),
                 isSpecial: $("#rdoDate").is(":checked") ? 1 : 0
             },
-            headers: {
-                "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val()
-            },
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                console.log(result);
-                if (result !== null && result !== undefined && result.length > 0) {
+                if (result && result.length > 0) {
                     initializeWakeUpCallSearchGrid(result, callType);
-                    $("#popupcancleGrid").show();
-                    $('#overlay').fadeIn(200);
-                    $('#popupcancleGrid').fadeIn(200);
+                    $("#popupcancleGrid").modal('show');
                 } else {
-                    console.error("Dữ liệu trả về không hợp lệ:", result);
-                    alert("Dữ liệu  rỗng!");
+                    showToast('Warning', 'The returned data is invalid or empty.', false);
                 }
                 $("#loadingSpinner").hide();
             },
-            error: function (xhr, status, error) {
-                console.error("Lỗi khi tải dữ liệu chi tiết:", error);
+            error: function () {
+                $("#loadingSpinner").hide();
             }
         });
     });
 
-    // lưu danh sách các dòng được chọn
-    //let logGrid;
-    // let isAllSelected = false;
+    // ======================= GRIDS =======================
     function initializeWakeUpCallFindRoomGrid(data) {
-        const columnWidth = 120;
+        isAllSelected = false;
         logGrid = $("#logGridContainer").dxDataGrid({
             dataSource: data,
             allowColumnResizing: true,
@@ -773,19 +844,15 @@
             columns: [
                 { dataField: "id", caption: "ID", visible: false },
                 { dataField: "room", caption: "Room", width: 100 },
-                { dataField: "confirmNo", caption: "Confirm no", width: columnWidth },
+                { dataField: "confirmNo", caption: "Confirm no", width: 120 },
                 { dataField: "name", caption: "Name", width: 180 },
-                { dataField: "shareRoom", caption: "Share Room", width: columnWidth },
-                { dataField: "arrDate", caption: "Arr date", dataType: "date", format: "yyyy-MM-dd", width: columnWidth },
-                { dataField: "depDate", caption: "Dep date", dataType: "date", format: "yyyy-MM-dd", width: columnWidth },
+                { dataField: "shareRoom", caption: "Share Room", width: 120 },
+                { dataField: "arrDate", caption: "Arr date", dataType: "date", format: "yyyy-MM-dd", width: 120 },
+                { dataField: "depDate", caption: "Dep date", dataType: "date", format: "yyyy-MM-dd", width: 120 },
                 { dataField: "reservationHolder", caption: "Reservation holder", width: 180 }
             ],
-
             paging: { pageSize: 25 },
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
+            scrolling: { useNative: true, showScrollbar: "always" },
             pager: {
                 visible: true,
                 allowedPageSizes: [25, 50, 'all'],
@@ -795,156 +862,17 @@
             },
             filterRow: { visible: true, applyFilter: "auto" },
             headerFilter: { visible: true },
-            selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "always"
-            },
+            selection: { mode: "multiple", showCheckBoxesMode: "always" },
             showBorders: true,
-
-            // bắt sự kiện khi select/deselect
             onSelectionChanged: function (e) {
-                selectedRowsDataGs = e.selectedRowsDataGs;
-                console.log("Các dòng được chọn:", selectedRowsDataGs);
-            },
-
-            onRowPrepared: function (e) {
-                if (e.rowType === "data" && e.data?.isTotal) {
-                    e.rowElement.css({
-                        "font-weight": "bold",
-                        "background-color": "#f6f6f6"
-                    });
-                }
+                selectedRowsData = e.selectedRowsData; // ✅ đúng
             }
-        });
-        logGrid = $("#logGridContainer").dxDataGrid("instance");
+        }).dxDataGrid("instance");
     }
 
-    function initializeViewWakeUpCallGrid(data) {
-        const columnWidth = 120;
-        logGrid = $("#logviewContainer").dxDataGrid({
-            dataSource: data,
-            allowColumnResizing: true,
-            columnAutoWidth: true,
-            height: 700,
-            columns: [
-                { dataField: "id", caption: "ID", visible: false },
-                { dataField: "shareRoom", caption: "ShareRoom", visible: false },
-                { dataField: "status", caption: "Status", width: columnWidth },
-                { dataField: "confirmationNo", caption: "Conf. no", width: columnWidth },
-                { dataField: "roomNo", caption: "RoomNo", width: columnWidth },
-                { dataField: "guestName", caption: "Guest Name", width: columnWidth },
-                { dataField: "arrDate", caption: "Arr date", dataType: "date", format: "yyyy-MM-dd", width: columnWidth },
-                { dataField: "depDate", caption: "Dep date", dataType: "date", format: "yyyy-MM-dd", width: columnWidth },
-                { dataField: "wudate", caption: "WU Date", dataType: "date", format: "yyyy-MM-dd", width: columnWidth },
-                { dataField: "wutime", caption: "WU Time", dataType: "date", format: "yyyy-MM-dd", width: columnWidth },
-                { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "yyyy-MM-dd", width: columnWidth },
-                { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "yyyy-MM-dd", width: columnWidth },
-                { dataField: "userCancel", caption: "User Cancel", width: columnWidth },
-                { dataField: "userSetup", caption: "User Setup", width: columnWidth },
-                { dataField: "", caption: "Remarks", width: columnWidth },
-            ],
-
-            paging: { pageSize: 25 },
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
-            selection: {
-                mode: "single"   // chỉ chọn được 1 dòng
-            },
-            showBorders: true,
-
-            // bắt sự kiện khi select/deselect
-            onRowClick: function (e) {
-                const rowData = e.data;
-                $.ajax({
-                    url: '/FrontDesk/ViewWakeUpCallAccount',
-                    type: 'GET',
-                    data: {
-
-                        roomID: rowData.id,
-                        shareRoom: rowData.shareRoom
-                    },
-                    headers: {
-                        "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val()
-                    },
-                    success: function (result) {
-                        console.log(result);
-
-                        initializeViewWakeUpCallAccountGrid(result);
-
-
-                    },
-                    error: function (xhr, status, error) {
-                        console.error("Lỗi khi tải dữ liệu chi tiết:", error);
-                    }
-                });
-            },
-
-            onRowPrepared: function (e) {
-                if (e.rowType === "data" && e.data?.isTotal) {
-                    e.rowElement.css({
-                        "font-weight": "bold",
-                        "background-color": "#f6f6f6"
-                    });
-                }
-            }
-        });
-        logGrid = $("#logviewContainer").dxDataGrid("instance");
-    }
-
-    function initializeViewWakeUpCallAccountGrid(data) {
-        const columnWidth = 120;
-        logGrid = $("#logviewdetailContainer").dxDataGrid({
-            dataSource: data,
-            allowColumnResizing: true,
-            columnAutoWidth: true,
-            columns: [
-
-                { dataField: "account", caption: "Account", width: 100 },
-
-
-            ],
-
-            paging: { pageSize: 25 },
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
-
-            showBorders: true,
-
-            onRowPrepared: function (e) {
-                if (e.rowType === "data" && e.data?.isTotal) {
-                    e.rowElement.css({
-                        "font-weight": "bold",
-                        "background-color": "#f6f6f6"
-                    });
-                }
-            }
-        });
-
-    }
     function initializeWakeUpCallSearchGrid(data, callType) {
-        const columnWidth = 120;
+        isAllSelected = false;
+
         logGrid = $("#logcancelContainer").dxDataGrid({
             dataSource: data,
             allowColumnResizing: true,
@@ -953,16 +881,11 @@
                 { dataField: "id", caption: "ID", visible: false },
                 { dataField: "roomID", caption: "RoomID", visible: false },
                 { dataField: "room", caption: "Room", width: 100 },
-
                 { dataField: "name", caption: "Name", width: 180 },
-                { dataField: "dateTime", caption: "Date/Time", width: 180, visible: callType === "date" },
+                { dataField: "dateTime", caption: "Date/Time", width: 180, visible: callType === "date" }
             ],
-
             paging: { pageSize: 25 },
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
+            scrolling: { useNative: true, showScrollbar: "always" },
             pager: {
                 visible: true,
                 allowedPageSizes: [25, 50, 'all'],
@@ -972,130 +895,177 @@
             },
             filterRow: { visible: true, applyFilter: "auto" },
             headerFilter: { visible: true },
-            selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "always"
-            },
+            selection: { mode: "multiple", showCheckBoxesMode: "always" },
             showBorders: true,
-
-            // bắt sự kiện khi select/deselect
             onSelectionChanged: function (e) {
-                selectedRowsDataGs = e.selectedRowsDataGs;
-                console.log("Các dòng được chọn:", selectedRowsDataGs);
-            },
-
-            onRowPrepared: function (e) {
-                if (e.rowType === "data" && e.data?.isTotal) {
-                    e.rowElement.css({
-                        "font-weight": "bold",
-                        "background-color": "#f6f6f6"
-                    });
-                }
+                selectedRowsData = e.selectedRowsData; // ✅ đúng
             }
-        });
-        logGrid = $("#logcancelContainer").dxDataGrid("instance");
+        }).dxDataGrid("instance");
     }
 
+    function initializeViewWakeUpCallGrid(data) {
+        logGrid = $("#logviewContainer").dxDataGrid({
+            dataSource: data,
+            allowColumnResizing: true,
+            columnAutoWidth: true,
+            height: 700,
+            columns: [
+                { dataField: "id", caption: "ID", visible: false },
+                { dataField: "shareRoom", caption: "ShareRoom", visible: false },
+                { dataField: "status", caption: "Status", width: 120 },
+                { dataField: "confirmationNo", caption: "Conf. no", width: 120 },
+                { dataField: "roomNo", caption: "RoomNo", width: 120 },
+                { dataField: "guestName", caption: "Guest Name", width: 160 },
+                { dataField: "arrDate", caption: "Arr date", dataType: "date", format: "yyyy-MM-dd", width: 120 },
+                { dataField: "depDate", caption: "Dep date", dataType: "date", format: "yyyy-MM-dd", width: 120 },
+                { dataField: "wudate", caption: "WU Date", dataType: "date", format: "yyyy-MM-dd", width: 120 },
+                { dataField: "wutime", caption: "WU Time", width: 120 },
+                { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "yyyy-MM-dd", width: 120 },
+                { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "yyyy-MM-dd", width: 120 },
+                { dataField: "userCancel", caption: "User Cancel", width: 120 },
+                { dataField: "userSetup", caption: "User Setup", width: 120 },
+                { dataField: "remarks", caption: "Remarks", width: 160 }
+            ],
+            paging: { pageSize: 25 },
+            scrolling: { useNative: true, showScrollbar: "always" },
+            pager: {
+                visible: true,
+                allowedPageSizes: [25, 50, 'all'],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            },
+            filterRow: { visible: true, applyFilter: "auto" },
+            headerFilter: { visible: true },
+            selection: { mode: "single" },
+            showBorders: true,
+            onRowClick: function (e) {
+                const rowData = e.data;
+                $.ajax({
+                    url: '/FrontDesk/ViewWakeUpCallAccount',
+                    type: 'GET',
+                    data: { roomID: rowData.id, shareRoom: rowData.shareRoom },
+                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                    success: function (result) {
+                        initializeViewWakeUpCallAccountGrid(result);
+                    }
+                });
+            }
+        }).dxDataGrid("instance");
+    }
 
-    $(document).off("click", "#btnCheckAll,#btnCheckAllcalcel").on("click", "#btnCheckAll,#btnCheckAllcalcel", function () {
-        if (!logGrid) return;
+    function initializeViewWakeUpCallAccountGrid(data) {
+        $("#logviewdetailContainer").dxDataGrid({
+            dataSource: data,
+            allowColumnResizing: true,
+            columnAutoWidth: true,
+            columns: [
+                { dataField: "account", caption: "Account", width: 140 }
+            ],
+            paging: { pageSize: 25 },
+            scrolling: { useNative: true, showScrollbar: "always" },
+            pager: {
+                visible: true,
+                allowedPageSizes: [25, 50, 'all'],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            },
+            filterRow: { visible: true, applyFilter: "auto" },
+            headerFilter: { visible: true },
+            showBorders: true
+        });
+    }
 
-        if (!isAllSelected) {
-            logGrid.selectAll(); // chọn hết
-            isAllSelected = true;
+    // ======================= GRID BUTTONS =======================
+    $(document).off("click", "#btnCheckAllFindRoom, #btnCheckAllCancelList")
+        .on("click", "#btnCheckAllFindRoom, #btnCheckAllCancelList", function () {
+            if (!logGrid) return;
+            if (!isAllSelected) {
+                logGrid.selectAll();
+                isAllSelected = true;
+                $(this).text("Unselect All");
+            } else {
+                logGrid.clearSelection();
+                isAllSelected = false;
+                $(this).text("Select All");
+            }
+        });
 
-            // đổi text & icon
-            $(this).html(' Unselect All');
-        } else {
-            logGrid.clearSelection(); // bỏ chọn hết
-            isAllSelected = false;
+    $(document).off("click", "#btnCheckVisibleFindRoom")
+        .on("click", "#btnCheckVisibleFindRoom", function () {
+            if (!logGrid) return;
+            const visibleKeys = logGrid.getVisibleRows().map(r => r.key);
+            logGrid.selectRows(visibleKeys, true);
+        });
 
-            // đổi lại text & icon ban đầu
-            $(this).html(' Select All');
-        }
-    });
-
-    $(document).on("click", "#btnCheckone", function () {
-        if (logGrid) {
-            let visibleRows = logGrid.getVisibleRows().map(r => r.key);
-            logGrid.selectRows(visibleRows, true); // ✅ chọn tất cả dòng đang hiển thị (theo filter/paging)
-        }
-    });
-    $(document).off("click", "#btnOke").on("click", "#btnOke", function () {
-        if (selectedRowsDataGs.length === 0) {
+    // Ok FindRoom -> fill roomno
+    $(document).off("click", "#btnOkFindRoom").on("click", "#btnOkFindRoom", function () {
+        if (!selectedRowsData || selectedRowsData.length === 0) {
             alert("Vui lòng chọn ít nhất 1 phòng!");
             return;
         }
-
-        // Lấy danh sách room
-        let rooms = selectedRowsDataGs.map(x => x.room); // chú ý: dataField trong grid phải là "room"
-
-        // Ghép lại thành chuỗi cách nhau bằng dấu ,
+        const rooms = selectedRowsData.map(x => x.room);
         $("#roomno").val(rooms.join(", "));
-
         $("#roomnoCancel").val(rooms.join(", "));
-
-        $('#popupLogGrid').fadeOut(200);
-        $('#popupcancleGrid').fadeOut(200);
-
+        $("#popupLogGrid").modal("hide");
     });
-    $("#btnExportExcel").click(function () {
-        const grid = $("#logviewContainer").dxDataGrid("instance"); var selectedReport2 = 'View Wake Up Call';
-        var selectedReport = 'View Wake Up Call';
-        if (!selectedReport) {
-            alert("Vui lòng chọn báo cáo trước khi xuất Excel.");
+
+    // Ok CancelList -> fill schedule room list (nếu cần)
+    $(document).off("click", "#btnOkCancelList").on("click", "#btnOkCancelList", function () {
+        if (!selectedRowsData || selectedRowsData.length === 0) {
+            alert("Vui lòng chọn ít nhất 1 dòng!");
             return;
         }
+        const rooms = selectedRowsData.map(x => x.room);
+        $("#roomnoCancel").val(rooms.join(", "));
+        $("#popupcancleGrid").modal("hide");
+    });
 
-        const workbook = new ExcelJS.Workbook(); const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+    // ======================= EXPORT EXCEL (giữ logic của bạn) =======================
+    $("#btnExportExcel").click(function () {
+        const grid = $("#logviewContainer").dxDataGrid("instance");
+        const selectedReport = "View Wake Up Call";
+        const workbook = new ExcelJS.Workbook();
+        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
         const worksheet = workbook.addWorksheet("Sheet 1");
 
-        // === Tạo header công ty (dòng 1) ===
         worksheet.addRow([companyName]);
         worksheet.mergeCells('A1:E1');
         worksheet.getRow(1).font = { bold: true };
         worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
 
-        // === Dòng 2: Thời gian xuất (phải) ===
         const now = new Date();
         const exportDate = now.toLocaleString("vi-VN");
         worksheet.addRow(['', '', '', '', ' ' + exportDate]);
         worksheet.mergeCells('E2:H2');
         worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
 
-        // === Dòng 3–4: Trống
         worksheet.addRow([]);
         worksheet.addRow([]);
 
-        // === Dòng 5: Tên báo cáo ở giữa ===
         const reportRow = worksheet.addRow(['', '', selectedReport]);
         worksheet.mergeCells('C5:F5');
         reportRow.font = { bold: true, size: 14 };
         reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-        // === Dòng 6: Trống trước khi xuất dữ liệu
         worksheet.addRow([]);
 
-        // === Export dữ liệu từ DevExtreme (bắt đầu từ dòng 7)
         DevExpress.excelExporter.exportDataGrid({
             component: grid,
             worksheet: worksheet,
             autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 } // dữ liệu bắt đầu từ dòng 7
+            topLeftCell: { row: 7, column: 1 }
         }).then(function () {
-            // Footer
             const lastRow = worksheet.lastRow.number + 2;
-
             worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
             worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
             worksheet.getCell(`A${lastRow}`).font = { italic: true };
 
-            // Ghi file
-            let fileName = selectedReport + ".xlsx";
+            const fileName = selectedReport + ".xlsx";
             workbook.xlsx.writeBuffer().then(function (buffer) {
                 saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
             });
         });
     });
-
 </script>

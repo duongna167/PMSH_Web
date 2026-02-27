@@ -95,8 +95,9 @@
                             <div class="col-auto d-flex align-items-center">
                                 <label class="fw-bold small me-2 mb-0">Profile</label>
                                 <div class="d-flex gap-1">
-                                    <input id="allot_search_profileId" readonly class="form-control form-control-sm" style="width: 130px;" placeholder="" />
-                                    <button onclick="openModalSearchProfileAccompany()" class="" data-tooltip="Search Profile">
+                                    <input id="allot_search_profileId" type="hidden" />
+                                    <input id="allot_search_profileName" class="form-control form-control-sm" style="width: 130px;" placeholder="" />
+                                    <button onclick="allot_search_Module.openProSearchModal()" class="" data-tooltip="Search Profile">
                                         <i class="fa-solid fa-arrow-down text-dark"></i>
                                     </button>
                                 </div>
@@ -351,6 +352,7 @@
     </div>
 </div>
 
+@* @await Html.PartialAsync("~/Views/Profile/SearchProfile.cshtml") *@
 <script>
 
     var allot_search_Module = {
@@ -409,6 +411,12 @@
             $("#allot_search_btnExportExcel").on("click", () => self.exportToExcel());
             $("#allot_search_btnHistory").on("click", () => self.openModalHistory());
             $("#allot_search_btnHistorySearch").on("click", () => self.fetchHistoryData());
+
+            $("#allot_search_profileName").on("input", function() {
+                if ($(this).val().trim() === "") {
+                    $("#allot_search_profileId").val("");
+                }
+            })
         },
 
         reloadGrid: function () {
@@ -621,6 +629,63 @@
             $("#ooos_historyModal").modal("show");
 
             self.fetchHistoryData();
+        },
+
+        openProSearchModalTest: function() {
+            const self = this;
+
+            // 1. Tạo một container riêng cho Profile Search nếu chưa có
+            if ($("#profileSearchContainer").length === 0) {
+                $("body").append('<div id="profileSearchContainer"></div>');
+            }
+            const $subContainer = $("#profileSearchContainer");
+
+            const url = '/Profile/SearchProfile';
+            const modalId = 'pro_search_mainModal';
+
+            // 2. Tải modal vào container riêng này
+            $subContainer.load(url, function () {
+                // Khởi tạo Module Profile
+                pro_search_Module.init(function(selectedData) {
+                    console.log("Dữ liệu nhận được:", selectedData);
+
+                    // 3. Gán dữ liệu vào Allotment
+                    $("#allot_search_profileName").val(selectedData.account);
+                    $("#allot_search_profileId").val(selectedData.id);
+
+                    // 4. Đóng modal Profile bằng tay để kiểm soát
+                    const modalEl = document.getElementById(modalId);
+                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInstance) modalInstance.hide();
+
+                    // 5. Quan trọng: Khôi phục trạng thái cho Modal Allotment (cha)
+                    setTimeout(() => {
+                        $('body').addClass('modal-open');
+                        $('.modal-backdrop').not(':last').remove(); // Xóa backdrop thừa nếu có
+                    }, 400);
+                });
+
+                // Hiển thị modal Profile
+                const modalEl = document.getElementById(modalId);
+                const modalInstance = new bootstrap.Modal(modalEl);
+                modalInstance.show();
+
+                // Dọn dẹp container khi modal Profile đóng hẳn
+                modalEl.addEventListener('hidden.bs.modal', function () {
+                    $subContainer.empty();
+                });
+            });
+        },
+
+        openProSearchModal: function() {
+            // Gọi hàm global từ Layout
+            openProSearch((selectedData) => {
+                // 1. Điền dữ liệu
+                $("#allot_search_profileName").val(selectedData.account);
+                $("#allot_search_profileId").val(selectedData.id);
+
+                // Modal Allotment (cha) sẽ TỰ ĐỘNG hiển thị lại vì nó nằm ở container khác
+            });
         },
 
         fillEditForm: function (data) {
