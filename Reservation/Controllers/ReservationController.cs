@@ -7,6 +7,7 @@ using DevExpress.Web.Internal;
 using DevExpress.XtraReports.UI;
 using DevExpress.XtraRichEdit.Import.Doc;
 using DevExpress.XtraRichEdit.Import.Html;
+using DocumentFormat.OpenXml.EMMA;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -2590,7 +2591,7 @@ namespace Reservation.Controllers
                     WaitList = false,
                     WakeUpCall = false,
 
-                    ItemInv = 0,          // field này là int → giữ nguyên
+                    ItemInv = false,          // field này là int → giữ nguyên
                     GroupOptions = false,
                     MoreFields = false
                 };
@@ -6632,6 +6633,23 @@ namespace Reservation.Controllers
             List<PackageModel> listPackage = PropertyUtils.ConvertToList<PackageModel>(PackageBO.Instance.FindAll());
             ViewBag.PackageList = listPackage;
             return View();
+        }
+        #endregion
+
+        #region showbutton New Reservation
+        [HttpGet]
+        public IActionResult ReservationOptions(int id)
+        {
+            try
+            {
+                ReservationOptionsModel model = (ReservationOptionsModel)ReservationOptionsBO.Instance.FindByAttribute("ReservationID", id)[0];
+                return Json(model);
+            }
+            catch (Exception ex)
+            {
+
+                return Json(ex.Message);
+            }
         }
         #endregion
 
