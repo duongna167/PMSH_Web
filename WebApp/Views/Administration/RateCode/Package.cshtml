@@ -1,312 +1,457 @@
+@* =========================
+   PAK - Option A Refactor
+   - All IDs + names prefixed with pak_
+   - Main view is Bootstrap modal-xl
+   - Module pattern (init/open/bindEvents/cleanup)
+   - Preserve existing endpoints + business logic
+   ========================= *@
+
 <style>
-    .tabs-container {
-        max-width: 60%;
+    /* Keep minimal, avoid global overrides. Scope with pak_ where possible */
+    .dx-tab {
+        padding: 0px;
+    }
+    .dx-tab.dx-tab-selected, .dx-tab.dx-tab-selected .dx-icon {
+        color: #009444;
+    }
+    
+    .dx-tab.dx-tab-selected::before {
+        background-color: #009444;
     }
 
-    .dx-tab-form {
-        display: none;
-    }
-
-    .dx-visible {
-        display: block;
-    }
-
-    .mui-card {
-        width: 30% !important;
-    }
-
-    .gridContainerv2 {
-        max-height: 300px;
-        /* chiều cao cố định */
-        overflow-y: auto;
-        /* chỉ body scroll */
-    }
 </style>
-<div class="text-center" id="reportTitle" style="font-size: 20px">Package</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="">
-        <button id="btnView" onclick="openModalSearchUser()" class="mui-button mui-button-search"> Search</button>
-        <button id="btnNew" class="mui-button mui-button-new" type="button">
-            New</button>
-        <button id="btnEdit" class="mui-button mui-button-edit " type="button">
-            Edit</button>
-        <button id="btnSave" class="mui-button mui-button-export " type="button"> Save</button>
-        <button id="btnDelete" class="mui-button button-report-delete" type="button"> Delete</button>
-        <button class="mui-button mui-button-clear" id="btnClear">
-            Refresh</button>
-        <button class="mui-button mui-button-new" id="addDetailPackage">
-            Save</button>
-        <button class="mui-button button-report-delete" id="btnRemove">
-            Delete</button>
 
-    </div>
-</div>
-<div class="mui-card"></div>
-<div class="dx-tab-form dx-visible" data-tab="0" id="packageForm">
-    <div class="tabs-container border p-3 mt-3 mx-auto">
-        <!-- Thông tin chính -->
-        <div class="row g-3 mb-3">
-            <input type="hidden" id="ID" name="ID" />
-
-            <div class="col-md-6">
-                <label class="form-label" id="code">Code</label>
-                <input type="text" id="txtCode" name="code" class="form-control mb-2">
-                <div class="invalid-feedback"></div>
-
-            </div>
-            <div class="col-md-6 d-flex align-items-end">
-                <div class="w-100">
-                    <label class="form-label">Forecast Group</label>
-                    <select class="form-control form-select form-control-sm" name="forecastGroupID" id="forecastGroup">
-                        <option value="0">-- Select Forecast Group -- </option>
-                        @foreach (dynamic u in ViewBag.PackageForecastGroup)
-                        {
-                            <option value="@u.ID">@u.Code / @u.Name</option>
-                        }
-                    </select>
-                    <div class="invalid-feedback"></div>
-
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-3 mb-3">
-            <div class="col-md-6">
-                <label class="form-label">Type</label>
-                <select id="type" class="form-control form-select form-control-sm" disabled>
-                    <option value="0">Element</option>
-                </select>
-            </div>
-            <div class="col-md-6 d-flex align-items-end">
-                <div class="w-100">
-                    <label class="form-label">Transaction Code</label>
-                    <select class="form-control form-select form-control-sm" name="transCode" id="transactionCode">
-                        <option value="0">-- Select Transaction Code -- </option>
-                        @foreach (dynamic u in ViewBag.TransactionList)
-                        {
-                            <option value="@u.Code">@u.Code / @u.Description</option>
-                        }
-                    </select>
-                    <div class="invalid-feedback"></div>
-
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Description</label>
-                <input id="txtDescription" name="description" type="text" class="form-control">
-                <div class="invalid-feedback"></div>
-
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Display in Folio</label>
-                <input id="textInNightAudit" type="text" class="form-control">
-            </div>
-
-            <div class="checkbox">
-                <input class="form-check-input" type="checkbox" id="chkActive" checked>
-                <label class="form-check-label" for="active">Active</label>
-            </div>
-
-            <!-- Attributes + Meal Info -->
-            <div class="row g-3 mt-3">
-                <!-- Attributes -->
-                <div class="col-md-6 border p-3">
-                    <label for="">Default Display</label>
-                    <div class="group-box">
-                        <label><input type="radio" name="attr" value="1" id="chkIncludedInRate" checked>
-                            Included In Rate</label><br />
-                        <label><input type="radio" name="attr" value="0" id="chkRateSeparateLine">
-                            Add Rate Separate Line</label><br />
-                    </div>
-                </div>
-
-                <!-- Meal Info -->
-                <div class="col-md-6 border p-3">
-                    <label class="form-label fw-bold">Meal Info</label><br>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="breakfast" checked>
-                        <label class="form-check-label" for="breakfast">Breakfast</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="lunch" checked>
-                        <label class="form-check-label" for="lunch">Lunch</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="dinner" checked>
-                        <label class="form-check-label" for="dinner">Dinner</label>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-</div>
-<div class="dx-tab-form" data-tab="1" id="packageDetailForm">
-    <div class="row">
-        <!-- LEFT FORM -->
-        <div class="col-md-3 border border-2">
-            <input type="hidden" id="packageID">
-            <input type="hidden" id="packageDetailID">
-            <div class="row g-2">
-                <div class="col-12">
-                    <label class="form-label me-2 mb-0">Header Code</label>
-                    <input id="targetCode" class="form-control mb-2 noReadOnly" name="packageID" disabled
-                        value="No target Package" />
-                    <div class="invalid-feedback"></div>
-                </div>
-                <div class="col-12">
-                    <label class="form-label me-2 mb-0">Season Code</label>
-                    <select class="form-control form-select form-control-sm " name="seasonID" id="seasonCode">
-                        <option value="0">-- Select Season Code -- </option>
-                        @foreach (dynamic u in ViewBag.SeasonList)
-                        {
-                            <option value="@u.ID">@u.Code / @u.Name</option>
-                        }
-                    </select>
-                    <div class="invalid-feedback"></div>
-                </div>
-
-                <div class="col-6">
-                    <label class="form-label me-2 mb-0">Start Date</label>
-                    <div data-date-input data-format="DD/MM/YYYY" business-date>
-                        <input type="text" class="date-ui form-control" placeholder="dd/mm/yyyy" autocomplete="off"
-                            id="startDate" disabled />
-                    </div>
-                    <div class="invalid-feedback"></div>
-                </div>
-
-                <div class="col-6">
-                    <label class="form-label me-2 mb-0">End Date</label>
-                    <div data-date-input data-format="DD/MM/YYYY" business-date>
-                        <input type="text" class="date-ui form-control" placeholder="dd/mm/yyyy" autocomplete="off"
-                            id="endDate" disabled />
-                    </div>
-                    <div class="invalid-feedback"></div>
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label me-2 mb-0">Trans. Code</label>
-                    <select class="form-control form-select form-control-sm " name="transCode" id="transactionCodeDT">
-                        <option value="0">-- Select Transaction Code -- </option>
-                        @foreach (dynamic u in ViewBag.TransactionList)
-                        {
-                            <option value="@u.Code">@u.Code / @u.Description</option>
-                        }
-                    </select>
-                    <div class="invalid-feedback"></div>
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label me-2 mb-0">Currency</label>
-                    <select class="form-control form-select form-control-sm noReadOnly" name="currencyID" disabled
-                        id="currencyID" mb-2>
-                        @foreach (dynamic u in ViewBag.CurrencyList)
-                        {
-                            <option value="@u.ID">@u.ID / @u.Description</option>
-                        }
-                    </select>
-                    <div class="invalid-feedback"></div>
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label me-2 mb-0 ">Price ++</label>
-                    <input type="number" class="form-control mb-2 " name="price" id="price">
-                    <div class="invalid-feedback"></div>
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label me-2 mb-0">Price Net</label>
-                    <input type="number" class="form-control mb-2 " name="priceAfterTax" id="priceAfterTax">
-                    <div class="invalid-feedback"></div>
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label me-2 mb-0">Allowance</label>
-                    <input type="number" class="form-control mb-2 " id="allowanceAmount">
-                    <div class="invalid-feedback"></div>
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label me-2 mb-0 ">Posting Rhythm</label>
-                    <select class="form-control form-select form-control-sm " name="rhythmPostingID"
-                        id="rhythmPostingID" mb-2>
-                        @foreach (dynamic u in ViewBag.RhythmPostingList)
-                        {
-                            <option value="@u.ID">@u.Name</option>
-                        }
-                    </select>
-                    <div class="invalid-feedback"></div>
-                </div>
-
-                <div class="col-12">
-                    <label
-                        class="form-label me-2 mb-0                                                                                                                                                                                                        ">Calculation
-                        Rule</label>
-                    <select class="form-control form-select form-control-sm" name="calculationRuleID"
-                        id="calculationRuleID" mb-2>
-                        <option value="0">-- Calculation Rule --</option>
-                        <option value="1">Per Person</option>
-                        <option value="2">Per Adult</option>
-                        <option value="3">Per Child</option>
-                        <option value="4">Per Room</option>
-                        <option value="5">Per Child1</option>
-                        <option value="6">Per Child2</option>
-                        <option value="7">Per Child3</option>
-                        <option value="8">Per Adutl + C</option>
-                        <option value="9">Per Adutl + C + C1</option>
-                        <option value="10">Per Adutl + C1</option>
-                        <option value="11">Per C + C1</option>
-                    </select>
-                    <div class="invalid-feedback"></div>
-                </div>
-            </div>
-
-            <!-- Buttons -->
-            <div class="mt-3 d-flex gap-2">
-            </div>
-        </div>
-
-        <!-- RIGHT TABLE -->
-        <div class="col-md-8">
-            <div id="packageDetailGrid" class="gridContainer"></div>
-        </div>
-    </div>
-</div>
-
-
-<div class="modal fade modal-md mt-2 modal-search" id="modalSearch" tabindex="-1" style="height: 80%;">
-    <div class="modal-dialog">
+<!-- MAIN MODAL (XL) -->
+<div class="modal fade" id="pak_modalMain" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-4by3 modal-dialog-centered">
         <div class="modal-content">
 
             <div class="modal-header">
-                <h5 class="modal-title">Search User</h5>
-                <button type="button" class="btn-close" onclick="closeModalSearchUser()"></button>
+                <h5 class="modal-title">Package</h5>
             </div>
 
             <div class="modal-body">
 
-                <div class="row mb-2">
-                    <div class="col-md-8">
-                        <label>Search</label>
-                        <input type="text" id="packageSearch" class="form-control" placeholder="Enter User name"
-                            onkeyup="filterUserList()" />
+                <!-- ACTION BAR -->
+                <div class="search-filter">
+                    <button id="pak_btnSearch" type="button" class="mui-button mui-button-search">Search</button>
+                    <button id="pak_btnNew" type="button" class="mui-button mui-button-new">New</button>
+                    <button id="pak_btnEdit" type="button" class="mui-button mui-button-edit">Edit</button>
+
+                    <button id="pak_btnSaveHeader" type="button" class="mui-button mui-button-export">Save</button>
+                    <button id="pak_btnDeleteHeader" type="button" class="mui-button button-report-delete">Delete</button>
+
+                    <button id="pak_btnRefreshDetail" type="button" class="mui-button mui-button-clear">Refresh</button>
+                    <button id="pak_btnSaveDetail" type="button" class="mui-button mui-button-new">Save</button>
+                    <button id="pak_btnDeleteDetail" type="button" class="mui-button button-report-delete">Delete</button>
+
+                    <button id="pak_btnClose" type="button" class="mui-button mui-button-new ms-auto">Close</button>
+                </div>
+
+                <!-- TABS (DevExtreme) -->
+                <div class="bg-white border-bottom mt-1">
+                    <div class="pak_tabsHost" id="pak_tabs"></div>
+                </div>
+
+                <!-- TAB 0: PACKAGE HEADER -->
+                <div class="pak_tabForm pak_visible flex-grow-1" data-tab="0" id="pak_packageForm">
+                    <div class="pak_tabsContainer border p-3 mt-3 mx-auto">
+
+                        <form id="pak_headerForm" novalidate>
+                            <input type="hidden" id="pak_ID" name="pak_ID" />
+
+                            <div class="row g-2">
+                                <div class="col-12 col-md-6">
+                                    <div class="row g-1 align-items-center">
+                                        <label for="pak_txtCode" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                            Code
+                                        </label>
+                                        <div class="col-md-8">
+                                            <input type="text" id="pak_txtCode" name="code" class="form-control" />
+                                            <div class="invalid-feedback"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <div class="row g-1 align-items-center">
+                                        <label for="pak_forecastGroup" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                            Forecast Group
+                                        </label>
+                                        <div class="col-md-8">
+                                            <select class="tomselect-custom" name="forecastGroupID" id="pak_forecastGroup">
+                                                <option value=""></option>
+                                                @foreach (dynamic u in ViewBag.PackageForecastGroup)
+                                                {
+                                                    <option value="@u.ID">@u.Code / @u.Name</option>
+                                                }
+                                            </select>
+                                            <div class="invalid-feedback"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <div class="row g-1 align-items-center">
+                                        <label for="pak_type" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                            Type
+                                        </label>
+                                        <div class="col-md-8">
+                                            <select id="pak_type" name="pak_type" class="tomselect-custom" disabled>
+                                                <option value="0">Element</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <div class="row g-1 align-items-center">
+                                        <label  class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                            Transaction Code
+                                        </label>
+                                        <div class="col-md-8">
+                                            <select class="tomselect-custom" name="transCode" id="pak_transactionCode">
+                                                <option value=""></option>
+                                                @foreach (dynamic u in ViewBag.TransactionList)
+                                                {
+                                                    <option value="@u.Code">@u.Code / @u.Description</option>
+                                                }
+                                            </select>
+                                            <div class="invalid-feedback"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="row g-1 align-items-center">
+                                        <label for="pak_txtDescription" class="col-md-2 col-form-label col-form-label-sm text-md-end">
+                                            Description
+                                        </label>
+                                        <div class="col-md-10">
+                                            <input id="pak_txtDescription" name="description" type="text" class="form-control" />
+                                            <div class="invalid-feedback"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="row g-1 align-items-center">
+                                        <label for="pak_textInNightAudit" class="col-md-2 col-form-label col-form-label-sm text-md-end">
+                                            Display in Folio
+                                        </label>
+                                        <div class="col-md-10">
+                                            <input id="pak_textInNightAudit" name="pak_textInNightAudit" type="text" class="form-control" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="row g-1 align-items-center">
+                                        <label class="col-md-2 col-form-label col-form-label-sm text-md-end">
+                                            Active
+                                        </label>
+                                        <div class="col-md-10">
+                                            <div class="form-check form-check-inline">
+                                                <input type="checkbox" id="pak_chkActive" name="pak_chkActive" checked>
+                                                <label class="form-check-label" for="pak_chkActive">Active</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Attributes + Meal Info -->
+                                <div class="col-12">
+                                    <div class="row g-2">
+                                        <div class="col-12 col-md-6 border p-2 rounded">
+                                            <div class="small fw-bold mb-1">Default Display</div>
+                                            <div class="form-check">
+                                                <input type="radio" name="pak_attr" value="1" id="pak_chkIncludedInRate" checked>
+                                                <label class="form-check-label" for="pak_chkIncludedInRate">Included In Rate</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input type="radio" name="pak_attr" value="0" id="pak_chkRateSeparateLine">
+                                                <label class="form-check-label" for="pak_chkRateSeparateLine">Add Rate Separate Line</label>
+                                            </div>
+                                            <div class="invalid-feedback"></div>
+                                        </div>
+
+                                        <div class="col-12 col-md-6 border p-2 rounded">
+                                            <div class="small fw-bold mb-1">Meal Info</div>
+                                            <div class="form-check">
+                                                <input type="checkbox" id="pak_breakfast" name="pak_breakfast" checked>
+                                                <label class="form-check-label" for="pak_breakfast">Breakfast</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input type="checkbox" id="pak_lunch" name="pak_lunch" checked>
+                                                <label class="form-check-label" for="pak_lunch">Lunch</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input type="checkbox" id="pak_dinner" name="pak_dinner" checked>
+                                                <label class="form-check-label" for="pak_dinner">Dinner</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </form>
+
                     </div>
                 </div>
-                <div class="table-responsive gridContainer" style="height: 400px;">
+
+                <!-- TAB 1: PACKAGE DETAIL -->
+                <div class="pak_tabForm flex-grow-1" data-tab="1" id="pak_packageDetailForm">
+                    <div class="row g-2 mt-2 ">
+
+                        <!-- LEFT FORM -->
+                        <div class="col-12 col-lg-4">
+                            <div class="border p-2">
+                                <form id="pak_detailForm" novalidate>
+                                    <input type="hidden" id="pak_packageID" name="pak_packageID" />
+                                    <input type="hidden" id="pak_packageDetailID" name="pak_packageDetailID" />
+
+                                    <div class="row g-2">
+
+                                        <div class="col-12">
+                                            <div class="row g-1 align-items-center">
+                                                <label for="pak_targetCode" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                    Header
+                                                </label>
+                                                <div class="col-md-8">
+                                                    <input id="pak_targetCode" name="packageID" class="form-control form-control-sm pak_noReadOnly" disabled value="No target Package" />
+                                                    <div class="invalid-feedback"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="row g-1 align-items-center">
+                                                <label for="pak_seasonCode" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                    Season
+                                                </label>
+                                                <div class="col-md-8">
+                                                    <select class="tomselect-custom" name="pak_seasonCode" id="pak_seasonCode">
+                                                        <option value=""></option>
+                                                        @foreach (dynamic u in ViewBag.SeasonList)
+                                                        {
+                                                            <option value="@u.ID">@u.Code / @u.Name</option>
+                                                        }
+                                                    </select>
+                                                    <div class="invalid-feedback"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="row g-1">
+                                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                    Start Date
+                                                </label>
+                                                <div class="col-md-8">
+                                                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="pak_startDate">
+                                                        <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" id="pak_startDateUi" disabled />
+                                                    </div>
+                                                    <div class="invalid-feedback"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="row g-1">
+                                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                    End Date
+                                                </label>
+                                                <div class="col-md-8">
+                                                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="pak_endDate">
+                                                        <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" id="pak_endDateUi" disabled />
+                                                    </div>
+                                                    <div class="invalid-feedback"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="row g-1 align-items-center">
+                                                <label for="pak_transactionCodeDT" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                    Trans. Code
+                                                </label>
+                                                <div class="col-md-8">
+                                                    <select class="tomselect-custom" name="transCode" id="pak_transactionCodeDT">
+                                                        <option value=""></option>
+                                                        @foreach (dynamic u in ViewBag.TransactionList)
+                                                        {
+                                                            <option value="@u.Code">@u.Code / @u.Description</option>
+                                                        }
+                                                    </select>
+                                                    <div class="invalid-feedback"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="row g-1 align-items-center">
+                                                <label for="pak_currencyID" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                    Currency
+                                                </label>
+                                                <div class="col-md-8">
+                                                    <select class="tomselect-custom pak_noReadOnly" name="currencyID" disabled id="pak_currencyID">
+                                                        @foreach (dynamic u in ViewBag.CurrencyList)
+                                                        {
+                                                            <option value="@u.ID">@u.ID / @u.Description</option>
+                                                        }
+                                                    </select>
+                                                    <div class="invalid-feedback"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="row g-1 align-items-center">
+                                                <label for="pak_price" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                    Price ++
+                                                </label>
+                                                <div class="col-md-8">
+                                                    <input type="number" class="form-control" name="pak_price" id="pak_price" />
+                                                    <div class="invalid-feedback"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="row g-1 align-items-center">
+                                                <label for="pak_priceAfterTax" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                    Price Net
+                                                </label>
+                                                <div class="col-md-8">
+                                                    <input type="number" class="form-control" name="pak_priceAfterTax" id="pak_priceAfterTax" />
+                                                    <div class="invalid-feedback"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="row g-1 align-items-center">
+                                                <label for="pak_allowanceAmount" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                    Allowance
+                                                </label>
+                                                <div class="col-md-8">
+                                                    <input type="number" class="form-control" id="pak_allowanceAmount" name="pak_allowanceAmount" />
+                                                    <div class="invalid-feedback"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="row g-1 align-items-center">
+                                                <label for="pak_rhythmPostingID" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                    Post. Rhythm
+                                                </label>
+                                                <div class="col-md-8">
+                                                    <select class="tomselect-custom" name="rhythmPostingID" id="pak_rhythmPostingID">
+                                                        @foreach (dynamic u in ViewBag.RhythmPostingList)
+                                                        {
+                                                            <option value="@u.ID">@u.Name</option>
+                                                        }
+                                                    </select>
+                                                    <div class="invalid-feedback"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="row g-1 align-items-center">
+                                                <label for="pak_calculationRuleID" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                                    Calc. Rule
+                                                </label>
+                                                <div class="col-md-8">
+                                                    <select class="tomselect-custom" name="calculationRuleID" id="pak_calculationRuleID">
+                                                        <option value="0">-- Calculation Rule --</option>
+                                                        <option value="1">Per Person</option>
+                                                        <option value="2">Per Adult</option>
+                                                        <option value="3">Per Child</option>
+                                                        <option value="4">Per Room</option>
+                                                        <option value="5">Per Child1</option>
+                                                        <option value="6">Per Child2</option>
+                                                        <option value="7">Per Child3</option>
+                                                        <option value="8">Per Adutl + C</option>
+                                                        <option value="9">Per Adutl + C + C1</option>
+                                                        <option value="10">Per Adutl + C1</option>
+                                                        <option value="11">Per C + C1</option>
+                                                    </select>
+                                                    <div class="invalid-feedback"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- RIGHT GRID -->
+                        <div class="col-12 col-lg-8 mui-card">
+                            <div class="mui-card">
+                                <div id="pak_packageDetailGrid" class="gridContainer"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- LOADING -->
+                <div id="pak_loadingSpinner"
+                    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+                    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+                    height: 100%;display: flex;align-items: center;justify-content: center;">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SEARCH MODAL (XL as requested) -->
+<div class="modal fade" id="pak_modalSearch" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header py-2">
+                <h6 class="modal-title">Search Package</h6>
+            </div>
+
+            <div class="modal-body">
+                <div class="search-filter">
+                    <div>
+                        <button class="mui-button mui-button-new" data-bs-dismiss="modal" aria-label="Close">Close</button>
+                    </div>
+                    <div class="row mt-1 mb-2">
+                        <div class="col-12 col-md-10">
+                            <div class="row g-1 align-items-center">
+                                <label for="pak_packageSearch" class="col-md-2 col-form-label col-form-label-sm text-md-end">
+                                    Search
+                                </label>
+                                <div class="col-md-8">
+                                    <input type="text" id="pak_packageSearch" name="pak_packageSearch" class="form-control"
+                                        placeholder="Enter code/description" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive gridContainer" style="height: 520px;">
                     <table class="table table-bordered table-hover table-sm mb-0">
                         <thead class="table-light sticky-top">
                             <tr>
-                                <th style="width:120px">Code</th>
+                                <th style="width:160px">Code</th>
                                 <th>Description</th>
                             </tr>
                         </thead>
-                        <tbody id="userTableBody">
+                        <tbody id="pak_packageTableBody">
                             @foreach (var u in ViewBag.PackageList)
                             {
-                                <tr onclick="selectPackage('@u.ID')" style="cursor:pointer">
+                                <tr data-id="@u.ID" style="cursor:pointer">
                                     <td>@u.Code</td>
                                     <td>@u.Description</td>
                                 </tr>
@@ -314,506 +459,644 @@
                         </tbody>
                     </table>
                 </div>
+
             </div>
+
         </div>
     </div>
 </div>
+
 <script>
-    $(document).ready(function () {
-        initializePackageDetailGrid();
-    });
-    const txtDescription = document.getElementById("txtDescription");
-    const textInNightAudit = document.getElementById("textInNightAudit");
+    var pak_Module = (function () {
 
-    txtDescription.addEventListener("input", function () {
-        textInNightAudit.value = this.value;
-    });
-    const txtCode = document.getElementById("txtCode");
-    const targetCode = document.getElementById("targetCode");
-    $('#btnClear').hide();
-    $('#addDetailPackage').hide();   // Detail → hide Save
-    $('#btnRemove').hide();
+        let mainModal = null;
+        let searchModal = null;
+        let tabsInstance = null;
+        let detailGridInstance = null;
 
-    txtCode.addEventListener("input", function () {
-        targetCode.value = this.value;
-    });
-    const tabsText = [
-        { text: 'Package Header' },
-        { text: 'Package Detail' },
+        let selectedDetailRow = null;
 
-    ];
+        const sel = {
+            modalMain: "#pak_modalMain",
+            modalSearch: "#pak_modalSearch",
+            loading: "#pak_loadingSpinner",
 
-    $('.mui-card').dxTabs({
-        dataSource: tabsText,
-        selectedIndex: 0,
-        keyExpr: 'text',       // dùng text làm key duy nhất
-        width: '60%',
-        showNavButtons: false,
-        stylingMode: 'text',
+            tabs: "#pak_tabs",
+            tabForms: ".pak_tabForm",
 
-        onSelectionChanged: function (e) {
-            // Lấy index tab hiện tại
-            const index = e.component.option('selectedIndex');
+            // action bar
+            btnSearch: "#pak_btnSearch",
+            btnNew: "#pak_btnNew",
+            btnEdit: "#pak_btnEdit",
+            btnSaveHeader: "#pak_btnSaveHeader",
+            btnDeleteHeader: "#pak_btnDeleteHeader",
+            btnRefreshDetail: "#pak_btnRefreshDetail",
+            btnSaveDetail: "#pak_btnSaveDetail",
+            btnDeleteDetail: "#pak_btnDeleteDetail",
+            btnClose: "#pak_btnClose",
 
-            // Ẩn tất cả form
-            $('.dx-tab-form').hide();
+            // header fields
+            ID: "#pak_ID",
+            packageID: "#pak_packageID",
+            txtCode: "#pak_txtCode",
+            targetCode: "#pak_targetCode",
+            txtDescription: "#pak_txtDescription",
+            textInNightAudit: "#pak_textInNightAudit",
+            forecastGroup: "#pak_forecastGroup",
+            type: "#pak_type",
+            transactionCode: "#pak_transactionCode",
+            chkActive: "#pak_chkActive",
+            chkIncludedInRate: "#pak_chkIncludedInRate",
+            chkRateSeparateLine: "#pak_chkRateSeparateLine",
+            breakfast: "#pak_breakfast",
+            lunch: "#pak_lunch",
+            dinner: "#pak_dinner",
 
-            // Hiện form tương ứng
-            $('.dx-tab-form[data-tab="' + index + '"]').show();
+            // detail fields
+            packageDetailID: "#pak_packageDetailID",
+            seasonCode: "#pak_seasonCode",
+            startDateUi: "#pak_startDate",
+            endDateUi: "#pak_endDate",
+            transactionCodeDT: "#pak_transactionCodeDT",
+            currencyID: "#pak_currencyID",
+            price: "#pak_price",
+            priceAfterTax: "#pak_priceAfterTax",
+            allowanceAmount: "#pak_allowanceAmount",
+            rhythmPostingID: "#pak_rhythmPostingID",
+            calculationRuleID: "#pak_calculationRuleID",
 
-            // ===== TOGGLE SAVE BUTTON =====
+            // search
+            searchInput: "#pak_packageSearch",
+            searchTableBody: "#pak_packageTableBody",
+
+            // grid
+            detailGrid: "#pak_packageDetailGrid"
+        };
+
+        function init() {
+            mainModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modalMain), { backdrop: "static" });
+            searchModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modalSearch), { backdrop: "static" });
+
+            $(sel.modalMain).off("shown.bs.modal.pak").on("shown.bs.modal.pak", async function () {
+                initTomSelect(".tomselect-custom");
+                bindEvents();
+                initTabs();
+                await ensureDateInputs();
+                initDetailGrid([]);
+                syncDerivedFields();
+                setFormsReadOnly(true);
+                applyTabMode(0);
+                showLoading(false);
+            });
+
+            $(sel.modalMain).off("hidden.bs.modal.pak").on("hidden.bs.modal.pak", function () {
+                cleanup();
+            });
+            
+            $(sel.modalSearch).off("hidden.bs.modal.pak").on("hidden.bs.modal.pak", function () {
+                $('#pak_modalMain .modal-content').removeClass('modal-blur');
+
+            });
+
+            // search table row click
+            $(document).off("click.pak", `${sel.searchTableBody} tr`).on("click.pak", `${sel.searchTableBody} tr`, function () {
+                const id = parseInt($(this).attr("data-id")) || 0;
+                if (!id) return;
+                selectPackage(id);
+            });
+
+            // search filter
+            $(document).off("input.pak", sel.searchInput).on("input.pak", sel.searchInput, function () {
+                filterSearchTable();
+            });
+        }
+
+        function open() {
+            mainModal.show();
+        }
+
+        function cleanup() {
+            $(document).off(".pak");
+            try { if (detailGridInstance) detailGridInstance.dispose(); } catch { }
+            detailGridInstance = null;
+            selectedDetailRow = null;
+        }
+
+        function showLoading(on) {
+            if (on) $(sel.loading).show(); else $(sel.loading).hide();
+        }
+
+        async function ensureDateInputs() {
+            if (typeof window.initDateInputs === "function") {
+                await window.initDateInputs();
+            }
+        }
+
+        // ---------- UI: tabs ----------
+        function initTabs() {
+            const tabsText = [{ text: "Package Header" }, { text: "Package Detail" }];
+
+            tabsInstance = $(sel.tabs).dxTabs({
+                dataSource: tabsText,
+                selectedIndex: 0,
+                keyExpr: "text",
+                width: "40%",
+                showNavButtons: false,
+                stylingMode: "text",
+                onSelectionChanged: function (e) {
+                    applyTabMode(e.component.option("selectedIndex"));
+                }
+            }).dxTabs("instance");
+        }
+
+        function applyTabMode(index) {
+            $(sel.tabForms).removeClass("pak_visible").hide();
+            $(`${sel.tabForms}[data-tab="${index}"]`).addClass("pak_visible").show();
+
             if (index === 1) {
-                $('#btnNew').hide();
-                $('#btnSave').hide();   // Detail → hide Save
-                $('#btnDelete').hide();
-                $('#btnClear').show()
-                $('#addDetailPackage').show()
-                $('#btnRemove').show()
+                $(sel.btnNew).hide();
+                $(sel.btnSaveHeader).hide();
+                $(sel.btnDeleteHeader).hide();
+
+                $(sel.btnRefreshDetail).show();
+                $(sel.btnSaveDetail).show();
+                $(sel.btnDeleteDetail).show();
             } else {
-                $('#btnNew').show();
-                $('#btnSave').show();   // Header → show Save
-                $('#btnDelete').show()
-                $('#btnClear').hide();
-                $('#addDetailPackage').hide();   // Detail → hide Save
-                $('#btnRemove').hide();
+                $(sel.btnNew).show();
+                $(sel.btnSaveHeader).show();
+                $(sel.btnDeleteHeader).show();
+
+                $(sel.btnRefreshDetail).hide();
+                $(sel.btnSaveDetail).hide();
+                $(sel.btnDeleteDetail).hide();
             }
         }
-    }).dxTabs('instance');
 
-    function setFormReadOnly(readOnly = true) {
-        // Tất cả input, textarea, select ngoại trừ select Type
-        $('.dx-tab-form')
-            .find('input, textarea, select')
-            .not('.modal-search,#type,.noReadOnly')
-            .prop('disabled', readOnly);
-        $('#forecastGroup').prop('disabled', readOnly);
-        // Checkbox và radio
-        $('.dx-tab-form input[type=checkbox], .dx-tab-form input[type=radio]').prop('disabled', readOnly);
+        // ---------- Readonly ----------
+        function setFormsReadOnly(readOnly) {
+            // Header + detail: disable everything except explicit noReadOnly controls and Type
+            $(sel.modalMain)
+                .find("input, textarea, select")
+                .not(`${sel.type}, .pak_noReadOnly`)
+                .prop("disabled", readOnly);
 
-        // Nếu muốn select Type luôn disabled:
-        //        $('select').prop('disabled', true);
-    }
-    function clearFormData() {
-        const $tabs = $('.dx-tab-form');
+            // include checkboxes/radio
+            $(sel.modalMain)
+                .find('input[type="checkbox"], input[type="radio"]')
+                .prop("disabled", readOnly);
 
-        // Clear tất cả input có value (kể cả disabled)
-        $tabs.find('input:not([type="checkbox"]):not([type="radio"])')
-            .val('');
+            // keep type always disabled
+            $(sel.type).prop("disabled", true);
 
-        // Clear textarea
-        $tabs.find('textarea').val('');
-
-        // Reset select (kể cả disabled)
-        $tabs.find('select').each(function () {
-            this.selectedIndex = 0;
-        });
-
-        // Uncheck checkbox
-        $tabs.find('input[type="checkbox"]').prop('checked', false);
-
-        // Uncheck radio
-        $tabs.find('input[type="radio"]').prop('checked', false);
-
-        // Clear DevExtreme Grid
-        const grid = $('#packageDetailGrid').dxDataGrid('instance');
-        if (grid) {
-            grid.option('dataSource', []);
+            // keep forecastGroup disabled/enabled consistent with original behavior
+            document.querySelectorAll(sel.modalMain + " .tomselect-custom")
+                .forEach(el => {
+                    if (!el.tomselect) return;
+                    readOnly ? el.tomselect.disable() : el.tomselect.enable();
+                });
         }
 
-        // ===== SET LẠI GIÁ TRỊ MẶC ĐỊNH (NẾU CẦN) =====
-        $('#chkActive').prop('checked', true);            // Active = true
-        $('#chkIncludedInRate').prop('checked', true);    // Radio mặc định
-    }
-    // Khi load page, form chỉ đọc
-    setFormReadOnly(true);
-    $('#btnNew').on('click', function () {
-        clearFormData();
-        applyValidationErrors([], "#packageForm");
+        function clearAll() {
+            // clear header
+            $(sel.ID).val("");
+            $(sel.packageID).val("");
+            $(sel.txtCode).val("");
+            $(sel.targetCode).val("No target Package");
+            $(sel.txtDescription).val("");
+            $(sel.textInNightAudit).val("");
+            $(sel.forecastGroup).val("0");
+            $(sel.type).val("0");
+            $(sel.transactionCode).val("0");
 
-        setFormReadOnly(false);  // Bỏ disabled
-    });
-    let isReadOnly = true;
+            $(sel.chkActive).prop("checked", true);
+            $(sel.chkIncludedInRate).prop("checked", true);
+            $(sel.chkRateSeparateLine).prop("checked", false);
 
-    $('#btnEdit').on('click', function () {
-        isReadOnly = !isReadOnly;
-        setFormReadOnly(isReadOnly);
+            $(sel.breakfast).prop("checked", true);
+            $(sel.lunch).prop("checked", true);
+            $(sel.dinner).prop("checked", true);
 
-        // (tuỳ chọn) đổi text / icon
-        // $(this).text(isReadOnly ? 'Edit' : 'Lock');
-    });
-    $('#btnSave').on('click', function () {
-        $("#loadingSpinner").show();
-        var dataPackage = getPackageDataToPost();
-        $.ajax({
-            url: "/Administration/RateCode/SavePackage",
-            type: "POST",
-            contentType: "application/json",   // gửi JSON
-            data: JSON.stringify(dataPackage),         // convert object -> JSON
-            success: function (res) {
-                $("#loadingSpinner").hide();
-                if (res.success) {
-                    showToast('Success', res.message, true);
-                    let data = res.data
-                    selectPackage(data.id)
-                } else {
-                    applyValidationErrors(res.errors, "#packageForm");
-                    showToast("Error", res.message, false)
-                }
-            },
-            error: function (xhr, status, error) {
-                // Nếu có mảng errors thì hiển thị từng cái
-                if (Array.isArray(xhr.responseJSON?.errors)) {
-                    xhr.responseJSON.errors.forEach((err, index) => {
-                        setTimeout(() => {
-                            showToast("Error", err, false);
-                        }, index * 1000); // delay 300ms mỗi toast
-                    });
-                }
+            // clear detail
+            $(sel.packageDetailID).val("");
+            $(sel.seasonCode).val("0");
+            $(sel.startDateUi).val("");
+            $(sel.endDateUi).val("");
+            $(sel.transactionCodeDT).val("0");
+            $(sel.currencyID).val($(sel.currencyID + " option:first").val() || "");
+            $(sel.price).val("");
+            $(sel.priceAfterTax).val("");
+            $(sel.allowanceAmount).val("");
+            $(sel.rhythmPostingID).val($(sel.rhythmPostingID + " option:first").val() || "0");
+            $(sel.calculationRuleID).val("0");
 
-                $("#loadingSpinner").hide();
-            }
-        });
-
-    });
-    $('#btnDelete').on('click', function () {
-        $("#loadingSpinner").show();
-        var dataPackage = parseInt($("#ID").val()) || 0;
-        $.ajax({
-            url: "/Administration/RateCode/PackageDelete",
-            type: "POST",
-            contentType: "application/json",   // gửi JSON
-            data: JSON.stringify({ ID: dataPackage }),         // convert object -> JSON
-            success: function (res) {
-                $("#loadingSpinner").hide();
-                if (res.success) {
-                    showToast('Success', res.message, true);
-                    clearFormData();
-                } else {
-                    showToast('Error', res.message || 'Validation failed.', false);
-                }
-            },
-            error: function (xhr, status, error) {
-                // Nếu có mảng errors thì hiển thị từng cái
-                if (Array.isArray(xhr.responseJSON?.errors)) {
-                    xhr.responseJSON.errors.forEach((err, index) => {
-                        setTimeout(() => {
-                            showToast("Error", err, false);
-                        }, index * 1000); // delay 300ms mỗi toast
-                    });
-                }
-
-                $("#loadingSpinner").hide();
-            }
-        });
-
-    });
-
-    $('#addDetailPackage').on('click', function () {
-        $("#loadingSpinner").show();
-        var dataPackageDetail = getPackageDetailDataToPost();
-        $.ajax({
-            url: "/Administration/RateCode/SaveDetailPackage",
-            type: "POST",
-            contentType: "application/json",   // gửi JSON
-            data: JSON.stringify(dataPackageDetail),         // convert object -> JSON
-            success: function (res) {
-                $("#loadingSpinner").hide();
-                if (res.success) {
-                    showToast('Success', res.message, true);
-                    let data = res.data
-                    selectPackage(data.id)
-                } else {
-                    applyValidationErrors(res.errors, "#packageDetailForm");
-                    showToast("Error", res.message, false)
-                }
-            },
-            error: function (xhr, status, error) {
-                // Nếu có mảng errors thì hiển thị từng cái
-                if (Array.isArray(xhr.responseJSON?.errors)) {
-                    xhr.responseJSON.errors.forEach((err, index) => {
-                        setTimeout(() => {
-                            showToast("Error", err, false);
-                        }, index * 1000); // delay 300ms mỗi toast
-                    });
-                }
-
-                $("#loadingSpinner").hide();
-            }
-        });
-
-    });
-    $('#btnClear').on('click', function () {
-        clearFormData();
-        applyValidationErrors([], "#packageDetailForm");
-
-    });
-    $('#btnRemove').on('click', function () {
-        $("#loadingSpinner").show();
-        var id = parseInt($("#packageDetailID").val()) || 0;
-        $.ajax({
-            url: "/Administration/RateCode/PackageDetailDelete",
-            type: "POST",
-            contentType: "application/json",   // gửi JSON
-            data: JSON.stringify({ ID: id }),         // convert object -> JSON
-            success: function (res) {
-                $("#loadingSpinner").hide();
-                if (res.success) {
-                    showToast('Success', res.message, true);
-                    clearFormData();
-                } else {
-                    showToast('Error', res.message || 'Validation failed.', false);
-                }
-            },
-            error: function (xhr, status, error) {
-                // Nếu có mảng errors thì hiển thị từng cái
-                if (Array.isArray(xhr.responseJSON?.errors)) {
-                    xhr.responseJSON.errors.forEach((err, index) => {
-                        setTimeout(() => {
-                            showToast("Error", err, false);
-                        }, index * 1000); // delay 300ms mỗi toast
-                    });
-                }
-
-                $("#loadingSpinner").hide();
-            }
-        });
-
-    });
-
-
-    // sử lý modal
-    function openModalSearchUser() {
-        $('#modalSearch').modal('show');
-    }
-
-    function closeModalSearchUser() {
-        $('#packageSearch').val('');
-        filterUserList();
-        $('#modalSearch').modal('hide');
-    }
-
-    async function initializePackageDetailGrid(dataPackageDetailGrid) {
-        $("#packageDetailGrid").dxDataGrid({
-            dataSource: dataPackageDetailGrid || [],
-            showBorders: true,
-            selection: { mode: "single" },
-            paging: { pageSize: 20 },
-            pager: {
-                showPageSizeSelector: true,
-                allowedPageSizes: [20, 50, 100],
-                showInfo: true
-            },
-            height: "500px",
-            filterRow: { visible: true },
-            columns: [
-                { dataField: "id", caption: "ID", visible: false },
-                { dataField: "transCode", caption: "Trans. Code", width: "13%" },
-                { dataField: "transactionDescription", caption: "Description", dataType: "string" },
-                { dataField: "priceAfterTax", caption: "Price After Tax", format: "#,##0", dataType: "number" },
-                { dataField: "currencyID", caption: "Currency", width: 120 },
-                { dataField: "startDate", caption: "Start Date", width: "130", dataType: "date", format: "dd/MM/yyyy  " },
-                { dataField: "endDate", caption: "End Date", width: "130", dataType: "date", format: "dd/MM/yyyy  " },
-                { dataField: "postingDay", caption: "Posting Day", width: "13%" },
-
-
-            ],
-            scrolling: {
-                mode: "standard", // Không dùng virtual để footer hiển thị đúng
-                showScrollbar: "always",
-                scrollByContent: true
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            // 🔥 Quan trọng: gán selectedRowData khi click chọn
-            onRowClick: function (e) {
-                selectedRowData = e.data; // 🔥 lấy data của row vừa click
-                console.log("Selected Row (RowClick):", selectedRowData);
-                selectPackageDetail(selectedRowData);
-            },
-            noDataText: "No records to display" // hiển thị text khi chưa có dữ liệu
-        });
-    }
-
-    async function selectPackageDetail(data) {
-        try {
-            $("#loadingSpinner").show();
-
-            if (data == null) {
-                showToast('Error', resPackage?.message || 'Failed to load package.', false);
-                return;
-            }
-
-            $('#packageDetailID').val(data.id);
-            $('#seasonCode').val(data.seasonID);
-            $('#startDate').val(data.startDate.split('T')[0]);
-            $('#endDate').val(data.endDate.split('T')[0]);
-            $('#transactionCodeDT').val(data.transCode);
-            $('#currencyID').val(data.currencyID);
-            $('#price').val(data.price);
-
-            $('#priceAfterTax').val(data.priceAfterTax);
-            $('#allowanceAmount').val(data.allowanceAmount);
-            $('#rhythmPostingID').val(data.rhythmPostingID);
-            $('#calculationRuleID').val(data.calculationRuleID);
-            setFormReadOnly(true);
-
-        } catch (err) {
-            console.error(err);
-            showToast('Error', 'Failed to load data.', false);
-        } finally {
-            $("#loadingSpinner").hide();
+            selectedDetailRow = null;
+            initDetailGrid([]);
         }
-    }
-    async function selectPackage(id) {
-        try {
-            $("#loadingSpinner").show();
-            console.log('ID', id);
 
-
-            // ===== 1. Lấy Package =====
-            const resPackage = await $.ajax({
-                url: '/Administration/RateCode/GetByIDPackage',
-                method: 'GET',
-                data: { id }
+        // ---------- Derived fields ----------
+        function syncDerivedFields() {
+            // description -> display in folio
+            $(document).off("input.pak", sel.txtDescription).on("input.pak", sel.txtDescription, function () {
+                $(sel.textInNightAudit).val($(this).val());
             });
 
-            if (!resPackage?.success) {
-                showToast('Error', resPackage?.message || 'Failed to load package.', false);
-                return;
-            }
+            // code -> target code
+            $(document).off("input.pak", sel.txtCode).on("input.pak", sel.txtCode, function () {
+                $(sel.targetCode).val($(this).val());
+            });
+        }
 
-            const pkg = resPackage.data;
-            console.log('pkg', pkg);
-
-
-            $('#ID').val(pkg.id);
-            $('#packageID').val(pkg.id);
-            $('#txtCode').val(pkg.code);
-            $('#targetCode').val(pkg.code || "No target Package");
-            $('#txtDescription').val(pkg.description);
-            $('#forecastGroup').val(pkg.forecastGroupID);
-            $('#type').val(pkg.type);
-            $('#transactionCode').val(pkg.transCodeAlt);
-            $('#textInNightAudit').val(pkg.textInNightAudit);
-
-            $('#chkTaxInclusive').prop('checked', pkg.taxInclusive);
-            $('#chkIncludedInRate').prop('checked', pkg.includedInRate);
-            $('#chkRateSeparateLine').prop('checked', pkg.rateSeparateLine);
-            $('#chkActive').prop('checked', pkg.active);
-
-            $('#breakfast').prop('checked', pkg.breakfast);
-            $('#lunch').prop('checked', pkg.lunch);
-            $('#dinner').prop('checked', pkg.dinner);
-            $('#chkVap').prop('checked', pkg.vap);
-
-            setFormReadOnly(true);
-
-            // ===== 2. Lấy Package Detail =====
-            const resDetail = await $.ajax({
-                url: '/Administration/RateCode/GetPackageDetailByIDPackage',
-                method: 'GET',
-                data: { id }
+        // ---------- Events ----------
+        function bindEvents() {
+            $(document).off("click.pak", sel.btnClose).on("click.pak", sel.btnClose, function () {
+                mainModal.hide();
             });
 
-            if (!resDetail?.success) {
-                showToast('Error', resDetail?.message || 'Failed to load package detail.', false);
+            $(document).off("click.pak", sel.btnSearch).on("click.pak", sel.btnSearch, function () {
+                openSearch();
+            });
+
+            $(document).off("click.pak", sel.btnNew).on("click.pak", sel.btnNew, function () {
+                clearAll();
+                if (typeof window.applyValidationErrors === "function") applyValidationErrors([], "#pak_headerForm");
+                setFormsReadOnly(false);
+                applyTabMode(0);
+                if (tabsInstance) tabsInstance.option("selectedIndex", 0);
+            });
+
+            $(document).off("click.pak", sel.btnEdit).on("click.pak", sel.btnEdit, function () {
+                // toggle like original
+                const nowDisabled = $(sel.txtCode).prop("disabled") === true;
+                setFormsReadOnly(!nowDisabled); // if disabled -> enable, else disable
+            });
+
+            $(document).off("click.pak", sel.btnSaveHeader).on("click.pak", sel.btnSaveHeader, function () {
+                saveHeader();
+            });
+
+            $(document).off("click.pak", sel.btnDeleteHeader).on("click.pak", sel.btnDeleteHeader, function () {
+                deleteHeader();
+            });
+
+            $(document).off("click.pak", sel.btnSaveDetail).on("click.pak", sel.btnSaveDetail, function () {
+                saveDetail();
+            });
+
+            $(document).off("click.pak", sel.btnRefreshDetail).on("click.pak", sel.btnRefreshDetail, function () {
+                clearDetailOnly();
+                if (typeof window.applyValidationErrors === "function") applyValidationErrors([], "#pak_detailForm");
+            });
+
+            $(document).off("click.pak", sel.btnDeleteDetail).on("click.pak", sel.btnDeleteDetail, function () {
+                deleteDetail();
+            });
+        }
+
+        function openSearch() {
+            // reset filter
+            $(sel.searchInput).val("");
+            filterSearchTable();
+            searchModal.show();
+            $('#pak_modalMain .modal-content').addClass('modal-blur');
+        }
+
+        function filterSearchTable() {
+            const keyword = ($(sel.searchInput).val() || "").toLowerCase();
+            $(`${sel.searchTableBody} tr`).each(function () {
+                const t = $(this).text().toLowerCase();
+                $(this).toggle(t.includes(keyword));
+            });
+        }
+
+        function clearDetailOnly() {
+            $(sel.packageDetailID).val("");
+            $(sel.seasonCode).val("0");
+            $(sel.startDateUi).val("");
+            $(sel.endDateUi).val("");
+            $(sel.transactionCodeDT).val("0");
+            $(sel.price).val("");
+            $(sel.priceAfterTax).val("");
+            $(sel.allowanceAmount).val("");
+            $(sel.calculationRuleID).val("0");
+            selectedDetailRow = null;
+            clearMultipleTomSelect([
+                '#pak_seasonCode',
+                '#pak_currencyID',
+                '#pak_transactionCodeDT',
+                '#pak_rhythmPostingID',
+                '#pak_calculationRuleID'
+            ], true);
+            reloadBusinessDate();
+
+        }
+
+        // ---------- Grid ----------
+        function initDetailGrid(data) {
+            try {
+                if (detailGridInstance) detailGridInstance.dispose();
+            } catch { }
+            $(sel.detailGrid).empty();
+
+            detailGridInstance = $(sel.detailGrid).dxDataGrid({
+                dataSource: data || [],
+                showBorders: true,
+                selection: { mode: "single" },
+                paging: { pageSize: 20 },
+                pager: {
+                    showPageSizeSelector: true,
+                    allowedPageSizes: [20, 50, 100],
+                    showInfo: true
+                },
+                height: "100%",
+                filterRow: { visible: true, applyFilter: "auto" },
+                scrolling: {
+                    mode: "standard",
+                    showScrollbar: "always",
+                    scrollByContent: true
+                },
+                columns: [
+                    { dataField: "id", visible: false },
+                    { dataField: "transCode", caption: "Trans. Code", width: 90 },
+                    { dataField: "transactionDescription", caption: "Description", dataType: "string",width: 150 },
+                    { dataField: "price", caption: "Price ++", format: "#,##0", dataType: "number", width: 70 },
+                    { dataField: "priceAfterTax", caption: "Price Net", format: "#,##0", dataType: "number", width: 70 },
+                    { dataField: "currencyID", caption: "Currency", width: 120 },
+                    { dataField: "startDate", caption: "Start Date", width: 130, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "endDate", caption: "End Date", width: 130, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "postingDay", caption: "Posting Day", width: 140 }
+                ],
+                onRowDblClick: function (e) {
+                    selectedDetailRow = e.data || null;
+                    if (selectedDetailRow) fillDetailForm(selectedDetailRow);
+                },
+                noDataText: "No records to display"
+            }).dxDataGrid("instance");
+        }
+
+        function fillDetailForm(d) {
+            $(sel.packageDetailID).val(d.id);
+            $(sel.seasonCode).val(d.seasonID);
+
+            // original set input value with split('T')[0], keep it
+            $(sel.startDateUi).val(d.startDate ? d.startDate.split("T")[0] : "");
+            $(sel.endDateUi).val(d.endDate ? d.endDate.split("T")[0] : "");
+
+            $(sel.transactionCodeDT).val(d.transCode);
+            $(sel.currencyID).val(d.currencyID);
+
+            $(sel.price).val(d.price);
+            $(sel.priceAfterTax).val(d.priceAfterTax);
+            $(sel.allowanceAmount).val(d.allowanceAmount);
+
+            $(sel.rhythmPostingID).val(d.rhythmPostingID);
+            $(sel.calculationRuleID).val(d.calculationRuleID);
+
+            setFormsReadOnly(true);
+        }
+
+        // ---------- API: select package ----------
+        async function selectPackage(id) {
+            try {
+                showLoading(true);
+
+                const resPackage = await $.ajax({
+                    url: "/Administration/RateCode/GetByIDPackage",
+                    method: "GET",
+                    data: { id }
+                });
+
+                if (!resPackage?.success) {
+                    showToast("Error", resPackage?.message || "Failed to load package.", false);
+                    return;
+                }
+
+                const pkg = resPackage.data;
+
+                $(sel.ID).val(pkg.id);
+                $(sel.packageID).val(pkg.id);
+                $(sel.txtCode).val(pkg.code);
+                $(sel.targetCode).val(pkg.code || "No target Package");
+                $(sel.txtDescription).val(pkg.description);
+                $(sel.forecastGroup).val(pkg.forecastGroupID);
+                $(sel.type).val(pkg.type);
+                $(sel.transactionCode).val(pkg.transCodeAlt);
+                $(sel.textInNightAudit).val(pkg.textInNightAudit);
+
+                // original code referenced ids that didn't exist; keep only those that exist in this refactor
+                $(sel.chkIncludedInRate).prop("checked", !!pkg.includedInRate);
+                $(sel.chkRateSeparateLine).prop("checked", !!pkg.rateSeparateLine);
+                $(sel.chkActive).prop("checked", !!pkg.active);
+
+                $(sel.breakfast).prop("checked", !!pkg.breakfast);
+                $(sel.lunch).prop("checked", !!pkg.lunch);
+                $(sel.dinner).prop("checked", !!pkg.dinner);
+
+                setFormsReadOnly(true);
+
+                const resDetail = await $.ajax({
+                    url: "/Administration/RateCode/GetPackageDetailByIDPackage",
+                    method: "GET",
+                    data: { id }
+                });
+
+                if (!resDetail?.success) {
+                    showToast("Error", resDetail?.message || "Failed to load package detail.", false);
+                    return;
+                }
+
+                initDetailGrid(resDetail.data || []);
+
+                searchModal.hide();
+            } catch (err) {
+                console.error(err);
+                showToast("Error", "Failed to load data.", false);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // ---------- Payload builders ----------
+        function getHeaderPayload() {
+            return {
+                ID: parseInt($(sel.ID).val()) || 0,
+                Code: ($(sel.txtCode).val() || "").trim(),
+                ForecastGroupID: parseInt($(sel.forecastGroup).val()) || 0,
+                Type: parseInt($(sel.type).val()) || 0,
+                TransCode: $(sel.transactionCode).val() || "",
+                Description: ($(sel.txtDescription).val() || "").trim(),
+                DisplayInFolio: ($(sel.textInNightAudit).val() || "").trim(),
+                DefaultDisplay: parseInt($('input[name="pak_attr"]:checked').val()) || 0,
+                Breakfast: $(sel.breakfast).is(":checked"),
+                Lunch: $(sel.lunch).is(":checked"),
+                Dinner: $(sel.dinner).is(":checked"),
+                Active: $(sel.chkActive).is(":checked"),
+                UserInsertID: parseInt(localStorage.getItem("userID")) || 0,
+                UserUpdateID: parseInt(localStorage.getItem("userID")) || 0
+            };
+        }
+
+        function getDetailPayload() {
+            return {
+                ID: parseInt($(sel.packageDetailID).val()) || 0,
+                PackageID: parseInt($(sel.packageID).val()) || null,
+                SeasonID: parseInt($(sel.seasonCode).val()) || null,
+                StartDate: $(sel.startDateUi).val() || null,
+                EndDate: $(sel.endDateUi).val() || null,
+                TransCode: $(sel.transactionCodeDT).val() || null,
+                Price: parseFloat($(sel.price).val()) || null,
+                PriceAfterTax: parseFloat($(sel.priceAfterTax).val()) || null,
+                CurrencyID: $(sel.currencyID).val() || null,
+                AllowanceAmount: parseFloat($(sel.allowanceAmount).val()) || null,
+                RhythmPostingID: parseInt($(sel.rhythmPostingID).val()) || 0,
+                CalculationRuleID: parseInt($(sel.calculationRuleID).val()) || null,
+                UserInsertID: parseInt(localStorage.getItem("userID")) || 0,
+                UserUpdateID: parseInt(localStorage.getItem("userID")) || 0
+            };
+        }
+
+        // ---------- Save/Delete ----------
+        function saveHeader() {
+            showLoading(true);
+
+            const payload = getHeaderPayload();
+
+            $.ajax({
+                url: "/Administration/RateCode/SavePackage",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                success: function (res) {
+                    if (res?.success) {
+                        showToast("Success", res.message, true);
+                        const id = res.data?.id;
+                        if (id) selectPackage(id);
+                    } else {
+                        if (typeof window.applyValidationErrors === "function") applyValidationErrors(res?.errors || [], "#pak_headerForm");
+                        showToast("Error", res?.message || "Save failed.", false);
+                    }
+                },
+                error: function (xhr) {
+                    const errs = xhr.responseJSON?.errors;
+                    if (Array.isArray(errs)) errs.forEach((m, i) => setTimeout(() => showToast("Error", m, false), i * 700));
+                    else showToast("Error", xhr.responseJSON?.message || "Save failed.", false);
+                },
+                complete: function () {
+                    showLoading(false);
+                }
+            });
+        }
+
+        function deleteHeader() {
+            const id = parseInt($(sel.ID).val()) || 0;
+            if (!id) {
+                showToast("Error", "No package selected.", false);
+                return;
+            }
+            showLoading(true);
+
+            $.ajax({
+                url: "/Administration/RateCode/PackageDelete",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ ID: id }),
+                success: function (res) {
+                    if (res?.success) {
+                        showToast("Success", res.message, true);
+                        clearAll();
+                    } else {
+                        showToast("Error", res?.message || "Delete failed.", false);
+                    }
+                },
+                error: function (xhr) {
+                    const errs = xhr.responseJSON?.errors;
+                    if (Array.isArray(errs)) errs.forEach((m, i) => setTimeout(() => showToast("Error", m, false), i * 700));
+                    else showToast("Error", xhr.responseJSON?.message || "Delete failed.", false);
+                },
+                complete: function () {
+                    showLoading(false);
+                }
+            });
+        }
+
+        function saveDetail() {
+            showLoading(true);
+
+            const payload = getDetailPayload();
+
+            $.ajax({
+                url: "/Administration/RateCode/SaveDetailPackage",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                success: function (res) {
+                    if (res?.success) {
+                        showToast("Success", res.message, true);
+                        const id = res.data?.id;
+                        if (id) selectPackage(id);
+                    } else {
+                        if (typeof window.applyValidationErrors === "function") applyValidationErrors(res?.errors || [], "#pak_detailForm");
+                        showToast("Error", res?.message || "Save failed.", false);
+                    }
+                },
+                error: function (xhr) {
+                    const errs = xhr.responseJSON?.errors;
+                    if (Array.isArray(errs)) errs.forEach((m, i) => setTimeout(() => showToast("Error", m, false), i * 700));
+                    else showToast("Error", xhr.responseJSON?.message || "Save failed.", false);
+                },
+                complete: function () {
+                    showLoading(false);
+                }
+            });
+        }
+
+        function deleteDetail() {
+            const id = parseInt($(sel.packageDetailID).val()) || 0;
+            if (!id) {
+                showToast("Error", "Please select a detail row to delete.", false);
                 return;
             }
 
-            const details = resDetail.data;
-            console.log('PackageDetail:', details);
-            initializePackageDetailGrid(details);
+            showLoading(true);
 
-            $('#modalSearch').modal('hide');
-
-        } catch (err) {
-            console.error(err);
-            showToast('Error', 'Failed to load data.', false);
-        } finally {
-            $("#loadingSpinner").hide();
+            $.ajax({
+                url: "/Administration/RateCode/PackageDetailDelete",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ ID: id }),
+                success: function (res) {
+                    if (res?.success) {
+                        showToast("Success", res.message, true);
+                        clearDetailOnly();
+                        // reload selected package details if possible
+                        const pkgId = parseInt($(sel.packageID).val()) || 0;
+                        if (pkgId) selectPackage(pkgId);
+                    } else {
+                        showToast("Error", res?.message || "Delete failed.", false);
+                    }
+                },
+                error: function (xhr) {
+                    const errs = xhr.responseJSON?.errors;
+                    if (Array.isArray(errs)) errs.forEach((m, i) => setTimeout(() => showToast("Error", m, false), i * 700));
+                    else showToast("Error", xhr.responseJSON?.message || "Delete failed.", false);
+                },
+                complete: function () {
+                    showLoading(false);
+                }
+            });
         }
-    }
 
-    function filterUserList() {
-        let keyword = $('#packageSearch').val().toLowerCase();
+        return { init, open };
 
-        $('#userTableBody tr').each(function () {
-            let text = $(this).text().toLowerCase();
-            $(this).toggle(text.includes(keyword));
-        });
-    }
+    })();
 
-    function getPackageDataToPost() {
-        const data = {
-            ID: parseInt($("#ID").val()) || 0,
+    // Option A global entry
+    window.openModalPak = function () {
+        pak_Module.open();
+    };
 
-            Code: $("#txtCode").val()?.trim() || "",
-
-            ForecastGroupID: parseInt($("#forecastGroup").val()) || 0,
-            Type: parseInt($("#type").val()) || 0,
-
-            TransCode: $("#transactionCode").val() || "",
-
-            Description: $("#txtDescription").val()?.trim() || "",
-            DisplayInFolio: $("#textInNightAudit").val()?.trim() || "",
-
-            // ===== Attributes =====
-            // radio attr: 1 or 0
-            DefaultDisplay: parseInt($("input[name='attr']:checked").val()),
-
-            // ===== Meal Info =====
-            Breakfast: $("#breakfast").is(":checked"),
-            Lunch: $("#lunch").is(":checked"),
-            Dinner: $("#dinner").is(":checked"),
-
-            // ===== Status =====
-            Active: $("#chkActive").is(":checked"),
-
-            // ===== Audit =====
-            UserInsertID: parseInt(localStorage.getItem("userID")) || 0,
-            UserUpdateID: parseInt(localStorage.getItem("userID")) || 0
-        };
-
-        return data;
-    }
-
-    function getPackageDetailDataToPost() {
-        const data = {
-            // ===== PK =====
-            ID: parseInt($("#packageDetailID").val()) || 0,
-
-            // ===== FK =====
-            PackageID: parseInt($("#packageID").val()) || null,
-            SeasonID: parseInt($("#seasonCode").val()) || null,
-
-            // ===== Date =====
-            StartDate: $("#startDate").val() || null,
-            EndDate: $("#endDate").val() || null,
-
-            // ===== Transaction =====
-            TransCode: $("#transactionCodeDT").val() || null,
-
-            // ===== Price =====
-            Price: parseFloat($("#price").val()) || null,
-            PriceAfterTax: parseFloat($("#priceAfterTax").val()) || null,
-
-            // ⚠ CurrencyID là string
-            CurrencyID: $("#currencyID").val() || null,
-
-            AllowanceAmount: parseFloat($("#allowanceAmount").val()) || null,
-
-            // ===== Rule =====
-            RhythmPostingID: parseInt($("#rhythmPostingID").val()) || 0,
-            CalculationRuleID: parseInt($("#calculationRuleID").val()) || null,
-
-            // ===== Audit =====
-            UserInsertID: parseInt(localStorage.getItem("userID")) || 0,
-            UserUpdateID: parseInt(localStorage.getItem("userID")) || 0
-        };
-
-        return data;
-    }
-
+    $(document).ready(function () {
+        pak_Module.init();
+        // auto-open if desired:
+        // window.openModalPak();
+    });
 </script>

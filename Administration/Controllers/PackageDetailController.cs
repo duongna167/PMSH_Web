@@ -84,7 +84,7 @@ namespace Administration.Controllers
 
                 var errors = new List<object>();
                 //Basic Validation
-                if (dto.CalculationRuleID < 0)
+                if (dto.CalculationRuleID < 0 || dto.CalculationRuleID == null)
                 {
                     errors.Add(new { field = "calculationRuleID", message = "Calculation is required." });
                 }

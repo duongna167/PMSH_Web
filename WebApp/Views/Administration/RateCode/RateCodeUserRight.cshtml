@@ -1,395 +1,528 @@
 @using DevExpress.XtraReports.UI
 
 @{
-    dynamic? listRateCode = @ViewBag.RateCodeList;
-    dynamic? listUser = @ViewBag.UserList;
+    dynamic? rtCUD_listRateCode = @ViewBag.RateCodeList;
+    dynamic? rtCUD_listUser = @ViewBag.UserList;
 }
 
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+<!-- MAIN MODAL (XL) -->
+<div class="modal fade" id="rtCUD_modalMain" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-4by3 modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
 
-<div class="text-center" id="reportTitle" style="font-size: 20px">Rate Code User Right </div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1" <div class="d-flex align-items-center me-2">
-        <label class="me-2 mb-0">Rate Code User Right:</label>
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-primary" id="rtCUD_modalTitle">Rate Code User Right</h5>
+            </div>
 
-        <select id="user" class="form-control form-control-sm w-auto">
-            <option value="">-- Select User --</option>
-            @foreach (dynamic u in ViewBag.UserList)
-            {
-                <option value="@u.LoginName">@u.LoginName \ @u.JobDescription</option>
-            }
-        </select>
-        <label class="me-2 mb-0 ms-4">User:</label>
+            <div class="modal-body">
+                <div class="search-filter">
+                    <!-- ACTION BAR -->
+                    <div>
+                        <button id="rtCUD_btnView" type="button" class="mui-button mui-button-new">View</button>
+                        <button id="rtCUD_btnNew" type="button" class="mui-button mui-button-new">New</button>
+                        <button id="rtCUD_btnEdit" type="button" class="mui-button mui-button-edit">Edit</button>
+                        <button id="rtCUD_btnDelete" type="button" class="mui-button button-report-delete">Delete</button>
+                        <button id="rtCUD_btnClose" type="button" class="mui-button mui-button-new">Close</button>
+                    </div>
 
-        <select id="code" class="form-control form-control-sm w-auto">
-            <option value="">-- Rate Code --</option>
-            @foreach (dynamic u in ViewBag.RateCodeList)
-            {
-                <option value="@u.RateCode">@u.RateCode \ @u.Descripton</option>
-            }
-        </select>
-    </div>
-    <div class="d-flex align-items-center me-2">
+                    <!-- FILTER (Bootstrap 5 ERP-style) -->
+                    <div class="mt-1">
+                        <div class="row g-2">
 
-    </div>
-</div>
-
-<div>
-    <button id="btnView" class="mui-button mui-button-new">View</button>
-    <button id="btnNew" class="mui-button mui-button-new" type="button">
-        New</button>
-    <button id="btnEdit" class="mui-button mui-button-edit " type="button">
-        Edit</button>
-    <button id="btnDelete" class="mui-button button-report-delete" type="button">
-        Delete</button>
-</div>
-</div>
-<div class="mui-card">
-    <div id="gridWrapper" style="max-height: 500px;">
-        <div class="gridContainer mt-2" id="gridContainer"></div>
-    </div>
-    <div id="overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999;">
-    </div>
-
-    <div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel" aria-hidden="true">
-        <div class="modal-dialog custom-modal-width">
-            <!-- modal-lg để form rộng hơn -->
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="itemModalLabel">New Item</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <!-- Modal Footer (nút Save & Close) -->
-                <div class="modal-footer justify-content-start">
-                    <button type="button" id="btnSave" class="mui-button mui-button-save">
-                        Save
-                    </button>
-                    <button type="button" data-bs-dismiss="modal" class="mui-button mui-button-close">
-                        Close
-                    </button>
-                </div>
-                <div class="modal-body">
-
-                    <div id="itemForm">
-                        <input type="hidden" id="modalItemId" name="id" value="0" />
-                        <div class="row g-3">
-                            <div style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-                                <div class="form-group-new-reservation col-md-6">
-                                    <label>User Name <span style="color:red">*</span></label>
-                                    <div class="row" style="margin-left:1px;margin-right:2px" name="user">
-                                        <input id="idUserName" class="col-md-10" type="hidden" />
-                                        <input id="txtUserName" class="col-md-10" readonly name="user" />
-                                        <button onclick="openModalSearchUser()" class="col-md-2"> </button>
+                            <div class="col-12 col-md-6 col-xl-4">
+                                <div class="row g-1 align-items-center">
+                                    <label for="rtCUD_user" class="col-12 col-md-2 col-form-label col-form-label-sm text-md-end">
+                                        User
+                                    </label>
+                                    <div class="col-12 col-md-8">
+                                        <select id="rtCUD_user" name="rtCUD_user" class="tomselect-custom">
+                                            <option value="">-- Select User --</option>
+                                            @if (rtCUD_listUser != null)
+                                            {
+                                                foreach (dynamic u in rtCUD_listUser)
+                                                {
+                                                    <option value="@u.LoginName">@u.LoginName \ @u.JobDescription</option>
+                                                }
+                                            }
+                                        </select>
                                     </div>
-                                    <div class="invalid-feedback"></div>
-
-                                </div>
-                                <div class="form-group-new-reservation col-md-6">
-                                    <label>Rate Code <span style="color:red">*</span></label>
-                                    <div class="row" style="margin-left:1px;margin-right:2px" name="rateCode">
-                                        <input id="idRateCode" class="col-md-10" disabled type="hidden" />
-                                        <input id="txtRateCode" class="col-md-10" readonly name="rateCode" />
-                                        <button onclick="openModalSearchRateCode()" class="col-md-2"> </button>
-                                    </div>
-                                    <div class="invalid-feedback"></div>
-
                                 </div>
                             </div>
+
+                            <div class="col-12 col-md-6 col-xl-4">
+                                <div class="row g-1 align-items-center">
+                                    <label for="rtCUD_code" class="col-12 col-md-4 col-form-label col-form-label-sm text-md-end">
+                                        Rate Code
+                                    </label>
+                                    <div class="col-12 col-md-8">
+                                        <select id="rtCUD_code" name="rtCUD_code" class="tomselect-custom">
+                                            <option value="">-- Rate Code --</option>
+                                            @if (rtCUD_listRateCode != null)
+                                            {
+                                                foreach (dynamic u in rtCUD_listRateCode)
+                                                {
+                                                    <option value="@u.RateCode">@u.RateCode \ @u.Descripton</option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>
+
+                <!-- GRID -->
+                <div class="flex-grow-1 bg-white position-relative">
+                    <div class="mui-card m-2">
+                        <div id="rtCUD_gridWrapper" class="mt-2" style="max-height: 650px;">
+                            <div class="gridContainer" id="rtCUD_gridContainer"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LOADING -->
+                <div id="rtCUD_loadingSpinner"
+                    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+                    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+                    height: 100%;display: flex;align-items: center;justify-content: center;">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UPSERT MODAL (XL) -->
+<div class="modal fade" id="rtCUD_modalUpsert" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header py-2">
+                <h6 class="modal-title" id="rtCUD_upsertTitle">Rate Code User Right</h6>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="search-filter">
+                    <button id="rtCUD_btnSave" type="button" class="mui-button mui-button-save">Save</button>
+                    <button type="button" id="rtCUD_btnClosemodalUpsert" class="mui-button mui-button-close">Close</button>
+                </div>
+
+                <div class="mt-1 mb-2">
+                    <form id="rtCUD_form" novalidate>
+                        <input type="hidden" id="rtCUD_modalItemId" name="rtCUD_modalItemId" value="0" />
+
+                        <div class="row g-2">
+
+                            <div class="col-12 col-xl-6">
+                                <div class="row g-1 align-items-center">
+                                    <label for="rtCUD_userID" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                        User Name <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="col-md-8">
+                                        <div class="input-group input-group-sm">
+                                            <input id="rtCUD_userID" name="rtCUD_userID" type="hidden" />
+                                            <input id="rtCUD_userName" name="user" type="text" class="form-control" readonly />
+                                            <button id="rtCUD_btnPickUser" class="btn-search-icon" type="button">
+                                               <i class="fa-solid fa-arrow-down"></i>
+                                            </button>
+                                            <div class="invalid-feedback"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-xl-6">
+                                <div class="row g-1 align-items-center">
+                                    <label for="rtCUD_rateCodeID" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                        Rate Code <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="col-md-8">
+                                        <div class="input-group input-group-sm">
+                                            <input id="rtCUD_rateCodeID" name="rtCUD_rateCodeID" type="hidden" />
+                                            <input id="rtCUD_rateCode" name="rateCode" type="text" class="form-control" readonly />
+                                            <button id="rtCUD_btnPickRateCode" class="btn-search-icon" type="button">
+                                                <i class="fa-solid fa-arrow-down"></i>
+                                            </button>
+                                            <div class="invalid-feedback"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </form>
+                </div>
+
             </div>
 
         </div>
     </div>
 </div>
-</div>
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
-</div>
 
+@* keep your existing partial (modal search rate code) *@
 @await Html.PartialAsync(partialViewName: "~/Views/Administration/ModalRateCode/ModalSearchRateCode.cshtml")
 
-
 <script>
-    DevExpress.localization.locale("vi");
+    var rtCUD_Module = (function () {
 
-    var selectedRowData = null;
+        let mainModal = null;
+        let upsertModal = null;
 
-    $(document).ready(function () {
-        reloadGrid()
-    });
-    function reloadGrid() {
-        console.log("Calling reloadGrid");
+        let selectedRowData = null;
+        let gridInstance = null;
 
-        $("#loadingSpinner").show();
+        const sel = {
+            modalMain: "#rtCUD_modalMain",
+            modalUpsert: "#rtCUD_modalUpsert",
 
-        $.ajax({
-            url: '/Administration/RateCode/GetAllRateCodeUserRight',
-            type: 'GET',
-            data: {
-                userName: $("#user").val() || "",
-                rateCode: $("#code").val() || ""
-            },
-            success: function (data) {
-                if (data && data.length > 0) {
-                    let ids = data[0].idRateCode;
-                    loadTelephoneGrid(data);
-                    $("#loadingSpinner").hide();
-                } else {
-                    loadTelephoneGrid([]);
-                    showToast('Warning', 'No Rate Code data not found.', false);
-                    console.log(`Error: ${data.message}`);
-                    $("#loadingSpinner").hide();
-                }
-            },
-            error: function () {
-                alert("Không thể tải dữ liệu");
-                $("#loadingSpinner").hide();
-            }
-        });
-    }
+            btnView: "#rtCUD_btnView",
+            btnNew: "#rtCUD_btnNew",
+            btnEdit: "#rtCUD_btnEdit",
+            btnDelete: "#rtCUD_btnDelete",
+            btnClose: "#rtCUD_btnClose",
+            btnClosemodalUpsert: "#rtCUD_btnClosemodalUpsert",
 
+            userFilter: "#rtCUD_user",
+            codeFilter: "#rtCUD_code",
 
-    function initializeTomSelects() {
-        const selectors = [];
+            grid: "#rtCUD_gridContainer",
+            loading: "#rtCUD_loadingSpinner",
 
-        for (const id of selectors) {
-            const el = document.querySelector(id);
-            if (!el) continue;
+            upsertTitle: "#rtCUD_upsertTitle",
+            form: "#rtCUD_form",
+            modalItemId: "#rtCUD_modalItemId",
+            btnSave: "#rtCUD_btnSave",
 
-            if (el.tomselect) el.tomselect.destroy();
+            userID: "#rtCUD_userID",
+            userName: "#rtCUD_userName",
+            rateCodeID: "#rtCUD_rateCodeID",
+            rateCode: "#rtCUD_rateCode",
+            btnPickUser: "#rtCUD_btnPickUser",
+            btnPickRateCode: "#rtCUD_btnPickRateCode"
+        };
 
-            const ts = new TomSelect(el, {
-                plugins: ['remove_button'],
-                create: false,
-                maxItems: null,
-                allowEmptyOption: true,
-                placeholder: '',
-                persist: false,
-                maxOptions: 1000,
-                render: {
-                    option: function (data, escape) {
-                        return `<div>${escape(data.text)}</div>`;
+        function init() {
+            initTomSelect(".tomselect-custom");
+            mainModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modalMain), { backdrop: "static" });
+            upsertModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modalUpsert), { backdrop: "static" });
+
+            $(sel.modalMain).off("shown.bs.modal.rtCUD").on("shown.bs.modal.rtCUD", function () {
+                bindEvents();
+                reloadGrid();
+            });
+
+            $(sel.modalMain).off("hidden.bs.modal.rtCUD").on("hidden.bs.modal.rtCUD", function () {
+                cleanup();
+            });
+
+            $(sel.modalUpsert).off("hidden.bs.modal.rtCUD").on("hidden.bs.modal.rtCUD", function () {
+                clearForm();
+                if (typeof window.applyValidationErrors === "function") applyValidationErrors([], sel.form);
+            });
+        }
+
+        function open() {
+            mainModal.show();
+        }
+
+        function bindEvents() {
+            $(document).off("click.rtCUD", sel.btnView).on("click.rtCUD", sel.btnView, function () {
+                reloadGrid();
+            });
+
+            $(document).off("click.rtCUD", sel.btnNew).on("click.rtCUD", sel.btnNew, function () {
+                openNew();
+            });
+
+            $(document).off("click.rtCUD", sel.btnEdit).on("click.rtCUD", sel.btnEdit, function () {
+                openEdit();
+            });
+
+            $(document).off("click.rtCUD", sel.btnDelete).on("click.rtCUD", sel.btnDelete, function () {
+                doDelete();
+            });
+
+            $(document).off("click.rtCUD", sel.btnClose).on("click.rtCUD", sel.btnClose, function () {
+                mainModal.hide();
+            });
+
+            $(document).off("click.rtCUD", sel.btnClosemodalUpsert).on("click.rtCUD", sel.btnClosemodalUpsert, function () {
+                $('#rtCUD_modalMain .modal-content').removeClass('modal-blur');
+                upsertModal.hide();
+            });
+
+            $(document).off("click.rtCUD", sel.btnSave).on("click.rtCUD", sel.btnSave, function () {
+                save();
+            });
+
+            // Keep legacy external pickers working; also allow button click without inline onclick
+            $(document).off("click.rtCUD", sel.btnPickUser).on("click.rtCUD", sel.btnPickUser, function () {
+                if (typeof window.openModalSearchUser === "function") window.openModalSearchUser();
+                else showToast("Warning", "openModalSearchUser() not found.", false);
+            });
+
+            $(document).off("click.rtCUD", sel.btnPickRateCode).on("click.rtCUD", sel.btnPickRateCode, function () {
+                if (typeof window.openModalSearchRateCode === "function") window.openModalSearchRateCode();
+                else showToast("Warning", "openModalSearchRateCode() not found.", false);
+            });
+        }
+
+        function cleanup() {
+            $(document).off(".rtCUD");
+            destroyGrid();
+            selectedRowData = null;
+        }
+
+        function showLoading(on) {
+            if (on) $(sel.loading).show(); else $(sel.loading).hide();
+        }
+
+        // Allow external modal pickers to push selection back into this module
+        // Call these from your search modals when user picks an item.
+        function setPickedUser(userID, userName) {
+            $(sel.userID).val(userID || "");
+            $(sel.userName).val(userName || "");
+        }
+
+        function setPickedRateCode(rateCodeID, rateCode) {
+            $(sel.rateCodeID).val(rateCodeID || "");
+            $(sel.rateCode).val(rateCode || "");
+        }
+
+        // expose setters
+        window.rtCUD_setPickedUser = setPickedUser;
+        window.rtCUD_setPickedRateCode = setPickedRateCode;
+
+        // --------- GRID ---------
+        function destroyGrid() {
+            try { if (gridInstance) gridInstance.dispose(); } catch { }
+            gridInstance = null;
+            $(sel.grid).empty();
+        }
+
+        function reloadGrid() {
+            showLoading(true);
+
+            $.ajax({
+                url: "/Administration/RateCode/GetAllRateCodeUserRight",
+                type: "GET",
+                data: {
+                    userName: $(sel.userFilter).val() || "",
+                    rateCode: $(sel.codeFilter).val() || ""
+                },
+                success: function (data) {
+                    if (!Array.isArray(data) || data.length === 0) {
+                        renderGrid([]);
+                        showToast("Warning", "No records found.", false);
+                        return;
                     }
+                    renderGrid(data);
+                },
+                error: function () {
+                    showToast("Error", "Cannot load data.", false);
+                    renderGrid([]);
+                },
+                complete: function () {
+                    showLoading(false);
                 }
             });
         }
-    }
 
-    $(document).off("click", "#btnView").on("click", "#btnView", function () {
-        reloadGrid();
-    });
+        function renderGrid(data) {
+            destroyGrid();
+
+            gridInstance = $(sel.grid).dxDataGrid({
+                dataSource: data,
+                height: "650px",
+                width: "100%",
+                showBorders: true,
+                allowColumnResizing: true,
+                columnResizingMode: "widget",
+                columnAutoWidth: true,
+
+                selection: { mode: "single" },
+
+                scrolling: {
+                    mode: "standard",
+                    showScrollbar: "always",
+                    scrollByContent: true
+                },
+
+                paging: { pageSize: 20 },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [20, 50, "all"],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+
+                filterRow: { visible: true, applyFilter: "auto" },
+
+                columns: [
+                    { dataField: "id", visible: false },
+                    { dataField: "rateCodeID", visible: false },
+                    { dataField: "userID", visible: false },
+
+                    { dataField: "userName", caption: "User Name", width: 180 },
+                    { dataField: "rateCode", caption: "Rate Code", width: 140 },
+                    { dataField: "createdBy", caption: "Created By", width: 140 },
+                    { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy", width: 140 },
+                    { dataField: "updatedBy", caption: "Updated By", width: 140 },
+                    { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy", width: 140 }
+                ],
+
+                onSelectionChanged: function (e) {
+                    selectedRowData = e.selectedRowsData[0] || null;
+                }
+            }).dxDataGrid("instance");
+        }
+
+        // --------- UPSERT ---------
+        function clearForm() {
+            $(sel.modalItemId).val(0);
+            $(sel.userID).val("");
+            $(sel.userName).val("");
+            $(sel.rateCodeID).val("");
+            $(sel.rateCode).val("");
+        }
+
+        function openNew() {
+            clearForm();
+            if (typeof window.applyValidationErrors === "function") applyValidationErrors([], sel.form);
+            $(sel.upsertTitle).text("New Rate Code User Right");
+            $('#rtCUD_modalMain .modal-content').addClass('modal-blur');
+            upsertModal.show();
+        }
+
+        function openEdit() {
+            if (!selectedRowData) {
+                showToast("Warning", "Please select 1 row to update.", false);
+                return;
+            }
+            clearForm();
+            if (typeof window.applyValidationErrors === "function") applyValidationErrors([], sel.form);
+
+            $(sel.modalItemId).val(selectedRowData.id || 0);
+            $(sel.userID).val(selectedRowData.userID || "");
+            $(sel.userName).val(selectedRowData.userName || "");
+            $(sel.rateCodeID).val(selectedRowData.rateCodeID || "");
+            $(sel.rateCode).val(selectedRowData.rateCode || "");
+
+            $(sel.upsertTitle).text("Edit Rate Code User Right");
+            $('#rtCUD_modalMain .modal-content').addClass('modal-blur');
+            upsertModal.show();
+        }
+
+        function validatePayload(p) {
+            if (!p.userID || !p.userName) return "User is required.";
+            if (!p.rateCodeID || !p.rateCode) return "Rate Code is required.";
+            return null;
+        }
+
+        function save() {
+            const payload = {
+                id: parseInt($(sel.modalItemId).val()) || 0,
+
+                rateCodeID: parseInt($(sel.rateCodeID).val()) || 0,
+                rateCode: ($(sel.rateCode).val() || "").trim(),
+
+                userID: parseInt($(sel.userID).val()) || 0,
+                userName: ($(sel.userName).val() || "").trim(),
+
+                userLogin: localStorage.getItem("Loginname")
+            };
+
+            @* const err = validatePayload(payload);
+            if (err) {
+                showToast("Error", err, false);
+                return;
+            } *@
+
+            showLoading(true);
+
+            $.ajax({
+                url: "/Administration/RateCode/RateCodeUserRightSave",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                success: function (res) {
+                    if (res?.success) {
+                        showToast("Success", res.message, true);
+                        upsertModal.hide();
+                        reloadGrid();
+                    } else {
+                        if (typeof window.applyValidationErrors === "function") {
+                            applyValidationErrors(res?.errors || [], sel.form);
+                        } else {
+                            showToast("Error", res?.message || "Save failed.", false);
+                        }
+                    }
+                },
+                error: function (xhr) {
+                    const errs = xhr.responseJSON?.errors;
+                    if (Array.isArray(errs) && errs.length) {
+                        errs.forEach((m, i) => setTimeout(() => showToast("Error", m, false), i * 700));
+                    } else {
+                        showToast("Error", xhr.responseJSON?.message || "Save failed.", false);
+                    }
+                },
+                complete: function () {
+                    showLoading(false);
+                }
+            });
+        }
+
+        // --------- DELETE ---------
+        function doDelete() {
+            if (!selectedRowData) {
+                showToast("Error", "Please select 1 row to delete.", false);
+                return;
+            }
+            if (!confirm("Are you sure you want to delete this record?")) return;
+
+            showLoading(true);
+
+            $.ajax({
+                url: "/Administration/RateCode/RateCodeUserRightDelete",
+                type: "POST",
+                data: { id: selectedRowData.id },
+                traditional: true,
+                crossDomain: false,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() },
+                success: function (result) {
+                    if (result?.success) {
+                        showToast("Success", result.message, true);
+                        reloadGrid();
+                    } else {
+                        showToast("Error", result?.message || "Delete failed.", false);
+                    }
+                },
+                error: function () {
+                    showToast("Error", "Delete failed.", false);
+                },
+                complete: function () {
+                    showLoading(false);
+                }
+            });
+        }
+
+        return { init, open };
+
+    })();
+
+    // Option A global entry
+    window.openModalRtCUD = function () {
+        rtCUD_Module.open();
+    };
 
     $(document).ready(function () {
-        initializeTomSelects();
-    })
-
-    function loadTelephoneGrid(data) {
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            height: "500px",
-            columnAutoWidth: false,
-            allowColumnResizing: true,
-            columnResizingMode: "widget",
-            selection: { mode: "single" },
-            width: "100%",
-            columns: [
-                { dataField: "id", visible: false },
-                { dataField: "rateCodeID", visible: false },
-                { dataField: "userID", visible: false },
-
-                { dataField: "userName", caption: "User Name", width: "22%" },
-                { dataField: "rateCode", caption: "Rate Code", width: "18%" },
-                { dataField: "createdBy", caption: "Created By", width: "15%" },
-                {
-                    dataField: "createdDate",
-                    caption: "Created Date",
-                    dataType: "date",
-                    format: "dd/MM/yyyy",
-                    width: "15%"
-                },
-                { dataField: "updatedBy", caption: "Updated By", width: "15%" },
-                {
-                    dataField: "updatedDate",
-                    caption: "Updated Date",
-                    dataType: "date",
-                    format: "dd/MM/yyyy",
-                    width: "15%"
-                }
-            ],
-            scrolling: {
-                mode: "standard", // Không dùng virtual để footer hiển thị đúng
-                showScrollbar: "always",
-                scrollByContent: true
-            },
-            paging: {
-                pageSize: 20
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [20, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            columnAutoWidth: true,
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            summary: {
-                totalItems: [{
-                    column: "noOfNights",
-                    summaryType: "sum",
-                    displayFormat: "Total: {0}",
-                    showInColumn: "noOfNights"
-                }]
-            },
-            // 🔥 Quan trọng: gán selectedRowData khi click chọn
-            onSelectionChanged: function (e) {
-                if (e.selectedRowsData.length > 0) {
-                    selectedRowData = e.selectedRowsData[0]; // gán row đang chọn
-                    console.log("Selected Row:", selectedRowData);
-                } else {
-                    selectedRowData = null;
-                }
-            }
-        });
-    }
-
-
-    $("#btnNew").click(function () {
-        applyValidationErrors([], "#itemModal");
-        $("#modalItemId").val(0);
-        $("#idUserName").val("");
-        $("#txtUserName").val("");
-        $("#idRateCode").val("");
-        $("#txtRateCode").val("");
-        $("#itemModalLabel").text("New Rate Code User Right");
-        $("#itemModal").modal("show");
+        rtCUD_Module.init();
+        // auto-open if desired:
+        // window.openModalRtCUD();
     });
-
-
-    $(document).off("click", "#btnEdit").on("click", "#btnEdit", function () {
-        if (!selectedRowData) {
-            showToast('Warning', 'Please select 1 row to update.', false);
-            return;
-        }
-        applyValidationErrors([], "#itemModal");
-        let id = selectedRowData.id;
-
-        // 🔥 dùng trực tiếp selectedRowData
-        $("#modalItemId").val(id);
-        $("#idUserName").val(selectedRowData.userID);
-        $("#txtUserName").val(selectedRowData.userName);
-        $("#idRateCode").val(selectedRowData.rateCodeID);
-        $("#txtRateCode").val(selectedRowData.rateCode);
-        $("#itemModalLabel").text("Edit Rate Code User Right");
-        // Hiển thị popup
-        $("#itemModal").modal("show");
-
-    });
-
-
-    // Shared save function for New and Edit
-    $(document).off("click", "#btnSave").on("click", "#btnSave", function () {
-        try {
-            saveRateCodeUserRight();
-        } catch (error) {
-            showToast('Error', `Unable to load report: ${error}`, false);
-        }
-
-
-    });
-
-    $(document).off("click", "#btnDelete").on("click", "#btnDelete", function () {
-        if (!selectedRowData) {
-            showToast('Error', 'Please select 1 row to delete.', false);
-            return;
-        }
-
-        if (!confirm("Are you sure you want to delete this record?")) {
-            return; // Nếu chọn Cancel thì dừng
-        }
-
-        $.ajax({
-            url: '/Administration/RateCode/RateCodeUserRightDelete',
-            type: 'POST',
-            data: {
-                id: selectedRowData.id
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if (result.success) {
-                    reloadGrid();
-                    showToast('Success', result.message, true);
-                    $("#btnPrint").trigger("click");
-                } else {
-                    showToast('Error', 'Please select a Task Code before saving.', false);
-                }
-
-            },
-            error: function () {
-                alert("Không thể tải báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-
-
-    });
-
-
-    function saveRateCodeUserRight() {
-        var data = {
-            id: parseInt($("#modalItemId").val()) || 0,
-
-            rateCodeID: parseInt($("#idRateCode").val()) || 0,
-            rateCode: $("#txtRateCode").val()?.trim() || "",
-
-            userID: parseInt($("#idUserName").val()) || 0,
-            userName: $("#txtUserName").val()?.trim() || "",
-
-            userLogin: localStorage.getItem("Loginname")
-        };
-        console.log('Log', data);
-
-
-
-        $("#loadingSpinner").show();
-
-        $.ajax({
-            url: "/Administration/RateCode/RateCodeUserRightSave",
-            type: "POST",
-            contentType: "application/json",   // gửi JSON
-            data: JSON.stringify(data),         // convert object -> JSON
-            success: function (res) {
-                $("#loadingSpinner").hide();
-                if (res.success) {
-                    showToast('Success', res.message, true);
-                    $("#itemModal").modal("hide");
-                    reloadGrid();
-                } else {
-                    applyValidationErrors(res.errors, "#itemForm");
-                }
-            },
-            error: function (xhr, status, error) {
-                // Nếu có mảng errors thì hiển thị từng cái
-                if (Array.isArray(xhr.responseJSON?.errors)) {
-                    xhr.responseJSON.errors.forEach((err, index) => {
-                        setTimeout(() => {
-                            showToast("Error", err, false);
-                        }, index * 1000); // delay 300ms mỗi toast
-                    });
-                }
-
-                $("#loadingSpinner").hide();
-            }
-        });
-    }
-
 </script>

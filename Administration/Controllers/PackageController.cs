@@ -38,7 +38,7 @@ namespace Administration.Controllers
             ViewBag.PackageForecastGroup = listPackageForecastGroup;
             ViewBag.CurrencyList = listCurrency;
             ViewBag.RhythmPostingList = listRhythmPosting;
-            return View("~/Views/Administration/RateCode/Package.cshtml");
+            return PartialView("~/Views/Administration/RateCode/Package.cshtml");
             // Truyền đường dẫn chuẩn vào để tìm đúng
         }
 

@@ -23,7 +23,7 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
 
     const baseOptions = {
         plugins: {
-            dropdown_input: {}
+            dropdown_input: {},
         },
         dataAttr: 'data-data',
         create: false,
@@ -37,16 +37,15 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
             },
             item(data, escape) {
                 return `<div><span class="ts-item-text" data-tooltip="${escape(data.text)}">${escape(data.text)}</span></div>`;
-            }
-        }
+            },
+        },
     };
 
-    selectors.forEach(selector => {
+    selectors.forEach((selector) => {
         const elements = document.querySelectorAll(selector);
 
         if (!elements || elements.length === 0) return;
-        document.querySelectorAll(selector).forEach(el => {
-
+        document.querySelectorAll(selector).forEach((el) => {
             if (el.tomselect) return;
             //if (!el || !document.body.contains(el)) return;
 
@@ -57,18 +56,16 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
             }
 
             const isSelect = el.tagName === 'SELECT';
-            const isMultiple =
-                el.hasAttribute('multiple') ||
-                (options.maxItems && options.maxItems > 1);
+            const isMultiple = el.hasAttribute('multiple') || (options.maxItems && options.maxItems > 1);
 
             if (isSelect && !isMultiple) {
                 const optionsArray = el.options ? Array.from(el.options) : [];
-                const hasEmptyOption = optionsArray.some(o => o.value === "");
+                const hasEmptyOption = optionsArray.some((o) => o.value === '');
 
                 if (!hasEmptyOption) {
-                    const emptyOption = document.createElement("option");
-                    emptyOption.value = "";
-                    emptyOption.text = "";
+                    const emptyOption = document.createElement('option');
+                    emptyOption.value = '';
+                    emptyOption.text = '';
                     el.insertBefore(emptyOption, el.firstChild);
                 }
             }
@@ -79,21 +76,21 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
                 plugins: {
                     ...baseOptions.plugins,
                     ...(options.plugins || {}),
-                    'clear_button': {
-                        'title': '',
-                        'html': (data) => {
+                    clear_button: {
+                        title: '',
+                        html: (data) => {
                             // Đảm bảo class "clear-button" luôn tồn tại
-                            const label = isMultiple ? "Clear all" : "Clear";
+                            const label = isMultiple ? 'Clear all' : 'Clear';
                             return `<div class="clear-button" data-tooltip="${label}">×</div>`;
-                        }
-                    }
-                }
+                        },
+                    },
+                },
             };
 
             if (isMultiple) {
                 tsOptions.plugins['remove_button'] = {
                     title: '', // Để trống title mặc định
-                    label: `<span data-tooltip="Delete">×</span>` // Thêm tooltip cho nút x từng item
+                    label: `<span data-tooltip="Delete">×</span>`, // Thêm tooltip cho nút x từng item
                 };
             }
 
@@ -101,16 +98,26 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
                 if (el.value === undefined) el.value = '';
                 const ts = new TomSelect(el, tsOptions);
 
+                // ---- SYNC DISABLED STATE (IMPORTANT) ----
+                const shouldBeDisabled =
+                    el.disabled === true || el.hasAttribute('disabled') || el.dataset.tsDisabled === '1';
+
+                if (shouldBeDisabled) {
+                    ts.disable(); // disable đúng chuẩn
+                } else {
+                    ts.enable(); // đảm bảo enable nếu không disabled
+                }
+
                 // Sự kiện khi xóa 1 item
                 ts.on('item_remove', function () {
-                    if (typeof window.hideTooltip === "function") window.hideTooltip();
+                    if (typeof window.hideTooltip === 'function') window.hideTooltip();
                     this.setTextboxValue(''); // Xóa từ khóa search
                     this.refreshOptions(false); // Hiện lại item trong dropdown
                 });
 
                 // Sự kiện khi nhấn nút Clear All
                 ts.on('clear', function () {
-                    if (typeof window.hideTooltip === "function") window.hideTooltip();
+                    if (typeof window.hideTooltip === 'function') window.hideTooltip();
                     this.setTextboxValue('');
                     this.refreshOptions(false); // Trả lại toàn bộ data
                 });
@@ -123,29 +130,28 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
                         e.stopPropagation();
                         ts.setValue([]); // Xóa sạch mảng chọn
                         ts.refreshOptions(false);
-                        if (typeof window.hideTooltip === "function") window.hideTooltip();
+                        if (typeof window.hideTooltip === 'function') window.hideTooltip();
                     };
                 }
 
                 // LOAD DỮ LIỆU TỪ API
                 if (apiUrl) {
                     fetch(apiUrl)
-                        .then(res => res.json())
-                        .then(data => {
+                        .then((res) => res.json())
+                        .then((data) => {
                             const vField = tsOptions.valueField || 'value';
                             const lField = tsOptions.labelField || 'text';
-                            const formattedData = data.map(i => ({
+                            const formattedData = data.map((i) => ({
                                 value: i[vField],
-                                text: i[lField]
+                                text: i[lField],
                             }));
                             ts.addOptions(formattedData);
                             ts.refreshOptions(false);
                         });
                 }
             } catch (e) {
-                console.error("Lỗi TomSelect:", e);
+                console.error('Lỗi TomSelect:', e);
             }
-
         });
     });
 }
@@ -176,8 +182,8 @@ function getTomSelectData(selector) {
         const opt = ts.options[v] || {};
         return {
             value: v,
-            text: opt.text || "",
-            data: { ...opt }   // giữ toàn bộ data-roomno, data-name,...
+            text: opt.text || '',
+            data: { ...opt }, // giữ toàn bộ data-roomno, data-name,...
         };
     };
 
@@ -191,17 +197,16 @@ function getTomSelectData(selector) {
 }
 
 function toBackendValue(selectData, field) {
-    if (!selectData) return "";
+    if (!selectData) return '';
 
     // MULTI
     if (Array.isArray(selectData)) {
-        return selectData.map(x => x.data?.[field] ?? x.value);
+        return selectData.map((x) => x.data?.[field] ?? x.value);
     }
 
     // SINGLE
     return selectData.data?.[field] ?? selectData.value;
 }
-
 
 // 1. Hàm Clear cho 1 ID
 function clearTomSelect(selector) {
@@ -220,17 +225,22 @@ function setTomSelectValue(selector, value) {
 // 3. Hàm truyền nhiều ID vào để Clear cùng lúc
 function clearMultipleTomSelect(ids) {
     if (!Array.isArray(ids)) ids = [ids];
-    ids.forEach(id => {
+
+    ids.forEach((id) => {
         const el = document.querySelector(id);
-        if (el && el.tomselect) {
-            el.tomselect.clear();
-        }
+        if (!el || !el.tomselect) return;
+
+        const ts = el.tomselect;
+
+        ts.setValue(''); // set về empty option
+        ts.setTextboxValue('');
+        ts.refreshOptions(false);
     });
 }
 
 // Hàm detroy Tomselect khi đóng các modal
 function destroyTomSelect(selectors) {
-    selectors.forEach(selector => {
+    selectors.forEach((selector) => {
         const el = document.querySelector(selector);
         if (el && el.tomselect) {
             el.tomselect.destroy();
@@ -251,16 +261,15 @@ async function loadDataToTomSelect(selector, apiUrl) {
         const data = await response.json();
 
         // 3. Format lại dữ liệu nếu API trả về ID/Name thay vì value/text
-        const formattedData = data.map(item => ({
+        const formattedData = data.map((item) => ({
             value: item.id || item.ID, // Linh hoạt theo API của bạn
-            text: item.name || item.Name
+            text: item.name || item.Name,
         }));
 
         // 4. Đổ dữ liệu vào và refresh
         ts.addOptions(formattedData);
         ts.refreshOptions(false);
-
     } catch (error) {
-        console.error("Lỗi khi load API:", error);
+        console.error('Lỗi khi load API:', error);
     }
 }
