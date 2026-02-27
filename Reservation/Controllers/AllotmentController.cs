@@ -569,7 +569,7 @@ namespace Reservation.Controllers
                 if (listErrors.Count == 0 && model != null)
                 {
                     bool isDuplicate = AllotmentBO.Instance.IsDuplicateCode(model.Code, model.ID);
-                    var duplicateError = CheckDuplicate(isDuplicate, "code", $"This code already exists: [{model.Code}]");
+                    var duplicateError = CheckDuplicate(isDuplicate, "allot_setup_code", $"This code already exists: [{model.Code}]");
                     if (duplicateError != null) listErrors.Add(duplicateError);
                 }
 
