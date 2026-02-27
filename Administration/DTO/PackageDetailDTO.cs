@@ -23,7 +23,7 @@ namespace Administration.DTO
         public decimal? AllowanceAmount { get; set; }
 
         public int RhythmPostingID { get; set; }
-        public int? CalculationRuleID { get; set; }
+        public int? CalculationRuleID { get; set; } = 0;
 
         public DateTime? PostingDate { get; set; }
         public string? PostingDay { get; set; }
