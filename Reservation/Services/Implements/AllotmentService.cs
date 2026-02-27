@@ -1,3 +1,5 @@
+﻿using BaseBusiness.BO;
+using BaseBusiness.Model;
 using BaseBusiness.util;
 using Microsoft.Data.SqlClient;
 using Reservation.Services.Interfaces;
@@ -67,6 +69,38 @@ namespace Reservation.Services.Implements
 
             DataTable myTable = DataTableHelper.getTableData("spAllotmentSearch", param);
             return myTable;
+        }
+
+        public DataTable GetAllotmentDetail(int allotmentID, string roomTypeCodes, DateTime showHistory)
+        {
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@AllotmentID", allotmentID), 
+                new SqlParameter("@RoomType", roomTypeCodes), 
+                new SqlParameter("@ShowHistory", showHistory)
+            };
+
+            DataTable myTable = DataTableHelper.getTableData("spAllotmentDetailSearch_Temp", param);
+            return myTable;
+        }
+
+        public DataTable GetAllotmentResvSearch(string allotmentIDs, int roomTypeID)
+        {
+            try
+            {
+                SqlParameter[] param = new SqlParameter[]
+                {
+                    new SqlParameter("@AllotmentID", allotmentIDs ?? ""),
+                    new SqlParameter("@RoomTypeID", roomTypeID)
+                };
+
+                DataTable myTable = DataTableHelper.getTableData("spAllotmentResvSearch", param);
+                return myTable;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi gọi spAllotmentResvSearch: {ex.Message}", ex);
+            }
         }
 
         //public DataTable AllotmentReport(string code, string marketId, string allotmentTypeId)
