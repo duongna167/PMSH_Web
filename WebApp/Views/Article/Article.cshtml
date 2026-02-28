@@ -1,483 +1,635 @@
 ﻿@using DevExpress.XtraReports.UI
 
-
 @{
-    var transactionsList = @ViewBag.TransactionsList;
-    var currList = @ViewBag.CurrencyList;
+    var transactionsList = ViewBag.TransactionsList;
+    var currList = ViewBag.CurrencyList;
 }
-<div class="text-center" style="font-size: 20px">Article Search</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1 filter-panel">
-        <!-- From Date -->
 
-        <div class="d-flex flex-column ">
+<!-- =========================
+     MAIN VIEW (Everything is a modal)
+     modal-xl + centered + scrollable
+     ========================= -->
+<div class="modal fade" id="arti_modalMain" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-4by3">
+        <div class="modal-content">
 
-            <div class="d-flex align-items-center">
-                <div class="d-flex align-items-center me-3">
-                    <label class="me-2 mb-0">Transactions:</label>
-                    <select id="transactionsList" name="transactionsList" class="form-control form-control-sm w-auto">
-                        <option value="">-ALL--</option>
-                        @foreach (var item in transactionsList)
-                        {
-                            <option value="@item.Code">@item.Code-@item.Description</option>
-                        }
-                    </select>
-
-                </div>
-                <div class="d-flex align-items-center me-4">
-                    <label for="tracetime" class="me-2 mb-0">Code:</label>
-                    <input type="text" id="code" name="code" class="form-control form-control-sm w-auto" />
-                </div>
-                <div class="d-flex align-items-center me-4">
-                    <label for="tracetime" class="me-2 mb-0">Description:</label>
-                    <input type="text" id="description" name="description"
-                        class="form-control form-control-sm w-auto" />
-                </div>
-                <div class="d-flex align-items-center me-4">
-                    <label for="tracetime" class="me-2 mb-0">Supplement:</label>
-                    <input type="text" id="supplement" name="supplement" class="form-control form-control-sm w-auto" />
-                </div>
+            <div class="modal-header">
+                <h5 class="modal-title">Article Search</h5>
             </div>
-        </div>
 
-
-
-
-    </div>
-    <div class="">
-        <button id="btnPrint" class="mui-button button-report-view"> View</button>
-        <button id="btnNew" class="mui-button mui-button-new"> New</button>
-        <button id="btnUpdate" class="mui-button mui-button-edit">  Edit</button>
-        <button id="btnDelete" class="mui-button button-report-delete"> 
-            Delete</button>
-        <button id="btnExportExcel" class="mui-button mui-button-export" type="button">  Excel</button>
-
-    </div>
-
-</div>
-<div class="mui-card">
-    @*     <div style="font-size: 20px;" class="mt-1" id="reportTitle"></div> *@
-    <div id="gridContainer" class="gridContainer mt-2"></div>
-</div>
-<div id="overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999;"></div>
-<div id="popupNewArticle" style="display: none; position: fixed; top: 50%; left: 50%;
-    transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px;
-    z-index: 1050; box-shadow: 0 0 10px rgba(0,0,0,0.3); min-width: 400px; max-height: 600px; overflow-y: auto;">
-
-    <div class="d-flex justify-content-between mb-2">
-        <h5 class="mb-0">Article Screen</h5>
-
-    </div>
-    <div class="d-flex justify-content-start mb-3 gap-2">
-
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnOkAuto" class="mui-button mui-button-advance"
-            type="button"> Ok</button>
-
-        <button onclick="$('#popupNewArticle').hide()" id="btnClosePopup" class="btn btn-sm mui-button-close"
-            style=" border-radius: 4px;">
-             Close
-        </button>
-    </div>
-    <div class="sticky-header bg-white p-2 shadow-sm z-3">
-        <div class="d-flex flex-wrap align-items-center gap-2 mb-1 filter-panel">
-            <div class="d-flex align-items-center flex-wrap mb-2">
-                <div class="d-flex align-items-start mb-3">
-                    <!-- Trace Time -->
-                    <input type="text" id="idselectedRowDatasa" name="idselectedRowDatasa"
-                        style="display:none !important" class="form-control form-control-sm w-auto" />
-                    <div class="d-flex align-items-center me-4">
-                        <label for="tracetime" class="me-2 mb-0">Code:</label>
-                        <input type="text" id="codenew" name="codenew" class="form-control form-control-sm w-auto" />
-                    </div>
-                    <div class="d-flex align-items-center me-4">
-                        <label for="tracetext" class="me-2 mt-1">Description:</label>
-                        <input type="text" id="descriptionnew" name="descriptionnew"
-                            class="form-control form-control-sm w-auto" />
-
-                    </div>
-                    <div class="d-flex align-items-center me-3">
-                        <label class="me-2 mb-0">Transactions:</label>
-                        <select id="transactionsListnew" name="transactionsListnew"
-                            class="form-control form-control-sm w-auto">
-                            <option value="">-ALL--</option>
-                            @foreach (var item in transactionsList)
-                            {
-                                <option value="@item.Code">@item.Code-@item.Description</option>
-                            }
-                        </select>
-
+            <div class="modal-body">
+                <div class="search-filter">
+                    <!-- Toolbar -->
+                    <div>
+                        <button id="arti_btnView" type="button" class="mui-button button-report-view">View</button>
+                        <button id="arti_btnNew" type="button" class="mui-button mui-button-new">New</button>
+                        <button id="arti_btnEdit" type="button" class="mui-button mui-button-edit">Edit</button>
+                        <button id="arti_btnDelete" type="button" class="mui-button button-report-delete">Delete</button>
+                        <button id="arti_btnExcel" type="button" class="mui-button mui-button-export">Excel</button>
+                        <button id="arti_btnClose" type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
                     </div>
 
+                    <!-- ERP Search Filter (dense, nested rows, right aligned labels) -->
+                    <div class="mt-1">
+                        <div class="row align-items-center">
+
+                            <!-- Transactions -->
+                            <div class="col-12 col-sm-6 col-md-6 col-lg-5 col-xl-3">
+                                <div class="row g-1 align-items-center">
+                                    <label for="arti_transactionsList"
+                                        class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 col-form-label col-form-label-sm text-md-end mb-0 text-nowrap">
+                                        Transactions
+                                    </label>
+                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
+                                        <select id="arti_transactionsList"
+                                                name="arti_transactionsList"
+                                                class="tomselect-custom w-100">
+                                            <option value=""></option>
+                                            @foreach (var item in transactionsList)
+                                            {
+                                                <option value="@item.Code">@item.Code-@item.Description</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Code -->
+                            <div class="col-12 col-sm-6 col-md-6 col-lg-5 col-xl-3">
+                                <div class="row g-1 align-items-center">
+                                    <label for="arti_code"
+                                        class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 col-form-label col-form-label-sm text-md-end mb-0 text-nowrap">
+                                        Code
+                                    </label>
+                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
+                                        <input id="arti_code"
+                                            name="arti_code"
+                                            type="text"
+                                            class="form-control form-control-sm" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="col-12 col-sm-6 col-md-6 col-lg-5 col-xl-3">
+                                <div class="row g-1 align-items-center">
+                                    <label for="arti_description"
+                                        class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 col-form-label col-form-label-sm text-md-end mb-0 text-nowrap">
+                                        Description
+                                    </label>
+                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
+                                        <input id="arti_description"
+                                            name="arti_description"
+                                            type="text"
+                                            class="form-control form-control-sm" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Supplement -->
+                            <div class="col-12 col-sm-6 col-md-6 col-lg-5 col-xl-3">
+                                <div class="row g-1 align-items-center">
+                                    <label for="arti_supplement"
+                                        class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 col-form-label col-form-label-sm text-md-end mb-0 text-nowrap">
+                                        Supplement
+                                    </label>
+                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
+                                        <input id="arti_supplement"
+                                            name="arti_supplement"
+                                            type="text"
+                                            class="form-control form-control-sm" />
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
                 </div>
-                <div class="d-flex align-items-start mb-3">
-
-                    <div class="d-flex align-items-center me-4">
-                        <label for="tracetext" class="me-2 mt-1">Default Price:</label>
-                        <input type="text" id="dfprice" name="dfprice" class="form-control form-control-sm w-auto" />
-
-                    </div>
-                    <div class="d-flex align-items-center me-3">
-                        <label class="me-2 mb-0">Currency:</label>
-                        <select id="currList" name="currList" class="form-control form-control-sm w-auto">
-                            <option value="">-ALL--</option>
-                            @foreach (var item in currList)
-                            {
-                                <option value="@item.ID">@item.ID-@item.Description</option>
-                            }
-                        </select>
-
-                    </div>
-
-                    <div class="form-check me-3">
-                        <span class="status-color-box color-clean-uncheck"></span>
-                        <input class="form-check-input" type="checkbox" id="isActivenew" name="includeOptions" value="1"
-                            checked>
-                        <label class="form-check-label" for="cleanUncheck"> Inactive</label>
-                    </div>
-                    <div class="d-flex align-items-center me-4">
-                        <label for="tracetext" class="me-2 mt-1">Supplement:</label>
-                        <input type="text" id="supplementNew" name="supplementNew"
-                            class="form-control form-control-sm w-auto" />
-
-                    </div>
+                <!-- Grid -->
+                <div class="mui-card">
+                    <div id="arti_grid" class="gridContainer"></div>
                 </div>
 
             </div>
         </div>
     </div>
-
 </div>
 
+<!-- =========================
+     EDIT/CREATE MODAL (modal-xl)
+     Must blur main when opened
+     ========================= -->
+<div class="modal fade" id="arti_modalEdit" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
 
+            <div class="modal-header">
+                <h5 class="modal-title mb-0" id="arti_modalEditTitle">Article Screen</h5>
+            </div>
 
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
+            <div class="modal-body">
+                <div class="search-filter">
+                    <button id="arti_btnSave" type="button" class="mui-button mui-button-advance">Ok</button>
+                    <button id="arti_btnEditClose" type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <form id="arti_formEdit" novalidate>
+                    <input type="hidden" id="arti_id" name="arti_id" />
+
+                    <div class="row g-2 mt-1 mb-2">
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end"
+                                       for="arti_codenew">Code</label>
+                                <div class="col-md-8">
+                                    <input id="arti_codenew" name="arti_codenew" type="text" class="form-control form-control-sm" />
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end"
+                                       for="arti_descriptionnew">Description</label>
+                                <div class="col-md-8">
+                                    <input id="arti_descriptionnew" name="arti_descriptionnew" type="text" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end"
+                                       for="arti_transactionsListnew">Transactions</label>
+                                <div class="col-md-8">
+                                    <select id="arti_transactionsListnew" name="arti_transactionsListnew" class="tomselect-custom">
+                                        <option value=""></option>
+                                        @foreach (var item in transactionsList)
+                                        {
+                                            <option value="@item.Code">@item.Code-@item.Description</option>
+                                        }
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end"
+                                       for="arti_dfprice">Default Price</label>
+                                <div class="col-md-8">
+                                    <input id="arti_dfprice" name="arti_dfprice" type="text" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end"
+                                       for="arti_currList">Currency</label>
+                                <div class="col-md-8">
+                                    <select id="arti_currList" name="arti_currList" class="tomselect-custom">
+                                        <option value=""></option>
+                                        @foreach (var item in currList)
+                                        {
+                                            <option value="@item.ID">@item.ID-@item.Description</option>
+                                        }
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end"
+                                       for="arti_supplementNew">Supplement</label>
+                                <div class="col-md-8">
+                                    <input id="arti_supplementNew" name="arti_supplementNew" type="text" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end" for="arti_isActivenew">Inactive</label>
+                                 <div  class="col-md-8">
+                                    <input type="checkbox" id="arti_isActivenew" name="arti_isActivenew" value="1">
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div id="arti_loadingSpinner" 
+    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+    height: 100%;display: flex;align-items: center;justify-content: center;">
+    <div class="spinner-border text-primary"></div>
 </div>
 
 <script>
+    // ==========================================
+    // Article Module (Option A, prefixed arti_)
+    // ==========================================
+    var arti_Module = (function () {
+        "use strict";
 
-    $(document).ready(function () {
+        const SEL = {
+            modalMain: "#arti_modalMain",
+            modalEdit: "#arti_modalEdit",
+            spinner: "#arti_loadingSpinner",
 
-        $("#btnPrint").trigger("click");
+            // main filter
+            tran: "#arti_transactionsList",
+            code: "#arti_code",
+            desc: "#arti_description",
+            supp: "#arti_supplement",
 
-    });
+            // buttons
+            btnView: "#arti_btnView",
+            btnNew: "#arti_btnNew",
+            btnEdit: "#arti_btnEdit",
+            btnDelete: "#arti_btnDelete",
+            btnExcel: "#arti_btnExcel",
 
+            // grid
+            grid: "#arti_grid",
 
+            // edit fields
+            formEdit: "#arti_formEdit",
+            id: "#arti_id",
+            codenew: "#arti_codenew",
+            descriptionnew: "#arti_descriptionnew",
+            transactionsListnew: "#arti_transactionsListnew",
+            dfprice: "#arti_dfprice",
+            currList: "#arti_currList",
+            supplementNew: "#arti_supplementNew",
+            isActivenew: "#arti_isActivenew",
+            btnSave: "#arti_btnSave"
+        };
 
+        let _gridInstance = null;
+        let _selectedRowData = null;
+        let _bound = false;
 
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        let isActive = $("#isActive").is(":checked") ? 1 : 0;
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/Article/SearchArticle',
-            type: 'GET',
-            data: {
-                tranCode: $('#transactionsList').val(),
-                articleCode: $('#code').val(),
-                articleDescription: $('#description').val(),
-                articleSupplement: $('#supplement').val()
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-
-                console.log(result);
-                initializeArticleGrid(result);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-    var selectedRowData = null;
-    function initializeArticleGrid(data) {
-
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            showBorders: true,
-            selection: { mode: "single" },
-            paging: { pageSize: 20 },
-            height: 500,
-            pager: {
-                showPageSizeSelector: true,
-                allowedPageSizes: [20, 50, 100],
-                showInfo: true
-            },
-            filterRow: { visible: true },
-            columns: [
-                { dataField: "ID", caption: "ID", visible: false },
-
-                { dataField: "Code", caption: "Code" },
-                { dataField: "Description", caption: "Description" },
-                { dataField: "Supplement", caption: "Supplement" },
-                { dataField: "TransactionCode", caption: "Transaction Code" },
-                { dataField: "Price", caption: "Price", dataType: "number", format: "#,##0" },
-                { dataField: "Currency", caption: "Currency" },
-            ],
-            groupPanel: {
-                visible: false // ✅ Cho phép người dùng kéo thả để group thêm
-            },
-            scrolling: {
-                mode: "standard", // Không dùng virtual để footer hiển thị đúng
-                showScrollbar: "always",
-                scrollByContent: true
-            },
-            paging: {
-                pageSize: 50
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [50, 100, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            // 🔥 Quan trọng: gán selectedRowData khi click chọn
-            onRowClick: function (e) {
-                selectedRowData = e.data; // 🔥 lấy data của row vừa click
-                console.log("Selected Row (RowClick):", selectedRowData);
-
-            }
-        });
-    }
-    $("#btnNew").on("click", function () {
-
-        clearArticleList();
-        $('#overlay').fadeIn(200);
-        $('#popupNewArticle').fadeIn(200);
-
-    });
-
-
-    $("#btnOkAuto").on("click", function () {
-        let isActive = $("#isActivenew").is(":checked") ? 1 : 0;
-        let codeNew = $("#codenew").val().trim();
-        let dfprice = $("#dfprice").val().trim();
-        let descriptionnew = $("#descriptionnew").val().trim();
-        let transactionsListnew = $("#transactionsListnew").val().trim();
-        let currList = $("#currList").val().trim();
-        let supplementNew = $("#supplementNew").val().trim();
-        // ✅ Kiểm tra rỗng
-        if (codeNew === "") {
-            showToast('Error', "Code is not empty.", false);
-            $("#codenew").focus();
-            return;
-        }
-        if (descriptionnew === "") {
-            showToast('Error', "Description is not empty.", false);
-            $("#codenew").focus();
-            return;
-        }
-        if (transactionsListnew === "") {
-            showToast('Error', "Transaction is not empty.", false);
-            $("#codenew").focus();
-            return;
-        }
-        if (dfprice === "" || isNaN(parseFloat(dfprice))) {
-            showToast('Error', "Price must be a valid number and cannot be empty.", false);
-            $("#facilityCategory").focus();
-            return;
+        function showLoading(show) {
+            if (show) $(SEL.spinner).show();
+            else $(SEL.spinner).hide();
         }
 
-        if (currList === "") {
-            showToast('Error', "Please select a currency.", false);
-            $("#facilityCategory").focus();
-            return;
-        }
-        if (supplementNew === "") {
-            showToast('Error', "Supplement is not empty.", false);
-            $("#facilityCategory").focus();
-            return;
+        function csrfHeaders() {
+            return { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() };
         }
 
+        function addMainBlur() {
+            $(`${SEL.modalMain} .modal-content`).addClass("modal-blur");
+        }
+        function removeMainBlur() {
+            $(`${SEL.modalMain} .modal-content`).removeClass("modal-blur");
+        }
 
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/Article/ArticleListSave',
-            type: 'POST',
-            data: {
-                id: $("#idselectedRowDatasa").val(),
-                codenew: $("#codenew").val(),
+        function getMainSearchPayload() {
+            return {
+                tranCode: $(SEL.tran).val(),
+                articleCode: $(SEL.code).val(),
+                articleDescription: $(SEL.desc).val(),
+                articleSupplement: $(SEL.supp).val()
+            };
+        }
 
-                dfprice: $("#dfprice").val(),
-                descriptionnew: $("#descriptionnew").val(),
-                transactionsListnew: $("#transactionsListnew").val(),
-                currList: $("#currList").val(),
-                supplementNew: $("#supplementNew").val(),
-                user: localStorage.getItem("Loginname"),
-                userID: localStorage.getItem("userID"),
-                isActive: isActive
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if (result.success) {
-                    showToast('Success', result.message, true);
-                    $('#popupNewArticle').fadeOut(200);
-                    
-                    $("#btnPrint").trigger("click");
-                    clearArticleList();
-                } else {
-                    showToast('Error', 'Please select before saving.', false);
+        function clearEditForm() {
+            applyValidationErrors([], "#pak_headerForm");
+            $(SEL.id).val("");
+            $(SEL.codenew).val("");
+            $(SEL.descriptionnew).val("");
+            clearMultipleTomSelect("#arti_transactionsListnew", "#arti_currList");
+            $(SEL.dfprice).val("");
+            $(SEL.supplementNew).val("");
+            $(SEL.isActivenew).prop("checked", false);
+        }
+
+        function fillEditFormFromRow(row) {
+            $(SEL.id).val(row.ID ?? "");
+            $(SEL.codenew).val(row.Code ?? "");
+            $(SEL.dfprice).val(row.Price ?? "");
+            $(SEL.descriptionnew).val(row.Description ?? "");
+            setTomSelectValue(SEL.transactionsListnew,row.TransactionCode ?? "")
+            setTomSelectValue(SEL.currList,row.Currency ?? "")
+            $(SEL.supplementNew).val(row.Supplement ?? "");
+
+            if (row.IsActive === "True" || row.IsActive === true) $(SEL.isActivenew).prop("checked", true);
+            else $(SEL.isActivenew).prop("checked", false);
+        }
+
+        function validateEdit() {
+            const codeNew = ($(SEL.codenew).val() || "").trim();
+            const descriptionNew = ($(SEL.descriptionnew).val() || "").trim();
+            const tranNew = ($(SEL.transactionsListnew).val() || "").trim();
+            const priceStr = ($(SEL.dfprice).val() || "").trim();
+            const curr = ($(SEL.currList).val() || "").trim();
+            const sup = ($(SEL.supplementNew).val() || "").trim();
+
+            if (codeNew === "") { showToast("Error", "Code is not empty.", false); $(SEL.codenew).focus(); return false; }
+            if (descriptionNew === "") { showToast("Error", "Description is not empty.", false); $(SEL.descriptionnew).focus(); return false; }
+            if (tranNew === "") { showToast("Error", "Transaction is not empty.", false); $(SEL.transactionsListnew).focus(); return false; }
+            if (priceStr === "" || isNaN(parseFloat(priceStr))) { showToast("Error", "Price must be a valid number and cannot be empty.", false); $(SEL.dfprice).focus(); return false; }
+            if (curr === "") { showToast("Error", "Please select a currency.", false); $(SEL.currList).focus(); return false; }
+            if (sup === "") { showToast("Error", "Supplement is not empty.", false); $(SEL.supplementNew).focus(); return false; }
+
+            return true;
+        }
+
+        function disposeGrid() {
+            try {
+                const inst = $(SEL.grid).dxDataGrid("instance");
+                if (inst) inst.dispose();
+            } catch (e) { /* ignore */ }
+
+            _gridInstance = null;
+            _selectedRowData = null;
+            $(SEL.grid).empty();
+        }
+
+        function initGrid(data) {
+            disposeGrid();
+
+            _gridInstance = $(SEL.grid).dxDataGrid({
+                dataSource: data || [],
+                showBorders: true,
+                height:"100%",
+                selection: { mode: "single" },
+
+                filterRow: { visible: true, applyFilter: "auto" },
+                scrolling: {
+                    mode: "standard",
+                    showScrollbar: "always",
+                    scrollByContent: true
+                },
+                paging: { pageSize: 50 },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [50, 100, "all"],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+
+                columns: [
+                    { dataField: "ID", caption: "ID", visible: false },
+                    { dataField: "Code", caption: "Code",width:90 },
+                    { dataField: "Description", caption: "Description" },
+                    { dataField: "Supplement", caption: "Supplement" },
+                    { dataField: "TransactionCode", caption: "Trans. Code",width:90 },
+                    { dataField: "Price", caption: "Price", dataType: "number", format: "#,##0" ,width:70},
+                    { dataField: "Currency", caption: "Currency" ,width:70}
+                ],
+
+                onRowClick: function (e) {
+                    _selectedRowData = e.data || null;
                 }
-                console.log(result);
-
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-
-
-    $("#btnUpdate").on("click", function () {
-
-        if (selectedRowData.length === 0) {
-            showToast('Error', "Please select !", false);
-            return;
+            }).dxDataGrid("instance");
         }
 
+        function search() {
+            showLoading(true);
 
-        $("#idselectedRowDatasa").val(selectedRowData.ID);
-        $("#codenew").val(selectedRowData.Code || "");
-        $("#dfprice").val(selectedRowData.Price || "");
-        $("#descriptionnew").val(selectedRowData.Description || "");
-        $("#transactionsListnew").val(selectedRowData.TransactionCode || "");
-        $("#currList").val(selectedRowData.Currency || "");
-        $("#supplementNew").val(selectedRowData.Supplement || "");
-        // Checkbox Inactive
-        if (selectedRowData.IsActive === "True") {
-            $("#isActivenew").prop("checked", true);
-        } else {
-            $("#isActivenew").prop("checked", false);
-        }
-        $("#popupNewArticle").fadeIn(200);
-        $('#overlay').fadeIn(200);
-    });
-
-
-
-    $('#btnClosePopup, #overlay').click(function () {
-        $('#popupNewArticle').fadeOut(200);
-        $("#btnOkAuto").show();
-        
-    });
-    function clearArticleList() {
-        $("#idselectedRowDatasa").val("");
-        $("#codenew").val("");
-        $("#descriptionnew").val("");
-        $("#transactionsListnew").val("");
-        $("#dfprice").val("");
-        $("#currList").val("");
-        $("#supplementNew").val("");
-        $("#isActivenew").prop("checked", false); // bỏ chọn checkbox
-    }
-
-
-
-
-
-    $(document).off("click", "#btnDelete").on("click", "#btnDelete", function () {
-        if (!selectedRowData) {
-            showToast('Error', 'Please select 1 row to delete.', false);
-            return;
-        }
-        if (!confirm("Are you sure you want to delete item?")) {
-            return; // Nếu chọn Cancel thì dừng
-        }
-        $.ajax({
-            url: '/Article/ArticleListDelete',
-            type: 'POST',
-            data: {
-                id: selectedRowData.ID
-
-
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if (result.success) {
-
-                    $("#btnPrint").trigger("click");
-                } else {
-                    showToast('Error', result.message, false);
+            $.ajax({
+                url: "/Article/SearchArticle",
+                type: "GET",
+                data: getMainSearchPayload(),
+                traditional: true,
+                crossDomain: false,
+                headers: csrfHeaders(),
+                success: function (result) {
+                    initGrid(result);
+                    showLoading(false);
+                },
+                error: function () {
+                    showLoading(false);
+                    showToast("Error", "Cannot load report.", false);
                 }
-
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-
-
-    });
-
-
-
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance");   // 🔥 khai báo grid
-
-        const workbook = new ExcelJS.Workbook();
-        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === Dòng 1: Tên công ty (merge theo 4 cột) ===
-        worksheet.addRow([companyName]);
-        worksheet.mergeCells('A1:D1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Ngày giờ xuất (bên phải) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', exportDate]);
-        worksheet.mergeCells('D2:D2');  // cột D thôi
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: trống
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-        const reportRow = worksheet.addRow(['Article']);
-        worksheet.mergeCells('A5:D5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: trống
-        worksheet.addRow([]);
-
-        // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 }
-        }).then(function () {
-            // Footer (sau cùng)
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = "Article.xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
             });
-        });
+        }
+
+        function save() {
+//            if (!validateEdit()) return;
+
+            const isActive = $(SEL.isActivenew).is(":checked") ? 1 : 0;
+
+            showLoading(true);
+
+            $.ajax({
+                url: "/Article/ArticleListSave",
+                type: "POST",
+                data: {
+                    id: $(SEL.id).val(),
+                    codenew: $(SEL.codenew).val(),
+                    dfprice: $(SEL.dfprice).val(),
+                    descriptionnew: $(SEL.descriptionnew).val(),
+                    transactionsListnew: $(SEL.transactionsListnew).val(),
+                    currList: $(SEL.currList).val(),
+                    supplementNew: $(SEL.supplementNew).val(),
+                    user: localStorage.getItem("Loginname"),
+                    userID: localStorage.getItem("userID"),
+                    isActive: isActive
+                },
+                traditional: true,
+                crossDomain: false,
+                headers: csrfHeaders(),
+                success: function (result) {
+                    showLoading(false);
+
+                    if (result && result.success) {
+                        showToast("Success", result.message, true);
+
+                        bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).hide();
+
+                        search();
+                        clearEditForm() ;
+                    } else {
+                        if (result && result.errors && typeof applyValidationErrors === "function") {
+                            applyValidationErrors(result.errors, "#arti_modalEdit");
+                        } else {
+                            showToast("Error", (result && result.message) ? result.message : "Save failed.", false);
+                        }
+                    }
+                },
+                error: function () {
+                    showLoading(false);
+                    showToast("Error", "Cannot save.", false);
+                }
+            });
+        }
+
+        function removeSelected() {
+            if (!_selectedRowData) {
+                showToast("Error", "Please select 1 row to delete.", false);
+                return;
+            }
+            if (!confirm("Are you sure you want to delete item?")) return;
+
+            showLoading(true);
+
+            $.ajax({
+                url: "/Article/ArticleListDelete",
+                type: "POST",
+                data: { id: _selectedRowData.ID },
+                traditional: true,
+                crossDomain: false,
+                headers: csrfHeaders(),
+                success: function (result) {
+                    showLoading(false);
+
+                    if (result && result.success) {
+                        showToast("Success", (result && result.message) ? result.message : "Delete true.", true);
+                        search();
+                    } else {
+                        showToast("Error", (result && result.message) ? result.message : "Delete failed.", false);
+                    }
+                },
+                error: function () {
+                    showLoading(false);
+                    showToast("Error", "Cannot delete.", false);
+                }
+            });
+        }
+
+        function exportExcel() {
+            const grid = $(SEL.grid).dxDataGrid("instance");
+            if (!grid) {
+                showToast("Error", "No grid data to export.", false);
+                return;
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells("A1:D1");
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "left" };
+
+            const now = new Date();
+            const exportDate = now.toLocaleString("vi-VN");
+            worksheet.addRow(["", "", "", exportDate]);
+            worksheet.mergeCells("D2:D2");
+            worksheet.getRow(2).alignment = { vertical: "middle", horizontal: "right" };
+
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            const reportRow = worksheet.addRow(["Article"]);
+            worksheet.mergeCells("A5:D5");
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: "middle", horizontal: "center" };
+
+            worksheet.addRow([]);
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: "center" };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "Article.xlsx");
+                });
+            });
+        }
+
+        function bindEventsOnce() {
+            if (_bound) return;
+            _bound = true;
+
+            initTomSelect(".tomselect-custom");
+            $(document)
+                .off("click.arti", SEL.btnView).on("click.arti", SEL.btnView, search)
+                .off("click.arti", SEL.btnNew).on("click.arti", SEL.btnNew, function () {
+                    _selectedRowData = null;
+                    clearEditForm();
+                    $("#arti_modalEditTitle").text("New Article");
+                    bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).show();
+                })
+                .off("click.arti", SEL.btnEdit).on("click.arti", SEL.btnEdit, function () {
+                    if (!_selectedRowData) {
+                        showToast("Error", "Please select !", false);
+                        return;
+                    }
+                    clearEditForm();
+                    fillEditFormFromRow(_selectedRowData);
+                    $("#arti_modalEditTitle").text("Edit Article");
+                    bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).show();
+                })
+                .off("click.arti", SEL.btnDelete).on("click.arti", SEL.btnDelete, removeSelected)
+                .off("click.arti", SEL.btnExcel).on("click.arti", SEL.btnExcel, exportExcel)
+                .off("click.arti", SEL.btnSave).on("click.arti", SEL.btnSave, save);
+
+            // BLUR: when Edit opens, blur main; when closes, remove blur
+            $(SEL.modalEdit)
+                .off("shown.bs.modal.arti")
+                .on("shown.bs.modal.arti", function () { addMainBlur(); })
+                .off("hidden.bs.modal.arti")
+                .on("hidden.bs.modal.arti", function () {
+                    removeMainBlur();
+                    clearEditForm();
+                    showLoading(false);
+                });
+
+            // Main modal cleanup
+            $(SEL.modalMain)
+                .off("hidden.bs.modal.arti")
+                .on("hidden.bs.modal.arti", function () {
+                    _selectedRowData = null;
+
+                    // reset filters (consistent reset-on-close requirement)
+                    $(SEL.tran).val("");
+                    $(SEL.code).val("");
+                    $(SEL.desc).val("");
+                    $(SEL.supp).val("");
+
+                    disposeGrid();
+                    showLoading(false);
+                    removeMainBlur();
+                });
+        }
+
+        function init() {
+            bindEventsOnce();
+        }
+
+        function open() {
+            init();
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalMain)).show();
+            search(); // preserve "auto view" behavior
+        }
+
+        return { init, open };
+    })();
+
+    // Required global entry
+    window.openModalArti = function () {
+        arti_Module.open();
+    };
+
+    // Optional auto-open (remove if you only open via menu/button)
+    $(document).ready(function () {
+        window.openModalArti();
     });
 </script>

@@ -86,7 +86,7 @@ namespace Administration.Controllers
 
                 bool isNew = (id == 0);
 
-                if (id <= 0)
+                if (id < 0)
                     errors.Add(new { field = "arti_id", message = "User ID is required." });
 
                 if (string.IsNullOrWhiteSpace(user))
@@ -103,16 +103,49 @@ namespace Administration.Controllers
                 if (string.IsNullOrWhiteSpace(currList))
                     errors.Add(new { field = "arti_currList", message = "Currency is required." });
 
-                    
 
+                if (userID <= 0)
+                {
+                    return NotFound(new { success = false, message = "Article not found UserID ." });
+                }
+                else
+                {
+                    var userIDModal = UsersBO.Instance.FindByPrimaryKey(userID);
+                    if (userIDModal == null)
+                    {
+                        return NotFound(new { success = false, message = "Invalid User Insert." });
+                    }
+                }
+
+                // Transaction Code
+                if (!string.IsNullOrWhiteSpace(transactionsListnew))
+                {
+                    var transList = TransactionsBO.Instance.FindByAttribute("Code", transactionsListnew);
+                    if (transList == null || transList.Count == 0)
+                        errors.Add(new { field = "arti_transactionsListnew", message = "Invalid Transaction Code." });
+                }
+
+                // Currency
+                if (!string.IsNullOrWhiteSpace(currList))
+                {
+                    var currListMD = CurrencyBO.Instance.FindByAttribute("ID", currList);
+                    if (currListMD == null || currListMD.Count == 0)
+                        errors.Add(new { field = "arti_currList", message = "Invalid Currency Code." });
+                }
+
+                // ===== RETURN IF ERROR =====
+                if (errors.Count != 0)
+                {
+                    return Json(new { success = false, message = "Validation failed.", errors });
+                }
 
                 ArticleModel model;
                 if (isNew)
                 {
                     model = new ArticleModel
                     {
-                        Code = codenew?.Trim(),
-                        Description = descriptionnew?.Trim(),
+                        Code = codenew.Trim(),
+                        Description = descriptionnew.Trim(),
                         IsActive = (isActive == 1),
                         DefaultPrice = dfprice,
                         TransactionCode = transactionsListnew,
@@ -131,7 +164,7 @@ namespace Administration.Controllers
                     model = (ArticleModel)ArticleBO.Instance.FindByPrimaryKey(id);
                     if (model == null)
                     {
-                        throw new Exception($"Không tìm thấy Article có ID = {id}");
+                        throw new Exception($"Article ID Not Found = {id}");
                     }
 
                     model.Code = codenew;
@@ -147,7 +180,7 @@ namespace Administration.Controllers
 
                     ArticleBO.Instance.Update(model);
                     #region Update thông tin bến bảng RestaurantClassArticleLnk
-                    model.Description = model.Description.Replace("'", "`");
+                    model.Description = (model.Description ?? string.Empty).Replace("'", "`");
                     pt.UpdateCommand("Update RestaurantClassArticleLnk set ArticleDescription=N'" + model.Description + "' where ArticleCode= N'" + model.Code + "' ");
                     #endregion
                 }
