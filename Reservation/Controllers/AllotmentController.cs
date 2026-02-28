@@ -584,6 +584,7 @@ namespace Reservation.Controllers
                 {
                     model.CreateDate = businessDate;
                     model.UpdateDate = DateTime.Now;
+                    model.CutOfDate = businessDate;
 
                     AllotmentBO.Instance.Insert(model);
                     return Json(new { success = true, message = "Insert successfully!" });
