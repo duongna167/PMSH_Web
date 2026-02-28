@@ -77,13 +77,34 @@ namespace Administration.Controllers
             ProcessTransactions pt = new ProcessTransactions();
             pt.OpenConnection();
             pt.BeginTransaction();
+            var errors = new List<object>();
 
-            user = user?.Replace("\"", "").Trim();
-            List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
-            var businessDate = businessDateModel[0].BusinessDate;
+            DateTime businessDate = TextUtils.GetBusinessDate();
             try
             {
+                user = user?.Trim().Trim('"') ?? string.Empty;
+
                 bool isNew = (id == 0);
+
+                if (id <= 0)
+                    errors.Add(new { field = "arti_id", message = "User ID is required." });
+
+                if (string.IsNullOrWhiteSpace(user))
+                    errors.Add(new { field = "arti_user", message = "User Name is required." });
+
+                if (string.IsNullOrWhiteSpace(codenew))
+                    errors.Add(new { field = "arti_codenew", message = "Code is required." });
+                else if (codenew.Length > 20)
+                    errors.Add(new { field = "arti_codenew", message = "Code max length is 50." });
+
+                if (string.IsNullOrWhiteSpace(transactionsListnew))
+                    errors.Add(new { field = "arti_transactionsListnew", message = "Transaction is required." });
+
+                if (string.IsNullOrWhiteSpace(currList))
+                    errors.Add(new { field = "arti_currList", message = "Currency is required." });
+
+                    
+
 
                 ArticleModel model;
                 if (isNew)

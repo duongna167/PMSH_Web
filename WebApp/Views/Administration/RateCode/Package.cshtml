@@ -835,20 +835,21 @@
 
         function fillDetailForm(d) {
             $(sel.packageDetailID).val(d.id);
-            $(sel.seasonCode).val(d.seasonID);
+            setTomSelectValue(sel.seasonCode,d.seasonID ?? "");
 
             // original set input value with split('T')[0], keep it
             $(sel.startDateUi).val(d.startDate ? d.startDate.split("T")[0] : "");
             $(sel.endDateUi).val(d.endDate ? d.endDate.split("T")[0] : "");
 
-            $(sel.transactionCodeDT).val(d.transCode);
-            $(sel.currencyID).val(d.currencyID);
+            setTomSelectValue(sel.transactionCodeDT,d.transCode ?? "");
+            setTomSelectValue(sel.currencyID,d.currencyID ?? "");
 
             $(sel.price).val(d.price);
             $(sel.priceAfterTax).val(d.priceAfterTax);
             $(sel.allowanceAmount).val(d.allowanceAmount);
 
-            $(sel.rhythmPostingID).val(d.rhythmPostingID);
+            setTomSelectValue(sel.rhythmPostingID,d.rhythmPostingID ?? "");
+            setTomSelectValue(sel.calculationRuleID,d.calculationRuleID ?? "");
             $(sel.calculationRuleID).val(d.calculationRuleID);
 
             setFormsReadOnly(true);
@@ -877,9 +878,10 @@
                 $(sel.txtCode).val(pkg.code);
                 $(sel.targetCode).val(pkg.code || "No target Package");
                 $(sel.txtDescription).val(pkg.description);
-                $(sel.forecastGroup).val(pkg.forecastGroupID);
+                setTomSelectValue(sel.forecastGroup,pkg.forecastGroupID ?? "")
+                setTomSelectValue(sel.transactionCode,pkg.transCodeAlt ?? "")
+
                 $(sel.type).val(pkg.type);
-                $(sel.transactionCode).val(pkg.transCodeAlt);
                 $(sel.textInNightAudit).val(pkg.textInNightAudit);
 
                 // original code referenced ids that didn't exist; keep only those that exist in this refactor
@@ -1031,6 +1033,7 @@
                 success: function (res) {
                     if (res?.success) {
                         showToast("Success", res.message, true);
+                        applyValidationErrors(res?.errors || [], "#pak_detailForm");
                         const id = res.data?.id;
                         if (id) selectPackage(id);
                     } else {

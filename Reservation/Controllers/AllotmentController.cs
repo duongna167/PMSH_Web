@@ -569,7 +569,7 @@ namespace Reservation.Controllers
                 if (listErrors.Count == 0 && model != null)
                 {
                     bool isDuplicate = AllotmentBO.Instance.IsDuplicateCode(model.Code, model.ID);
-                    var duplicateError = CheckDuplicate(isDuplicate, "code", $"This code already exists: [{model.Code}]");
+                    var duplicateError = CheckDuplicate(isDuplicate, "allot_setup_code", $"This code already exists: [{model.Code}]");
                     if (duplicateError != null) listErrors.Add(duplicateError);
                 }
 
@@ -584,6 +584,7 @@ namespace Reservation.Controllers
                 {
                     model.CreateDate = businessDate;
                     model.UpdateDate = DateTime.Now;
+                    model.CutOfDate = businessDate;
 
                     AllotmentBO.Instance.Insert(model);
                     return Json(new { success = true, message = "Insert successfully!" });
@@ -593,6 +594,7 @@ namespace Reservation.Controllers
                     var oldData = (AllotmentModel)AllotmentBO.Instance.FindByPrimaryKey(model.ID);
                     if (oldData == null) return Json(new { success = false, message = "Data not found." });
 
+                    model.Code = oldData.Code;
                     model.CreateDate = oldData.CreateDate;
                     model.CreateBy = oldData.CreateBy;
 

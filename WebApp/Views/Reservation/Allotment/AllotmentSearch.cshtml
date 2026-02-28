@@ -227,7 +227,7 @@
 
                         <input type="hidden" id="allot_setup_id" name="id" value="0" />
 
-                        <div class="row g-4">
+                        <div class="row g-2">
 
                             <div class="col-12 col-lg-9">
 
@@ -376,6 +376,24 @@
                     "#allot_search_type"
                 ]);
                 self.reloadGrid();
+
+                $('#allot_setup_itemModal').on('hidden.bs.modal', function () {
+                    ValidationAdapter.clear("#allot_setup_formContainer");
+                });
+
+                 // events input
+                $("#allot_setup_formContainer").on("input", "input, textarea", function () {
+                    if ($(this).hasClass("is-invalid")) {
+                        ValidationAdapter.clearField(this);
+                    }
+                });
+
+                // event tomselect
+                $("#allot_setup_formContainer").on("change", "select.tomselect-custom", function () {
+                    if (this.tomselect) {
+                        ValidationAdapter.clearField(this);
+                    }
+                });
 
             };
 
@@ -622,9 +640,11 @@
 
         openNewModal: function () {
             $("#allot_setup_itemModal").modal("show");
-            
+            $("#allot_setup_code").prop("disabled",false);
+
             $("#allot_setup_id").val(0);
             $("#allot_setup_label").text("Allotment Setup");
+            $("#allot_setup_formContainer")[0].reset();
             clearMultipleTomSelect(["#allot_setup_marketID", "#allot_setup_type"]);
         },
 
@@ -635,6 +655,7 @@
                 return;
             }
             $("#allot_setup_label").text("Allotment Setup");
+            $("#allot_setup_code").prop("disabled",true);
             self.fillEditForm(self.selectedRowData);
             $("#allot_setup_itemModal").modal("show");
         },
@@ -642,13 +663,24 @@
         saveAllotment: function () { 
             const self = this;
 
+            const loginName = (localStorage.getItem("Loginname") || "")
+            .trim()
+            .replace(/^"(.*)"$/, '$1');
+            const loginUser = parseInt(localStorage.getItem("userID")) || 0;
+
+
             const payload = {
                 id: parseInt($("#allot_setup_id").val() || 0),
                 code: $("#allot_setup_code").val(),
-                allotmentName: $("#allot_setup_name").val(),
+                name: $("#allot_setup_name").val(),
+                accountName: $("#allot_setup_name").val(),
                 profileID: parseInt($("#allot_setup_profileID").val() || 0),
                 marketID: parseInt(toBackendValue(getTomSelectData("#allot_setup_marketID"), "value") || 0),
-                allotmentTypeID: parseInt(toBackendValue(getTomSelectData("#allot_setup_type"), "value") || 0)
+                allotmentTypeID: parseInt(toBackendValue(getTomSelectData("#allot_setup_type"), "value") || 0),
+                isDefault: 0,
+                cutOffDay: 1,
+                createBy: loginName,
+                updateBy: loginName
             };
 
             $.ajax({
@@ -664,7 +696,7 @@
                     } else {
                         if (res.errors && res.errors.length > 0) {
                             ValidationAdapter.apply(res.errors, "#allot_setup_formContainer");
-                            showToast("Warning", "Please check your input.", false);
+                            showToast("Warning", "Please check your input *", false);
                         } else {
                             showToast("Error", res.message || "Something went wrong.", false);
                         }
