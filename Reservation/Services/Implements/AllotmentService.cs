@@ -103,6 +103,29 @@ namespace Reservation.Services.Implements
             }
         }
 
+        public DataTable GetAllotmentDefaultByStage(DateTime fromDate, DateTime toDate, int type, string allotmentId, string paraDate, string paraDateConvert)
+        {
+            try
+            {
+                SqlParameter[] param = new SqlParameter[]
+                {
+                    new SqlParameter("@FromDate", SqlDbType.DateTime) { Value = fromDate },
+                    new SqlParameter("@ToDate", SqlDbType.DateTime) { Value = toDate },
+                    new SqlParameter("@Type", SqlDbType.Int) { Value = type },
+                    new SqlParameter("@AllotmentID", SqlDbType.VarChar, 20) { Value = allotmentId },
+                    new SqlParameter("@ParaDate", SqlDbType.NVarChar, 255) { Value = paraDate },
+                    new SqlParameter("@ParaDateConvert", SqlDbType.NVarChar, 4000) { Value = paraDateConvert }
+                };
+
+                DataTable myTable = DataTableHelper.getTableData("spAllotmentDefaultByStage", param);
+
+                return myTable;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi gọi spAllotmentDefaultByStage: {ex.Message}", ex);
+            }
+        }
         //public DataTable AllotmentReport(string code, string marketId, string allotmentTypeId)
         //{
         //    SqlParameter[] param = new SqlParameter[]

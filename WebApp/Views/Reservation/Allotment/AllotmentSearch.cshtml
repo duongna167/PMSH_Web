@@ -5,6 +5,48 @@
 }
 
 <style>
+    .btn {
+        padding: var(--bs-btn-padding-y) var(--bs-btn-padding-x) !important;
+        border-radius: var(--bs-btn-border-radius) !important;
+        border: 1px solid rgba(0,0,0,0.6) !important;
+        font-size: var(--bs-btn-font-size) !important;
+        transition: var(--bs-btn-transition) !important;
+    }
+    /* Cố định chiều cao hàng trên Desktop để có scroll riêng từng bảng */
+    @@media (min-width: 768px) {
+        .row-top-grids {
+            height: 300px !important;
+            flex-shrink: 0;
+        }
+
+        .row-bottom-resv {
+            flex-grow: 1;
+            min-height: 0;
+        }
+    }
+
+    /* Responsive cho Mobile */
+    @@media (max-width: 767px) {
+        .modal-body {
+            height: auto !important;
+            overflow-y: auto !important;
+        }
+
+        .row-top-grids, .row-bottom-resv {
+            height: auto !important;
+            display: block !important;
+        }
+
+            .row-top-grids > div, .row-bottom-resv > div {
+                height: 350px !important; /* Cố định chiều cao mỗi bảng trên mobile để Grid không bị mất scroll */
+                margin-bottom: 25px;
+            }
+
+        .grid-wrapper {
+            height: 100% !important;
+        }
+    }
+
     /* Đẩy lề phải cho cột Total để không bị giáp lề */
     .grid-column-total {
         padding-right: 15px !important;
@@ -44,12 +86,6 @@
         display: flex;
         align-items: center;
         gap: 8px;
-    }
-
-    /* Cố định chiều cao hàng chứa 2 bảng trên */
-    .row-top-grids {
-        height: 300px !important; /* Điều chỉnh con số này theo ý bạn */
-        flex-shrink: 0; /* Không cho phép hàng này bị bóp nhỏ lại */
     }
 
     /* Hàng chứa bảng Reservation bên dưới sẽ tự chiếm phần còn lại */
@@ -93,15 +129,15 @@
                     <button id="allot_search_btnView" class="mui-button mui-button-view">View</button>
                     <button id="allot_search_btnNew" class="mui-button mui-button-new">New</button>
                     <button id="allot_search_btnEdit" class="mui-button mui-button-edit">Edit</button>
-                    <button id="allot_search_btnDelete" class="mui-button mui-button-delete">Delete</button>
-                    @* <button id="allot_search_btnHistory" class="mui-button mui-button-new">History</button> *@
-                    <button id="allot_search_btnExportExcel" class="mui-button mui-button-export">Excel</button>
+                    @* <button id="allot_search_btnDelete" class="mui-button mui-button-delete">Delete</button> *@
+                    <button id="allot_search_btnDetail" class="mui-button mui-button-new">Detail</button>
+                    @* <button id="allot_search_btnExportExcel" class="mui-button mui-button-export">Excel</button> *@
                     <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
                 </div>
                 <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
 
                     <div class="p-2 flex-shrink-0">
-                        <div class="row g-3 align-items-center ooos-filter flex-wrap">
+                        <div class="row g-3 align-items-center flex-wrap">
 
                             <div class="col-auto d-flex align-items-center">
                                 <label class="fw-bold small me-2 mb-0">Code</label>
@@ -329,11 +365,54 @@
     </div>
 </div>
 
-@* @await Html.PartialAsync("~/Views/Profile/SearchProfile.cshtml") *@
+<!-- Modal Detail by Stage -->
+<div class="modal fade" id="allot_detail_modal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="allot_detail_label" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2 bg-light">
+                <h5 class="modal-title" id="allot_detail_label" style="font-size: 14px;">Allotment Detail by Stage</h5>
+            </div>
+
+            <div class="modal-body d-flex flex-column" style="height: 500px;">
+                <div class="py-2 d-flex align-items-center gap-2 border-bottom mb-2">
+                    <button id="allot_detail_btnSearchDetail" class="mui-button mui-button-view">Search</button>
+                    <button id="allot_detail_btnExport" class="mui-button mui-button-export">Export</button>
+                    <button data-bs-dismiss="modal" class="mui-button mui-button-close">Close</button>
+                </div>
+
+                <div class="grid-wrapper gridContainer flex-grow-1">
+                    <div id="allot_detail_gridAllotDetailByStage"></div>
+                </div>
+
+                <div class="py-2 d-flex align-items-center gap-3 border-top mt-2">
+                    <div class="d-flex align-items-center gap-1">
+                        <button class="btn btn-sm btn-outline-secondary py-0" onclick="allot_search_Module.changeDetailDate(-1)">-</button>
+                        <div data-date-input data-format="DD/MM/YYYY" data-name="allot_detail_searchDate">
+                            <input type="text" class="date-ui form-control form-control-sm" style="width: 120px;">
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary py-0" onclick="allot_search_Module.changeDetailDate(1)">+</button>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="small fw-bold mb-0">Display No of Days</label>
+                        <select id="allot_detail_noOfDays" class="form-select form-select-sm" style="width: 70px;">
+                            <option value="10">10</option>
+                            <option value="15">15</option>
+                            <option value="20" selected>20</option>
+                            <option value="30">30</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 
     var allot_search_Module = {
         selectedRowData: null,
+        selectedDetailRow: null,
+        currentNoOfDays: 20,
 
         baseGridOptions: {
             height: "100%",
@@ -407,9 +486,10 @@
             $("#allot_setup_btnSaveItem").on("click", () => self.saveAllotment());
             $("#allot_search_btnDelete").on("click", () => self.confirmDelete());
             $("#allot_search_btnExportExcel").on("click", () => self.exportToExcel());
-            $("#allot_search_btnHistory").on("click", () => self.openModalHistory());
+            $("#allot_search_btnDetail").on("click", () => self.openModalDetail());
+            $("#allot_detail_btnSearchDetail").on("click", () => self.fetchDetailByStage());
             $("#allot_search_btnHistorySearch").on("click", () => self.fetchHistoryData());
-
+            
             $("#allot_search_profileName").on("input", function() {
                 if ($(this).val().trim() === "") {
                     $("#allot_search_profileId").val("");
@@ -809,6 +889,149 @@
                 $(containerId).dxDataGrid("dispose");
                 $(containerId).empty();
             }
+        },
+
+        openModalDetail: function() {
+            const self = this;
+            initDateInputs();
+            const detailGrid = $("#allot_search_gridAllotDetail").dxDataGrid("instance");
+            const selectedRows = detailGrid.getSelectedRowsData();
+
+            if (selectedRows.length === 0) {
+                showToast("Warning", "Please select a row in Allotment Detail first!", false);
+                return;
+            }
+
+            self.selectedDetailRow = selectedRows[0];
+
+            //Hiển thị ngày giờ ở title
+            const now = new Date();
+            const timeString = now.toLocaleString('vi-VN', {
+                hour12: true,
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+            $("#allot_detail_label").text(`Allotment Detail by Stage - ${timeString}`);
+
+            $("#allot_detail_modal").modal("show");
+
+            // Mặc định gán ngày bắt đầu là ngày của dòng đang chọn
+            const fromDateStr = self.selectedDetailRow["From Date"];
+            UI.setHiddenDate("allot_detail_searchDate", fromDateStr);
+
+            self.fetchDetailByStage();
+        },
+
+        // Hàm xử lý nút + / - ngày
+        changeDetailDate: function(days) {
+            const self = this;
+            // Lấy giá trị ISO hiện tại từ hidden input
+            const currentIso = $("#allot_detail_searchDate").val();
+            if (currentIso) {
+                // Sử dụng UI.addDaysIso để tính toán ngày mới chính xác
+                const newIso = UI.addDaysIso(currentIso, days);
+                // Cập nhật lại UI và hidden input
+                UI.setHiddenDate("allot_detail_searchDate", newIso);
+                self.fetchDetailByStage();
+            }
+        },
+
+        fetchDetailByStage: function() {
+            const self = this;
+            // Lấy ngày từ Hidden Input (định dạng YYYY-MM-DD)
+            const fromDateIso = $("#allot_detail_searchDate").val();
+            const noOfDays = parseInt($("#allot_detail_noOfDays").val() || 20);
+
+            if (!fromDateIso) {
+                showToast("Warning", "Please select a start date", false);
+                return;
+            }
+
+            $("#allot_search_loading").show();
+            $.get('/Allotment/GetAllotmentDetailFull', {
+                allotmentId: self.selectedRowData.id,
+                fromDate: fromDateIso,
+                noOfDays: noOfDays
+            }, function(res) {
+                if (res.success && res.data) {
+                    self.renderStageGrid(res.data);
+                } else {
+                    showToast("Error", res.message || "No data found", false);
+                }
+                $("#allot_search_loading").hide();
+            }).fail(function() {
+                $("#allot_search_loading").hide();
+                showToast("Error", "Server connection error", false);
+            });
+        },
+
+        renderStageGrid: function(displayData) {
+            const self = this;
+            if (!displayData || displayData.length === 0) return;
+
+            // 1. Tạo cột Room Type cố định bên trái
+            let columns = [
+                {
+                    dataField: "RoomType",
+                    caption: "Room Type",
+                    fixed: true,
+                    width: 120,
+                    alignment: "left"
+                }
+            ];
+
+            // 2. Lấy tất cả các Keys là ngày tháng (dd/MM) từ dòng đầu tiên
+            const dateKeys = Object.keys(displayData[0]).filter(key => key !== "RoomType");
+
+            dateKeys.forEach(dateKey => {
+                // Phân tích ngày để tính Thứ và Cw
+                const currentYear = new Date().getFullYear();
+                const [day, month] = dateKey.split('/');
+                const dateObj = new Date(currentYear, parseInt(month) - 1, parseInt(day));
+
+                const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                const cw = self.getWeekNumber(dateObj);
+
+                // Template tiêu đề 3 dòng y hệt Winform
+                const customCaption = `
+                    <div style="text-align: center; line-height: 1.2; font-size: 11px;">
+                        <div class="fw-bold">${dateKey}</div>
+                        <div>${dayOfWeek}</div>
+                        <div class="text-muted">Cw ${cw}</div>
+                    </div>
+                `;
+
+                columns.push({
+                    dataField: dateKey,
+                    headerCellTemplate: function(container) {
+                        $(container).append(customCaption);
+                    },
+                    width: 80,
+                    alignment: "center"
+                });
+            });
+
+            // 3. Khởi tạo Grid
+            self.initGrid("#allot_detail_gridAllotDetailByStage", {
+                dataSource: displayData,
+                columns: columns,
+                columnAutoWidth: false,
+                showColumnLines: true,
+                // Hàng "Total Picked Up" màu vàng
+                onRowPrepared: function(e) {
+                    if (e.rowType === "data" && e.data.RoomType === "Total Picked Up") {
+                        e.rowElement.css({ "background-color": "#ffff00", "font-weight": "bold" });
+                    }
+                }
+            });
+        },
+
+        getWeekNumber: function(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            return weekNo;
         },
 
 
