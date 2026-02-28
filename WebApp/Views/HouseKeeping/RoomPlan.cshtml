@@ -700,237 +700,234 @@
     let roomNorl, roomtypeid, idReservationrl, roomIDrl;
     let originalAppointmentData = null;
 
-    function initializeRoomScheduler(schedulerData, fromDate, toDate) {
+function initializeRoomScheduler(schedulerData, fromDate, toDate) {
 
-        if (!schedulerData || !schedulerData.length) return;
+    if (!schedulerData || schedulerData.length === 0) return;
 
-        /* =======================
-         * DATE RANGE
-         * ======================= */
-        const from = new Date(fromDate);
-        from.setHours(0, 0, 0, 0);
+    /* =======================
+     * DATE RANGE (cache time)
+     * ======================= */
+    const MS_PER_DAY = 86400000;
 
-        const to = new Date(toDate);
-        to.setHours(0, 0, 0, 0);
+    const from = new Date(fromDate);
+    from.setHours(0, 0, 0, 0);
+    const fromTime = from.getTime();
 
-        const daysToShow =
-            Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+    const to = new Date(toDate);
+    to.setHours(0, 0, 0, 0);
+    const toTime = to.getTime();
 
-        /* =======================
-         * ROOM GROUPS
-         * ======================= */
-        const roomGroups = [
-            ...new Map(
-                schedulerData
-                    .filter(d => d.roomID && d.roomNo && d.roomNo.trim() !== "")
-                    .map(d => [
-                        d.roomID.toString(),
-                        { id: d.roomID.toString(), text: d.roomNo.trim() }
-                    ])
-            ).values()
-        ];
+    const daysToShow = Math.ceil((toTime - fromTime) / MS_PER_DAY) + 1;
 
-        const validRoomIDs = new Set(roomGroups.map(r => r.id));
+    /* =======================
+     * PREPROCESS (ONE LOOP ONLY)
+     * ======================= */
+    const roomMap = Object.create(null);
+    const roomGroups = [];
+    const validRoomIDs = Object.create(null);
+    const roomInfoMap = Object.create(null);
+    const appointments = [];
 
-        /* =======================
-         * ROOM INFO MAP
-         * ======================= */
-        const roomInfoMap = Object.create(null);
+    for (let i = 0, l = schedulerData.length; i < l; i++) {
 
-        for (let i = 0, l = schedulerData.length; i < l; i++) {
-            const d = schedulerData[i];
-            const id = d.roomID;
-            if (!id || roomInfoMap[id]) continue;
+        const d = schedulerData[i];
+        const roomID = d.roomID;
 
-            roomInfoMap[id] = {
+        if (!roomID) continue;
+
+        const roomIDStr = String(roomID);
+
+        /* ===== ROOM GROUP BUILD (only once per room) ===== */
+        if (!validRoomIDs[roomIDStr] && d.roomNo && d.roomNo.trim() !== "") {
+
+            validRoomIDs[roomIDStr] = true;
+
+            roomGroups.push({
+                id: roomIDStr,
+                text: d.roomNo.trim()
+            });
+
+            roomInfoMap[roomIDStr] = {
                 roomNo: d.roomNo,
                 roomNumber: d.roomNumber,
                 roomTypeCode: d.roomTypeCode
             };
         }
 
+        /* ===== APPOINTMENT BUILD ===== */
 
-        /* =======================
-         * APPOINTMENTS
-         * ======================= */
-         const appointments = [];
+        const a = parseVNDateOnly(d.arrivalDate);
+        const dep = parseVNDateOnly(d.departureDate);
+        if (!a || !dep) continue;
 
-        for (let i = 0, l = schedulerData.length; i < l; i++) {
+        const aTime = a.getTime();
+        const depTime = dep.getTime();
 
-            const d = schedulerData[i];
-            if (!d.roomID) continue;
+        if (aTime > toTime || depTime < fromTime) continue;
 
-            const roomID = d.roomID.toString();
-            if (!validRoomIDs.has(roomID)) continue;
+        appointments.push({
+            text: d.lastName || "",
+            startDate: aTime < fromTime ? from : a,
+            endDate: depTime > toTime ? to : dep,
+            roomID: roomIDStr,
 
-            const a = parseVNDateOnly(d.arrivalDate);
-            const dep = parseVNDateOnly(d.departureDate);
+            type: d.type || "",
+            reservationStatus: d.reservationStatus,
+            reservationID:
+                !d.reservationID || String(d.reservationID) === "0"
+                    ? d.oooid
+                    : d.reservationID,
 
-            if (!a || !dep) continue;
-            if (a > to || dep < from) continue;
+            roomTypeCode: d.roomTypeCode || "",
+            oooStatus: d.oooStatus || "",
+            roomNumber: d.roomNumber || "",
 
-            appointments.push({
-                text: d.lastName || "",
-                startDate: a < from ? from : a,
-                endDate: dep > to ? to : dep,
-                roomID,
-
-                type: d.type || "",
-                reservationStatus: d.reservationStatus,
-                reservationID:
-                    !d.reservationID || String(d.reservationID) === "0"
-                        ? d.oooid
-                        : d.reservationID,
-
-                roomTypeCode: d.roomTypeCode || "",
-                oooStatus: d.oooStatus || "",
-                roomNumber: d.roomNumber || "",
-
-                tooltipData: {
-                    company: d.company,
-                    agent: d.agent,
-                    paymentMethod: d.paymentMethod,
-                    comment: d.comment,
-                    confirmationNo: d.confirmationNo,
-                    code: d.code
-                }
-            });
-        }
-
-
-        /* =======================
-         * INIT SCHEDULER
-         * ======================= */
-        $("#schedulerContainer").dxScheduler({
-            dataSource: appointments,
-
-            views: [{
-                type: "timelineDay",
-                intervalCount: daysToShow,
-                startDate: from
-            }],
-
-            currentView: "timelineDay",
-            currentDate: from,
-
-            startDayHour: 0,
-            endDayHour: 24,
-            cellDuration: 1440,
-
-            groups: ["roomID"],
-            crossScrollingEnabled: true,
-
-            resources: [{
-                fieldExpr: "roomID",
-                dataSource: roomGroups,
-                allowMultiple: false
-            }],
-
-            /* =======================
-             * ROOM LABEL (GIỮ NGUYÊN)
-             * ======================= */
-            dataCellTemplate(cellData, _, cellElement) {
-                const cellDate = new Date(cellData.startDate);
-                cellDate.setHours(0, 0, 0, 0);
-
-                if (cellDate.getTime() !== from.getTime()) return;
-
-                const roomInfo = roomInfoMap[cellData.groups.roomID];
-                if (!roomInfo) return;
-
-                cellElement.append(`
-                    <div class="room-label">
-                        <div class="room-no">${roomInfo.roomNumber}</div>
-                        <div class="room-type">-${roomInfo.roomTypeCode || ""}</div>
-                    </div>
-                `);
-            },
-
-            /* =======================
-             * APPOINTMENT RENDER
-             * (GIỮ LOGIC CŨ 100%)
-             * ======================= */
-            onAppointmentRendered: function (e) {
-
-                const el = $(e.appointmentElement);
-                const data = e.appointmentData;
-                const tooltipData = data.tooltipData || {};
-
-                /* ===== TITLE ===== */
-                let titleText = data.text || "";
-                if (data.type === "OOOS") {
-                    titleText = `${tooltipData.code || "Code"} (Out of Order)`;
-                }
-
-                let titleEl = el.find(".dx-scheduler-appointment-title");
-                if (!titleEl.length) {
-                    titleEl = $('<div class="dx-scheduler-appointment-title"></div>');
-                    el.append(titleEl);
-                }
-                titleEl.text(titleText).css("display", "block");
-
-                /* ===== TOOLTIP ===== */
-                el.attr("title", [
-                    `Company: ${tooltipData.company || ""}`,
-                    `Agent: ${tooltipData.agent || ""}`,
-                    `PaymentMethod: ${tooltipData.paymentMethod || ""}`,
-                    `Comment: ${tooltipData.comment || ""}`,
-                    `ConfirmationNo: ${tooltipData.confirmationNo || ""}`
-                ].join("\n"));
-
-                /* ===== COLOR LOGIC (NGUYÊN BẢN) ===== */
-                if (data.type === "Reservation") {
-                    const resvStatus = String(data.reservationStatus);
-                    switch (resvStatus) {
-                        case "0":
-                        case "5":
-                        case "8":
-                            el.addClass("resv-pending"); break;
-                        case "1":
-                            el.addClass("resv-checkin"); break;
-                        case "2":
-                            el.addClass("resv-checkout"); break;
-                        case "6":
-                            el.addClass("resv-dueout"); break;
-                        default:
-                            el.addClass("resv-checkin");
-                    }
-                } else if (data.type === "OOOS") {
-                    const oooStatus = String(data.oooStatus || "");
-                    if (oooStatus === "1") {
-                        el.addClass("ooo-order");
-                    } else if (oooStatus === "2") {
-                        el.addClass("ooo-service");
-                    } else {
-                        el.addClass("ooo-default");
-                    }
-                }
-
-                /* ===== POSITION LOGIC (NGUYÊN BẢN) ===== */
-                const start = new Date(data.startDate); start.setHours(0, 0, 0, 0);
-                const end = new Date(data.endDate); end.setHours(0, 0, 0, 0);
-
-                if (from >= start && from <= end) {
-                    el.css({
-                        position: "absolute",
-                        left: "100px",
-                        marginTop: "4px"
-                    });
-                }
-
-                /* ===== TRANSLATE Y (NGUYÊN BẢN – KHÔNG REGEX) ===== */
-                const style = el[0].style.transform;
-                if (style && style.indexOf("translate") !== -1) {
-                    const m = style.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-                    if (m) {
-                        const x = m[1];
-                        const y = parseFloat(m[2]) - 30;
-                        el[0].style.transform = `translate(${x}px, ${y}px)`;
-                    }
-                }
+            tooltipData: {
+                company: d.company,
+                agent: d.agent,
+                paymentMethod: d.paymentMethod,
+                comment: d.comment,
+                confirmationNo: d.confirmationNo,
+                code: d.code
             }
         });
     }
+
+    /* =======================
+     * INIT SCHEDULER
+     * ======================= */
+    $("#schedulerContainer").dxScheduler({
+
+        dataSource: appointments,
+
+        views: [{
+            type: "timelineDay",
+            intervalCount: daysToShow,
+            startDate: from
+        }],
+
+        currentView: "timelineDay",
+        currentDate: from,
+
+        startDayHour: 0,
+        endDayHour: 24,
+        cellDuration: 1440,
+
+        groups: ["roomID"],
+        crossScrollingEnabled: true,
+
+        resources: [{
+            fieldExpr: "roomID",
+            dataSource: roomGroups,
+            allowMultiple: false
+        }],
+
+        /* =======================
+         * ROOM LABEL
+         * ======================= */
+        dataCellTemplate(cellData, _, cellElement) {
+
+            const cellDate = cellData.startDate;
+            if (cellDate.getTime() !== fromTime) return;
+
+            const roomInfo = roomInfoMap[cellData.groups.roomID];
+            if (!roomInfo) return;
+
+            cellElement.append(`
+                <div class="room-label">
+                    <div class="room-no">${roomInfo.roomNumber}</div>
+                    <div class="room-type">-${roomInfo.roomTypeCode || ""}</div>
+                </div>
+            `);
+        },
+
+        /* =======================
+         * APPOINTMENT RENDER
+         * ======================= */
+        onAppointmentRendered: function (e) {
+
+            const el = $(e.appointmentElement);
+            const data = e.appointmentData;
+            const tooltipData = data.tooltipData || {};
+
+            /* ===== TITLE ===== */
+            let titleText = data.text || "";
+            if (data.type === "OOOS") {
+                titleText = `${tooltipData.code || "Code"} (Out of Order)`;
+            }
+
+            let titleEl = el.find(".dx-scheduler-appointment-title");
+            if (titleEl.length === 0) {
+                titleEl = $('<div class="dx-scheduler-appointment-title"></div>');
+                el.append(titleEl);
+            }
+            titleEl.text(titleText).css("display", "block");
+
+            /* ===== TOOLTIP ===== */
+            el.attr("title",
+                `Company: ${tooltipData.company || ""}\n` +
+                `Agent: ${tooltipData.agent || ""}\n` +
+                `PaymentMethod: ${tooltipData.paymentMethod || ""}\n` +
+                `Comment: ${tooltipData.comment || ""}\n` +
+                `ConfirmationNo: ${tooltipData.confirmationNo || ""}`
+            );
+
+            /* ===== COLOR LOGIC ===== */
+            if (data.type === "Reservation") {
+
+                switch (String(data.reservationStatus)) {
+                    case "0":
+                    case "5":
+                    case "8":
+                        el.addClass("resv-pending"); break;
+                    case "1":
+                        el.addClass("resv-checkin"); break;
+                    case "2":
+                        el.addClass("resv-checkout"); break;
+                    case "6":
+                        el.addClass("resv-dueout"); break;
+                    default:
+                        el.addClass("resv-checkin");
+                }
+
+            } else if (data.type === "OOOS") {
+
+                const oooStatus = String(data.oooStatus || "");
+
+                if (oooStatus === "1") {
+                    el.addClass("ooo-order");
+                } else if (oooStatus === "2") {
+                    el.addClass("ooo-service");
+                } else {
+                    el.addClass("ooo-default");
+                }
+            }
+
+            /* ===== POSITION LOGIC ===== */
+            const startTime = new Date(data.startDate).setHours(0,0,0,0);
+            const endTime = new Date(data.endDate).setHours(0,0,0,0);
+
+            if (fromTime >= startTime && fromTime <= endTime) {
+                el.css({
+                    position: "absolute",
+                    left: "100px",
+                    marginTop: "4px"
+                });
+            }
+
+            /* ===== TRANSLATE Y ===== */
+            const style = el[0].style.transform;
+
+            if (style && style.indexOf("translate") !== -1) {
+                const m = style.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
+                if (m) {
+                    const y = parseFloat(m[2]) - 30;
+                    el[0].style.transform = `translate(${m[1]}px, ${y}px)`;
+                }
+            }
+        }
+    });
+}
 
 
     function goUpdate(idReservationrl, startDate, endDate, roomNorl, roomtypeid, roomIDrl) {

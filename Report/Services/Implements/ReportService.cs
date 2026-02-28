@@ -531,6 +531,7 @@ namespace Report.Services.Implements
 
         public DataTable VacantRoomData(string roomClass, string roomtype, string FromRoom, string ToRoom, string OrderByRoomNo, string OrderByHKPStatus, string OrderByFOStatus, string HKPStatus, string FOStatus, string IsGroupByRoomClass)
         {
+            DateTime BusinessDate = TextUtils.GetBussinessDateTime();
             SqlParameter[] param = new SqlParameter[]
             {
                 new SqlParameter("@RoomClassID", roomClass),
@@ -545,7 +546,7 @@ namespace Report.Services.Implements
 
                      new SqlParameter("@FOStatus", FOStatus),
                 new SqlParameter("@IsGroupByRoomClass", IsGroupByRoomClass),
-                       new SqlParameter("@BusinessDate", DateTime.Now),
+                       new SqlParameter("@BusinessDate",BusinessDate.Date),
             };
 
             DataTable myTable = DataTableHelper.getTableData("spRptVacantRoom", param);
