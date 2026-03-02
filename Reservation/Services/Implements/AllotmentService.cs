@@ -103,6 +103,75 @@ namespace Reservation.Services.Implements
             }
         }
 
+        public DataTable GetAllotmentDefaultByStage(DateTime fromDate, DateTime toDate, int type, string allotmentId, string paraDate, string paraDateConvert)
+        {
+            try
+            {
+                SqlParameter[] param = new SqlParameter[]
+                {
+                    new SqlParameter("@FromDate", SqlDbType.DateTime) { Value = fromDate },
+                    new SqlParameter("@ToDate", SqlDbType.DateTime) { Value = toDate },
+                    new SqlParameter("@Type", SqlDbType.Int) { Value = type },
+                    new SqlParameter("@AllotmentID", SqlDbType.VarChar, 20) { Value = allotmentId },
+                    new SqlParameter("@ParaDate", SqlDbType.NVarChar, 255) { Value = paraDate },
+                    new SqlParameter("@ParaDateConvert", SqlDbType.NVarChar, 4000) { Value = paraDateConvert }
+                };
+
+                DataTable myTable = DataTableHelper.getTableData("spAllotmentDefaultByStage", param);
+
+                return myTable;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi gọi spAllotmentDefaultByStage: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<(bool canDelete, string message)> CanDeleteAllotment(int allotmentId)
+        {
+            var checkDetailTask = Task.Run(() =>
+                    Convert.ToInt32(TextUtils.Select($"SELECT ISNULL(SUM(Quantity),0) FROM AllotmentDetail WITH (NOLOCK) WHERE AllotmentID = {allotmentId}").Rows[0][0]));
+
+            var checkResvTask = Task.Run(() =>
+                Convert.ToInt32(TextUtils.Select($"SELECT COUNT(ID) FROM Reservation WITH (NOLOCK) WHERE AllotmentID = {allotmentId}").Rows[0][0]));
+
+            var checkRateTask = Task.Run(() =>
+                Convert.ToInt32(TextUtils.Select($"SELECT COUNT(ID) FROM ReservationRate WITH (NOLOCK) WHERE AllotmentID = {allotmentId}").Rows[0][0]));
+
+            // Đợi cả 3 truy vấn hoàn tất cùng lúc
+            await Task.WhenAll(checkDetailTask, checkResvTask, checkRateTask);
+
+            // Kiểm tra kết quả
+            if (checkDetailTask.Result > 0)
+                return (false, "This allotment was used in Detail. Choose another allotment.");
+
+            if (checkResvTask.Result > 0)
+                return (false, "This allotment was used in Reservation. Choose another allotment.");
+
+            if (checkRateTask.Result > 0)
+                return (false, "This allotment was used in Reservation Rate. Choose another allotment.");
+
+            return (true, string.Empty);
+        }
+
+        public async Task<bool> DeleteAllotment(int allotmentId)
+        {
+            try
+            {
+                await Task.Run(() => {
+                    AllotmentDetailBO.Instance.DeleteByAttribute("AllotmentID", allotmentId);
+
+                    AllotmentBO.Instance.Delete(allotmentId);
+                });
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
         //public DataTable AllotmentReport(string code, string marketId, string allotmentTypeId)
         //{
         //    SqlParameter[] param = new SqlParameter[]

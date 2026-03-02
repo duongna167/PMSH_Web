@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Reservation.Services.Implements;
 using Reservation.Services.Interfaces;
 using System.Data;
 using static BaseBusiness.util.ValidationUtils;
@@ -436,9 +437,6 @@ namespace Reservation.Controllers
             if (row1["Stage"].ToString() != row2["Stage"].ToString() ||
                 row1["CutOff"].ToString() != row2["CutOff"].ToString()) return false;
 
-            // So sánh các cột RoomType (ví dụ POK, POT...)
-            // Duyệt qua các cột không phải hệ thống để so sánh số lượng
-
             foreach (DataColumn col in row1.Table.Columns)
             {
                 string name = col.ColumnName.ToLower();
@@ -456,7 +454,6 @@ namespace Reservation.Controllers
         // Hàm lấy danh sách RoomType hiện có của Allotment này để tạo chuỗi [POK],[POT]...
         private string GetRoomTypeCodes(int allotmentId)
         {
-            // Câu lệnh SQL lấy danh sách Code của RoomType
             string command = $@"SELECT b.Code 
                        FROM AllotmentDetail a WITH (NOLOCK)
                        JOIN RoomType b WITH (NOLOCK) ON a.RoomTypeID = b.ID 
@@ -553,7 +550,7 @@ namespace Reservation.Controllers
 
         #endregion
 
-        #region new/edit/delete
+        #region new/edit
         [HttpPost]
         public IActionResult SaveAllotment([FromBody] AllotmentModel model)
         {
@@ -584,7 +581,7 @@ namespace Reservation.Controllers
                 {
                     model.CreateDate = businessDate;
                     model.UpdateDate = DateTime.Now;
-                    model.CutOfDate = businessDate;
+                    model.CuttOfDate = businessDate;
 
                     AllotmentBO.Instance.Insert(model);
                     return Json(new { success = true, message = "Insert successfully!" });
@@ -608,6 +605,125 @@ namespace Reservation.Controllers
             {
                 return Json(new { success = false, message = "Error: " + ex.Message });
             }
+        }
+        #endregion
+
+        #region detail
+
+        [HttpGet]
+        public IActionResult GetAllotmentDetailFull(int allotmentId, string fromDate, int noOfDays)
+        {
+            try
+            {
+                DateTime startDate = DateTime.Parse(fromDate);
+                DateTime endDate = startDate.AddDays(noOfDays - 1);
+
+                string paraDate = "";
+                string paraDateConvert = "";
+                List<DateTime> dateRange = new List<DateTime>();
+
+                for (DateTime date = startDate; date <= endDate; date = date.AddDays(1))
+                {
+                    string dayStr = date.Day.ToString("00");
+                    string colAlias = date.ToString("dd/MM");
+
+                    paraDate += $"[{dayStr}],";
+                    paraDateConvert += $"'{colAlias}'=[{dayStr}],";
+                    dateRange.Add(date);
+                }
+                paraDate = paraDate.TrimEnd(',');
+                paraDateConvert = paraDateConvert.TrimEnd(',');
+
+                DataTable dtAllot = _iAllotmentService.GetAllotmentDefaultByStage(startDate, endDate, 0, allotmentId.ToString(), paraDate, paraDateConvert);
+                DataTable dtPickup = _iAllotmentService.GetAllotmentDefaultByStage(startDate, endDate, 1, allotmentId.ToString(), paraDate, paraDateConvert);
+
+                var dayDetails = MapAllotmentAndPickup(dtAllot, dtPickup, dateRange);
+
+                return Json(new Dictionary<string, object> {
+            { "success", true },
+            { "data", dayDetails }
+            });
+                }
+                catch (Exception ex)
+                {
+                    return Json(new Dictionary<string, object> {
+                { "success", false },
+                { "message", ex.Message }
+            });
+            }
+        }
+
+        // Hàm map dữ liệu Allotment và Pickup theo từng loại phòng và từng ngày
+        private List<Dictionary<string, object>> MapAllotmentAndPickup(DataTable dtAllot, DataTable dtPickup, List<DateTime> dateRange)
+        {
+            var dayDetailList = new List<Dictionary<string, object>>();
+
+            foreach (DataRow rowAllot in dtAllot.Rows)
+            {
+                var rowDetail = new Dictionary<string, object>();
+                string roomType = rowAllot["RoomType"].ToString();
+                rowDetail["RoomType"] = roomType;
+
+                DataRow rowPickup = dtPickup.AsEnumerable().FirstOrDefault(r => r["RoomType"].ToString() == roomType);
+
+                foreach (var date in dateRange)
+                {
+                    string colName = date.ToString("dd/MM");
+                    int allotVal = dtAllot.Columns.Contains(colName) ? Convert.ToInt32(rowAllot[colName] == DBNull.Value ? 0 : rowAllot[colName]) : 0;
+                    int pickupVal = (rowPickup != null && dtPickup.Columns.Contains(colName)) ? Convert.ToInt32(rowPickup[colName] == DBNull.Value ? 0 : rowPickup[colName]) : 0;
+
+                    rowDetail[colName] = $"{pickupVal}/{allotVal}";
+                }
+                dayDetailList.Add(rowDetail);
+            }
+
+            // Logic tính dòng "Total Picked Up" 
+            var totalRow = new Dictionary<string, object>();
+            totalRow["RoomType"] = "Total Picked Up";
+            foreach (var date in dateRange)
+            {
+                string colName = date.ToString("dd/MM");
+                int totalPickupForDay = 0;
+                foreach (var row in dayDetailList)
+                {
+                    var parts = row[colName].ToString().Split('/');
+                    totalPickupForDay += int.Parse(parts[0]);
+                }
+                totalRow[colName] = totalPickupForDay.ToString();
+            }
+            dayDetailList.Add(totalRow);
+
+            return dayDetailList;
+        }
+
+        #endregion
+
+        #region Delete
+        public async Task<IActionResult> DeleteAllot(int id)
+        {
+            try
+            {
+                if (id <= 0) return BadRequest(new { message = "Invalid Allotment ID" });
+
+                var (canDelete, message) = await _iAllotmentService.CanDeleteAllotment(id);
+                if (!canDelete)
+                {
+                    return Conflict(new { message = message });
+                }
+
+                var isDeleted = await _iAllotmentService.DeleteAllotment(id);
+                if (isDeleted)
+                {
+                    return Json(new { success = true, message = "Delete allotment successfully!" });
+                }
+
+                return Json(new { success = false, message = "Could not delete data from database." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+
         }
         #endregion
 
