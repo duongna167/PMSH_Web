@@ -727,6 +727,84 @@ namespace Reservation.Controllers
         }
         #endregion
 
+        #region transfer to Allotment/Inventory
+        [HttpGet]
+        public JsonResult GetAllotmentLookup(int? excludeID)
+        {
+            DataTable dt = _iAllotmentService.GetAllotmentLookupData();
+            var list = new List<object>();
+
+            foreach (DataRow row in dt.Rows)
+            {
+                int id = Convert.ToInt32(row["ID"]);
+
+                // Không thêm vào danh sách nếu trùng với Allotment "From"
+                if (excludeID.HasValue && id == excludeID.Value) continue;
+
+                list.Add(new
+                {
+                    id = id,
+                    code = row["Code"],
+                    name = row["AllotmentName"],
+                    marketId = row["MarketID"]
+                });
+            }
+
+            return Json(list);
+        }
+
+        [HttpGet]
+        public JsonResult GetStagesLookup()
+        {
+            try
+            {
+                // Code='', Name='', Inactive=0
+                DataTable dt = _iAllotmentService.AllotmentStage("", "", 0);
+
+                var list = new List<object>();
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    list.Add(new
+                    {
+                        id = row["ID"],
+                        code = row["Code"],
+                        name = row["Name"]
+                    });
+                }
+
+                return Json(list);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ExecuteTransfer([FromBody] AllotmentTransferModel model)
+        {
+            try
+            {
+                if (model == null) return Json(new { success = false, message = "No data received." });
+
+                bool result = await _iAllotmentService.ProcessTransfer(model);
+
+                if (result)
+                    return Json(new { success = true, message = "Transfer completed successfully!" });
+
+                return Json(new { success = false, message = "Transfer failed." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+
+
+        #endregion
+
         #endregion
 
     }

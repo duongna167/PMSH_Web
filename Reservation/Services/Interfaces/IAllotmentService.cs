@@ -1,3 +1,4 @@
+using BaseBusiness.Model;
 using System.Data;
 
 namespace Reservation.Services.Interfaces
@@ -12,6 +13,8 @@ namespace Reservation.Services.Interfaces
         DataTable GetAllotmentDefaultByStage(DateTime fromDate, DateTime toDate, int type, string allotmentId, string paraDate, string paraDateConvert);
         Task<(bool canDelete, string message)> CanDeleteAllotment(int allotmentId);
         Task<bool> DeleteAllotment(int allotmentId);
+        Task<bool> ProcessTransfer(AllotmentTransferModel model);
+        DataTable GetAllotmentLookupData();
         //DataTable AllotmentReport(string code, string name, int inactive);
         Task<DataTable> GetAllAllotmentData(string? Code, string? Name, int inactive = 0);
     }

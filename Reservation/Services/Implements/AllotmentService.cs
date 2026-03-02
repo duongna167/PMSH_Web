@@ -172,6 +172,71 @@ namespace Reservation.Services.Implements
             }
         }
 
+        //transfer allotment/inventory
+        public void UpdateOrInsertDetail(int allotmentId, int roomTypeId, DateTime date, int quantityChange)
+        {
+            string sqlCheck = $@"SELECT ID, Quantity FROM AllotmentDetail WITH (NOLOCK) 
+                        WHERE AllotmentID = {allotmentId} 
+                        AND RoomTypeID = {roomTypeId} 
+                        AND CAST(AllotmentDate AS DATE) = '{date:yyyy-MM-dd}'";
+
+            DataTable dt = TextUtils.Select(sqlCheck);
+
+            if (dt != null && dt.Rows.Count > 0)
+            {
+                // ĐÃ CÓ: Thực hiện UPDATE cộng dồn số lượng
+                int currentQty = Convert.ToInt32(dt.Rows[0]["Quantity"]);
+                int newQty = currentQty + quantityChange;
+                int detailId = Convert.ToInt32(dt.Rows[0]["ID"]);
+
+                string sqlUpdate = $"UPDATE AllotmentDetail SET Quantity = {newQty} WHERE ID = {detailId}";
+                TextUtils.ExcuteSQL(sqlUpdate);
+            }
+            else
+            {
+                // CHƯA CÓ: Thực hiện INSERT dòng mới
+                // quantityChange có thể âm nếu là bên chuyển đi,
+                if (quantityChange > 0)
+                {
+                    string sqlInsert = $@"INSERT INTO AllotmentDetail (AllotmentID, RoomTypeID, AllotmentDate, Quantity) 
+                                 VALUES ({allotmentId}, {roomTypeId}, '{date:yyyy-MM-dd}', {quantityChange})";
+                    TextUtils.ExcuteSQL(sqlInsert);
+                }
+            }
+        }
+
+        public async Task<bool> ProcessTransfer(AllotmentTransferModel model)
+        {
+            AllotmentTransferBO.Instance.Insert(model);
+
+            for (var date = model.FromDate.Value; date <= model.ToDate.Value; date = date.AddDays(1))
+            {
+                // Nếu chưa có dòng Detail cho ngày đó thì Insert, có rồi thì Update cộng thêm Quantity
+                UpdateOrInsertDetail(model.ToAllotmentID.Value, model.RoomTypeID.Value, date, model.Quantity.Value);
+
+                if (model.FromAllotmentID > 0)
+                {
+                    UpdateOrInsertDetail(model.FromAllotmentID.Value, model.RoomTypeID.Value, date, -model.Quantity.Value);
+                }
+            }
+            return true;
+        }
+
+        public DataTable GetAllotmentLookupData()
+        {
+
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@Code", ""),
+                new SqlParameter("@MarketID", ""),
+                new SqlParameter("@AllotmentTypeID", ""),
+                new SqlParameter("@ProfileID", ""),
+                new SqlParameter("@IsDefault", ""),
+                new SqlParameter("@Zone", "")
+            };
+
+            return DataTableHelper.getTableData("spAllotmentSearch", param);
+        }
         //public DataTable AllotmentReport(string code, string marketId, string allotmentTypeId)
         //{
         //    SqlParameter[] param = new SqlParameter[]
