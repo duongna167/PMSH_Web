@@ -9,7 +9,7 @@ namespace BaseBusiness.util
     {
         public class ValidationError
         {
-            public string Field { get; set; } = string.Empty;
+            public string Field { get; set; } = string.Empty; //name của input
             public string Message { get; set; } = string.Empty;
         }
 

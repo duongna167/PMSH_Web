@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Reservation.Services.Implements;
 using Reservation.Services.Interfaces;
 using System.Data;
 using static BaseBusiness.util.ValidationUtils;
@@ -436,9 +437,6 @@ namespace Reservation.Controllers
             if (row1["Stage"].ToString() != row2["Stage"].ToString() ||
                 row1["CutOff"].ToString() != row2["CutOff"].ToString()) return false;
 
-            // So sánh các cột RoomType (ví dụ POK, POT...)
-            // Duyệt qua các cột không phải hệ thống để so sánh số lượng
-
             foreach (DataColumn col in row1.Table.Columns)
             {
                 string name = col.ColumnName.ToLower();
@@ -456,7 +454,6 @@ namespace Reservation.Controllers
         // Hàm lấy danh sách RoomType hiện có của Allotment này để tạo chuỗi [POK],[POT]...
         private string GetRoomTypeCodes(int allotmentId)
         {
-            // Câu lệnh SQL lấy danh sách Code của RoomType
             string command = $@"SELECT b.Code 
                        FROM AllotmentDetail a WITH (NOLOCK)
                        JOIN RoomType b WITH (NOLOCK) ON a.RoomTypeID = b.ID 
@@ -553,7 +550,7 @@ namespace Reservation.Controllers
 
         #endregion
 
-        #region new/edit/delete/
+        #region new/edit
         [HttpPost]
         public IActionResult SaveAllotment([FromBody] AllotmentModel model)
         {
@@ -584,7 +581,7 @@ namespace Reservation.Controllers
                 {
                     model.CreateDate = businessDate;
                     model.UpdateDate = DateTime.Now;
-                    model.CutOfDate = businessDate;
+                    model.CuttOfDate = businessDate;
 
                     AllotmentBO.Instance.Insert(model);
                     return Json(new { success = true, message = "Insert successfully!" });
@@ -672,7 +669,6 @@ namespace Reservation.Controllers
                 foreach (var date in dateRange)
                 {
                     string colName = date.ToString("dd/MM");
-                    // Kiểm tra cột tồn tại để tránh crash
                     int allotVal = dtAllot.Columns.Contains(colName) ? Convert.ToInt32(rowAllot[colName] == DBNull.Value ? 0 : rowAllot[colName]) : 0;
                     int pickupVal = (rowPickup != null && dtPickup.Columns.Contains(colName)) ? Convert.ToInt32(rowPickup[colName] == DBNull.Value ? 0 : rowPickup[colName]) : 0;
 
@@ -681,7 +677,7 @@ namespace Reservation.Controllers
                 dayDetailList.Add(rowDetail);
             }
 
-            // Logic tính dòng "Total Picked Up" y hệt Winform
+            // Logic tính dòng "Total Picked Up" 
             var totalRow = new Dictionary<string, object>();
             totalRow["RoomType"] = "Total Picked Up";
             foreach (var date in dateRange)
@@ -700,6 +696,35 @@ namespace Reservation.Controllers
             return dayDetailList;
         }
 
+        #endregion
+
+        #region Delete
+        public async Task<IActionResult> DeleteAllot(int id)
+        {
+            try
+            {
+                if (id <= 0) return BadRequest(new { message = "Invalid Allotment ID" });
+
+                var (canDelete, message) = await _iAllotmentService.CanDeleteAllotment(id);
+                if (!canDelete)
+                {
+                    return Conflict(new { message = message });
+                }
+
+                var isDeleted = await _iAllotmentService.DeleteAllotment(id);
+                if (isDeleted)
+                {
+                    return Json(new { success = true, message = "Delete allotment successfully!" });
+                }
+
+                return Json(new { success = false, message = "Could not delete data from database." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+
+        }
         #endregion
 
         #endregion

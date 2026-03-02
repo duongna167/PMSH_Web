@@ -5,29 +5,30 @@
     }
     function apply(errors, formSelector) {
         clear(formSelector);
+        const $container = $(formSelector);
 
         errors.forEach(err => {
             if (err.field === "general") return;
 
-            // Ưu tiên tìm theo name, nếu không thấy thì tìm theo id
-            let $field = $(`${formSelector} [name='${err.field}']`);
+            // Tìm theo Name hoặc ID bên trong Form
+            let $field = $container.find(`[name='${err.field}']`);
             if ($field.length === 0) {
-                $field = $(`${formSelector} #${err.field}`);
+                $field = $container.find(`#${err.field}`);
             }
 
+            // Tìm không phân biệt hoa thường 
             if ($field.length === 0) {
-                console.warn("ValidationAdapter: Không tìm thấy field:", err.field);
-                return;
+                $field = $container.find(`[id$='_${err.field.toLowerCase()}']`);
             }
 
-            // TomSelect
+            if ($field.length === 0) return;
+
+            // Xử lý hiển thị lỗi
             if ($field[0].tomselect) {
                 markTomSelectInvalid($field, err.message);
-            } // date input
-            else if (isDateInput($field)) {
+            } else if (isDateInput($field)) {
                 markDateInputInvalid($field, err.message);
-            } // field normal
-            else {
+            } else {
                 markInputInvalid($field, err.message);
             }
         });
