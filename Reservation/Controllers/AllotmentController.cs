@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Reservation.Dto;
 using Reservation.Services.Implements;
 using Reservation.Services.Interfaces;
 using System.Data;
@@ -754,6 +755,25 @@ namespace Reservation.Controllers
         }
 
         [HttpGet]
+        public JsonResult GetRoomTypesLookup()
+        {
+            string sql = "SELECT ID, Code, Name FROM RoomType WITH (NOLOCK) WHERE Inactive = 0";
+            DataTable dt = TextUtils.Select(sql);
+
+            var list = new List<object>();
+            foreach (DataRow row in dt.Rows)
+            {
+                list.Add(new
+                {
+                    id = row["ID"],
+                    code = row["Code"],
+                    name = row["Name"]
+                });
+            }
+            return Json(list);
+        }
+
+        [HttpGet]
         public JsonResult GetStagesLookup()
         {
             try
@@ -782,18 +802,59 @@ namespace Reservation.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ExecuteTransfer([FromBody] AllotmentTransferModel model)
+        public async Task<IActionResult> ExecuteTransfer([FromBody] AllotmentTransferRequest data)
         {
             try
             {
-                if (model == null) return Json(new { success = false, message = "No data received." });
+                var listErrors = GetErrors(
+                    Check(data.ToAllotmentID == 0, "allot_trans_toID", "To allotment can not be blank."),
+                    Check(data.AllotmentStageID == 0, "allot_trans_stageID", "Allotment stage can not be blank."),
+                    Check(data.FromAllotmentID > 0 && data.FromAllotmentID == data.ToAllotmentID,
+                          "allot_trans_toID", "From Allotment not equal To Allotment.")
+                );
 
-                bool result = await _iAllotmentService.ProcessTransfer(model);
+                int fromAllotID = (int)data.FromAllotmentID;
+                int qty = (int)data.Quantity;
+                DateTime fromDate = (DateTime)data.FromDate;
+                DateTime toDate = (DateTime)data.ToDate;
+                int rtID = (int)data.RoomTypeID;
 
-                if (result)
-                    return Json(new { success = true, message = "Transfer completed successfully!" });
+                for (var d = fromDate; d <= toDate; d = d.AddDays(1))
+                {
+                    // Gọi hàm check tồn kho thực tế
+                    int currentAvail = _iAllotmentService.GetAvailability(fromAllotID, rtID, d);
 
-                return Json(new { success = false, message = "Transfer failed." });
+                    if (fromAllotID > 0 && currentAvail < qty)
+                    {
+                        listErrors.Add(new ValidationError
+                        {
+                            Field = "allot_trans_qty",
+                            Message = $"Overbooking on {d:dd/MM/yyyy}. Available: {currentAvail}"
+                        });
+                        break;
+                    }
+                }
+
+                if (listErrors.Count > 0) return Json(new { success = false, errors = listErrors });
+
+                var model = new AllotmentTransferModel
+                {
+                    FromAllotmentID = data.FromAllotmentID,
+                    ToAllotmentID = data.ToAllotmentID,
+                    RoomTypeID = data.RoomTypeID,
+                    Quantity = data.Quantity,
+                    FromDate = data.FromDate,
+                    ToDate = data.ToDate,
+                    CreateBy = data.CreateBy,
+                    Description = data.Description
+                };
+
+                int stageId = data.AllotmentStageID;
+                int cutoffDay = data.CutOffDay;
+                DateTime? cutoffDate = data.CutOffDate != null ? data.CutOffDate : null;
+
+                bool result = await _iAllotmentService.ProcessTransfer(model, stageId, cutoffDay, cutoffDate);
+                return Json(new { success = result, message = result ? "Transfer success!" : "Transfer failed" });
             }
             catch (Exception ex)
             {
@@ -801,7 +862,52 @@ namespace Reservation.Controllers
             }
         }
 
+        [HttpGet]
+        public IActionResult CheckTransferAvailability(int fromAllotmentId, int roomTypeId, string fromDate, int night, int quantity)
+        {
+            try
+            {
+                var listErrors = GetErrors(
+                    Check(roomTypeId == 0, "allot_trans_roomTypeID", "Please select a Room Type."),
+                    Check(quantity <= 0, "allot_trans_qty", "Quantity must be > 0.")
+                );
 
+                if (listErrors.Count > 0) return Json(new { success = false, errors = listErrors });
+
+                DateTime dFrom = DateTime.Parse(fromDate);
+                string detailMessage = "";
+                bool isOverbook = false;
+
+                for (int i = 0; i < night; i++)
+                {
+                    DateTime checkDate = dFrom.AddDays(i);
+                    int avail = _iAllotmentService.GetActualAvailability(fromAllotmentId, roomTypeId, checkDate);
+
+                    if (avail < quantity)
+                    {
+                        isOverbook = true;
+                        detailMessage += $" - {checkDate:dd/MM/yyyy} (Qty: {quantity}) Please change quantity to continue ";
+                    }
+                }
+
+                // Nếu Overbooking, ta ném lỗi vào trường Quantity
+                if (isOverbook)
+                {
+                    listErrors.Add(new ValidationError
+                    {
+                        Field = "allot_trans_qty",
+                        Message = "Overbooking on Date:" + detailMessage
+                    });
+                    return Json(new { success = false, errors = listErrors });
+                }
+
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
 
         #endregion
 
