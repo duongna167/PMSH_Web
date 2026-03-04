@@ -184,5 +184,138 @@ namespace Reservation.Services.Implements
         //    DataTable myTable = DataTableHelper.getTableData("spAllotmentSearch", param);
         //    return myTable;
         //}
+
+
+        public DataTable GetAllotmentReport(DateTime fromDate, DateTime toDate, string columnsString,string expressionString,int byAllotmentType,int byAllotmentDetail)
+        {
+            int typeValue;
+
+            if (byAllotmentDetail == 1)
+            {
+                typeValue = byAllotmentDetail;   // ưu tiên Detail
+            }
+            else
+            {
+                typeValue = byAllotmentType;     // nếu không thì lấy Type
+            }
+
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@FromDate", fromDate),
+                new SqlParameter("@ToDate", toDate),
+                new SqlParameter("@Type", typeValue),
+                new SqlParameter("@ParaDate", columnsString),
+                new SqlParameter("@ParaDateConvert", expressionString),
+            };
+            DataTable myTable;
+
+            if (byAllotmentType == 0 && byAllotmentDetail == 0)
+            {
+                myTable = DataTableHelper.getTableData("spReportAllotmentByAllotmentType", param);
+            }
+            else if (byAllotmentType == 1 && byAllotmentDetail == 0)
+            {
+                myTable = DataTableHelper.getTableData("spReportAllotmentByRoomType", param);
+            }
+            else if (byAllotmentDetail == 1)
+            {
+                myTable = DataTableHelper.getTableData("spReportAllotmentByAllotmentTypeDetail", param);
+            }
+            else
+            {
+                throw new ArgumentException("Invalid byAllotmentType value.");
+            }
+
+            return myTable;
+        }
+
+        public DataTable GetAllotmentandRoomTypeReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString, string allotmentType)
+        {
+ 
+
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@FromDate", fromDate),
+                new SqlParameter("@ToDate", toDate),
+                new SqlParameter("@AllotmentTypeID", allotmentType),
+                new SqlParameter("@ParaDate", columnsString),
+                new SqlParameter("@ParaDateConvert", expressionString),
+            };
+            DataTable  myTable = DataTableHelper.getTableData("spReportAllotmentByAllotmentTypeAndRoomType", param);
+          
+
+            return myTable;
+        }
+        public DataTable GetAllotmentandRoomTypeGroupByAllReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString, string allotmentType)
+        {
+
+
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@FromDate", fromDate),
+                new SqlParameter("@ToDate", toDate),
+                new SqlParameter("@AllotmentTypeID", allotmentType),
+                new SqlParameter("@ParaDate", columnsString),
+                new SqlParameter("@ParaDateConvert", expressionString),
+            };
+            DataTable myTable = DataTableHelper.getTableData("spReportAllotmentByAllotmentTypeAndRoomTypeGroupByAllotment", param);
+
+
+            return myTable;
+        }
+
+        public DataTable GetAllotmentandRoomTypeGroupByRTReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString, string allotmentType)
+        {
+
+
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@FromDate", fromDate),
+                new SqlParameter("@ToDate", toDate),
+                new SqlParameter("@AllotmentTypeID", allotmentType),
+                new SqlParameter("@ParaDate", columnsString),
+                new SqlParameter("@ParaDateConvert", expressionString),
+            };
+            DataTable myTable = DataTableHelper.getTableData("spReportAllotmentByAllotmentTypeAndRoomTypeGroupByRoomType", param);
+
+
+            return myTable;
+        }
+        public DataTable GetAllotmentProfileReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString)
+        {
+
+
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@FromDate", fromDate),
+                new SqlParameter("@ToDate", toDate),
+                new SqlParameter("@isPosted", false),
+                new SqlParameter("@ParaDate", columnsString),
+                new SqlParameter("@ParaDateConvert", expressionString),
+                new SqlParameter("@IncludeCutoffAll", "0")
+            };
+            DataTable myTable = DataTableHelper.getTableData("spReportAllotmentByProfile", param);
+
+
+            return myTable;
+        }
+        public DataTable GetAllotmentRoomtypedetailReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString)
+        {
+
+
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@FromDate", fromDate),
+                new SqlParameter("@ToDate", toDate),
+                new SqlParameter("@Type", false),
+                new SqlParameter("@ParaDate", columnsString),
+                new SqlParameter("@ParaDateConvert", expressionString),
+     
+            };
+            DataTable myTable = DataTableHelper.getTableData("spReportAllotmentByRoomTypeDetail", param);
+
+
+            return myTable;
+        }
     }
 }

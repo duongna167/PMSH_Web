@@ -14,5 +14,11 @@ namespace Reservation.Services.Interfaces
         Task<bool> DeleteAllotment(int allotmentId);
         //DataTable AllotmentReport(string code, string name, int inactive);
         Task<DataTable> GetAllAllotmentData(string? Code, string? Name, int inactive = 0);
+        DataTable GetAllotmentReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString,int byAllotmentType,int byAllotmentDetail);
+        DataTable GetAllotmentandRoomTypeReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString, string allotmentType);
+        DataTable GetAllotmentandRoomTypeGroupByAllReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString, string allotmentType);
+        DataTable GetAllotmentandRoomTypeGroupByRTReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString, string allotmentType);
+        DataTable GetAllotmentProfileReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString);
+        DataTable GetAllotmentRoomtypedetailReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString);
     }
 }
