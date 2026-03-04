@@ -9,7 +9,8 @@ namespace Administration.Services.Interfaces
 {
     public interface ITransactionService
     {
-        public DataTable SearchTransaction(string code, string description,int groupID,int subGroupID);
+        public DataTable SearchTransaction(string code, string description, int groupID, int subGroupID);
+        public DataTable GetTransactionSubGroup();
 
     }
 }

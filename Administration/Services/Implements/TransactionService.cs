@@ -32,5 +32,16 @@ namespace Administration.Services.Implements
                 throw new Exception($"ERROR: {ex.Message}", ex);
             }
         }
+        public DataTable GetTransactionSubGroup()
+        {
+            SqlParameter[] param =
+            [
+                new SqlParameter("@sqlCommand",
+                    @"Select * from TransactionSubGroup where Code like N'%' or Description like N'%'")
+                    ];
+
+            DataTable myTable = DataTableHelper.getTableData("spSearchAllForTrans", param);
+            return myTable;
+        }
     }
 }
