@@ -1,4 +1,6 @@
+@{
 
+}
 
 <style>
     #allot_trans_cutoffDateInput:disabled,
@@ -177,6 +179,7 @@
                     </div>
 
                     <button id="allot_search_btnDetail" class="mui-button mui-button-new">Detail</button>
+                    <button id="allot_search_btnTransHistory" class="mui-button mui-button-new">Trans.History</button>
                     <button id="allot_search_btnExportExcel" class="mui-button mui-button-export">Excel</button>
                     <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
                 </div>
@@ -562,15 +565,16 @@
                             </div>
 
                             <div class="mb-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label class="small fw-bold" style="width: 80px;">Quantity</label>
+                                <div class="d-flex align-items-start gap-2">
+                                    <label class="small fw-bold mt-1" style="width: 80px;">Quantity</label>
+
                                     <div class="d-flex flex-grow-1 gap-2">
                                         <div class="flex-grow-1">
                                             <input type="text" id="allot_trans_qty" class="form-control form-control-sm" value="1">
-                                            <div class="invalid-feedback"></div>
                                         </div>
-                                        <button type="button" id="allot_trans_btnInput" class="mui-button mui-button-export flex-shrink-0">Input</button>
+
                                     </div>
+                                    <button type="button" id="allot_trans_btnInput" class="mui-button mui-button-export flex-shrink-0">Input</button>
                                 </div>
                             </div>
                         </div>
@@ -579,6 +583,69 @@
 
                 <div class="gridContainer mt-3 border-top pt-2 flex-grow-1" style="min-height: 200px;">
                     <div id="allot_trans_grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal transfer history-->
+<div class="modal fade" id="allot_transHis_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Allotment Transfer History</h5>
+            </div>
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button id="allot_transHis_btnView" class="mui-button mui-button-view">View</button>
+                    <button id="allot_transHis_btnExportExcel" class="mui-button mui-button-export">Excel</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden" id="allot_transHis_formContainer">
+                    <div class="p-2 flex-shrink-0">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-auto d-flex align-items-center gap-2">
+                                <label class="fw-bold small mb-0">From</label>
+                                <div data-date-input data-format="DD/MM/YYYY" data-name="allot_transHis_fromDate">
+                                    <input type="text" class="date-ui form-control form-control-sm" style="width:115px;">
+                                </div>
+                                <input type="checkbox" id="allot_transHis_chkFrom" checked />
+                                <label class="fw-bold small mb-0">To</label>
+                                <div data-date-input data-format="DD/MM/YYYY" data-name="allot_transHis_toDate">
+                                    <input type="text" class="date-ui form-control form-control-sm" style="width:115px;">
+                                </div>
+                                <input type="checkbox" id="allot_transHis_chkTo" checked />
+
+                            </div>
+
+                            <div class="col-auto d-flex align-items-center gap-1">
+                                <label class="small fw-bold" style="width: 70px;">Room Type</label>
+                                <div style="width: 150px;">
+                                    <select id="allot_transHis_roomType" class="tomselect-custom"></select>
+                                </div>
+                            </div>
+
+                            <div class="col-auto d-flex align-items-center gap-1">
+                                <label class="small fw-bold">From Allot.</label>
+                                <div style="width: 180px;">
+                                    <select id="allot_transHis_fromID" class="tomselect-custom"></select>
+                                </div>
+                            </div>
+
+                            <div class="col-auto d-flex align-items-center gap-1">
+                                <label class="small fw-bold">To Allot.</label>
+                                <div style="width: 180px;">
+                                    <select id="allot_transHis_toID" class="tomselect-custom"></select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gridContainer flex-grow-1 d-flex flex-column position-relative py-2">
+                        <div id="allot_transHis_grid"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -694,6 +761,7 @@
             $("#allot_search_btnEdit").on("click", () => self.openEditModal());
             $("#allot_setup_btnSaveItem").on("click", () => self.saveAllotment());
             $("#allot_search_btnDelete").on("click", () => self.confirmDelete());
+            $("#allot_search_btnTransHistory").on("click", () => self.opemdModalTransHistory());
             $("#allot_search_btnExportExcel").on("click", () => self.exportAllotInfoToExcel());
             $("#allot_search_btnDetail").on("click", () => self.openModalDetail());
             $("#allot_detail_btnSearchDetail").on("click", () => self.fetchDetailByStage());
@@ -1564,6 +1632,100 @@
                 }
             });
         },
+
+        /* Transfer History */
+        opemdModalTransHistory: function() {
+            const self = this;
+            $("#allot_transHis_modal").modal("show");
+            initDateInputs();
+
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            UI.setHiddenDate("allot_transHis_fromDate", firstDay);
+            UI.setHiddenDate("allot_transHis_toDate", now);
+
+            loadDataToTomSelect("#allot_transHis_roomType", "/Allotment/GetRoomTypesLookup", (item) => ({
+                value: item.code,
+                text: item.code
+            }));
+
+            const allotLookupUrl = "/Allotment/GetAllotmentLookup";
+            loadDataToTomSelect("#allot_transHis_fromID", allotLookupUrl, (item) => ({
+                value: item.id,
+                text: `${item.code} - ${item.name}`
+            }));
+
+            loadDataToTomSelect("#allot_transHis_toID", allotLookupUrl, (item) => ({
+                value: item.id,
+                text: `${item.code} - ${item.name}`
+            }));
+
+            self.renderTransHisGrid([]);
+
+            // Thêm vào cuối hàm opemdModalTransHistory
+            $("#allot_transHis_chkFrom").on("change", function() {
+                $('[data-name="allot_transHis_fromDate"] input').prop("disabled", !this.checked);
+            });
+            $("#allot_transHis_chkTo").on("change", function() {
+                $('[data-name="allot_transHis_toDate"] input').prop("disabled", !this.checked);
+            });
+            // Gán sự kiện nút View trong modal history
+            $("#allot_transHis_btnView").off("click").on("click", () => self.reloadTransHisGrid());
+            self.reloadTransHisGrid();
+        },
+
+        reloadTransHisGrid: function() {
+            const self = this;
+            const isFilterFrom = $("#allot_transHis_chkFrom").is(":checked");
+            const isFilterTo = $("#allot_transHis_chkTo").is(":checked");
+
+            const filter = {
+                fromDate: isFilterFrom ? $("#allot_transHis_fromDate").val() : "",
+                toDate: isFilterTo ? $("#allot_transHis_toDate").val() : "",
+                roomType: toBackendValue(getTomSelectData("#allot_transHis_roomType"), "value") || "",
+                fromAllotId: parseInt(toBackendValue(getTomSelectData("#allot_transHis_fromID"), "value") || 0),
+                toAllotId: parseInt(toBackendValue(getTomSelectData("#allot_transHis_toID"), "value") || 0)
+            };
+
+            LoadingManager.show();
+
+            $.ajax({
+                url: '/Allotment/GetAllotmentTransferSearch',
+                type: 'GET',
+                data: filter,
+                success: function(res) {
+                    self.renderTransHisGrid(res);
+                    LoadingManager.hide();
+                },
+                error: function(xhr) {
+                    LoadingManager.hide();
+                    console.error("Status: " + xhr.status); 
+                    showToast("Error", "Đường dẫn API không tồn tại (404). Vui lòng kiểm tra Controller.", false);
+                }
+            });
+        },
+
+        renderTransHisGrid: function(data) {
+            const self = this;
+            self.initGrid("#allot_transHis_grid", {
+                dataSource: data,
+                columns: [
+                    { dataField: "fromAllotment", caption: "From Allotment", width: 130 },
+                    { dataField: "toAllotment", caption: "To Allotment", width: 170 },
+                    { dataField: "roomType", caption: "Ro.Type", width: 60 },
+                    { dataField: "quantity", caption: "Qty", width: 40 },
+                    { dataField: "fromDate", caption: "From Date", width: 100 ,dataType:"date", format:"dd/MM/yyyy"},
+                    { dataField: "toDate", caption: "To Date", width: 100, dataType:"date", format:"dd/MM/yyyy"},
+                    { dataField: "description", caption: "Description", width: 110},
+                    { dataField: "createdBy", caption: "CreatedBy", width: 70 },
+                    { dataField: "createdDate", caption: "Date Time", width: 120,dataType:"date", format:"dd/MM/yyyy" },
+                    { dataField: "updatedBy", caption: "UpdatedBy", width: 70 },
+                    { dataField: "updatedDate", caption: "UpdatedBy", width: 120,dataType:"date", format:"dd/MM/yyyy" }
+                ]
+            });
+        },
+        /*End Transfer History */
+
     };
 
     $(document).ready(function () {

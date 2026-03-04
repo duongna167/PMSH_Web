@@ -1,6 +1,7 @@
 ﻿using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.Data.SqlClient;
 using Reservation.Services.Interfaces;
 using System.Data;
@@ -306,6 +307,21 @@ namespace Reservation.Services.Implements
         public int GetAvailability(int fromAllotID, int rtID, DateTime date)
         {
             return GetActualAvailability(fromAllotID, rtID, date);
+        }
+
+        public DataTable AllotmentSearchTransfer(string fromDate, string toDate, int allotmentFrom, int allotmentTo, string roomType)
+        {
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@FromDate", fromDate ?? ""),
+                new SqlParameter("@ToDate", toDate ?? ""),
+                new SqlParameter("@AllotmentFrom", allotmentFrom),
+                new SqlParameter("@AllotmentTo", allotmentTo),
+                new SqlParameter("@RoomType", roomType ?? "")
+            };
+
+            DataTable myTable = DataTableHelper.getTableData("spAllotmentTransferSearch", param);
+            return myTable;
         }
         //public DataTable AllotmentReport(string code, string marketId, string allotmentTypeId)
         //{

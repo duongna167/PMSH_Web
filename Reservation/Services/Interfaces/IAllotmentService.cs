@@ -8,6 +8,7 @@ namespace Reservation.Services.Interfaces
         DataTable AllotmentType(string code, string name, int inactive);
         DataTable AllotmentStage(string code, string name, int inactive);
         DataTable AllotmentSearch(string code, string marketId, string allotmentTypeId, string profileId, string isDefault, string zone);
+        DataTable AllotmentSearchTransfer(string fromDate, string toDate, int allotmentFrom, int allotmentTo, string roomType);
         DataTable GetAllotmentDetail(int allotmentID, string roomTypeCodes, DateTime showHistory);
         DataTable GetAllotmentResvSearch(string allotmentIDs, int roomTypeID);
         DataTable GetAllotmentDefaultByStage(DateTime fromDate, DateTime toDate, int type, string allotmentId, string paraDate, string paraDateConvert);
