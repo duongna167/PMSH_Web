@@ -79,6 +79,9 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
                     clear_button: {
                         title: '',
                         html: (data) => {
+                            if (el.disabled || el.hasAttribute('disabled')) {
+                                return '';
+                            }
                             // Đảm bảo class "clear-button" luôn tồn tại
                             const label = isMultiple ? 'Clear all' : 'Clear';
                             return `<div class="clear-button" data-tooltip="${label}">×</div>`;
@@ -248,28 +251,61 @@ function destroyTomSelect(selectors) {
     });
 }
 
-async function loadDataToTomSelect(selector, apiUrl) {
-    // 1. Khởi tạo TomSelect trước (dùng helper của bạn)
-    initTomSelect(selector);
+/**
+ * Load dữ liệu linh hoạt từ API
+ * @param {string} selector - Selector của element
+ * @param {string} apiUrl - Link API
+ * @param {function} mapFn - (Tùy chọn) Hàm để tự định nghĩa cấu trúc dữ liệu
+ * 
+ * VD: loadDataToTomSelect("#allot_setup_profileID", "/api/profiles", (item) => ({
+          value: item.ID,
+          text: `${item.Code} - ${item.Name}`,
+    hoặc  text: item.Code, 
+          data: item
+       }));
 
-    const ts = getTomSelect(selector);
-    if (!ts) return;
+ * Lấy trường khác trong api 
+   const selectedRoom = getTomSelectData("#allot_trans_roomTypeID");
+    if (selectedRoom) {
+        const maxQty = selectedRoom.data.MaxInventory; 
+        const roomGrade = selectedRoom.data.GradeName;
+    } 
+ */
+async function loadDataToTomSelect(selector, apiUrl, mapFn = null) {
+    const el = document.querySelector(selector);
+    if (!el || !el.tomselect) {
+        console.warn(`[TomSelect] Element ${selector} chưa được khởi tạo TomSelect.`);
+        return;
+    }
+
+    const ts = el.tomselect;
 
     try {
-        // 2. Gọi API
+        ts.clearOptions();
+        // Có thể thêm trạng thái loading tại đây nếu UI cần
+
         const response = await fetch(apiUrl);
-        const data = await response.json();
+        const rawData = await response.json();
 
-        // 3. Format lại dữ liệu nếu API trả về ID/Name thay vì value/text
-        const formattedData = data.map((item) => ({
-            value: item.id || item.ID, // Linh hoạt theo API của bạn
-            text: item.name || item.Name,
-        }));
+        const formattedData = rawData.map((item) => {
+            // Nếu người dùng có truyền hàm map tự định nghĩa
+            if (typeof mapFn === 'function') {
+                return mapFn(item);
+            }
 
-        // 4. Đổ dữ liệu vào và refresh
+            // Mặc định: Gom hết vào data, ưu tiên lấy ID/Code làm value, Name làm text
+            return {
+                value: item.id || item.ID || item.Code || '',
+                text: item.name || item.Name || item.Description || '',
+                data: item // GIỮ LẠI TOÀN BỘ TRƯỜNG DỮ LIỆU GỐC
+            };
+        });
+
         ts.addOptions(formattedData);
         ts.refreshOptions(false);
+
+        console.log(`[TomSelect] Loaded ${formattedData.length} items to ${selector}`);
     } catch (error) {
-        console.error('Lỗi khi load API:', error);
+        console.error(`[TomSelect] Load API Error (${selector}):`, error);
     }
 }

@@ -109,6 +109,7 @@
     <script src="~/js/core/tooltip.js" asp-append-version="true"></script>
     <script src="~/js/core/date-bootstrap.js" asp-append-version="true"></script>
     <script src="~/js/core/tomselect.js" asp-append-version="true"></script>
+    <script src="~/js/core/loading-modal.js" asp-append-version="true"></script>
 
     <script src="~/js/core/form-modal.js" asp-append-version="true"></script>
     <script src="~/js/core/validation-adapter.js" asp-append-version="true"></script>
@@ -216,10 +217,11 @@
                                 <div class="dropdown-submenu">
                                     <a class="dropdown-submenu-toggle">Allotment</a>
                                     <div class="dropdown-submenu-content">
+                                        <a href="javascript:void(0);" onclick="openAllotmentSearch()" data-action="AllotmentSearch">Allotment Search</a>
+
                                         <a href="javascript:void(0);" onclick="openAllotmentType()" data-action="AllotmentType">Allotment Type</a>
                                         <a href="javascript:void(0);" onclick="openAllotmentStage()" data-action="AllotmentStage">Allotment Stage</a>
-                                        <a href="javascript:void(0);" onclick="openAllotmentSearch()" data-action="AllotmentSearch">Allotment Search</a>
-                                        @* <a href="javascript:void(0);" onclick="openAllotmentReport()" data-action="AllotmentReport">Allotment Report</a> *@
+                                        <a href="javascript:void(0);" onclick="openAllotmentReport()" data-action="AllotmentReport">Allotment Report</a> 
 
                                     </div>
                                 </div>
@@ -919,6 +921,8 @@
             }
         });
 
+        ModalManager.init();
+
         loadBirthdayCount();
         //     // Khi đóng modal → có thể reset nếu cần
         // $('#newReservationModal').on('hidden.bs.modal', function () {
@@ -1209,6 +1213,39 @@
 <!-- Script để load modal -->
 <script>
     var ModalManager = {
+
+        init: function () {
+            $(document).on("input", ".is-invalid", function () {
+                if (window.ValidationAdapter) window.ValidationAdapter.clearField(this);
+            });
+
+            $(document).on("change", "select.is-invalid, select.tomselect-custom", function () {
+                if (window.ValidationAdapter) window.ValidationAdapter.clearField(this);
+            });
+
+            $(document).on("change", "[data-date-input] input[type='hidden']", function () {
+                if (window.ValidationAdapter) window.ValidationAdapter.clearField(this);
+            });
+
+            $(document).on("input", ".date-ui", function () {
+                if (window.ValidationAdapter) window.ValidationAdapter.clearField(this);
+            });
+
+            $(document).on("shown.bs.modal", ".modal", function () {
+               const $openModals = $('.modal.show').not(this);
+               if ($openModals.length > 0) {
+                   $openModals.find('.modal-content').addClass('modal-blur');
+               }
+           });
+
+           $(document).on("hidden.bs.modal", ".modal", function () {
+               const $remainingModals = $('.modal.show');
+               if ($remainingModals.length > 0) {
+                   $remainingModals.last().find('.modal-content').removeClass('modal-blur');
+               }
+           });
+        },
+           
         getOrCreateContainer: function (modalId) {
             let containerId = "container_" + modalId;
             let $container = $("#" + containerId);
@@ -1327,9 +1364,16 @@
         );
     }
 
+       function openAllotmentReport() {
+           ModalManager.load(
+               "/Allotment/AllotmentReport",
+               "allot_report_modal",
+               "openModalReportStage"
+           );
+    }
 
 
-    // Phần cho FRONTDESK
+       // Phần cho FRONTDESK
     //
     function openFDKTlpB() {
         ModalManager.load(

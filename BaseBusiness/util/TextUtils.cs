@@ -842,5 +842,26 @@ namespace BaseBusiness.util
 			mAL.Description = _description;
 			ActivityLogBO.Instance.Insert(mAL);
 		}
-	}
+        public static string GetSplitString(string Name)
+        {
+            string paraName;
+            string[] arrConfirmationNo = null;
+            paraName = "";
+            if (Name != "")
+            {
+                arrConfirmationNo = Name.Split(',');
+                if (arrConfirmationNo.Length > 0)
+                {
+                    for (int i = 0; i < arrConfirmationNo.Length; i++)
+                    {
+                        if (i != 0)
+                            paraName = paraName + "'" + "," + "'" + arrConfirmationNo[i].ToString().Trim();
+                        else
+                            paraName = arrConfirmationNo[i].ToString().Trim();
+                    }
+                }
+            }
+            return paraName;
+        }
+    }
 }

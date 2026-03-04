@@ -700,80 +700,76 @@
     let roomNorl, roomtypeid, idReservationrl, roomIDrl;
     let originalAppointmentData = null;
 
-    function initializeRoomScheduler(schedulerData, fromDate, toDate) {
+       function initializeRoomScheduler(schedulerData, fromDate, toDate) {
 
-        if (!schedulerData || !schedulerData.length) return;
+        if (!schedulerData || schedulerData.length === 0) return;
 
         /* =======================
-         * DATE RANGE
+         * DATE RANGE (cache time)
          * ======================= */
+        const MS_PER_DAY = 86400000;
+
         const from = new Date(fromDate);
         from.setHours(0, 0, 0, 0);
+        const fromTime = from.getTime();
 
         const to = new Date(toDate);
         to.setHours(0, 0, 0, 0);
+        const toTime = to.getTime();
 
-        const daysToShow =
-            Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
-
-        /* =======================
-         * ROOM GROUPS
-         * ======================= */
-        const roomGroups = [
-            ...new Map(
-                schedulerData
-                    .filter(d => d.roomID && d.roomNo && d.roomNo.trim() !== "")
-                    .map(d => [
-                        d.roomID.toString(),
-                        { id: d.roomID.toString(), text: d.roomNo.trim() }
-                    ])
-            ).values()
-        ];
-
-        const validRoomIDs = new Set(roomGroups.map(r => r.id));
+        const daysToShow = Math.ceil((toTime - fromTime) / MS_PER_DAY) + 1;
 
         /* =======================
-         * ROOM INFO MAP
+         * PREPROCESS (ONE LOOP ONLY)
          * ======================= */
+        const roomMap = Object.create(null);
+        const roomGroups = [];
+        const validRoomIDs = Object.create(null);
         const roomInfoMap = Object.create(null);
-
-        for (let i = 0, l = schedulerData.length; i < l; i++) {
-            const d = schedulerData[i];
-            const id = d.roomID;
-            if (!id || roomInfoMap[id]) continue;
-
-            roomInfoMap[id] = {
-                roomNo: d.roomNo,
-                roomNumber: d.roomNumber,
-                roomTypeCode: d.roomTypeCode
-            };
-        }
-
-
-        /* =======================
-         * APPOINTMENTS
-         * ======================= */
-         const appointments = [];
+        const appointments = [];
 
         for (let i = 0, l = schedulerData.length; i < l; i++) {
 
             const d = schedulerData[i];
-            if (!d.roomID) continue;
+            const roomID = d.roomID;
 
-            const roomID = d.roomID.toString();
-            if (!validRoomIDs.has(roomID)) continue;
+            if (!roomID) continue;
+
+            const roomIDStr = String(roomID);
+
+            /* ===== ROOM GROUP BUILD (only once per room) ===== */
+            if (!validRoomIDs[roomIDStr] && d.roomNo && d.roomNo.trim() !== "") {
+
+                validRoomIDs[roomIDStr] = true;
+
+                roomGroups.push({
+                    id: roomIDStr,
+                    text: d.roomNo.trim()
+                });
+
+                roomInfoMap[roomIDStr] = {
+                    roomNo: d.roomNo,
+                    roomNumber: d.roomNumber,
+                    roomTypeCode: d.roomTypeCode
+                };
+            }
+
+            /* ===== APPOINTMENT BUILD ===== */
 
             const a = parseVNDateOnly(d.arrivalDate);
             const dep = parseVNDateOnly(d.departureDate);
-
             if (!a || !dep) continue;
-            if (a > to || dep < from) continue;
+
+            const aTime = a.getTime();
+            const depTime = dep.getTime();
+
+            if (aTime > toTime || depTime < fromTime) continue;
 
             appointments.push({
                 text: d.lastName || "",
-                startDate: a < from ? from : a,
-                endDate: dep > to ? to : dep,
-                roomID,
+                startDate: aTime < fromTime ? from : a,
+                endDate: depTime > toTime ? to : dep,
+                roomID: roomIDStr,
 
                 type: d.type || "",
                 reservationStatus: d.reservationStatus,
@@ -797,11 +793,11 @@
             });
         }
 
-
         /* =======================
          * INIT SCHEDULER
          * ======================= */
         $("#schedulerContainer").dxScheduler({
+
             dataSource: appointments,
 
             views: [{
@@ -827,13 +823,12 @@
             }],
 
             /* =======================
-             * ROOM LABEL (GIỮ NGUYÊN)
+             * ROOM LABEL
              * ======================= */
             dataCellTemplate(cellData, _, cellElement) {
-                const cellDate = new Date(cellData.startDate);
-                cellDate.setHours(0, 0, 0, 0);
 
-                if (cellDate.getTime() !== from.getTime()) return;
+                const cellDate = cellData.startDate;
+                if (cellDate.getTime() !== fromTime) return;
 
                 const roomInfo = roomInfoMap[cellData.groups.roomID];
                 if (!roomInfo) return;
@@ -845,10 +840,8 @@
                     </div>
                 `);
             },
-
             /* =======================
              * APPOINTMENT RENDER
-             * (GIỮ LOGIC CŨ 100%)
              * ======================= */
             onAppointmentRendered: function (e) {
 
@@ -857,31 +850,31 @@
                 const tooltipData = data.tooltipData || {};
 
                 /* ===== TITLE ===== */
-                let titleText = data.text || "";
-                if (data.type === "OOOS") {
-                    titleText = `${tooltipData.code || "Code"} (Out of Order)`;
-                }
+                // let titleText = data.text || "";
+                // if (data.type === "OOOS") {
+                //     titleText = `${tooltipData.code || "Code"} (Out of Order)`;
+                // }
 
-                let titleEl = el.find(".dx-scheduler-appointment-title");
-                if (!titleEl.length) {
-                    titleEl = $('<div class="dx-scheduler-appointment-title"></div>');
-                    el.append(titleEl);
-                }
-                titleEl.text(titleText).css("display", "block");
+                // let titleEl = el.find(".dx-scheduler-appointment-title");
+                // if (titleEl.length === 0) {
+                //     titleEl = $('<div class="dx-scheduler-appointment-title"></div>');
+                //     el.append(titleEl);
+                // }
+                // titleEl.text(titleText).css("display", "block");
 
                 /* ===== TOOLTIP ===== */
-                el.attr("title", [
-                    `Company: ${tooltipData.company || ""}`,
-                    `Agent: ${tooltipData.agent || ""}`,
-                    `PaymentMethod: ${tooltipData.paymentMethod || ""}`,
-                    `Comment: ${tooltipData.comment || ""}`,
+                el.attr("title",
+                    `Company: ${tooltipData.company || ""}\n` +
+                    `Agent: ${tooltipData.agent || ""}\n` +
+                    `PaymentMethod: ${tooltipData.paymentMethod || ""}\n` +
+                    `Comment: ${tooltipData.comment || ""}\n` +
                     `ConfirmationNo: ${tooltipData.confirmationNo || ""}`
-                ].join("\n"));
+                );
 
-                /* ===== COLOR LOGIC (NGUYÊN BẢN) ===== */
+                /* ===== COLOR LOGIC ===== */
                 if (data.type === "Reservation") {
-                    const resvStatus = String(data.reservationStatus);
-                    switch (resvStatus) {
+
+                    switch (String(data.reservationStatus)) {
                         case "0":
                         case "5":
                         case "8":
@@ -895,8 +888,11 @@
                         default:
                             el.addClass("resv-checkin");
                     }
+
                 } else if (data.type === "OOOS") {
+
                     const oooStatus = String(data.oooStatus || "");
+
                     if (oooStatus === "1") {
                         el.addClass("ooo-order");
                     } else if (oooStatus === "2") {
@@ -906,11 +902,11 @@
                     }
                 }
 
-                /* ===== POSITION LOGIC (NGUYÊN BẢN) ===== */
-                const start = new Date(data.startDate); start.setHours(0, 0, 0, 0);
-                const end = new Date(data.endDate); end.setHours(0, 0, 0, 0);
+                /* ===== POSITION LOGIC ===== */
+                const startTime = new Date(data.startDate).setHours(0,0,0,0);
+                const endTime = new Date(data.endDate).setHours(0,0,0,0);
 
-                if (from >= start && from <= end) {
+                if (fromTime >= startTime && fromTime <= endTime) {
                     el.css({
                         position: "absolute",
                         left: "100px",
@@ -918,17 +914,88 @@
                     });
                 }
 
-                /* ===== TRANSLATE Y (NGUYÊN BẢN – KHÔNG REGEX) ===== */
+                /* ===== TRANSLATE Y ===== */
                 const style = el[0].style.transform;
+
                 if (style && style.indexOf("translate") !== -1) {
                     const m = style.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
                     if (m) {
-                        const x = m[1];
                         const y = parseFloat(m[2]) - 30;
-                        el[0].style.transform = `translate(${x}px, ${y}px)`;
+                        el[0].style.transform = `translate(${m[1]}px, ${y}px)`;
                     }
                 }
+            },
+            onAppointmentUpdating: async function (e) {
+                const oldData = e.oldData;
+                const newData = e.newData;
+                idReservationrl = oldData.reservationID;
+
+                const isMoved =
+                    oldData.startDate.getTime() !== newData.startDate.getTime() ||
+                    oldData.endDate.getTime() !== newData.endDate.getTime() ||
+                    oldData.roomID !== newData.roomID;
+
+                try {
+                    const result = await getRoomID(newData.roomID);
+                    roomIDrl = result.id;
+                    roomNorl = result.roomNo;
+                    roomtypeid = result.roomTypeID;
+
+                    const isSameRoomType =
+                        result.roomTypeCode === oldData.roomTypeCode;
+
+                    if (!isMoved) return;
+
+                    if (isSameRoomType) {
+                        const action = await askUpdateOrReview();
+
+                        if (action === "cancel") {
+                            e.cancel = true;
+                            return;
+                        }
+
+                        if (action === "review") {
+                            e.cancel = true;
+                            $('#modalEdit').modal('show');
+                            goReview(idReservationrl);
+                            return;
+                        }
+
+                        if (action === "update") {
+                            goUpdate(
+                                idReservationrl,
+                                newData.startDate,
+                                newData.endDate,
+                                roomNorl,
+                                roomtypeid,
+                                roomIDrl
+                            );
+                        }
+                    } else {
+                        if (!confirm("Are you sure to edit?")) {
+                            e.cancel = true;
+                            return;
+                        }
+
+                        if (oldData.type === "OOOS") {
+                            goReview(idReservationrl);
+                        } else {
+                            goUpdate(
+                                idReservationrl,
+                                newData.startDate,
+                                newData.endDate,
+                                roomNorl,
+                                roomtypeid,
+                                roomIDrl
+                            );
+                        }
+                    }
+                } catch (err) {
+                    console.error("Room info error:", err);
+                    e.cancel = true;
+                }
             }
+
         });
     }
 

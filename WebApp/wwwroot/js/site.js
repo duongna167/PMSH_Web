@@ -245,7 +245,8 @@ function focusElement($el) {
                     const m = String(date.getMonth() + 1).padStart(2, '0');
                     const d = String(date.getDate()).padStart(2, '0');
 
-                    self.$hidden.val(`${y}-${m}-${d}`);
+                    //self.$hidden.val(`${y}-${m}-${d}`);
+                    self.$hidden.val(`${y}-${m}-${d}`).trigger('change');
                 },
             });
             // BẮT SỰ KIỆN CLICK VÀO ICON ĐỂ MỞ LỊCH
@@ -294,7 +295,8 @@ function focusElement($el) {
                                 const y = date.getFullYear();
                                 const m = String(date.getMonth() + 1).padStart(2, '0');
                                 const d = String(date.getDate()).padStart(2, '0');
-                                self.$hidden.val(`${y}-${m}-${d}`);
+                                //self.$hidden.val(`${y}-${m}-${d}`);
+                                self.$hidden.val(`${y}-${m}-${d}`).trigger('change');
                             },
                         });
 
@@ -475,7 +477,8 @@ UI.setHiddenDate = function (name, value) {
     // 2. CHỖ THAY ĐỔI: Chỉ tìm và set giá trị nếu thẻ input tồn tại
     const $hidden = $(`input[type="hidden"][name="${name}"]`);
     if ($hidden.length) {
-        $hidden.val(hiddenValue);
+        //$hidden.val(hiddenValue);
+        $hidden.val(hiddenValue).trigger('change');
         const $wrapper = $hidden.closest('[data-date-input]');
         const $ui = $wrapper.find('.date-ui');
         if ($ui.length && $ui.data('datepicker')) {

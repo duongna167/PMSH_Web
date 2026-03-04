@@ -1,3 +1,4 @@
+using BaseBusiness.Model;
 using System.Data;
 
 namespace Reservation.Services.Interfaces
@@ -9,7 +10,20 @@ namespace Reservation.Services.Interfaces
         DataTable AllotmentSearch(string code, string marketId, string allotmentTypeId, string profileId, string isDefault, string zone);
         DataTable GetAllotmentDetail(int allotmentID, string roomTypeCodes, DateTime showHistory);
         DataTable GetAllotmentResvSearch(string allotmentIDs, int roomTypeID);
+        DataTable GetAllotmentDefaultByStage(DateTime fromDate, DateTime toDate, int type, string allotmentId, string paraDate, string paraDateConvert);
+        Task<(bool canDelete, string message)> CanDeleteAllotment(int allotmentId);
+        Task<bool> DeleteAllotment(int allotmentId);
+        Task<bool> ProcessTransfer(AllotmentTransferModel model, int stageId, int cutoffDay, DateTime? cutoffDate);
+        DataTable GetAllotmentLookupData();
+        int GetActualAvailability(int fromAllotmentId, int roomTypeId, DateTime date);
+        int GetAvailability(int fromAllotID, int rtID, DateTime date);
         //DataTable AllotmentReport(string code, string name, int inactive);
         Task<DataTable> GetAllAllotmentData(string? Code, string? Name, int inactive = 0);
+        DataTable GetAllotmentReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString,int byAllotmentType,int byAllotmentDetail);
+        DataTable GetAllotmentandRoomTypeReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString, string allotmentType);
+        DataTable GetAllotmentandRoomTypeGroupByAllReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString, string allotmentType);
+        DataTable GetAllotmentandRoomTypeGroupByRTReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString, string allotmentType);
+        DataTable GetAllotmentProfileReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString);
+        DataTable GetAllotmentRoomtypedetailReport(DateTime fromDate, DateTime toDate, string columnsString, string expressionString);
     }
 }

@@ -1,10 +1,81 @@
-@using DevExpress.XtraReports.UI
 
-@{
-   
-}
 
 <style>
+    #allot_trans_cutoffDateInput:disabled,
+    #allot_trans_cutoffDayInput:disabled {
+        background-color: #f5f5f5;
+        cursor: not-allowed;
+    }
+
+    .btn-modal-detail {
+        width: 28px;
+        height: 28px;
+        border: 1px solid rgba(0,0,0,0.5);
+        background: #ffffff;
+        color: #222;
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+    }
+
+        /* Hover */
+        .btn-modal-detail:hover {
+            background: #f0f0f0;
+            border-color: rgba(0,0,0,0.7);
+        }
+
+        /* Active (khi nhấn) */
+        .btn-modal-detail:active {
+            background: #e0e0e0;
+            transform: scale(0.95);
+        }
+
+        /* Focus */
+        .btn-modal-detail:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+        }
+    /* Cố định chiều cao hàng trên Desktop để có scroll riêng từng bảng */
+    @@media (min-width: 768px) {
+        .row-top-grids {
+            height: 300px !important;
+            flex-shrink: 0;
+        }
+
+        .row-bottom-resv {
+            flex-grow: 1;
+            min-height: 0;
+        }
+    }
+
+    /* Responsive cho Mobile */
+    @@media (max-width: 767px) {
+        .modal-body {
+            height: auto !important;
+            overflow-y: auto !important;
+        }
+
+        .row-top-grids, .row-bottom-resv {
+            height: auto !important;
+            display: block !important;
+        }
+
+            .row-top-grids > div, .row-bottom-resv > div {
+                height: 350px !important; /* Cố định chiều cao mỗi bảng trên mobile để Grid không bị mất scroll */
+                margin-bottom: 25px;
+            }
+
+        .grid-wrapper {
+            height: 100% !important;
+        }
+    }
+
     /* Đẩy lề phải cho cột Total để không bị giáp lề */
     .grid-column-total {
         padding-right: 15px !important;
@@ -46,12 +117,6 @@
         gap: 8px;
     }
 
-    /* Cố định chiều cao hàng chứa 2 bảng trên */
-    .row-top-grids {
-        height: 300px !important; /* Điều chỉnh con số này theo ý bạn */
-        flex-shrink: 0; /* Không cho phép hàng này bị bóp nhỏ lại */
-    }
-
     /* Hàng chứa bảng Reservation bên dưới sẽ tự chiếm phần còn lại */
     .row-bottom-resv {
         flex-grow: 1;
@@ -81,6 +146,7 @@
         flex-direction: column;
     }
 </style>
+
 <div class="modal fade" id="allot_search_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -94,14 +160,30 @@
                     <button id="allot_search_btnNew" class="mui-button mui-button-new">New</button>
                     <button id="allot_search_btnEdit" class="mui-button mui-button-edit">Edit</button>
                     <button id="allot_search_btnDelete" class="mui-button mui-button-delete">Delete</button>
-                    @* <button id="allot_search_btnHistory" class="mui-button mui-button-new">History</button> *@
+
+                    <div class="mui-dropdown" id="transferDropdown">
+                        <button class="mui-button mui-button-advance dropdown-toggle">
+                            Transfer
+                        </button>
+
+                        <div class="mui-dropdown-menu">
+                            <button id="allot_search_btnFromAllotment" class="mui-button mui-button-advance dropdown-item">
+                                From Allotment
+                            </button>
+                            <button id="allot_search_btnFromInventory" class="mui-button mui-button-advance dropdown-item">
+                                From Inventory
+                            </button>
+                        </div>
+                    </div>
+
+                    <button id="allot_search_btnDetail" class="mui-button mui-button-new">Detail</button>
                     <button id="allot_search_btnExportExcel" class="mui-button mui-button-export">Excel</button>
                     <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
                 </div>
                 <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
 
                     <div class="p-2 flex-shrink-0">
-                        <div class="row g-3 align-items-center ooos-filter flex-wrap">
+                        <div class="row g-3 align-items-center flex-wrap">
 
                             <div class="col-auto d-flex align-items-center">
                                 <label class="fw-bold small me-2 mb-0">Code</label>
@@ -110,7 +192,7 @@
 
                             <div class="col-auto d-flex align-items-center">
                                 <label class="fw-bold small me-2 mb-0">Market</label>
-                                <div style="width: 150px;">
+                                <div style="width: 120px;">
                                     <select id="allot_search_market" class="tomselect-custom w-100">
                                         @foreach (var z in ViewBag.MarketList)
                                         {
@@ -122,7 +204,7 @@
 
                             <div class="col-auto d-flex align-items-center">
                                 <label class="fw-bold small me-2 mb-0">All.Type</label>
-                                <div style="width: 70px;">
+                                <div style="width: 100px;">
                                     <select id="allot_search_type" class="tomselect-custom w-100">
                                         @foreach (var g in ViewBag.AllotTypeList)
                                         {
@@ -329,11 +411,186 @@
     </div>
 </div>
 
-@* @await Html.PartialAsync("~/Views/Profile/SearchProfile.cshtml") *@
+<!-- Modal Detail by Stage -->
+<div class="modal fade" id="allot_detail_modal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="allot_detail_label" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2 bg-light">
+                <h5 class="modal-title" id="allot_detail_label" style="font-size: 14px;">Allotment Detail by Stage</h5>
+            </div>
+
+            <div class="modal-body d-flex flex-column" style="height: 500px;">
+                <div class="py-2 d-flex align-items-center gap-2 border-bottom mb-2">
+                    <button id="allot_detail_btnSearchDetail" class="mui-button mui-button-view">Search</button>
+                    <button id="allot_detail_btnExport" class="mui-button mui-button-export">Export</button>
+                    <button data-bs-dismiss="modal" class="mui-button mui-button-close">Close</button>
+                </div>
+
+                <div class="grid-wrapper gridContainer flex-grow-1">
+                    <div id="allot_detail_gridAllotDetailByStage"></div>
+                </div>
+
+                <div class="py-2 d-flex align-items-center gap-3 border-top mt-2">
+                    <div class="d-flex align-items-center gap-1">
+                        <button class="btn-modal-detail" onclick="allot_search_Module.changeDetailDate(-1)">-</button>
+                        <div data-date-input data-format="DD/MM/YYYY" data-name="allot_detail_searchDate">
+                            <input type="text" class="date-ui form-control form-control-sm" style="width: 120px;">
+                        </div>
+                        <button class="btn-modal-detail" onclick="allot_search_Module.changeDetailDate(1)">+</button>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="small fw-bold mb-0">Display No of Days</label>
+                        <select id="allot_detail_noOfDays" class="form-select form-select-sm" style="width: 70px;">
+                            <option value="10">10</option>
+                            <option value="15">15</option>
+                            <option value="20" selected>20</option>
+                            <option value="30">30</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal transfer -->
+<div class="modal fade" id="allot_transfer_modal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-1 bg-light">
+                <h6 class="modal-title">Allotment Transfer</h6>
+            </div>
+            <div class="modal-body">
+                <div class="py-2 mb-3">
+                    <button type="button" id="allot_trans_btnOK" class="mui-button mui-button-save">OK</button>
+                    <button type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <form id="allot_transfer_formContainer">
+                    <div class="row g-3">
+                        <div class="col-md-6 border-end">
+                            <h6 class="small fw-bold">Allotment Information</h6>
+
+                            <div class="mb-2 d-flex align-items-start gap-2">
+                                <label class="small fw-bold flex-shrink-0 mt-1" style="width: 60px;">From</label>
+                                <div class="flex-grow-1" style="min-width: 0;">
+                                    <select id="allot_trans_fromID" class="tomselect-custom"></select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="form-check flex-shrink-0 ms-1 mt-1">
+                                    <input class="me-1" type="checkbox" id="allot_trans_chkInventory" disabled>
+                                    <label class="form-check-label small" for="allot_trans_chkInventory">Inventory</label>
+                                </div>
+                            </div>
+
+                            <div class="mb-2 d-flex align-items-center" style="padding-left: 68px;">
+                                <label id="allot_trans_allotName" class="small text-muted text-truncate w-100"></label>
+                            </div>
+
+                            <div class="mb-2 d-flex align-items-start gap-2">
+                                <label class="small fw-bold flex-shrink-0 mt-1" style="width: 60px;">To</label>
+                                <div class="flex-grow-1" style="min-width: 0;">
+                                    <select id="allot_trans_toID" class="tomselect-custom"></select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+
+                            <div class="mb-2 d-flex align-items-start gap-2">
+                                <label class="small fw-bold flex-shrink-0 mt-1" style="width: 60px;">Stage</label>
+                                <div class="flex-grow-1" style="min-width: 0;">
+                                    <select id="allot_trans_stageID" class="tomselect-custom"></select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+
+                            <div class="mb-2 d-flex align-items-start gap-2">
+                                <label class="small fw-bold flex-shrink-0 mt-1" style="width: 60px;">Cut off</label>
+                                <div class="d-flex flex-column gap-2 flex-grow-1">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <input type="radio" name="cutoffType" id="allot_trans_cutoffDate" value="date">
+                                        <label for="allot_trans_cutoffDate" class="small mb-0" style="width: 80px;">Cut off date</label>
+                                        <div class="flex-grow-1">
+                                            <div data-date-input data-format="DD/MM/YYYY" data-name="allot_trans_cutoffDateInput" style="width:130px;">
+                                                <input type="text" class="date-ui form-control form-control-sm">
+                                            </div>
+                                            <div class="invalid-feedback"></div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <input type="radio" name="cutoffType" id="allot_trans_cutoffDay" value="day" checked>
+                                        <label for="allot_trans_cutoffDay" class="small mb-0" style="width: 80px;">Cut off day</label>
+                                        <div class="flex-grow-1">
+                                            <input type="number" id="allot_trans_cutoffDayInput" class="form-control form-control-sm" style="width:80px;">
+                                            <div class="invalid-feedback"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6 class="small fw-bold">Transfer</h6>
+
+                            <div class="row g-2 mb-2 align-items-end">
+                                <div class="col-5">
+                                    <label class="small fw-bold">From Date</label>
+                                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="allot_trans_fromDate">
+                                        <input type="text" class="date-ui form-control form-control-sm">
+                                    </div>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="col-2 px-1">
+                                    <input type="number" id="allot_trans_count" class="form-control form-control-sm text-center" value="1" min="1" style="padding: 0.25rem 0.1rem;">
+                                </div>
+                                <div class="col-5">
+                                    <label class="small fw-bold">To Date</label>
+                                    <div data-date-input data-format="DD/MM/YYYY" data-name="allot_trans_toDate">
+                                        <input type="text" class="date-ui form-control form-control-sm">
+                                    </div>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="small fw-bold" style="width: 80px;">Room Type</label>
+                                    <div class="flex-grow-1">
+                                        <select id="allot_trans_roomTypeID" class="tomselect-custom w-100"></select>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="small fw-bold" style="width: 80px;">Quantity</label>
+                                    <div class="d-flex flex-grow-1 gap-2">
+                                        <div class="flex-grow-1">
+                                            <input type="text" id="allot_trans_qty" class="form-control form-control-sm" value="1">
+                                            <div class="invalid-feedback"></div>
+                                        </div>
+                                        <button type="button" id="allot_trans_btnInput" class="mui-button mui-button-export flex-shrink-0">Input</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="gridContainer mt-3 border-top pt-2 flex-grow-1" style="min-height: 200px;">
+                    <div id="allot_trans_grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 
     var allot_search_Module = {
         selectedRowData: null,
+        selectedDetailRow: null,
+        currentNoOfDays: 20,
 
         baseGridOptions: {
             height: "100%",
@@ -377,25 +634,56 @@
                 ]);
                 self.reloadGrid();
 
-                $('#allot_setup_itemModal').on('hidden.bs.modal', function () {
-                    ValidationAdapter.clear("#allot_setup_formContainer");
-                });
-
-                 // events input
-                $("#allot_setup_formContainer").on("input", "input, textarea", function () {
-                    if ($(this).hasClass("is-invalid")) {
-                        ValidationAdapter.clearField(this);
-                    }
-                });
-
-                // event tomselect
-                $("#allot_setup_formContainer").on("change", "select.tomselect-custom", function () {
-                    if (this.tomselect) {
-                        ValidationAdapter.clearField(this);
-                    }
-                });
-
             };
+
+            $('#allot_setup_itemModal').on('hidden.bs.modal', function () {
+                ValidationAdapter.clear("#allot_setup_formContainer");
+            });
+
+            $('#allot_transfer_modal').on('hidden.bs.modal', function () {
+                ValidationAdapter.clear("#allot_transfer_formContainer");
+                clearMultipleTomSelect([
+                    "#allot_trans_roomTypeID",
+                    "#allot_trans_toID",
+                    "#allot_trans_stageID"
+                ]);
+            });
+
+            const syncTransferDates = (triggerField) => {
+                // Log để kiểm tra xem hàm có chạy vào không
+                console.log("Triggered sync by:", triggerField);
+
+                const fromIso = $("#allot_trans_fromDate").val();
+                const toIso = $("#allot_trans_toDate").val();
+                const count = parseInt($("#allot_trans_count").val() || 0);
+
+                if (triggerField === 'fromDate' || triggerField === 'count') {
+                    if (fromIso && count > 0) {
+                        const newToIso = UI.addDaysIso(fromIso, count);
+                        UI.setHiddenDate("allot_trans_toDate", newToIso);
+                    }
+                }
+                else if (triggerField === 'toDate') {
+                    if (fromIso && toIso) {
+                        const dFrom = new Date(fromIso);
+                        const dTo = new Date(toIso);
+                        const diffDays = Math.ceil((dTo - dFrom) / (1000 * 60 * 60 * 24));
+
+                        if (diffDays > 0) {
+                            $("#allot_trans_count").val(diffDays);
+                        } else {
+                            const minTo = UI.addDaysIso(fromIso, 1);
+                            UI.setHiddenDate("allot_trans_toDate", minTo);
+                            $("#allot_trans_count").val(1);
+                        }
+                    }
+                }
+            };
+
+            // Lắng nghe trực tiếp trên ID thẻ hidden (được sinh ra bởi data-name)
+            $(document).on("change", "#allot_trans_fromDate", () => syncTransferDates('fromDate'));
+            $(document).on("change", "#allot_trans_toDate", () => syncTransferDates('toDate'));
+            $(document).on("input change", "#allot_trans_count", () => syncTransferDates('count'));
 
         },
 
@@ -406,15 +694,25 @@
             $("#allot_search_btnEdit").on("click", () => self.openEditModal());
             $("#allot_setup_btnSaveItem").on("click", () => self.saveAllotment());
             $("#allot_search_btnDelete").on("click", () => self.confirmDelete());
-            $("#allot_search_btnExportExcel").on("click", () => self.exportToExcel());
-            $("#allot_search_btnHistory").on("click", () => self.openModalHistory());
-            $("#allot_search_btnHistorySearch").on("click", () => self.fetchHistoryData());
+            $("#allot_search_btnExportExcel").on("click", () => self.exportAllotInfoToExcel());
+            $("#allot_search_btnDetail").on("click", () => self.openModalDetail());
+            $("#allot_detail_btnSearchDetail").on("click", () => self.fetchDetailByStage());
+            $("#allot_detail_btnExport").on("click", () => self.exportDetailStageToExcel());
+            $("#allot_search_btnFromAllotment").on("click", () => self.openTransferModal(1));
+            $("#allot_search_btnFromInventory").on("click", () => self.openTransferModal(0));
 
-            $("#allot_search_profileName").on("input", function() {
+            $("#allot_trans_btnInput").on("click", () => self.handleInputTransfer());
+            $("#allot_trans_btnOK").on("click", () => self.saveTransfer());
+
+                $("#allot_search_profileName").on("input", function() {
                 if ($(this).val().trim() === "") {
                     $("#allot_search_profileId").val("");
                 }
-            })
+            });
+
+            $("#allot_detail_noOfDays").on("change", function () {
+                allot_search_Module.fetchDetailByStage();
+            });
         },
 
         reloadGrid: function () {
@@ -431,8 +729,7 @@
 
             self.renderDetailGrid([]);
             self.renderResvGrid([]);
-
-            // $("#allot_search_loading").show();
+            LoadingManager.show();
             $.ajax({
                 url: '/Allotment/GetAllotmentSearch',
                 type: 'GET',
@@ -451,11 +748,11 @@
                         self.renderResvGrid([]);
                     }
 
-                    // $("#allot_search_loading").hide();
+                    LoadingManager.hide();
                 },
                 error: function (xhr, status, error) {
                     showToast("Error", "Unable to load data", false);
-                    // $("#allot_search_loading").hide();
+                    LoadingManager.hide();
                 }
             });
         },
@@ -670,22 +967,22 @@
 
 
             const payload = {
-                id: parseInt($("#allot_setup_id").val() || 0),
-                code: $("#allot_setup_code").val(),
-                name: $("#allot_setup_name").val(),
-                accountName: $("#allot_setup_name").val(),
-                profileID: parseInt($("#allot_setup_profileID").val() || 0),
-                marketID: parseInt(toBackendValue(getTomSelectData("#allot_setup_marketID"), "value") || 0),
-                allotmentTypeID: parseInt(toBackendValue(getTomSelectData("#allot_setup_type"), "value") || 0),
-                isDefault: 0,
-                cutOffDay: 1,
-                createBy: loginName,
-                updateBy: loginName
+                ID: parseInt($("#allot_setup_id").val() || 0),
+                Code: $("#allot_setup_code").val(),
+                Name: $("#allot_setup_name").val(),
+                AccountName: $("#allot_setup_name").val(),
+                ProfileID: parseInt($("#allot_setup_profileID").val() || 0),
+                MarketID: parseInt(toBackendValue(getTomSelectData("#allot_setup_marketID"), "value") || 0),
+                AllotmentTypeID: parseInt(toBackendValue(getTomSelectData("#allot_setup_type"), "value") || 0),
+                IsDefault: false, //true =1 ,false =0
+                CuttOffDay: 1,
+                CreateBy: loginName,
+                UpdateBy: loginName
             };
 
             $.ajax({
                 url: "/Allotment/SaveAllotment",
-                method: "POST",
+                type: "POST",
                 contentType: "application/json",
                 data: JSON.stringify(payload),
                 success: function (res) {
@@ -706,6 +1003,33 @@
                     showToast("Error", "Server error occurred.", false);
                 }
             });
+        },
+            
+        confirmDelete: function () {
+            const self = this;
+            if (!self.selectedRowData) {
+                showToast("Warning", "Please select an allotment to delete!", false);
+                return;
+            }
+
+            if (confirm("Are you sure you want to delete this allotment?")) {
+                $.ajax({
+                    url: "/Allotment/DeleteAllot/" + self.selectedRowData.id,
+                    type: "POST",
+                    success: function (res) {
+                        if (res.success) {
+                            showToast("Success", res.message, true);
+                            self.reloadGrid();
+                        } else {
+                            showToast("Warning", res.message, false); 
+                        }
+                    },
+                    error: function (xhr) {
+                        const msg = xhr.responseJSON ? xhr.responseJSON.message : "Delete failed";
+                        showToast("Error", msg, false);
+                    }
+                });
+            }
         },
 
         fillEditForm: function (data) {
@@ -742,64 +1066,62 @@
                 $("#allot_setup_profileName").val(selectedData.account);
                 $("#allot_setup_profileID").val(selectedData.id);
 
+                ValidationAdapter.clearField($("#allot_setup_profileName"));
             });
         },
 
-        exportToExcel: function () {
-            const grid = $("#allot_search_gridContainer").dxDataGrid("instance");
-            if (!grid) {
-                showToast("Warning", "No data to export!", false);
+        exportAllotInfoToExcel: function () {
+            // 1. Lấy instance của Grid Allotment Information
+            const grid = $("#allot_search_gridAllotInfor").dxDataGrid("instance");
+            if (!grid || grid.getDataSource().items().length === 0) {
+                showToast("Warning", "No data available in Allotment Information to export!", false);
                 return;
             }
+
             const workbook = new ExcelJS.Workbook();
-            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-            const worksheet = workbook.addWorksheet("Sheet 1");
-
-            // === Dòng 1: Tên công ty (merge theo 4 cột) ===
-            worksheet.addRow([companyName]);
-            worksheet.mergeCells('A1:D1');
-            worksheet.getRow(1).font = { bold: true };
-            worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-            // === Dòng 2: Ngày giờ xuất (Sửa lỗi hiển thị ở đây) ===
+            const worksheet = workbook.addWorksheet("Allotment Info");
+            const companyName = localStorage.getItem("CompanyName") || "Hotel Management System";
             const now = new Date();
             const exportDateStr = "Export Date: " + now.toLocaleString("vi-VN");
-            const row2 = worksheet.getRow(2);
-            row2.getCell(1).value = exportDateStr; // Gán vào ô đầu tiên của vùng merge (A2)
-            worksheet.mergeCells('A2:D2');
-            row2.alignment = { vertical: 'middle', horizontal: 'left' };
-            row2.font = { italic: true };
 
-            // === Dòng 3–4: trống
-            worksheet.addRow([]);
-            worksheet.addRow([]);
-
-            // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-            const reportRow = worksheet.addRow(['Allotment Data']);
-            worksheet.mergeCells('A5:D5');
-            reportRow.font = { bold: true, size: 14 };
-            reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-            // === Dòng 6: trống
-            worksheet.addRow([]);
-
-            // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
+            // 2. Cấu hình tiêu đề và định dạng file
             DevExpress.excelExporter.exportDataGrid({
                 component: grid,
                 worksheet: worksheet,
                 autoFilterEnabled: true,
-                topLeftCell: { row: 7, column: 1 }
+                topLeftCell: { row: 6, column: 1 }, // Dữ liệu bắt đầu từ dòng 6
+                customizeCell: function (options) {
+                    const { gridCell, excelCell } = options;
+                    if (gridCell.rowType === "header") {
+                        excelCell.font = { bold: true };
+                        excelCell.alignment = { horizontal: 'center' };
+                        excelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } };
+                    }
+                }
             }).then(function () {
-                // Footer (sau cùng)
-                const lastRow = worksheet.lastRow.number + 2;
-                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
-                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+                // 3. Thêm Header tùy chỉnh phía trên bảng dữ liệu
+                // Dòng 1: Tên công ty
+                worksheet.mergeCells('A1:D1');
+                const row1 = worksheet.getCell('A1');
+                row1.value = companyName;
+                row1.font = { bold: true, size: 14 };
 
-                // Ghi file
-                let fileName = "AllotmentSearch.xlsx";
+                // Dòng 2: Ngày giờ xuất
+                worksheet.mergeCells('A2:D2');
+                const row2 = worksheet.getCell('A2');
+                row2.value = exportDateStr;
+                row2.font = { italic: true };
+
+                // Dòng 4: Tiêu đề báo cáo
+                worksheet.mergeCells('A4:F4');
+                const reportTitle = worksheet.getCell('A4');
+                reportTitle.value = "ALLOTMENT INFORMATION REPORT";
+                reportTitle.font = { bold: true, size: 16 };
+                reportTitle.alignment = { horizontal: 'center' };
+
+                // 4. Thực hiện ghi file và tải về
                 workbook.xlsx.writeBuffer().then(function (buffer) {
-                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "Allotment_Information.xlsx");
                 });
             });
         },
@@ -811,7 +1133,437 @@
             }
         },
 
+        openModalDetail: function() {
+            const self = this;
+            initDateInputs();
+            const detailGrid = $("#allot_search_gridAllotDetail").dxDataGrid("instance");
+            const selectedRows = detailGrid.getSelectedRowsData();
 
+            if (selectedRows.length === 0) {
+                showToast("Warning", "Please select a row in Allotment Detail first!", false);
+                return;
+            }
+
+            self.selectedDetailRow = selectedRows[0];
+
+            //Hiển thị ngày giờ ở title
+            const now = new Date();
+            const timeString = now.toLocaleString('vi-VN', {
+                hour12: true,
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+            $("#allot_detail_label").text(`Allotment Detail by Stage - ${timeString}`);
+
+            $("#allot_detail_modal").modal("show");
+
+            // Ngày bắt đầu là ngày của dòng đang chọn
+            const fromDateStr = self.selectedDetailRow["From Date"];
+            UI.setHiddenDate("allot_detail_searchDate", fromDateStr);
+
+            self.fetchDetailByStage();
+        },
+
+        // Hàm xử lý nút + / - ngày
+        changeDetailDate: function(days) {
+            const self = this;
+            const currentIso = $("#allot_detail_searchDate").val();
+            if (currentIso) {
+                // Sử dụng UI.addDaysIso để tính toán ngày mới
+                const newIso = UI.addDaysIso(currentIso, days);
+                UI.setHiddenDate("allot_detail_searchDate", newIso);
+                self.fetchDetailByStage();
+            }
+        },
+
+        fetchDetailByStage: function() {
+            const self = this;
+            const fromDateIso = $("#allot_detail_searchDate").val();
+            const noOfDays = parseInt($("#allot_detail_noOfDays").val() || 20);
+
+            if (!fromDateIso) {
+                showToast("Warning", "Please select a start date", false);
+                return;
+            }
+
+            LoadingManager.show();
+            $.get('/Allotment/GetAllotmentDetailFull', {
+                allotmentId: self.selectedRowData.id,
+                fromDate: fromDateIso,
+                noOfDays: noOfDays
+            }, function(res) {
+                if (res.success && res.data) {
+                    self.renderStageGrid(res.data);
+                } else {
+                    showToast("Error", res.message || "No data found", false);
+                }
+                LoadingManager.hide();
+            }).fail(function() {
+                LoadingManager.hide();
+                showToast("Error", "Server connection error", false);
+            });
+        },
+
+        renderStageGrid: function(displayData) {
+            const self = this;
+            if (!displayData || displayData.length === 0) return;
+
+            let columns = [
+                {
+                    dataField: "RoomType",
+                    caption: "Room Type",
+                    fixed: true,
+                    width: 120,
+                    alignment: "left"
+                }
+            ];
+
+            // Lấy tất cả các Keys là ngày tháng (dd/MM) từ dòng đầu tiên
+            const dateKeys = Object.keys(displayData[0]).filter(key => key !== "RoomType");
+
+            dateKeys.forEach(dateKey => {
+                // Phân tích ngày để tính Thứ và Cw
+                const currentYear = new Date().getFullYear();
+                const [day, month] = dateKey.split('/');
+                const dateObj = new Date(currentYear, parseInt(month) - 1, parseInt(day));
+
+                const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                const cw = self.getWeekNumber(dateObj);
+
+                // Template tiêu đề 3 dòng 
+                const customCaption = `
+                    <div style="text-align: center; line-height: 1.2; font-size: 11px;">
+                        <div class="fw-bold">${dateKey}</div>
+                        <div>${dayOfWeek}</div>
+                        <div class="text-muted">Cw ${cw}</div>
+                    </div>
+                `;
+
+                columns.push({
+                    dataField: dateKey,
+                    headerCellTemplate: function(container) {
+                        $(container).append(customCaption);
+                    },
+                    width: 80,
+                    alignment: "center"
+                });
+            });
+
+            //  Khởi tạo Grid
+            self.initGrid("#allot_detail_gridAllotDetailByStage", {
+                dataSource: displayData,
+                columns: columns,
+                columnAutoWidth: false,
+                showColumnLines: true,
+                // Hàng "Total Picked Up" màu vàng
+                onRowPrepared: function(e) {
+                    if (e.rowType === "data" && e.data.RoomType === "Total Picked Up") {
+                        e.rowElement.css({ "background-color": "#ffff00", "font-weight": "bold" });
+                    }
+                }
+            });
+        },
+
+        getWeekNumber: function(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            return weekNo;
+        },
+
+        exportDetailStageToExcel: function () {
+            const grid = $("#allot_detail_gridAllotDetailByStage").dxDataGrid("instance");
+            if (!grid) {
+                showToast("Warning", "No data to export!", false);
+                return;
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Detail Stage");
+            const now = new Date();
+            const timeStr = now.toLocaleString('vi-VN');
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 4, column: 1 }, // Để dành 3 dòng đầu cho Header
+                customizeCell: function (options) {
+                    const { gridCell, excelCell } = options;
+
+                    // 1. Định dạng Header tiêu đề 3 dòng
+                    if (gridCell.rowType === "header") {
+                        excelCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                        excelCell.font = { bold: true };
+                        excelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+                    }
+
+                    // 2. Định dạng hàng "Total Picked Up" màu vàng
+                    if (gridCell.rowType === "data" && gridCell.data.RoomType === "Total Picked Up") {
+                        excelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+                        excelCell.font = { bold: true };
+                    }
+                }
+            }).then(function () {
+                // Thêm tiêu đề báo cáo ở dòng 1
+                worksheet.mergeCells('A1:E1');
+                const titleCell = worksheet.getCell('A1');
+                titleCell.value = "ALLOTMENT DETAIL BY STAGE";
+                titleCell.font = { bold: true, size: 14 };
+                titleCell.alignment = { horizontal: 'left' };
+
+                // Thêm thời gian xuất báo cáo ở dòng 2
+                worksheet.mergeCells('A2:E2');
+                worksheet.getCell('A2').value = "Export Date: " + timeStr;
+                worksheet.getCell('A2').font = { italic: true };
+
+                // Xuất file
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "Allotment_Detail_Stage.xlsx");
+                });
+            });
+        },
+
+        openTransferModal: function (mode) {
+            const self = this;
+
+            if (mode === 1) {
+                if (!self.selectedRowData) {
+                    showToast("Warning", "Please select an Allotment from the list first!", false);
+                    return;
+                }
+            }
+
+            initDateInputs();
+            UI.setHiddenDate(
+                "allot_trans_cutoffDateInput",
+                new Date()
+            );
+            $("#allot_trans_cutoffDayInput").val(1);
+            self.initCutOffToggle();
+            $("#allot_transfer_modal").modal("show");
+
+            const fromID = (mode === 1 && self.selectedRowData) ? self.selectedRowData.id : 0;
+
+            loadDataToTomSelect("#allot_trans_roomTypeID", "/Allotment/GetRoomTypesLookup", (item) => ({
+                value: item.id,
+                text: `${item.code} - ${item.name}`,
+                data: item 
+            }));
+
+            loadDataToTomSelect("#allot_trans_toID", `/Allotment/GetAllotmentLookup?excludeID=${fromID}`, (item) => ({
+                value: item.id,
+                text: `${item.code} - ${item.name}`, 
+                data: item 
+            }));
+            
+            loadDataToTomSelect("#allot_trans_stageID", "/Allotment/GetStagesLookup", (item) => ({
+                value: item.id,
+                text: `${item.code} - ${item.name}`, 
+                data: item
+            }));
+
+            this.disposeGrid("#allot_trans_grid");
+            this.initGrid("#allot_trans_grid", {
+                dataSource: [],
+                columns: [
+                    { dataField: "roomType", caption: "Ro. Type" },
+                    { dataField: "quantity", caption: "Qty", width: 60 },
+                    { dataField: "fromDate", caption: "From Date", dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "night", caption: "N", width: 40},
+                    { dataField: "toDate", caption: "To Date", dataType: "date", format: "dd/MM/yyyy" }
+                ],
+                height: 200
+            });
+
+            // Fill dữ liệu vào phần "From"
+            const tsFrom = document.getElementById('allot_trans_fromID').tomselect;
+
+            if (mode === 0) {
+                $("#allot_trans_chkInventory").prop("checked", true).prop("disabled", true);
+                $("#allot_trans_allotName").text("Inventory").addClass("text-danger");
+
+                if(tsFrom) {
+                    tsFrom.clear();
+                    tsFrom.addOption({value: 0, text: 'Inventory'});
+                    tsFrom.addItem(0);
+                    tsFrom.disable();
+                }
+            } else {
+                $("#allot_trans_chkInventory").prop("checked", false).prop("disabled", true);
+
+                const selectedAllot = self.selectedRowData;
+                const displayName = `${selectedAllot.code} - ${selectedAllot.allotmentName}`;
+
+                $("#allot_trans_allotName").text(displayName).removeClass("text-danger").addClass("text-primary");
+
+                // Fill ID vào TomSelect ẩn
+                if(tsFrom) {
+                    tsFrom.enable();
+                    tsFrom.clear();
+                    tsFrom.addOption({ value: selectedAllot.id, text: displayName });
+                    tsFrom.addItem(selectedAllot.id);
+                    tsFrom.disable(); 
+                }
+            }
+
+            const bizDate = window.dateSystem;
+            if (bizDate) {
+                UI.setHiddenDate("allot_trans_fromDate", bizDate);
+                $("#allot_trans_count").val(1);
+                UI.setHiddenDate("allot_trans_toDate", UI.addDaysIso(bizDate, 1));
+            }
+        },
+
+        initCutOffToggle: function () {
+
+            const $dateRadio = $("#allot_trans_cutoffDate");
+            const $dayRadio  = $("#allot_trans_cutoffDay");
+
+            const $dateInput = $('[data-name="allot_trans_cutoffDateInput"] input');
+            const $dayInput  = $("#allot_trans_cutoffDayInput");
+
+            const updateUI = () => {
+
+                if ($dateRadio.is(":checked")) {
+                    $dateInput.prop("disabled", false);
+                    $dayInput.prop("disabled", true);
+                }
+                else if ($dayRadio.is(":checked")) {
+                    $dateInput.prop("disabled", true);
+                    $dayInput.prop("disabled", false);
+                }
+                else {
+                    $dateInput.prop("disabled", true);
+                    $dayInput.prop("disabled", true);
+                }
+            };
+
+            $dateRadio.off("change").on("change", updateUI);
+            $dayRadio.off("change").on("change", updateUI);
+
+            updateUI();
+        },
+
+        handleInputTransfer: function () {
+            const self = this;
+            const grid = $("#allot_trans_grid").dxDataGrid("instance");
+
+            ValidationAdapter.clear("#allot_transfer_formContainer");
+
+            const rtData = getTomSelectData("#allot_trans_roomTypeID");
+            const qty = parseInt($("#allot_trans_qty").val() || 0);
+            const fromID = parseInt(toBackendValue(getTomSelectData("#allot_trans_fromID"), "value") || 0);
+            const fromDate = $("#allot_trans_fromDate").val();
+            const night = parseInt($("#allot_trans_count").val() || 1);
+
+            $.get('/Allotment/CheckTransferAvailability', {
+                fromAllotmentId: fromID,
+                roomTypeId: rtData ? rtData.value : 0,
+                fromDate: fromDate,
+                night: night,
+                quantity: qty
+            }, function (res) {
+                if (!res.success) {
+                    if (res.errors && res.errors.length > 0) {
+                        ValidationAdapter.apply(res.errors, "#allot_transfer_formContainer");
+                        showToast("Warning", "Check input data again.", false);
+                    } else {
+                        showToast("Error", res.message, false);
+                    }
+                    return;
+                }
+
+                const newItem = {
+                    roomType: rtData.text,
+                    roomTypeID: parseInt(rtData.value),
+                    quantity: qty,
+                    fromDate: fromDate,
+                    toDate: $("#allot_trans_toDate").val(),
+                    night: night
+                };
+
+                const dataSource = grid.option("dataSource") || [];
+                dataSource.push(newItem);
+                grid.option("dataSource", dataSource);
+
+                $("#allot_trans_qty").val(1);
+            });
+        },
+
+        saveTransfer: function () {
+            const self = this;
+            const grid = $("#allot_trans_grid").dxDataGrid("instance");
+            const dataSource = grid.option("dataSource");
+
+            ValidationAdapter.clear("#allot_transfer_formContainer");
+            if (!dataSource || dataSource.length === 0) {
+                showToast("Warning", "Input info transfer to grid.", false);
+                return;
+            }
+
+            const cutoffType = $("input[name='cutoffType']:checked").val();
+            const cutoffDay = cutoffType === "day" ? parseInt($("#allot_trans_cutoffDayInput").val() || 0) : -1;
+            const cutoffDate = cutoffType === "date" ? $("#allot_trans_cutoffDateInput").val() : null;
+
+            const stageID = parseInt(toBackendValue(getTomSelectData("#allot_trans_stageID"), "value") || 0); 
+            const fromID = parseInt(toBackendValue(getTomSelectData("#allot_trans_fromID"), "value") || 0);
+            const toID = parseInt(toBackendValue(getTomSelectData("#allot_trans_toID"), "value") || 0); 
+
+            const loginName = (localStorage.getItem("Loginname") || "").trim().replace(/^"(.*)"$/, '$1');
+
+            const firstItem = dataSource[0];
+            const validatePayload = {
+                FromAllotmentID: fromID,
+                ToAllotmentID: toID,
+                RoomTypeID: firstItem.roomTypeID,
+                Quantity: firstItem.quantity,
+                FromDate: firstItem.fromDate,
+                ToDate: firstItem.toDate,
+                CreateBy: loginName,
+                AllotmentStageID: stageID,
+                CutOffDay: cutoffDay,
+                CutOffDate: cutoffDate
+            };
+
+            $.ajax({
+                url: "/Allotment/ExecuteTransfer",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(validatePayload),
+                success: function (res) {
+                    if (!res.success && res.errors) {
+                        ValidationAdapter.apply(res.errors, "#allot_transfer_formContainer");
+                        showToast("Warning", "Please check required fields.", false);
+                        return; 
+                    }
+
+                    const promises = dataSource.map(item => {
+                        return $.ajax({
+                            url: "/Allotment/ExecuteTransfer",
+                            type: "POST",
+                            contentType: "application/json",
+                            data: JSON.stringify({
+                                ...validatePayload, // lấy các trường chung
+                                RoomTypeID: item.roomTypeID,
+                                Quantity: item.quantity,
+                                FromDate: item.fromDate,
+                                ToDate: item.toDate
+                            })
+                        });
+                    });
+
+                    Promise.all(promises).then(() => {
+                        showToast("Success", "Transfer completed!", true);
+                        $("#allot_transfer_modal").modal("hide");
+                        self.reloadGrid();
+                    }).catch(() => {
+                        showToast("Error", "Transfer failed during processing.", false);
+                    });
+                }
+            });
+        },
     };
 
     $(document).ready(function () {

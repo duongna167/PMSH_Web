@@ -75,13 +75,15 @@ namespace Administration.Controllers
         public IActionResult ArticleListSave(int id, string codenew, decimal dfprice, string descriptionnew, string transactionsListnew, string currList, string supplementNew, string user, int userID, int isActive)
         {
             ProcessTransactions pt = new ProcessTransactions();
-            pt.OpenConnection();
-            pt.BeginTransaction();
+            supplementNew = supplementNew ?? "";
+            descriptionnew = descriptionnew ?? "";
             var errors = new List<object>();
 
             DateTime businessDate = TextUtils.GetBusinessDate();
             try
             {
+                pt.OpenConnection();
+                pt.BeginTransaction();
                 user = user?.Trim().Trim('"') ?? string.Empty;
 
                 bool isNew = (id == 0);
@@ -157,7 +159,7 @@ namespace Administration.Controllers
                         Supplement = supplementNew
                     };
 
-                    ArticleBO.Instance.Insert(model);
+                    pt.Insert(model);
                 }
                 else
                 {
@@ -178,9 +180,9 @@ namespace Administration.Controllers
                     model.UpdateDate = businessDate;
                     model.UserUpdateID = userID;
 
-                    ArticleBO.Instance.Update(model);
+                    pt.Update(model);
                     #region Update thông tin bến bảng RestaurantClassArticleLnk
-                    model.Description = (model.Description ?? string.Empty).Replace("'", "`");
+                    model.Description = (model.Description).Replace("'", "`");
                     pt.UpdateCommand("Update RestaurantClassArticleLnk set ArticleDescription=N'" + model.Description + "' where ArticleCode= N'" + model.Code + "' ");
                     #endregion
                 }
