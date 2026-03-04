@@ -5,10 +5,12 @@ using BaseBusiness.Model;
 using BaseBusiness.util;
 using DevExpress.Data.Filtering.Helpers;
 using DevExpress.DataAccess.Sql;
+using DevExpress.Web.Internal;
 using DocumentFormat.OpenXml.EMMA;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -66,8 +68,44 @@ namespace Administration.Controllers
 
             List<ARAccountReceivableModel> listARAccount = PropertyUtils.ConvertToList<ARAccountReceivableModel>(ARAccountReceivableBO.Instance.FindAll());
             ViewBag.listARAccountList = listARAccount;
-            return View();
+
+            return PartialView();
         }
+
+
+        #region GetTransactionsList
+        [HttpGet]
+        public IActionResult GetTransactionsList()
+        {
+            var data = PropertyUtils.ConvertToList<TransactionsModel>(TransactionsBO.Instance.FindAll());
+            return Json(data);
+        }
+        #endregion
+
+        #region GetTransactionSubGroup
+        [HttpGet]
+        public IActionResult GetTransactionSubGroup()
+        {
+            try
+            {
+                var data = _iTransactionService.GetTransactionSubGroup();
+
+                var result = (from d in data.AsEnumerable()
+                              select d.Table.Columns.Cast<DataColumn>()
+                                  .ToDictionary(
+                                      col => col.ColumnName,
+                                      col => d[col.ColumnName]?.ToString()
+                                  )).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+
+        }
+
+        #endregion
 
         #region Transaction 
         [HttpGet]
@@ -115,14 +153,15 @@ namespace Administration.Controllers
         public IActionResult TransactionListSave(TransactionsModel model)
         {
             ProcessTransactions pt = new ProcessTransactions();
-            pt.OpenConnection();
-            pt.BeginTransaction();
 
             model.CreatedBy = model.CreatedBy?.Replace("\"", "").Trim();
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
             var businessDate = businessDateModel[0].BusinessDate;
             try
             {
+                pt.OpenConnection();
+                pt.BeginTransaction();
+
                 bool isNew = (model.ID == 0);
 
 
@@ -131,12 +170,12 @@ namespace Administration.Controllers
                     model.CreateDate = businessDate;
                     model.UpdateDate = businessDate;
 
-                    TransactionsBO.Instance.Insert(model);
+                    pt.Insert(model);
                 }
                 else
                 {
                     TransactionsModel mT = (TransactionsModel)TransactionsBO.Instance.FindByPrimaryKey(model.ID);
-                    if (model != null)
+                    if (mT != null)
                     {
 
                         SubGroupID = mT.TransactionSubGroupID;
@@ -151,7 +190,14 @@ namespace Administration.Controllers
                         OriginGroupCode = mT.GroupCode;
                         OriginGroupType = mT.GroupType;
                         OriginDesc = mT.Description;
+                        model.CreateDate = mT.CreateDate;
+                        model.UpdateDate = businessDate;
+
                     }
+                    #region Cập nhập thông tin trong bảng Transaction
+                    pt.Update(model);
+                    #endregion
+
                     #region Cập nhập thông tin trong bảng GenerateTransactions
 
                     string[] Field_Exp = { "TransactionCodeDetail" };
@@ -168,11 +214,11 @@ namespace Administration.Controllers
                     if ((model.TransactionGroupID != OriginGroupID) || (model.GroupCode != OriginGroupCode) || (model.TransactionSubGroupID != OriginSubGroupID)
                         || (model.SubgroupCode != OriginSubgroupCode) || (model.GroupType != OriginGroupType) || (model.Description != OriginDesc))
                     {
-                        string[] Field_Exp1 = { "TransactionCode", "Description" };
-                        string[] Field_ExpValue1 = { mT.Code, OriginDesc };
+                        string[] Field_Exp1 = { "TransactionCode" };
+                        string[] Field_ExpValue1 = { model.Code };
                         string[] Field_Change1 = { "TransactionGroupID", "GroupCode", "TransactionSubGroupID", "SubGroupCode", "GroupType", "Description" };
-                        string[] Field_ChangeValue1 ={ mT.TransactionGroupID.ToString(),mT.GroupCode,mT.TransactionSubGroupID.ToString(),mT.SubgroupCode,
-                                                          mT.GroupType.ToString(),mT.Description};
+                        string[] Field_ChangeValue1 ={ model.TransactionGroupID.ToString(),model.GroupCode,model.TransactionSubGroupID.ToString(),model.SubgroupCode,
+                                                          model.GroupType.ToString(),model.Description};
                         pt.UpdateAttribute("FolioDetail", Field_Exp1, Field_ExpValue1, Field_Change1, Field_ChangeValue1);
                     }
                     #endregion
@@ -189,7 +235,7 @@ namespace Administration.Controllers
             }
             catch (Exception ex)
             {
-                pt.RollBack();
+                try { pt.RollBack(); } catch (InvalidOperationException) { }
                 return BadRequest(new { success = false, message = ex.Message });
             }
             finally
@@ -203,12 +249,22 @@ namespace Administration.Controllers
         {
             try
             {
+                var tran = (TransactionsModel)TransactionsBO.Instance.FindByPrimaryKey(id);
+                if (tran == null)
+                    return Json(new { success = false, message = "Transaction not found." });
 
-                TransactionsBO.Instance.Delete(id);
-
-
-
-                return Json(new { success = true, message = "Transaction  delete successfully." });
+                var arr = ArticleBO.Instance.FindByAttribute("TransactionCode", id);
+                if ((arr == null) || (arr.Count == 0))
+                {
+                    TransactionsBO.Instance.Delete(id);
+                    GenerateTransactionBO.Instance.DeleteByAttribute("TransactionCode", tran.Code);
+                    IsProcess = true;
+                    return Json(new { success = true, message = "Transaction  delete successfully." });
+                }
+                else
+                {
+                    return Json(new { success = false, message = "Delete transaction error,you must delete all article in transaction before deleted." });
+                }
             }
             catch (Exception ex)
             {
@@ -216,13 +272,18 @@ namespace Administration.Controllers
             }
         }
         [HttpGet]
-        public IActionResult SearchGenerate(int code)
+        public IActionResult SearchGenerate(string code)
         {
             try
             {
-                string sql = $"SELECT dbo.GenerateTransaction.TransactionCodeDetail AS TransactionCode, dbo.Transactions.Description, dbo.GenerateTransaction.Percentage, dbo.GenerateTransaction.ID FROM dbo.Transactions INNER JOIN dbo.GenerateTransaction ON dbo.Transactions.Code = dbo.GenerateTransaction.TransactionCodeDetail WHERE TransactionCode = '{code}' ORDER BY dbo.GenerateTransaction.ID ASC";
-
-                DataTable dataTable = TextUtils.Select(sql);
+                SqlParameter[] param =
+                [
+                    new SqlParameter("@sqlCommand",
+                    $@"SELECT dbo.GenerateTransaction.TransactionCodeDetail AS TransactionCode, dbo.Transactions.Description, dbo.GenerateTransaction.Percentage, dbo.GenerateTransaction.ID 
+                    FROM dbo.Transactions INNER JOIN dbo.GenerateTransaction ON dbo.Transactions.Code = dbo.GenerateTransaction.TransactionCodeDetail 
+                    WHERE TransactionCode = '{code}' ORDER BY dbo.GenerateTransaction.ID ASC")
+                        ];
+                DataTable dataTable = DataTableHelper.getTableData("spSearchAllForTrans", param);
 
                 var result = (from d in dataTable.AsEnumerable()
                               select new
@@ -241,140 +302,93 @@ namespace Administration.Controllers
             }
         }
         [HttpPost]
-        public IActionResult GenerateSave(int ID, string transactionsGernew, int percentagetext, int percengegre, int amountPer, string formular, int percenOption, string CreatedBy, int UserInsertID, int subTotal1, int subTotal2, int subTotal3)
+        public IActionResult GenerateSave(
+            int ID,
+            string transactionsGernew,
+            string transactionsDetailGernew,
+            int percentagetext,
+            int percengegre,
+            int amountPer,
+            string formular,
+            int percenOption,
+            string CreatedBy,
+            int UserInsertID,
+            int subTotal1,
+            int subTotal2,
+            int subTotal3)
         {
             ProcessTransactions pt = new ProcessTransactions();
             pt.OpenConnection();
             pt.BeginTransaction();
 
-            CreatedBy = CreatedBy?.Replace("\"", "").Trim();
-            List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
-            var businessDate = businessDateModel[0].BusinessDate;
             try
             {
                 bool isNew = (ID == 0);
 
-                TransactionsModel tran = (TransactionsModel)TransactionsBO.Instance.FindByAttribute("Code", transactionsGernew)[0];
+                var list = TransactionsBO.Instance.FindByAttribute("Code", transactionsGernew);
+
+                if (list == null || list.Count == 0)
+                {
+                    Console.WriteLine("Transaction NOT FOUND.");
+                    return BadRequest(new { success = false, message = "Transaction not found." });
+                }
+
+                TransactionsModel tran = (TransactionsModel)list[0];
+                Console.WriteLine($"Found Transaction: {tran.Code} - {tran.Description}");
+
+                GenerateTransactionModel objModel;
+
                 if (isNew)
                 {
-                    GenerateTransactionModel objModel = new GenerateTransactionModel();
-                    objModel.TransactionCode = transactionsGernew;
-                    objModel.Description = tran.Description;
-                    objModel.TransactionCodeDetail = transactionsGernew;
-                    if (percenOption == 1)
-                    {
-                        #region Percentage
-                        try
-                        {
-                            objModel.Percentage = percentagetext;
-                        }
-                        catch
-                        {
-                            objModel.Percentage = 0;
-                        }
-                        #endregion
-                        objModel.Amount = 0;
-                        objModel.UDFFunction = "";
-                        objModel.Type = 0;
-                    }
-                    if (percenOption == 2)
-                    {
-                        objModel.Percentage = 0;
-                        #region Amount
-                        try
-                        {
-                            objModel.Amount = amountPer;
-                        }
-                        catch
-                        {
-                            objModel.Amount = 0;
-                        }
-                        #endregion
-                        objModel.UDFFunction = "";
-                        objModel.Type = 1;
-                    }
-                    if (percenOption == 3)
-                    {
-                        objModel.Percentage = 0;
-                        objModel.Amount = 0;
-                        objModel.UDFFunction = "";
-                        objModel.Type = 2;
-                    }
-                    objModel.BaseAmount = percengegre;
-                    objModel.Subtotal1 = subTotal1 == 1;
-                    objModel.Subtotal2 = subTotal2 == 1;
-                    objModel.Subtotal3 = subTotal3 == 1;
+                    objModel = new GenerateTransactionModel();
+                    Console.WriteLine("Mode: INSERT");
+                }
+                else
+                {
+                    objModel = (GenerateTransactionModel)GenerateTransactionBO.Instance.FindByPrimaryKey(ID);
+                }
 
+                objModel.TransactionCode = transactionsGernew;
+                objModel.Description = tran.Description;
+                objModel.TransactionCodeDetail = transactionsDetailGernew;
 
+                if (percenOption == 1)
+                {
+                    objModel.Percentage = percentagetext;
+                    objModel.Amount = 0;
+                    objModel.Type = 0;
+                }
+                else if (percenOption == 2)
+                {
+                    objModel.Percentage = 0;
+                    objModel.Amount = amountPer;
+                    objModel.Type = 1;
+                }
+                else if (percenOption == 3)
+                {
+                    objModel.Percentage = 0;
+                    objModel.Amount = 0;
+                    objModel.Type = 2;
+                }
 
-                    objModel.GroupCode = tran.GroupCode;
-                    objModel.SubgroupCode = tran.SubgroupCode;
-                    objModel.TransactionSubGroupID = tran.TransactionSubGroupID;
-                    objModel.TransactionGroupID = tran.TransactionGroupID;
-                    objModel.GroupType = tran.GroupType;
+                objModel.BaseAmount = percengegre;
+                objModel.Subtotal1 = subTotal1 == 1;
+                objModel.Subtotal2 = subTotal2 == 1;
+                objModel.Subtotal3 = subTotal3 == 1;
 
+                objModel.GroupCode = tran.GroupCode;
+                objModel.SubgroupCode = tran.SubgroupCode;
+                objModel.TransactionSubGroupID = tran.TransactionSubGroupID;
+                objModel.TransactionGroupID = tran.TransactionGroupID;
+                objModel.GroupType = tran.GroupType;
+
+                if (isNew)
+                {
                     GenerateTransactionBO.Instance.Insert(objModel);
                 }
                 else
                 {
-                    GenerateTransactionModel objModel = (GenerateTransactionModel)GenerateTransactionBO.Instance.FindByPrimaryKey(ID);
-                    objModel.TransactionCode = transactionsGernew;
-                    objModel.Description = tran.Description;
-                    objModel.TransactionCodeDetail = transactionsGernew;
-                    if (percenOption == 1)
-                    {
-                        #region Percentage
-                        try
-                        {
-                            objModel.Percentage = percentagetext;
-                        }
-                        catch
-                        {
-                            objModel.Percentage = 0;
-                        }
-                        #endregion
-                        objModel.Amount = 0;
-                        objModel.UDFFunction = "";
-                        objModel.Type = 0;
-                    }
-                    if (percenOption == 2)
-                    {
-                        objModel.Percentage = 0;
-                        #region Amount
-                        try
-                        {
-                            objModel.Amount = amountPer;
-                        }
-                        catch
-                        {
-                            objModel.Amount = 0;
-                        }
-                        #endregion
-                        objModel.UDFFunction = "";
-                        objModel.Type = 1;
-                    }
-                    if (percenOption == 3)
-                    {
-                        objModel.Percentage = 0;
-                        objModel.Amount = 0;
-                        objModel.UDFFunction = "";
-                        objModel.Type = 2;
-                    }
-                    objModel.BaseAmount = percengegre;
-                    objModel.Subtotal1 = subTotal1 == 1;
-                    objModel.Subtotal2 = subTotal2 == 1;
-                    objModel.Subtotal3 = subTotal3 == 1;
-
-
-
-                    objModel.GroupCode = tran.GroupCode;
-                    objModel.SubgroupCode = tran.SubgroupCode;
-                    objModel.TransactionSubGroupID = tran.TransactionSubGroupID;
-                    objModel.TransactionGroupID = tran.TransactionGroupID;
-                    objModel.GroupType = tran.GroupType;
-
                     GenerateTransactionBO.Instance.Update(objModel);
-
                 }
 
                 pt.CommitTransaction();
@@ -387,15 +401,23 @@ namespace Administration.Controllers
             }
             catch (Exception ex)
             {
-                pt.RollBack();
-                return BadRequest(new { success = false, message = ex.Message });
+
+
+                try { pt.RollBack(); } catch { }
+
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message,
+                    detail = ex.InnerException?.Message
+                });
             }
             finally
             {
                 pt.CloseConnection();
             }
-            //return BadRequest(new { success = false });
         }
+
         [HttpGet]
         public IActionResult SearchGenerateDetail(int id)
         {
@@ -419,8 +441,8 @@ namespace Administration.Controllers
                                   TransactionCode = d["TransactionCode"]?.ToString() ?? "",
                                   TransactionCodeDetail = d["TransactionCodeDetail"]?.ToString() ?? "",
                                   Description = d["Description"]?.ToString() ?? "",
-                                  Percentage = d["Percentage"]?.ToString() ?? "",
-                                  Amount = d["Amount"]?.ToString() ?? "",
+                                  Percentage = d["Percentage"],
+                                  Amount = d["Amount"],
                                   UDFFunction = d["UDFFunction"]?.ToString() ?? "",
                                   BaseAmount = d["BaseAmount"]?.ToString() ?? "",
                                   Subtotal1 = d["Subtotal1"]?.ToString() ?? "",
