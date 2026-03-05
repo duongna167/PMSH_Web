@@ -686,6 +686,7 @@
         },
 
         init: function () {
+            if (typeof LoadingGlobal !== 'undefined') LoadingGlobal.init();
             this.initEvents();
             this.intitDOMEvents();
         },
@@ -766,6 +767,7 @@
             $("#allot_search_btnDetail").on("click", () => self.openModalDetail());
             $("#allot_detail_btnSearchDetail").on("click", () => self.fetchDetailByStage());
             $("#allot_detail_btnExport").on("click", () => self.exportDetailStageToExcel());
+            $("#allot_transHis_btnExportExcel").on("click", () => self.exportTransHisToExcel());
             $("#allot_search_btnFromAllotment").on("click", () => self.openTransferModal(1));
             $("#allot_search_btnFromInventory").on("click", () => self.openTransferModal(0));
 
@@ -785,7 +787,6 @@
 
         reloadGrid: function () {
             const self = this;
-
             const filterData = {
                 code: $("#allot_search_code").val(),
                 marketID: getTomSelectData("#allot_search_market")?.value,
@@ -797,30 +798,34 @@
 
             self.renderDetailGrid([]);
             self.renderResvGrid([]);
-            LoadingManager.show();
+
             $.ajax({
                 url: '/Allotment/GetAllotmentSearch',
                 type: 'GET',
                 data: filterData,
+                loadingGrid: '#allot_search_gridAllotInfor',
                 success: function (data) {
                     self.renderMainGrid(data);
 
                     if (data && data.length > 0) {
                         const firstRow = data[0];
-                        self.selectedRowData = firstRow; 
+                        self.selectedRowData = firstRow;
 
                         self.fetchAllotmentDetail(firstRow.id);
                         self.fetchReservation(firstRow.id, "");
-                    } else {
-                        self.renderDetailGrid([]);
-                        self.renderResvGrid([]);
-                    }
 
-                    LoadingManager.hide();
+                        setTimeout(() => {
+                            const gridInstance = $("#allot_search_gridAllotInfor").dxDataGrid("instance");
+                            if (gridInstance) {
+                                gridInstance.selectRowsByIndexes([0]);
+                            }
+                        }, 100); 
+                    } else {
+                        self.selectedRowData = null;
+                    }
                 },
                 error: function (xhr, status, error) {
                     showToast("Error", "Unable to load data", false);
-                    LoadingManager.hide();
                 }
             });
         },
@@ -830,7 +835,7 @@
             var listMarket = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.MarketList ?? new List<object>()));
             var listAllType = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.AllotTypeList ?? new List<object>()));
 
-            self.initGrid("#allot_search_gridAllotInfor",{
+            self.initGrid("#allot_search_gridAllotInfor", {
                 dataSource: data,
                 columns: [
                     { dataField: "id", visible: false },
@@ -867,14 +872,20 @@
                     { dataField: "updateBy", caption: "Updated By", width: 90 },
                     { dataField: "updateDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy hh:mm", width: 110 }
                 ],
-
+                onContentReady: function(e) {
+                    if (data && data.length > 0 && e.component.getSelectedRowKeys().length === 0) {
+                        setTimeout(() => {
+                            e.component.selectRowsByIndexes([0]);
+                        }, 20);
+                    }
+                },
                 onSelectionChanged: function (e) {
                     const selectedRow = e.selectedRowsData[0];
                     if (selectedRow) {
                         self.selectedRowData = selectedRow;
 
                         self.resetDetailGrids();
-
+                            
                         self.fetchAllotmentDetail(selectedRow.id);
                         self.fetchReservation(selectedRow.id, "");
                     }
@@ -885,10 +896,24 @@
 
         fetchAllotmentDetail: function(allotmentId) {
             const self = this;
+        
             const isHistory = $("#allot_search_history").is(":checked");
 
-            $.get('/Allotment/GetAllotmentDetail', { allotmentId: allotmentId, isHistoryChecked: isHistory }, function(res) {
-                self.renderDetailGrid(res.data, res.roomTypeColumns);;
+            $.ajax({
+                url: '/Allotment/GetAllotmentDetail',
+                type: 'GET',
+                loadingGrid: '#allot_search_gridAllotDetail',
+                data: {
+                    allotmentId: allotmentId,
+                    isHistoryChecked: isHistory
+                },
+                success: function (res) {
+                    self.renderDetailGrid(res.data, res.roomTypeColumns);
+                },
+                error: function (xhr, status, error) {
+                    console.error('GetAllotmentDetail error:', error);
+                    showToast("Error", "Unable to load allotment detail", false);
+                }
             });
         },
 
@@ -947,17 +972,22 @@
 
         fetchReservation: function(allotmentId, roomTypeCode) {
             const self = this;
-            // $("#allot_search_loading").show();
 
-            $.get('/Allotment/GetAllotmentResvSearch', {
-                allotmentId: allotmentId,
-                roomTypeCode: roomTypeCode
-            }, function(res) {
-                self.renderResvGrid(res);
-                // $("#allot_search_loading").hide();
-            }).fail(function() {
-                showToast("Error", "Lỗi khi load danh sách Reservation", false);
-                // $("#allot_search_loading").hide();
+            $.ajax({
+                url: '/Allotment/GetAllotmentResvSearch',
+                type: 'GET',
+                loadingGrid: '#allot_search_gridReservation',
+                data: {
+                    allotmentId: allotmentId,
+                    roomTypeCode: roomTypeCode
+                },
+                success: function (res) {
+                    self.renderResvGrid(res);
+                },
+                error: function (xhr, status, error) {
+                    console.error('GetAllotmentResvSearch error:', error);
+                    showToast("Error", "Lỗi khi load danh sách Reservation", false);
+                }
             });
         },
 
@@ -1048,6 +1078,7 @@
                 UpdateBy: loginName
             };
 
+            LoadingGlobal.show();
             $.ajax({
                 url: "/Allotment/SaveAllotment",
                 type: "POST",
@@ -1069,6 +1100,9 @@
                 },
                 error: function () {
                     showToast("Error", "Server error occurred.", false);
+                },
+                complete: function() {
+                    LoadingGlobal.hide();
                 }
             });
         },
@@ -1246,6 +1280,8 @@
 
         fetchDetailByStage: function() {
             const self = this;
+            const gridStage = document.querySelector("#allot_detail_gridAllotDetailByStage");
+
             const fromDateIso = $("#allot_detail_searchDate").val();
             const noOfDays = parseInt($("#allot_detail_noOfDays").val() || 20);
 
@@ -1254,22 +1290,23 @@
                 return;
             }
 
-            LoadingManager.show();
+            LoadingGlobal.showElement(gridStage);
+
             $.get('/Allotment/GetAllotmentDetailFull', {
                 allotmentId: self.selectedRowData.id,
                 fromDate: fromDateIso,
                 noOfDays: noOfDays
             }, function(res) {
+                LoadingGlobal.hideElement(gridStage);
+
                 if (res.success && res.data) {
                     self.renderStageGrid(res.data);
                 } else {
                     showToast("Error", res.message || "No data found", false);
                 }
-                LoadingManager.hide();
             }).fail(function() {
-                LoadingManager.hide();
                 showToast("Error", "Server connection error", false);
-            });
+            })
         },
 
         renderStageGrid: function(displayData) {
@@ -1676,6 +1713,8 @@
 
         reloadTransHisGrid: function() {
             const self = this;
+            const gridTrans = document.querySelector("#allot_transHis_grid");
+
             const isFilterFrom = $("#allot_transHis_chkFrom").is(":checked");
             const isFilterTo = $("#allot_transHis_chkTo").is(":checked");
 
@@ -1687,7 +1726,7 @@
                 toAllotId: parseInt(toBackendValue(getTomSelectData("#allot_transHis_toID"), "value") || 0)
             };
 
-            LoadingManager.show();
+             LoadingGlobal.showElement(gridTrans);
 
             $.ajax({
                 url: '/Allotment/GetAllotmentTransferSearch',
@@ -1695,12 +1734,12 @@
                 data: filter,
                 success: function(res) {
                     self.renderTransHisGrid(res);
-                    LoadingManager.hide();
                 },
-                error: function(xhr) {
-                    LoadingManager.hide();
-                    console.error("Status: " + xhr.status); 
-                    showToast("Error", "Đường dẫn API không tồn tại (404). Vui lòng kiểm tra Controller.", false);
+                error: function() {
+                    showToast("Error", "API error", false);
+                },
+                complete: function() {
+                    LoadingGlobal.hideElement(gridTrans);
                 }
             });
         },
@@ -1722,6 +1761,61 @@
                     { dataField: "updatedBy", caption: "UpdatedBy", width: 70 },
                     { dataField: "updatedDate", caption: "UpdatedBy", width: 120,dataType:"date", format:"dd/MM/yyyy" }
                 ]
+            });
+        },
+
+        exportTransHisToExcel: function() {
+            const grid = $("#allot_transHis_grid").dxDataGrid("instance");
+            if (!grid) {
+                showToast("Warning", "No data to export!", false);
+                return;
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Transfer Search");
+            const companyName = localStorage.getItem("CompanyName") || "Hotel Management System";
+            const now = new Date();
+            const exportDateStr = "Export Date: " + now.toLocaleString("vi-VN");
+
+            // 2. Cấu hình tiêu đề và định dạng file
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 6, column: 1 }, // Dữ liệu bắt đầu từ dòng 6
+                customizeCell: function (options) {
+                    const { gridCell, excelCell } = options;
+                    if (gridCell.rowType === "header") {
+                        excelCell.font = { bold: true };
+                        excelCell.alignment = { horizontal: 'center' };
+                        excelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } };
+                    }
+                }
+            }).then(function () {
+                // 3. Thêm Header tùy chỉnh phía trên bảng dữ liệu
+                // Dòng 1: Tên công ty
+                worksheet.mergeCells('A1:D1');
+                const row1 = worksheet.getCell('A1');
+                row1.value = companyName;
+                row1.font = { bold: true, size: 14 };
+
+                // Dòng 2: Ngày giờ xuất
+                worksheet.mergeCells('A2:D2');
+                const row2 = worksheet.getCell('A2');
+                row2.value = exportDateStr;
+                row2.font = { italic: true };
+
+                // Dòng 4: Tiêu đề báo cáo
+                worksheet.mergeCells('A4:F4');
+                const reportTitle = worksheet.getCell('A4');
+                reportTitle.value = "Transfer History";
+                reportTitle.font = { bold: true, size: 16 };
+                reportTitle.alignment = { horizontal: 'center' };
+
+                // 4. Thực hiện ghi file và tải về
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "Allotment_Transfer_History.xlsx");
+                });
             });
         },
         /*End Transfer History */
