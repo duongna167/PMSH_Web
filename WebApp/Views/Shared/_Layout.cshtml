@@ -17,6 +17,7 @@
     <link href="~/css/assets/input.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/assets/select.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/assets/tomselect.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/assets/loading-global.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/assets/textarea.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/assets/button_small.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/assets/input_date.css" rel="stylesheet" />
@@ -109,7 +110,7 @@
     <script src="~/js/core/tooltip.js" asp-append-version="true"></script>
     <script src="~/js/core/date-bootstrap.js" asp-append-version="true"></script>
     <script src="~/js/core/tomselect.js" asp-append-version="true"></script>
-    <script src="~/js/core/loading-modal.js" asp-append-version="true"></script>
+    <script src="~/js/core/loading-global.js" asp-append-version="true"></script>
 
     <script src="~/js/core/form-modal.js" asp-append-version="true"></script>
     <script src="~/js/core/validation-adapter.js" asp-append-version="true"></script>
@@ -922,6 +923,30 @@
         });
 
         ModalManager.init();
+        LoadingGlobal.init();
+            
+        $(document).ajaxSend(function (event, xhr, settings) {
+            // Ưu tiên lấy ID từ cấu hình 'loadingGrid' trong $.ajax, nếu không có thì dùng biến window
+            const gridSelector = settings.loadingGrid || window.currentAjaxGridId;
+
+            if (gridSelector) {
+                const el = document.querySelector(gridSelector);
+                if (el) LoadingGlobal.showElement(el);
+            } else if (settings.global !== false) {
+                LoadingGlobal.show();
+            }
+        });
+
+        $(document).ajaxComplete(function (event, xhr, settings) {
+            const gridSelector = settings.loadingGrid || window.currentAjaxGridId;
+
+            if (gridSelector) {
+                const el = document.querySelector(gridSelector);
+                if (el) LoadingGlobal.hideElement(el);
+            }
+            LoadingGlobal.hide();
+            window.currentAjaxGridId = null; // Reset biến tạm
+        });
 
         loadBirthdayCount();
         //     // Khi đóng modal → có thể reset nếu cần
@@ -1213,39 +1238,43 @@
 <!-- Script để load modal -->
 <script>
     var ModalManager = {
-
+        
         init: function () {
-            $(document).on("input", ".is-invalid", function () {
-                if (window.ValidationAdapter) window.ValidationAdapter.clearField(this);
-            });
+            const self = this;
 
-            $(document).on("change", "select.is-invalid, select.tomselect-custom", function () {
-                if (window.ValidationAdapter) window.ValidationAdapter.clearField(this);
-            });
-
-            $(document).on("change", "[data-date-input] input[type='hidden']", function () {
-                if (window.ValidationAdapter) window.ValidationAdapter.clearField(this);
-            });
-
-            $(document).on("input", ".date-ui", function () {
-                if (window.ValidationAdapter) window.ValidationAdapter.clearField(this);
-            });
+            this.initGlobalEvents();
 
             $(document).on("shown.bs.modal", ".modal", function () {
-               const $openModals = $('.modal.show').not(this);
-               if ($openModals.length > 0) {
-                   $openModals.find('.modal-content').addClass('modal-blur');
-               }
-           });
+                const $openModals = $('.modal.show').not(this);
+                if ($openModals.length > 0) {
+                    $openModals.find('.modal-content').addClass('modal-blur');
+                }
+            });
 
-           $(document).on("hidden.bs.modal", ".modal", function () {
-               const $remainingModals = $('.modal.show');
-               if ($remainingModals.length > 0) {
-                   $remainingModals.last().find('.modal-content').removeClass('modal-blur');
-               }
-           });
+            $(document).on("hidden.bs.modal", ".modal", function () {
+                const $remainingModals = $('.modal.show');
+                if ($remainingModals.length > 0) {
+                    $remainingModals.last().find('.modal-content').removeClass('modal-blur');
+                }
+            });
         },
-           
+
+        initGlobalEvents: function() {
+            // Tự động xóa lỗi khi người dùng nhập liệu
+            $(document).on("input change", ".is-invalid, .tomselect-custom, [data-date-input] input", function () {
+                if (window.ValidationAdapter) window.ValidationAdapter.clearField(this);
+            });
+
+            // Hiệu ứng Blur cho Modal cha khi mở Modal con
+            $(document).on("shown.bs.modal", ".modal", function () {
+                $('.modal.show').not(this).find('.modal-content').addClass('modal-blur');
+            });
+            
+            $(document).on("hidden.bs.modal", ".modal", function () {
+                $('.modal.show').last().find('.modal-content').removeClass('modal-blur');
+            });
+        },
+
         getOrCreateContainer: function (modalId) {
             let containerId = "container_" + modalId;
             let $container = $("#" + containerId);
