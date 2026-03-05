@@ -1,314 +1,568 @@
-﻿<style>
-    .header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 5px 0px;
-        border-bottom: 2px solid #ececec;
-    }
+﻿@* =========================================
+   Transaction Sub Group (transSB_)
+   Refactor: modal-xl main + modal-xl edit
+   Pattern: Option A module, bind once, cleanup on hidden
+   Layout: ERP-style dense filter (right-aligned labels)
+   Notes:
+   - Preserve endpoints + payload usage as-is
+   - Keep selection multi (original), but fix row click bug
+   ========================================= *@
 
-        .header h3 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 600;
-            color: #000000;
-        }
+<!-- =========================
+     MAIN MODAL (modal-xl)
+     ========================= -->
+<div class="modal fade" id="transSB_modalMain" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-4by3 modal-dialog-centered">
+        <div class="modal-content">
 
-        .header .info-icon {
-            color: #6b7280;
-            cursor: pointer;
-            transition: color 0.3s ease;
-        }
-
-            .header .info-icon:hover {
-                color: var(--main-color);
-            }
-</style>
-<div>
-    <div class="header mt-2" style="border-bottom:none;justify-content:center">
-        <h3 id="content-title">
-            Transaction Sub Group
-        </h3>
-    </div>
-    <div class="mb-2">
-        <button class="mui-button mui-button-search" onclick="searchTransactionGroup();"> Search</button>
-        <button class="mui-button mui-button-new" onclick="openModalNew();"> New</button>
-        <button class="mui-button mui-button-edit" onclick="EditTransactionSubGroup();"> Edit</button>
-        <button class="mui-button mui-button-delete" onclick="DeleteTransactionSubGroup();"> Delete</button>
-
-    </div>
-    <div class="row">
-        <div class="col-md-2" style="display:flex">
-            <label>Group</label>
-            <select  id="transactionGroupID"></select>
-
-        </div>
-        <div class="col-md-2">
-            <label>Code</label>
-            <input type="text" id="code">
-        </div>
-        <div class="col-md-6">
-            <label>Description</label>
-            <input type="text" id="description">
-        </div>
-
-    </div>
-    <div class="mui-card mt-2">
-        <div id="gridContainer" class="gridContainer mt-2"></div>
-    </div>
-</div>
-
-<div class="modal fade" id="modalNew" tabindex="-1" aria-labelledby="transactionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content" style="border: 1px solid #bcbcbc">
             <div class="modal-header">
-                <h5 class="modal-title" id="transactionModalLabel">New/Edit Transaction Sub Group</h5>
-                <button type="button" class="btn-close" onclick="closeFormAdd()"></button>
+                <h5 class="modal-title">Transaction Sub Group</h5>
             </div>
-            <div class="button-group" style="margin:0 10px">
-                <button type="button" class="mui-button mui-button-search" onclick="SaveTransSubGroup();">Save</button>
-                <button type="button" class="mui-button mui-button-clear" onclick="closeFormAdd()">Close</button>
-            </div>
+
             <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-4" style="display:block">
-                        <label>Code</label>
-                        <input type="text" id="codeAdd">
-                    </div>
-                    <div class="col-md-4" style="display:block">
-                        <label>Description</label>
-                        <input type="text" id="descriptionAdd">
-                    </div>
-                    <div class="col-md-4" style="display:block">
-                        <label>Group Code</label>
-                        <select type="text" id="transactionGroupIDAdd"></select>
+
+                <div class="search-filter">
+                    <!-- Toolbar -->
+                    <div>
+                        <button id="transSB_btnSearch" type="button" class="mui-button mui-button-search">Search</button>
+                        <button id="transSB_btnNew" type="button" class="mui-button mui-button-new">New</button>
+                        <button id="transSB_btnEdit" type="button" class="mui-button mui-button-edit">Edit</button>
+                        <button id="transSB_btnDelete" type="button" class="mui-button mui-button-delete">Delete</button>
+                        <button id="transSB_btnClose" type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
                     </div>
 
+                    <!-- ERP Search Filter -->
+                    <div class="row g-2 mt-1 align-items-center">
 
+                        <!-- Group -->
+                        <div class="col-12 col-sm-6 col-md-6 col-lg-3 ">
+                            <div class="row g-1 align-items-center">
+                                <label for="transSB_transactionGroupID"
+                                    class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 col-form-label col-form-label-sm text-md-end mb-0 text-nowrap">
+                                    Group
+                                </label>
+                                <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
+                                    <select id="transSB_transactionGroupID"
+                                            name="transSB_transactionGroupID"
+                                            class="tomselect-custom">
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Code -->
+                        <div class="col-12 col-sm-6 col-md-6 col-lg-3">
+                            <div class="row g-1 align-items-center">
+                                <label for="transSB_code"
+                                    class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 col-form-label col-form-label-sm text-md-end mb-0 text-nowrap">
+                                    Code
+                                </label>
+                                <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
+                                    <input id="transSB_code"
+                                        name="transSB_code"
+                                        type="text"
+                                        class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="col-12 col-lg-6 col-xl-6">
+                            <div class="row g-1 align-items-center">
+                                <label for="transSB_description"
+                                    class="col-4 col-sm-4 col-md-2 col-lg-2 col-xl-2 col-form-label col-form-label-sm text-md-end mb-0 text-nowrap">
+                                    Description
+                                </label>
+                                <div class="col-8 col-sm-8 col-md-10 col-lg-10 col-xl-10">
+                                    <input id="transSB_description"
+                                        name="transSB_description"
+                                        type="text"
+                                        class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Grid -->
+                <div class="mui-card">
+                    <div id="transSB_grid" class="gridContainer"></div>
+                </div>
+                
+                <!-- Loading Spinner (optional but consistent with your pattern) -->
+                <div id="transSB_loadingSpinner" 
+                    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+                    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+                    height: 100%;display: flex;align-items: center;justify-content: center;">
+                    <div class="spinner-border text-primary"></div>
                 </div>
 
             </div>
         </div>
     </div>
 </div>
+
+<!-- =========================
+     EDIT MODAL (modal-xl)
+     ========================= -->
+<div class="modal fade" id="transSB_modalEdit" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title mb-0" id="transSB_modalEditTitle">New/Edit Transaction Sub Group</h5>
+            </div>
+
+            <div class="modal-body">
+                <div class="search-filter">
+                    <button id="transSB_btnSave" type="button" class="mui-button mui-button-search">Save</button>
+                    <button id="transSB_btnEditClose" type="button" class="mui-button mui-button-clear" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <form id="transSB_formEdit" novalidate>
+                    <input type="hidden" id="transSB_id" name="transSB_id" value="0" />
+
+                    <div class="row g-2 mb-2">
+
+                        <div class="col-12">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-3 col-form-label col-form-label-sm text-md-end"
+                                       for="transSB_codeAdd">Code</label>
+                                <div class="col-md-8">
+                                    <input id="transSB_codeAdd" name="transSB_codeAdd" type="text" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-3 col-form-label col-form-label-sm text-md-end"
+                                       for="transSB_descriptionAdd">Description</label>
+                                <div class="col-md-8">
+                                    <input id="transSB_descriptionAdd" name="transSB_descriptionAdd" type="text" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-3 col-form-label col-form-label-sm text-md-end"
+                                       for="transSB_transactionGroupIDAdd">Group Code</label>
+                                <div class="col-md-8">
+                                    <select id="transSB_transactionGroupIDAdd" name="transSB_transactionGroupIDAdd" class="tomselect-custom"></select>
+                                </div>
+                            </div>
+                        </div>
+
+                        @* Original Save used: formData.append('type', $('input[name="type"]:checked').val());
+                           No UI provided for it in your snippet.
+                           We keep the payload behavior by adding a hidden input that you can set externally if needed. *@
+                        <input type="hidden" id="transSB_type" name="transSB_type" value="" />
+
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 <script>
+    // ==========================================
+    // Transaction Sub Group Module (Option A)
+    // ==========================================
+    var transSB_Module = (function () {
+        "use strict";
 
-    function getInforServices() {
-        $.ajax({
-            url: '/Billing/GetInforService',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                $('#transactionGroupID').empty();
-                $('#transactionGroupIDAdd').empty();
-                var html = `<option value='0' selected>Group Transaction</option>`;
-                if (result.groupTransaction.length > 0) {
-                    for (var i = 0; i < result.groupTransaction.length; i++) {
-                        html += `<option value='${result.groupTransaction[i].id}'>${result.groupTransaction[i].description}</option>`;
-                    }
-                }
-                $('#transactionGroupID').append(html);
-                $('#transactionGroupIDAdd').append(html);
-                searchTransactionGroup();
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-                // Optionally handle error case, e.g., decide whether to call searchTransactionGroup
-            }
-        });
-    }
+        const SEL = {
+            modalMain: "#transSB_modalMain",
+            modalEdit: "#transSB_modalEdit",
+            spinner: "#transSB_loadingSpinner",
 
-    function openModalNew(){
-        $('#modalNew').modal('show');
-    }
+            // toolbar
+            btnSearch: "#transSB_btnSearch",
+            btnNew: "#transSB_btnNew",
+            btnEdit: "#transSB_btnEdit",
+            btnDelete: "#transSB_btnDelete",
 
-    function searchTransactionGroup() {
+            // filter
+            groupID: "#transSB_transactionGroupID",
+            code: "#transSB_code",
+            description: "#transSB_description",
 
-        $.ajax({
-            url: '/TransactionSubGroup/SearchTransactionSubGroup',
-            type: 'get',
-            dataType: 'json',
-            data: {
-                groupCode: $('#code').val(),
-                description: $('#description').val(),
-                groupID: $('#transactionGroupID').val()
-            },
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
+            // grid
+            grid: "#transSB_grid",
 
-                initializeDataGridSearch(result);
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-            },
+            // edit
+            formEdit: "#transSB_formEdit",
+            id: "#transSB_id",
+            codeAdd: "#transSB_codeAdd",
+            descriptionAdd: "#transSB_descriptionAdd",
+            groupIDAdd: "#transSB_transactionGroupIDAdd",
+            type: "#transSB_type",
+            btnSave: "#transSB_btnSave"
+        };
 
-        });
+        let _gridInstance = null;
+        let _bound = false;
 
-    }
-    function initializeDataGridSearch(data) {
-        const limitedData = data.slice(0, 100);
+        // (Optional) state – for convenience
+        let _selectedRows = [];
+        let _getInforService = []
 
-        $("#gridContainer").dxDataGrid({
-            dataSource: limitedData,
-            allowColumnResizing: true,
-            columnMinWidth: 90,
-            paging: {
-                enabled: true, // Enable paging
-                pageSize: 15 // 15 records per page
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [15, 20, 30], // Fixed page sizes
-                showPageSizeSelector: true,
-                showInfo: true, // Show paging info
-                showNavigationButtons: true
-            },
-            scrolling: {
-                mode: 'standard', // Standard scrolling mode
-                showScrollbar: 'always',
-                useNative: false
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            selection: {
-                mode: "multiple", // Enable multiple row selection
-                showCheckBoxesMode: "always" // Always show checkboxes
-            },
-            columns: [
-                { dataField: "ID", caption: "ID",visible: false },
-
-                { dataField: "SubGroupCode", caption: "Sub Group Code" },
-                { dataField: "SubGroupDescription", caption: "Sub Group Description" },
-                { dataField: "GroupCode", caption: "Group Code" },
-                { dataField: "GroupType", caption: "Group Type" },
-                { dataField: "Generate", caption: "Generate" },
-
-            ],
-            onRowClick: function(e) {
-                const grid = $("#gridContainerContact").dxDataGrid("instance");
-                grid.selectRows([e.key], false);
-                templateID = e.data.id;
-            },
-        });
-    }
-    $(document).ready(function() {
-        getInforServices();
-    });
-
-    function clearFormAdd(){
-        $('#code').val('');
-        $('#description').val('');
-    }
-    function closeFormAdd(){
-        $('#modalNew').modal('hide');
-        clearFormAdd();
-    }
-    var transactionSubID = 0;
-    function SaveTransSubGroup() {
-        const userName = JSON.parse(localStorage.getItem("Loginname"));
-        const userID = JSON.parse(localStorage.getItem("userID"));
-        var formData = new FormData();
-        formData.append('description', $('#descriptionAdd').val());
-        formData.append('code',  $('#codeAdd').val());
-        formData.append('userName', userName);
-        formData.append('userID', userID);
-        formData.append('groupID', $('#transactionGroupIDAdd').val());
-
-        formData.append('id', transactionSubID);
-
-        formData.append('type', $('input[name="type"]:checked').val());
-        $.ajax({
-            url: '/TransactionSubGroup/SaveTransactionSubGroup',
-            type: 'POST',
-            processData: false,
-            contentType: false,
-            data: formData,
-            success: function (data) {
-                if (data.code == 0) {
-                    closeFormAdd();
-                    searchTransactionGroup();
-                    showToast('Success', data.msg, true);
-                } else {
-                    showToast('Error', data.msg, false);
-                }
-            },
-            error: function (xhr, statusText, err) { }
-        });
-    }
-    function EditTransactionSubGroup(){
-        var grid = $("#gridContainer").dxDataGrid("instance");
-        var selectedRows = grid.getSelectedRowsData();
-        var selectedIds = selectedRows.map(row => row.ID);
-        if(selectedIds.length < 1){
-            showToast('Error',"Please choose at least 1 transaction group",false);
-            return;
+        function showLoading(show) {
+            if (show) $(SEL.spinner).show();
+            else $(SEL.spinner).hide();
         }
-        transactionSubID = selectedIds[0];
-        $.ajax({
-            url: '/TransactionSubGroup/GetTransactionSubGroupByID',
-            type: 'get',
-            dataType: 'json',
-            data:{
-                id: selectedIds[0]
-            },
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if(result != null){
-                    $('#codeAdd').val(result.code);
-                    $('#descriptionAdd').val(result.description);
-                    $('#transactionGroupIDAdd').val(result.transactionGroupID);
 
-                    openModalNew();
+        function csrfHeaders() {
+            return { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() };
+        }
+
+        function disposeGrid() {
+            try {
+                const inst = $(SEL.grid).dxDataGrid("instance");
+                if (inst) inst.dispose();
+            } catch (e) { /* ignore */ }
+
+            _gridInstance = null;
+            _selectedRows = [];
+            $(SEL.grid).empty();
+        }
+
+        function clearEditForm() {
+            $(SEL.formEdit).find(".is-invalid").removeClass("is-invalid");
+            $(SEL.formEdit).find(".invalid-feedback").remove();
+
+            $(SEL.id).val(0);
+            $(SEL.codeAdd).val("");
+            $(SEL.descriptionAdd).val("");
+            // keep group selection as-is (or reset if you prefer)
+            // $(SEL.groupIDAdd).val("0");
+        }
+
+        function openEditModal(title) {
+            $("#transSB_modalEditTitle").text(title || "New/Edit Transaction Sub Group");
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).show();
+        }
+
+        // -----------------------
+        // Data loading: groups
+        // -----------------------
+        function loadInforServicesAndInit() {
+            showLoading(true);
+
+            $.ajax({
+                url: "/Billing/GetInforService",
+                type: "GET",
+                dataType: "json",
+                crossDomain: false,
+                headers: csrfHeaders(),
+                success: function (result) {
+                    bindTomSelectData({
+                        selector: '#transSB_transactionGroupID',
+                        data: result.groupTransaction, // mảng dữ liệu truyền vào
+                        valueField: 'id',
+                        labelField: 'text',
+                        searchField: ['text', 'description'],
+                        tomSelectOptions: {
+                            placeholder: 'Please choose Group',
+                            render: {
+                            option(data, escape) {
+                                return `<div><b>${escape(data.code ?? '')}</b> - ${escape(data.description ?? '')}</div>`;
+                            },
+                            item(data, escape) {
+                                return `<div>${escape(data.code ?? '')}</div>`;
+                            }
+                            }
+                        },
+                        mapFn: (x) => ({
+                            id:x.id,
+                            code: x.code,                               // ✅ field làm value
+                            description: x.description,
+                        })
+                    });
+
+                    showLoading(false);
+                    search(); // preserve original behavior: search after loading groups
+                },
+                error: function (xhr) {
+                    showLoading(false);
+                    if (xhr && xhr.status === 401 && typeof sessionTimeout === "function") sessionTimeout();
                 }
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
+            });
+        }
+
+        // -----------------------
+        // Search + Grid
+        // -----------------------
+        function search() {
+            showLoading(true);
+
+            $.ajax({
+                url: "/TransactionSubGroup/SearchTransactionSubGroup",
+                type: "GET",
+                dataType: "json",
+                data: {
+                    groupCode: $(SEL.code).val(),
+                    description: $(SEL.description).val(),
+                    groupID: $(SEL.groupID).val()
+                },
+                crossDomain: false,
+                headers: csrfHeaders(),
+                success: function (result) {
+                    initGrid(result || []);
+                    showLoading(false);
+                },
+                error: function (xhr) {
+                    showLoading(false);
+                    if (xhr && xhr.status === 401 && typeof sessionTimeout === "function") sessionTimeout();
                 }
+            });
+        }
+
+        function initGrid(data) {
+            // preserve: limit 100 records like original
+            const limitedData = (data || []).slice(0, 100);
+
+            disposeGrid();
+
+            _gridInstance = $(SEL.grid).dxDataGrid({
+                dataSource: limitedData,
+                showBorders: true,
+                allowColumnResizing: true,
+                columnMinWidth: 90,
+
+                filterRow: { visible: true, applyFilter: "auto" },
+                scrolling: {
+                    mode: "standard",
+                    showScrollbar: "always",
+                    useNative: false
+                },
+
+                paging: { enabled: true, pageSize: 15 },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [15, 20, 30],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+
+                // preserve original: multiple selection with checkboxes
+                selection: {
+                    mode: "multiple",
+                    showCheckBoxesMode: "always"
+                },
+
+                columns: [
+                    { dataField: "ID", caption: "ID", visible: false },
+                    { dataField: "SubGroupCode", caption: "Sub Group Code" },
+                    { dataField: "SubGroupDescription", caption: "Sub Group Description" },
+                    { dataField: "GroupCode", caption: "Group Code" },
+                    { dataField: "GroupType", caption: "Group Type" },
+                    { dataField: "Generate", caption: "Generate" }
+                ],
+
+                onSelectionChanged: function (e) {
+                    _selectedRows = e.selectedRowsData || [];
+                },
+
+                // Fix original bug: it referenced #gridContainerContact + templateID + e.data.id (wrong fields)
+                onRowClick: function (e) {
+                    // keep row click selecting row (without wiping other selections by default)
+                    const grid = $(SEL.grid).dxDataGrid("instance");
+                    if (grid) grid.selectRows([e.key], true);
+                }
+            }).dxDataGrid("instance");
+        }
+
+        // -----------------------
+        // CRUD
+        // -----------------------
+        function newItem() {
+            clearEditForm();
+            $(SEL.id).val(0);
+            openEditModal("New Transaction Sub Group");
+        }
+
+        function editItem() {
+            const grid = $(SEL.grid).dxDataGrid("instance");
+            const selectedRows = grid ? grid.getSelectedRowsData() : [];
+            const selectedIds = (selectedRows || []).map(r => r.ID);
+
+            if (selectedIds.length < 1) {
+                showToast("Error", "Please choose at least 1 transaction group", false);
+                return;
             }
-        });
-    }
-    function DeleteTransactionSubGroup() {
-        var grid = $("#gridContainer").dxDataGrid("instance");
-        var selectedRows = grid.getSelectedRowsData();
-        var selectedIds = selectedRows.map(row => row.ID);
 
-        $.ajax({
-            url: '/TransactionSubGroup/DeleteTransactionSubGroup',
-            type: 'POST',
-            dataType: 'json',
-            data: {
-                id:selectedIds,
-            },
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if(result.code == 0){
-                    searchTransactionGroup();
-                    showToast('Succes',result.msg,true);
+            const id = selectedIds[0];
+            $(SEL.id).val(id);
+
+            showLoading(true);
+
+            $.ajax({
+                url: "/TransactionSubGroup/GetTransactionSubGroupByID",
+                type: "GET",
+                dataType: "json",
+                data: { id: id },
+                crossDomain: false,
+                headers: csrfHeaders(),
+                success: function (result) {
+                    showLoading(false);
+
+                    if (result) {
+                        // preserve original field mapping
+                        $(SEL.codeAdd).val(result.code ?? "");
+                        $(SEL.descriptionAdd).val(result.description ?? "");
+                        $(SEL.groupIDAdd).val(result.transactionGroupID ?? "0");
+
+                        openEditModal("Edit Transaction Sub Group");
+                    }
+                },
+                error: function (xhr) {
+                    showLoading(false);
+                    if (xhr && xhr.status === 401 && typeof sessionTimeout === "function") sessionTimeout();
                 }
-                else{
-                    showToast('Error',result.msg,false);
+            });
+        }
 
+        function save() {
+            const userName = JSON.parse(localStorage.getItem("Loginname") || "null");
+            const userID = JSON.parse(localStorage.getItem("userID") || "null");
+
+            const formData = new FormData();
+            formData.append("description", $(SEL.descriptionAdd).val());
+            formData.append("code", $(SEL.codeAdd).val());
+            formData.append("userName", userName);
+            formData.append("userID", userID);
+            formData.append("groupID", $(SEL.groupIDAdd).val());
+            formData.append("id", $(SEL.id).val() || 0);
+
+            // preserve original payload key "type"
+            formData.append("type", $(SEL.type).val() || "");
+
+            showLoading(true);
+
+            $.ajax({
+                url: "/TransactionSubGroup/SaveTransactionSubGroup",
+                type: "POST",
+                processData: false,
+                contentType: false,
+                data: formData,
+                success: function (data) {
+                    showLoading(false);
+
+                    if (data && data.code === 0) {
+                        bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).hide();
+                        search();
+                        showToast("Success", data.msg, true);
+                    } else {
+                        showToast("Error", data ? data.msg : "Save failed.", false);
+                    }
+                },
+                error: function () {
+                    showLoading(false);
+                    showToast("Error", "Save failed.", false);
                 }
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
+            });
+        }
+
+        function removeSelected() {
+            const grid = $(SEL.grid).dxDataGrid("instance");
+            const selectedRows = grid ? grid.getSelectedRowsData() : [];
+            const selectedIds = (selectedRows || []).map(r => r.ID);
+
+            if (selectedIds.length < 1) {
+                showToast("Error", "Please choose at least 1 transaction group", false);
+                return;
+            }
+
+            showLoading(true);
+
+            $.ajax({
+                url: "/TransactionSubGroup/DeleteTransactionSubGroup",
+                type: "POST",
+                dataType: "json",
+                data: { id: selectedIds },
+                crossDomain: false,
+                headers: csrfHeaders(),
+                success: function (result) {
+                    showLoading(false);
+
+                    if (result && result.code === 0) {
+                        search();
+                        showToast("Succes", result.msg, true);
+                    } else {
+                        showToast("Error", result ? result.msg : "Delete failed.", false);
+                    }
+                },
+                error: function (xhr) {
+                    showLoading(false);
+                    if (xhr && xhr.status === 401 && typeof sessionTimeout === "function") sessionTimeout();
                 }
-            },
+            });
+        }
 
-        });
+        // -----------------------
+        // lifecycle / binding
+        // -----------------------
+        function bindEventsOnce() {
+            initTomSelect(".tomselect-custom");
+            if (_bound) return;
+            _bound = true;
 
-    }
+            $(document)
+                .off("click.transSB", SEL.btnSearch).on("click.transSB", SEL.btnSearch, search)
+                .off("click.transSB", SEL.btnNew).on("click.transSB", SEL.btnNew, newItem)
+                .off("click.transSB", SEL.btnEdit).on("click.transSB", SEL.btnEdit, editItem)
+                .off("click.transSB", SEL.btnDelete).on("click.transSB", SEL.btnDelete, removeSelected)
+                .off("click.transSB", SEL.btnSave).on("click.transSB", SEL.btnSave, save);
+
+            // blur main when edit is open
+            $(SEL.modalEdit)
+                .off("hidden.bs.modal.transSB").on("hidden.bs.modal.transSB", function () {
+                    clearEditForm();
+                    showLoading(false);
+                });
+
+            // main modal cleanup
+            $(SEL.modalMain)
+                .off("hidden.bs.modal.transSB").on("hidden.bs.modal.transSB", function () {
+                    // reset state
+                    _selectedRows = [];
+
+                    // reset filters
+                    $(SEL.groupID).val("0");
+                    $(SEL.code).val("");
+                    $(SEL.description).val("");
+
+                    disposeGrid();
+                    showLoading(false);
+                });
+        }
+
+        function init() {
+            bindEventsOnce();
+        }
+
+        function open() {
+            init();
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalMain)).show();
+            loadInforServicesAndInit(); // loads select options then searches
+        }
+
+        return { init, open };
+    })();
+
+    // Global entry (required)
+    window.openModalTransSB = function () {
+        transSB_Module.open();
+    };
+
+    // Optional auto-open (remove if you open from menu)
+    $(document).ready(function () {
+        window.openModalTransSB();
+    });
 </script>
