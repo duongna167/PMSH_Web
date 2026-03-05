@@ -1,278 +1,503 @@
-﻿<style>
-    .header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 5px 0px;
-        border-bottom: 2px solid #ececec;
-    }
+﻿@* =========================================
+   Transaction Group (transGr_)
+   Refactor: modal-xl main + modal-xl edit
+   Pattern: Option A module, bind once, cleanup on hidden
+   Layout: ERP-style dense filter (right-aligned labels)
+   Preserve endpoints + payloads
+   ========================================= *@
 
-    .header h3 {
-        margin: 0;
-        font-size: 18px;
-        font-weight: 600;
-        color: #000000;
-    }
+<!-- =========================
+     MAIN MODAL (modal-xl)
+     ========================= -->
+<div class="modal fade" id="transGr_modalMain" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-4by3 modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
 
-    .header .info-icon {
-        color: #6b7280;
-        cursor: pointer;
-        transition: color 0.3s ease;
-    }
-
-    .header .info-icon:hover {
-        color: var(--main-color);
-    }
-</style>
-<div>
-    <div class="header mt-2" style="border-bottom:none;justify-content:center">
-        <h3 id="content-title">
-            Transaction Group
-        </h3>
-    </div>
-    <div class="mb-2">
-        <button class="mui-button mui-button-search" onclick="searchTransactionGroup();"> Search</button>
-        <button class="mui-button mui-button-new" onclick="openModalNew();"> New</button>
-        <button class="mui-button mui-button-edit" onclick="EditTransactionGroup();"> Edit</button>
-        <button class="mui-button mui-button-delete" onclick="DeleteTransactionGroup();"> Delete</button>
-
-    </div>
-    <div class="row">
-        <div class="col-md-2">
-            <label>Code</label>
-            <input type="text" id="code">
-        </div>
-        <div class="col-md-6">
-            <label>Description</label>
-            <input type="text" id="description">
-        </div>
-
-    </div>
-    <div class="mui-card mt-2">
-        <div id="gridContainer" class="gridContainer mt-2"></div>
-    </div>
-</div>
-
-<div class="modal fade" id="modalNew" tabindex="-1" aria-labelledby="transactionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content" style="border: 1px solid #bcbcbc">
             <div class="modal-header">
-                <h5 class="modal-title" id="transactionModalLabel">New/Edit Transaction Group</h5>
-                <button type="button" class="btn-close" onclick="closeFormAdd()"></button>
+                <h5 class="modal-title mb-0">Transaction Group</h5>
             </div>
-            <div class="button-group" style="margin:0 10px">
-                <button type="button" class="mui-button mui-button-search" onclick="SaveTransGroup();">Save</button>
-                <button type="button" class="mui-button mui-button-clear" onclick="closeFormAdd()">Close</button>
-            </div>
+
             <div class="modal-body">
-                <div class="row">
-                     <div class="col-md-3">
-                        <label>Group Code</label>
-                        <input type="text" id="codeAdd">
+
+                <div class="search-filter">
+                  <!-- Toolbar -->
+                    <div>
+                        <button id="transGr_btnSearch" type="button" class="mui-button mui-button-search">Search</button>
+                        <button id="transGr_btnNew" type="button" class="mui-button mui-button-new">New</button>
+                        <button id="transGr_btnEdit" type="button" class="mui-button mui-button-edit">Edit</button>
+                        <button id="transGr_btnDelete" type="button" class="mui-button mui-button-delete">Delete</button>
+                        <button id="transGr_btnClose" type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
                     </div>
-                    <div class="col-md-4">
-                        <label>Description</label>
-                        <input type="text" id="descriptionAdd">
-                    </div>
-                    <div class="col-md-12 mt-2">
-                        <div class="row">
-                            <label class="col-md-1">Revenue</label>
-                            <input class="col-md-1" type="radio" name="type" style="width:15px;height:15px" checked value="0">
-                            <label  class="col-md-1">Payment</label>
-                            <input class="col-md-1" type="radio" name="type" style="width:15px;height:15px" value="1">
-                            <label class="col-md-1">Wrapper</label>
-                            <input class="col-md-1" type="radio" name="type" style="width:15px;height:15px" value="2">
+
+                    <!-- ERP Search Filter -->
+                    <div class="row g-2 m-1">
+
+                        <div class="col-12 col-lg-4">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-12 col-md-2 col-form-label col-form-label-sm text-md-end"
+                                    for="transGr_code">Code</label>
+                                <div class="col-md-8">
+                                    <input id="transGr_code" name="transGr_code" type="text" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-8">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-12 col-md-2 col-form-label col-form-label-sm text-md-end"
+                                    for="transGr_description">Description</label>
+                                <div class="col-md-8">
+                                    <input id="transGr_description" name="transGr_description" type="text" class="form-control form-control-sm" />
+                                </div>
+                            </div>
                         </div>
 
                     </div>
+                </div>
+                <!-- Grid -->
+                <div class="mui-card">
+                    <div id="transGr_grid" class="gridContainer"></div>
                 </div>
 
             </div>
         </div>
     </div>
 </div>
+
+<!-- =========================
+     EDIT MODAL (modal-xl)
+     ========================= -->
+<div class="modal fade" id="transGr_modalEdit" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border: 1px solid #bcbcbc">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="transGr_modalEditTitle">New/Edit Transaction Group</h5>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="search-filter">
+                    <button id="transGr_btnSave" type="button" class="mui-button mui-button-search">Save</button>
+                    <button id="transGr_btnEditClose" type="button" class="mui-button mui-button-clear" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <form id="transGr_formEdit" novalidate>
+                    <input type="hidden" id="transGr_id" name="transGr_id" value="0" />
+
+                    <div class="row g-2 mt-1 mb-2">
+
+                        <div class="col-11">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end"
+                                       for="transGr_codeAdd">Group Code</label>
+                                <div class="col-md-8">
+                                    <input id="transGr_codeAdd" name="transGr_codeAdd" type="text" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-11">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end"
+                                       for="transGr_descriptionAdd">Description</label>
+                                <div class="col-md-8">
+                                    <input id="transGr_descriptionAdd" name="transGr_descriptionAdd" type="text" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Type (radio group) - inline, compact -->
+                        <div class="col-11">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-3 col-form-label col-form-label-sm text-md-end">Type</label>
+                                <div class="col-md-9">
+                                    <div class="d-flex flex-wrap gap-3 align-items-center">
+
+                                        <div class="form-check form-check-inline m-0">
+                                            <input type="radio"
+                                                   id="transGr_typeRevenue" name="transGr_type" value="0" checked>
+                                            <label class="form-check-label" for="transGr_typeRevenue">Revenue</label>
+                                        </div>
+
+                                        <div class="form-check form-check-inline m-0">
+                                            <input type="radio"
+                                                   id="transGr_typePayment" name="transGr_type" value="1">
+                                            <label class="form-check-label" for="transGr_typePayment">Payment</label>
+                                        </div>
+
+                                        <div class="form-check form-check-inline m-0">
+                                            <input type="radio"
+                                                   id="transGr_typeWrapper" name="transGr_type" value="2">
+                                            <label class="form-check-label" for="transGr_typeWrapper">Wrapper</label>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div id="transGr_loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:2000;">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+</div>
+
 <script>
-    function openModalNew(){
+    // ==========================================
+    // Transaction Group Module (Option A)
+    // ==========================================
+    var transGr_Module = (function () {
+        "use strict";
 
-        $('#modalNew').modal('show');
-    }
+        const SEL = {
+            modalMain: "#transGr_modalMain",
+            modalEdit: "#transGr_modalEdit",
+            spinner: "#transGr_loadingSpinner",
 
-    function searchTransactionGroup() {
+            // toolbar
+            btnSearch: "#transGr_btnSearch",
+            btnNew: "#transGr_btnNew",
+            btnEdit: "#transGr_btnEdit",
+            btnDelete: "#transGr_btnDelete",
 
-        $.ajax({
-            url: '/TransactionGroup/SearchTransactionGroup',
-            type: 'get',
-            dataType: 'json',
-            data: {
-                groupCode: $('#code').val(),
-                description: $('#description').val()
-            },
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                initializeDataGridSearch(result);
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-            },
+            // filter
+            code: "#transGr_code",
+            description: "#transGr_description",
 
-        });
+            // grid
+            grid: "#transGr_grid",
 
-    }
-    function initializeDataGridSearch(data) {
-        const limitedData = data.slice(0, 100);
+            // edit
+            formEdit: "#transGr_formEdit",
+            id: "#transGr_id",
+            codeAdd: "#transGr_codeAdd",
+            descriptionAdd: "#transGr_descriptionAdd",
+            typeRadioName: "transGr_type",
+            btnSave: "#transGr_btnSave"
+        };
 
-        $("#gridContainer").dxDataGrid({
-            dataSource: limitedData,
-            allowColumnResizing: true,
-            columnMinWidth: 90,
-            paging: {
-                enabled: true, // Enable paging
-                pageSize: 15 // 15 records per page
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [15, 20, 30], // Fixed page sizes
-                showPageSizeSelector: true,
-                showInfo: true, // Show paging info
-                showNavigationButtons: true
-            },
-            scrolling: {
-                mode: 'standard', // Standard scrolling mode
-                showScrollbar: 'always',
-                useNative: false
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            selection: {
-                mode: "multiple", // Enable multiple row selection
-                showCheckBoxesMode: "always" // Always show checkboxes
-            },
-            columns: [
-                { dataField: "ID", caption: "ID",visible: false },
+        let _gridInstance = null;
+        let _bound = false;
+        let _selectedRows = [];
 
-                { dataField: "Code", caption: "Group Code" },
-                { dataField: "Description", caption: "Description" },
-                { dataField: "Type", caption: "Type" },
-            ],
-            onRowClick: function(e) {
-                const grid = $("#gridContainerContact").dxDataGrid("instance");
-                grid.selectRows([e.key], false);
-                templateID = e.data.id;
-            },
-        });
-    }
-    $(document).ready(function() {
-
-        searchTransactionGroup();
-    });
-    function SaveTransGroup() {
-        const userName = JSON.parse(localStorage.getItem("Loginname"));
-        const userID = JSON.parse(localStorage.getItem("userID"));
-        var formData = new FormData();
-        formData.append('description', $('#descriptionAdd').val());
-        formData.append('code',  $('#codeAdd').val());
-        formData.append('userName', userName);
-        formData.append('userID', userID);
-        formData.append('id', transactionID);
-
-        formData.append('type', $('input[name="type"]:checked').val());
-        $.ajax({
-            url: '/TransactionGroup/SaveTransactionGroup',
-            type: 'POST',
-            processData: false,
-            contentType: false,
-            data: formData,
-            success: function (data) {
-                if (data.code == 0) {
-                    closeFormAdd();
-                    searchTransactionGroup();
-                    showToast('Success', data.msg, true);
-                } else {
-                    showToast('Error', data.msg, false);
-                }
-            },
-            error: function (xhr, statusText, err) { }
-        });
-    }
-    function clearFormAdd(){
-        $('#code').val('');
-        $('#description').val('');
-    }
-    function closeFormAdd(){
-        $('#modalNew').modal('hide');
-        clearFormAdd();
-    }
-    var transactionID = 0;
-    function EditTransactionGroup(){
-        var grid = $("#gridContainer").dxDataGrid("instance");
-        var selectedRows = grid.getSelectedRowsData();
-        var selectedIds = selectedRows.map(row => row.ID);
-        if(selectedIds.length < 1){
-            showToast('Error',"Please choose at least 1 transaction group",false);
-            return;
+        function showLoading(show) {
+            if (show) $(SEL.spinner).show();
+            else $(SEL.spinner).hide();
         }
-        transactionID = selectedIds[0];
-        $.ajax({
-            url: '/TransactionGroup/GetTransactionGroupByID',
-            type: 'get',
-            dataType: 'json',
-            data:{
-                id: selectedIds[0]
-            },
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if(result != null){
-                    $('#codeAdd').val(result.code);
-                    $('#descriptionAdd').val(result.description);
-                    openModalNew();
+
+        function csrfHeaders() {
+            return { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() };
+        }
+
+        function addMainBlur() {
+            $(`${SEL.modalMain} .modal-content`).addClass("modal-blur");
+        }
+        function removeMainBlur() {
+            $(`${SEL.modalMain} .modal-content`).removeClass("modal-blur");
+        }
+
+        function disposeGrid() {
+            try {
+                const inst = $(SEL.grid).dxDataGrid("instance");
+                if (inst) inst.dispose();
+            } catch (e) { /* ignore */ }
+
+            _gridInstance = null;
+            _selectedRows = [];
+            $(SEL.grid).empty();
+        }
+
+        function clearEditForm() {
+            $(SEL.formEdit).find(".is-invalid").removeClass("is-invalid");
+            $(SEL.formEdit).find(".invalid-feedback").remove();
+
+            $(SEL.id).val(0);
+            $(SEL.codeAdd).val("");
+            $(SEL.descriptionAdd).val("");
+
+            // reset type to Revenue (0) as original checked
+            $(`input[name="${SEL.typeRadioName}"][value="0"]`).prop("checked", true);
+        }
+
+        function openEditModal(title) {
+            $("#transGr_modalEditTitle").text(title || "New/Edit Transaction Group");
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).show();
+        }
+
+        // -----------------------
+        // Search + Grid
+        // -----------------------
+        function search() {
+            showLoading(true);
+
+            $.ajax({
+                url: "/TransactionGroup/SearchTransactionGroup",
+                type: "GET",
+                dataType: "json",
+                data: {
+                    groupCode: $(SEL.code).val(),
+                    description: $(SEL.description).val()
+                },
+                crossDomain: false,
+                headers: csrfHeaders(),
+                success: function (result) {
+                    initGrid(result || []);
+                    showLoading(false);
+                },
+                error: function (xhr) {
+                    showLoading(false);
+                    if (xhr && xhr.status === 401 && typeof sessionTimeout === "function") sessionTimeout();
                 }
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
+            });
+        }
+
+        function initGrid(data) {
+            const limitedData = (data || []).slice(0, 100);
+
+            disposeGrid();
+
+            _gridInstance = $(SEL.grid).dxDataGrid({
+                dataSource: limitedData,
+                showBorders: true,
+
+                allowColumnResizing: true,
+                columnMinWidth: 90,
+
+                paging: { enabled: true, pageSize: 15 },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [15, 20, 30],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+
+                scrolling: {
+                    mode: "standard",
+                    showScrollbar: "always",
+                    useNative: false
+                },
+
+                filterRow: { visible: true, applyFilter: "auto" },
+
+                // preserve original: multi selection + checkboxes
+                selection: {
+                    mode: "multiple",
+                    showCheckBoxesMode: "always"
+                },
+
+                columns: [
+                    { dataField: "ID", caption: "ID", visible: false },
+                    { dataField: "Code", caption: "Group Code" },
+                    { dataField: "Description", caption: "Description" },
+                    { dataField: "Type", caption: "Type" }
+                ],
+
+                onSelectionChanged: function (e) {
+                    _selectedRows = e.selectedRowsData || [];
+                },
+
+                // Fix original bug: it referenced #gridContainerContact + templateID + e.data.id
+                onRowClick: function (e) {
+                    const grid = $(SEL.grid).dxDataGrid("instance");
+                    if (grid) grid.selectRows([e.key], true);
                 }
+            }).dxDataGrid("instance");
+        }
+
+        // -----------------------
+        // CRUD
+        // -----------------------
+        function newItem() {
+            clearEditForm();
+            $(SEL.id).val(0);
+            openEditModal("New Transaction Group");
+        }
+
+        function editItem() {
+            const grid = $(SEL.grid).dxDataGrid("instance");
+            const selectedRows = grid ? grid.getSelectedRowsData() : [];
+            const selectedIds = (selectedRows || []).map(r => r.ID);
+
+            if (selectedIds.length < 1) {
+                showToast("Error", "Please choose at least 1 transaction group", false);
+                return;
             }
-        });
-    }
 
+            const id = selectedIds[0];
+            $(SEL.id).val(id);
 
-    function DeleteTransactionGroup() {
-        var grid = $("#gridContainer").dxDataGrid("instance");
-        var selectedRows = grid.getSelectedRowsData();
-        var selectedIds = selectedRows.map(row => row.ID);
+            showLoading(true);
 
-        $.ajax({
-            url: '/TransactionGroup/DeleteTransactionGroup',
-            type: 'POST',
-            dataType: 'json',
-            data: {
-                id:selectedIds,
-            },
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if(result.code == 0){
-                    searchTransactionGroup();
-                    showToast('Succes',result.msg,true);
+            $.ajax({
+                url: "/TransactionGroup/GetTransactionGroupByID",
+                type: "GET",
+                dataType: "json",
+                data: { id: id },
+                crossDomain: false,
+                headers: csrfHeaders(),
+                success: function (result) {
+                    showLoading(false);
+
+                    if (result) {
+                        $(SEL.codeAdd).val(result.code ?? "");
+                        $(SEL.descriptionAdd).val(result.description ?? "");
+
+                        // NOTE: original edit did not set type from server; preserve behavior.
+                        // If your API returns result.type, uncomment:
+                        // if (result.type !== undefined && result.type !== null) {
+                        //   $(`input[name="${SEL.typeRadioName}"][value="${result.type}"]`).prop("checked", true);
+                        // }
+
+                        openEditModal("Edit Transaction Group");
+                    }
+                },
+                error: function (xhr) {
+                    showLoading(false);
+                    if (xhr && xhr.status === 401 && typeof sessionTimeout === "function") sessionTimeout();
                 }
-                else{
-                    showToast('Error',result.msg,false);
+            });
+        }
 
+        function save() {
+            const userName = JSON.parse(localStorage.getItem("Loginname") || "null");
+            const userID = JSON.parse(localStorage.getItem("userID") || "null");
+
+            const formData = new FormData();
+            formData.append("description", $(SEL.descriptionAdd).val());
+            formData.append("code", $(SEL.codeAdd).val());
+            formData.append("userName", userName);
+            formData.append("userID", userID);
+            formData.append("id", $(SEL.id).val() || 0);
+            formData.append("type", $(`input[name="${SEL.typeRadioName}"]:checked`).val());
+
+            showLoading(true);
+
+            $.ajax({
+                url: "/TransactionGroup/SaveTransactionGroup",
+                type: "POST",
+                processData: false,
+                contentType: false,
+                data: formData,
+                success: function (data) {
+                    showLoading(false);
+
+                    if (data && data.code === 0) {
+                        bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).hide();
+                        search();
+                        showToast("Success", data.msg, true);
+                    } else {
+                        showToast("Error", data ? data.msg : "Save failed.", false);
+                    }
+                },
+                error: function () {
+                    showLoading(false);
+                    showToast("Error", "Save failed.", false);
                 }
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
+            });
+        }
+
+        function removeSelected() {
+            const grid = $(SEL.grid).dxDataGrid("instance");
+            const selectedRows = grid ? grid.getSelectedRowsData() : [];
+            const selectedIds = (selectedRows || []).map(r => r.ID);
+
+            if (selectedIds.length < 1) {
+                showToast("Error", "Please choose at least 1 transaction group", false);
+                return;
+            }
+
+            showLoading(true);
+
+            $.ajax({
+                url: "/TransactionGroup/DeleteTransactionGroup",
+                type: "POST",
+                dataType: "json",
+                data: { id: selectedIds },
+                crossDomain: false,
+                headers: csrfHeaders(),
+                success: function (result) {
+                    showLoading(false);
+
+                    if (result && result.code === 0) {
+                        search();
+                        showToast("Succes", result.msg, true);
+                    } else {
+                        showToast("Error", result ? result.msg : "Delete failed.", false);
+                    }
+                },
+                error: function (xhr) {
+                    showLoading(false);
+                    if (xhr && xhr.status === 401 && typeof sessionTimeout === "function") sessionTimeout();
                 }
-            },
+            });
+        }
 
-        });
+        // -----------------------
+        // lifecycle / binding
+        // -----------------------
+        function bindEventsOnce() {
+            if (_bound) return;
+            _bound = true;
 
-    }
+            $(document)
+                .off("click.transGr", SEL.btnSearch).on("click.transGr", SEL.btnSearch, search)
+                .off("click.transGr", SEL.btnNew).on("click.transGr", SEL.btnNew, newItem)
+                .off("click.transGr", SEL.btnEdit).on("click.transGr", SEL.btnEdit, editItem)
+                .off("click.transGr", SEL.btnDelete).on("click.transGr", SEL.btnDelete, removeSelected)
+                .off("click.transGr", SEL.btnSave).on("click.transGr", SEL.btnSave, save);
+
+            // blur main when edit is open
+            $(SEL.modalEdit)
+                .off("shown.bs.modal.transGr").on("shown.bs.modal.transGr", function () { addMainBlur(); })
+                .off("hidden.bs.modal.transGr").on("hidden.bs.modal.transGr", function () {
+                    removeMainBlur();
+                    clearEditForm();
+                    showLoading(false);
+                });
+
+            // main modal cleanup
+            $(SEL.modalMain)
+                .off("hidden.bs.modal.transGr").on("hidden.bs.modal.transGr", function () {
+                    _selectedRows = [];
+                    $(SEL.code).val("");
+                    $(SEL.description).val("");
+
+                    disposeGrid();
+                    removeMainBlur();
+                    showLoading(false);
+                });
+        }
+
+        function init() {
+            bindEventsOnce();
+        }
+
+        function open() {
+            init();
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalMain)).show();
+            search(); // preserve original auto-search on load
+        }
+
+        return { init, open };
+    })();
+
+    // Global entry (required)
+    window.openModalTransGr = function () {
+        transGr_Module.open();
+    };
+
+    // Optional auto-open (remove if you open from menu)
+    $(document).ready(function () {
+        window.openModalTransGr();
+    });
 </script>

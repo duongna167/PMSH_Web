@@ -313,7 +313,7 @@ async function loadDataToTomSelect(selector, apiUrl, mapFn = null) {
 /**
  * Hàm thần thánh mod được full dữ liệu tomselect (Chat GPT)
  *  VD:
-bindTomSelectData({
+ bindTomSelectData({
     selector: '#trans_transactionsGernew',
     data: transactionsArray, // mảng dữ liệu truyền vào
     valueField: 'code',

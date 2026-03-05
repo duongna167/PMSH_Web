@@ -165,7 +165,7 @@ namespace Administration.Controllers
                 {
                     return Json(new { code = 1, msg = "Can not delete this transaction sub group, exits at 1 least transation" });
                 }
-                TransactionGroupBO.Instance.Delete(id);
+                TransactionSubGroupBO.Instance.Delete(id);
 
 
                 pt.CommitTransaction();
