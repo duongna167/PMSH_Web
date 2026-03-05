@@ -914,6 +914,38 @@ namespace Reservation.Controllers
 
         #endregion
 
+        #region transfer history
+        [HttpGet]
+        public IActionResult GetAllotmentTransferSearch (string fromDate, string toDate, int allotmentFrom, int allotmentTo, string roomType)
+        {
+            try
+            {
+                DataTable dataTable = _iAllotmentService.AllotmentSearchTransfer( fromDate, toDate, allotmentFrom, allotmentTo, roomType);
+                var result = (from d in dataTable.AsEnumerable()
+                              select new
+                              {
+                                  FromAllotment = !string.IsNullOrEmpty(d["FromAllotment"].ToString()) ? d["FromAllotment"] : "",
+                                  ToAllotment = !string.IsNullOrEmpty(d["ToAllotment"].ToString()) ? d["ToAllotment"] : "",
+                                  RoomType = !string.IsNullOrEmpty(d["RoomType"].ToString()) ? d["RoomType"] : "",
+                                  Quantity = !string.IsNullOrEmpty(d["Quantity"].ToString()) ? d["Quantity"] : "",
+                                  FromDate = !string.IsNullOrEmpty(d["FromDate"].ToString()) ? d["FromDate"] : "",
+                                  ToDate = !string.IsNullOrEmpty(d["ToDate"].ToString()) ? d["ToDate"] : "",
+                                  Description = !string.IsNullOrEmpty(d["Description"].ToString()) ? d["Description"] : "",
+                                  CreatedBy = !string.IsNullOrEmpty(d["CreatedBy"].ToString()) ? d["CreatedBy"] : "",
+                                  CreatedDate = !string.IsNullOrEmpty(d["CreatedDate"].ToString()) ? d["CreatedDate"] : "",
+                                  UpdatedBy = !string.IsNullOrEmpty(d["UpdatedBy"].ToString()) ? d["UpdatedBy"] : "",
+                                  UpdatedDate = !string.IsNullOrEmpty(d["UpdatedDate"].ToString()) ? d["UpdatedDate"] : "",
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+
+        #endregion
+
         #endregion
         #region Allotment Report 
         [HttpGet]

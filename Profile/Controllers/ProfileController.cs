@@ -386,20 +386,20 @@ namespace Profile.Controllers
 
         //get all roomtype
         [HttpGet]
-        public async Task<IActionResult> GetAllRoomType()
+        public IActionResult GetAllRoomType()
         {
-            List<RoomTypeModel> list = new List<RoomTypeModel>();
             try
             {
-                list = PropertyUtils.ConvertToList<RoomTypeModel>(RoomTypeBO.Instance.FindAll()).ToList();
+                var list = PropertyUtils
+                    .ConvertToList<RoomTypeModel>(RoomTypeBO.Instance.FindAll())
+                    .ToList();
+
+                return Json(list);
             }
             catch (Exception ex)
             {
                 return Json(ex.Message);
             }
-
-            return Json(list);
-
         }
 
         //get all room by room type
