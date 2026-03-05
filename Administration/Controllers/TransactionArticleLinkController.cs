@@ -29,7 +29,7 @@ namespace Administration.Controllers
             ViewBag.TransactionList = listTracsaction;
             ViewBag.ArticleList = listArticle;
 
-            return View("~/Views/Administration/TransactionArticleLink.cshtml");
+            return PartialView("~/Views/Administration/TransactionArticleLink.cshtml");
         }
         [HttpGet("GetAllTransactionArticleLink")]
         public IActionResult GetAllTransactionArticleLink(

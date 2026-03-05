@@ -239,7 +239,7 @@
             $(SEL.codeAdd).val("");
             $(SEL.descriptionAdd).val("");
             // keep group selection as-is (or reset if you prefer)
-            // $(SEL.groupIDAdd).val("0");
+            clearTomSelect("#transSB_transactionGroupIDAdd");
         }
 
         function openEditModal(title) {
@@ -262,6 +262,29 @@
                 success: function (result) {
                     bindTomSelectData({
                         selector: '#transSB_transactionGroupID',
+                        data: result.groupTransaction, // mảng dữ liệu truyền vào
+                        valueField: 'id',
+                        labelField: 'text',
+                        searchField: ['text', 'description'],
+                        tomSelectOptions: {
+                            placeholder: 'Please choose Group',
+                            render: {
+                            option(data, escape) {
+                                return `<div><b>${escape(data.code ?? '')}</b> - ${escape(data.description ?? '')}</div>`;
+                            },
+                            item(data, escape) {
+                                return `<div>${escape(data.code ?? '')}</div>`;
+                            }
+                            }
+                        },
+                        mapFn: (x) => ({
+                            id:x.id,
+                            code: x.code,                               // ✅ field làm value
+                            description: x.description,
+                        })
+                    });
+                    bindTomSelectData({
+                        selector: '#transSB_transactionGroupIDAdd',
                         data: result.groupTransaction, // mảng dữ liệu truyền vào
                         valueField: 'id',
                         labelField: 'text',
@@ -352,7 +375,7 @@
 
                 // preserve original: multiple selection with checkboxes
                 selection: {
-                    mode: "multiple",
+                    mode: "single",
                     showCheckBoxesMode: "always"
                 },
 
@@ -416,7 +439,7 @@
                         // preserve original field mapping
                         $(SEL.codeAdd).val(result.code ?? "");
                         $(SEL.descriptionAdd).val(result.description ?? "");
-                        $(SEL.groupIDAdd).val(result.transactionGroupID ?? "0");
+                        setTomSelectValue("#transSB_transactionGroupIDAdd",result.transactionGroupID ?? "0");
 
                         openEditModal("Edit Transaction Sub Group");
                     }
