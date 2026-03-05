@@ -252,15 +252,15 @@ function destroyTomSelect(selectors) {
 }
 
 /**
- * Load dữ liệu linh hoạt từ API
+ * Load dữ liệu linh hoạt từ API hoặc Mảng dữ liệu có sẵn
  * @param {string} selector - Selector của element
- * @param {string} apiUrl - Link API
+ * @param {string|Array} source - Link API (string) hoặc Mảng dữ liệu (Array)
  * @param {function} mapFn - (Tùy chọn) Hàm để tự định nghĩa cấu trúc dữ liệu
  * 
  * VD: loadDataToTomSelect("#allot_setup_profileID", "/api/profiles", (item) => ({
           value: item.ID,
           text: `${item.Code} - ${item.Name}`,
-    hoặc  text: item.Code, 
+          /hoặc  text: item.Code, /
           data: item
        }));
 
@@ -270,8 +270,17 @@ function destroyTomSelect(selectors) {
         const maxQty = selectedRoom.data.MaxInventory; 
         const roomGrade = selectedRoom.data.GradeName;
     } 
+
+ * Dùng với dữ liệu ở mảng
+    const myData = [
+        { ID: 1, Name: 'Hà Nội' },
+        { ID: 2, Name: 'Sài Gòn' }
+    ];
+    loadDataToTomSelect("#mySelect", myData);
+
+
  */
-async function loadDataToTomSelect(selector, apiUrl, mapFn = null) {
+async function loadDataToTomSelect(selector, source, mapFn = null) {
     const el = document.querySelector(selector);
     if (!el || !el.tomselect) {
         console.warn(`[TomSelect] Element ${selector} chưa được khởi tạo TomSelect.`);
@@ -282,10 +291,26 @@ async function loadDataToTomSelect(selector, apiUrl, mapFn = null) {
 
     try {
         ts.clearOptions();
-        // Có thể thêm trạng thái loading tại đây nếu UI cần
 
-        const response = await fetch(apiUrl);
-        const rawData = await response.json();
+        let rawData = [];
+
+        // Kiểm tra nguồn dữ liệu
+        if (Array.isArray(source)) {
+            // NẾU LÀ MẢNG: Gán trực tiếp
+            rawData = source;
+        } else if (typeof source === 'string') {
+            // NẾU LÀ CHUỖI: Hiểu là API URL và fetch
+            const response = await fetch(source);
+            rawData = await response.json();
+        } else {
+            console.error(`[TomSelect] Source không hợp lệ cho ${selector}. Phải là URL hoặc Array.`);
+            return;
+        }
+
+        if (!rawData || !Array.isArray(rawData)) {
+            console.warn(`[TomSelect] Dữ liệu nạp cho ${selector} rỗng hoặc không đúng định dạng mảng.`);
+            return;
+        }
 
         const formattedData = rawData.map((item) => {
             // Nếu người dùng có truyền hàm map tự định nghĩa
@@ -295,18 +320,18 @@ async function loadDataToTomSelect(selector, apiUrl, mapFn = null) {
 
             // Mặc định: Gom hết vào data, ưu tiên lấy ID/Code làm value, Name làm text
             return {
-                value: item.id || item.ID || item.Code || '',
-                text: item.name || item.Name || item.Description || '',
-                data: item, // GIỮ LẠI TOÀN BỘ TRƯỜNG DỮ LIỆU GỐC
+                value: item.id || item.ID || item.Code || (typeof item === 'string' ? item : ''),
+                text: item.name || item.Name || item.Description || (typeof item === 'string' ? item : ''),
+                data: typeof item === 'object' ? item : { value: item },
             };
         });
 
         ts.addOptions(formattedData);
         ts.refreshOptions(false);
 
-        console.log(`[TomSelect] Loaded ${formattedData.length} items to ${selector}`);
+        console.log(`[TomSelect] Loaded ${formattedData.length} items to ${selector} from ${Array.isArray(source) ? 'Local Array' : 'API'}`);
     } catch (error) {
-        console.error(`[TomSelect] Load API Error (${selector}):`, error);
+        console.error(`[TomSelect] Load Data Error (${selector}):`, error);
     }
 }
 

@@ -51,11 +51,13 @@
 
         errors.forEach(err => {
             if (err.field === "general") return;
+            if (!err || !err.field) return;
 
+            const fieldName = err.field.toLowerCase();
             // 1. Tìm field (Name -> ID -> Hậu tố ID)
             let $field = $container.find(`[name='${err.field}']`);
             if ($field.length === 0) $field = $container.find(`#${err.field}`);
-            if ($field.length === 0) $field = $container.find(`[id$='_${err.field.toLowerCase()}']`);
+            if ($field.length === 0) $field = $container.find(`[id$='_${fieldName}']`);
 
             if ($field.length === 0) return;
 

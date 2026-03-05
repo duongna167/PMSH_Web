@@ -165,13 +165,13 @@
     </div>
 </div>
 
-@await Html.PartialAsync("Options/Membership")
+@* @await Html.PartialAsync("Options/Membership")
 @await Html.PartialAsync("Options/Changes")
 @await Html.PartialAsync("Options/Future")
 @await Html.PartialAsync("~/Views/Profile/NewProfileModal/_ProfileIndividual.cshtml")
 @await Html.PartialAsync("~/Views/Profile/NewProfileModal/_ProfileCompany.cshtml")
 @await Html.PartialAsync("~/Views/Profile/NewProfileModal/_ProfileGroup.cshtml")
-@await Html.PartialAsync("~/Views/Profile/NewProfileModal/_ProfileContact.cshtml")
+@await Html.PartialAsync("~/Views/Profile/NewProfileModal/_ProfileContact.cshtml") *@
 
 <script>
     var pro_search_Module = {
@@ -736,16 +736,16 @@
             $('#pro_search_modalOption').modal('show');
         },
 
-        saveProfile: async function () {
+        saveProfile: async function (manualType = null) {
             const self = this;
             var formData = new FormData();
-    
+
             // Lấy instance của grid để kiểm tra dữ liệu đang chọn (nếu là edit)
             var grid = this.gridInstance;
             if (!grid) return;
 
             // Xác định loại profile đang thao tác
-            var typeValue = grid.getSelectedRowsData()?.[0]?.type ?? $('#pro_search_txtType').val();
+            var typeValue = manualType !== null ? manualType : ($('#pro_search_txtType').val() || "0");
             var id = grid.getSelectedRowsData()?.[0]?.id ?? 0;
 
             // ==========================================
@@ -939,6 +939,9 @@
                         self.closeFormProfile(); // Reset fields
                         $('.profile-modal').modal('hide'); // Đóng các modal nhập liệu
                 
+                        if (self.selectedCallback) {
+                            self.selectedCallback(res.data); // Trả dữ liệu profile mới về
+                        }
                         if (self.gridInstance) self.gridInstance.clearSelection();
                     } else {
                         // Xử lý hiển thị lỗi validation từ server
@@ -1449,6 +1452,7 @@
                     console.log("History ID clicked:", e.data.id);
                 }
             });
-        }
+        },
+
     };
 </script>

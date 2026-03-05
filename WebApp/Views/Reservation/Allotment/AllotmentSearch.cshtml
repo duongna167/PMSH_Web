@@ -1451,11 +1451,21 @@
 
             const fromID = (mode === 1 && self.selectedRowData) ? self.selectedRowData.id : 0;
 
-            loadDataToTomSelect("#allot_trans_roomTypeID", "/Allotment/GetRoomTypesLookup", (item) => ({
+            loadDataToTomSelect("#allot_trans_roomTypeID", `/Allotment/GetRoomTypesLookup?allotmentId=${fromID}`, (item) => ({
                 value: item.id,
-                text: `${item.code} - ${item.name}`,
+                text: `${item.code} - ${item.name}`, 
                 data: item 
             }));
+            // .then(() => {
+            //     const tsRoomType = getTomSelect("#allot_trans_roomTypeID");
+        
+            //     if (tsRoomType && Object.keys(tsRoomType.options).length <= 1) {
+            //         showToast("Warning", "This Allotment has no Room Types configured!", false);
+            //         $("#allot_trans_btnInput").prop("disabled", true);
+            //     } else {
+            //         $("#allot_trans_btnInput").prop("disabled", false);
+            //     }
+            // });
 
             loadDataToTomSelect("#allot_trans_toID", `/Allotment/GetAllotmentLookup?excludeID=${fromID}`, (item) => ({
                 value: item.id,
@@ -1558,43 +1568,60 @@
             ValidationAdapter.clear("#allot_transfer_formContainer");
 
             const rtData = getTomSelectData("#allot_trans_roomTypeID");
+            if (!rtData || !rtData.value || rtData.value == 0) {
+                showToast("Warning", "Please select a Room Type from the list.", false);
+        
+                ValidationAdapter.apply([{ 
+                    Field: "allot_trans_roomTypeID", 
+                    Message: "Room Type selection is mandatory." 
+                }], "#allot_transfer_formContainer");
+        
+                return; 
+            }
+
             const qty = parseInt($("#allot_trans_qty").val() || 0);
             const fromID = parseInt(toBackendValue(getTomSelectData("#allot_trans_fromID"), "value") || 0);
             const fromDate = $("#allot_trans_fromDate").val();
             const night = parseInt($("#allot_trans_count").val() || 1);
 
-            $.get('/Allotment/CheckTransferAvailability', {
-                fromAllotmentId: fromID,
-                roomTypeId: rtData ? rtData.value : 0,
-                fromDate: fromDate,
-                night: night,
-                quantity: qty
-            }, function (res) {
-                if (!res.success) {
-                    if (res.errors && res.errors.length > 0) {
-                        ValidationAdapter.apply(res.errors, "#allot_transfer_formContainer");
-                        showToast("Warning", "Check input data again.", false);
-                    } else {
-                        showToast("Error", res.message, false);
-                    }
-                    return;
-                }
-
-                const newItem = {
-                    roomType: rtData.text,
-                    roomTypeID: parseInt(rtData.value),
-                    quantity: qty,
+            $.ajax({
+                url: '/Allotment/CheckTransferAvailability',
+                type: 'GET',
+                loadingGrid: '#allot_trans_grid', 
+                data: {
+                    fromAllotmentId: fromID,
+                    roomTypeId: rtData.value,
                     fromDate: fromDate,
-                    toDate: $("#allot_trans_toDate").val(),
-                    night: night
-                };
+                    night: night,
+                    quantity: qty
+                },
+                success: function (res) {
+                    if (!res.success) {
+                        if (res.errors && res.errors.length > 0) {
+                            ValidationAdapter.apply(res.errors, "#allot_transfer_formContainer");
+                            showToast("Warning", "Check input data again.", false);
+                        } else {
+                            showToast("Error", res.message, false);
+                        }
+                        return;
+                    }
 
-                const dataSource = grid.option("dataSource") || [];
-                dataSource.push(newItem);
-                grid.option("dataSource", dataSource);
+                    const newItem = {
+                        roomType: rtData.text,
+                        roomTypeID: parseInt(rtData.value),
+                        quantity: qty,
+                        fromDate: fromDate,
+                        toDate: $("#allot_trans_toDate").val(),
+                        night: night
+                    };
 
-                $("#allot_trans_qty").val(1);
-            });
+                    const dataSource = grid.option("dataSource") || [];
+                    dataSource.push(newItem);
+                    grid.option("dataSource", dataSource);
+
+                    $("#allot_trans_qty").val(1);
+                }
+            }); 
         },
 
         saveTransfer: function () {
