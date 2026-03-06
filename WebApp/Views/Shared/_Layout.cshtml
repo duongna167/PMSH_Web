@@ -1,4 +1,4 @@
-﻿﻿@using Microsoft.Extensions.Options
+﻿@using Microsoft.Extensions.Options
 @using static BaseBusiness.Global
 @inject IOptions<ContactInfo> ContactConfig
 
@@ -191,7 +191,21 @@
                         <li class="nav-item">
                             <a class="nav-link">PROFILE</a>
                             <div class="dropdown-menu-custom">
-                                <a asp-area="" asp-controller="Profile" asp-action="Index"data-action="SearchProfile" >New Profile</a>
+                                @* <a href="javascript:void(0);" onclick="openProfileTypeIndex()" data-action="SearchProfile">New Profile</a> *@
+
+                                @* <div class="dropdown-submenu">
+                                    <a class="dropdown-submenu-toggle">New Profile</a>
+                                    <div class="dropdown-submenu-content">
+                                        <a href="javascript:void(0);" onclick="openModalInd()" data-action="">Individual</a>
+                                        <a href="javascript:void(0);" onclick="openModalCom()" data-action="">Company</a>
+                                        <a href="javascript:void(0);" onclick="openModalTA()" data-action="">Travel Agent</a>
+                                        <a href="javascript:void(0);" onclick="openModalSrc()" data-action="">Source</a>
+                                        <a href="javascript:void(0);" onclick="openModalGrp()" data-action="">Group</a>
+                                        <a href="javascript:void(0);" onclick="openModalCont()" data-action="">Contact</a>
+
+                                    </div>
+                                </div> *@
+
                                 <a href="javascript:void(0);" onclick="openProSearch()" data-action="SearchProfile">Search Profile</a>
                                 <a href="javascript:void(0);" onclick="openProfileExport()" data-action="ProfileExport">Export Profile To Excel</a>
                             </div>
@@ -1286,7 +1300,7 @@
             return $container;
         },
 
-        load: function (url, modalId, callback) {
+        load: function (url, modalId, callback, showModal = true) {
             const $container = this.getOrCreateContainer(modalId);
             $container.empty(); // Xóa nội dung cũ để tránh trùng lặp script/ID
 
@@ -1297,16 +1311,18 @@
                 if (modalEl) {
                     if (typeof initDateInputs === "function") initDateInputs(modalEl);
 
-                    const modal = new bootstrap.Modal(modalEl);
-                    modal.show();
-
-                    modalEl.addEventListener("hidden.bs.modal", function () {
-                        modal.dispose();
-                        $container.remove();
-                        if ($('.modal.show').length > 0) {
-                            $('body').addClass('modal-open');
-                        }
-                    });
+                    if (showModal) {
+                        const modal = new bootstrap.Modal(modalEl);
+                        modal.show();
+                        
+                        modalEl.addEventListener("hidden.bs.modal", function () {
+                            modal.dispose();
+                            $container.remove();
+                            if ($('.modal.show').length > 0) {
+                                $('body').addClass('modal-open');
+                            }
+                        });
+                    }
 
                     // Xử lý thực thi callback sau khi HTML/Script đã được nạp vào DOM
                     if (typeof callback === "function") {
@@ -1687,7 +1703,14 @@
         );
     }
 
-       function openProSearch(callback) {
+    function openModalInd() {
+        const url = '/Profile/ProfileIndividual';
+        const modalId = 'modalProfileIndividual';
+
+        ModalManager.load(url, modalId, "openModalProInd");
+    }
+
+    function openProSearch(callback) {
         const url = '/Profile/SearchProfile';
         const modalId = 'pro_search_mainModal';
 

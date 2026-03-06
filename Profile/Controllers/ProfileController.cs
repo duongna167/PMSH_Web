@@ -52,7 +52,30 @@ namespace Profile.Controllers
         }
         public IActionResult Index()
         {
-            return View();
+            return PartialView();
+        }
+
+        public IActionResult ProfileCompany()
+        {
+            return PartialView("~/Views/Profile/NewProfileModal/ProfileCompany.cshtml");
+        }
+
+        public IActionResult ProfileContact()
+        {
+            return PartialView("~/Views/Profile/NewProfileModal/ProfileContact.cshtml");
+
+        }
+
+        public IActionResult ProfileGroup()
+        {
+            return PartialView("~/Views/Profile/NewProfileModal/ProfileGroup.cshtml");
+
+        }
+
+        public IActionResult ProfileIndividual()
+        {
+            return PartialView("~/Views/Profile/NewProfileModal/ProfileIndividual.cshtml");
+
         }
 
         #region common
