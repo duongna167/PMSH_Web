@@ -1,115 +1,428 @@
-<div class="text-center" id="reportTitle" style="font-size: 20px">Routing Code</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="">
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnView" onclick="openModalSearchUser()"
-            class="mui-button mui-button-search"><i class="fa-solid fa-search"></i>Search</button>
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnNew" class="mui-button mui-button-new"
-            type="button"> New</button>
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnEdit" class="mui-button mui-button-edit "
-            type="button"> Edit</button>
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnSave" class="mui-button mui-button-export "
-            type="button">  Save</button>
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnDelete" class="mui-button button-report-delete"
-            type="button">  Delete</button>
+@* =========================================
+   Routing Code (rouC_)
+   Refactor per strict requirements:
+   - Everything is a Bootstrap modal (main view included)
+   - Main modal: modal-xl, centered, scrollable
+   - ERP-style dense layout: nested rows, right-aligned labels
+   - Option A module: init/open, bind once, cleanup on hidden
+   - All IDs + names prefixed: rouC_
+   - Keep existing endpoints + payload shapes
+   ========================================= *@
+
+<!-- =========================
+     MAIN MODAL (modal-xl)
+     ========================= -->
+<div class="modal fade" id="rouC_modalMain" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-4by3 modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Routing Code</h5>
+            </div>
+
+            <div class="modal-body">
+
+                <!-- Toolbar -->
+                <div class="search-filter">
+                    <button id="rouC_btnView" type="button" class="mui-button mui-button-search">Search</button>
+                    <button id="rouC_btnNew" type="button" class="mui-button mui-button-new">New</button>
+                    <button id="rouC_btnEdit" type="button" class="mui-button mui-button-edit">Edit</button>
+                    <button id="rouC_btnDelete" type="button" class="mui-button button-report-delete">Delete</button>
+                    <button id="rouC_btnClose" type="button" class="mui-button mui-button-close"
+                            data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="mui-card mt-1">
+                    <div id="rouC_routingCodeGrid" class="gridContainer"></div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-<div class="mui-card">
-    <div class="row align-items-start">
-        <div class="col-md-3 border border-2  p-3">
-            <div class="col-12">
-                <label class="form-label me-2 mb-0">Code</label>
-                <input id="code" class="form-control mb-2 " name="code" />
-                <div class="invalid-feedback"></div>
+
+<!-- =========================
+     EDIT MODAL (modal-xl)
+     (Refactor: was modal-md; requirement says modal-xl)
+     ========================= -->
+<div class="modal fade" id="rouC_modalEdit" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="rouC_modalEditTitle">New/Edit Routing Code</h5>
             </div>
-            <div class="col-12">
-                <label class="form-label me-2 mb-0 ">Description</label>
-                <input type="text" class="form-control mb-2 " name="description" id="description">
-                <div class="invalid-feedback"></div>
-            </div>
-            <div class="col-12">
-                <label
-                    class="form-label me-2 mb-0                                                                                                                                                                                                        ">Calculation
-                    Rule</label>
-                <select class="form-control form-select form-control-sm" name="calculationRuleID" id="calculationRuleID"
-                    mb-2>
-                    <option value="0">-- Calculation Rule --</option>
-                    <option value="1">Per Person</option>
-                    <option value="2">Per Adult</option>
-                    <option value="3">Per Child</option>
-                    <option value="4">Per Room</option>
-                    <option value="5">Per Child1</option>
-                    <option value="6">Per Child2</option>
-                    <option value="7">Per Child3</option>
-                    <option value="8">Per Adutl + C</option>
-                    <option value="9">Per Adutl + C + C1</option>
-                    <option value="10">Per Adutl + C1</option>
-                    <option value="11">Per C + C1</option>
-                </select>
-                <div class="invalid-feedback"></div>
+
+            <div class="modal-body">
+
+                <div class="search-filter">
+                    <button id="rouC_btnSaveEdit" type="button" class="mui-button mui-button-search">Save</button>
+                    <button id="rouC_btnEditClose" type="button" class="mui-button mui-button-clear"
+                            data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <form id="rouC_formEdit" novalidate>
+                    <input type="hidden" id="rouC_id" name="rouC_id" value="0" />
+
+                    <div class="row g-2 mt-1 mb-2">
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end"
+                                       for="rouC_codeAdd">Code</label>
+                                <div class="col-md-8">
+                                    <input id="rouC_codeAdd" name="rouC_codeAdd" type="text"
+                                           class="form-control form-control-sm" />
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-2 col-form-label col-form-label-sm text-md-end"
+                                       for="rouC_transactionCodeIDAdd">Trans Code</label>
+                                <div class="col-md-10">
+                                    <select id="rouC_transactionCodeIDAdd" name="rouC_transactionCodeIDAdd" class="tomselect-custom" multiple>
+                                        @foreach (var item in ViewBag.TransactionsList)
+                                        {
+                                            <option value="@item.Code">
+                                                @item.Code - @item.Description
+                                            </option>
+                                        }
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="row g-2 align-items-start">
+                                <label class="col-md-2 col-form-label col-form-label-sm text-md-end"
+                                       for="rouC_descriptionAdd">Description</label>
+                                <div class="col-md-10">
+                                    <textarea id="rouC_descriptionAdd" name="rouC_descriptionAdd"
+                                              class="form-control form-control-sm" style="height: 100px;"></textarea>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+
             </div>
 
         </div>
-        <!-- RIGHT TABLE -->
-        <div class="col-md-9">
-            <div id="routingCodeGrid" class="gridContainer"></div>
-        </div>
     </div>
 </div>
+
+<!-- Loading Spinner -->
+<div id="rouC_loadingSpinner"
+    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+    height: 100%;display: flex;align-items: center;justify-content: center;">
+    <div class="spinner-border text-primary"></div>
+</div>
+
 <script>
-    $(document).ready(async function () {
-        await GetAllRoutingCode();
-    });
-    async function GetAllRoutingCode() {
-        const resRoutingCode = await $.ajax({
-            url: "/Administration/RoutingCode/GetAllRoutingCode",
-            method: "GET"
-        });
-        if (!resRoutingCode?.success) {
-            showToast('Error', resRoutingCode?.message || 'Failed to load Routing Code.', false);
-            initializeRoutingCodeGrid([]);;
+    // ==========================================
+    // Routing Code Module (Option A)
+    // ==========================================
+    var rouC_Module = (function () {
+        "use strict";
+
+        const SEL = {
+            modalMain: "#rouC_modalMain",
+            modalEdit: "#rouC_modalEdit",
+            spinner: "#rouC_loadingSpinner",
+
+            // toolbar
+            btnView: "#rouC_btnView",
+            btnNew: "#rouC_btnNew",
+            btnEdit: "#rouC_btnEdit",
+            btnDelete: "#rouC_btnDelete",
+
+            // main form
+            formMain: "#rouC_formMain",
+            code: "#rouC_code",
+            description: "#rouC_description",
+            calculationRuleID: "#rouC_calculationRuleID",
+
+            // grid
+            grid: "#rouC_routingCodeGrid",
+
+            // edit form
+            formEdit: "#rouC_formEdit",
+            id: "#rouC_id",
+            codeAdd: "#rouC_codeAdd",
+            descriptionAdd: "#rouC_descriptionAdd",
+            transactionCodeIDAdd: "#rouC_transactionCodeIDAdd",
+            btnSaveEdit: "#rouC_btnSaveEdit"
+        };
+
+        let _bound = false;
+        let _gridInstance = null;
+        let _selectedRowData = null;
+
+        function showLoading(show) {
+            if (show) $(SEL.spinner).show();
+            else $(SEL.spinner).hide();
         }
-        const resData = resRoutingCode.data;
-        initializeRoutingCodeGrid(resData);
 
-    }
-    async function initializeRoutingCodeGrid(dataPackageDetailGrid) {
-        $("#routingCodeGrid").dxDataGrid({
-            dataSource: dataPackageDetailGrid || [],
-            showBorders: true,
-            selection: { mode: "single" },
-            paging: { pageSize: 20 },
-            height: "calc(100vh - 360px)",
-            width: "100%",
-            pager: {
-                showPageSizeSelector: true,
-                allowedPageSizes: [20, 50, 100],
-                showInfo: true
-            },
-            filterRow: { visible: true },
-            columns: [
-                { dataField: "id", caption: "ID", visible: false },
-                { dataField: "code", caption: "Code", width: "10%" },
-                { dataField: "description", caption: "Description", dataType: "string", width: "30%" },
-                { dataField: "transactionCodes", caption: "Transsaction Code", width: "60%" },
+        function csrfHeaders() {
+            // use when needed; kept consistent with your other modules
+            return { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() };
+        }
 
+        function addMainBlur() {
+            $(`${SEL.modalMain} .modal-content`).addClass("modal-blur");
+        }
+        function removeMainBlur() {
+            $(`${SEL.modalMain} .modal-content`).removeClass("modal-blur");
+        }
 
-            ],
-            scrolling: {
-                mode: "standard", // Không dùng virtual để footer hiển thị đúng
-                showScrollbar: "always",
-                scrollByContent: true
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            // 🔥 Quan trọng: gán selectedRowData khi click chọn
-            onRowClick: function (e) {
-                selectedRowData = e.data; // 🔥 lấy data của row vừa click
-                console.log("Selected Row (RowClick):", selectedRowData);
-                selectPackageDetail(selectedRowData);
-            },
-            noDataText: "No records to display" // hiển thị text khi chưa có dữ liệu
-        });
-    }
+        function disposeGrid() {
+            try {
+                const inst = $(SEL.grid).dxDataGrid("instance");
+                if (inst) inst.dispose();
+            } catch (e) { /* ignore */ }
+
+            _gridInstance = null;
+            _selectedRowData = null;
+            $(SEL.grid).empty();
+        }
+
+        async function loadAllRoutingCode() {
+            showLoading(true);
+
+            try {
+                const res = await $.ajax({
+                    url: "/Administration/RoutingCode/GetAllRoutingCode",
+                    method: "GET"
+                });
+
+                if (!res || !res.success) {
+                    showToast("Error", res?.message || "Failed to load Routing Code.", false);
+                    initGrid([]);
+                    showLoading(false);
+                    return;
+                }
+
+                initGrid(res.data || []);
+                showLoading(false);
+            } catch (e) {
+                showLoading(false);
+                showToast("Error", "Failed to load Routing Code.", false);
+                initGrid([]);
+            }
+        }
+
+        function initGrid(data) {
+            disposeGrid();
+
+            _gridInstance = $(SEL.grid).dxDataGrid({
+                dataSource: data || [],
+                showBorders: true,
+                width: "100%",
+
+                selection: { mode: "single" },
+
+                paging: { pageSize: 20 },
+                pager: {
+                    visible: true,
+                    showPageSizeSelector: true,
+                    allowedPageSizes: [20, 50, 100],
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+
+                filterRow: { visible: true, applyFilter: "auto" },
+                scrolling: {
+                    mode: "standard",
+                    showScrollbar: "always",
+                    scrollByContent: true
+                },
+
+                columns: [
+                    { dataField: "id", caption: "ID", visible: false },
+                    { dataField: "code", caption: "Code", width: "10%" },
+                    { dataField: "description", caption: "Description", dataType: "string", width: "30%" },
+                    { dataField: "transactionCodes", caption: "Transaction Code", width: "60%" }
+                ],
+
+                onRowClick: function (e) {
+                    _selectedRowData = e.data || null;
+                    // preserve optional external hook if exists
+                    if (typeof selectPackageDetail === "function") {
+                        selectPackageDetail(_selectedRowData);
+                    }
+                },
+
+                noDataText: "No records to display"
+            }).dxDataGrid("instance");
+        }
+
+        // -----------------------
+        // UI actions (stubs where endpoints not provided)
+        // -----------------------
+        function openNew() {
+            clearEditForm();
+            $(SEL.id).val(0);
+            $("#rouC_modalEditTitle").text("New Routing Code");
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).show();
+        }
+
+        function openEdit() {
+            if (!_selectedRowData) {
+                showToast("Warning", "Please select 1 row to edit.", false);
+                return;
+            }
+
+            clearEditForm();
+
+            // Map from grid row -> edit form (best-effort)
+            $(SEL.id).val(_selectedRowData.id ?? 0);
+            $(SEL.codeAdd).val(_selectedRowData.code ?? "");
+            $(SEL.descriptionAdd).val(_selectedRowData.description ?? "");
+
+            // transactionCodes is shown as string; we cannot reliably map to a single ID without your API mapping
+            // keep select as-is unless you populate it elsewhere
+            console.log('_selectedRowData.transactionCodes',_selectedRowData.transactionCodes);
+            
+            setTomSelectValueMulti(SEL.transactionCodeIDAdd,_selectedRowData.transactionCodes);
+
+            $("#rouC_modalEditTitle").text("Edit Routing Code");
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).show();
+        }
+
+        function closeModalNew() {
+            clearEditForm();
+            $('#rouC_modalEdit').modal('hide');
+        }
+
+        function clearEditForm() {
+            $(SEL.formEdit).find(".is-invalid").removeClass("is-invalid");
+            $(SEL.formEdit).find(".invalid-feedback").text("");
+
+            $(SEL.id).val(0);
+            $(SEL.codeAdd).val("");
+            $(SEL.descriptionAdd).val("");
+            clearTomSelect(SEL.transactionCodeIDAdd)
+        }
+
+        function searchMain() {
+            loadAllRoutingCode();
+        }
+
+        function deleteSelected() {
+            $.ajax({
+                url: '/Administration/RoutingCode/RoutingDelete',
+                type: 'POST',
+                data: JSON.stringify({id :_selectedRowData.id}),
+                contentType: "application/json",
+                success: function (data) {
+                    if (data.success == true) {
+                        showToast('Success', data.message, true);
+                        searchMain();
+                    } else {
+                        showToast('Error', data.message, false);
+                    }
+
+                },
+                error: function (xhr, statusText, err) {
+                    showToast('Lỗi', 'Đã xảy ra lỗi khi lưu đặt phòng nhóm.', false);
+                }
+            });        
+        }
+
+        function saveEdit() {
+            let data = {
+                id: $("#rouC_id").val(),
+                code: $("#rouC_codeAdd").val(),
+                description: $("#rouC_descriptionAdd").val(),
+                transactionCodes: $("#rouC_transactionCodeIDAdd").val()
+            };
+            $.ajax({
+                url: '/Administration/RoutingCode/UpsertRoutingCode',
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: "application/json",
+                success: function (data) {
+                    if (data.success == true) {
+                        showToast('Success', data.message, true);
+                        closeModalNew();
+                        searchMain();
+                    } else {
+                        showToast('Error', data.message, false);
+                        applyValidationErrors(data?.errors || [], "#rouC_formEdit");
+                    }
+
+                },
+                error: function (xhr, statusText, err) {
+                    showToast('Lỗi', 'Đã xảy ra lỗi khi lưu đặt phòng nhóm.', false);
+                }
+            });
+        }
+
+        // -----------------------
+        // lifecycle / binding
+        // -----------------------
+        function bindEventsOnce() {
+            if (_bound) return;
+            _bound = true;
+            initTomSelect("#rouC_transactionCodeIDAdd")
+            $(document)
+                .off("click.rouC", SEL.btnView).on("click.rouC", SEL.btnView, searchMain)
+                .off("click.rouC", SEL.btnNew).on("click.rouC", SEL.btnNew, openNew)
+                .off("click.rouC", SEL.btnEdit).on("click.rouC", SEL.btnEdit, openEdit)
+                .off("click.rouC", SEL.btnDelete).on("click.rouC", SEL.btnDelete, deleteSelected)
+                .off("click.rouC", SEL.btnSaveEdit).on("click.rouC", SEL.btnSaveEdit, saveEdit);
+
+            // blur main when edit opens
+            $(SEL.modalEdit)
+                .off("shown.bs.modal.rouC").on("shown.bs.modal.rouC", function () { addMainBlur(); })
+                .off("hidden.bs.modal.rouC").on("hidden.bs.modal.rouC", function () {
+                    removeMainBlur();
+                    clearEditForm();
+                    showLoading(false);
+                });
+
+            // main cleanup
+            $(SEL.modalMain)
+                .off("hidden.bs.modal.rouC").on("hidden.bs.modal.rouC", function () {
+                    _selectedRowData = null;
+
+                    // reset main form inputs
+                    $(SEL.code).val("");
+                    $(SEL.description).val("");
+                    $(SEL.calculationRuleID).val("0");
+
+                    disposeGrid();
+                    removeMainBlur();
+                    showLoading(false);
+                });
+        }
+
+        function init() {
+            bindEventsOnce();
+        }
+
+        function open() {
+            init();
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalMain)).show();
+            loadAllRoutingCode();
+        }
+
+        return { init, open };
+    })();
+
+    // Global entry
+    window.openModalRouC = function () {
+        rouC_Module.open();
+    };
+
+    // Optional auto-open (remove if opened via menu)
+    $(document).ready(function () {
+        window.openModalRouC();
+    });
 </script>

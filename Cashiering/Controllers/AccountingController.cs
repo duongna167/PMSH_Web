@@ -63,21 +63,20 @@ namespace Cashiering.Controllers
                                       select d.Table.Columns.Cast<DataColumn>()
                                           //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
                                           .ToDictionary(
-                col => col.ColumnName,
-                col =>
-                {
-                    var value = d[col.ColumnName];
-                    if (value == DBNull.Value) return null;
+                                                col => col.ColumnName,
+                                                col =>
+                                                {
+                                                    var value = d[col.ColumnName];
+                                                    if (value == DBNull.Value) return null;
 
-                    // CreatedDate: KHÔNG ToString
-                    if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate")
-                        return value;
+                                                    // CreatedDate: KHÔNG ToString
+                                                    if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate")
+                                                        return value;
 
-                    // Các field khác: ToString
-                    return value.ToString();
-                }
-            )
-                                          ).ToList();
+                                                    // Các field khác: ToString
+                                                    return value.ToString();
+                                                }
+                                            )).ToList();
                 return Json(resultExchange);
             }
             catch (Exception ex)
@@ -957,22 +956,23 @@ namespace Cashiering.Controllers
                 DataTable dataTable = _iAccountingService.AROpeningData();
 
                 var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  ID = d["ID"]?.ToString() ?? "",
-                                  ARID = d["ARID"]?.ToString() ?? "",
-                                  AccountName = d["AccountName"]?.ToString() ?? "",
-                                  Type = d["Type"]?.ToString() ?? "",
-                                  AccountNo = d["AccountNo"]?.ToString() ?? "",
-                                  City = d["City"]?.ToString() ?? "",
-                                  Balance = d["Balance"]?.ToString() ?? "",
-                                  ContactName = d["ContactName"]?.ToString() ?? "",
-                                  CurrencyID = d["CurrencyID"]?.ToString() ?? "",
-                                  CreatedDate = d["CreatedDate"]?.ToString() ?? "",
-                                  UpdatedDate = d["UpdatedDate"]?.ToString() ?? "",
-                                  CreatedBy = d["CreatedBy"]?.ToString() ?? "",
-                                  UpdatedBy = d["UpdatedBy"]?.ToString() ?? ""
-                              }).ToList();
+                              select d.Table.Columns.Cast<DataColumn>()
+                                  //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
+                                  .ToDictionary(
+                                      col => col.ColumnName,
+                                      col =>
+                                      {
+                                          var value = d[col.ColumnName];
+                                          if (value == DBNull.Value) return null;
+
+                                          // CreatedDate: KHÔNG ToString
+                                          if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate")
+                                              return value;
+
+                                          // Các field khác: ToString
+                                          return value.ToString();
+                                      }
+                                  )).ToList();
                 return Json(result);
             }
             catch (Exception ex)
@@ -983,44 +983,41 @@ namespace Cashiering.Controllers
 
 
         [HttpPost]
-        public IActionResult AROpeningSave(string accountName, string accountNo, string arid, string balance, string city, string contactName, string createdBy, string createdDate, string currencyID, string id, string type, string updatedBy, string updatedDate, string user)
+        public IActionResult AROpeningSave(string accountName, string accountNo, string arid, decimal balance, string city, string contactName, string createdBy, string createdDate, string currencyID, int id, string type, string updatedBy, string updatedDate, string user)
         {
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
             try
             {
                 ARAccountReceivableOldBalancesModel model;
-                if (!string.IsNullOrEmpty(id))
+                if (id > 0)
                 {
                     if (currencyID == "")
                     {
                         throw new Exception("Currency");
                     }
-                    model = (ARAccountReceivableOldBalancesModel)ARAccountReceivableOldBalancesBO.Instance.FindByPrimaryKey(int.Parse(id));
-                    model.Amount = Convert.ToDecimal(balance);
+                    model = (ARAccountReceivableOldBalancesModel)ARAccountReceivableOldBalancesBO.Instance.FindByPrimaryKey(id);
+                    model.Amount = balance;
 
                     model.CurrencyID = currencyID;
                     model.UpdatedBy = user;
                     model.UpdatedDate = businessDateModel[0].BusinessDate;
                     ARAccountReceivableOldBalancesBO.Instance.Update(model);
                 }
-                else
+                else if (id == 0)
                 {
-                    if (!string.IsNullOrEmpty(balance))
+                    if (currencyID == "")
                     {
-                        if (currencyID == "")
-                        {
-                            throw new Exception("Currency");
-                        }
-                        model = new ARAccountReceivableOldBalancesModel();
-                        model.AccountReceivableID = Convert.ToInt32(arid);
-                        model.Amount = Convert.ToDecimal(balance);
-                        model.CurrencyID = currencyID;
-                        model.UpdatedBy = user;
-                        model.UpdatedDate = businessDateModel[0].BusinessDate;
-                        model.CreatedBy = user;
-                        model.CreatedDate = businessDateModel[0].BusinessDate;
-                        ARAccountReceivableOldBalancesBO.Instance.Insert(model);
+                        throw new Exception("Currency");
                     }
+                    model = new ARAccountReceivableOldBalancesModel();
+                    model.AccountReceivableID = Convert.ToInt32(arid);
+                    model.Amount = balance;
+                    model.CurrencyID = currencyID;
+                    model.UpdatedBy = user;
+                    model.UpdatedDate = businessDateModel[0].BusinessDate;
+                    model.CreatedBy = user;
+                    model.CreatedDate = businessDateModel[0].BusinessDate;
+                    ARAccountReceivableOldBalancesBO.Instance.Insert(model);
                 }
                 return Json(new { success = true, message = "Data updated!" });
             }

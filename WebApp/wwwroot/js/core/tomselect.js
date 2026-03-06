@@ -224,6 +224,13 @@ function setTomSelectValue(selector, value) {
         document.querySelector(selector).tomselect.setValue(value);
     }
 }
+// 2,5. Hàm SetValue cho 1 ID (Dùng cho Update/Edit)
+function setTomSelectValueMulti(selector, value) {
+    value = value.split(',').filter((x) => x);
+    if (document.querySelector(selector).tomselect) {
+        document.querySelector(selector).tomselect.setValue(value);
+    }
+}
 
 // 3. Hàm truyền nhiều ID vào để Clear cùng lúc
 function clearMultipleTomSelect(ids) {
