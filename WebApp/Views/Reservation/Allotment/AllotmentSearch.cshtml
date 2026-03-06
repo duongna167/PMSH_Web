@@ -1,4 +1,6 @@
+@{
 
+}
 
 <style>
     #allot_trans_cutoffDateInput:disabled,
@@ -177,6 +179,7 @@
                     </div>
 
                     <button id="allot_search_btnDetail" class="mui-button mui-button-new">Detail</button>
+                    <button id="allot_search_btnTransHistory" class="mui-button mui-button-new">Trans.History</button>
                     <button id="allot_search_btnExportExcel" class="mui-button mui-button-export">Excel</button>
                     <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
                 </div>
@@ -562,15 +565,16 @@
                             </div>
 
                             <div class="mb-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label class="small fw-bold" style="width: 80px;">Quantity</label>
+                                <div class="d-flex align-items-start gap-2">
+                                    <label class="small fw-bold mt-1" style="width: 80px;">Quantity</label>
+
                                     <div class="d-flex flex-grow-1 gap-2">
                                         <div class="flex-grow-1">
                                             <input type="text" id="allot_trans_qty" class="form-control form-control-sm" value="1">
-                                            <div class="invalid-feedback"></div>
                                         </div>
-                                        <button type="button" id="allot_trans_btnInput" class="mui-button mui-button-export flex-shrink-0">Input</button>
+
                                     </div>
+                                    <button type="button" id="allot_trans_btnInput" class="mui-button mui-button-export flex-shrink-0">Input</button>
                                 </div>
                             </div>
                         </div>
@@ -579,6 +583,69 @@
 
                 <div class="gridContainer mt-3 border-top pt-2 flex-grow-1" style="min-height: 200px;">
                     <div id="allot_trans_grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal transfer history-->
+<div class="modal fade" id="allot_transHis_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Allotment Transfer History</h5>
+            </div>
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button id="allot_transHis_btnView" class="mui-button mui-button-view">View</button>
+                    <button id="allot_transHis_btnExportExcel" class="mui-button mui-button-export">Excel</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden" id="allot_transHis_formContainer">
+                    <div class="p-2 flex-shrink-0">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-auto d-flex align-items-center gap-2">
+                                <label class="fw-bold small mb-0">From</label>
+                                <div data-date-input data-format="DD/MM/YYYY" data-name="allot_transHis_fromDate">
+                                    <input type="text" class="date-ui form-control form-control-sm" style="width:115px;">
+                                </div>
+                                <input type="checkbox" id="allot_transHis_chkFrom" checked />
+                                <label class="fw-bold small mb-0">To</label>
+                                <div data-date-input data-format="DD/MM/YYYY" data-name="allot_transHis_toDate">
+                                    <input type="text" class="date-ui form-control form-control-sm" style="width:115px;">
+                                </div>
+                                <input type="checkbox" id="allot_transHis_chkTo" checked />
+
+                            </div>
+
+                            <div class="col-auto d-flex align-items-center gap-1">
+                                <label class="small fw-bold" style="width: 70px;">Room Type</label>
+                                <div style="width: 150px;">
+                                    <select id="allot_transHis_roomType" class="tomselect-custom"></select>
+                                </div>
+                            </div>
+
+                            <div class="col-auto d-flex align-items-center gap-1">
+                                <label class="small fw-bold">From Allot.</label>
+                                <div style="width: 180px;">
+                                    <select id="allot_transHis_fromID" class="tomselect-custom"></select>
+                                </div>
+                            </div>
+
+                            <div class="col-auto d-flex align-items-center gap-1">
+                                <label class="small fw-bold">To Allot.</label>
+                                <div style="width: 180px;">
+                                    <select id="allot_transHis_toID" class="tomselect-custom"></select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gridContainer flex-grow-1 d-flex flex-column position-relative py-2">
+                        <div id="allot_transHis_grid"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -619,6 +686,7 @@
         },
 
         init: function () {
+            if (typeof LoadingGlobal !== 'undefined') LoadingGlobal.init();
             this.initEvents();
             this.intitDOMEvents();
         },
@@ -694,10 +762,12 @@
             $("#allot_search_btnEdit").on("click", () => self.openEditModal());
             $("#allot_setup_btnSaveItem").on("click", () => self.saveAllotment());
             $("#allot_search_btnDelete").on("click", () => self.confirmDelete());
+            $("#allot_search_btnTransHistory").on("click", () => self.opemdModalTransHistory());
             $("#allot_search_btnExportExcel").on("click", () => self.exportAllotInfoToExcel());
             $("#allot_search_btnDetail").on("click", () => self.openModalDetail());
             $("#allot_detail_btnSearchDetail").on("click", () => self.fetchDetailByStage());
             $("#allot_detail_btnExport").on("click", () => self.exportDetailStageToExcel());
+            $("#allot_transHis_btnExportExcel").on("click", () => self.exportTransHisToExcel());
             $("#allot_search_btnFromAllotment").on("click", () => self.openTransferModal(1));
             $("#allot_search_btnFromInventory").on("click", () => self.openTransferModal(0));
 
@@ -717,7 +787,6 @@
 
         reloadGrid: function () {
             const self = this;
-
             const filterData = {
                 code: $("#allot_search_code").val(),
                 marketID: getTomSelectData("#allot_search_market")?.value,
@@ -729,30 +798,34 @@
 
             self.renderDetailGrid([]);
             self.renderResvGrid([]);
-            LoadingManager.show();
+
             $.ajax({
                 url: '/Allotment/GetAllotmentSearch',
                 type: 'GET',
                 data: filterData,
+                loadingGrid: '#allot_search_gridAllotInfor',
                 success: function (data) {
                     self.renderMainGrid(data);
 
                     if (data && data.length > 0) {
                         const firstRow = data[0];
-                        self.selectedRowData = firstRow; 
+                        self.selectedRowData = firstRow;
 
                         self.fetchAllotmentDetail(firstRow.id);
                         self.fetchReservation(firstRow.id, "");
-                    } else {
-                        self.renderDetailGrid([]);
-                        self.renderResvGrid([]);
-                    }
 
-                    LoadingManager.hide();
+                        setTimeout(() => {
+                            const gridInstance = $("#allot_search_gridAllotInfor").dxDataGrid("instance");
+                            if (gridInstance) {
+                                gridInstance.selectRowsByIndexes([0]);
+                            }
+                        }, 100); 
+                    } else {
+                        self.selectedRowData = null;
+                    }
                 },
                 error: function (xhr, status, error) {
                     showToast("Error", "Unable to load data", false);
-                    LoadingManager.hide();
                 }
             });
         },
@@ -762,7 +835,7 @@
             var listMarket = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.MarketList ?? new List<object>()));
             var listAllType = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.AllotTypeList ?? new List<object>()));
 
-            self.initGrid("#allot_search_gridAllotInfor",{
+            self.initGrid("#allot_search_gridAllotInfor", {
                 dataSource: data,
                 columns: [
                     { dataField: "id", visible: false },
@@ -799,14 +872,20 @@
                     { dataField: "updateBy", caption: "Updated By", width: 90 },
                     { dataField: "updateDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy hh:mm", width: 110 }
                 ],
-
+                onContentReady: function(e) {
+                    if (data && data.length > 0 && e.component.getSelectedRowKeys().length === 0) {
+                        setTimeout(() => {
+                            e.component.selectRowsByIndexes([0]);
+                        }, 20);
+                    }
+                },
                 onSelectionChanged: function (e) {
                     const selectedRow = e.selectedRowsData[0];
                     if (selectedRow) {
                         self.selectedRowData = selectedRow;
 
                         self.resetDetailGrids();
-
+                            
                         self.fetchAllotmentDetail(selectedRow.id);
                         self.fetchReservation(selectedRow.id, "");
                     }
@@ -817,10 +896,24 @@
 
         fetchAllotmentDetail: function(allotmentId) {
             const self = this;
+        
             const isHistory = $("#allot_search_history").is(":checked");
 
-            $.get('/Allotment/GetAllotmentDetail', { allotmentId: allotmentId, isHistoryChecked: isHistory }, function(res) {
-                self.renderDetailGrid(res.data, res.roomTypeColumns);;
+            $.ajax({
+                url: '/Allotment/GetAllotmentDetail',
+                type: 'GET',
+                loadingGrid: '#allot_search_gridAllotDetail',
+                data: {
+                    allotmentId: allotmentId,
+                    isHistoryChecked: isHistory
+                },
+                success: function (res) {
+                    self.renderDetailGrid(res.data, res.roomTypeColumns);
+                },
+                error: function (xhr, status, error) {
+                    console.error('GetAllotmentDetail error:', error);
+                    showToast("Error", "Unable to load allotment detail", false);
+                }
             });
         },
 
@@ -879,17 +972,22 @@
 
         fetchReservation: function(allotmentId, roomTypeCode) {
             const self = this;
-            // $("#allot_search_loading").show();
 
-            $.get('/Allotment/GetAllotmentResvSearch', {
-                allotmentId: allotmentId,
-                roomTypeCode: roomTypeCode
-            }, function(res) {
-                self.renderResvGrid(res);
-                // $("#allot_search_loading").hide();
-            }).fail(function() {
-                showToast("Error", "Lỗi khi load danh sách Reservation", false);
-                // $("#allot_search_loading").hide();
+            $.ajax({
+                url: '/Allotment/GetAllotmentResvSearch',
+                type: 'GET',
+                loadingGrid: '#allot_search_gridReservation',
+                data: {
+                    allotmentId: allotmentId,
+                    roomTypeCode: roomTypeCode
+                },
+                success: function (res) {
+                    self.renderResvGrid(res);
+                },
+                error: function (xhr, status, error) {
+                    console.error('GetAllotmentResvSearch error:', error);
+                    showToast("Error", "Lỗi khi load danh sách Reservation", false);
+                }
             });
         },
 
@@ -1001,7 +1099,7 @@
                 },
                 error: function () {
                     showToast("Error", "Server error occurred.", false);
-                }
+                },
             });
         },
             
@@ -1178,6 +1276,8 @@
 
         fetchDetailByStage: function() {
             const self = this;
+            const gridStage = document.querySelector("#allot_detail_gridAllotDetailByStage");
+
             const fromDateIso = $("#allot_detail_searchDate").val();
             const noOfDays = parseInt($("#allot_detail_noOfDays").val() || 20);
 
@@ -1186,22 +1286,23 @@
                 return;
             }
 
-            LoadingManager.show();
+            LoadingGlobal.showElement(gridStage);
+
             $.get('/Allotment/GetAllotmentDetailFull', {
                 allotmentId: self.selectedRowData.id,
                 fromDate: fromDateIso,
                 noOfDays: noOfDays
             }, function(res) {
+                LoadingGlobal.hideElement(gridStage);
+
                 if (res.success && res.data) {
                     self.renderStageGrid(res.data);
                 } else {
                     showToast("Error", res.message || "No data found", false);
                 }
-                LoadingManager.hide();
             }).fail(function() {
-                LoadingManager.hide();
                 showToast("Error", "Server connection error", false);
-            });
+            })
         },
 
         renderStageGrid: function(displayData) {
@@ -1346,11 +1447,21 @@
 
             const fromID = (mode === 1 && self.selectedRowData) ? self.selectedRowData.id : 0;
 
-            loadDataToTomSelect("#allot_trans_roomTypeID", "/Allotment/GetRoomTypesLookup", (item) => ({
+            loadDataToTomSelect("#allot_trans_roomTypeID", `/Allotment/GetRoomTypesLookup?allotmentId=${fromID}`, (item) => ({
                 value: item.id,
-                text: `${item.code} - ${item.name}`,
+                text: `${item.code} - ${item.name}`, 
                 data: item 
             }));
+            // .then(() => {
+            //     const tsRoomType = getTomSelect("#allot_trans_roomTypeID");
+        
+            //     if (tsRoomType && Object.keys(tsRoomType.options).length <= 1) {
+            //         showToast("Warning", "This Allotment has no Room Types configured!", false);
+            //         $("#allot_trans_btnInput").prop("disabled", true);
+            //     } else {
+            //         $("#allot_trans_btnInput").prop("disabled", false);
+            //     }
+            // });
 
             loadDataToTomSelect("#allot_trans_toID", `/Allotment/GetAllotmentLookup?excludeID=${fromID}`, (item) => ({
                 value: item.id,
@@ -1453,43 +1564,60 @@
             ValidationAdapter.clear("#allot_transfer_formContainer");
 
             const rtData = getTomSelectData("#allot_trans_roomTypeID");
+            if (!rtData || !rtData.value || rtData.value == 0) {
+                showToast("Warning", "Please select a Room Type from the list.", false);
+        
+                ValidationAdapter.apply([{ 
+                    Field: "allot_trans_roomTypeID", 
+                    Message: "Room Type selection is mandatory." 
+                }], "#allot_transfer_formContainer");
+        
+                return; 
+            }
+
             const qty = parseInt($("#allot_trans_qty").val() || 0);
             const fromID = parseInt(toBackendValue(getTomSelectData("#allot_trans_fromID"), "value") || 0);
             const fromDate = $("#allot_trans_fromDate").val();
             const night = parseInt($("#allot_trans_count").val() || 1);
 
-            $.get('/Allotment/CheckTransferAvailability', {
-                fromAllotmentId: fromID,
-                roomTypeId: rtData ? rtData.value : 0,
-                fromDate: fromDate,
-                night: night,
-                quantity: qty
-            }, function (res) {
-                if (!res.success) {
-                    if (res.errors && res.errors.length > 0) {
-                        ValidationAdapter.apply(res.errors, "#allot_transfer_formContainer");
-                        showToast("Warning", "Check input data again.", false);
-                    } else {
-                        showToast("Error", res.message, false);
-                    }
-                    return;
-                }
-
-                const newItem = {
-                    roomType: rtData.text,
-                    roomTypeID: parseInt(rtData.value),
-                    quantity: qty,
+            $.ajax({
+                url: '/Allotment/CheckTransferAvailability',
+                type: 'GET',
+                loadingGrid: '#allot_trans_grid', 
+                data: {
+                    fromAllotmentId: fromID,
+                    roomTypeId: rtData.value,
                     fromDate: fromDate,
-                    toDate: $("#allot_trans_toDate").val(),
-                    night: night
-                };
+                    night: night,
+                    quantity: qty
+                },
+                success: function (res) {
+                    if (!res.success) {
+                        if (res.errors && res.errors.length > 0) {
+                            ValidationAdapter.apply(res.errors, "#allot_transfer_formContainer");
+                            showToast("Warning", "Check input data again.", false);
+                        } else {
+                            showToast("Error", res.message, false);
+                        }
+                        return;
+                    }
 
-                const dataSource = grid.option("dataSource") || [];
-                dataSource.push(newItem);
-                grid.option("dataSource", dataSource);
+                    const newItem = {
+                        roomType: rtData.text,
+                        roomTypeID: parseInt(rtData.value),
+                        quantity: qty,
+                        fromDate: fromDate,
+                        toDate: $("#allot_trans_toDate").val(),
+                        night: night
+                    };
 
-                $("#allot_trans_qty").val(1);
-            });
+                    const dataSource = grid.option("dataSource") || [];
+                    dataSource.push(newItem);
+                    grid.option("dataSource", dataSource);
+
+                    $("#allot_trans_qty").val(1);
+                }
+            }); 
         },
 
         saveTransfer: function () {
@@ -1564,6 +1692,157 @@
                 }
             });
         },
+
+        /* Transfer History */
+        opemdModalTransHistory: function() {
+            const self = this;
+            $("#allot_transHis_modal").modal("show");
+            initDateInputs();
+
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            UI.setHiddenDate("allot_transHis_fromDate", firstDay);
+            UI.setHiddenDate("allot_transHis_toDate", now);
+
+            loadDataToTomSelect("#allot_transHis_roomType", "/Allotment/GetRoomTypesLookup", (item) => ({
+                value: item.code,
+                text: item.code
+            }));
+
+            const allotLookupUrl = "/Allotment/GetAllotmentLookup";
+            loadDataToTomSelect("#allot_transHis_fromID", allotLookupUrl, (item) => ({
+                value: item.id,
+                text: `${item.code} - ${item.name}`
+            }));
+
+            loadDataToTomSelect("#allot_transHis_toID", allotLookupUrl, (item) => ({
+                value: item.id,
+                text: `${item.code} - ${item.name}`
+            }));
+
+            self.renderTransHisGrid([]);
+
+            // Thêm vào cuối hàm opemdModalTransHistory
+            $("#allot_transHis_chkFrom").on("change", function() {
+                $('[data-name="allot_transHis_fromDate"] input').prop("disabled", !this.checked);
+            });
+            $("#allot_transHis_chkTo").on("change", function() {
+                $('[data-name="allot_transHis_toDate"] input').prop("disabled", !this.checked);
+            });
+            // Gán sự kiện nút View trong modal history
+            $("#allot_transHis_btnView").off("click").on("click", () => self.reloadTransHisGrid());
+            self.reloadTransHisGrid();
+        },
+
+        reloadTransHisGrid: function() {
+            const self = this;
+            const gridTrans = document.querySelector("#allot_transHis_grid");
+
+            const isFilterFrom = $("#allot_transHis_chkFrom").is(":checked");
+            const isFilterTo = $("#allot_transHis_chkTo").is(":checked");
+
+            const filter = {
+                fromDate: isFilterFrom ? $("#allot_transHis_fromDate").val() : "",
+                toDate: isFilterTo ? $("#allot_transHis_toDate").val() : "",
+                roomType: toBackendValue(getTomSelectData("#allot_transHis_roomType"), "value") || "",
+                fromAllotId: parseInt(toBackendValue(getTomSelectData("#allot_transHis_fromID"), "value") || 0),
+                toAllotId: parseInt(toBackendValue(getTomSelectData("#allot_transHis_toID"), "value") || 0)
+            };
+
+             LoadingGlobal.showElement(gridTrans);
+
+            $.ajax({
+                url: '/Allotment/GetAllotmentTransferSearch',
+                type: 'GET',
+                data: filter,
+                success: function(res) {
+                    self.renderTransHisGrid(res);
+                },
+                error: function() {
+                    showToast("Error", "API error", false);
+                },
+                complete: function() {
+                    LoadingGlobal.hideElement(gridTrans);
+                }
+            });
+        },
+
+        renderTransHisGrid: function(data) {
+            const self = this;
+            self.initGrid("#allot_transHis_grid", {
+                dataSource: data,
+                columns: [
+                    { dataField: "fromAllotment", caption: "From Allotment", width: 130 },
+                    { dataField: "toAllotment", caption: "To Allotment", width: 170 },
+                    { dataField: "roomType", caption: "Ro.Type", width: 60 },
+                    { dataField: "quantity", caption: "Qty", width: 40 },
+                    { dataField: "fromDate", caption: "From Date", width: 100 ,dataType:"date", format:"dd/MM/yyyy"},
+                    { dataField: "toDate", caption: "To Date", width: 100, dataType:"date", format:"dd/MM/yyyy"},
+                    { dataField: "description", caption: "Description", width: 110},
+                    { dataField: "createdBy", caption: "CreatedBy", width: 70 },
+                    { dataField: "createdDate", caption: "Date Time", width: 120,dataType:"date", format:"dd/MM/yyyy" },
+                    { dataField: "updatedBy", caption: "UpdatedBy", width: 70 },
+                    { dataField: "updatedDate", caption: "UpdatedBy", width: 120,dataType:"date", format:"dd/MM/yyyy" }
+                ]
+            });
+        },
+
+        exportTransHisToExcel: function() {
+            const grid = $("#allot_transHis_grid").dxDataGrid("instance");
+            if (!grid) {
+                showToast("Warning", "No data to export!", false);
+                return;
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Transfer Search");
+            const companyName = localStorage.getItem("CompanyName") || "Hotel Management System";
+            const now = new Date();
+            const exportDateStr = "Export Date: " + now.toLocaleString("vi-VN");
+
+            // 2. Cấu hình tiêu đề và định dạng file
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 6, column: 1 }, // Dữ liệu bắt đầu từ dòng 6
+                customizeCell: function (options) {
+                    const { gridCell, excelCell } = options;
+                    if (gridCell.rowType === "header") {
+                        excelCell.font = { bold: true };
+                        excelCell.alignment = { horizontal: 'center' };
+                        excelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } };
+                    }
+                }
+            }).then(function () {
+                // 3. Thêm Header tùy chỉnh phía trên bảng dữ liệu
+                // Dòng 1: Tên công ty
+                worksheet.mergeCells('A1:D1');
+                const row1 = worksheet.getCell('A1');
+                row1.value = companyName;
+                row1.font = { bold: true, size: 14 };
+
+                // Dòng 2: Ngày giờ xuất
+                worksheet.mergeCells('A2:D2');
+                const row2 = worksheet.getCell('A2');
+                row2.value = exportDateStr;
+                row2.font = { italic: true };
+
+                // Dòng 4: Tiêu đề báo cáo
+                worksheet.mergeCells('A4:F4');
+                const reportTitle = worksheet.getCell('A4');
+                reportTitle.value = "Transfer History";
+                reportTitle.font = { bold: true, size: 16 };
+                reportTitle.alignment = { horizontal: 'center' };
+
+                // 4. Thực hiện ghi file và tải về
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "Allotment_Transfer_History.xlsx");
+                });
+            });
+        },
+        /*End Transfer History */
+
     };
 
     $(document).ready(function () {

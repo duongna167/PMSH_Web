@@ -1053,7 +1053,8 @@ namespace Administration.Controllers
                 var result = combinedTable.AsEnumerable()
                     .GroupBy(r => r["ID"].ToString())
                     .Select(g => g.First())
-                    .Select(d => new {
+                    .Select(d => new
+                    {
 
                         Code = !string.IsNullOrEmpty(d["Code"].ToString()) ? d["Code"] : "",
                         Name = !string.IsNullOrEmpty(d["Name"].ToString()) ? d["Name"] : "",
@@ -1126,7 +1127,7 @@ namespace Administration.Controllers
                     {
                         model.Code = oldData.Code;
                         model.CreatedBy = oldData.CreatedBy;
-                        model.CreatedDate = oldData.CreatedDate ;
+                        model.CreatedDate = oldData.CreatedDate;
                     }
 
                     model.UpdatedDate = DateTime.Now;
@@ -1156,7 +1157,7 @@ namespace Administration.Controllers
                 return Json(new { success = false, ex.Message });
             }
 
-            return Json( new { success = true});
+            return Json(new { success = true });
         }
         #endregion 
 
@@ -1307,8 +1308,8 @@ namespace Administration.Controllers
                 Check(model, "general", "Invalid data"),
 
                 Check(model?.Code, "code", "Code is not blank."),
-                 //Check(PersonInChargeZoneBO.Instance.IsDuplicate("Code", model.Code, model.ID),
-                 //       "code", "This code already exists."),
+                //Check(PersonInChargeZoneBO.Instance.IsDuplicate("Code", model.Code, model.ID),
+                //       "code", "This code already exists."),
                 Check(model?.Name, "name", "Name is not blank.")
             );
 
@@ -1486,7 +1487,7 @@ namespace Administration.Controllers
 
             List<CurrencyModel> listCurr = PropertyUtils.ConvertToList<CurrencyModel>(CurrencyBO.Instance.FindAll());
             ViewBag.CurrencyList = listCurr;
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult GetDepositRule(string code, string description)
@@ -1560,7 +1561,7 @@ namespace Administration.Controllers
                     model.CreateDate = DateTime.Now;
                     model.UpdateDate = DateTime.Now;
                     DepositRuleBO.Instance.Insert(model);
-                    message = "Insert successfully!";
+                    message = $"Successfully Insert Deposit Rule: {model.Code}";
                 }
                 else
                 {
@@ -1574,7 +1575,7 @@ namespace Administration.Controllers
 
                     model.UpdateDate = DateTime.Now;
                     DepositRuleBO.Instance.Update(model);
-                    message = "Update successfully!";
+                    message = $"Successfully Updated Deposit Rule: {model.Code}.";
                 }
             }
             catch (Exception ex)
@@ -1606,7 +1607,7 @@ namespace Administration.Controllers
 
             List<CurrencyModel> listCurr = PropertyUtils.ConvertToList<CurrencyModel>(CurrencyBO.Instance.FindAll());
             ViewBag.CurrencyList = listCurr;
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult GetCancellationRule(string code, string description)
@@ -1686,7 +1687,7 @@ namespace Administration.Controllers
                     model.CreateDate = DateTime.Now;
                     model.UpdateDate = DateTime.Now;
                     CancellationRuleBO.Instance.Insert(model);
-                    message = "Insert successfully!";
+                    message = $"Successfully Insert Deposit Rule: {model.Code}";
                 }
                 else
                 {
@@ -1700,7 +1701,7 @@ namespace Administration.Controllers
 
                     model.UpdateDate = DateTime.Now;
                     CancellationRuleBO.Instance.Update(model);
-                    message = "Update successfully!";
+                    message = $"Successfully Updated Deposit Rule: {model.Code}.";
                 }
             }
             catch (Exception ex)
@@ -5144,10 +5145,10 @@ namespace Administration.Controllers
                 Check(model?.RoomOwnerID, "roomOwnerID", "Please select room owner.")
             );
 
-            if(listErrors.Count == 0 && model != null)
+            if (listErrors.Count == 0 && model != null)
             {
-                bool isDuplicate = GroupAndOwnerBO.Instance.IsDuplicatGroupAndOwner(model.RoomOwnerID,model.ID);
-                if(isDuplicate)
+                bool isDuplicate = GroupAndOwnerBO.Instance.IsDuplicatGroupAndOwner(model.RoomOwnerID, model.ID);
+                if (isDuplicate)
                 {
                     var groupAndOwner = GroupAndOwnerBO.Instance
                        .FindByAttribute("RoomOwnerID", model.RoomOwnerID)
@@ -5166,8 +5167,8 @@ namespace Administration.Controllers
                     }
                     var duplicateError = CheckDuplicate(isDuplicate, "roomOwnerID", $"This room already was GroupOwner: [" + groupOwnerName + "].");
                     if (duplicateError != null) { listErrors.Add(duplicateError); }
-                }    
-            }    
+                }
+            }
 
             if (listErrors.Count > 0)
             {
@@ -5291,12 +5292,12 @@ namespace Administration.Controllers
                     var owners = RoomOwnerProfileBO.Instance
                         .FindByAttribute("RoomID", model.RoomID)
                         .Cast<RoomOwnerProfileModel>()
-                        .Where(x => x.ID != model.ID)  
+                        .Where(x => x.ID != model.ID)
                         .ToList();
 
                     string ownerName = owners.FirstOrDefault()?.OwnerName ?? "another owner";
 
-                    var duplicateError = CheckDuplicate(isDuplicate, "roomID", $"This room already was Owner: [" + ownerName + "]."); 
+                    var duplicateError = CheckDuplicate(isDuplicate, "roomID", $"This room already was Owner: [" + ownerName + "].");
                     if (duplicateError != null) { listErrors.Add(duplicateError); }
                 }
             }

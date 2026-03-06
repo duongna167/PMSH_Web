@@ -1,6 +1,7 @@
 ﻿using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
+using DevExpress.DataProcessing.InMemoryDataProcessor;
 using DevExpress.XtraGauges.Core.Model;
 using DocumentFormat.OpenXml.Bibliography;
 using Microsoft.AspNetCore.Http;
@@ -15,6 +16,7 @@ using System.Data;
 using System.Linq;
 using System.ServiceModel.Channels;
 using static BaseBusiness.util.ValidationUtils;
+using static log4net.Appender.FileAppender;
 using static Microsoft.Extensions.Logging.EventSource.LoggingEventSource;
 
 namespace Reservation.Controllers
@@ -758,21 +760,24 @@ namespace Reservation.Controllers
         }
 
         [HttpGet]
-        public JsonResult GetRoomTypesLookup()
+        public JsonResult GetRoomTypesLookup(int allotmentId)
         {
-            string sql = "SELECT ID, Code, Name FROM RoomType WITH (NOLOCK) WHERE Inactive = 0";
+            string sql = allotmentId > 0
+                ? $@"SELECT DISTINCT b.ID, b.Code, b.Name 
+             FROM AllotmentDetail a WITH (NOLOCK)
+             INNER JOIN RoomType b WITH (NOLOCK) ON a.RoomTypeID = b.ID 
+             WHERE a.AllotmentID = {allotmentId} AND b.Inactive = 0
+             ORDER BY b.Code"
+                : "SELECT ID, Code, Name FROM RoomType WITH (NOLOCK) WHERE Inactive = 0 ORDER BY Code";
+
             DataTable dt = TextUtils.Select(sql);
 
-            var list = new List<object>();
-            foreach (DataRow row in dt.Rows)
-            {
-                list.Add(new
-                {
-                    id = row["ID"],
-                    code = row["Code"],
-                    name = row["Name"]
-                });
-            }
+            var list = dt.AsEnumerable().Select(row => new {
+                id = row["ID"],
+                code = row["Code"],
+                name = row["Name"]
+            }).ToList();
+
             return Json(list);
         }
 
@@ -822,7 +827,7 @@ namespace Reservation.Controllers
                 DateTime toDate = (DateTime)data.ToDate;
                 int rtID = (int)data.RoomTypeID;
 
-                for (var d = fromDate; d <= toDate; d = d.AddDays(1))
+                for (var d = fromDate; d < toDate; d = d.AddDays(1))
                 {
                     // Gọi hàm check tồn kho thực tế
                     int currentAvail = _iAllotmentService.GetAvailability(fromAllotID, rtID, d);
@@ -870,9 +875,17 @@ namespace Reservation.Controllers
         {
             try
             {
+                bool isRoomTypeMissing = false;
+                if (fromAllotmentId > 0 && roomTypeId > 0)
+                {
+                    string sql = $"SELECT COUNT(1) FROM AllotmentDetail WHERE AllotmentID = {fromAllotmentId} AND RoomTypeID = {roomTypeId}";
+                    isRoomTypeMissing = TextUtils.ExecuteScalarInt(sql) == 0;
+                }
+
                 var listErrors = GetErrors(
+                    Check(isRoomTypeMissing, "allot_trans_roomTypeID", "This Allotment has no configuration for the selected Room Type."),
                     Check(roomTypeId == 0, "allot_trans_roomTypeID", "Please select a Room Type."),
-                    Check(quantity <= 0, "allot_trans_qty", "Quantity must be > 0.")
+                    Check(quantity, "allot_trans_qty", "Quantity must be greater than 0.")
                 );
 
                 if (listErrors.Count > 0) return Json(new { success = false, errors = listErrors });
@@ -889,11 +902,10 @@ namespace Reservation.Controllers
                     if (avail < quantity)
                     {
                         isOverbook = true;
-                        detailMessage += $" - {checkDate:dd/MM/yyyy} (Qty: {quantity}) Please change quantity to continue ";
+                        detailMessage += $"<br/>• {checkDate:dd/MM/yyyy}: (Qty: {quantity})  Please change quantity to continue";
                     }
                 }
 
-                // Nếu Overbooking, ta ném lỗi vào trường Quantity
                 if (isOverbook)
                 {
                     listErrors.Add(new ValidationError
@@ -909,6 +921,38 @@ namespace Reservation.Controllers
             catch (Exception ex)
             {
                 return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        #endregion
+
+        #region transfer history
+        [HttpGet]
+        public IActionResult GetAllotmentTransferSearch (string fromDate, string toDate, int allotmentFrom, int allotmentTo, string roomType)
+        {
+            try
+            {
+                DataTable dataTable = _iAllotmentService.AllotmentSearchTransfer( fromDate, toDate, allotmentFrom, allotmentTo, roomType);
+                var result = (from d in dataTable.AsEnumerable()
+                              select new
+                              {
+                                  FromAllotment = !string.IsNullOrEmpty(d["FromAllotment"].ToString()) ? d["FromAllotment"] : "",
+                                  ToAllotment = !string.IsNullOrEmpty(d["ToAllotment"].ToString()) ? d["ToAllotment"] : "",
+                                  RoomType = !string.IsNullOrEmpty(d["RoomType"].ToString()) ? d["RoomType"] : "",
+                                  Quantity = !string.IsNullOrEmpty(d["Quantity"].ToString()) ? d["Quantity"] : "",
+                                  FromDate = !string.IsNullOrEmpty(d["FromDate"].ToString()) ? d["FromDate"] : "",
+                                  ToDate = !string.IsNullOrEmpty(d["ToDate"].ToString()) ? d["ToDate"] : "",
+                                  Description = !string.IsNullOrEmpty(d["Description"].ToString()) ? d["Description"] : "",
+                                  CreatedBy = !string.IsNullOrEmpty(d["CreatedBy"].ToString()) ? d["CreatedBy"] : "",
+                                  CreatedDate = !string.IsNullOrEmpty(d["CreatedDate"].ToString()) ? d["CreatedDate"] : "",
+                                  UpdatedBy = !string.IsNullOrEmpty(d["UpdatedBy"].ToString()) ? d["UpdatedBy"] : "",
+                                  UpdatedDate = !string.IsNullOrEmpty(d["UpdatedDate"].ToString()) ? d["UpdatedDate"] : "",
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
             }
         }
 

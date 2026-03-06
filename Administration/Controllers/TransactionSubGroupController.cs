@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 
 namespace Administration.Controllers
 {
-    public class TransactionSubGroupController: Controller
+    public class TransactionSubGroupController : Controller
     {
         private readonly IConfiguration _configuration;
         private readonly ILogger<TransactionSubGroupController> _logger;
@@ -35,14 +35,14 @@ namespace Administration.Controllers
         }
         public IActionResult TransSubGroup()
         {
-            return View();
+            return PartialView();
         }
         [HttpGet]
-        public IActionResult SearchTransactionSubGroup(string groupCode, string description,int groupID)
+        public IActionResult SearchTransactionSubGroup(string groupCode, string description, int groupID)
         {
             try
             {
-                var data = _iTransactionSubGroupService.SearchTransactionSubGroup(groupCode ?? "", description ?? "",groupID);
+                var data = _iTransactionSubGroupService.SearchTransactionSubGroup(groupCode ?? "", description ?? "", groupID);
 
                 var result = (from d in data.AsEnumerable()
                               select d.Table.Columns.Cast<DataColumn>()
@@ -165,8 +165,8 @@ namespace Administration.Controllers
                 {
                     return Json(new { code = 1, msg = "Can not delete this transaction sub group, exits at 1 least transation" });
                 }
-                TransactionGroupBO.Instance.Delete(id);
-                
+                TransactionSubGroupBO.Instance.Delete(id);
+
 
                 pt.CommitTransaction();
                 return Json(new { code = 0, msg = "Transaction Sub Group was deleted successfully" });

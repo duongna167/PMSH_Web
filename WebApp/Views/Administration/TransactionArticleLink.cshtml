@@ -1,162 +1,127 @@
-<!-- DevExtreme ASP.NET Data -->
-<script src="https://cdn3.devexpress.com/jslib/22.2.6/js/dx.aspnet.data.js"></script>
-<link rel="stylesheet" href="https://cdn3.devexpress.com/jslib/22.2.6/css/dx.light.css">
+@* =========================================
+   Transaction Article Link (transArL_)
+   Refactor: modal-xl main + modal-xl create + modal-xl edit
+   Pattern: Option A module, bind once, cleanup on hidden
+   Layout: ERP-style dense filter (right-aligned labels, nested rows)
+   Keep: DevExtreme AspNet store, remote ops, Excel export, TomSelect validation sync
+   ========================================= *@
+<!-- =========================
+     MAIN MODAL (modal-xl)
+     ========================= -->
+<div class="modal fade" id="transArL_modalMain" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-4by3 modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
 
-<style>
-    select.is-invalid+.invalid-feedback {
-        display: block;
-        color: #dc3545;
-    }
+            <div class="modal-header">
+                <h5 class="modal-title">Transaction Article Link</h5>
+            </div>
 
-    .ts-control.is-invalid {
-        border-color: #dc3545;
-    }
+            <div class="modal-body">
+                <div class="search-filter">
+                    <!-- Toolbar -->
+                    <div>
+                        <button id="transArL_btnView" type="button" class="mui-button mui-button-new">View</button>
+                        <button id="transArL_btnNew" type="button" class="mui-button mui-button-new">New</button>
+                        <button id="transArL_btnEdit" type="button" class="mui-button mui-button-edit">Edit</button>
+                        <button id="transArL_btnDelete" type="button" class="mui-button button-report-delete">Delete</button>
+                        <button id="transArL_btnExportExcel" type="button" class="mui-button mui-button-export">Excel</button>
+                        <button id="transArL_btnClose" type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                    </div>
 
-    .ts-wrapper {
-        padding-left: 10px;
-    }
+                    <!-- ERP Search Filter -->
+                    <div class="row g-2 m-1">
 
-    .ts-control {
-        min-height: 38px;
-        border-radius: 0.375rem;
-        border: 1px solid #225d97;
-        padding: 0.375rem 0.75rem;
-        font-size: 1rem;
-        transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
-        max-height: 85px;
-        overflow-y: auto;
-    }
+                        <div class="col-12 col-lg-4">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-3 col-lg-5 col-form-label col-form-label-sm text-md-end"
+                                    for="transArL_transCode">Transaction Code</label>
+                                <div class="col-md-8 col-lg-7">
+                                    <input id="transArL_transCode" name="transArL_transCode" type="text"
+                                        class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
 
-    .ts-wrapper.focus .ts-control {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-        outline: 0;
-    }
+                        <div class="col-12 col-lg-8">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-3 col-lg-4 col-form-label col-form-label-sm text-md-end"
+                                    for="transArL_transDes">Transaction Description</label>
+                                <div class="col-md-8 col-lg-8">
+                                    <input id="transArL_transDes" name="transArL_transDes" type="text"
+                                        class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
 
-    .ts-wrapper.is-invalid .ts-control {
-        border-color: #dc3545;
-        padding-right: calc(1.5em + 0.75rem);
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
-        background-repeat: no-repeat;
-        background-position: right calc(0.375em + 0.1875rem) center;
-        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
-    }
+                        <div class="col-12 col-lg-4">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-3 col-lg-5 col-form-label col-form-label-sm text-md-end"
+                                    for="transArL_articleCode">Article Code</label>
+                                <div class="col-md-8 col-lg-7">
+                                    <input id="transArL_articleCode" name="transArL_articleCode" type="text"
+                                        class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
 
-    .ts-wrapper.multi .ts-control>div {
-        margin: 3px 3px 3px 0;
-    }
+                        <div class="col-12 col-lg-8">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-3 col-lg-4 col-form-label col-form-label-sm text-md-end"
+                                    for="transArL_articleDes">Article Description</label>
+                                <div class="col-md-8 col-lg-8">
+                                    <input id="transArL_articleDes" name="transArL_articleDes" type="text"
+                                        class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
 
-    .ts-control::-webkit-scrollbar {
-        width: 6px;
-    }
+                    </div>
 
-    .ts-control::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 4px;
-    }
+                </div>
+                <!-- Grid -->
+                <div class="mui-card">
+                    <div id="transArL_gridTransactionArticleLink" class="gridContainer"></div>
+                </div>
 
-    .ts-control::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 4px;
-    }
-
-    .ts-control::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
-    }
-
-    .ts-dropdown {
-        border-radius: 0.375rem;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        border: 1px solid rgba(0, 0, 0, .15);
-        z-index: 1056;
-    }
-
-    .tomselect-custom .ts-control {
-        padding-right: 2.5rem !important;
-    }
-
-    .tomselect-custom .clear-button {
-        position: absolute;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        cursor: pointer;
-        font-size: 1.2rem;
-        color: #adb5bd;
-        font-weight: bold;
-        z-index: 10;
-        transition: color 0.2s;
-        line-height: 1;
-    }
-
-    .tomselect-custom .clear-button:hover {
-        color: #dc3545;
-    }
-</style>
-
-<div class="text-center" id="reportTitle" style="font-size: 20px">Transaction Article Link </div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-        <div class="d-flex align-items-center me-2">
-            <label class="me-2 mb-0">Transaction Code:</label>
-            <input type="text" class="form-control form-control-sm w-auto" id="transCode" />
+            </div>
         </div>
-        <div class="d-flex align-items-center me-2">
-            <label class="me-2 mb-0">Transaction Description:</label>
-            <input type="text" class="form-control form-control-sm w-auto" id="transDes" />
-        </div>
-        <div class="d-flex align-items-center me-2">
-            <label class="me-2 mb-0">Article Code:</label>
-            <input type="text" class="form-control form-control-sm w-auto" id="articleCode" />
-        </div>
-        <div class="d-flex align-items-center me-2">
-            <label class="me-2 mb-0">Article Description:</label>
-            <input type="text" class="form-control form-control-sm w-auto" id="articleDes" />
-        </div>
-    </div>
-
-    <div class="">
-        <button id="btnView" class="mui-button mui-button-new">View</button>
-        <button id="btnNew" class="mui-button mui-button-new" type="button">
-            New</button>
-        <button id="btnEdit" class="mui-button mui-button-edit " type="button">
-            Edit</button>
-        <button id="btnDelete" class="mui-button button-report-delete" type="button"> Delete</button>
-        <button id="btnExportExcel" class="mui-button mui-button-export" type="button"> Excel</button>
-
     </div>
 </div>
 
-<div class="mui-card">
-    <div id="gridTransactionArticleLink" class="gridContainer"></div>
-    <div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel" aria-hidden="true">
-        <div class="modal-dialog custom-modal-width">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="itemModalLabel">New Item</h5>
-                </div>
-                <div class="modal-body">
-                    <div class="modal-footer justify-content-start">
-                        <button type="button" id="btnSaveNew" class="mui-button mui-button-save">
-                            Save
-                        </button>
-                        <button type="button" id="btnClosePopup" data-bs-dismiss="modal"
-                            class="mui-button mui-button-close">
-                            Close
-                        </button>
-                        <button type="button" id="btnRefreshPopup" class="mui-button mui-button-close">
-                            <i class="fa-solid fa-arrows-rotate"></i> Refresh
-                        </button>
+<!-- =========================
+     CREATE MODAL (modal-xl)
+     TomSelect multi
+     ========================= -->
+<div class="modal fade" id="transArL_modalNew" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
 
-                    </div>
-                    <div id="itemForm">
-                        <input type="hidden" id="modalItemId" name="id" value="0" />
-                        <div class="row g-3">
-                            <div style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-                                <div class="form-group-new-reservation col-md-10">
-                                    <label>Transaction Code <span style="color:red">*</span></label>
-                                    <select id="transactionListSelect" class="tomselect-custom" multiple
-                                        name="selectedTransactions">
+            <div class="modal-header">
+                <h5 class="modal-title">New Item</h5>
+            </div>
+
+            <div class="modal-body">
+                <div class="search-filter">
+                    <button type="button" id="transArL_btnSaveNew" class="mui-button mui-button-save">Save</button>
+                    <button type="button" id="transArL_btnRefreshNew" class="mui-button mui-button-close">Refresh</button>
+                    <button type="button" id="transArL_btnCloseNew" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div id="transArL_itemForm">
+                    <input type="hidden" id="transArL_modalItemId" name="transArL_modalItemId" value="0" />
+
+                    <div class="row g-2 mt-1 mb-2">
+
+                        <div class="col-12">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-3 col-lg-4 col-form-label col-form-label-sm text-md-end">
+                                    Transaction Code <span class="text-danger">*</span>
+                                </label>
+                                <div class="col-md-9 col-lg-8">
+                                    <select id="transArL_transactionListSelect"
+                                            name="selectedTransactions"
+                                            class="tomselect-custom"
+                                            multiple>
                                         @foreach (dynamic u in ViewBag.TransactionList)
                                         {
                                             <option value="@u.Code">@u.Code - @u.Description</option>
@@ -164,10 +129,19 @@
                                     </select>
                                     <div class="invalid-feedback"></div>
                                 </div>
-                                <div class="form-group-new-reservation col-md-10 ">
-                                    <label>Article Code <span style="color:red">*</span></label>
-                                    <select class="tomselect-custom" id="articleCodeSelect" multiple
-                                        name="selectedArticles">
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-3 col-lg-4 col-form-label col-form-label-sm text-md-end">
+                                    Article Code <span class="text-danger">*</span>
+                                </label>
+                                <div class="col-md-9 col-lg-8">
+                                    <select id="transArL_articleCodeSelect"
+                                            name="selectedArticles"
+                                            class="tomselect-custom"
+                                            multiple>
                                         @foreach (dynamic u in ViewBag.ArticleList)
                                         {
                                             <option value="@u.Code">@u.Code - @u.Description</option>
@@ -177,35 +151,43 @@
                                 </div>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="modal fade" id="itemModalEdit" tabindex="-1" aria-labelledby="itemModalEditLabel" aria-hidden="true">
-        <div class="modal-dialog custom-modal-width">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="itemModalEditLabel">Edit Item</h5>
+</div>
+
+<!-- =========================
+     EDIT MODAL (modal-xl)
+     Single select
+     ========================= -->
+<div class="modal fade" id="transArL_modalEdit" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Item</h5>
+            </div>
+            <div class="modal-body">
+                <div class="search-filter">
+                    <button type="button" id="transArL_btnSaveEdit" class="mui-button mui-button-save">Save</button>
+                    <button type="button" id="transArL_btnRefreshEdit" class="mui-button mui-button-close">Refresh</button>
+                    <button type="button" id="transArL_btnCloseEdit" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
                 </div>
-                <div class="modal-body">
-                    <div class="modal-footer justify-content-start">
-                        <button type="button" id="btnSaveEdit" class="mui-button mui-button-save">
-                            Save
-                        </button>
-                        <button type="button" id="btnClosePopup" data-bs-dismiss="modal"
-                            class="mui-button mui-button-close">
-                            Close
-                        </button>
-                    </div>
-                    <div id="itemFormEdit">
-                        <input type="hidden" id="modalItemId" name="id" value="0" />
-                        <div class="row g-3">
-                            <input type="hidden" id="ID" name="ID" />
-                            <div style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-                                <div class="form-group-new-reservation col-md-10">
-                                    <label>Transaction Code <span style="color:red">*</span></label>
-                                    <select id="transactionEdit" class="tomselect-custom" name="editTransactions">
+
+                <div id="transArL_itemFormEdit">
+                    <input type="hidden" id="transArL_ID" name="transArL_ID" />
+                    <div class="row g-2 mt-1 mb-2">
+
+                        <div class="col-12">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-3 col-lg-4 col-form-label col-form-label-sm text-md-end">
+                                    Transaction Code <span class="text-danger">*</span>
+                                </label>
+                                <div class="col-md-9 col-lg-8">
+                                    <select id="transArL_transactionEdit" name="editTransactions" class="tomselect-custom">
                                         @foreach (dynamic u in ViewBag.TransactionList)
                                         {
                                             <option value="@u.Code">@u.Code - @u.Description</option>
@@ -213,9 +195,16 @@
                                     </select>
                                     <div class="invalid-feedback"></div>
                                 </div>
-                                <div class="form-group-new-reservation col-md-10 ">
-                                    <label>Article Code <span style="color:red">*</span></label>
-                                    <select class="tomselect-custom" id="articleEdit" name="editArticles">
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-3 col-lg-4 col-form-label col-form-label-sm text-md-end">
+                                    Article Code <span class="text-danger">*</span>
+                                </label>
+                                <div class="col-md-9 col-lg-8">
+                                    <select id="transArL_articleEdit" name="editArticles" class="tomselect-custom">
                                         @foreach (dynamic u in ViewBag.ArticleList)
                                         {
                                             <option value="@u.Code">@u.Code - @u.Description</option>
@@ -225,6 +214,7 @@
                                 </div>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -232,350 +222,487 @@
     </div>
 </div>
 
-<div id="loadingSpinnerRateCode" style="display: none; text-align: center; padding: 20px;">
+<!-- Loading Spinner -->
+<div id="transArL_loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:2000;">
     <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Loading...</span>
     </div>
 </div>
 
 <script>
-    $(document).ready(function () {
-        initializeTomSelects();
-    });
+    // ==========================================
+    // Transaction Article Link Module (Option A)
+    // ==========================================
+    var transArL_Module = (function () {
+        "use strict";
 
-    let tomSelected = {};
-    function initializeTomSelects() {
-        const selectors = ["#articleCodeSelect", "#transactionListSelect"];
+        const SEL = {
+            // modals
+            modalMain: "#transArL_modalMain",
+            modalNew: "#transArL_modalNew",
+            modalEdit: "#transArL_modalEdit",
+            spinner: "#transArL_loadingSpinner",
 
-        selectors.forEach(selector => {
-            const el = document.querySelector(selector);
-            if (el) {
-                if (el.tomselect) {
-                    el.tomselect.destroy();
-                }
+            // toolbar
+            btnView: "#transArL_btnView",
+            btnNew: "#transArL_btnNew",
+            btnEdit: "#transArL_btnEdit",
+            btnDelete: "#transArL_btnDelete",
+            btnExportExcel: "#transArL_btnExportExcel",
 
-                tomSelected[selector] = new TomSelect(el, {
-                    plugins: {
-                        'remove_button': { title: 'Bỏ chọn mục này' },
-                        'dropdown_input': {},
-                        'clear_button': { title: 'Xóa tất cả' }
-                    },
-                    create: false,
-                    maxItems: null,
-                    valueField: 'code',
-                    labelField: 'text',
-                    searchField: ['code'],
-                    placeholder: 'Enter or select options...',
-                    render: {
-                        option: function (data, escape) {
-                            return '<div class="p-2">' + escape(data.text) + '</div>';
-                        },
-                        item: function (data, escape) {
-                            return '<div title="' + escape(data.text) + '">' + escape(data.code) + '</div>';
-                        }
-                    },
-                    onChange: function (value) {
-                        // Khi có giá trị được chọn → tự động bỏ lỗi
-                        if (value && value.length > 0) {
-                            const $select = $(this.input); // <select> gốc
-                            const $wrapper = $select.next('.ts-wrapper');
-                            const $feedback = $select.siblings('.invalid-feedback');
+            // filter inputs
+            transCode: "#transArL_transCode",
+            transDes: "#transArL_transDes",
+            articleCode: "#transArL_articleCode",
+            articleDes: "#transArL_articleDes",
 
-                            $select.removeClass('is-invalid');
-                            $wrapper.removeClass('is-invalid');
-                            $feedback.hide().text('');
-                        }
-                    },
-                });
-            } else {
-                console.warn(`⚠ Không tìm thấy element với selector: ${selector}`);
-            }
-            console.groupEnd();
-        });
+            // grid
+            grid: "#transArL_gridTransactionArticleLink",
 
-    }
-    // === HÀM MỚI: Đồng bộ lỗi từ <select> gốc sang TomSelect wrapper ===
-    function syncTomSelectValidation(errors = null) {
+            // create form
+            articleCodeSelect: "#transArL_articleCodeSelect",
+            transactionListSelect: "#transArL_transactionListSelect",
+            btnSaveNew: "#transArL_btnSaveNew",
+            btnRefreshNew: "#transArL_btnRefreshNew",
 
-        $("#itemModal select").each(function (index) {
-            const $select = $(this);
-            const $wrapper = $select.next(".ts-wrapper");
-            const $feedback = $select.siblings(".invalid-feedback");
-            if ($select.hasClass("is-invalid")) {
-                $wrapper.addClass("is-invalid");
-
-                // 🔥 BACKUP: Nếu text vẫn rỗng → gán từ errors param
-                if (!$feedback.text().trim() && errors) {
-                    const fieldName = $select.attr("name");
-                    const fieldError = errors.find(err => err.field === fieldName);
-                    if (fieldError) {
-                        $feedback.text(fieldError.message).show();
-                    }
-                } else {
-                    $feedback.show();
-                }
-
-            } else {
-                $wrapper.removeClass("is-invalid");
-                $feedback.hide().text('');
-            }
-        });
-    }
-
-
-    $("#transCode, #transDes, #articleCode, #articleDes").on("keydown", function (e) {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            $("#btnView").click();
-        }
-    });
-
-    var grid;
-    var selectedRowData = null;
-
-    $(function () {
-        $("#gridTransactionArticleLink").dxDataGrid({
-            dataSource: DevExpress.data.AspNet.createStore({
-                loadUrl: "/Administration/Transaction/GetAllTransactionArticleLink",
-                onBeforeSend: function (method, ajaxOptions) {
-                    ajaxOptions.data.transCode = $("#transCode").val();
-                    ajaxOptions.data.transDes = $("#transDes").val();
-                    ajaxOptions.data.articleCode = $("#articleCode").val();
-                    ajaxOptions.data.articleDes = $("#articleDes").val();
-                }
-            }),
-            onInitialized: function (e) {
-                grid = e.component;
-            },
-            remoteOperations: { filtering: true, sorting: true, paging: true, grouping: true },
-            showBorders: true,
-            paging: { pageSize: 20 },
-            groupPanel: { visible: true },
-            columns: [
-                { dataField: "id", caption: "ID", allowGrouping: false, visible: false },
-                { dataField: "transactionCode", caption: "Transaction Code", width: "6%" },
-                { dataField: "transactionDescription", caption: "Transaction Description", allowGrouping: false },
-                { dataField: "articleCode", caption: "Article Code", width: "6%" },
-                { dataField: "articleDescription", caption: "Article Description", allowGrouping: false },
-            ],
-            grouping: { autoExpandAll: true },
-            summary: {
-                groupItems: [{ column: 'id', summaryType: 'count' }]
-            },
-            height: 500,
-            onToolbarPreparing: function (e) {
-                e.toolbarOptions.items.unshift({
-                    location: "before",
-                    widget: "dxButton",
-                    options: {
-                        icon: "refresh",
-                        onClick: function () { e.component.refresh(); }
-                    }
-                });
-            },
-            onRowClick: function (e) {
-                selectedRowData = e.data;
-                console.log("Clicked row data:", selectedRowData);
-            },
-            selection: {
-                mode: "single"
-            },
-        });
-    });
-
-    $("#btnView").on("click", function () {
-        grid.refresh();
-    });
-
-    $("#btnNew").click(function () {
-        // Clear các TomSelect
-        if (tomSelected["#articleCodeSelect"]) tomSelected["#articleCodeSelect"].clear();
-        if (tomSelected["#transactionListSelect"]) tomSelected["#transactionListSelect"].clear();
-
-        // Reset lỗi cũ
-        applyValidationErrors([], "#itemModal");
-        syncTomSelectValidation();
-
-        $("#itemModal").modal("show");
-    });
-    $("#btnEdit").click(function () {
-        if (!selectedRowData) {
-            showToast("Warning", "Please select 1 row to update.", false);
-            return;
-        }
-
-        $("#ID").val(selectedRowData.id);
-
-        $("#transactionEdit").val(selectedRowData.transactionCode)
-        $("#articleEdit").val(selectedRowData.articleCode)
-        // Reset lỗi cũ
-        applyValidationErrors([], "#itemModalEdit");
-
-        $("#itemModalEdit").modal("show");
-    });
-
-    $(document).off("click", "#btnSaveNew").on("click", "#btnSaveNew", function () {
-        $("#loadingSpinnerRateCode").show();
-
-        const selectedArticles = tomSelected["#articleCodeSelect"]?.items || [];
-        const selectedTransactions = tomSelected["#transactionListSelect"]?.items || [];
-
-        const dto = {
-            SelectedArticles: selectedArticles,
-            SelectedTransactions: selectedTransactions
+            // edit form
+            ID: "#transArL_ID",
+            transactionEdit: "#transArL_transactionEdit",
+            articleEdit: "#transArL_articleEdit",
+            btnSaveEdit: "#transArL_btnSaveEdit",
+            btnRefreshEdit: "#transArL_btnRefreshEdit",
         };
 
-        $.ajax({
-            url: '/Administration/Transaction/InsertTAL',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(dto),
-            success: function (response) {
-                $("#loadingSpinnerRateCode").hide();
+        let _bound = false;
+        let _gridInstance = null;
+        let _selectedRowData = null;
 
-                if (response.success) {
-                    showToast("Success", "Number of links created: " + response.data.count, true);
-                    tomSelected["#articleCodeSelect"].clear();
-                    tomSelected["#transactionListSelect"].clear();
-                    $("#itemModal").modal("hide");
-                } else {
-                    console.log("❌ Validation errors:", response.errors);
+        // TomSelect instances (key by selector)
+        let _tomSelected = {};
 
-                    // Gọi applyValidationErrors (gán class + text chính)
-                    applyValidationErrors(response.errors, "#itemModal");
-
-                    // Gọi sync 1 lần cuối (đồng bộ wrapper + backup text)
-                    syncTomSelectValidation(response.errors);  // 🔥 Truyền errors vào đây
-                }
-            },
-            error: function (xhr, status, error) {
-                $("#loadingSpinnerRateCode").hide();
-                if (Array.isArray(xhr.responseJSON?.errors)) {
-                    xhr.responseJSON.errors.forEach((err, index) => {
-                        setTimeout(() => showToast("Error", err, false), index * 1000);
-                    });
-                } else {
-                    showToast("Error", error, false);
-                }
-            }
-        });
-    });
-    $("#btnRefreshPopup").on("click", function () {
-        $("#btnNew").trigger("click");
-    });
-
-    // =======================
-    // UPDATE
-    // =======================
-    $(document).off("click", "#btnSaveEdit").on("click", "#btnSaveEdit", function () {
-        $("#loadingSpinnerRateCode").show();
-
-        const data = {
-            ID: parseInt($("#ID").val()) || 0,
-
-            TransactionEdit: $("#transactionEdit").val()?.trim() || "",
-
-            ArticleEdit: $("#articleEdit").val()?.trim() || "",
+        function showLoading(show) {
+            if (show) $(SEL.spinner).show();
+            else $(SEL.spinner).hide();
         }
 
-        $.ajax({
-            url: '/Administration/Transaction/UpdateTAL',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(data),
-            success: function (response) {
-                $("#loadingSpinnerRateCode").hide();
+        function csrfHeaders() {
+            return { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() };
+        }
 
-                if (response.success) {
-                    showToast("Success", "Update success ID: " + response.data.id, true);
-                    $("#itemModalEdit").modal("hide");
-                } else {
-                    if (Array.isArray(response.errors)) {
-                        applyValidationErrors(response.errors, "#itemModalEdit");
+        function addMainBlur() {
+            $(`${SEL.modalMain} .modal-content`).addClass("modal-blur");
+        }
+        function removeMainBlur() {
+            $(`${SEL.modalMain} .modal-content`).removeClass("modal-blur");
+        }
+
+        // -----------------------
+        // TomSelect init + validation sync
+        // -----------------------
+        function ensureTomSelect(selector, options) {
+            const el = document.querySelector(selector);
+            if (!el) return null;
+
+            // destroy old instance (safe)
+            if (el.tomselect) el.tomselect.destroy();
+
+            const ts = new TomSelect(el, options);
+            _tomSelected[selector] = ts;
+            return ts;
+        }
+
+        function syncTomSelectValidation(containerSelector, errors = null) {
+            $(`${containerSelector} select`).each(function () {
+                const $select = $(this);
+                const $wrapper = $select.next(".ts-wrapper");
+                const $feedback = $select.siblings(".invalid-feedback");
+
+                if ($select.hasClass("is-invalid")) {
+                    $wrapper.addClass("is-invalid");
+
+                    if (!$feedback.text().trim() && errors) {
+                        const fieldName = $select.attr("name");
+                        const fieldError = errors.find(err => err.field === fieldName);
+                        if (fieldError) $feedback.text(fieldError.message).show();
+                        else $feedback.show();
                     } else {
-                        showToast("Error", response.errors || "Unknown error", false);
+                        $feedback.show();
                     }
+                } else {
+                    $wrapper.removeClass("is-invalid");
+                    $feedback.hide().text("");
                 }
+            });
+        }
 
-            },
-            error: function (xhr, status, error) {
-                $("#loadingSpinnerRateCode").hide();
-                const response = xhr.responseJSON;
-                if (Array.isArray(response?.errors)) {
-                    response.errors.forEach((err, index) => {
-                        setTimeout(() => {
-                            showToast("Error", err.message || err, false);
-                        }, index * 800);
+        function clearNewModal() {
+            // clear tomselect selections
+            clearTomSelect(SEL.articleCodeSelect);
+            clearTomSelect(SEL.transactionListSelect);
+
+            // reset validation UI
+            if (typeof applyValidationErrors === "function") {
+                applyValidationErrors([], SEL.modalNew);
+            }
+            syncTomSelectValidation(SEL.modalNew);
+        }
+
+        function clearEditModal() {
+            // clear tomselect selections
+            clearTomSelect(SEL.articleEdit);
+            clearTomSelect(SEL.transactionEdit);
+            // reset validation UI
+            if (typeof applyValidationErrors === "function") {
+                applyValidationErrors([], SEL.modalEdit);
+            }
+            syncTomSelectValidation(SEL.modalEdit);
+        }
+
+        // -----------------------
+        // Grid
+        // -----------------------
+        function disposeGrid() {
+            try {
+                const inst = $(SEL.grid).dxDataGrid("instance");
+                if (inst) inst.dispose();
+            } catch (e) { /* ignore */ }
+
+            _gridInstance = null;
+            _selectedRowData = null;
+            $(SEL.grid).empty();
+        }
+
+        function initGrid() {
+            disposeGrid();
+
+            _gridInstance = $(SEL.grid).dxDataGrid({
+                dataSource: DevExpress.data.AspNet.createStore({
+                    loadUrl: "/Administration/Transaction/GetAllTransactionArticleLink",
+                    onBeforeSend: function (method, ajaxOptions) {
+                        ajaxOptions.data.transCode = $(SEL.transCode).val();
+                        ajaxOptions.data.transDes = $(SEL.transDes).val();
+                        ajaxOptions.data.articleCode = $(SEL.articleCode).val();
+                        ajaxOptions.data.articleDes = $(SEL.articleDes).val();
+                    }
+                }),
+                remoteOperations: { filtering: true, sorting: true, paging: true, grouping: true },
+
+                showBorders: true,
+                selection: { mode: "single" },
+
+                paging: { pageSize: 20 },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [20, 50, 100],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+
+                groupPanel: { visible: true },
+
+                columns: [
+                    { dataField: "id", caption: "ID", allowGrouping: false, visible: false },
+                    { dataField: "transactionCode", caption: "Trans", width: "100px" },
+                    { dataField: "transactionDescription", caption: "Transaction Description", allowGrouping: false },
+                    { dataField: "articleCode", caption: "Article Code", width: "100px" },
+                    { dataField: "articleDescription", caption: "Article Description", allowGrouping: false }
+                ],
+
+                grouping: { autoExpandAll: true },
+                summary: { groupItems: [{ column: "id", summaryType: "count" }] },
+
+                onToolbarPreparing: function (e) {
+                    e.toolbarOptions.items.unshift({
+                        location: "before",
+                        widget: "dxButton",
+                        options: {
+                            icon: "refresh",
+                            onClick: function () { e.component.refresh(); }
+                        }
                     });
-                    return;
+                },
+
+                onRowClick: function (e) {
+                    _selectedRowData = e.data || null;
                 }
-                if (response?.message) {
-                    showToast("Error", response.message, false);
-                    return;
-                }
-                showToast("Error", error || "Unknown error", false);
+            }).dxDataGrid("instance");
+        }
+
+        function refreshGrid() {
+            const grid = $(SEL.grid).dxDataGrid("instance");
+            if (grid) grid.refresh();
+        }
+
+        // -----------------------
+        // CRUD calls
+        // -----------------------
+        function openNew() {
+            clearNewModal();
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalNew)).show();
+        }
+
+        function openEdit() {
+            clearEditModal();
+            if (!_selectedRowData) {
+                showToast("Warning", "Please select 1 row to update.", false);
+                return;
             }
 
-        });
-    });
+            $(SEL.ID).val(_selectedRowData.id);
+            setTomSelectValue(SEL.transactionEdit,_selectedRowData.transactionCode)
+            setTomSelectValue(SEL.articleEdit,_selectedRowData.articleCode)
 
-    $("#btnDelete").on("click", function () {
-        showToast("Error", "No information available regarding the dependent table. The functionality has not yet been implemented.")
-    });
+            if (typeof applyValidationErrors === "function") {
+                applyValidationErrors([], SEL.modalEdit);
+            }
 
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).show();
+        }
 
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridTransactionArticleLink").dxDataGrid("instance");
+        function saveNew() {
+            showLoading(true);
 
-        const workbook = new ExcelJS.Workbook();
-        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
+            const selectedArticles = _tomSelected[SEL.articleCodeSelect]?.items || [];
+            const selectedTransactions = _tomSelected[SEL.transactionListSelect]?.items || [];
 
-        // === Dòng 1: Tên công ty (merge theo 4 cột) ===
-        worksheet.addRow([companyName]);
-        worksheet.mergeCells('A1:D1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+            const dto = {
+                SelectedArticles: selectedArticles,
+                SelectedTransactions: selectedTransactions
+            };
 
-        // === Dòng 2: Ngày giờ xuất (bên phải) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', exportDate]);
-        worksheet.mergeCells('D2:D2');  // cột D thôi
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
+            $.ajax({
+                url: "/Administration/Transaction/InsertTAL",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(dto),
+                headers: csrfHeaders(),
+                success: function (response) {
+                    showLoading(false);
 
-        // === Dòng 3–4: trống
-        worksheet.addRow([]);
-        worksheet.addRow([]);
+                    if (response && response.success) {
+                        showToast("Success", "Number of links created: " + response.data.count, true);
+                        clearNewModal();
+                        bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalNew)).hide();
+                        refreshGrid();
+                    } else {
+                        if (response && Array.isArray(response.errors) && typeof applyValidationErrors === "function") {
+                            applyValidationErrors(response.errors, SEL.modalNew);
+                            syncTomSelectValidation(SEL.modalNew, response.errors);
+                        } else {
+                            showToast("Error", (response && response.message) ? response.message : "Validation failed.", false);
+                        }
+                    }
+                },
+                error: function (xhr, status, error) {
+                    showLoading(false);
 
-        // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-        const reportRow = worksheet.addRow(['Transaction&ArticleLink']);
-        worksheet.mergeCells('A5:D5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: trống
-        worksheet.addRow([]);
-
-        // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 }
-        }).then(function () {
-            // Footer (sau cùng)
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = "Transaction&ArticleLink.xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                    const errs = xhr.responseJSON?.errors;
+                    if (Array.isArray(errs)) {
+                        errs.forEach((err, idx) => setTimeout(() => showToast("Error", err.message || err, false), idx * 800));
+                        return;
+                    }
+                    showToast("Error", error || "Unknown error", false);
+                }
             });
-        });
-    });
+        }
 
+        function refreshNewModal() {
+            // Original behavior: trigger New again
+            clearNewModal();
+        }
+
+        function refreshEditModal() {
+            // Original behavior: trigger New again
+            clearEditModal();
+        }
+
+        function saveEdit() {
+            showLoading(true);
+
+            const data = {
+                ID: parseInt($(SEL.ID).val(), 10) || 0,
+                TransactionEdit: ($(SEL.transactionEdit).val() || "").trim(),
+                ArticleEdit: ($(SEL.articleEdit).val() || "").trim()
+            };
+
+            $.ajax({
+                url: "/Administration/Transaction/UpdateTAL",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(data),
+                headers: csrfHeaders(),
+                success: function (response) {
+                    showLoading(false);
+
+                    if (response && response.success) {
+                        showToast("Success", "Update success ID: " + response.data.id, true);
+                        bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).hide();
+                        refreshGrid();
+                    } else {
+                        if (Array.isArray(response?.errors) && typeof applyValidationErrors === "function") {
+                            applyValidationErrors(response.errors, SEL.modalEdit);
+                        } else {
+                            showToast("Error", response?.errors || response?.message || "Unknown error", false);
+                        }
+                    }
+                },
+                error: function (xhr, status, error) {
+                    showLoading(false);
+
+                    const response = xhr.responseJSON;
+                    if (Array.isArray(response?.errors)) {
+                        response.errors.forEach((err, idx) => {
+                            setTimeout(() => showToast("Error", err.message || err, false), idx * 800);
+                        });
+                        return;
+                    }
+                    if (response?.message) {
+                        showToast("Error", response.message, false);
+                        return;
+                    }
+                    showToast("Error", error || "Unknown error", false);
+                }
+            });
+        }
+
+        function deleteNotImplemented() {
+            showToast("Error", "No information available regarding the dependent table. The functionality has not yet been implemented.");
+        }
+
+        // -----------------------
+        // Excel export (preserve)
+        // -----------------------
+        function exportExcel() {
+            const grid = $(SEL.grid).dxDataGrid("instance");
+            if (!grid) {
+                showToast("Error", "No grid data to export.", false);
+                return;
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells("A1:D1");
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "left" };
+
+            const now = new Date();
+            const exportDate = now.toLocaleString("vi-VN");
+            worksheet.addRow(["", "", "", exportDate]);
+            worksheet.mergeCells("D2:D2");
+            worksheet.getRow(2).alignment = { vertical: "middle", horizontal: "right" };
+
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            const reportRow = worksheet.addRow(["Transaction&ArticleLink"]);
+            worksheet.mergeCells("A5:D5");
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: "middle", horizontal: "center" };
+
+            worksheet.addRow([]);
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: "center" };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "Transaction&ArticleLink.xlsx");
+                });
+            });
+        }
+
+        // -----------------------
+        // binding + lifecycle
+        // -----------------------
+        function bindEventsOnce() {
+            initTomSelect(".tomselect-custom")
+            if (_bound) return;
+            _bound = true;
+
+            // Enter key triggers view/refresh
+            $(document).off("keydown.transArL", `${SEL.transCode},${SEL.transDes},${SEL.articleCode},${SEL.articleDes}`)
+                .on("keydown.transArL", `${SEL.transCode},${SEL.transDes},${SEL.articleCode},${SEL.articleDes}`, function (e) {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        refreshGrid();
+                    }
+                });
+
+            $(document)
+                .off("click.transArL", SEL.btnView).on("click.transArL", SEL.btnView, refreshGrid)
+                .off("click.transArL", SEL.btnNew).on("click.transArL", SEL.btnNew, openNew)
+                .off("click.transArL", SEL.btnEdit).on("click.transArL", SEL.btnEdit, openEdit)
+                .off("click.transArL", SEL.btnDelete).on("click.transArL", SEL.btnDelete, deleteNotImplemented)
+                .off("click.transArL", SEL.btnExportExcel).on("click.transArL", SEL.btnExportExcel, exportExcel)
+
+                .off("click.transArL", SEL.btnSaveNew).on("click.transArL", SEL.btnSaveNew, saveNew)
+                .off("click.transArL", SEL.btnRefreshNew).on("click.transArL", SEL.btnRefreshNew, refreshNewModal)
+                .off("click.transArL", SEL.btnRefreshEdit).on("click.transArL", SEL.btnRefreshEdit, refreshEditModal)
+                .off("click.transArL", SEL.btnSaveEdit).on("click.transArL", SEL.btnSaveEdit, saveEdit);
+
+            // blur main when child modals open
+            $(SEL.modalNew)
+                .off("shown.bs.modal.transArL").on("shown.bs.modal.transArL", function () {  })
+                .off("hidden.bs.modal.transArL").on("hidden.bs.modal.transArL", function () {
+                    clearNewModal();
+                    showLoading(false);
+                });
+
+            $(SEL.modalEdit)
+                .off("shown.bs.modal.transArL").on("shown.bs.modal.transArL", function () {  })
+                .off("hidden.bs.modal.transArL").on("hidden.bs.modal.transArL", function () {
+                    if (typeof applyValidationErrors === "function") applyValidationErrors([], SEL.modalEdit);
+                    showLoading(false);
+                });
+
+            // main cleanup
+            $(SEL.modalMain)
+                .off("hidden.bs.modal.transArL").on("hidden.bs.modal.transArL", function () {
+                    _selectedRowData = null;
+
+                    // reset filters
+                    $(SEL.transCode).val("");
+                    $(SEL.transDes).val("");
+                    $(SEL.articleCode).val("");
+                    $(SEL.articleDes).val("");
+
+                    disposeGrid();
+                    showLoading(false);
+                });
+        }
+
+        function init() {
+            bindEventsOnce();
+            initGrid();
+        }
+
+        function open() {
+            init();
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalMain)).show();
+            refreshGrid(); // same as clicking View
+        }
+
+        return { init, open };
+    })();
+
+    // Global entry
+    window.openModalTransArL = function () {
+        transArL_Module.open();
+    };
+
+    // Optional auto-open (remove if you open from menu)
+    $(document).ready(function () {
+        window.openModalTransArL();
+    });
 </script>

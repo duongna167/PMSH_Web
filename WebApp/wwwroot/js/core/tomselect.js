@@ -224,6 +224,13 @@ function setTomSelectValue(selector, value) {
         document.querySelector(selector).tomselect.setValue(value);
     }
 }
+// 2,5. Hàm SetValue cho 1 ID (Dùng cho Update/Edit)
+function setTomSelectValueMulti(selector, value) {
+    value = value.split(',').filter((x) => x);
+    if (document.querySelector(selector).tomselect) {
+        document.querySelector(selector).tomselect.setValue(value);
+    }
+}
 
 // 3. Hàm truyền nhiều ID vào để Clear cùng lúc
 function clearMultipleTomSelect(ids) {
@@ -252,15 +259,15 @@ function destroyTomSelect(selectors) {
 }
 
 /**
- * Load dữ liệu linh hoạt từ API
+ * Load dữ liệu linh hoạt từ API hoặc Mảng dữ liệu có sẵn
  * @param {string} selector - Selector của element
- * @param {string} apiUrl - Link API
+ * @param {string|Array} source - Link API (string) hoặc Mảng dữ liệu (Array)
  * @param {function} mapFn - (Tùy chọn) Hàm để tự định nghĩa cấu trúc dữ liệu
  * 
  * VD: loadDataToTomSelect("#allot_setup_profileID", "/api/profiles", (item) => ({
           value: item.ID,
           text: `${item.Code} - ${item.Name}`,
-    hoặc  text: item.Code, 
+          /hoặc  text: item.Code, /
           data: item
        }));
 
@@ -270,8 +277,17 @@ function destroyTomSelect(selectors) {
         const maxQty = selectedRoom.data.MaxInventory; 
         const roomGrade = selectedRoom.data.GradeName;
     } 
+
+ * Dùng với dữ liệu ở mảng
+    const myData = [
+        { ID: 1, Name: 'Hà Nội' },
+        { ID: 2, Name: 'Sài Gòn' }
+    ];
+    loadDataToTomSelect("#mySelect", myData);
+
+
  */
-async function loadDataToTomSelect(selector, apiUrl, mapFn = null) {
+async function loadDataToTomSelect(selector, source, mapFn = null) {
     const el = document.querySelector(selector);
     if (!el || !el.tomselect) {
         console.warn(`[TomSelect] Element ${selector} chưa được khởi tạo TomSelect.`);
@@ -282,10 +298,26 @@ async function loadDataToTomSelect(selector, apiUrl, mapFn = null) {
 
     try {
         ts.clearOptions();
-        // Có thể thêm trạng thái loading tại đây nếu UI cần
 
-        const response = await fetch(apiUrl);
-        const rawData = await response.json();
+        let rawData = [];
+
+        // Kiểm tra nguồn dữ liệu
+        if (Array.isArray(source)) {
+            // NẾU LÀ MẢNG: Gán trực tiếp
+            rawData = source;
+        } else if (typeof source === 'string') {
+            // NẾU LÀ CHUỖI: Hiểu là API URL và fetch
+            const response = await fetch(source);
+            rawData = await response.json();
+        } else {
+            console.error(`[TomSelect] Source không hợp lệ cho ${selector}. Phải là URL hoặc Array.`);
+            return;
+        }
+
+        if (!rawData || !Array.isArray(rawData)) {
+            console.warn(`[TomSelect] Dữ liệu nạp cho ${selector} rỗng hoặc không đúng định dạng mảng.`);
+            return;
+        }
 
         const formattedData = rawData.map((item) => {
             // Nếu người dùng có truyền hàm map tự định nghĩa
@@ -295,17 +327,159 @@ async function loadDataToTomSelect(selector, apiUrl, mapFn = null) {
 
             // Mặc định: Gom hết vào data, ưu tiên lấy ID/Code làm value, Name làm text
             return {
-                value: item.id || item.ID || item.Code || '',
-                text: item.name || item.Name || item.Description || '',
-                data: item // GIỮ LẠI TOÀN BỘ TRƯỜNG DỮ LIỆU GỐC
+                value: item.id || item.ID || item.Code || (typeof item === 'string' ? item : ''),
+                text: item.name || item.Name || item.Description || (typeof item === 'string' ? item : ''),
+                data: typeof item === 'object' ? item : { value: item },
             };
         });
 
         ts.addOptions(formattedData);
         ts.refreshOptions(false);
 
-        console.log(`[TomSelect] Loaded ${formattedData.length} items to ${selector}`);
+        console.log(`[TomSelect] Loaded ${formattedData.length} items to ${selector} from ${Array.isArray(source) ? 'Local Array' : 'API'}`);
     } catch (error) {
-        console.error(`[TomSelect] Load API Error (${selector}):`, error);
+        console.error(`[TomSelect] Load Data Error (${selector}):`, error);
+    }
+}
+
+/**
+ * Hàm thần thánh mod được full dữ liệu tomselect (Chat GPT)
+ *  VD:
+ bindTomSelectData({
+    selector: '#trans_transactionsGernew',
+    data: transactionsArray, // mảng dữ liệu truyền vào
+    valueField: 'code',
+    labelField: 'text',
+    searchField: ['text', 'description'],
+    tomSelectOptions: {
+        placeholder: 'Please choose Group',
+        render: {
+        option(data, escape) {
+            return `<div><b>${escape(data.code ?? '')}</b> - ${escape(data.description ?? '')}</div>`;
+        },
+        item(data, escape) {
+            return `<div>${escape(data.code ?? '')}</div>`;
+        }
+        }
+    },
+    mapFn: (x) => ({
+        code: x.code,                               // ✅ field làm value
+        text: x.description ? `${x.code} - ${x.description}` : x.code, // ✅ label
+        description: x.description,
+        // có thể giữ thêm field khác để dùng render/search
+        raw: x
+    })
+});
+
+
+    * Lưu ý:
+     Dùng mapFn Linh hoạt nhất, có thể tạo text phức tạp, có thể giữ thêm field để render
+        Có thể lấy dữ liệu đã chọn đầy đủ không cần gọi API lần nữa, truy xuất rất nhanh, dùng được cho render hoặc logic khác
+        VD:
+        const ts = document.querySelector('#trans_transactionsGernew').tomselect;
+
+        ts.on("change", function(value) {
+
+        const option = ts.options[value];   // object option
+        const data = option.raw;            // object gốc
+
+        console.log(data);
+
+        });
+
+     Dùng valueField + labelField: Không cần map dữ liệu, chỉ định field nào dùng làm value và text.
+
+
+ */
+async function bindTomSelectData({
+    selector,
+    data, // Array | () => Array | Promise<Array>
+
+    // TomSelect init (placeholder, render, plugins, ...)
+    tomSelectOptions = {},
+
+    // Cách lấy value/text (chọn 1 trong 2):
+    mapFn = null, //Cách 1: (item) => ({ value, text, ...anyFields })
+    valueField = 'value', // Cách 2:nếu mapFn trả object, field làm value
+    labelField = 'text', //       field làm label hiển thị
+    searchField = null, //       vd: ['text','description'] hoặc 'text'
+
+    // Lifecycle
+    destroyBeforeInit = true,
+    initIfMissing = true,
+
+    // Clear/Default
+    clearSelected = true,
+    addDefaultOption = null, // { value:'0', text:'...', setValue:true }
+    keepTextboxEmpty = true,
+
+    postProcess = null,
+}) {
+    if (!selector) throw new Error('selector is required');
+
+    // destroy nếu có
+    const existing = getTomSelect(selector);
+    if (existing && destroyBeforeInit) existing.destroy();
+
+    // Chuẩn bị options init TomSelect với valueField/labelField/searchField
+    const initOptions = {
+        valueField,
+        labelField,
+        ...(searchField ? { searchField } : {}),
+        ...tomSelectOptions,
+    };
+
+    if (initIfMissing) initTomSelect(selector, initOptions);
+
+    const el = document.querySelector(selector);
+    const ts = el?.tomselect;
+    if (!ts) {
+        console.warn(`[TomSelect] ${selector} chưa được khởi tạo TomSelect.`);
+        return Promise.resolve({ ts: null, raw: null, formatted: [] });
+    }
+
+    const resolveData = typeof data === 'function' ? data() : data;
+
+    try {
+        const raw = await Promise.resolve(resolveData);
+        const rows = Array.isArray(raw) ? raw : [];
+
+        // Format data
+        let formatted;
+        if (typeof mapFn === 'function') {
+            formatted = rows.map(mapFn).filter((x) => x && x[valueField]);
+        } else {
+            // fallback map (ít dùng khi bạn muốn custom)
+            formatted = rows
+                .map((x_1) => ({
+                    value: x_1.id ?? x_1.ID ?? x_1.code ?? x_1.Code ?? '',
+                    text: x_1.name ?? x_1.Name ?? x_1.description ?? x_1.Description ?? '',
+                    data: x_1,
+                }))
+                .filter((x_2) => x_2.value);
+        }
+
+        if (clearSelected) ts.clear(true);
+        ts.clearOptions();
+
+        if (addDefaultOption?.value != null) {
+            const opt = {
+                [valueField]: String(addDefaultOption.value),
+                [labelField]: addDefaultOption.text ?? '',
+            };
+            ts.addOption(opt);
+            if (addDefaultOption.setValue) ts.setValue(String(addDefaultOption.value), true);
+        }
+
+        ts.addOptions(formatted);
+
+        if (keepTextboxEmpty) ts.setTextboxValue('');
+        ts.refreshOptions(false);
+
+        if (typeof postProcess === 'function') postProcess({ ts, raw: rows, formatted });
+        return { ts, raw: rows, formatted };
+    } catch (err) {
+        console.error(`[TomSelect] bindTomSelectData error (${selector}):`, err);
+        return { ts, raw: null, formatted: [] };
     }
 }

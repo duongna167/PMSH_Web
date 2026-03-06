@@ -1,22 +1,22 @@
 
 using BaseBusiness.BO;
 using BaseBusiness.Model;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections;
 using System.Collections.Specialized;
 using System.Data;
+using System.Data.SqlClient;
 //using System.Data.SqlClient;
 using System.Globalization;
 using System.IO;
 using System.Text;
-using Microsoft.Data.SqlClient;
-using System.Data.SqlClient;
-using SqlConnection = Microsoft.Data.SqlClient.SqlConnection;
 using SqlCommand = Microsoft.Data.SqlClient.SqlCommand;
+using SqlConnection = Microsoft.Data.SqlClient.SqlConnection;
 using SqlDataAdapter = Microsoft.Data.SqlClient.SqlDataAdapter;
-using SqlParameter = Microsoft.Data.SqlClient.SqlParameter;
 using SqlException = Microsoft.Data.SqlClient.SqlException;
+using SqlParameter = Microsoft.Data.SqlClient.SqlParameter;
 namespace BaseBusiness.util
 {
 	/// <summary>
@@ -862,6 +862,30 @@ namespace BaseBusiness.util
                 }
             }
             return paraName;
+        }
+
+        public static int ExecuteScalarInt(string strSQL)
+        {
+            using (SqlConnection cn = new SqlConnection(_connectionString))
+            {
+                try
+                {
+                    using (SqlCommand cmd = new SqlCommand(strSQL, cn))
+                    {
+                        cmd.CommandType = CommandType.Text;
+                        cmd.CommandTimeout = 0;
+                        cn.Open();
+
+                        object result = cmd.ExecuteScalar();
+
+                        return (result == null || result == DBNull.Value) ? 0 : Convert.ToInt32(result);
+                    }
+                }
+                catch (SqlException se)
+                {
+                    throw new Exception("ExecuteScalarInt error: " + se.Message);
+                }
+            }
         }
     }
 }

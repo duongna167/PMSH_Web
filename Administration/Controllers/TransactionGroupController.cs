@@ -35,14 +35,14 @@ namespace Administration.Controllers
 
         public IActionResult TransGroup()
         {
-            return View();
+            return PartialView();
         }
         [HttpGet]
-        public IActionResult SearchTransactionGroup(string groupCode,string description)
+        public IActionResult SearchTransactionGroup(string groupCode, string description)
         {
             try
             {
-                var data = _iTransactionGroupService.SearchTransactionGroup(groupCode ?? "", description?? "");
+                var data = _iTransactionGroupService.SearchTransactionGroup(groupCode ?? "", description ?? "");
 
                 var result = (from d in data.AsEnumerable()
                               select d.Table.Columns.Cast<DataColumn>()
@@ -74,7 +74,7 @@ namespace Administration.Controllers
                 {
                     return Json(new { code = 1, msg = "Group Code can not be blank" });
                 }
-                if(int.Parse(Request.Form["id"].ToString()) == 0)
+                if (int.Parse(Request.Form["id"].ToString()) == 0)
                 {
                     TransactionGroupModel transGroup = new TransactionGroupModel();
                     transGroup.Code = Request.Form["code"].ToString();
@@ -95,7 +95,7 @@ namespace Administration.Controllers
                     TransactionGroupModel model = (TransactionGroupModel)TransactionGroupBO.Instance.FindByPrimaryKey(int.Parse(Request.Form["id"].ToString()));
                     List<TransactionGroupModel> folioDetail = PropertyUtils.ConvertToList<TransactionGroupModel>(TransactionGroupBO.Instance.
                         FindAll()).Where(x => x.Code == Request.Form["code"].ToString() && x.ID != int.Parse(Request.Form["id"].ToString())).ToList();
-                    if(folioDetail.Count > 0)
+                    if (folioDetail.Count > 0)
                     {
                         return Json(new { code = 1, msg = "Code has exits" });
                     }
@@ -107,7 +107,7 @@ namespace Administration.Controllers
                     TransactionGroupBO.Instance.Update(model);
                     pt.CommitTransaction();
                     return Json(new { code = 0, msg = "Group transaction was updated successfully" });
-                } 
+                }
 
 
             }
@@ -128,8 +128,8 @@ namespace Administration.Controllers
         {
             try
             {
-                TransactionGroupModel model = (TransactionGroupModel)TransactionGroupBO.Instance.FindByPrimaryKey((int)id); 
-                if(model == null || model.ID == 0)
+                TransactionGroupModel model = (TransactionGroupModel)TransactionGroupBO.Instance.FindByPrimaryKey((int)id);
+                if (model == null || model.ID == 0)
                 {
                     return Json(new TransactionGroupModel());
                 }
@@ -154,12 +154,12 @@ namespace Administration.Controllers
                 pt.BeginTransaction();
 
                 TransactionGroupModel model = (TransactionGroupModel)TransactionGroupBO.Instance.FindByPrimaryKey((int)id);
-                if(model == null || model.ID == 0)
+                if (model == null || model.ID == 0)
                 {
                     return Json(new { code = 1, msg = "Group transaction not found" });
                 }
                 List<TransactionSubGroupModel> subGroup = PropertyUtils.ConvertToList<TransactionSubGroupModel>(TransactionSubGroupBO.Instance.FindByAttribute("TransactionGroupID", id));
-                if(subGroup.Count > 0)
+                if (subGroup.Count > 0)
                 {
                     return Json(new { code = 1, msg = "Can not delete this transaction group, exits at 1 least transation sub group" });
                 }
@@ -169,7 +169,7 @@ namespace Administration.Controllers
                     return Json(new { code = 1, msg = "Can not delete this transaction group, exits at 1 least transation" });
                 }
                 TransactionGroupBO.Instance.Delete(id);
-                
+
 
                 pt.CommitTransaction();
                 return Json(new { code = 0, msg = "Transaction Group was deleted successfully" });
