@@ -15,7 +15,6 @@
             <div class="modal-body">
                 <div class="search-filter">
                     <button id="ar_opening_btnPrint" class="mui-button mui-button-search">View</button>
-                    <button id="ar_opening_btnOkAuto" class="mui-button mui-button-new">Save</button>
                     <button id="ar_opening_btnExportExcel" class="mui-button mui-button-export" type="button">Excel</button>
                     <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
                 </div>
@@ -36,6 +35,7 @@
 
 <script>
     var ar_opening_Module = {
+        editingRowKey: null,
         selectedRowData: null,
         currencyList: @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.CurrencyList ?? new List<object>())),
 
@@ -53,7 +53,6 @@
 
         initDOMEvents: function () {
             $("#ar_opening_btnPrint").on("click", () => this.reloadData());
-            $("#ar_opening_btnOkAuto").on("click", () => this.saveData());
             $("#ar_opening_btnExportExcel").on("click", () => this.exportExcel());
 
             // Reset khi đóng modal
@@ -84,10 +83,16 @@
                 success: (result) => {
                     if (result) {
                         const sortedKeysData = this.sortObjectKeysAlphabetically(result);
+
+                        const dataWithTempKey = sortedKeysData.map((item, index) => ({
+                            ...item,
+                            __rowKey: item.id ?? `tmp_${index}_${Date.now()}`
+                        }));
+
                         const sortedByAccountName = sortedKeysData.sort((a, b) =>
                             (a.accountName || "").localeCompare(b.accountName || "")
                         );
-                        this.initializeGrid(sortedByAccountName);
+                        this.initializeGrid(dataWithTempKey);
                     }
                     $("#ar_opening_loadingSpinner").hide();
                 },
@@ -105,7 +110,8 @@
                 height: "100%",
                 width: "100%",
                 showBorders: true,
-                editing: { mode: "batch", allowUpdating: true, mode: "row", },
+                keyExpr: "__rowKey",
+                editing: { mode: "row", allowUpdating: true, },
                 toolbar: {
                     visible: false
                 },
@@ -113,7 +119,6 @@
                 allowColumnResizing: true,
                 columnResizingMode: "widget",
                 columnAutoWidth: true,
-                selection: { mode: "single" },
                 scrolling: {
                     mode: "standard",
                     showScrollbar: "always",
@@ -129,15 +134,23 @@
                 },
                 filterRow: { visible: true, applyFilter: "auto" },
                 columns: [
-                                        {
+                    {
                         type: "buttons",
                         caption: "Action",
-                        width: 50,
+                        width: 80,
                         buttons: [
-                            "edit",
                             {
-                                onClick: function(e) {
-                                    console.log(e.row.data);
+                                name: "edit",
+                                onClick: (e) => {
+                                    const grid = $("#ar_opening_gridContainer").dxDataGrid("instance");
+
+                                    // lưu row hiện tại nếu bạn vẫn muốn giữ biến này
+
+                                    // mở edit mode cho row đó
+                                    grid.editRow(e.row.rowIndex);
+
+                                    // chặn hành vi mặc định nếu cần
+                                    e.event.preventDefault();
                                 }
                             }
                         ]
@@ -172,32 +185,71 @@
                     { dataField: "updatedDate", caption: "Updated Date", width: "100", dataType: "date", format: "dd/MM/yyyy", allowEditing: false },
                     { dataField: "arid", caption: "ARID", width: "50", allowEditing: false }
                 ],
-                onRowClick: (e) => {
-                    this.selectedRowData = e.data;
+                onEditingStart: function (e) {
+                    self.editingRowKey = e.key;                    
+                },
+                onSaving: function (e) {
+                    // có thay đổi thì mới xử lý
+                    if (!e.changes || !e.changes.length) return;
+
+                    // chặn save mặc định của DevExtreme
+                    e.cancel = true;
+
+                    // gọi hàm save riêng của bạn
+                    self.saveData();
                 }
             });
         },
 
-        saveData: function () {
-            if (!this.selectedRowData) {
-                showToast("Warning", "Please select 1 row.", false);
+       saveData: function () {
+            const grid = $("#ar_opening_gridContainer").dxDataGrid("instance");
+            if (!grid) {
+                showToast("Warning", "Grid not found.", false);
                 return;
             }
 
-            $("#ar_opening_loadingSpinner").show();
+            const visibleRows = grid.getVisibleRows();
+            const editingRow = visibleRows.find(r => r.isEditing);
+
+            if (!editingRow) {
+                showToast("Warning", "Please click Edit on 1 row first.", false);
+                return;
+            }
+
+            // lấy dữ liệu row hiện tại
+            const rowData = { ...editingRow.data };
+
+            // lấy các thay đổi chưa commit trong editor
+            const editData = grid.option("editing.changes") || [];
+            const currentChange = editData.find(c => c.type === "update" && c.key === editingRow.key);
+
+            if (currentChange && currentChange.data) {
+                Object.assign(rowData, currentChange.data);
+            }
+
             const dataPost = {
-                ...this.selectedRowData,
+                ...rowData,
                 user: localStorage.getItem("Loginname")
             };
+            if(dataPost.currencyID == null){
+                showToast("Error", "Currency must be selected!", false);
+                return;
+            }
+            
+
+            $("#ar_opening_loadingSpinner").show();
 
             $.ajax({
                 url: '/Accounting/AROpeningSave',
                 type: 'POST',
                 data: dataPost,
-                headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() },
+                headers: {
+                    "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
+                },
                 success: (result) => {
                     if (result.success) {
                         showToast('Success', result.message, true);
+                        grid.cancelEditData();
                         this.reloadData();
                     } else {
                         showToast('Error', result.message || 'Save failed.', false);
