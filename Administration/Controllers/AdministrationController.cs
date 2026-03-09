@@ -803,11 +803,12 @@ namespace Administration.Controllers
         }
         public IActionResult ConfigStatusColor()
         {
-            return View();
+            return PartialView();
         }
         [HttpPost]
         public ActionResult UpdateConfigStatusColor()
         {
+            DateTime businessDate = TextUtils.GetBusinessDate();
             ProcessTransactions pt = new ProcessTransactions();
             try
             {
@@ -822,19 +823,17 @@ namespace Administration.Controllers
                              : 0;
                 member.ColorName = Request.Form["bgColor"].ToString();
                 member.FontColorName = Request.Form["fontColor"].ToString();
+                member.StatusName = Request.Form["name"].ToString();
 
                 int loginName = HttpContext.Session.GetInt32("UserID") ?? 0;
-                member.UserUpdateID = member.UserInsertID;
-                member.CreateDate = DateTime.Now;
-                member.UpdateDate = DateTime.Now;
 
                 if (member.ID == 0) // Insert mới
                 {
 
                     member.UserInsertID = loginName;
-                    member.CreateDate = DateTime.Now;
+                    member.CreateDate = businessDate;
                     member.UserUpdateID = loginName;
-                    member.UpdateDate = DateTime.Now;
+                    member.UpdateDate = businessDate;
 
                     HKPStatusColorBO.Instance.Insert(member);
                 }
@@ -845,14 +844,13 @@ namespace Administration.Controllers
 
                     if (oldData != null)
                     {
-                        member.StatusName = oldData.StatusName;
                         member.Description = oldData.Description;
                         member.UserInsertID = oldData.UserInsertID;
                         member.CreateDate = oldData.CreateDate;
                     }
 
                     member.UserUpdateID = loginName;
-                    member.UpdateDate = DateTime.Now;
+                    member.UpdateDate = businessDate;
 
                     HKPStatusColorBO.Instance.Update(member);
                 }
@@ -4030,7 +4028,7 @@ namespace Administration.Controllers
 
         public IActionResult Occupancy()
         {
-            return View("ItemCategory/Occupancy");
+            return PartialView("ItemCategory/Occupancy");
         }
         [HttpGet]
         public IActionResult GetOccupancy()
@@ -4126,7 +4124,7 @@ namespace Administration.Controllers
 
         public IActionResult ConfirmationConfig()
         {
-            return View("ItemCategory/ConfirmationConfig");
+            return PartialView("ItemCategory/ConfirmationConfig");
         }
         [HttpGet]
         public IActionResult GetConfirmationConfig()
@@ -4165,15 +4163,15 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.EmailAddress, "emailAddress", "Email address is not blank."),
-                Check(model?.MailUser, "userMail", "Mail user is not blank."),
-                Check(model?.MailPassword, "passMail", "Mail password is not blank."),
-                Check(model?.ServerName, "serverName", "Server name is not blank."),
-                Check(model?.ServerPort ?? 0, "serverPort", "Port must be greater than 0."),
-                Check(model?.MailSubject, "subMail", "Mail Subject is not blank."),
-                Check(model?.MailBody, "bodyMail", "Mail body is not blank."),
-                Check(model?.MailSubjectENG, "subEngMail", "Mail Subject english is not blank."),
-                Check(model?.MailBodyENG, "bodyEngMail", "Mail body english is not blank.")
+                Check(model?.EmailAddress, "cfC_emailAddress", "Email address is not blank."),
+                Check(model?.MailUser, "cfC_mailUser", "Mail user is not blank."),
+                Check(model?.MailPassword, "cfC_mailPassword", "Mail password is not blank."),
+                Check(model?.ServerName, "cfC_serverName", "Server name is not blank."),
+                Check(model?.ServerPort ?? 0, "cfC_serverPort", "Port must be greater than 0."),
+                Check(model?.MailSubject, "cfC_mailSubject", "Mail Subject is not blank."),
+                Check(model?.MailBody, "cfC_mailBody", "Mail body is not blank."),
+                Check(model?.MailSubjectENG, "cfC_mailSubjectENG", "Mail Subject english is not blank."),
+                Check(model?.MailBodyENG, "cfC_mailBodyENG", "Mail body english is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -4210,7 +4208,7 @@ namespace Administration.Controllers
             ViewBag.RateCodeList = listRateCode;
             List<LanguageModel> listLanguage = PropertyUtils.ConvertToList<LanguageModel>(LanguageBO.Instance.FindAll());
             ViewBag.LanguageList = listLanguage;
-            return View("ItemCategory/ConfirmationTemp");
+            return PartialView("ItemCategory/ConfirmationTemp");
         }
         [HttpGet]
         public IActionResult GetConfirmationTemp()
@@ -4245,7 +4243,9 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                Check(model, "general", "Invalid data"),
 
-               Check(model?.LetterName, "letterNameInput", "Letter name is not blank.")
+               Check(model?.LetterName, "letterNameInput", "Letter name is not blank."),
+               Check(model?.RateCodeID, "cfT_rateCodeID", "Please select Rate Code."),
+               Check(model?.Nationality, "cfT_nationality", "Please select Nationality.")
             );
 
             if (listErrors.Count > 0)
@@ -4291,8 +4291,8 @@ namespace Administration.Controllers
                                             WHERE ID = {id}
                                               AND RateCodeID > 0
                                             ");
-                if (dt.Rows.Count > 0 && Convert.ToInt32(dt.Rows[0][0]) > 0)
-                    return Json(new { success = false, message = "Cannot delete. This template is already linked to a Rate Code." });
+                // if (dt.Rows.Count > 0 && Convert.ToInt32(dt.Rows[0][0]) > 0)
+                //     return Json(new { success = false, message = "Cannot delete. This template is already linked to a Rate Code." });
                 ConfirmationTempBO.Instance.Delete(id);
                 return Json(new { success = true, message = "Delete successfully." });
             }
