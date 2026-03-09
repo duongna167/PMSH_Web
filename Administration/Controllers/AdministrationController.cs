@@ -29,6 +29,7 @@ namespace Administration.Controllers
             _httpContextAccessor = httpContextAccessor;
 
         }
+        DateTime businessDate = TextUtils.GetBusinessDate();
 
         #region MemberList
         [HttpGet]
@@ -808,7 +809,6 @@ namespace Administration.Controllers
         [HttpPost]
         public ActionResult UpdateConfigStatusColor()
         {
-            DateTime businessDate = TextUtils.GetBusinessDate();
             ProcessTransactions pt = new ProcessTransactions();
             try
             {
@@ -1162,14 +1162,14 @@ namespace Administration.Controllers
         #region PersonInChargeGroup
         public ActionResult PersonInChargeGroup()
         {
-            return View();
+            return PartialView();
         }
         [HttpGet]
-        public IActionResult GetPersonInChargeGroup(string code, string name, string isActive)
+        public IActionResult GetPersonInChargeGroup(string code, string name, int inactive)
         {
             try
             {
-                DataTable dataTable = _iAdministrationService.PersonInChargeGroupData(code, name, isActive);
+                DataTable dataTable = _iAdministrationService.PersonInChargeGroupData(code, name, inactive);
                 var result = (from d in dataTable.AsEnumerable()
                               select new
                               {
@@ -1199,10 +1199,10 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
+                Check(model?.Code, "picg_code", "Code is not blank."),
                 //Check(PersonInChargeGroupBO.Instance.IsDuplicate("Code", model.Code, model.ID),
                 //    "code", "This code already exists."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Name, "picg_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -1213,10 +1213,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     PersonInChargeGroupBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -1233,8 +1233,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     PersonInChargeGroupBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -1268,14 +1268,14 @@ namespace Administration.Controllers
         #region PersonInChargeZone
         public ActionResult PersonInChargeZone()
         {
-            return View();
+            return PartialView();
         }
         [HttpGet]
-        public IActionResult GetPersonInChargeZone(string code, string name, string isActive)
+        public IActionResult GetPersonInChargeZone(string code, string name, string inactive)
         {
             try
             {
-                DataTable dataTable = _iAdministrationService.PersonInChargeZoneData(code, name, isActive);
+                DataTable dataTable = _iAdministrationService.PersonInChargeZoneData(code, name, inactive);
                 var result = (from d in dataTable.AsEnumerable()
                               select new
                               {
@@ -1305,10 +1305,10 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
+                Check(model?.Code, "picz_code", "Code is not blank."),
                 //Check(PersonInChargeZoneBO.Instance.IsDuplicate("Code", model.Code, model.ID),
                 //       "code", "This code already exists."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Name, "picz_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -1374,7 +1374,7 @@ namespace Administration.Controllers
         #region ApprovedBy
         public ActionResult ApproveBy()
         {
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult GetApprovedBy(string code, string name, string isActive)
@@ -1411,10 +1411,10 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
+                Check(model?.Code, "appB_code", "Code is not blank."),
                 //Check(ApprovedbyBO.Instance.IsDuplicate("Code", model.Code, model.ID),
                 //        "code", "This code already exists."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Name, "appB_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
