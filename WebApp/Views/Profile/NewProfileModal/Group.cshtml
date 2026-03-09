@@ -101,7 +101,7 @@
                                                 </label>
 
                                                 <div class="col-sm-5">
-                                                    <input type="text" class="form-control" id="com_txtCode" name="com_txtCode"
+                                                    <input type="text" class="form-control" id="gro_txtCode" name="com_txtCode"
                                                            data-tooltip="The contact code will have a fixed length of 13 characters.">
                                                 </div>
                                             </div>
@@ -312,8 +312,27 @@
                 loadDataToTomSelect("#gro_txtCity", "/Profile/GetAllCity", mapCode),
                 loadDataToTomSelect("#gro_txtCountry", "/Profile/GetAllCountry", mapCode),
                 loadDataToTomSelect("#gro_txtOwner", "/Profile/GetAllOwner", mapCode),
-                loadDataToTomSelect("#gro_txtCurrency", "/Profile/GetAllCurrency", mapCode),
-                loadDataToTomSelect("#gro_txtAccountType", "/Profile/GetAllAccountType", mapCode),
+
+                loadDataToTomSelect("#gro_txtCurrency", "/Profile/GetAllCurrency",(item) => {
+                    const id = item.id || item.ID || "";
+
+                    const desc = item.description || item.Description || "";
+
+                    return {
+                        value: item.id || item.ID,
+                        text: (id && desc) ? `${id} - ${desc}` : (id || desc || "Unknown"),
+                        data: item
+                    };
+                }),
+
+                // loadDataToTomSelect("#gro_txtAccountType", "/Profile/GetAllAccountType", (item) => {
+                //     return {
+                //         value: item.type || item.Type,
+                //         text: item.type || item.Type,
+                //         data: item
+                //     };
+                // }),
+
                 loadDataToTomSelect("#gro_txtVIP", "/Profile/GetAllVIP", mapCode),
 
                 loadDataToTomSelect("#gro_txtState", "/Profile/GetAllState", (item) => {
@@ -334,34 +353,67 @@
         },
 
         getFormData: function () {
+
             const getTS = (id) => {
                 const ts = getTomSelect(id);
-                return ts ? ts.getValue() : 0;
+                return ts ? ts.getValue() : null;
             };
 
-            return {
+            const loginUser = parseInt(localStorage.getItem("userID")) || 0;
+            const defaultDate = "1900-01-01";
+
+            const data = {
                 ID: parseInt($("#gro_id").val()) || 0,
-                Type: 4, 
-                Code: $("#gro_txtCode").val()?.trim(),
-                Account: $("#gro_txtGroupName").val()?.trim(),
-                LanguageID: parseInt(getTS("#gro_txtLanguage")),
-                Address: $("#gro_txtAddress").val()?.trim(),
-                HomeAddress: $("#gro_txtHomeAddress").val()?.trim(),
-                City: getTS("#gro_txtCity"),
-                PostalCode: $("#gro_txtPostalCode").val()?.trim(),
-                CountryID: parseInt(getTS("#gro_txtCountry")),
-                StateID: parseInt(getTS("#gro_txtState")),
-                AcctContact: $("#gro_txtContact").val()?.trim(),
-                CurrencyID: getTS("#gro_txtCurrency"),
-                VIPID: parseInt(getTS("#gro_txtVIP")),
-                VIPReason: $("#gro_txtVIPReason").val()?.trim(),
-                Description: $("#gro_txtNotes").val()?.trim(),
+                Type: 4,
+
+                Code: $("#gro_txtCode").val()?.trim() || "",
+                Account: $("#gro_txtGroupName").val()?.trim() || "",
+
+                LanguageID: parseInt(getTS("#gro_txtLanguage")) || 0,
+
+                Address: $("#gro_txtAddress").val()?.trim() || "",
+                HomeAddress: $("#gro_txtHomeAddress").val()?.trim() || "",
+
+                City: getTS("#gro_txtCity") || "",
+
+                PostalCode: $("#gro_txtPostalCode").val()?.trim() || "",
+
+                CountryID: parseInt(getTS("#gro_txtCountry")) || 0,
+                StateID: parseInt(getTS("#gro_txtState")) || 0,
+
+                AcctContact: $("#gro_txtContact").val()?.trim() || "",
+
+                CurrencyID: getTS("#gro_txtCurrency") || "",
+
+                VIPID: parseInt(getTS("#gro_txtVIP")) || 0,
+                VIPReason: $("#gro_txtVIPReason").val()?.trim() || "",
+
+                Description: $("#gro_txtNotes").val()?.trim() || "",
+
                 History: $("#gro_chkHistory").is(":checked"),
-                Telephone: $("#gro_txtTelephone").val()?.trim(),
-                Email: $("#gro_txtEmail").val()?.trim(),
-                Website: $("#gro_txtWebsite").val()?.trim(),
-                HandPhone: $("#gro_txtHandPhone").val()?.trim()
+
+                Telephone: $("#gro_txtTelephone").val()?.trim() || "",
+                Email: $("#gro_txtEmail").val()?.trim() || "",
+                Website: $("#gro_txtWebsite").val()?.trim() || "",
+                HandPhone: $("#gro_txtHandPhone").val()?.trim() || "",
+
+                // ===== Required DateTime fields in Model =====
+                DateOfBirth: defaultDate,
+                Lastvisit: defaultDate,
+                FirstReservation: defaultDate,
+                LastReservation: defaultDate,
+                WeddingAnniversary: defaultDate,
+                Firstvisit: defaultDate,
+                Expiry: defaultDate,
+                LastContact: defaultDate,
+                SpecialUpdateDate: defaultDate,
+
+                StayNo: 0,
+                UserInsertID: loginUser,
+                UserUpdateID: loginUser
             };
+
+            return data;
         },
 
         clearForm: function () {
@@ -403,6 +455,53 @@
                     showToast("Error", 'System error', false);
                 }
             });
+        },
+
+        fillForm: function (data) {
+
+            if (!data) return;
+
+            const setTS = (id, value) => {
+                const ts = getTomSelect(id);
+                if (ts) {
+                    ts.setValue(value || "");
+                }
+            };
+
+            $("#gro_id").val(data.ID || 0);
+
+            $("#gro_txtCode").val(data.Code || "");
+            $("#gro_txtGroupName").val(data.Account || "");
+
+            setTS("#gro_txtLanguage", data.LanguageID);
+
+            $("#gro_txtAddress").val(data.Address || "");
+            $("#gro_txtHomeAddress").val(data.HomeAddress || "");
+
+            setTS("#gro_txtCity", data.City);
+
+            $("#gro_txtPostalCode").val(data.PostalCode || "");
+
+            setTS("#gro_txtCountry", data.CountryID);
+            setTS("#gro_txtState", data.StateID);
+
+            $("#gro_txtContact").val(data.AcctContact || "");
+
+            setTS("#gro_txtCurrency", data.CurrencyID);
+
+            setTS("#gro_txtVIP", data.VIPID);
+
+            $("#gro_txtVIPReason").val(data.VIPReason || "");
+
+            $("#gro_txtNotes").val(data.Description || "");
+
+            $("#gro_chkHistory").prop("checked", data.History === true);
+
+            $("#gro_txtTelephone").val(data.Telephone || "");
+            $("#gro_txtEmail").val(data.Email || "");
+            $("#gro_txtWebsite").val(data.Website || "");
+            $("#gro_txtHandPhone").val(data.HandPhone || "");
+
         }
     };
 
