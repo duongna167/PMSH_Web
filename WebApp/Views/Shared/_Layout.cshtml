@@ -1,4 +1,4 @@
-﻿﻿@using Microsoft.Extensions.Options
+@using Microsoft.Extensions.Options
 @using static BaseBusiness.Global
 @inject IOptions<ContactInfo> ContactConfig
 
@@ -109,7 +109,7 @@
 
     <script src="~/js/input_date.js"></script>
     <script src="~/js/core/tooltip.js" asp-append-version="true"></script>
-    <script src="~/js/core/date-bootstrap.js" asp-append-version="true"></script>
+    <script src="~/js/core/guest-name.js" asp-append-version="true"></script>
     <script src="~/js/core/tomselect.js" asp-append-version="true"></script>
     <script src="~/js/core/loading-global.js" asp-append-version="true"></script>
 
@@ -191,7 +191,22 @@
                         <li class="nav-item">
                             <a class="nav-link">PROFILE</a>
                             <div class="dropdown-menu-custom">
-                                <a asp-area="" asp-controller="Profile" asp-action="Index"data-action="SearchProfile" >New Profile</a>
+                                @* <a href="javascript:void(0);" onclick="openProfileTypeIndex()" data-action="SearchProfile">New Profile</a> *@
+
+                                <div class="dropdown-submenu">
+                                    <a class="dropdown-submenu-toggle">New Profile</a>
+                                    <div class="dropdown-submenu-content">
+                                        <a href="javascript:void(0);" onclick="openModalInd()" data-action="">Individual test</a>
+                                        <a href="javascript:void(0);" onclick="openModalIndividual()" data-action="">Individual</a>
+                                        <a href="javascript:void(0);" onclick="openModalCompany(1)" data-action="">Company</a>
+                                        <a href="javascript:void(0);" onclick="openModalCompany(2)" data-action="">Travel Agent</a>
+                                        <a href="javascript:void(0);" onclick="openModalCompany(3)" data-action="">Source</a>
+                                        <a href="javascript:void(0);" onclick="openModalGroup()" data-action="">Group</a>
+                                        <a href="javascript:void(0);" onclick="openModalContact()" data-action="">Contact</a>
+
+                                    </div>
+                                </div>
+
                                 <a href="javascript:void(0);" onclick="openProSearch()" data-action="SearchProfile">Search Profile</a>
                                 <a href="javascript:void(0);" onclick="openProfileExport()" data-action="ProfileExport">Export Profile To Excel</a>
                             </div>
@@ -927,7 +942,6 @@
         LoadingGlobal.init();
             
         $(document).ajaxSend(function (event, xhr, settings) {
-            // Ưu tiên lấy ID từ cấu hình 'loadingGrid' trong $.ajax, nếu không có thì dùng biến window
             const gridSelector = settings.loadingGrid || window.currentAjaxGridId;
 
             if (gridSelector) {
@@ -946,7 +960,7 @@
                 if (el) LoadingGlobal.hideElement(el);
             }
             LoadingGlobal.hide();
-            window.currentAjaxGridId = null; // Reset biến tạm
+            window.currentAjaxGridId = null;
         });
 
         loadBirthdayCount();
@@ -1286,7 +1300,7 @@
             return $container;
         },
 
-        load: function (url, modalId, callback) {
+        load: function (url, modalId, callback, showModal = true) {
             const $container = this.getOrCreateContainer(modalId);
             $container.empty(); // Xóa nội dung cũ để tránh trùng lặp script/ID
 
@@ -1297,16 +1311,18 @@
                 if (modalEl) {
                     if (typeof initDateInputs === "function") initDateInputs(modalEl);
 
-                    const modal = new bootstrap.Modal(modalEl);
-                    modal.show();
-
-                    modalEl.addEventListener("hidden.bs.modal", function () {
-                        modal.dispose();
-                        $container.remove();
-                        if ($('.modal.show').length > 0) {
-                            $('body').addClass('modal-open');
-                        }
-                    });
+                    if (showModal) {
+                        const modal = new bootstrap.Modal(modalEl);
+                        modal.show();
+                        
+                        modalEl.addEventListener("hidden.bs.modal", function () {
+                            modal.dispose();
+                            $container.remove();
+                            if ($('.modal.show').length > 0) {
+                                $('body').addClass('modal-open');
+                            }
+                        });
+                    }
 
                     // Xử lý thực thi callback sau khi HTML/Script đã được nạp vào DOM
                     if (typeof callback === "function") {
@@ -1687,7 +1703,63 @@
         );
     }
 
-       function openProSearch(callback) {
+          function openModalCompany() {
+                 const url = '/Profile/Company';
+                 const modalId = 'modalCompany';
+
+              ModalManager.load(url, modalId, "openModalProCom");
+          }
+        function openModalCompany(type) {
+            const url = '/Profile/Company';
+            const modalId = 'modalCompany';
+
+            // Lưu type vào một biến toàn cục hoặc truyền qua callback để module xử lý
+            ModalManager.load(url, modalId, function() {
+                if (window.pro_com_Module) {
+                    window.pro_com_Module.init(type); // Truyền type vào hàm init
+                }
+            });
+        }
+             // function openModalTravelAgent() {
+             //           const url = '/Profile/TravelAgent';
+             //           const modalId = 'modalTravelAgent';
+
+             //     ModalManager.load(url, modalId, "openModalProTA");
+             // }
+             //    function openModalSource() {
+             //           const url = '/Profile/Source';
+             //           const modalId = 'modalSource';
+
+             //     ModalManager.load(url, modalId, "openModalProSrc");
+             // }
+                function openModalGroup() {
+                          const url = '/Profile/Group';
+                          const modalId = 'modalGroup';
+
+                    ModalManager.load(url, modalId, "openModalProGr");
+                }
+                   function openModalContact() {
+                          const url = '/Profile/Contact';
+                          const modalId = 'modalContact';
+
+                    ModalManager.load(url, modalId, "openModalProContact");
+                }
+
+    function openModalInd() {
+        const url = '/Profile/ProfileIndividual';
+        const modalId = 'modalProfileIndividual';
+
+        ModalManager.load(url, modalId, "openModalProInd");
+    }
+
+       function openModalIndividual() {
+           const url = '/Profile/Individual';
+           const modalId = 'modalIndividual';
+
+           ModalManager.load(url, modalId, "openModalProIndividual");
+       }
+
+    function openProSearch(callback) {
         const url = '/Profile/SearchProfile';
         const modalId = 'pro_search_mainModal';
 

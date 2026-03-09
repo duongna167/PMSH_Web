@@ -345,7 +345,7 @@ function focusElement($el) {
 
                     // Cập nhật Hidden Input (Giá trị để submit)
                     if (this.$hidden) {
-                        this.$hidden.val(datePart);
+                        this.$hidden.val(datePart).trigger('change');
                     }
                 }
             }
