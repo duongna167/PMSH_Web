@@ -98,16 +98,14 @@
                                             <div class="row mb-1 align-items-center">
                                                 <label class="col-sm-4 col-form-label text-sm-end">Code <span class="text-danger">*</span></label>
                                                 <div class="col-sm-5">
-                                                    <input type="text" class="form-control" id="com_txtCode" name="com_txtCode"
+                                                    <input type="text" class="form-control" id="con_txtCode" name="con_txtCode"
                                                            data-tooltip="The contact code will have a fixed length of 13 characters.">
                                                 </div>
                                             </div>
                                             <div class="row mb-1 align-items-center">
                                                 <label class="col-sm-4 col-form-label text-sm-end">Full Name <span class="text-danger">*</span></label>
                                                 <div class="col-sm-6">
-                                                    <input type="text" class="form-control" id="con_txtFullName" name="con_txtFullName"
-                                                           data-bs-toggle="tooltip" title="Please typing as below: LastName MiddleName, FirstName, Mr. OR LastName MiddleName, FirstName."
-                                                           data-bs-placement="right">
+                                                    <input type="text" class="form-control" id="con_txtFullName" name="con_txtFullName" data-tooltip="Please typing as below: LastName MiddleName, FirstName, Mr. OR LastName MiddleName, FirstName.">
                                                 </div>
                                             </div>
                                             <div class="row mb-1 align-items-center">
@@ -310,7 +308,8 @@
             });
         },
 
-        bindNameEngine: function () {
+         bindNameEngine: function () {
+            const self = this;
             const $full = $("#con_txtFullName");
             const $salutation = $("#con_txtSalutation");
 
@@ -319,19 +318,41 @@
                 if (!nameVal) return;
 
                 let p = GuestNameEngine.parseFullName(nameVal);
-                $("#con_txtFirstName").val(p.first);
-                $("#con_txtMiddleName").val(p.middle);
-                $("#con_txtLastName").val(p.last);
+                console.log("Parsed Name:", p);
 
-                $salutation.val(GuestNameEngine.buildSalutation(p.first, p.last));
+                $("#con_txtFirstName").val(p.first).trigger("input");
+                $("#con_txtMiddleName").val(p.middle).trigger("input");
+                $("#con_txtLastName").val(p.last).trigger("input");
+
+                let resultSalutation = GuestNameEngine.buildSalutation(p.first, p.last);
+                $salutation.val(resultSalutation);
             }
 
             $full.on("blur", processNameParsing);
-            $full.on("keydown", function (e) {
+
+            $full.on("keydown", function(e) {
                 if (e.which === 13) {
                     e.preventDefault();
                     processNameParsing();
+
                     $("#con_txtFirstName").focus();
+                }
+            });
+
+            $("#con_txtTitle").on("change", function() {
+                const lastName = $("#con_txtLastName").val();
+
+                const ts = getTomSelect("#con_txtTitle");
+                if (!ts) return;
+
+                const val = ts.getValue();
+
+                const titleText = val ? ts.options[val]?.text : "";
+
+                if (lastName && titleText && titleText !== "Enter or select...") {
+                    $salutation.val("Dear " + titleText + " " + GuestNameEngine.smartCapitalize(lastName));
+                } else if (lastName) {
+                    $salutation.val("Dear " + GuestNameEngine.smartCapitalize(lastName));
                 }
             });
         },
@@ -351,7 +372,13 @@
 
             const loadTasks = [
                 loadDataToTomSelect("#con_txtLanguage", "/Profile/GetAllLanguage", mapCode),
-                loadDataToTomSelect("#con_txtTitle", "/Profile/GetAllTitle", mapCode),
+                loadDataToTomSelect("#con_txtTitle", "/Profile/GetAllTitle",(item) => {
+                    return {
+                        value: item.id || item.ID,
+                        text: item.Code || item.code,
+                        data: item
+                    };
+                }),
                 loadDataToTomSelect("#con_txtCity", "/Profile/GetAllCity", mapCode),
                 loadDataToTomSelect("#con_txtCountry", "/Profile/GetAllCountry", mapCode),
                 loadDataToTomSelect("#con_txtOwner", "/Profile/GetAllOwner", mapCode),
@@ -374,40 +401,82 @@
         },
 
         getFormData: function () {
+
             const getTS = (id) => {
                 const ts = getTomSelect(id);
-                return ts ? ts.getValue() : 0;
+                return ts ? ts.getValue() : null;
             };
 
+            const getDate = (name) => {
+                return $(`[data-name="${name}"]`).find("input.date-ui").val();
+            };
+
+            const loginName = (localStorage.getItem("Loginname") || "")
+            .trim()
+            .replace(/^"(.*)"$/, '$1');
+            const loginUser = parseInt(localStorage.getItem("userID")) || 0;
+            const defaultDate = "1900-01-01";
+
             return {
+
                 ID: parseInt($("#con_id").val()) || 0,
                 Type: 5,
+
                 Code: $("#con_txtCode").val()?.trim(),
                 Account: $("#con_txtFullName").val()?.trim(),
                 Firstname: $("#con_txtFirstName").val()?.trim(),
                 LastName: $("#con_txtLastName").val()?.trim(),
                 MiddleName: $("#con_txtMiddleName").val()?.trim(),
+
                 Position: $("#con_txtPosition").val()?.trim(),
                 Department: $("#con_txtDept").val()?.trim(),
-                LanguageID: parseInt(getTS("#con_txtLanguage")),
-                TitleID: parseInt(getTS("#con_txtTitle")),
+
+                LanguageID: parseInt(getTS("#con_txtLanguage")) || 0,
+                TitleID: parseInt(getTS("#con_txtTitle")) || 0,
+
                 Salutation: $("#con_txtSalutation").val()?.trim(),
+
                 Address: $("#con_txtAddress").val()?.trim(),
                 HomeAddress: $("#con_txtHomeAddress").val()?.trim(),
-                City: getTS("#con_txtCity"),
+
+                City: getTS("#con_txtCity") || "",
+
                 PostalCode: $("#con_txtPostalCode").val()?.trim(),
-                CountryID: parseInt(getTS("#con_txtCountry")),
-                StateID: parseInt(getTS("#con_txtState")),
-                OwnerID: parseInt(getTS("#con_txtOwner")),
-                TerritoryID: parseInt(getTS("#con_txtTerritory")),
+
+                CountryID: parseInt(getTS("#con_txtCountry")) || 0,
+                StateID: parseInt(getTS("#con_txtState")) || 0,
+
+                OwnerID: parseInt(getTS("#con_txtOwner")) || 0,
+                TerritoryID: parseInt(getTS("#con_txtTerritory")) || 0,
+
                 ARNo: $("#con_txtARNo").val()?.trim(),
-                DateOfBirth: $("#con_chkActiveDob").is(":checked") ? $("#con_txtDob").val() : null,
+
+                DateOfBirth: $("#con_chkActiveDob").is(":checked")
+                ? $("input[name='con_txtDob']").val()
+                : defaultDate,
+
                 Active: $("#con_chkActive").is(":checked"),
+
                 Telephone: $("#con_txtTelephone").val()?.trim(),
-                Fax: $("#con_txtFax").val()?.trim(),
-                Email: $("#con_txtEmail").val()?.trim(),
-                Website: $("#con_txtWebsite").val()?.trim(),
-                HandPhone: $("#con_txtHandPhone").val()?.trim()
+                Fax: $("#con_txtFax").val()?.trim() ,
+                Email: $("#con_txtEmail").val()?.trim() ,
+                Website: $("#con_txtWebsite").val()?.trim() ,
+                HandPhone: $("#con_txtHandPhone").val()?.trim(),
+
+                // Required fields backend hay cần
+                Lastvisit: defaultDate,
+                FirstReservation: defaultDate,
+                LastReservation: defaultDate,
+                WeddingAnniversary: defaultDate,
+                Firstvisit: defaultDate,
+                Expiry: defaultDate,
+                LastContact: defaultDate,
+                SpecialUpdateDate: defaultDate,
+
+                StayNo: 0,
+
+                UserInsertID: loginUser,
+                UserUpdateID: loginUser
             };
         },
 
@@ -438,12 +507,21 @@
                 data: JSON.stringify(data),
                 success: function (res) {
                     LoadingGlobal.hide();
+
                     if (res.success) {
-                        showToast("Success", res.message || 'Saved successfully!', true);
-                        setTimeout(() => { $('#modalContact').modal('hide'); }, 1000);
+                        showToast("Success",res.message || 'Profile saved successfully!', true);
+
+                        setTimeout(() => {
+                            $('#modalContact').modal('hide');
+                        }, 1000);
                     } else {
-                        if (res.errors) ValidationAdapter.apply(res.errors, "#pro_con_formContainer");
-                        showToast("Error", res.message || 'Error occurred', false);
+                        if (res.errors && res.errors.length > 0) {
+                            ValidationAdapter.apply(res.errors, "#pro_con_formContainer");
+
+                            showToast("Error",'Please check the highlighted fields.', false);
+                        } else {
+                            showToast("Error",res.message || 'An error occurred', false);
+                        }
                     }
                 },
                 error: function () {
@@ -451,6 +529,65 @@
                     showToast("Error", 'System error', false);
                 }
             });
+        },
+
+        fillForm: function (data) {
+
+            if (!data) return;
+
+            const setTS = (id, value) => {
+                const ts = getTomSelect(id);
+                if (ts) ts.setValue(value || "");
+            };
+
+            $("#con_id").val(data.ID || 0);
+
+            $("#con_txtCode").val(data.Code || "");
+            $("#con_txtFullName").val(data.Account || "");
+
+            $("#con_txtFirstName").val(data.Firstname || "");
+            $("#con_txtMiddleName").val(data.MiddleName || "");
+            $("#con_txtLastName").val(data.LastName || "");
+
+            $("#con_txtPosition").val(data.Position || "");
+            $("#con_txtDept").val(data.Department || "");
+
+            setTS("#con_txtLanguage", data.LanguageID);
+            setTS("#con_txtTitle", data.TitleID);
+
+            $("#con_txtSalutation").val(data.Salutation || "");
+
+            $("#con_txtAddress").val(data.Address || "");
+            $("#con_txtHomeAddress").val(data.HomeAddress || "");
+
+            setTS("#con_txtCity", data.City);
+
+            $("#con_txtPostalCode").val(data.PostalCode || "");
+
+            setTS("#con_txtCountry", data.CountryID);
+            setTS("#con_txtState", data.StateID);
+
+            setTS("#con_txtOwner", data.OwnerID);
+            setTS("#con_txtTerritory", data.TerritoryID);
+
+            $("#con_txtARNo").val(data.ARNo || "");
+
+            // Date of Birth
+            if (data.DateOfBirth) {
+                $("#con_chkActiveDob").prop("checked", true).trigger("change");
+                $('[data-name="con_txtDob"]').find("input.date-ui").val(data.DateOfBirth);
+            } else {
+                $("#con_chkActiveDob").prop("checked", false).trigger("change");
+            }
+
+            $("#con_chkActive").prop("checked", data.Active !== false);
+
+            $("#con_txtTelephone").val(data.Telephone || "");
+            $("#con_txtFax").val(data.Fax || "");
+            $("#con_txtEmail").val(data.Email || "");
+            $("#con_txtWebsite").val(data.Website || "");
+            $("#con_txtHandPhone").val(data.HandPhone || "");
+
         }
     };
 

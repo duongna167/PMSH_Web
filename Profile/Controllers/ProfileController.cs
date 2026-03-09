@@ -290,6 +290,23 @@ namespace Profile.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> GetAllMarket()
+        {
+            List<MarketModel> list = new List<MarketModel>();
+            try
+            {
+                list = PropertyUtils.ConvertToList<MarketModel>(MarketBO.Instance.FindAll());
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+
+            return Json(list);
+
+        }
+
+        [HttpGet]
         public async Task<IActionResult> GetMarketType()
         {
             List<MarketTypeModel> list = new List<MarketTypeModel>();
@@ -1667,16 +1684,13 @@ namespace Profile.Controllers
 
                 DateTime businessDate = businessDates[0].BusinessDate;
                 string sql = $@"
-SELECT DateOfBirth, Firstname
-FROM Profile WITH (NOLOCK)
-WHERE DAY(DateOfBirth)   = DAY('{businessDate:yyyy-MM-dd}')
-  AND MONTH(DateOfBirth) = MONTH('{businessDate:yyyy-MM-dd}')
-  AND YEAR(DateOfBirth) BETWEEN 2023 AND YEAR(GETDATE())
-  AND Firstname IS NOT NULL
-  AND LTRIM(RTRIM(Firstname)) <> ''";
-
-
-
+                    SELECT DateOfBirth, Firstname
+                    FROM Profile WITH (NOLOCK)
+                    WHERE DAY(DateOfBirth)   = DAY('{businessDate:yyyy-MM-dd}')
+                      AND MONTH(DateOfBirth) = MONTH('{businessDate:yyyy-MM-dd}')
+                      AND YEAR(DateOfBirth) BETWEEN 2023 AND YEAR(GETDATE())
+                      AND Firstname IS NOT NULL
+                      AND LTRIM(RTRIM(Firstname)) <> ''";
 
                 DataTable dataTable = TextUtils.Select(sql);
 
@@ -1710,32 +1724,43 @@ WHERE DAY(DateOfBirth)   = DAY('{businessDate:yyyy-MM-dd}')
                     return Json(new { success = false, message = "Invalid data (model null)" });
                 }
 
+                bool isDuplicate = ProfileBO.Instance
+                   .IsDuplicateCode(model.Code, model.ID);
+                checks.Add(CheckDuplicate(isDuplicate, "ind_txtCode", $"This code already exists: [{model.Code}]"));
+
                 switch (model.Type)
                 {
                     case 0: // Individual 
-                        bool isInvalidCCCD = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{9}|\d{12})$");
-                        checks.Add(Check(isInvalidCCCD, "ind_txtCode", "Invalid Vietnamese ID (9 or 12 digits)"));
+                        bool isInvalidIndividual = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{9}|\d{12})$");
+                        checks.Add(Check(isInvalidIndividual, "ind_txtCode", "Invalid code (9 or 12 digits)"));
                         checks.Add(Check(model.Account, "ind_txtFullName", "Full name not blank"));
                         checks.Add(Check(model.Firstname, "ind_txtFirstName", "First name not blank"));
                         checks.Add(Check(model.LastName, "ind_txtLastName", "Last name not blank"));
                         checks.Add(Check(model.NationalityID, "ind_txtNationality", "Nationality not blank"));
                         break;
 
-                    case 1: // Company 
-                    case 2: // Travel Agent 
+                    case 1: // Travel Agent 
+                    case 2: // Company  
                     case 3: // Source
                         bool isInvalidTax = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{10}|\d{13})$");
-                        checks.Add(Check(isInvalidTax, "ind_txtCode", "Invalid Tax Code (10 or 13 digits)"));
+                        checks.Add(Check(isInvalidTax, "com_txtCode", "Invalid code (10 or 13 digits)"));
+                        checks.Add(Check(model.Account, "com_txtAccount", "Account not blank"));
                         break;
                     case 4: // Group
                         checks.Add(Check(model.Account, "gro_txtGroupName", "Group Name be blank"));
 
                         break;
-
-                    default: // Các loại khác: Chỉ cần không trống
+                    case 5: // Contact
+                        bool isInvalidContactCode = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{9}|\d{12})$");
+                        checks.Add(Check(isInvalidContactCode, "con_txtCode", "Invalid code (9 or 12 digits)"));
                         checks.Add(Check(model.Account, "con_txtFullName", "Full name not blank"));
                         checks.Add(Check(model.Firstname, "con_txtFirstName", "First name not blank"));
                         checks.Add(Check(model.LastName, "con_txtLastName", "Last name not blank"));
+
+                        break;
+
+                    default: 
+                        
                         break;
                 }
 

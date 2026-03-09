@@ -331,5 +331,20 @@ namespace BaseBusiness.BO
 
 
         }
+
+        public bool IsDuplicateCode(string code, long id = 0)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                return false;
+
+            return IsDuplicateCode(
+             "Profile",
+             "Code",
+             code.Trim(),
+             id
+            );
+
+        }
+
     }
 }

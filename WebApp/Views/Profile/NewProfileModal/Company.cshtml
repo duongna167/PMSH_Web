@@ -55,6 +55,20 @@
         margin-top: 0rem !important;
         margin-bottom: 0rem !important;
     }
+
+    #com_txtBlackListReason {
+        background-color: #fff !important;
+        color: #000 !important;
+        border: 1px solid #ced4da !important;
+        transition: all 0.2s ease;
+    }
+
+        /* Khi kích hoạt Blacklist: Nền đen, chữ trắng */
+        #com_txtBlackListReason.black-active {
+            background-color: #000 !important;
+            color: #fff !important;
+            border-color: #000 !important;
+        }
 </style>
 
 <div class="modal fade profile-modal" id="modalCompany" data-bs-backdrop="static" tabindex="-1" aria-labelledby="modalCompanyLabel"
@@ -122,7 +136,7 @@
 
                                             <div class="row align-items-center mb-1">
                                                 <label class="col-md-4 col-form-label text-sm-end">
-                                                    City / Country <span class="text-danger">*</span>
+                                                    City / Country
                                                 </label>
                                                 <div class="col-md-3">
                                                     <select id="com_txtCity" name="com_txtCity" class="tomselect-custom"></select>
@@ -239,6 +253,13 @@
                                             </div>
 
                                             <div class="row align-items-center mb-1">
+                                                <label class="col-md-4 col-form-label text-sm-end">Keyword</label>
+                                                <div class="col-md-6">
+                                                    <input type="text" class="form-control form-control-sm" id="com_txtKeyword" name="com_txtKeyword">
+                                                </div>
+                                            </div>
+
+                                            <div class="row align-items-center mb-1">
                                                 <label class="col-md-4 col-form-label text-sm-end">Type</label>
                                                 <div class="col-md-6">
                                                     <select id="com_txtCompanyType" name="com_txtCompanyType" class="tomselect-custom"></select>
@@ -253,7 +274,7 @@
                                             </div>
 
                                             <div class="row align-items-center mb-1">
-                                                <label class="col-md-4 col-form-label text-sm-end">Currency</label>
+                                                <label class="col-md-4 col-form-label text-sm-end">Reft.Curr</label>
                                                 <div class="col-md-6">
                                                     <select id="com_txtCurrency" name="com_txtCurrency" class="tomselect-custom"></select>
                                                 </div>
@@ -267,9 +288,9 @@
                                             </div>
 
                                             <div class="row align-items-center">
-                                                <label class="col-md-4 col-form-label text-sm-end">Market Type</label>
+                                                <label class="col-md-4 col-form-label text-sm-end">Market</label>
                                                 <div class="col-md-6">
-                                                    <select id="com_txtMarketType" name="com_txtMarketType" class="tomselect-custom"></select>
+                                                    <select id="com_txtMarket" name="com_txtMarket" class="tomselect-custom"></select>
                                                 </div>
                                             </div>
                                             <hr class="my-2">
@@ -277,12 +298,7 @@
 
                                         <div class="col-md-6 mui-card">
                                             <hr class="my-2">
-                                            <div class="row align-items-center mb-1">
-                                                <label class="col-md-4 col-form-label text-sm-end">Market</label>
-                                                <div class="col-md-6">
-                                                    <select id="com_txtMarket" name="com_txtMarket" class="tomselect-custom" disabled></select>
-                                                </div>
-                                            </div>
+                                   
                                             <div class="row align-items-center mb-1">
                                                 <label class="col-md-4 col-form-label text-sm-end">Active</label>
                                                 <div class="col-md-6">
@@ -296,14 +312,7 @@
                                                     <input type="text" class="form-control form-control-sm" id="com_txtBlackListReason" name="com_txtBlackListReason" disabled>
                                                 </div>
                                                 <div class="col-md-1">
-                                                    <input type="checkbox" class="form-check-input" id="com_chkBlackList" name="com_chkBlackList">
-                                                </div>
-                                            </div>
-
-                                            <div class="row align-items-center mb-1">
-                                                <label class="col-md-4 col-form-label text-sm-end fw-semibold">Profile Type</label>
-                                                <div class="col-md-6">
-                                                    <select id="com_txtProfileType" name="com_txtProfileType" class="tomselect-custom" disabled></select>
+                                                    <input type="checkbox" class="" id="com_chkBlackList" name="com_chkBlackList">
                                                 </div>
                                             </div>
 
@@ -331,7 +340,7 @@
         currentType: 1, // Mặc định là 1 (Company)
 
         init: function (type) {
-            if (type) this.currentType = type; // Cập nhật type dựa trên nút vừa bấm
+            if (type) this.currentType = type;
 
             this.updateModalTitle();
             this.initDOMEvents();
@@ -348,42 +357,109 @@
 
         initDOMEvents: function () {
             const self = this;
+
             $('#com_btnSave').off('click').on('click', function () {
                 self.saveProfile();
             });
+
             $('#com_btnClear').off('click').on('click', function () {
                 self.clearForm();
+            });
+
+            // ===== BLACKLIST =====
+            $('#com_chkBlackList').off('change').on('change', function () {
+
+                const checked = $(this).is(":checked");
+                const $reason = $("#com_txtBlackListReason");
+
+                if (checked) {
+                    $reason.prop("disabled", false)
+                           .removeClass("bg-light")
+                           .focus();
+                } else {
+                    $reason.prop("disabled", true)
+                           .addClass("bg-light")
+                           .val("");
+                }
             });
         },
 
         getFormData: function () {
+
             const getTS = (id) => {
                 const ts = getTomSelect(id);
-                return ts ? ts.getValue() : 0;
+                return ts ? ts.getValue() : null;
             };
 
-            const data = {
+            const loginUser = parseInt(localStorage.getItem("userID")) || 0;
+            const defaultDate = "1900-01-01";
+
+            return {
+
                 ID: parseInt($("#com_id").val()) || 0,
-                // QUAN TRỌNG: Gửi type tương ứng về Backend
-                Type: this.currentType,
-                Code: $("#com_txtCode").val()?.trim(),
-                Account: $("#com_txtAccount").val()?.trim(),
-                Address: $("#com_txtAddress").val()?.trim(),
-                City: getTS("#com_txtCity"),
-                CountryID: parseInt(getTS("#com_txtCountry")),
-                StateID: parseInt(getTS("#com_txtState")),
-                Company: $("#com_txtCompany").val()?.trim(),
-                TaxCode: $("#com_txtTax").val()?.trim(),
-                HomeAddress: $("#com_txtBusAddress").val()?.trim(),
-                Telephone: $("#com_txtTelephone").val()?.trim(),
-                Email: $("#com_txtEmail").val()?.trim(),
-                Website: $("#com_txtWebsite").val()?.trim(),
-                BusinessTitle: $("#com_txtBusTitle").val()?.trim(),
-                Active: $("#com_chkActive").is(":checked"),
-                Description: $("#com_txtNote").val()?.trim()
-            };
 
-            return data;
+                Type: this.currentType,
+
+                Code: $("#com_txtCode").val()?.trim() || "",
+                Account: $("#com_txtAccount").val()?.trim() || "",
+
+                Address: $("#com_txtAddress").val()?.trim() || "",
+                City: getTS("#com_txtCity") || "",
+                PostalCode: $("#com_txtPostal").val()?.trim() || "",
+
+                CountryID: parseInt(getTS("#com_txtCountry")) || 0,
+                StateID: parseInt(getTS("#com_txtState")) || 0,
+
+                Company: $("#com_txtCompany").val()?.trim() || "",
+                TaxCode: $("#com_txtTax").val()?.trim() || "",
+                HomeAddress: $("#com_txtBusAddress").val()?.trim() || "",
+
+                Telephone: $("#com_txtTelephone").val()?.trim() || "",
+                HandPhone: $("#com_txtHandPhone").val()?.trim() || "",
+                Email: $("#com_txtEmail").val()?.trim() || "",
+                Website: $("#com_txtWebsite").val()?.trim() || "",
+
+                AcctContact: $("#com_txtContactName").val()?.trim() || "",
+
+                BusinessTitle: $("#com_txtBusTitle").val()?.trim() || "",
+
+                OwnerID: parseInt(getTS("#com_txtOwner")) || 0,
+                TerritoryID: parseInt(getTS("#com_txtTerritory")) || 0,
+                PersonInChargeID: parseInt(getTS("#com_txtSaleInCharge")) || 0,
+
+                ARNo: $("#com_txtAR").val()?.trim() || "",
+
+                CurrencyID: getTS("#com_txtCurrency") || "",
+
+                Keyword: $("#com_txtKeyword").val()?.trim() || "",
+
+                MarketID: parseInt(getTS("#com_txtMarket")) || 0,
+
+                Active: $("#com_chkActive").is(":checked"),
+
+                IsBlackList: $("#com_chkBlackList").is(":checked"),
+
+                BlackListReason: $("#com_txtBlackListReason").val()?.trim() || "",
+
+                Description: $("#com_txtNote").val()?.trim() || "",
+
+                // ===== REQUIRED DATE FIELD =====
+
+                DateOfBirth: defaultDate,
+                Lastvisit: defaultDate,
+                FirstReservation: defaultDate,
+                LastReservation: defaultDate,
+                WeddingAnniversary: defaultDate,
+                Firstvisit: defaultDate,
+                Expiry: defaultDate,
+                LastContact: defaultDate,
+                SpecialUpdateDate: defaultDate,
+
+                StayNo: 0,
+
+                UserInsertID: loginUser,
+                UserUpdateID: loginUser
+            };
         },
 
         clearForm: function () {
@@ -400,7 +476,7 @@
             const tsIds = [
                 "#com_txtCity", "#com_txtCountry", "#com_txtState",
                 "#com_txtOwner", "#com_txtTerritory", "#com_txtCompanyType",
-                "#com_txtCurrency", "#com_txtSaleInCharge", "#com_txtMarketType", "#com_txtMarket"
+                "#com_txtCurrency", "#com_txtSaleInCharge", "#com_txtMarket"
             ];
             tsIds.forEach(id => {
                 const ts = getTomSelect(id);
@@ -414,8 +490,7 @@
         },
 
         saveProfile: function () {
-            const self = this;
-            const data = self.getFormData();
+            const data = this.getFormData();
             LoadingGlobal.show();
 
             $.ajax({
@@ -461,12 +536,32 @@
                 loadDataToTomSelect("#com_txtCity", "/Profile/GetAllCity", mapCode),
                 loadDataToTomSelect("#com_txtCountry", "/Profile/GetAllCountry", mapCode),
                 loadDataToTomSelect("#com_txtOwner", "/Profile/GetAllOwner", mapCode),
-                loadDataToTomSelect("#com_txtCurrency", "/Profile/GetAllCurrency", mapCode),
-                loadDataToTomSelect("#com_txtCompanyType", "/Profile/GetAllAccountType", mapCode),
-                loadDataToTomSelect("#com_txtSaleInCharge", "/Profile/GetAllOwner", mapCode), // Dùng chung bảng Owner
-                loadDataToTomSelect("#com_txtMarketType", "/Profile/GetAllMarketType", mapCode),
-                loadDataToTomSelect("#com_txtMarket", "/Profile/GetAllMarket", mapCode),
-                loadDataToTomSelect("#com_txtProfileType", "/Profile/GetAllProfileType", mapCode),
+                loadDataToTomSelect("#com_txtTerritory", "/Profile/GetAllTerritory", mapCode),
+
+                loadDataToTomSelect("#com_txtCurrency", "/Profile/GetAllCurrency",(item) => {
+                    const id = item.id || item.ID || "";
+
+                    const desc = item.description || item.Description || "";
+
+                    return {
+                        value: item.id || item.ID,
+                        text: (id && desc) ? `${id} - ${desc}` : (id || desc || "Unknown"),
+                        data: item
+                    };
+                }),
+
+                loadDataToTomSelect("#com_txtCompanyType", "/Profile/GetAllCompanyType",mapCode),
+
+                loadDataToTomSelect("#com_txtSaleInCharge", "/Profile/GetAllOwner", mapCode),
+                loadDataToTomSelect("#com_txtMarket", "/Profile/GetAllMarket", (item) => {
+                    const code = item.code || item.Code || "";
+                    const name = item.name || item.Name || "";
+                    return {
+                        value: item.id || item.ID,
+                        text: (code && name) ? `${code} - ${name}` : (code || name || "Unknown"),
+                        data: item
+                    };
+                }),
 
                 loadDataToTomSelect("#com_txtState", "/Profile/GetAllState", (item) => {
                     const zip = item.zipCode || item.ZipCode || "";
@@ -482,12 +577,62 @@
             Promise.all(loadTasks).finally(() => {
                 LoadingGlobal.hide();
 
-                const tsProfileType = getTomSelect("#com_txtProfileType");
-                if (tsProfileType) {
-                    tsProfileType.setValue(self.currentType);
-                }
             });
         },
+
+        fillForm: function (data) {
+
+            if (!data) return;
+
+            $("#com_id").val(data.ID);
+            $("#com_txtCode").val(data.Code);
+            $("#com_txtAccount").val(data.Account);
+
+            $("#com_txtAddress").val(data.Address);
+            $("#com_txtPostal").val(data.PostalCode);
+
+            $("#com_txtCompany").val(data.Company);
+            $("#com_txtTax").val(data.TaxCode);
+            $("#com_txtBusAddress").val(data.HomeAddress);
+
+            $("#com_txtTelephone").val(data.Telephone);
+            $("#com_txtHandPhone").val(data.HandPhone);
+            $("#com_txtEmail").val(data.Email);
+            $("#com_txtWebsite").val(data.Website);
+
+            $("#com_txtContactName").val(data.AcctContact);
+
+            $("#com_txtBusTitle").val(data.BusinessTitle);
+
+            $("#com_txtKeyword").val(data.Keyword);
+
+            $("#com_txtAR").val(data.ARNo);
+
+            $("#com_txtNote").val(data.Description);
+
+            $("#com_chkActive").prop("checked", data.Active);
+
+            $("#com_chkBlackList").prop("checked", data.IsBlackList);
+
+            $("#com_txtBlackListReason")
+                .val(data.BlackListReason)
+                .prop("disabled", !data.IsBlackList);
+
+            // ===== TOMSELECT =====
+
+            const setTS = (id, val) => {
+                const ts = getTomSelect(id);
+                if (ts && val) ts.setValue(val);
+            };
+
+            setTS("#com_txtCity", data.City);
+            setTS("#com_txtCountry", data.CountryID);
+            setTS("#com_txtState", data.StateID);
+            setTS("#com_txtOwner", data.OwnerID);
+            setTS("#com_txtTerritory", data.TerritoryID);
+            setTS("#com_txtCurrency", data.CurrencyID);
+            setTS("#com_txtSaleInCharge", data.PersonInChargeID);
+        }
     };
 
     $(document).ready(function () {
