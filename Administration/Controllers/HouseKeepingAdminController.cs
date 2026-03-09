@@ -47,7 +47,7 @@ namespace Administration.Controllers
             ViewBag.FloorList = listfloor;
             List<hkpSectionModel> listsshkp = PropertyUtils.ConvertToList<hkpSectionModel>(hkpSectionBO.Instance.FindAll());
             ViewBag.hkpSectionList = listsshkp;
-            return View("~/Views/Administration/HouseKeepingAdmin/Attendants.cshtml");
+            return PartialView("~/Views/Administration/HouseKeepingAdmin/Attendants.cshtml");
         }
 
         [HttpGet]
@@ -58,31 +58,23 @@ namespace Administration.Controllers
                 var getattendantsData = hkpAttendantBO.AttendantsData();
                 DataTable dt = PropertyUtils.ConvertToDataTable(getattendantsData);
                 var result = (from d in dt.AsEnumerable()
-                              select new
-                              {
-                                  ID = d["ID"]?.ToString() ?? "",
-                                  Name = d["Name"]?.ToString() ?? "",
-                                  MobileNo = d["MobileNo"]?.ToString() ?? "",
-                                  FloorID = d["FloorID"]?.ToString() ?? "",
-                                  SectionID = d["SectionID"]?.ToString() ?? "",
-                                  JobCode = d["JobCode"]?.ToString() ?? "",
-                                  Monday = d["Monday"]?.ToString() ?? "",
-                                  Tuesday = d["Tuesday"]?.ToString() ?? "",
-                                  Wednesday = d["Wednesday"]?.ToString() ?? "",
-                                  Thursday = d["Thursday"]?.ToString() ?? "",
-                                  Friday = d["Friday"]?.ToString() ?? "",
-                                  Saturday = d["Saturday"]?.ToString() ?? "",
-                                  Sunday = d["Sunday"]?.ToString() ?? "",
-                                  IsActive = d["IsActive"]?.ToString() ?? "",
-                                  CreatedBy = d["CreatedBy"]?.ToString() ?? "",
-                                  CreatedDate = d["CreatedDate"]?.ToString() ?? "",
-                                  UpdatedBy = d["UpdatedBy"]?.ToString() ?? "",
-                                  UpdatedDate = d["UpdatedDate"]?.ToString() ?? "",
-                                  Floor = d["Floor"]?.ToString() ?? "",
-                                  Section = d["Section"]?.ToString() ?? ""
+                              select d.Table.Columns.Cast<DataColumn>()
+                                  //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
+                                  .ToDictionary(
+                                      col => col.ColumnName,
+                                      col =>
+                                      {
+                                          var value = d[col.ColumnName];
+                                          if (value == DBNull.Value) return null;
 
+                                          // CreatedDate: KHÔNG ToString
+                                          if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate")
+                                              return value;
 
-                              }).ToList();
+                                          // Các field khác: ToString
+                                          return value.ToString();
+                                      }
+                                  )).ToList();
                 return Json(result);
             }
             catch (Exception ex)
@@ -101,7 +93,7 @@ namespace Administration.Controllers
                 if (arr.Count > 0)
                 {
                     return Json(new { success = false, message = "Attendant is being referenced to in other modules.\nDelete failed.!" });
-                 
+
                 }
                 hkpAttendantBO.Instance.Delete(id);
 
@@ -114,7 +106,7 @@ namespace Administration.Controllers
         }
 
         [HttpPost]
-        public IActionResult AttendantsSave(int id, string name, string mobileNo, string jobCode,int floorID,int sectionID, int isActive, int sunday, int monday, int tuesday, int wednesday, int thursday, int friday, int saturday,string user)
+        public IActionResult AttendantsSave(int id, string name, string mobileNo, string jobCode, int floorID, int sectionID, int isActive, int sunday, int monday, int tuesday, int wednesday, int thursday, int friday, int saturday, string user)
         {
             user = user?.Replace("\"", "").Trim();
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
@@ -165,10 +157,10 @@ namespace Administration.Controllers
         {
             List<hkpFacilityCategoryModel> facilityCategory = PropertyUtils.ConvertToList<hkpFacilityCategoryModel>(FacilityCategoryBO.Instance.FindAll());
             ViewBag.FacilityCategory = facilityCategory;
-            return View("~/Views/Administration/HouseKeepingAdmin/FacilityCode.cshtml");
+            return PartialView("~/Views/Administration/HouseKeepingAdmin/FacilityCode.cshtml");
         }
         [HttpGet]
-        public IActionResult FacilityCodeData(string code,int isActive)
+        public IActionResult FacilityCodeData(string code, int isActive)
         {
             code = code ?? "";
             try
@@ -289,7 +281,7 @@ namespace Administration.Controllers
             try
             {
                 ArrayList arr = hkpTaskSheetFacilityBO.Instance.FindByAttribute("FacilityCodeID", id);
-           
+
                 if (arr.Count > 0)
                 {
                     return Json(new { success = false, message = "FacilityCode exist in TaskSheetFacility. You can not delete!" });
@@ -336,7 +328,7 @@ namespace Administration.Controllers
         }
         public IActionResult FacilityCategory()
         {
-            return View("~/Views/Administration/HouseKeepingAdmin/FacilityCategory.cshtml");
+            return PartialView("~/Views/Administration/HouseKeepingAdmin/FacilityCategory.cshtml");
         }
         [HttpPost]
         public IActionResult FacilityCategorySave([FromBody] hkpFacilityCategoryModel model)
@@ -426,7 +418,7 @@ namespace Administration.Controllers
             List<hkpSectionModel> hkpSection = PropertyUtils.ConvertToList<hkpSectionModel>(hkpSectionBO.Instance.FindAll());
             ViewBag.hkpSection = hkpSection;
 
-            return View("~/Views/Administration/HouseKeepingAdmin/Section.cshtml");
+            return PartialView("~/Views/Administration/HouseKeepingAdmin/Section.cshtml");
         }
         [HttpGet]
         public IActionResult SectionData(string code, string description, int isActive)
@@ -438,19 +430,23 @@ namespace Administration.Controllers
                 DataTable dataTable = _iHouseKeepingAdminService.SectionData(code, description, isActive);
 
                 var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  ID = d["ID"]?.ToString() ?? "",
-                                  Code = d["Code"]?.ToString() ?? "",
-                                  Description = d["Description"]?.ToString() ?? "",
-                                  InactiveText = d["InactiveText"]?.ToString() ?? "",
-                                  CreatedBy = d["CreatedBy"]?.ToString() ?? "",
-                                  CreatedDate = d["CreatedDate"] == DBNull.Value ? null : Convert.ToDateTime(d["CreatedDate"]).ToString("yyyy-MM-dd HH:mm:ss"),
-                                  UpdatedBy = d["UpdatedBy"]?.ToString() ?? "",
-                                  UpdatedDate = d["UpdatedDate"] == DBNull.Value ? null : Convert.ToDateTime(d["UpdatedDate"]).ToString("yyyy-MM-dd HH:mm:ss"),
-                                  Inactive = d["Inactive"]?.ToString() ?? ""
+                              select d.Table.Columns.Cast<DataColumn>()
+                                  //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
+                                  .ToDictionary(
+                                      col => col.ColumnName,
+                                      col =>
+                                      {
+                                          var value = d[col.ColumnName];
+                                          if (value == DBNull.Value) return null;
 
-                              }).ToList();
+                                          // CreatedDate: KHÔNG ToString
+                                          if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate" || col.ColumnName == "Inactive")
+                                              return value;
+
+                                          // Các field khác: ToString
+                                          return value.ToString();
+                                      }
+                                  )).ToList();
                 return Json(result);
             }
             catch (Exception ex)
@@ -550,31 +546,35 @@ namespace Administration.Controllers
             List<hkpEmployeeModel> hkpEmployee = PropertyUtils.ConvertToList<hkpEmployeeModel>(hkpEmployeeBO.Instance.FindAll());
             ViewBag.hkpEmployee = hkpEmployee;
 
-            return View("~/Views/Administration/HouseKeepingAdmin/HouseKeepingEmployee.cshtml");
+            return PartialView("~/Views/Administration/HouseKeepingAdmin/HouseKeepingEmployee.cshtml");
         }
         [HttpGet]
-        public IActionResult HouseKeepingEmployeeData( string description, int isActive)
+        public IActionResult HouseKeepingEmployeeData(string description, int isActive)
         {
-      
+
             description = description ?? "";
             try
             {
                 DataTable dataTable = _iHouseKeepingAdminService.HouseKeepingEmployeeData(description, isActive);
 
                 var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  ID = d["ID"]?.ToString() ?? "",
-                                  Name = d["Name"]?.ToString() ?? "",
-                 
-                                  InactiveText = d["InactiveText"]?.ToString() ?? "",
-                                  CreatedBy = d["CreatedBy"]?.ToString() ?? "",
-                                  CreatedDate = d["CreatedDate"] == DBNull.Value ? null : Convert.ToDateTime(d["CreatedDate"]).ToString("yyyy-MM-dd HH:mm:ss"),
-                                  UpdatedBy = d["UpdatedBy"]?.ToString() ?? "",
-                                  UpdatedDate = d["UpdatedDate"] == DBNull.Value ? null : Convert.ToDateTime(d["UpdatedDate"]).ToString("yyyy-MM-dd HH:mm:ss"),
-                                  Inactive = d["Inactive"]?.ToString() ?? ""
+                              select d.Table.Columns.Cast<DataColumn>()
+                                  //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
+                                  .ToDictionary(
+                                      col => col.ColumnName,
+                                      col =>
+                                      {
+                                          var value = d[col.ColumnName];
+                                          if (value == DBNull.Value) return null;
 
-                              }).ToList();
+                                          // CreatedDate: KHÔNG ToString
+                                          if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate" || col.ColumnName == "Inactive")
+                                              return value;
+
+                                          // Các field khác: ToString
+                                          return value.ToString();
+                                      }
+                                  )).ToList();
                 return Json(result);
             }
             catch (Exception ex)
@@ -672,30 +672,34 @@ namespace Administration.Controllers
         public IActionResult LostAndFoundZone()
         {
 
-            return View("~/Views/Administration/HouseKeepingAdmin/LostAndFoundZone.cshtml");
+            return PartialView("~/Views/Administration/HouseKeepingAdmin/LostAndFoundZone.cshtml");
         }
         [HttpGet]
         public IActionResult LostAndFoundZoneData()
         {
-           
+
             try
             {
                 DataTable dataTable = TextUtils.Select("select a.ID,a.Code,a.Name,a.Inactive,a.CreatedBy,a.CreatedDate,a.UpdatedBy,a.UpdateDate from lafZone a");
 
                 var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  ID = d["ID"]?.ToString() ?? "",
-                                  Code = d["Code"]?.ToString() ?? "",
-                                  Name = d["Name"]?.ToString() ?? "",
-         
-                                  CreatedBy = d["CreatedBy"]?.ToString() ?? "",
-                                  CreatedDate = d["CreatedDate"] == DBNull.Value ? null : Convert.ToDateTime(d["CreatedDate"]).ToString("yyyy-MM-dd HH:mm:ss"),
-                                  UpdatedBy = d["UpdatedBy"]?.ToString() ?? "",
-                                  UpdateDate = d["UpdateDate"] == DBNull.Value ? null : Convert.ToDateTime(d["UpdateDate"]).ToString("yyyy-MM-dd HH:mm:ss"),
-                                  Inactive = d["Inactive"]?.ToString() ?? ""
+                              select d.Table.Columns.Cast<DataColumn>()
+                                  //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
+                                  .ToDictionary(
+                                      col => col.ColumnName,
+                                      col =>
+                                      {
+                                          var value = d[col.ColumnName];
+                                          if (value == DBNull.Value) return null;
 
-                              }).ToList();
+                                          // CreatedDate: KHÔNG ToString
+                                          if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdateDate" || col.ColumnName == "Inactive")
+                                              return value;
+
+                                          // Các field khác: ToString
+                                          return value.ToString();
+                                      }
+                                  )).ToList();
                 return Json(result);
             }
             catch (Exception ex)
@@ -791,7 +795,7 @@ namespace Administration.Controllers
         public IActionResult LostAndFoundStatus()
         {
 
-            return View("~/Views/Administration/HouseKeepingAdmin/LostAndFoundStatus.cshtml");
+            return PartialView("~/Views/Administration/HouseKeepingAdmin/LostAndFoundStatus.cshtml");
         }
         [HttpGet]
         public IActionResult LostAndFoundStatusData()
@@ -802,20 +806,23 @@ namespace Administration.Controllers
                 DataTable dataTable = TextUtils.Select("select * from lafStatus");
 
                 var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  ID = d["ID"]?.ToString() ?? "",
-                                  Code = d["Code"]?.ToString() ?? "",
-                                  Name = d["Name"]?.ToString() ?? "",
+                              select d.Table.Columns.Cast<DataColumn>()
+                                  //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
+                                  .ToDictionary(
+                                      col => col.ColumnName,
+                                      col =>
+                                      {
+                                          var value = d[col.ColumnName];
+                                          if (value == DBNull.Value) return null;
 
-                                  CreatedBy = d["CreatedBy"]?.ToString() ?? "",
-                                  CreatedDate = d["CreatedDate"] == DBNull.Value ? null : Convert.ToDateTime(d["CreatedDate"]).ToString("yyyy-MM-dd HH:mm:ss"),
-                                  UpdatedBy = d["UpdatedBy"]?.ToString() ?? "",
-                                  UpdateDate = d["UpdateDate"] == DBNull.Value ? null : Convert.ToDateTime(d["UpdateDate"]).ToString("yyyy-MM-dd HH:mm:ss"),
-                                  Inactive = d["Inactive"]?.ToString() ?? "",
-                                  IsDefault = d["IsDefault"]?.ToString() ?? ""
+                                          // CreatedDate: KHÔNG ToString
+                                          if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdateDate" || col.ColumnName == "Inactive")
+                                              return value;
 
-                              }).ToList();
+                                          // Các field khác: ToString
+                                          return value.ToString();
+                                      }
+                                  )).ToList(); ;
                 return Json(result);
             }
             catch (Exception ex)
@@ -913,7 +920,7 @@ namespace Administration.Controllers
         public IActionResult LostAndFoundQuality()
         {
 
-            return View("~/Views/Administration/HouseKeepingAdmin/LostAndFoundQuality.cshtml");
+            return PartialView("~/Views/Administration/HouseKeepingAdmin/LostAndFoundQuality.cshtml");
         }
         [HttpGet]
         public IActionResult LostAndFoundQualityData()
@@ -924,19 +931,23 @@ namespace Administration.Controllers
                 DataTable dataTable = TextUtils.Select("select a.ID,a.Code,a.Name,a.Inactive ,a.CreatedBy,a.CreatedDate,a.UpdatedBy,a.UpdateDate from lafQualityType a");
 
                 var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  ID = d["ID"]?.ToString() ?? "",
-                                  Code = d["Code"]?.ToString() ?? "",
-                                  Name = d["Name"]?.ToString() ?? "",
+                              select d.Table.Columns.Cast<DataColumn>()
+                                  //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
+                                  .ToDictionary(
+                                      col => col.ColumnName,
+                                      col =>
+                                      {
+                                          var value = d[col.ColumnName];
+                                          if (value == DBNull.Value) return null;
 
-                                  CreatedBy = d["CreatedBy"]?.ToString() ?? "",
-                                  CreatedDate = d["CreatedDate"] == DBNull.Value ? null : Convert.ToDateTime(d["CreatedDate"]).ToString("yyyy-MM-dd HH:mm:ss"),
-                                  UpdatedBy = d["UpdatedBy"]?.ToString() ?? "",
-                                  UpdateDate = d["UpdateDate"] == DBNull.Value ? null : Convert.ToDateTime(d["UpdateDate"]).ToString("yyyy-MM-dd HH:mm:ss"),
-                                  Inactive = d["Inactive"]?.ToString() ?? ""
+                                          // CreatedDate: KHÔNG ToString
+                                          if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdateDate" || col.ColumnName == "Inactive")
+                                              return value;
 
-                              }).ToList();
+                                          // Các field khác: ToString
+                                          return value.ToString();
+                                      }
+                                  )).ToList();
                 return Json(result);
             }
             catch (Exception ex)
@@ -945,7 +956,7 @@ namespace Administration.Controllers
             }
         }
         [HttpPost]
-        public IActionResult LostAndFoundQualitySave(int id, string codenew, string descriptionnew, int isActive,  string user)
+        public IActionResult LostAndFoundQualitySave(int id, string codenew, string descriptionnew, int isActive, string user)
         {
             var pt = new ProcessTransactions();
             try
@@ -968,7 +979,7 @@ namespace Administration.Controllers
                         Code = codenew?.Trim(),
                         Name = descriptionnew?.Trim(),
                         Inactive = (isActive == 1),
-                  
+
                         CreatedBy = user,
                         CreatedDate = businessDate,
                         UpdatedBy = user,
