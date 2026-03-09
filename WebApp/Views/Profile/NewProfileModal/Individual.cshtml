@@ -639,47 +639,42 @@
             .trim()
             .replace(/^"(.*)"$/, '$1');
             const loginUser = parseInt(localStorage.getItem("userID")) || 0;
+            const defaultDate = "1900-01-01";
 
             const data = {
                 // --- Định danh ---
                 ID: parseInt($("#ind_id").val()) || 0,
-                Type: 0, // Individual
+                Type: 0,
 
                 Code: $("#ind_txtCode").val()?.trim(),
-                Account: $("#ind_txtFullName").val()?.trim(), // Full Name bắt buộc
-                Firstname: $("#ind_txtFirstName").val()?.trim(), // Bắt buộc
-                LastName: $("#ind_txtLastName").val()?.trim(),   // Bắt buộc
+                Account: $("#ind_txtFullName").val()?.trim(),
+                Firstname: $("#ind_txtFirstName").val()?.trim(),
+                LastName: $("#ind_txtLastName").val()?.trim(),
                 MiddleName: $("#ind_txtMiddleName").val()?.trim(),
 
-                LanguageID: parseInt(getTS("#ind_txtLanguage")),
-                TitleID: parseInt(getTS("#ind_txtTitle")),
-                NationalityID: parseInt(getTS("#ind_txtNationality")), // Bắt buộc
-                City: getTS("#ind_txtCity"),
-                CountryID: parseInt(getTS("#ind_txtCountry")),
+                LanguageID: parseInt(getTS("#ind_txtLanguage")) || 0,
+                TitleID: parseInt(getTS("#ind_txtTitle")) || 0,
+                NationalityID: parseInt(getTS("#ind_txtNationality")) || 0,
+                City: getTS("#ind_txtCity") || "",
+                CountryID: parseInt(getTS("#ind_txtCountry")) || 0,
                 PostalCode: $("#ind_txtPostal").val()?.trim(),
-                StateID: parseInt(getTS("#ind_txtState")),
+                StateID: parseInt(getTS("#ind_txtState")) || 0,
                 Religion: $("#ind_txtReligion").val()?.trim(),
                 Nation: $("#ind_txtNation").val()?.trim(),
                 PurposeOfStay: $("#ind_txtPOS").val()?.trim(),
                 Address: $("#ind_txtAddress").val()?.trim(),
 
                 Salutation: $("#ind_txtSalutation").val()?.trim(),
-                VIPID: parseInt(getTS("#ind_txtVIP")),
+                VIPID: parseInt(getTS("#ind_txtVIP")) || 0,
                 VIPReason: $("#ind_txtVipReason").val()?.trim(),
                 PrefRoom: $("#ind_txtPrefRoom").val()?.trim(),
                 Other: $("#ind_txtOther").val()?.trim(),
                 PassPort: $("#ind_txtPassport").val()?.trim(),
                 IdentityCard: $("#ind_txtIdentityCard").val()?.trim(),
 
-                DateOfBirth: (function () {
-                    const isActive = $("#ind_chkActiveDob").is(":checked");
-                    const rawDate = $("input[name='ind_txtDob']").val();
-
-                    if (!isActive || !rawDate) return null;
-
-                    return moment(rawDate, ["YYYY-MM-DD", "DD/MM/YYYY"]).format("YYYY-MM-DD");
-
-                })(),
+                DateOfBirth: $("#ind_chkActiveDob").is(":checked")
+                ? $("input[name='ind_txtDob']").val()
+                : defaultDate,
 
                 Active: $("#ind_chkActive").is(":checked"),
                 Contact: $("#ind_chkContact").is(":checked"),
@@ -692,10 +687,10 @@
                 ARNo: $("#ind_txtARNo").val()?.trim(),
                 MemberNo: $("#ind_txtMemberNo").val()?.trim(),
 
-                // --- Tax & Communications (Cột 3) ---
+                // --- Tax & Communications ---
                 Company: $("#ind_txtTaxCompany").val()?.trim(),
                 TaxCode: $("#ind_txtTaxCode").val()?.trim(),
-                HomeAddress: $("#ind_txtTaxBusAddress").val()?.trim(), // Map vào HomeAddress trong Model
+                HomeAddress: $("#ind_txtTaxBusAddress").val()?.trim(),
 
                 Telephone: $("#ind_txtTelephone").val()?.trim(),
                 HandPhone: $("#ind_txtHandPhone").val()?.trim(),
@@ -704,9 +699,18 @@
                 Website: $("#ind_txtWebsite").val()?.trim(),
                 BusinessTitle: $("#ind_txtBusinessTitle").val()?.trim(),
 
-                // --- History (Chỉ đọc hoặc nạp nếu cần) ---
+                // --- History ---
                 LastRoom: $("#ind_txtLastRoom").val(),
                 StayNo: parseInt($("#ind_txtStayCount").val()) || 0,
+
+                Lastvisit: defaultDate,
+                FirstReservation: defaultDate,
+                LastReservation: defaultDate,
+                WeddingAnniversary: defaultDate,
+                Firstvisit: defaultDate,
+                Expiry: defaultDate,
+                LastContact: defaultDate,
+                SpecialUpdateDate: defaultDate,
 
                 UserInsertID: loginUser,
                 UserUpdateID: loginUser
@@ -750,7 +754,7 @@
         saveProfile: function () {
             const self = this;
             const data = self.getFormData();
-
+            console.log(JSON.stringify(data, null, 2));
             LoadingGlobal.show();
 
             $.ajax({

@@ -1703,9 +1703,13 @@ WHERE DAY(DateOfBirth)   = DAY('{businessDate:yyyy-MM-dd}')
         {
             try
             {
-                NormalizeDates(model);
 
                 var checks = new List<ValidationError?>();
+                if (model == null)
+                {
+                    return Json(new { success = false, message = "Invalid data (model null)" });
+                }
+
                 switch (model.Type)
                 {
                     case 0: // Individual 
@@ -1770,17 +1774,6 @@ WHERE DAY(DateOfBirth)   = DAY('{businessDate:yyyy-MM-dd}')
                 return Json(new { success = false, message = "Error: " + ex.Message });
             }
 
-        }
-
-        private void NormalizeDates(ProfileModel model)
-        {
-            if (model.Expiry == DateTime.MinValue) model.Expiry = null;
-            if (model.Lastvisit == DateTime.MinValue) model.Lastvisit = null;
-            if (model.FirstReservation == DateTime.MinValue) model.FirstReservation = null;
-            if (model.LastReservation == DateTime.MinValue) model.LastReservation = null;
-            if (model.WeddingAnniversary == DateTime.MinValue) model.WeddingAnniversary = null;
-            if (model.Firstvisit == DateTime.MinValue) model.Firstvisit = null;
-            if (model.LastContact == DateTime.MinValue) model.LastContact = null;
         }
 
         #endregion
