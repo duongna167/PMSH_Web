@@ -4,6 +4,7 @@ using BaseBusiness.Model;
 using BaseBusiness.util;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -386,8 +387,62 @@ namespace Administration.Controllers
 
         public IActionResult Currency()
         {
-            return View();
+            return PartialView();
         }
+
+        [HttpGet]
+        public IActionResult SearchCurrency(string code, int isActive)
+        {
+            try
+            {
+                SqlParameter[] param =
+                [
+                    new SqlParameter("@sqlCommand",
+                    $@"  select   a.ID,
+                            a.Description,
+                            a.MasterStatus,
+                            a.UserInsertID,
+                            a.CreateDate,
+                            a.UpdateDate,
+                            a.UserUpdateID,
+                            a.TransactionCode,
+                            a.IsShow,
+                            a.Inactive,
+                            a.Decimals,
+                            a.IsSynchronous,
+                            (case MasterStatus when 0 then '' when 1 then 'X' end)as [IsMaster],
+                    (case Inactive when 0 then '' when 1 then 'X' end)as [Inactive], (b.Code+' - '+b.Description)
+                    as [Trans],a.Description from Currency a left join Transactions b on a.TransactionCode=b.Code
+                    where 1=1 and a.ID like N'%{code}%' and a.Inactive = {isActive} and a.IsShow = 0 order by a.ID desc")
+                        ];
+                DataTable dataTable = DataTableHelper.getTableData("spSearchAllForTrans", param);
+
+                var result = (from d in dataTable.AsEnumerable()
+                              select d.Table.Columns.Cast<DataColumn>()
+                                  //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
+                                  .ToDictionary(
+                                      col => col.ColumnName,
+                                      col =>
+                                      {
+                                          var value = d[col.ColumnName];
+                                          if (value == DBNull.Value) return null;
+
+                                          // CreatedDate: KHÔNG ToString
+                                          if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate" || col.ColumnName == "IsShow" || col.ColumnName == "Inactive")
+                                              return value;
+
+                                          // Các field khác: ToString
+                                          return value.ToString();
+                                      }
+                                  )).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpPost]
         public ActionResult InsertCurrency()
         {
@@ -1759,7 +1814,7 @@ namespace Administration.Controllers
         {
             List<CountryModel> listctry = PropertyUtils.ConvertToList<CountryModel>(CountryBO.Instance.FindAll());
             ViewBag.CountryList = listctry;
-            return View("ItemCategory/City");
+            return PartialView("ItemCategory/City");
         }
         [HttpPost]
         public IActionResult CitySave([FromBody] CityModel model)
@@ -1768,9 +1823,9 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank."),
-                Check(model?.CountryID, "countryID", "Please select a country. ")
+                Check(model?.Code, "city_code", "Code is not blank."),
+                Check(model?.Name, "city_name", "Name is not blank."),
+                Check(model?.CountryID, "city_countryID", "Please select a country. ")
             );
 
             if (listErrors.Count > 0)
@@ -1782,10 +1837,10 @@ namespace Administration.Controllers
 
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     CityBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -1802,8 +1857,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     CityBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -1864,7 +1919,7 @@ namespace Administration.Controllers
         }
         public IActionResult Country()
         {
-            return View("ItemCategory/Country");
+            return PartialView("ItemCategory/Country");
         }
         [HttpPost]
         public IActionResult CountrySave([FromBody] CountryModel model)
@@ -1873,8 +1928,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "couT_code", "Code is not blank."),
+                Check(model?.Name, "couT_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -1885,10 +1940,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     CountryBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -1905,8 +1960,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     CountryBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -1967,7 +2022,7 @@ namespace Administration.Controllers
         }
         public IActionResult Language()
         {
-            return View("ItemCategory/Language");
+            return PartialView("ItemCategory/Language");
         }
         [HttpPost]
         public IActionResult LanguageSave([FromBody] LanguageModel model)
@@ -1976,8 +2031,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "lanG_code", "Code is not blank."),
+                Check(model?.Name, "lanG_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -1988,10 +2043,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     LanguageBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2008,8 +2063,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     LanguageBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2072,7 +2127,7 @@ namespace Administration.Controllers
         }
         public IActionResult Nationality()
         {
-            return View("ItemCategory/Nationality");
+            return PartialView("ItemCategory/Nationality");
         }
         [HttpPost]
         public IActionResult NationalitySave([FromBody] NationalityModel model)
@@ -2081,8 +2136,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "ntl_code", "Code is not blank."),
+                Check(model?.Name, "ntl_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -2093,10 +2148,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     NationalityBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2113,8 +2168,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     NationalityBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2175,7 +2230,7 @@ namespace Administration.Controllers
         }
         public IActionResult Title()
         {
-            return View("ItemCategory/Title");
+            return PartialView("ItemCategory/Title");
         }
         [HttpPost]
         public IActionResult TitleSave([FromBody] TitleModel model)
@@ -2184,8 +2239,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "titL_code", "Code is not blank."),
+                Check(model?.Name, "titL_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -2196,10 +2251,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     TitleBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2216,8 +2271,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     TitleBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2278,7 +2333,7 @@ namespace Administration.Controllers
         }
         public IActionResult Territory()
         {
-            return View("ItemCategory/Territory");
+            return PartialView("ItemCategory/Territory");
         }
         [HttpPost]
         public IActionResult TerritorySave([FromBody] TerritoryModel model)
@@ -2287,8 +2342,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "terr_code", "Code is not blank."),
+                Check(model?.Name, "terr_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -2299,10 +2354,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     TerritoryBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2319,8 +2374,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     TerritoryBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2383,7 +2438,7 @@ namespace Administration.Controllers
         {
             //List<CountryModel> listctry = PropertyUtils.ConvertToList<CountryModel>(CountryBO.Instance.FindAll());
             //ViewBag.CountryList = listctry;
-            return View("ItemCategory/State");
+            return PartialView("ItemCategory/State");
         }
         [HttpPost]
         public IActionResult StateSave([FromBody] StateModel model)
@@ -2392,8 +2447,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.ZipCode, "code", "Code is not blank."),
-                Check(model?.StateName, "name", "Name is not blank.")
+                Check(model?.ZipCode, "stt_zipCode", "Code is not blank."),
+                Check(model?.StateName, "stt_stateName", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -2405,10 +2460,10 @@ namespace Administration.Controllers
 
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     StateBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2425,8 +2480,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     StateBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2487,7 +2542,7 @@ namespace Administration.Controllers
         }
         public IActionResult VIP()
         {
-            return View("ItemCategory/VIP");
+            return PartialView("ItemCategory/VIP");
         }
         [HttpPost]
         public IActionResult VIPSave([FromBody] VIPModel model)
@@ -2496,8 +2551,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "vip_code", "Code is not blank."),
+                Check(model?.Name, "vip_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -2508,10 +2563,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     VIPBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2528,8 +2583,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     VIPBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2604,7 +2659,7 @@ namespace Administration.Controllers
         {
             List<MarketTypeModel> listmktype = PropertyUtils.ConvertToList<MarketTypeModel>(MarketTypeBO.Instance.FindAll());
             ViewBag.MarketTypeList = listmktype;
-            return View("ItemCategory/Market");
+            return PartialView("ItemCategory/Market");
         }
         [HttpPost]
         public IActionResult MarketSave([FromBody] MarketModel model)
@@ -2613,9 +2668,9 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank."),
-                Check(model?.MarketTypeID, "marketTypeID", "Please choose market type.")
+                Check(model?.Code, "marK_code", "Code is not blank."),
+                Check(model?.Name, "marK_name", "Name is not blank."),
+                Check(model?.MarketTypeID, "marK_marketTypeID", "Please choose market type.")
             );
 
             if (listErrors.Count > 0)
@@ -2626,10 +2681,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     MarketBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2646,8 +2701,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     MarketBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2708,7 +2763,7 @@ namespace Administration.Controllers
         }
         public IActionResult MarketType()
         {
-            return View("ItemCategory/MarketType");
+            return PartialView("ItemCategory/MarketType");
         }
         [HttpPost]
         public IActionResult MarketTypeSave([FromBody] MarketTypeModel model)
@@ -2717,8 +2772,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "marketType_code", "Code is not blank."),
+                Check(model?.Name, "marketType_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -2729,10 +2784,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     MarketTypeBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2749,8 +2804,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     MarketTypeBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2812,7 +2867,7 @@ namespace Administration.Controllers
 
         public IActionResult PickupDropPlace()
         {
-            return View("ItemCategory/PickupDropPlace");
+            return PartialView("ItemCategory/PickupDropPlace");
         }
         [HttpPost]
         public IActionResult PickupDropPlaceSave([FromBody] PickupDropPlaceModel model)
@@ -2821,8 +2876,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "pickupDropPlace_code", "Code is not blank."),
+                Check(model?.Name, "pickupDropPlace_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -2833,10 +2888,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     PickupDropPlaceBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2853,8 +2908,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     PickupDropPlaceBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2915,7 +2970,7 @@ namespace Administration.Controllers
         }
         public IActionResult TransportType()
         {
-            return View("ItemCategory/TransportType");
+            return PartialView("ItemCategory/TransportType");
         }
         [HttpPost]
         public IActionResult TransportTypeSave([FromBody] TransportTypeModel model)
@@ -2924,8 +2979,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "transT_code", "Code is not blank."),
+                Check(model?.Name, "transT_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -2936,10 +2991,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     TransportTypeBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2956,8 +3011,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     TransportTypeBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3018,7 +3073,7 @@ namespace Administration.Controllers
         }
         public IActionResult ReservationType()
         {
-            return View("ItemCategory/ReservationType");
+            return PartialView("ItemCategory/ReservationType");
         }
         [HttpPost]
         public IActionResult ReservationTypeSave([FromBody] ReservationTypeModel model)
@@ -3028,9 +3083,9 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Description is not blank."),
-                Check(model?.Sequence < 0, "seq", "Sequence cannot be negative.")
+                Check(model?.Code, "resT_code", "Code is not blank."),
+                Check(model?.Name, "resT_name", "Description is not blank."),
+                Check(model?.Sequence < 0, "resT_seq", "Sequence cannot be negative.")
             );
 
             if (listErrors.Count > 0)
@@ -3041,8 +3096,8 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.UpdateDate = businessDate;
 
                     ReservationTypeBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3057,7 +3112,7 @@ namespace Administration.Controllers
                         model.CreateDate = oldData.CreateDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
 
                     ReservationTypeBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3118,7 +3173,7 @@ namespace Administration.Controllers
         }
         public IActionResult Reason()
         {
-            return View("ItemCategory/Reason");
+            return PartialView("ItemCategory/Reason");
         }
         [HttpPost]
         public IActionResult ReasonSave([FromBody] ReasonModel model)
@@ -3127,8 +3182,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "reaS_code", "Code is not blank."),
+                Check(model?.Name, "reaS_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -3139,10 +3194,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     ReasonBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3159,8 +3214,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     ReasonBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3221,7 +3276,7 @@ namespace Administration.Controllers
         }
         public IActionResult Origin()
         {
-            return View("ItemCategory/Origin");
+            return PartialView("ItemCategory/Origin");
         }
         [HttpPost]
         public IActionResult OriginSave([FromBody] OriginModel model)
@@ -3230,8 +3285,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "orig_code", "Code is not blank."),
+                Check(model?.Name, "orig_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -3242,10 +3297,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     OriginBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3262,8 +3317,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     OriginBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3325,7 +3380,7 @@ namespace Administration.Controllers
 
         public IActionResult Source()
         {
-            return View("ItemCategory/Source");
+            return PartialView("ItemCategory/Source");
         }
 
         [HttpPost]
@@ -3335,8 +3390,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "sour_code", "Code is not blank."),
+                Check(model?.Name, "sour_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -3348,10 +3403,10 @@ namespace Administration.Controllers
 
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     SourceBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3368,8 +3423,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     SourceBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3430,7 +3485,7 @@ namespace Administration.Controllers
         }
         public IActionResult AlertsSetup()
         {
-            return View("ItemCategory/AlertsSetup");
+            return PartialView("ItemCategory/AlertsSetup");
         }
         [HttpPost]
         public IActionResult AlertsSetupSave([FromBody] AlertsSetupModel model)
@@ -3452,10 +3507,10 @@ namespace Administration.Controllers
 
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     AlertsSetupBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3472,8 +3527,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     AlertsSetupBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3558,10 +3613,10 @@ namespace Administration.Controllers
 
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     CommentBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3578,8 +3633,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     CommentBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3662,10 +3717,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     CommentTypeBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3682,8 +3737,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     CommentTypeBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3765,10 +3820,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     SeasonBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3785,8 +3840,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     SeasonBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3869,10 +3924,10 @@ namespace Administration.Controllers
 
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     ZoneBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3889,8 +3944,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     ZoneBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3972,10 +4027,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     DepartmentBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3992,8 +4047,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     DepartmentBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -4080,8 +4135,8 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.UpdateDate = businessDate;
                     OccupancyBO.Instance.Insert(model);
                     message = "Insert successfully.";
                 }
@@ -4093,7 +4148,7 @@ namespace Administration.Controllers
                         model.CreateBy = oldData.CreateBy;
                         model.CreateDate = oldData.CreateDate;
                     }
-                    model.UpdateDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
                     OccupancyBO.Instance.Update(model);
                     message = "Update successfully.";
                 }
@@ -4793,7 +4848,7 @@ namespace Administration.Controllers
         }
         public IActionResult PackageForecastGroup()
         {
-            return View("ItemCategory/PackageForecastGroup");
+            return PartialView("ItemCategory/PackageForecastGroup");
         }
         [HttpPost]
         public IActionResult PackageForecastGroupSave([FromBody] PackageForecastGroupModel model)
@@ -4802,8 +4857,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Description is not blank.")
+                Check(model?.Code, "pfg_code", "Code is not blank."),
+                Check(model?.Name, "pfg_name", "Description is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -4814,10 +4869,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     PackageForecastGroupBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -4834,8 +4889,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     PackageForecastGroupBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -4896,7 +4951,7 @@ namespace Administration.Controllers
         }
         public IActionResult PreferenceGroup()
         {
-            return View("ItemCategory/PreferenceGroup");
+            return PartialView("ItemCategory/PreferenceGroup");
         }
         [HttpPost]
         public IActionResult PreferenceGroupSave([FromBody] PreferenceGroupModel model)
@@ -4905,8 +4960,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Description is not blank.")
+                Check(model?.Code, "preG_code", "Code is not blank."),
+                Check(model?.Name, "preG_name", "Description is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -4917,10 +4972,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     PreferenceGroupBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -4937,8 +4992,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     PreferenceGroupBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -5382,7 +5437,7 @@ namespace Administration.Controllers
         }
         public IActionResult Priority()
         {
-            return View("ItemCategory/Priority");
+            return PartialView("ItemCategory/Priority");
         }
         [HttpPost]
         public IActionResult PrioritySave([FromBody] PriorityModel model)
@@ -5391,8 +5446,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "proT_code", "Code is not blank."),
+                Check(model?.Name, "proT_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -5403,10 +5458,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     PriorityBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -5423,8 +5478,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     PriorityBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -5485,7 +5540,7 @@ namespace Administration.Controllers
         }
         public IActionResult Promotion()
         {
-            return View("ItemCategory/Promotion");
+            return PartialView("ItemCategory/Promotion");
         }
         [HttpPost]
         public IActionResult PromotionSave([FromBody] PromotionModel model)
@@ -5494,8 +5549,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "prom_code", "Code is not blank."),
+                Check(model?.Name, "prom_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -5506,10 +5561,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = DateTime.Now;
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreateDate = businessDate;
+                    model.CreatedDate = businessDate;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     PromotionBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -5526,8 +5581,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
+                    model.UpdatedDate = businessDate;
 
                     PromotionBO.Instance.Update(model);
                     message = "Update successfully!";
