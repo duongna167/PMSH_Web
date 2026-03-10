@@ -1542,8 +1542,8 @@ namespace Profile.Controllers
         #endregion
 
         #region Tuan_ProfileSreach
-        [HttpGet("ProfileIndividualSreach")]
-        public async Task<IActionResult> ProfileIndividualSreach(string LastName, string FirstName)
+        [HttpGet]
+        public async Task<IActionResult> ProfileIndividualSearch(string LastName, string FirstName)
         {
             try
             {
@@ -1726,36 +1726,47 @@ namespace Profile.Controllers
 
                 bool isDuplicate = ProfileBO.Instance
                    .IsDuplicateCode(model.Code, model.ID);
-                checks.Add(CheckDuplicate(isDuplicate, "ind_txtCode", $"This code already exists: [{model.Code}]"));
 
                 switch (model.Type)
                 {
                     case 0: // Individual 
-                        bool isInvalidIndividual = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{9}|\d{12})$");
-                        checks.Add(Check(isInvalidIndividual, "ind_txtCode", "Invalid code (9 or 12 digits)"));
+                        //bool isInvalidIndividual = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{9}|\d{12})$");
+                        bool isInvalidIndividual = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{13})$");
+                        checks.Add(Check(isInvalidIndividual, "ind_txtCode", "Invalid code (minimum 13 characters)"));
                         checks.Add(Check(model.Account, "ind_txtFullName", "Full name not blank"));
                         checks.Add(Check(model.Firstname, "ind_txtFirstName", "First name not blank"));
                         checks.Add(Check(model.LastName, "ind_txtLastName", "Last name not blank"));
                         checks.Add(Check(model.NationalityID, "ind_txtNationality", "Nationality not blank"));
+
+                        checks.Add(CheckDuplicate(isDuplicate, "ind_txtCode", $"This code already exists: [{model.Code}]"));
                         break;
 
                     case 1: // Travel Agent 
                     case 2: // Company  
-                    case 3: // Source
-                        bool isInvalidTax = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{10}|\d{13})$");
-                        checks.Add(Check(isInvalidTax, "com_txtCode", "Invalid code (10 or 13 digits)"));
+                    case 3: // SourceDeleteProfile
+                        //bool isInvalidTax = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{10}|\d{13})$");
+                        bool isInvalidTax = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{13})$");
+                        checks.Add(Check(isInvalidTax, "com_txtCode", "Invalid code (minimum 13 characters)"));
                         checks.Add(Check(model.Account, "com_txtAccount", "Account not blank"));
+                        checks.Add(CheckDuplicate(isDuplicate, "com_txtCode", $"This code already exists: [{model.Code}]"));
+
                         break;
                     case 4: // Group
+                        //bool isInvalidGroupCode = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{9}|\d{12})$");
+                        bool isInvalidGroupCode = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{13})$");
+                        checks.Add(Check(isInvalidGroupCode, "gro_txtCode", "Invalid code (minimum 13 characters)"));
                         checks.Add(Check(model.Account, "gro_txtGroupName", "Group Name be blank"));
+                        checks.Add(CheckDuplicate(isDuplicate, "gro_txtCode", $"This code already exists: [{model.Code}]"));
 
                         break;
                     case 5: // Contact
-                        bool isInvalidContactCode = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{9}|\d{12})$");
-                        checks.Add(Check(isInvalidContactCode, "con_txtCode", "Invalid code (9 or 12 digits)"));
+                        //bool isInvalidContactCode = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{9}|\d{12})$");
+                        bool isInvalidContactCode = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{13})$");
+                        checks.Add(Check(isInvalidContactCode, "con_txtCode", "Invalid code (minimum 13 characters)"));
                         checks.Add(Check(model.Account, "con_txtFullName", "Full name not blank"));
                         checks.Add(Check(model.Firstname, "con_txtFirstName", "First name not blank"));
                         checks.Add(Check(model.LastName, "con_txtLastName", "Last name not blank"));
+                        checks.Add(CheckDuplicate(isDuplicate, "con_txtCode", $"This code already exists: [{model.Code}]"));
 
                         break;
 

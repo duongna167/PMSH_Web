@@ -337,7 +337,7 @@
 
 <script>
     var pro_com_Module = {
-        currentType: 1, // Mặc định là 1 (Company)
+        currentType: 2, // Mặc định là 2 (Company)
 
         init: function (type) {
             if (type) this.currentType = type;
@@ -349,7 +349,7 @@
 
         updateModalTitle: function() {
             let title = "Profile - Company";
-            if (this.currentType === 2) title = "Profile - Travel Agent";
+            if (this.currentType === 1) title = "Profile - Travel Agent";
             if (this.currentType === 3) title = "Profile - Source";
 
             $("#modalCompany .modal-title").text(title);
@@ -584,39 +584,39 @@
 
             if (!data) return;
 
-            $("#com_id").val(data.ID);
-            $("#com_txtCode").val(data.Code);
-            $("#com_txtAccount").val(data.Account);
+            $("#com_id").val(data.id);
+            $("#com_txtCode").val(data.code);
+            $("#com_txtAccount").val(data.account);
 
-            $("#com_txtAddress").val(data.Address);
-            $("#com_txtPostal").val(data.PostalCode);
+            $("#com_txtAddress").val(data.address);
+            $("#com_txtPostal").val(data.postalCode);
 
-            $("#com_txtCompany").val(data.Company);
-            $("#com_txtTax").val(data.TaxCode);
-            $("#com_txtBusAddress").val(data.HomeAddress);
+            $("#com_txtCompany").val(data.company);
+            $("#com_txtTax").val(data.taxCode);
+            $("#com_txtBusAddress").val(data.homeAddress);
 
-            $("#com_txtTelephone").val(data.Telephone);
-            $("#com_txtHandPhone").val(data.HandPhone);
-            $("#com_txtEmail").val(data.Email);
-            $("#com_txtWebsite").val(data.Website);
+            $("#com_txtTelephone").val(data.telephone);
+            $("#com_txtHandPhone").val(data.handPhone);
+            $("#com_txtEmail").val(data.email);
+            $("#com_txtWebsite").val(data.website);
 
-            $("#com_txtContactName").val(data.AcctContact);
+            $("#com_txtContactName").val(data.acctContact);
 
-            $("#com_txtBusTitle").val(data.BusinessTitle);
+            $("#com_txtBusTitle").val(data.businessTitle);
 
-            $("#com_txtKeyword").val(data.Keyword);
+            $("#com_txtKeyword").val(data.keyword);
 
-            $("#com_txtAR").val(data.ARNo);
+            $("#com_txtAR").val(data.arNo);
 
-            $("#com_txtNote").val(data.Description);
+            $("#com_txtNote").val(data.description);
 
-            $("#com_chkActive").prop("checked", data.Active);
+            $("#com_chkActive").prop("checked", data.active);
 
-            $("#com_chkBlackList").prop("checked", data.IsBlackList);
+            $("#com_chkBlackList").prop("checked", data.isBlackList);
 
             $("#com_txtBlackListReason")
-                .val(data.BlackListReason)
-                .prop("disabled", !data.IsBlackList);
+                .val(data.blackListReason)
+                .prop("disabled", !data.isBlackList);
 
             // ===== TOMSELECT =====
 
@@ -625,18 +625,43 @@
                 if (ts && val) ts.setValue(val);
             };
 
-            setTS("#com_txtCity", data.City);
-            setTS("#com_txtCountry", data.CountryID);
-            setTS("#com_txtState", data.StateID);
-            setTS("#com_txtOwner", data.OwnerID);
-            setTS("#com_txtTerritory", data.TerritoryID);
-            setTS("#com_txtCurrency", data.CurrencyID);
-            setTS("#com_txtSaleInCharge", data.PersonInChargeID);
+            setTS("#com_txtCity", data.city);
+            setTS("#com_txtCountry", data.countryID);
+            setTS("#com_txtState", data.stateID);
+            setTS("#com_txtOwner", data.ownerID);
+            setTS("#com_txtTerritory", data.territoryID);
+            setTS("#com_txtCurrency", data.currencyID);
+            setTS("#com_txtSaleInCharge", data.personInChargeID);
+            setTS("#com_txtMarket", data.marketID);
+        },
+
+        loadProfileByID: function (id) {
+            const self = this;
+            LoadingGlobal.show();
+            $.ajax({
+                url: '/Profile/GetProfileByID/',
+                type: 'GET',
+                data: { id: id },
+                success: function (res) {
+                    LoadingGlobal.hide();
+                    if (res.code === 0) {
+                        self.fillForm(res.profile);
+                    } else {
+                        showToast("Error", res.msg, false);
+                    }
+                },
+                error: function () {
+                    LoadingGlobal.hide();
+                    showToast("Error", "Cannot load profile", false);
+                }
+            });
         }
     };
 
-    $(document).ready(function () {
-        pro_com_Module.init();
-    });
+    window.initCompanyModal = function(type) {
+        if (window.pro_com_Module) {
+            window.pro_com_Module.init(type);
+        }
+    };
 </script>
 

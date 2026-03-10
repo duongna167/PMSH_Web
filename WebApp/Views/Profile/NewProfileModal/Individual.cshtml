@@ -71,7 +71,7 @@
         }
 </style>
 
-<div class="modal fade profile-modal" id="modalIndividual" tabindex="-1"
+<div class="modal fade" id="modalIndividual" tabindex="-1"
      aria-labelledby="modalIndividualLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
@@ -426,9 +426,11 @@
                 <h6 class="modal-title mb-0">Search</h6>
             </div>
             <div class="modal-body pt-2">
-                <button id="pro_search_btnViewIndividual" class="mui-button mui-button-search">Search</button>
-                <button type="button" class="mui-button mui-button-close " data-bs-dismiss="modal"> Close</button>
+                <div class="py-2">
+                    <button id="pro_search_btnViewIndividual" class="mui-button mui-button-search">Search</button>
+                    <button type="button" class="mui-button mui-button-close " data-bs-dismiss="modal"> Close</button>
 
+                </div>
                 <div class="row mb-1 align-items-center">
                     <label class="col-sm-2 col-form-label text-end">Search Name</label>
                     <div class="col-sm-4">
@@ -438,10 +440,10 @@
                     <label class="col-sm-1 col-form-label text-end">First</label>
                     <div class="col-sm-4">
                         <input type="text" id="ind_search_first" name="ind_search_first" class="form-control form-control-sm"
-                               placeholder="Enter user first name" />
+                               placeholder="Enter first name" />
                     </div>
                 </div>
-                <div id="pro_search_profileIndividualGrid" class="gridContainer"></div>
+                <div id="pro_individualGrid" class="gridContainer"></div>
             </div>
         </div>
     </div>
@@ -451,17 +453,10 @@
     var pro_ind_Module = {
 
         init: function () {
-            this.initEvents();
             this.initDOMEvents();
             this.bindNameEngine();
             this.initStateControls();
             this.initTomSelects();
-        },
-
-        initEvents: function () {
-            window.openModalProInd = function () {
-                initDateInputs();
-            }
         },
 
         initDOMEvents: function () {
@@ -477,6 +472,13 @@
 
             $('#ind_fileUpload').on('change', this.handleImage);
 
+            $('#ind_search_name, #ind_search_first').on('keydown', function (e) {
+
+                if (e.key === "Enter") {
+                    pro_ind_Module.searchIndividual();
+                }
+
+            });
         },
 
         handleImage: function (event) {
@@ -595,12 +597,10 @@
             const $blackCheckbox = $("#ind_chkBlackList");
             const $blackInput = $("#ind_txtBlackListReason");
 
-            // Logic cho Date of Birth (DOB)
             function updateDOB() {
                 const isChecked = $dobCheckbox.is(":checked");
                 $dobInput.prop("disabled", !isChecked);
 
-                // Nếu disable thì làm mờ cả icon lịch
                 if (!isChecked) {
                     $dobWrapper.addClass("opacity-50");
                 } else {
@@ -608,23 +608,18 @@
                 }
             }
 
-            // Logic cho Blacklist
             function updateBlackList() {
                 const isChecked = $blackCheckbox.is(":checked");
                 if (isChecked) {
-                    // Khi bị Blacklist: Nền đen, cho phép nhập
                     $blackInput.addClass("black-active").prop("disabled", false).focus();
                 } else {
-                    // Mặc định: Nền trắng, disable để tránh nhập nhầm
                     $blackInput.removeClass("black-active").prop("disabled", true).val('');
                 }
             }
 
-            // Gán sự kiện change
             $dobCheckbox.on("change", updateDOB);
             $blackCheckbox.on("change", updateBlackList);
 
-            // Chạy ngay khi khởi tạo để đồng bộ trạng thái ban đầu
             updateDOB();
             updateBlackList();
         },
@@ -793,47 +788,47 @@
             const self = this;
             const $container = $("#pro_ind_formContainer");
             
-            $("#ind_id").val(data.ID || 0);
-            $("#ind_txtCode").val(data.Code || "");
-            $("#ind_txtFullName").val(data.Account || "");
-            $("#ind_txtFirstName").val(data.Firstname || "");
-            $("#ind_txtLastName").val(data.LastName || "");
-            $("#ind_txtMiddleName").val(data.MiddleName || "");
-            $("#ind_txtAddress").val(data.Address || "");
-            $("#ind_txtPostal").val(data.PostalCode || "");
-            $("#ind_txtReligion").val(data.Religion || "");
-            $("#ind_txtNation").val(data.Nation || "");
-            $("#ind_txtPOS").val(data.PurposeOfStay || "");
+            $("#ind_id").val(data.id || 0);
+            $("#ind_txtCode").val(data.code || "");
+            $("#ind_txtFullName").val(data.account || "");
+            $("#ind_txtFirstName").val(data.firstname || "");
+            $("#ind_txtLastName").val(data.lastName || "");
+            $("#ind_txtMiddleName").val(data.middleName || "");
+            $("#ind_txtAddress").val(data.address || "");
+            $("#ind_txtPostal").val(data.postalCode || "");
+            $("#ind_txtReligion").val(data.religion || "");
+            $("#ind_txtNation").val(data.nation || "");
+            $("#ind_txtPOS").val(data.purposeOfStay || "");
 
-            $("#ind_txtSalutation").val(data.Salutation || "");
-            $("#ind_txtVipReason").val(data.VIPReason || "");
-            $("#ind_txtPrefRoom").val(data.PrefRoom || "");
-            $("#ind_txtOther").val(data.Other || "");
-            $("#ind_txtPassport").val(data.PassPort || "");
-            $("#ind_txtIdentityCard").val(data.IdentityCard || "");
-            $("#ind_txtKeyword").val(data.Keyword || "");
-            $("#ind_txtBlackListReason").val(data.BlackListReason || "");
-            $("#ind_txtNote").val(data.Description || ""); 
+            $("#ind_txtSalutation").val(data.salutation || "");
+            $("#ind_txtVipReason").val(data.vipReason || "");
+            $("#ind_txtPrefRoom").val(data.prefRoom || "");
+            $("#ind_txtOther").val(data.other || "");
+            $("#ind_txtPassport").val(data.passPort || "");
+            $("#ind_txtIdentityCard").val(data.identityCard || "");
+            $("#ind_txtKeyword").val(data.keyword || "");
+            $("#ind_txtBlackListReason").val(data.blackListReason || "");
+            $("#ind_txtNote").val(data.description || ""); 
 
-            $("#ind_txtTaxCompany").val(data.Company || "");
-            $("#ind_txtTaxCode").val(data.TaxCode || "");
-            $("#ind_txtTaxBusAddress").val(data.HomeAddress || "");
-            $("#ind_txtTelephone").val(data.Telephone || "");
-            $("#ind_txtHandPhone").val(data.HandPhone || "");
-            $("#ind_txtFax").val(data.Fax || "");
-            $("#ind_txtEmail").val(data.Email || "");
-            $("#ind_txtWebsite").val(data.Website || "");
-            $("#ind_txtBusinessTitle").val(data.BusinessTitle || "");
+            $("#ind_txtTaxCompany").val(data.company || "");
+            $("#ind_txtTaxCode").val(data.taxCode || "");
+            $("#ind_txtTaxBusAddress").val(data.homeAddress || "");
+            $("#ind_txtTelephone").val(data.telephone || "");
+            $("#ind_txtHandPhone").val(data.handPhone || "");
+            $("#ind_txtFax").val(data.fax || "");
+            $("#ind_txtEmail").val(data.email || "");
+            $("#ind_txtWebsite").val(data.website || "");
+            $("#ind_txtBusinessTitle").val(data.businessTitle || "");
 
-            $("#ind_chkActive").prop("checked", data.Active === true);
-            $("#ind_chkContact").prop("checked", data.Contact === true);
-            $("#ind_chkBlackList").prop("checked", data.IsBlackList === true);
+            $("#ind_chkActive").prop("checked", data.active === true);
+            $("#ind_chkContact").prop("checked", data.contact === true);
+            $("#ind_chkBlackList").prop("checked", data.isBlackList === true);
 
-            if (data.DateOfBirth) {
+            if (data.dateOfBirth) {
                 $("#ind_chkActiveDob").prop("checked", true);
-                const dob = moment(data.DateOfBirth).format("DD/MM/YYYY");
+                const dob = moment(data.dateOfBirth).format("DD/MM/YYYY");
                 $('[data-name="ind_txtDob"] input.date-ui').val(dob);
-                $("#ind_txtDob").val(data.DateOfBirth); 
+                $("#ind_txtDob").val(data.dateOfBirth); 
             } else {
                 $("#ind_chkActiveDob").prop("checked", false);
             }
@@ -843,18 +838,19 @@
                 if (ts) ts.setValue(value || 0);
             };
 
-            setTS("#ind_txtLanguage", data.LanguageID);
-            setTS("#ind_txtTitle", data.TitleID);
-            setTS("#ind_txtNationality", data.NationalityID);
-            setTS("#ind_txtCountry", data.CountryID);
-            setTS("#ind_txtCity", data.City);
-            setTS("#ind_txtState", data.StateID);
-            setTS("#ind_txtVIP", data.VIPID);
+            setTS("#ind_txtLanguage", data.languageID);
+            setTS("#ind_txtTitle", data.titleID);
+            setTS("#ind_txtNationality", data.nationalityID);
+            setTS("#ind_txtCountry", data.countryID);
+            setTS("#ind_txtCity", data.city);
+            setTS("#ind_txtState", data.stateID);
+            setTS("#ind_txtVIP", data.vipID);
 
             self.initStateControls();
 
+            //làm sau
             if (data.ImagePath) {
-                $("#ind_imgPreview").attr('src', data.ImagePath);
+                $("#ind_imgPreview").attr('src', data.imagePath);
             } else {
                 $("#ind_imgPreview").attr('src', '/images/uploads/profile.png');
             }
@@ -875,58 +871,130 @@
 
         searchIndividual: function () {
             const self = this;
-            const filter = {
-                Account: $('#ind_search_name').val()?.trim(),
-                Firstname: $('#ind_search_first').val()?.trim()
-            };
+            const lastName = $('#ind_search_name').val()?.trim() || "";
+            const firstName = $('#ind_search_first').val()?.trim() || "";
 
-            LoadingGlobal.show();
+
             $.ajax({
-                url: '/Profile/ProfileIndividualSearch', 
-                type: 'POST',
-                data: filter,
+                url: '/Profile/ProfileIndividualSearch',
+                type: 'GET',
+                loadingGrid: '#pro_individualGrid',
+                data: {
+                    LastName: lastName,
+                    FirstName: firstName
+                },
                 success: function (res) {
-                    LoadingGlobal.hide();
-                    self.renderSearchGrid(res.data || res);
+                    if (!res.success) {
+                        showToast("Error", res.message, false);
+                        return;
+                    }
+
+                    self.renderSearchGrid(res.data || []);
                 },
                 error: function () {
-                    LoadingGlobal.hide();
                     showToast("Error", "Cannot fetch search results", false);
                 }
             });
         },
 
         renderSearchGrid: function (data) {
-            const self = this;
-            const $gridContainer = $("#pro_search_profileIndividualGrid");
 
-            $gridContainer.dxDataGrid({
+            const self = this;
+
+            $("#pro_individualGrid").dxDataGrid({
+
                 dataSource: data,
+
+                keyExpr: "id",
+
                 columns: [
-                    { dataField: "Code", caption: "Code" },
-                    { dataField: "Account", caption: "Full Name" },
-                    { dataField: "Firstname", caption: "First Name" },
-                    { dataField: "Email", caption: "Email" }
+                    {
+                        dataField: "id",
+                        visible: false
+                    },
+                    {
+                        dataField: "name",
+                        caption: "Name"
+                    }
                 ],
-                selection: { mode: "single" },
-                onRowClick: function (e) {
-                    self.fillFormData(e.data);
-                    $('#pro_search_modalIndividualSearch').modal('hide');
-                    showToast("Success", "Profile loaded", true);
+
+                selection: {
+                    mode: "single"
                 },
-                height: 300
+
+                hoverStateEnabled: true,
+
+                height: 300,
+
+                onRowDblClick: function (e) {
+
+                    console.log("Row Data:", e.data);
+
+                    if (!e.data) return;
+
+                    self.loadProfileByID(e.data.id);
+
+                }
+
             });
+
         },
 
         initSearchGrid: function() {
-            if (!$("#pro_search_profileIndividualGrid").addClass('dx-datagrid').length) {
+            if (!$("#pro_individualGrid").addClass('dx-datagrid').length) {
                  this.renderSearchGrid([]);
             }
         },
 
+        loadProfileByID: function (id) {
+
+            const self = this;
+
+            LoadingGlobal.show();
+
+            $.ajax({
+                url: '/Profile/GetProfileByID/',
+                type: 'GET',
+                contentType: "application/json",
+                data: {id: id},
+                success: function (res) {
+
+                    LoadingGlobal.hide();
+
+                    if (res.code !== 0) {
+                        showToast("Error", res.msg, false);
+                        return;
+                    }
+
+                    self.fillFormData(res.profile);
+
+                    const modal = bootstrap.Modal.getInstance(
+                        document.getElementById("pro_search_modalIndividualSearch")
+                    );
+
+                    if (modal) modal.hide();
+
+                    showToast("Success", "Profile loaded", true);
+
+                },
+
+                error: function () {
+
+                    LoadingGlobal.hide();
+                    showToast("Error", "Cannot load profile", false);
+
+                }
+
+            });
+
+        },
     };
 
-    $(document).ready(function(){
-        pro_ind_Module.init();
-    });
+
+    window.initIndividualModal = function() {
+        if (window.pro_ind_Module) {
+            window.pro_ind_Module.init();
+        }
+    };
+
 </script>
