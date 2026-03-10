@@ -1,270 +1,272 @@
 ﻿@using DevExpress.XtraReports.UI
 
-
 @{
-    var selectedReport = @ViewBag.ReportHeader;
+    var selectedReport = ViewBag.ReportHeader;
     var listSection = ViewBag.hkpSection;
-
 }
-<style>
 
 
-    .dx-datagrid-headers .dx-header-row td {
-        white-space: pre-line !important;
-        text-align: center;
-        font-size: 11px;
-    }
+<!-- =========================
+     MAIN MODAL (modal-xl)
+     ========================= -->
+<div class="modal fade" id="lAFS_modalMain" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-4by3 modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
 
-
-    .dx-datagrid .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default, .dx-datagrid-container .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default {
-        display: none;
-    }
-
-
-    .filter_wrapper {
-        /*     background-color: #ececec; */
-        /*   margin: 0px 8px 14px 8px; */
-        padding: 18px 0px 0px 14px;
-        border-radius: 8px;
-    }
-
-    .gridContainer {
-        margin: 0px 8px;
-    }
-
-    .button_wrapper {
-        display: flex;
-        column-gap: 12px;
-        margin: 0px 8px;
-    }
-
-        .button_wrapper .fa-solid {
-            margin-right: 5px;
-        }
-
-    .selected {
-        background-color: #4CAF50; /* Màu xanh */
-        color: white;
-    }
-
-
-
-    .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
-    }
-
-    .sticky-header label[class*="me-"] {
-        margin-right: .5rem !important;
-    }
-
-
-    .sticky-header input[type="date"].form-control-sm {
-        font-size: 12px !important; /* dúng 12?px */
-        height: calc(1.1em + .2rem + 2px); /* gi? cùng chi?u cao */
-    }
-
-    .sticky-header label {
-        font-size: 12px !important;
-        line-height: 1.2;
-    }
-
-    .tomselect-custom {
-        width: 250px;
-        min-height: 30px; /* ho?c tùy theo chi?u cao b?n mu?n */
-        font-size: 0.65rem;
-    }
-
-    .sort-select {
-        max-width: 130px; /* ho?c 100px n?u mu?n nh? hon */
-        font-size: 12px;
-        padding: 0.15rem 0.5rem;
-    }
-
-    .sort-select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-image: none !important;
-        padding-right: 10px !important;
-    }
-
-</style>
-
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px">Lost And Found Status</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1 filter-panel">
-        <!-- From Date -->
-
-
-
-
-
-
-    </div>
-    <div class="">
-        <button id="btnPrint" class="mui-button button-report-view"> View</button>
-        <button id="btnNew" class="mui-button mui-button-new"> New</button>
-        <button id="btnUpdate" class="mui-button mui-button-edit">  Edit</button>
-        <button id="btnDelete" class="mui-button button-report-delete">  Delete</button>
-        <button id="btnExportExcel" class="mui-button mui-button-export" type="button">  Excel</button>
-
-    </div>
-
-</div>
-<div class="mui-card">
-    @*     <div style="font-size: 20px;" class="mt-1" id="reportTitle"></div> *@
-    <div id="gridContainer" class="gridContainer mt-2"></div>
-</div>
-<div id="overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999;"></div>
-<div id="popupNewLostAndFoundStatus" style="display: none; position: fixed; top: 50%; left: 50%;
-    transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px;
-    z-index: 1050; box-shadow: 0 0 10px rgba(0,0,0,0.3); min-width: 400px; max-height: 600px; overflow-y: auto;">
-
-    <div class="d-flex justify-content-between mb-2">
-        <h5 class="mb-0">Lost And Found Status Screen</h5>
-
-    </div>
-    <div class="d-flex justify-content-start mb-3 gap-2">
-
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnOkAuto" class="mui-button mui-button-advance" type="button"> Ok</button>
-
-        <button onclick="$('#popupNewLostAndFoundStatus').hide()" id="btnClosePopup" class="btn btn-sm mui-button-close" style=" border-radius: 4px;">
-             Close
-        </button>
-    </div>
-    <div class="sticky-header bg-white p-2 shadow-sm z-3">
-        <div class="d-flex flex-wrap align-items-center gap-2 mb-1 filter-panel">
-            <div class="d-flex align-items-center flex-wrap mb-2">
-                <div class="d-flex align-items-start mb-3">
-                    <!-- Trace Time -->
-                    <input type="text" id="idzone" name="idzone" style="display:none !important" class="form-control form-control-sm w-auto" />
-                    <div class="d-flex align-items-center me-4">
-                        <label for="tracetime" class="me-2 mb-0">Code:</label>
-                        <input type="text" id="codenew" name="codenew"
-                               class="form-control form-control-sm w-auto" />
-                    </div>
-                    <div class="form-check me-3">
-                        <span class="status-color-box color-clean-uncheck"></span>
-                        <input class="form-check-input" type="checkbox" id="isDefaultnew" name="includeOptions" value="1" checked>
-                        <label class="form-check-label" for="cleanUncheck"> IsDefault</label>
-                    </div>
-                    <div class="form-check me-3">
-                        <span class="status-color-box color-clean-uncheck"></span>
-                        <input class="form-check-input" type="checkbox" id="isActivenew" name="includeOptions" value="1" checked>
-                        <label class="form-check-label" for="cleanUncheck"> InActive</label>
-                    </div>
-                    <div class="d-flex align-items-start">
-                        <label for="tracetext" class="me-2 mt-1">Name:</label>
-                        <input type="text" id="descriptionnew" name="descriptionnew"
-                               class="form-control form-control-sm w-auto" />
-                    </div>
-                </div>
-
-
+            <div class="modal-header">
+                <h5 class="modal-title">Lost And Found Status</h5>
             </div>
 
+            <div class="modal-body">
 
+                <!-- Toolbar -->
+                <div class="search-filter">
+                    <button id="lAFS_btnView" type="button" class="mui-button button-report-view">View</button>
+                    <button id="lAFS_btnNew" type="button" class="mui-button mui-button-new">New</button>
+                    <button id="lAFS_btnUpdate" type="button" class="mui-button mui-button-edit">Edit</button>
+                    <button id="lAFS_btnDelete" type="button" class="mui-button button-report-delete">Delete</button>
+                    <button id="lAFS_btnExportExcel" type="button" class="mui-button mui-button-export">Excel</button>
+                    <button id="lAFS_btnClose" type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
 
+                <!-- No search filter in original, keep clean spacing -->
+                <div class="mui-card mt-1">
+                    <div id="lAFS_gridContainer" class="gridContainer"></div>
+                </div>
 
+            </div>
         </div>
     </div>
-
 </div>
 
+<!-- =========================
+     EDIT / NEW MODAL (modal-xl)
+     ========================= -->
+<div class="modal fade" id="lAFS_modalEdit" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
 
+            <div class="modal-header">
+                <h5 class="modal-title" id="lAFS_modalEditTitle">Lost And Found Status Screen</h5>
+            </div>
 
-<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
+            <div class="modal-body">
+
+                <div class="search-filter">
+                    <button id="lAFS_btnSave" type="button" class="mui-button mui-button-advance">Ok</button>
+                    <button id="lAFS_btnEditClose" type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <form id="lAFS_formEdit" novalidate class="mt-1 mb-2">
+                    <input type="hidden" id="lAFS_idzone" name="lAFS_idzone" />
+
+                    <div class="row g-2">
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end"
+                                       for="lAFS_codenew">Code</label>
+                                <div class="col-md-8">
+                                    <input type="text"
+                                           id="lAFS_codenew"
+                                           name="lAFS_codenew"
+                                           class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-3">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-md-12">
+                                    <div class="form-check">
+                                        <input 
+                                               type="checkbox"
+                                               id="lAFS_isDefaultnew"
+                                               name="lAFS_isDefaultnew"
+                                               value="1"
+                                               checked>
+                                        <label class="form-check-label" for="lAFS_isDefaultnew">IsDefault</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-3">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-md-12">
+                                    <div class="form-check">
+                                        <input 
+                                               type="checkbox"
+                                               id="lAFS_isActivenew"
+                                               name="lAFS_isActivenew"
+                                               value="1"
+                                               checked>
+                                        <label class="form-check-label" for="lAFS_isActivenew">InActive</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-8">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-3 col-form-label col-form-label-sm text-md-end"
+                                       for="lAFS_descriptionnew">Name</label>
+                                <div class="col-md-9">
+                                    <input type="text"
+                                           id="lAFS_descriptionnew"
+                                           name="lAFS_descriptionnew"
+                                           class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="lAFS_loadingSpinner"
+    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+    height: 100%;display: flex;align-items: center;justify-content: center;">
+    <div class="spinner-border text-primary"></div>
 </div>
 
 <script>
+    var lAFS_Module = (function () {
+        "use strict";
 
-       $(document).ready(function () {
+        const SEL = {
+            modalMain: "#lAFS_modalMain",
+            modalEdit: "#lAFS_modalEdit",
+            spinner: "#lAFS_loadingSpinner",
 
-        $("#btnPrint").trigger("click");
+            btnView: "#lAFS_btnView",
+            btnNew: "#lAFS_btnNew",
+            btnUpdate: "#lAFS_btnUpdate",
+            btnDelete: "#lAFS_btnDelete",
+            btnExportExcel: "#lAFS_btnExportExcel",
+            btnSave: "#lAFS_btnSave",
 
-    });
+            grid: "#lAFS_gridContainer",
 
+            formEdit: "#lAFS_formEdit",
+            modalEditTitle: "#lAFS_modalEditTitle",
+            idzone: "#lAFS_idzone",
+            codenew: "#lAFS_codenew",
+            descriptionnew: "#lAFS_descriptionnew",
+            isActivenew: "#lAFS_isActivenew",
+            isDefaultnew: "#lAFS_isDefaultnew"
+        };
 
+        let _gridInstance = null;
+        let _selectedRowData = null;
+        let _bound = false;
 
-     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+        function showLoading(show) {
+            if (show) $(SEL.spinner).show();
+            else $(SEL.spinner).hide();
+        }
 
-            $("#loadingSpinner").show();
-            $.ajax({
-                url: '/HouseKeepingAdmin/LostAndFoundStatusData',
-                type: 'GET',
-                data: {
+        function csrfHeaders() {
+            return {
+                "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val()
+            };
+        }
 
-                },
-                traditional: true,
-                  crossDomain: false,
-                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-                success: function (result) {
+        function disposeGrid() {
+            try {
+                const inst = $(SEL.grid).dxDataGrid("instance");
+                if (inst) inst.dispose();
+            } catch (e) { }
 
-                console.log(result);
-            initializeLostAndFoundStatusGrid(result);
-                        $("#loadingSpinner").hide();
-                },
-                error: function () {
-                    alert("Không th? t?i báo cáo.");
-                    $("#loadingSpinner").hide();
-                }
-            });
-        });
-        var selectedRowData=null;
-     function initializeLostAndFoundStatusGrid(data) {
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            showBorders: true,
-            selection: { mode: "single" },
-            paging: { pageSize: 20 },
-            height:500,
-            pager: {
-                showPageSizeSelector: true,
-                allowedPageSizes: [20, 50, 100],
-                showInfo: true
-            },
-            filterRow: { visible: true },
-            columns: [
-                { dataField: "id", caption: "ID", width: 80, visible: false },
-                { dataField: "code", caption: "Code", width: 200 },
-                { dataField: "name", caption: "Name", width: 120 },
-                 { dataField: "inactive", caption: "Inactive", width: 80,
-                    cellTemplate: function(container, options) {
-                         let checked = (options.value === true || options.value === "True");
-                        $("<div>")
-                            .dxCheckBox({
-                                value: checked,
-                                readOnly: true
-                            })
-                            .css("transform", "scale(0.8)")
-                            .appendTo(container);
-                    }
-                },
-                 { dataField: "isDefault", caption: "isDefault", width: 80,
-                    cellTemplate: function(container, options) {
-                         let checked = (options.value === true || options.value === "True");
-                        $("<div>")
-                            .dxCheckBox({
-                                value: checked,
-                                readOnly: true
-                            })
-                            .css("transform", "scale(0.8)")
-                            .appendTo(container);
-                    }
-                },
+            _gridInstance = null;
+            _selectedRowData = null;
+            $(SEL.grid).empty();
+        }
 
+        function dxBoolCell(container, options) {
+            const checked = (options.value === true || options.value === "True");
+            $("<div>")
+                .dxCheckBox({
+                    value: checked,
+                    readOnly: true
+                })
+                .css("transform", "scale(0.8)")
+                .appendTo(container);
+        }
 
-                { dataField: "updatedBy", caption: "Updated By", width: 120 },
-                { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy HH:mm", width: 160 },
-                { dataField: "createdBy", caption: "Updated By", width: 120 },
-                { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy HH:mm", width: 160 },
-            ],
-            scrolling: {
-                    mode: "standard", // Không dùng virtual để footer hiển thị đúng
+        function clearForm() {
+            $(SEL.codenew).val("");
+            $(SEL.descriptionnew).val("");
+            $(SEL.idzone).val("");
+            $(SEL.isActivenew).prop("checked", false);
+            $(SEL.isDefaultnew).prop("checked", false);
+        }
+
+        function fillFormFromRow(row) {
+            $(SEL.idzone).val(row.ID || "");
+            $(SEL.codenew).val(row.Code || "");
+            $(SEL.descriptionnew).val(row.Name || "");
+            $(SEL.isActivenew).prop("checked", row.Inactive === true || row.Inactive === "True" || row.Inactive === 1);
+            $(SEL.isDefaultnew).prop("checked", row.IsDefault === true || row.IsDefault === "True" || row.IsDefault === 1);
+        }
+
+        function validateForm() {
+            const codeNew = $(SEL.codenew).val().trim();
+            const descriptionNew = $(SEL.descriptionnew).val().trim();
+
+            if (codeNew === "") {
+                showToast("Error", "Code cannot be blank.", false);
+                $(SEL.codenew).focus();
+                return false;
+            }
+            if (descriptionNew === "") {
+                showToast("Error", "Description cannot be blank.", false);
+                $(SEL.descriptionnew).focus();
+                return false;
+            }
+
+            return true;
+        }
+
+        function getSavePayload() {
+            return {
+                id: $(SEL.idzone).val(),
+                codenew: $(SEL.codenew).val(),
+                descriptionnew: $(SEL.descriptionnew).val(),
+                user: localStorage.getItem("Loginname"),
+                isActive: $(SEL.isActivenew).is(":checked") ? 1 : 0,
+                isDefault: $(SEL.isDefaultnew).is(":checked") ? 1 : 0
+            };
+        }
+
+        function initGrid(data) {
+            disposeGrid();
+
+            _gridInstance = $(SEL.grid).dxDataGrid({
+                dataSource: data || [],
+                showBorders: true,
+                selection: { mode: "single" },
+                height: 500,
+
+                columns: [
+                    { dataField: "Id", caption: "ID", width: 80, visible: false },
+                    { dataField: "Code", caption: "Code", width: 120 },
+                    { dataField: "Name", caption: "Name"},
+                    { dataField: "Inactive", caption: "Inactive", width: 80, cellTemplate: dxBoolCell },
+                    { dataField: "IsDefault", caption: "IsDefault", width: 80, cellTemplate: dxBoolCell },
+                    { dataField: "UpdatedBy", caption: "Updated By", width: 120 },
+                    { dataField: "UpdateDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy", width: 120 },
+                    { dataField: "CreatedBy", caption: "Created By", width: 120 },
+                    { dataField: "CreatedDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy", width: 120 }
+                ],
+
+                scrolling: {
+                    mode: "standard",
                     showScrollbar: "always",
                     scrollByContent: true
                 },
@@ -273,227 +275,226 @@
                 },
                 pager: {
                     visible: true,
-                    allowedPageSizes: [50, 100, 'all'],
+                    allowedPageSizes: [50, 100, "all"],
                     showPageSizeSelector: true,
                     showInfo: true,
                     showNavigationButtons: true
                 },
-                    filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            // 🔥 Quan trọng: gán selectedRowData khi click chọn
-             onRowClick: function (e) {
-                selectedRowData = e.data; // 🔥 lấy data của row vừa click
-                console.log("Selected Row (RowClick):", selectedRowData);
-
-            }
-        });
-     }
-    $("#btnNew").on("click", function () {
-
-       clearSection();
-            $('#overlay').fadeIn(200);
-            $('#popupNewLostAndFoundStatus').fadeIn(200);
-
-    });
-
-         $("#btnOkAuto").on("click", function () {
-
-            let isActive  = $("#isActivenew").is(":checked") ? 1 : 0;
-             let isDefault  = $("#isDefaultnew").is(":checked") ? 1 : 0;
-
-            // Lấy giá trị các input
-            let codeNew = $("#codenew").val().trim();
-            let descriptionNew = $("#descriptionnew").val().trim();
-
-            // ✅ Kiểm tra rỗng
-            if (codeNew === "") {
-                showToast('Error', "Code cannot be blank.", false);
-                $("#codenew").focus();
-                return;
-            }
-            if (descriptionNew === "") {
-                showToast('Error', "Description cannot be blank.", false);
-                $("#descriptionnew").focus();
-                return;
-            }
-          $("#loadingSpinner").show();
-            $.ajax({
-                url: '/HouseKeepingAdmin/LostAndFoundStatusSave',
-                type: 'POST',
-                 data: {
-                      id: $("#idzone").val(),
-                    codenew: $("#codenew").val(),
-
-                    descriptionnew: $("#descriptionnew").val(),
-                    user: localStorage.getItem("Loginname"),
-                    isActive: isActive,
-                      isDefault: isDefault
+                filterRow: {
+                    visible: true,
+                    applyFilter: "auto"
                 },
-                traditional: true,
-                  crossDomain: false,
-                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-                success: function (result) {
-                        if (result.success) {
-                                showToast('Success', result.message, true);
-                                $('#popupNewLostAndFoundStatus').fadeOut(200);
-                                 
-                                   $("#btnPrint").trigger("click");
-                                    clearSection();
-                       } else {
-                                showToast('Error', 'Please select before saving.', false);
-                       }
-                console.log(result);
 
-                        $("#loadingSpinner").hide();
+                onSelectionChanged: function (e) {
+                    _selectedRowData = e.selectedRowsData.length > 0 ? e.selectedRowsData[0] : null;
                 },
-                error: function () {
-                    alert("Không th? t?i báo cáo.");
-                    $("#loadingSpinner").hide();
+                onRowClick: function (e) {
+                    _selectedRowData = e.data || null;
                 }
-            });
-     });
-
-
-    $("#btnUpdate").on("click", function () {
-
-            if (selectedRowData.length === 0) {
-                    showToast('Error', "Please select !", false);
-                return;
-            }
-            // Tìm trong listFacilityCode theo ID
-
-            console.log(selectedRowData);
-            $("#idzone").val(selectedRowData.id);
-              $("#codenew").val(selectedRowData.code || "");
-              $("#descriptionnew").val(selectedRowData.name || "");
-
-              // Checkbox Inactive
-              if (selectedRowData.inactive === "True") {
-                  $("#isActivenew").prop("checked", true);
-              } else {
-                  $("#isActivenew").prop("checked", false);
-              }
-                if (selectedRowData.isDefault === "True") {
-                  $("#isDefaultnew").prop("checked", true);
-              } else {
-                  $("#isDefaultnew").prop("checked", false);
-              }
-                  $("#popupNewLostAndFoundStatus").fadeIn(200);
-                     $('#overlay').fadeIn(200);
-    });
-
-
-
-    $('#btnClosePopup, #overlay').click(function () {
-            $('#popupNewLostAndFoundStatus').fadeOut(200);
-                         $("#btnOkAuto").show();
-            
-    });
-        function clearSection() {
-              $("#codenew").val("");
-            $("#descriptionnew").val("");
-            $("#idzone").val("");
-
-            // Bỏ check checkbox Inactive (hoặc thiết lập lại trạng thái mặc định nếu cần)
-            $("#isActivenew").prop("checked", false);
-
+            }).dxDataGrid("instance");
         }
 
+        function loadData() {
+            showLoading(true);
 
-
-
-         $(document).off("click", "#btnDelete").on("click", "#btnDelete", function () {
-            if (!selectedRowData) {
-                    showToast('Error', 'Please select 1 row to delete.', false);
-                return;
-            }
-            if (!confirm("Are you sure you want to delete item?")) {
-                return; // Nếu chọn Cancel thì dừng
-            }
             $.ajax({
-                url: '/HouseKeepingAdmin/LostAndFoundStatusDelete',
-                type: 'POST',
-                data: {
-                       id:selectedRowData.id
-
-
-                },
+                url: "/HouseKeepingAdmin/LostAndFoundStatusData",
+                type: "GET",
+                data: {},
                 traditional: true,
-                  crossDomain: false,
-                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                crossDomain: false,
+                headers: csrfHeaders(),
                 success: function (result) {
-                     if (result.success) {
-
-                              $("#btnPrint").trigger("click");
-                     } else {
-                              showToast('Error', result.message, false);
-                     }
-
+                    initGrid(result);
+                    showLoading(false);
                 },
                 error: function () {
-                    alert("Không th? t?i báo cáo.");
-                    $("#loadingSpinner").hide();
+                    showLoading(false);
+                    showToast("Error", "Không thể tải báo cáo.", false);
                 }
             });
+        }
 
+        function openNew() {
+            clearForm();
+            $(SEL.modalEditTitle).text("Lost And Found Status Screen");
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).show();
+        }
 
-        });
+        function openEdit() {
+            if (!_selectedRowData) {
+                showToast("Warning", "Please select 1 row to edit.", false);
+                return;
+            }
 
+            clearForm();
+            fillFormFromRow(_selectedRowData);
+            $(SEL.modalEditTitle).text("Lost And Found Status Screen");
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).show();
+        }
 
+        function save() {
+            if (!validateForm()) return;
 
-       $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance");   // 🔥 khai báo grid
+            showLoading(true);
 
-        const workbook = new ExcelJS.Workbook();
-        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
+            $.ajax({
+                url: "/HouseKeepingAdmin/LostAndFoundStatusSave",
+                type: "POST",
+                data: getSavePayload(),
+                traditional: true,
+                crossDomain: false,
+                headers: csrfHeaders(),
+                success: function (result) {
+                    showLoading(false);
 
-        // === Dòng 1: Tên công ty (merge theo 4 cột) ===
-        worksheet.addRow([companyName]);
-        worksheet.mergeCells('A1:D1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Ngày giờ xuất (bên phải) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', exportDate]);
-        worksheet.mergeCells('D2:D2');  // cột D thôi
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: trống
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-        const reportRow = worksheet.addRow(['Lost And Found Status']);
-        worksheet.mergeCells('A5:D5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: trống
-        worksheet.addRow([]);
-
-        // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 }
-        }).then(function () {
-            // Footer (sau cùng)
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = "LostAndFoundStatus.xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                    if (result.success) {
+                        showToast("Success", result.message, true);
+                        bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).hide();
+                        loadData();
+                        clearForm();
+                    } else {
+                        showToast("Error", "Please select before saving.", false);
+                    }
+                },
+                error: function () {
+                    showLoading(false);
+                    showToast("Error", "Không thể tải báo cáo.", false);
+                }
             });
-        });
+        }
+
+        function removeSelected() {
+            if (!_selectedRowData) {
+                showToast("Warning", "Please select 1 row to delete.", false);
+                return;
+            }
+
+            if (!confirm("Are you sure you want to delete item?")) {
+                return;
+            }
+
+            $.ajax({
+                url: "/HouseKeepingAdmin/LostAndFoundStatusDelete",
+                type: "POST",
+                data: {
+                    id: _selectedRowData.ID
+                },
+                traditional: true,
+                crossDomain: false,
+                headers: csrfHeaders(),
+                success: function (result) {
+                    if (result.success) {
+                        showToast("Success", result.message, true);
+                        loadData();
+                    } else {
+                        showToast("Error", result.message, false);
+                    }
+                },
+                error: function () {
+                    showToast("Error", "Không thể tải báo cáo.", false);
+                    showLoading(false);
+                }
+            });
+        }
+
+        function exportExcel() {
+            const grid = $(SEL.grid).dxDataGrid("instance");
+            if (!grid) {
+                showToast("Error", "No grid data to export.", false);
+                return;
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells("A1:D1");
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "left" };
+
+            const now = new Date();
+            const exportDate = now.toLocaleString("vi-VN");
+            worksheet.addRow(["", "", "", exportDate]);
+            worksheet.mergeCells("D2:D2");
+            worksheet.getRow(2).alignment = { vertical: "middle", horizontal: "right" };
+
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            const reportRow = worksheet.addRow(["Lost And Found Status"]);
+            worksheet.mergeCells("A5:D5");
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: "middle", horizontal: "center" };
+
+            worksheet.addRow([]);
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: "center" };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "LostAndFoundStatus.xlsx");
+                });
+            });
+        }
+
+        function bindEventsOnce() {
+            if (_bound) return;
+            _bound = true;
+
+            $(document)
+                .off("click.lAFS", SEL.btnView).on("click.lAFS", SEL.btnView, loadData)
+                .off("click.lAFS", SEL.btnNew).on("click.lAFS", SEL.btnNew, openNew)
+                .off("click.lAFS", SEL.btnUpdate).on("click.lAFS", SEL.btnUpdate, openEdit)
+                .off("click.lAFS", SEL.btnDelete).on("click.lAFS", SEL.btnDelete, removeSelected)
+                .off("click.lAFS", SEL.btnExportExcel).on("click.lAFS", SEL.btnExportExcel, exportExcel)
+                .off("click.lAFS", SEL.btnSave).on("click.lAFS", SEL.btnSave, save);
+
+            $(SEL.modalEdit)
+                .off("shown.bs.modal.lAFS")
+                .on("shown.bs.modal.lAFS", function () {
+                })
+                .off("hidden.bs.modal.lAFS")
+                .on("hidden.bs.modal.lAFS", function () {
+                    clearForm();
+                    showLoading(false);
+                });
+
+            $(SEL.modalMain)
+                .off("hidden.bs.modal.lAFS")
+                .on("hidden.bs.modal.lAFS", function () {
+                    disposeGrid();
+                    showLoading(false);
+                });
+        }
+
+        function init() {
+            bindEventsOnce();
+        }
+
+        function open() {
+            init();
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalMain)).show();
+            loadData();
+        }
+
+        return { init, open };
+    })();
+
+    window.openModalLAFS = function () {
+        lAFS_Module.open();
+    };
+
+    $(document).ready(function () {
+        window.openModalLAFS();
     });
 </script>

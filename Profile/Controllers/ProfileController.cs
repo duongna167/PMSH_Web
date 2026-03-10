@@ -21,9 +21,12 @@ using System.Net;
 using System.Security.Principal;
 using System.ServiceModel.Channels;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
+using static BaseBusiness.util.ValidationUtils;
 using static DevExpress.XtraPrinting.Native.PageSizeInfo;
+
 namespace Profile.Controllers
 {
     public class ProfileController : Controller
@@ -55,20 +58,26 @@ namespace Profile.Controllers
             return PartialView();
         }
 
-        public IActionResult ProfileCompany()
+        public IActionResult Individual()
         {
-            return PartialView("~/Views/Profile/NewProfileModal/ProfileCompany.cshtml");
-        }
-
-        public IActionResult ProfileContact()
-        {
-            return PartialView("~/Views/Profile/NewProfileModal/ProfileContact.cshtml");
+            return PartialView("~/Views/Profile/NewProfileModal/Individual.cshtml");
 
         }
 
-        public IActionResult ProfileGroup()
+        public IActionResult Company()
         {
-            return PartialView("~/Views/Profile/NewProfileModal/ProfileGroup.cshtml");
+            return PartialView("~/Views/Profile/NewProfileModal/Company.cshtml");
+        }
+
+        public IActionResult Contact()
+        {
+            return PartialView("~/Views/Profile/NewProfileModal/Contact.cshtml");
+
+        }
+
+        public IActionResult Group()
+        {
+            return PartialView("~/Views/Profile/NewProfileModal/Group.cshtml");
 
         }
 
@@ -77,6 +86,7 @@ namespace Profile.Controllers
             return PartialView("~/Views/Profile/NewProfileModal/ProfileIndividual.cshtml");
 
         }
+
 
         #region common
         /// <summary>
@@ -269,6 +279,23 @@ namespace Profile.Controllers
             try
             {
                 list = PropertyUtils.ConvertToList<CurrencyModel>(CurrencyBO.Instance.FindAll());
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+
+            return Json(list);
+
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllMarket()
+        {
+            List<MarketModel> list = new List<MarketModel>();
+            try
+            {
+                list = PropertyUtils.ConvertToList<MarketModel>(MarketBO.Instance.FindAll());
             }
             catch (Exception ex)
             {
@@ -1002,7 +1029,7 @@ namespace Profile.Controllers
 
         #region Tuan_ profile
         [HttpPost]
-        public ActionResult SaveProfile(SaveProfileRequestDto dto)
+        public ActionResult SaveProfileTuan(SaveProfileRequestDto dto)
         {
             if (dto == null)
             {
@@ -1515,8 +1542,8 @@ namespace Profile.Controllers
         #endregion
 
         #region Tuan_ProfileSreach
-        [HttpGet("ProfileIndividualSreach")]
-        public async Task<IActionResult> ProfileIndividualSreach(string LastName, string FirstName)
+        [HttpGet]
+        public async Task<IActionResult> ProfileIndividualSearch(string LastName, string FirstName)
         {
             try
             {
@@ -1657,16 +1684,13 @@ namespace Profile.Controllers
 
                 DateTime businessDate = businessDates[0].BusinessDate;
                 string sql = $@"
-SELECT DateOfBirth, Firstname
-FROM Profile WITH (NOLOCK)
-WHERE DAY(DateOfBirth)   = DAY('{businessDate:yyyy-MM-dd}')
-  AND MONTH(DateOfBirth) = MONTH('{businessDate:yyyy-MM-dd}')
-  AND YEAR(DateOfBirth) BETWEEN 2023 AND YEAR(GETDATE())
-  AND Firstname IS NOT NULL
-  AND LTRIM(RTRIM(Firstname)) <> ''";
-
-
-
+                    SELECT DateOfBirth, Firstname
+                    FROM Profile WITH (NOLOCK)
+                    WHERE DAY(DateOfBirth)   = DAY('{businessDate:yyyy-MM-dd}')
+                      AND MONTH(DateOfBirth) = MONTH('{businessDate:yyyy-MM-dd}')
+                      AND YEAR(DateOfBirth) BETWEEN 2023 AND YEAR(GETDATE())
+                      AND Firstname IS NOT NULL
+                      AND LTRIM(RTRIM(Firstname)) <> ''";
 
                 DataTable dataTable = TextUtils.Select(sql);
 
@@ -1685,5 +1709,110 @@ WHERE DAY(DateOfBirth)   = DAY('{businessDate:yyyy-MM-dd}')
         }
 
         #endregion
+
+        #region New/Edit Profile
+
+        [HttpPost]
+        public IActionResult SaveProfile([FromBody] ProfileModel model)
+        {
+            try
+            {
+
+                var checks = new List<ValidationError?>();
+                if (model == null)
+                {
+                    return Json(new { success = false, message = "Invalid data (model null)" });
+                }
+
+                bool isDuplicate = ProfileBO.Instance
+                   .IsDuplicateCode(model.Code, model.ID);
+
+                switch (model.Type)
+                {
+                    case 0: // Individual 
+                        //bool isInvalidIndividual = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{9}|\d{12})$");
+                        bool isInvalidIndividual = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{13})$");
+                        checks.Add(Check(isInvalidIndividual, "ind_txtCode", "Invalid code (minimum 13 characters)"));
+                        checks.Add(Check(model.Account, "ind_txtFullName", "Full name not blank"));
+                        checks.Add(Check(model.Firstname, "ind_txtFirstName", "First name not blank"));
+                        checks.Add(Check(model.LastName, "ind_txtLastName", "Last name not blank"));
+                        checks.Add(Check(model.NationalityID, "ind_txtNationality", "Nationality not blank"));
+
+                        checks.Add(CheckDuplicate(isDuplicate, "ind_txtCode", $"This code already exists: [{model.Code}]"));
+                        break;
+
+                    case 1: // Travel Agent 
+                    case 2: // Company  
+                    case 3: // SourceDeleteProfile
+                        //bool isInvalidTax = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{10}|\d{13})$");
+                        bool isInvalidTax = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{13})$");
+                        checks.Add(Check(isInvalidTax, "com_txtCode", "Invalid code (minimum 13 characters)"));
+                        checks.Add(Check(model.Account, "com_txtAccount", "Account not blank"));
+                        checks.Add(CheckDuplicate(isDuplicate, "com_txtCode", $"This code already exists: [{model.Code}]"));
+
+                        break;
+                    case 4: // Group
+                        //bool isInvalidGroupCode = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{9}|\d{12})$");
+                        bool isInvalidGroupCode = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{13})$");
+                        checks.Add(Check(isInvalidGroupCode, "gro_txtCode", "Invalid code (minimum 13 characters)"));
+                        checks.Add(Check(model.Account, "gro_txtGroupName", "Group Name be blank"));
+                        checks.Add(CheckDuplicate(isDuplicate, "gro_txtCode", $"This code already exists: [{model.Code}]"));
+
+                        break;
+                    case 5: // Contact
+                        //bool isInvalidContactCode = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{9}|\d{12})$");
+                        bool isInvalidContactCode = string.IsNullOrEmpty(model.Code) || !Regex.IsMatch(model.Code, @"^(\d{13})$");
+                        checks.Add(Check(isInvalidContactCode, "con_txtCode", "Invalid code (minimum 13 characters)"));
+                        checks.Add(Check(model.Account, "con_txtFullName", "Full name not blank"));
+                        checks.Add(Check(model.Firstname, "con_txtFirstName", "First name not blank"));
+                        checks.Add(Check(model.LastName, "con_txtLastName", "Last name not blank"));
+                        checks.Add(CheckDuplicate(isDuplicate, "con_txtCode", $"This code already exists: [{model.Code}]"));
+
+                        break;
+
+                    default: 
+                        
+                        break;
+                }
+
+                // Gom lỗi
+                var listErrors = GetErrors(checks.ToArray());
+
+                if (listErrors.Count > 0)
+                {
+                    return Json(new { success = false, errors = listErrors });
+                }
+
+                DateTime businessDate = TextUtils.GetBusinessDate();
+
+                if (model.ID > 0)
+                {
+                    var oldData = (ProfileModel)ProfileBO.Instance.FindByPrimaryKey(model.ID);
+                    if (oldData == null) return Json(new { success = false, message = "The data does not exist or has been deleted." });
+                    model.CreateDate = oldData.CreateDate;
+                    model.UserInsertID = oldData.UserInsertID;
+                    model.UpdateDate = DateTime.Now;
+                    ProfileBO.Instance.Update(model);
+                }
+                else
+                {
+
+                    model.CreateDate = businessDate;
+                    model.UpdateDate = DateTime.Now;
+                    ProfileBO.Instance.Insert(model);
+                }
+
+                return Json(new { success = true, message = "Save successfully" });
+
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error: " + ex.Message });
+            }
+
+        }
+
+        #endregion
+
     }
 }

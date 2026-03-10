@@ -1,755 +1,644 @@
 ﻿@using DevExpress.XtraReports.UI
 
-
 @{
-    var selectedReport = @ViewBag.ReportHeader;
+    var selectedReport = ViewBag.ReportHeader;
     var floorList = ViewBag.FloorList;
     var hkpSectionlist = ViewBag.hkpSectionList;
 }
-<style>
-    .dx-datagrid-headers .dx-header-row td {
-        white-space: pre-line !important;
-        text-align: center;
-        font-size: 11px;
-    }
 
+<!-- =========================
+     MAIN MODAL (modal-xl)
+     ========================= -->
+<div class="modal fade" id="attd_modalMain" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-4by3 modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
 
-    .dx-datagrid .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default,
-    .dx-datagrid-container .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default {
-        display: none;
-    }
+            <div class="modal-header">
+                <h5 class="modal-title">Attendants</h5>
+            </div>
 
+            <div class="modal-body">
 
-    .filter_wrapper {
-        /*     background-color: #ececec; */
-        /*   margin: 0px 8px 14px 8px; */
-        padding: 18px 0px 0px 14px;
-        border-radius: 8px;
-    }
-
-    .gridContainer {
-        margin: 0px 8px;
-    }
-
-    .button_wrapper {
-        display: flex;
-        column-gap: 12px;
-        margin: 0px 8px;
-    }
-
-    .button_wrapper .fa-solid {
-        margin-right: 5px;
-    }
-
-    .selected {
-        background-color: #4CAF50;
-        /* Màu xanh */
-        color: white;
-    }
-
-
-
-    .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
-    }
-
-    .sticky-header label[class*="me-"] {
-        margin-right: .5rem !important;
-    }
-
-
-    .sticky-header input[type="date"].form-control-sm {
-        font-size: 12px !important;
-        /* dúng 12?px */
-        height: calc(1.1em + .2rem + 2px);
-        /* gi? cùng chi?u cao */
-    }
-
-    .sticky-header label {
-        font-size: 12px !important;
-        line-height: 1.2;
-    }
-
-
-    .sort-select {
-        max-width: 130px;
-        /* ho?c 100px n?u mu?n nh? hon */
-        font-size: 12px;
-        padding: 0.15rem 0.5rem;
-    }
-
-    .sort-select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-image: none !important;
-        padding-right: 10px !important;
-    }
-</style>
-
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px">Attendants</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="">
-        <button id="btnPrint" class="mui-button mui-button-view"> View</button>
-        <button id="btnNew" class="mui-button mui-button-new"> New</button>
-        <button id="btnUpdate" class="mui-button mui-button-edit">  Edit</button>
-        <button id="btnDelete" class="mui-button mui-button-delete">
-            Delete</button>
-        <button id="btnExportExcel" class="mui-button mui-button-export" type="button">  Excel</button>
-
-    </div>
-</div>
-<div class="mui-card">
-    @*     <div style="font-size: 20px;" class="mt-1" id="reportTitle"></div> *@
-    <div id="gridContainer" class="gridContainer mt-2"></div>
-</div>
-<div id="overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999;"></div>
-<div id="popupNewAttendants" style="display: none; position: fixed; top: 50%; left: 50%;
-    transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px;
-    z-index: 1050; box-shadow: 0 0 10px rgba(0,0,0,0.3); min-width: 400px; max-height: 600px; overflow-y: auto;">
-
-    <div class="d-flex justify-content-between mb-2">
-        <h5 class="mb-0">New Attendants</h5>
-
-    </div>
-    <div class="d-flex justify-content-start mb-3 gap-2">
-
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnOkAuto" class="mui-button mui-button-advance"
-            type="button"> Ok</button>
-        <button style="border-radius: 4px;  margin-right: 6px;" id="btnSaveAuto" class="mui-button mui-button-new"
-            type="button"> Save</button>
-        <button onclick="$('#popupNewAttendants').hide()" id="btnClosePopup" class="mui-button mui-button-close"
-            style=" border-radius: 4px;">
-             Close
-        </button>
-    </div>
-    <div class="sticky-header bg-white p-2 shadow-sm z-3">
-        <div class="d-flex flex-wrap align-items-center gap-2 mb-1 filter-panel">
-            <div class="d-flex align-items-center flex-wrap mb-2">
-                <div class="d-flex align-items-start mb-3">
-                    <!-- Trace Time -->
-                    <input type="text" id="idattendant" name="idattendant" style="display:none !important"
-                        class="form-control form-control-sm w-auto" />
-                    <div class="d-flex align-items-center me-4">
-                        <label for="tracetime" class="me-2 mb-0">Name:</label>
-                        <input type="text" id="tracetime" name="tracetime"
-                            class="form-control form-control-sm w-auto" />
-                    </div>
-                    <div class="d-flex align-items-center me-4">
-                        <label for="tracetime" class="me-2 mb-0">Mobile No.:</label>
-                        <input type="text" id="tracetime" name="tracetime"
-                            class="form-control form-control-sm w-auto" />
-                    </div>
-                    <div class="d-flex align-items-center me-3">
-                        <label class="me-2 mb-0">Floor:</label>
-                        <select id="floor" name="floor" class="form-control form-control-sm w-auto">
-                            <option value="">-ALL--</option>
-                            @foreach (var item in floorList)
-                            {
-                                <option value="@item.ID">@item.Name</option>
-                            }
-                        </select>
-
-                    </div>
-                    <div class="d-flex align-items-center me-3">
-                        <label class="me-2 mb-0">Section:</label>
-                        <select id="sectionAd" name="sectionAd" class="form-control form-control-sm w-auto">
-                            <option value=""></option>
-                            @foreach (var item in hkpSectionlist)
-                            {
-                                <option value="@item.ID">@item.Code</option>
-                            }
-                        </select>
-                    </div>
+                <!-- Toolbar -->
+                <div class="search-filter">
+                    <button id="attd_btnView" type="button" class="mui-button mui-button-view">View</button>
+                    <button id="attd_btnNew" type="button" class="mui-button mui-button-new">New</button>
+                    <button id="attd_btnUpdate" type="button" class="mui-button mui-button-edit">Edit</button>
+                    <button id="attd_btnDelete" type="button" class="mui-button mui-button-delete">Delete</button>
+                    <button id="attd_btnExportExcel" type="button" class="mui-button mui-button-export">Excel</button>
+                    <button id="attd_btnClose" type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
                 </div>
-                <div class="d-flex align-items-start mb-3">
-                    <div class="d-flex align-items-center me-4">
-                        <label for="tracetime" class="me-2 mb-0">Job Code:</label>
-                        <input type="text" id="tracetime" name="tracetime"
-                            class="form-control form-control-sm w-auto" />
-                    </div>
-                    <div class="d-flex align-items-center me-3">
 
-
-                        <!-- Clean Uncheck -->
-                        <div class="form-check me-3">
-                            <span class="status-color-box color-clean-uncheck"></span>
-                            <input class="form-check-input" type="checkbox" id="isActive" name="includeOptions"
-                                value="1" checked>
-                            <label class="form-check-label" for="cleanUncheck">Is Active</label>
-                        </div>
-
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <div class="form-check me-2">
-                            <input class="form-check-input" type="checkbox" id="chkSun" name="days" value="Sun" checked>
-                            <label class="form-check-label" for="chkSun">Sun</label>
-                        </div>
-                        <div class="form-check me-2">
-                            <input class="form-check-input" type="checkbox" id="chkMon" name="days" value="Mon" checked>
-                            <label class="form-check-label" for="chkMon">Mon</label>
-                        </div>
-                        <div class="form-check me-2">
-                            <input class="form-check-input" type="checkbox" id="chkTue" name="days" value="Tue" checked>
-                            <label class="form-check-label" for="chkTue">Tue</label>
-                        </div>
-                        <div class="form-check me-2">
-                            <input class="form-check-input" type="checkbox" id="chkWed" name="days" value="Wed" checked>
-                            <label class="form-check-label" for="chkWed">Wed</label>
-                        </div>
-                        <div class="form-check me-2">
-                            <input class="form-check-input" type="checkbox" id="chkThu" name="days" value="Thu" checked>
-                            <label class="form-check-label" for="chkThu">Thu</label>
-                        </div>
-                        <div class="form-check me-2">
-                            <input class="form-check-input" type="checkbox" id="chkFri" name="days" value="Fri" checked>
-                            <label class="form-check-label" for="chkFri">Fri</label>
-                        </div>
-                        <div class="form-check me-2">
-                            <input class="form-check-input" type="checkbox" id="chkSat" name="days" value="Sat" checked>
-                            <label class="form-check-label" for="chkSat">Sat</label>
-                        </div>
-                    </div>
-
+                <!-- Grid -->
+                <div class="mui-card mt-1">
+                    <div id="attd_gridContainer" class="gridContainer"></div>
                 </div>
+
             </div>
         </div>
     </div>
-
-</div>
 </div>
 
+<!-- =========================
+     EDIT / NEW MODAL (modal-xl)
+     ========================= -->
+<div class="modal fade" id="attd_modalEdit" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
 
+            <div class="modal-header">
+                <h5 class="modal-title" id="attd_modalEditTitle">New Attendants</h5>
+            </div>
 
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
+            <div class="modal-body">
+
+                <div class="search-filter">
+                    <button id="attd_btnSaveContinue" type="button" class="mui-button mui-button-new">Save</button>
+                    <button id="attd_btnEditClose" type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <form id="attd_formEdit" novalidate>
+                    <input type="hidden" id="attd_id" name="attd_id" />
+
+                    <div class="row g-2 mt-1 mb-2">
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end"
+                                       for="attd_name">Name</label>
+                                <div class="col-md-8">
+                                    <input id="attd_name" name="attd_name" type="text" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end"
+                                       for="attd_mobileNo">Mobile No.</label>
+                                <div class="col-md-8">
+                                    <input id="attd_mobileNo" name="attd_mobileNo" type="text" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end"
+                                       for="attd_floor">Floor</label>
+                                <div class="col-md-8">
+                                    <select id="attd_floor" name="attd_floor" class="tomselect-custom">
+                                        <option value="">-ALL--</option>
+                                        @foreach (var item in floorList)
+                                        {
+                                            <option value="@item.ID">@item.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end"
+                                       for="attd_sectionAd">Section</label>
+                                <div class="col-md-8">
+                                    <select id="attd_sectionAd" name="attd_sectionAd" class="tomselect-custom">
+                                        <option value=""></option>
+                                        @foreach (var item in hkpSectionlist)
+                                        {
+                                            <option value="@item.ID">@item.Code</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end"
+                                       for="attd_jobCode">Job Code</label>
+                                <div class="col-md-8">
+                                    <input id="attd_jobCode" name="attd_jobCode" type="text" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-md-4"></div>
+                                <div class="col-md-8">
+                                    <div class="form-check">
+                                        <input type="checkbox" id="attd_isActive" name="attd_isActive" value="1" checked>
+                                        <label class="form-check-label" for="attd_isActive">Is Active</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="row g-2 align-items-start">
+                                <label class="col-md-2 col-form-label col-form-label-sm text-md-end">Days</label>
+                                <div class="col-md-10">
+                                    <div class="d-flex flex-wrap gap-3">
+
+                                        <div class="form-check">
+                                            <input type="checkbox" id="attd_chkSun" name="attd_days" value="Sun" checked>
+                                            <label class="form-check-label" for="attd_chkSun">Sun</label>
+                                        </div>
+
+                                        <div class="form-check">
+                                            <input type="checkbox" id="attd_chkMon" name="attd_days" value="Mon" checked>
+                                            <label class="form-check-label" for="attd_chkMon">Mon</label>
+                                        </div>
+
+                                        <div class="form-check">
+                                            <input type="checkbox" id="attd_chkTue" name="attd_days" value="Tue" checked>
+                                            <label class="form-check-label" for="attd_chkTue">Tue</label>
+                                        </div>
+
+                                        <div class="form-check">
+                                            <input type="checkbox" id="attd_chkWed" name="attd_days" value="Wed" checked>
+                                            <label class="form-check-label" for="attd_chkWed">Wed</label>
+                                        </div>
+
+                                        <div class="form-check">
+                                            <input type="checkbox" id="attd_chkThu" name="attd_days" value="Thu" checked>
+                                            <label class="form-check-label" for="attd_chkThu">Thu</label>
+                                        </div>
+
+                                        <div class="form-check">
+                                            <input type="checkbox" id="attd_chkFri" name="attd_days" value="Fri" checked>
+                                            <label class="form-check-label" for="attd_chkFri">Fri</label>
+                                        </div>
+
+                                        <div class="form-check">
+                                            <input type="checkbox" id="attd_chkSat" name="attd_days" value="Sat" checked>
+                                            <label class="form-check-label" for="attd_chkSat">Sat</label>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="attd_loadingSpinner"
+    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+    height: 100%;display: flex;align-items: center;justify-content: center;">
+    <div class="spinner-border text-primary"></div>
 </div>
 
 <script>
+    var attd_Module = (function () {
+        "use strict";
+
+        const SEL = {
+            modalMain: "#attd_modalMain",
+            modalEdit: "#attd_modalEdit",
+            spinner: "#attd_loadingSpinner",
+
+            btnView: "#attd_btnView",
+            btnNew: "#attd_btnNew",
+            btnUpdate: "#attd_btnUpdate",
+            btnDelete: "#attd_btnDelete",
+            btnExportExcel: "#attd_btnExportExcel",
+
+            grid: "#attd_gridContainer",
+
+            formEdit: "#attd_formEdit",
+            modalEditTitle: "#attd_modalEditTitle",
+
+            btnSaveContinue: "#attd_btnSaveContinue",
+
+            id: "#attd_id",
+            name: "#attd_name",
+            mobileNo: "#attd_mobileNo",
+            floor: "#attd_floor",
+            sectionAd: "#attd_sectionAd",
+            jobCode: "#attd_jobCode",
+            isActive: "#attd_isActive",
+
+            chkSun: "#attd_chkSun",
+            chkMon: "#attd_chkMon",
+            chkTue: "#attd_chkTue",
+            chkWed: "#attd_chkWed",
+            chkThu: "#attd_chkThu",
+            chkFri: "#attd_chkFri",
+            chkSat: "#attd_chkSat"
+        };
+
+        let _gridInstance = null;
+        let _selectedRowData = null;
+        let _bound = false;
+        let _mode = "new";
+
+        function showLoading(show) {
+            if (show) $(SEL.spinner).show();
+            else $(SEL.spinner).hide();
+        }
+
+        function csrfHeaders() {
+            return {
+                "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val()
+            };
+        }
+
+        function disposeGrid() {
+            try {
+                const inst = $(SEL.grid).dxDataGrid("instance");
+                if (inst) inst.dispose();
+            } catch (e) { }
+
+            _gridInstance = null;
+            _selectedRowData = null;
+            $(SEL.grid).empty();
+        }
+
+        function dxBoolCell(container, options) {
+            const checked = (options.value === true || options.value === "True");
+            $("<div>")
+                .dxCheckBox({
+                    value: checked,
+                    readOnly: true
+                })
+                .css("transform", "scale(0.8)")
+                .appendTo(container);
+        }
+
+        function initGrid(data) {
+            disposeGrid();
+
+            _gridInstance = $(SEL.grid).dxDataGrid({
+                dataSource: data || [],
+                showBorders: true,
+                selection: { mode: "single" },
+                height: 500,
+
+                columns: [
+                    { dataField: "ID", caption: "ID", width: 80, visible: false },
+                    { dataField: "FloorID", caption: "FloorID", width: 80, visible: false },
+                    { dataField: "SectionID", caption: "SectionID", width: 80, visible: false },
+                    { dataField: "Name", caption: "Name", width: 120 },
+                    { dataField: "MobileNo", caption: "Mobile No", width: 80 },
+                    { dataField: "section", caption: "Section", width: 80 },
+                    { dataField: "Floor", caption: "Floor", width: 80 },
+                    { dataField: "JobCode", caption: "Job", width: 80 },
+
+                    { dataField: "Sunday", caption: "Sun", width: 50, cellTemplate: dxBoolCell },
+                    { dataField: "Monday", caption: "Mon", width: 50, cellTemplate: dxBoolCell },
+                    { dataField: "Tuesday", caption: "Tue", width: 50, cellTemplate: dxBoolCell },
+                    { dataField: "Wednesday", caption: "Wed", width: 50, cellTemplate: dxBoolCell },
+                    { dataField: "Thursday", caption: "Thu", width: 50, cellTemplate: dxBoolCell },
+                    { dataField: "Friday", caption: "Fri", width: 50, cellTemplate: dxBoolCell },
+                    { dataField: "Saturday", caption: "Sat", width: 50, cellTemplate: dxBoolCell },
+                    { dataField: "IsActive", caption: "Active", width: 50, cellTemplate: dxBoolCell },
+
+                    { dataField: "CreatedBy", caption: "Updated By", width: 100 },
+                    { dataField: "CreatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy", width: 120 },
+                    { UpdatedBy: "CreatedBy", caption: "Created By", width: 100 },
+                    { dataField: "UpdatedDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy", width: 120 }
+                ],
+
+                scrolling: {
+                    mode: "standard",
+                    showScrollbar: "always",
+                    scrollByContent: true
+                },
+                paging: {
+                    pageSize: 50
+                },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [50, 100, "all"],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: {
+                    visible: true,
+                    applyFilter: "auto"
+                },
+
+                onSelectionChanged: function (e) {
+                    _selectedRowData = e.selectedRowsData.length > 0 ? e.selectedRowsData[0] : null;
+                },
+                onRowClick: function (e) {
+                    _selectedRowData = e.data || null;
+                }
+            }).dxDataGrid("instance");
+        }
+
+        function loadData() {
+            showLoading(true);
+
+            $.ajax({
+                url: "/HouseKeepingAdmin/AttendantsData",
+                type: "GET",
+                data: {},
+                traditional: true,
+                crossDomain: false,
+                headers: csrfHeaders(),
+                success: function (result) {
+                    initGrid(result);
+                    showLoading(false);
+                },
+                error: function () {
+                    showLoading(false);
+                    showToast("Error", "Không thể tải báo cáo.", false);
+                }
+            });
+        }
+
+        function clearForm() {
+            $(SEL.id).val("");
+            $(SEL.name).val("");
+            $(SEL.mobileNo).val("");
+            clearMultipleTomSelect(SEL.floor);
+            clearMultipleTomSelect(SEL.sectionAd);
+            $(SEL.jobCode).val("");
+
+            $(SEL.isActive).prop("checked", true);
+
+            $(SEL.chkSun).prop("checked", true);
+            $(SEL.chkMon).prop("checked", true);
+            $(SEL.chkTue).prop("checked", true);
+            $(SEL.chkWed).prop("checked", true);
+            $(SEL.chkThu).prop("checked", true);
+            $(SEL.chkFri).prop("checked", true);
+            $(SEL.chkSat).prop("checked", true);
+        }
+
+        function fillForm(row) {
+            $(SEL.id).val(row.ID || "");
+            $(SEL.name).val(row.Name || "");
+            $(SEL.mobileNo).val(row.MobileNo || "");
+            setTomSelectValueMulti(SEL.floor,row.FloorID || "");
+            setTomSelectValueMulti(SEL.sectionAd,row.SectionID || "");
+            $(SEL.jobCode).val(row.JobCode || "");
+
+            $(SEL.isActive).prop("checked", (row.IsActive === true || row.IsActive === "True"));
+
+            $(SEL.chkSun).prop("checked", (row.Sunday === true || row.Sunday === "True"));
+            $(SEL.chkMon).prop("checked", (row.Monday === true || row.Monday === "True"));
+            $(SEL.chkTue).prop("checked", (row.Tuesday === true || row.Tuesday === "True"));
+            $(SEL.chkWed).prop("checked", (row.Wednesday === true || row.Wednesday === "True"));
+            $(SEL.chkThu).prop("checked", (row.Thursday === true || row.Thursday === "True"));
+            $(SEL.chkFri).prop("checked", (row.Friday === true || row.Friday === "True"));
+            $(SEL.chkSat).prop("checked", (row.Saturday === true || row.Saturday === "True"));
+        }
+
+        function validateForm() {
+            const name = $(SEL.name).val().trim();
+            const floorID = $(SEL.floor).val();
+            const sectionID = $(SEL.sectionAd).val();
+
+            if (name === "") {
+                showToast("Error", "You must insert a name.", false);
+                $(SEL.name).focus();
+                return false;
+            }
+
+            if (floorID === "" || floorID === null) {
+                showToast("Error", "Please select a floor.", false);
+                $(SEL.floor).focus();
+                return false;
+            }
+
+            if (sectionID === "" || sectionID === null) {
+                showToast("Error", "Please select a section.", false);
+                $(SEL.sectionAd).focus();
+                return false;
+            }
+
+            return true;
+        }
+
+        function getSavePayload() {
+            return {
+                id: $(SEL.id).val(),
+                name: $(SEL.name).val().trim(),
+                mobileNo: $(SEL.mobileNo).val().trim(),
+                jobCode: $(SEL.jobCode).val().trim(),
+                floorID: $(SEL.floor).val(),
+                sectionID: $(SEL.sectionAd).val(),
+                isActive: $(SEL.isActive).is(":checked") ? 1 : 0,
+
+                sunday: $(SEL.chkSun).is(":checked") ? 1 : 0,
+                monday: $(SEL.chkMon).is(":checked") ? 1 : 0,
+                tuesday: $(SEL.chkTue).is(":checked") ? 1 : 0,
+                wednesday: $(SEL.chkWed).is(":checked") ? 1 : 0,
+                thursday: $(SEL.chkThu).is(":checked") ? 1 : 0,
+                friday: $(SEL.chkFri).is(":checked") ? 1 : 0,
+                saturday: $(SEL.chkSat).is(":checked") ? 1 : 0,
+
+                user: localStorage.getItem("Loginname")
+            };
+        }
+
+        function save(closeAfterSave) {
+            if (!validateForm()) return;
+
+            showLoading(true);
+
+            $.ajax({
+                url: "/HouseKeepingAdmin/AttendantsSave",
+                type: "POST",
+                data: getSavePayload(),
+                traditional: true,
+                crossDomain: false,
+                headers: csrfHeaders(),
+                success: function (result) {
+                    showLoading(false);
+
+                    if (result.success) {
+                        showToast("Success", result.message, true);
+                        loadData();
+
+                        if (closeAfterSave) {
+                            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).hide();
+                        } else {
+                            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).hide();
+                            clearForm();
+                            $(SEL.name).focus();
+                        }
+                    } else {
+                        showToast("Error", closeAfterSave ? "Please select before saving." : "Please select.", false);
+                    }
+                },
+                error: function () {
+                    showLoading(false);
+                    showToast("Error", "Không thể tải báo cáo.", false);
+                }
+            });
+        }
+
+        function openNew() {
+            _mode = "new";
+            clearForm();
+            $(SEL.modalEditTitle).text("New Attendants");
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).show();
+        }
+
+        function openEdit() {
+            if (!_selectedRowData) {
+                showToast("Warning", "Please select 1 row to edit.", false);
+                return;
+            }
+            console.log('_selectedRowData',_selectedRowData);
+            
+
+            _mode = "edit";
+            clearForm();
+            fillForm(_selectedRowData);
+
+            $(SEL.modalEditTitle).text("Edit Attendants");
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalEdit)).show();
+        }
+
+        function removeSelected() {
+            if (!_selectedRowData) {
+                showToast("Warning", "Please select 1 row to delete.", false);
+                return;
+            }
+
+            if (!confirm("Are you sure you want to delete this record?")) {
+                return;
+            }
+
+            showLoading(true);
+
+            $.ajax({
+                url: "/HouseKeepingAdmin/AttendantsDelete",
+                type: "POST",
+                data: {
+                    id: _selectedRowData.id
+                },
+                traditional: true,
+                crossDomain: false,
+                headers: csrfHeaders(),
+                success: function (result) {
+                    showLoading(false);
+
+                    if (result.success) {
+                        loadData();
+                    } else {
+                        showToast("Error", result.message, false);
+                    }
+                },
+                error: function () {
+                    showLoading(false);
+                    showToast("Error", "Không thể tải báo cáo.", false);
+                }
+            });
+        }
+
+        function exportExcel() {
+            const grid = $(SEL.grid).dxDataGrid("instance");
+            if (!grid) {
+                showToast("Error", "No grid data to export.", false);
+                return;
+            }
+
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells("A1:D1");
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "left" };
+
+            const now = new Date();
+            const exportDate = now.toLocaleString("vi-VN");
+            worksheet.addRow(["", "", "", exportDate]);
+            worksheet.mergeCells("D2:D2");
+            worksheet.getRow(2).alignment = { vertical: "middle", horizontal: "right" };
+
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            const reportRow = worksheet.addRow(["Attendants"]);
+            worksheet.mergeCells("A5:D5");
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: "middle", horizontal: "center" };
+
+            worksheet.addRow([]);
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: "center" };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "Attendants.xlsx");
+                });
+            });
+        }
+
+        function bindEventsOnce() {
+            if (_bound) return;
+            _bound = true;
+            initTomSelect(".tomselect-custom");
+            $(document)
+                .off("click.attd", SEL.btnView).on("click.attd", SEL.btnView, loadData)
+                .off("click.attd", SEL.btnNew).on("click.attd", SEL.btnNew, openNew)
+                .off("click.attd", SEL.btnUpdate).on("click.attd", SEL.btnUpdate, openEdit)
+                .off("click.attd", SEL.btnDelete).on("click.attd", SEL.btnDelete, removeSelected)
+                .off("click.attd", SEL.btnExportExcel).on("click.attd", SEL.btnExportExcel, exportExcel)
+                .off("click.attd", SEL.btnSaveContinue).on("click.attd", SEL.btnSaveContinue, function () { save(false); });
+
+            $(SEL.modalEdit)
+                .off("shown.bs.modal.attd")
+                .on("shown.bs.modal.attd", function () {
+                })
+                .off("hidden.bs.modal.attd")
+                .on("hidden.bs.modal.attd", function () {
+                    clearForm();
+                    _mode = "new";
+                    showLoading(false);
+                });
+
+            $(SEL.modalMain)
+                .off("hidden.bs.modal.attd")
+                .on("hidden.bs.modal.attd", function () {
+                    disposeGrid();
+                    showLoading(false);
+                });
+        }
+
+        function init() {
+            bindEventsOnce();
+        }
+
+        function open() {
+            init();
+            bootstrap.Modal.getOrCreateInstance(document.querySelector(SEL.modalMain)).show();
+            loadData();
+        }
+
+        return { init, open };
+    })();
+
+    window.openModalAttd = function () {
+        attd_Module.open();
+    };
 
     $(document).ready(function () {
-
-        $("#btnPrint").trigger("click");
-
-    });
-
-
-
-    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/HouseKeepingAdmin/AttendantsData',
-            type: 'GET',
-            data: {
-
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-
-                console.log(result);
-                initializeAttendantsGrid(result);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-    var selectedRowData = null;
-    function initializeAttendantsGrid(data) {
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            showBorders: true,
-            selection: { mode: "single" },
-            paging: { pageSize: 20 },
-            pager: {
-                showPageSizeSelector: true,
-                allowedPageSizes: [20, 50, 100],
-                showInfo: true
-            },
-            filterRow: { visible: true },
-            columns: [
-                { dataField: "id", caption: "ID", width: 80, visible: false },
-                { dataField: "name", caption: "Name", width: 200 },
-                { dataField: "mobileNo", caption: "Mobile No", width: 120 },
-                { dataField: "section", caption: "Section", width: 120 },
-                { dataField: "floor", caption: "Floor", width: 120 },
-                { dataField: "jobCode", caption: "Job", width: 120 },
-                // Chủ nhật
-                {
-                    dataField: "sunday", caption: "Sun", width: 80,
-                    cellTemplate: function (container, options) {
-                        let checked = (options.value === true || options.value === "True");
-                        $("<div>")
-                            .dxCheckBox({
-                                value: checked,
-                                readOnly: true
-                            })
-                            .css("transform", "scale(0.8)")
-                            .appendTo(container);
-                    }
-                },
-
-                // Thứ 2
-                {
-                    dataField: "monday", caption: "Mon", width: 80,
-                    cellTemplate: function (container, options) {
-                        let checked = (options.value === true || options.value === "True");
-                        $("<div>")
-                            .dxCheckBox({
-                                value: checked,
-                                readOnly: true
-                            })
-                            .css("transform", "scale(0.8)")
-                            .appendTo(container);
-                    }
-                },
-
-                // Thứ 3
-                {
-                    dataField: "tuesday", caption: "Tue", width: 80,
-                    cellTemplate: function (container, options) {
-                        let checked = (options.value === true || options.value === "True");
-                        $("<div>")
-                            .dxCheckBox({
-                                value: checked,
-                                readOnly: true
-                            })
-                            .css("transform", "scale(0.8)")
-                            .appendTo(container);
-                    }
-                },
-
-                // Thứ 4
-                {
-                    dataField: "wednesday", caption: "Wed", width: 80,
-                    cellTemplate: function (container, options) {
-                        let checked = (options.value === true || options.value === "True");
-                        $("<div>")
-                            .dxCheckBox({
-                                value: checked,
-                                readOnly: true
-                            })
-                            .css("transform", "scale(0.8)")
-                            .appendTo(container);
-                    }
-                },
-
-                // Thứ 5
-                {
-                    dataField: "thursday", caption: "Thu", width: 80,
-                    cellTemplate: function (container, options) {
-                        let checked = (options.value === true || options.value === "True");
-                        $("<div>")
-                            .dxCheckBox({
-                                value: checked,
-                                readOnly: true
-                            })
-                            .css("transform", "scale(0.8)")
-                            .appendTo(container);
-                    }
-                },
-
-                // Thứ 6
-                {
-                    dataField: "friday", caption: "Fri", width: 80,
-                    cellTemplate: function (container, options) {
-                        let checked = (options.value === true || options.value === "True");
-                        $("<div>")
-                            .dxCheckBox({
-                                value: checked,
-                                readOnly: true
-                            })
-                            .css("transform", "scale(0.8)")
-                            .appendTo(container);
-                    }
-                },
-
-                // Thứ 7
-                {
-                    dataField: "saturday", caption: "Sat", width: 80,
-                    cellTemplate: function (container, options) {
-                        let checked = (options.value === true || options.value === "True");
-                        $("<div>")
-                            .dxCheckBox({
-                                value: checked,
-                                readOnly: true
-                            })
-                            .css("transform", "scale(0.8)")
-                            .appendTo(container);
-                    }
-                },
-                {
-                    dataField: "isActive", caption: "Active", width: 80,
-                    cellTemplate: function (container, options) {
-                        let checked = (options.value === true || options.value === "True");
-                        $("<div>")
-                            .dxCheckBox({
-                                value: checked,
-                                readOnly: true
-                            })
-                            .css("transform", "scale(0.8)")
-                            .appendTo(container);
-                    }
-                },
-                { dataField: "updatedBy", caption: "Updated By", width: 120 },
-                { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy HH:mm", width: 160 },
-                { dataField: "createdBy", caption: "Updated By", width: 120 },
-                { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy HH:mm", width: 160 },
-            ],
-            scrolling: {
-                mode: "standard", // Không dùng virtual để footer hiển thị đúng
-                showScrollbar: "always",
-                scrollByContent: true
-            },
-            paging: {
-                pageSize: 50
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [50, 100, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            // 🔥 Quan trọng: gán selectedRowData khi click chọn
-            onRowClick: function (e) {
-                selectedRowData = e.data; // 🔥 lấy data của row vừa click
-                console.log("Selected Row (RowClick):", selectedRowData);
-
-            }
-        });
-    }
-    $("#btnNew").on("click", function () {
-
-        clearAttendants();
-        $('#overlay').fadeIn(200);
-        $('#popupNewAttendants').fadeIn(200);
-
-    });
-
-    $("#btnUpdate").on("click", function () {
-
-        if (selectedRowData.length === 0) {
-            showToast('Error', "Please select !", false);
-            return;
-        }
-
-        $("#btnOkAuto").hide();
-        $('#overlay').fadeIn(200);
-        $('#popupNewAttendants').fadeIn(200);
-
-        $('#popupNewAttendants input[name="tracetime"]').eq(0).val(selectedRowData.name || '');
-        $('#popupNewAttendants input[name="tracetime"]').eq(1).val(selectedRowData.mobileNo || '');
-        $('#popupNewAttendants select[name="floor"]').val(selectedRowData.floorID || '');
-        $('#popupNewAttendants select[name="sectionAd"]').val(selectedRowData.sectionID || '');
-        $('#popupNewAttendants input[name="tracetime"]').eq(2).val(selectedRowData.jobCode || '');
-        $('#popupNewAttendants input[name="idattendant"]').val(selectedRowData.id || '');
-        // Checkbox IsActive
-        $('#isActive').prop('checked', (selectedRowData.isActive === true || selectedRowData.isActive === "True"));
-
-        // Checkbox ngày trong tuần
-        $('#chkSun').prop('checked', (selectedRowData.sunday === true || selectedRowData.sunday === "True"));
-        $('#chkMon').prop('checked', (selectedRowData.monday === true || selectedRowData.monday === "True"));
-        $('#chkTue').prop('checked', (selectedRowData.tuesday === true || selectedRowData.tuesday === "True"));
-        $('#chkWed').prop('checked', (selectedRowData.wednesday === true || selectedRowData.wednesday === "True"));
-        $('#chkThu').prop('checked', (selectedRowData.thursday === true || selectedRowData.thursday === "True"));
-        $('#chkFri').prop('checked', (selectedRowData.friday === true || selectedRowData.friday === "True"));
-        $('#chkSat').prop('checked', (selectedRowData.saturday === true || selectedRowData.saturday === "True"));
-
-    });
-
-    $("#btnOkAuto").on("click", function () {
-
-        if (selectedRowData.length === 0) {
-            showToast('Error', "Please select at least one account!", false);
-            return;
-        }
-        // Lấy dữ liệu từ các input / select / checkbox
-        let name = $("input[name='tracetime']").eq(0).val().trim();    // ô Name
-        let mobileNo = $("input[name='tracetime']").eq(1).val().trim(); // ô Mobile No
-        let jobCode = $("input[name='tracetime']").eq(2).val().trim();  // ô Job Code
-
-        if (name === "") {
-            showToast('Error', "You must insert a name.", false);
-            $("input[name='tracetime']").eq(0).focus();
-            return;
-        }
-        let floorID = $("#floor").val();
-        if (floorID === "" || floorID === null) {
-            showToast('Error', "Please select a floor.", false);
-            $("#floor").focus();
-            return;
-        }
-
-        let sectionID = $("#sectionAd").val();
-        if (sectionID === "" || sectionID === null) {
-            showToast('Error', "Please select a section.", false);
-            $("#sectionAd").focus();
-            return;
-        }
-
-        let isActive = $("#isActive").is(":checked") ? 1 : 0;
-
-        // Các checkbox ngày trong tuần
-        let sunday = $("#chkSun").is(":checked") ? 1 : 0;
-        let monday = $("#chkMon").is(":checked") ? 1 : 0;
-        let tuesday = $("#chkTue").is(":checked") ? 1 : 0;
-        let wednesday = $("#chkWed").is(":checked") ? 1 : 0;
-        let thursday = $("#chkThu").is(":checked") ? 1 : 0;
-        let friday = $("#chkFri").is(":checked") ? 1 : 0;
-        let saturday = $("#chkSat").is(":checked") ? 1 : 0;
-
-
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/HouseKeepingAdmin/AttendantsSave',
-            type: 'POST',
-            data: {
-                id: $("#idattendant").val(),
-                name: name,
-                mobileNo: mobileNo,
-                jobCode: jobCode,
-                floorID: floorID,
-                sectionID: sectionID,
-                isActive: isActive,
-
-                // Ngày trong tuần
-                sunday: sunday,
-                monday: monday,
-                tuesday: tuesday,
-                wednesday: wednesday,
-                thursday: thursday,
-                friday: friday,
-                saturday: saturday,
-                user: localStorage.getItem("Loginname")
-
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if (result.success) {
-                    showToast('Success', result.message, true);
-                    $('#popupNewAttendants').fadeOut(200);
-                    
-                    $("#btnPrint").trigger("click");
-                    clearAttendants();
-                } else {
-                    showToast('Error', 'Please select before saving.', false);
-                }
-                console.log(result);
-
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-    $("#btnSaveAuto").on("click", function () {
-
-
-        let name = $("input[name='tracetime']").eq(0).val().trim();    // ô Name
-        let mobileNo = $("input[name='tracetime']").eq(1).val().trim(); // ô Mobile No
-        let jobCode = $("input[name='tracetime']").eq(2).val().trim();  // ô Job Code
-
-        if (name === "") {
-            showToast('Error', "You must insert a name.", false);
-            $("input[name='tracetime']").eq(0).focus();
-            return;
-        }
-        let floorID = $("#floor").val();
-        if (floorID === "" || floorID === null) {
-            showToast('Error', "Please select a floor.", false);
-            $("#floor").focus();
-            return;
-        }
-
-        let sectionID = $("#sectionAd").val();
-        if (sectionID === "" || sectionID === null) {
-            showToast('Error', "Please select a section.", false);
-            $("#sectionAd").focus();
-            return;
-        }
-
-        let isActive = $("#isActive").is(":checked") ? 1 : 0;
-
-        // Các checkbox ngày trong tuần
-        let sunday = $("#chkSun").is(":checked") ? 1 : 0;
-        let monday = $("#chkMon").is(":checked") ? 1 : 0;
-        let tuesday = $("#chkTue").is(":checked") ? 1 : 0;
-        let wednesday = $("#chkWed").is(":checked") ? 1 : 0;
-        let thursday = $("#chkThu").is(":checked") ? 1 : 0;
-        let friday = $("#chkFri").is(":checked") ? 1 : 0;
-        let saturday = $("#chkSat").is(":checked") ? 1 : 0;
-
-
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/HouseKeepingAdmin/AttendantsSave',
-            type: 'POST',
-            data: {
-                id: $("#idattendant").val(),
-                name: name,
-                mobileNo: mobileNo,
-                jobCode: jobCode,
-                floorID: floorID,
-                sectionID: sectionID,
-                isActive: isActive,
-
-                // Ngày trong tuần
-                sunday: sunday,
-                monday: monday,
-                tuesday: tuesday,
-                wednesday: wednesday,
-                thursday: thursday,
-                friday: friday,
-                saturday: saturday,
-                user: localStorage.getItem("Loginname")
-
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if (result.success) {
-                    showToast('Success', result.message, true);
-                    clearAttendants();
-                    $("#btnPrint").trigger("click");
-                } else {
-                    showToast('Error', 'Please select.', false);
-                }
-                console.log(result);
-
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-
-    $('#btnClosePopup, #overlay').click(function () {
-        $('#popupNewAttendants').fadeOut(200);
-        $("#btnOkAuto").show();
-        
-    });
-    function clearAttendants() {
-        // Xóa toàn bộ text input
-        $('#popupNewAttendants input[type="text"]').val('');
-
-        // Đặt lại select về giá trị rỗng
-        $('#popupNewAttendants select').val('');
-
-    }
-
-
-
-
-    $(document).off("click", "#btnDelete").on("click", "#btnDelete", function () {
-        if (!selectedRowData) {
-            showToast('Error', 'Please select 1 row to delete.', false);
-            return;
-        }
-        if (!confirm("Are you sure you want to delete this record?")) {
-            return; // Nếu chọn Cancel thì dừng
-        }
-        $.ajax({
-            url: '/HouseKeepingAdmin/AttendantsDelete',
-            type: 'POST',
-            data: {
-                id: selectedRowData.id
-
-
-            },
-            traditional: true,
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if (result.success) {
-
-                    $("#btnPrint").trigger("click");
-                } else {
-                    showToast('Error', result.message, false);
-                }
-
-            },
-            error: function () {
-                alert("Không th? t?i báo cáo.");
-                $("#loadingSpinner").hide();
-            }
-        });
-
-
-    });
-
-
-
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance");   // 🔥 khai báo grid
-
-        const workbook = new ExcelJS.Workbook();
-        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === Dòng 1: Tên công ty (merge theo 4 cột) ===
-        worksheet.addRow([companyName]);
-        worksheet.mergeCells('A1:D1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Ngày giờ xuất (bên phải) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', exportDate]);
-        worksheet.mergeCells('D2:D2');  // cột D thôi
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: trống
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-        const reportRow = worksheet.addRow(['Attendants']);
-        worksheet.mergeCells('A5:D5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: trống
-        worksheet.addRow([]);
-
-        // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 }
-        }).then(function () {
-            // Footer (sau cùng)
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = "Attendants.xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
-            });
-        });
+        window.openModalAttd();
     });
 </script>

@@ -78,9 +78,11 @@ namespace Reservation.Controllers
         public IActionResult AllotmentTypeSave([FromBody] AllotmentTypeModel model)
         {
             string message = "";
+            if (model == null)
+            {
+                return Json(new { success = false, message = "Invalid data (model null)" });
+            }
             var listErrors = GetErrors(
-                Check(model == null, "general", "Invalid data"),
-
                 Check(model?.Code, "code", "Code is not blank."),
                 Check(model?.Name, "name", "Name is not blank.")
             );
@@ -203,9 +205,11 @@ namespace Reservation.Controllers
         public IActionResult AllotmentStageSave([FromBody] AllotmentStageModel model)
         {
             string message = "";
+            if (model == null)
+            {
+                return Json(new { success = false, message = "Invalid data (model null)" });
+            }
             var listErrors = GetErrors(
-                Check(model == null, "general", "Invalid data"),
-
                 Check(model?.Code, "code", "Code is not blank."),
                 Check(model?.Name, "name", "Name is not blank.")
             );

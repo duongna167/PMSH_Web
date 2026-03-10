@@ -38,7 +38,7 @@
                             <div class="col-md-3">
                                 <div class="d-flex align-items-center">
                                     <label for="pro_search_txtCity" class="col-form-label text-end me-2" style="width: 85px;">City</label>
-                                    <select id="pro_search_txtCity" class="form-select flex-grow-1 form-select-sm"></select>
+                                    <select id="pro_search_txtCity" class="tomselect-custom flex-grow-1 form-select-sm"></select>
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -51,7 +51,7 @@
                             </div>
                             <div class="col-md-3">
                                 <div class="form-check ms-2">
-                                    <input type="checkbox" class="" id="pro_search_txtShowSaleInCharge">
+                                    <input type="checkbox" class="me-2" id="pro_search_txtShowSaleInCharge">
                                     <label class="form-check-label shadow-none" for="pro_search_txtShowSaleInCharge" style="font-size: 0.9rem; white-space: nowrap;">
                                         Show Sale In Charge
                                     </label>
@@ -88,11 +88,6 @@
                     </div>
                     <div class="gridContainer mt-2 d-flex flex-column flex-grow-1 overflow-auto">
                         <div id="pro_search_gridContainer"></div>
-                        <div id="pro_search_loadingSpinner" style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
-                        z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
-                        height: 100%;display: flex;align-items: center;justify-content: center;">
-                            <div class="spinner-border text-primary" role="status"></div>
-                        </div>
                     </div>
 
                 </div>
@@ -129,7 +124,7 @@
             <div class="modal-body">
                 <div class="toolbar-menu mt-2 row" id="pro_search_functionAndOption">
                     <a href="#" class="font-semibold col-md-6 mb-1" onclick="openModalChanges();">Changes</a>
-                    <a href="#" class="font-semibold col-md-6 mb-1" onclick="deleteProfile();">Delete</a>
+                    <a href="#" class="font-semibold col-md-6 mb-1" id="pro_search_btnDelete">Delete</a>
                     <a href="#" class="font-semibold col-md-6 mb-1" onclick="openModalFuture();">Future</a>
                     <a href="#" class="font-semibold col-md-6 mb-1" onclick="GetProfileHistory();">History</a>
                     <a href="#" class="font-semibold col-md-6 mb-1" onclick="openModalMembership();">Memberships</a>
@@ -145,13 +140,12 @@
 
 <div class="modal fade" id="pro_search_modalHistory" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content modal-full-height">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">History</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-2">
+                <div class="py-2">
                     <button class="mui-button mui-button-new" onclick="AttachAccompanying();">Attach</button>
                     <button class="mui-button mui-button-new" onclick="detach()">Detach</button>
                     <button class="mui-button mui-button-new" onclick="openModalViewProfile()">Profile</button>
@@ -190,351 +184,136 @@
         initDOMEvents: function () {
             const self = this;
         
-            // Nút bấm trên thanh công cụ chính
             $("#pro_search_btnSearch").on("click", () => self.getAllProfiles());
-            $("#pro_search_btnNew").on("click", () => self.editProfile('NEW'));
-            $("#pro_search_btnEdit").on("click", () => self.editProfile('EDIT'));
             $("#pro_search_btnClear").on("click", () => self.clearSearchForm());
             $("#pro_search_btnOption").on("click", () => self.openModalOption());
             $("#pro_search_btnHistory").on("click", () => self.GetProfileHistory());
-        
-            // Các nút trong Modal Option (ví dụ dùng class hoặc id cụ thể)
             $("#pro_search_btnDelete").on("click", () => self.deleteProfile());
-        
-            // $(".btn-save-profile").on("click", () => self.saveProfile());
+            $("#pro_search_txtType").on("change", function () {
+                self.getAllProfiles();
+                const by = $("#pro_search_txtType").val();
+                console.log(" view by: "+ by);
+            });
+
+            // Nút New của modal SearchProfile
+            $("#pro_search_btnNew").click(function () {
+                const type = $("#pro_search_txtType").val();
+
+                switch (type) {
+                    case "0": // Individual
+                        if (typeof openModalIndividual === 'function') {
+                            openModalIndividual();
+                        }
+                        break;
+
+                    case "1": // Travel Agent
+                    case "2": // Company
+                    case "3": // Source
+                        if (typeof openModalCompany === 'function') {
+                            openModalCompany(parseInt(type));
+                        }
+                        break;
+
+                    case "4": // Group
+                        if (typeof openModalGroup === 'function') {
+                            openModalGroup();
+                        }
+                        break;
+
+                    case "5": // Contact
+                        if (typeof openModalContact === 'function') {
+                            openModalContact();
+                        }
+                        break;
+
+                    default:
+                        showToast("Warning","Please choose profile type (View by)",false);
+                }
+            });
+
+            // Nút edit của modal SearchProfile
+            $("#pro_search_btnEdit").click(function () {
+                if (!self.profileID || self.profileID <= 0) {
+                    showToast("Warning", "Please select a profile to edit", false);
+                    return;
+                }
+
+                const id = self.profileID;
+                const type = String(self.profileType);
+
+                switch (type) {
+                    case "0": // Individual
+                        ModalManager.load('/Profile/Individual', 'modalIndividual', function() {
+                            waitForFunction("pro_ind_Module", () => {
+                                window.pro_ind_Module.init();
+                                if (window.pro_ind_Module.loadProfileByID) {
+                                    setTimeout(() => window.pro_ind_Module.loadProfileByID(id), 300);
+                                }
+                            });
+                        });
+                        break;
+                    case "1": // Travel Agent
+                    case "2": // Company
+                    case "3": // Source
+                        ModalManager.load('/Profile/Company', 'modalCompany', function() {
+                            waitForFunction("pro_com_Module", () => {
+                                window.pro_com_Module.init(parseInt(type));
+                                if (window.pro_com_Module.loadProfileByID) {
+                                    setTimeout(() => window.pro_com_Module.loadProfileByID(id), 300);
+                                }
+                            });
+                        });
+                        break;
+                    case "4": // Group
+                        ModalManager.load('/Profile/Group', 'modalGroup', function() {
+                            waitForFunction("pro_gro_Module", () => {
+                                window.pro_gro_Module.init();
+                                if (window.pro_gro_Module.loadProfileByID) {
+                                    setTimeout(() => window.pro_gro_Module.loadProfileByID(id), 300);
+                                }
+                            });
+                        });
+                        break;
+                    case "5": // Contact
+                        ModalManager.load('/Profile/Contact', 'modalContact', function() {
+                            waitForFunction("pro_con_Module", () => {
+                                window.pro_con_Module.init();
+                                if (window.pro_con_Module.loadProfileByID) {
+                                    setTimeout(() => window.pro_con_Module.loadProfileByID(id), 300);
+                                }
+                            });
+                        });
+                        break;
+                    default:
+                        showToast("Warning", "Edit logic for this type is under development", false);
+                }
+            });
+
         },
 
         bindEvents: function () {
             const self = this;
-            // Prefix: pro_search_txtFullNameIndividual
-            $('#pro_search_txtFullNameIndividual').off('blur').on('blur', function () {
-                self.checkFullName({
-                    fullNameSelector: '#pro_search_txtFullNameIndividual',
-                    firstNameSelector: '#pro_search_txtFirstNameIndividual',
-                    middleNameSelector: '#pro_search_txtMiddleNameIndividual',
-                    lastNameSelector: '#pro_search_txtLastNameIndividual',
-                    salutationSelector: '#pro_search_txtSalutationIndividual',
-                    titleSelector: '#pro_search_txtTitleIndividual',
-                    idForm: "#profile_individual" 
-                });
-            });
-
-            $('#pro_search_txtFullNameContact').off('blur').on('blur', function () {
-                self.checkFullName({
-                    fullNameSelector: '#pro_search_txtFullNameContact',
-                    firstNameSelector: '#pro_search_txtFirstNameContact',
-                    middleNameSelector: '#pro_search_txtMiddleNameContact',
-                    lastNameSelector: '#pro_search_txtLastContact',
-                    salutationSelector: '#pro_search_txtSalulationContact',
-                    titleSelector: '#pro_search_txtTitleContact',
-                    idForm: "#profile_contact"
-                });
-            });
-
-            $('#pro_search_txtMarketTypeCOM').off('change').on('change', function () {
-                self.getMarket2();
-            });
+            
         },
 
         loadInitialData: function() {
-            this.getAllCity();
-            this.getAllLanguage2();
-            this.getAllTitle2();
-            this.getAllNationality2();
-            this.getAllCountry2();
-            this.getAllState2();
-            this.getAllCity2();
-            this.getAllVIP2();
-            this.getAllOwner2();
-            this.getAllTerritory2();
-            this.getCompanyType2();
-            this.getCurrency2();
-            this.getMarketType2();
+            initTomSelect('.tomselect-custom');
+            const mapCode = (item) => ({
+                value: item.id || item.ID,
+                text: (item.code || item.Code) + "-" + (item.name || item.Name),
+                data: item
+            });
+            loadDataToTomSelect("#pro_search_txtCity", "/Profile/GetAllCity", mapCode);
+
+
         }, 
 
         getAllProfiles: function () {
-            $("#pro_search_loadingSpinner").show();
             if (this.gridInstance) {
                 this.gridInstance.refresh();
             } else {
                 this.initializeDataGrid();
             }
-        },
-
-        getAllCity: function () {
-            $.ajax({
-                url: '/Profile/GetAllCity',
-                type: 'get',
-                dataType: 'json',
-                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-                success: function (result) {
-                    if (result.length > 0) {
-                        $('#pro_search_txtCity').empty(); // Prefix
-                        var html = `<option value=''></option>`;
-                        for (var i = 0; i < result.length; i++) {
-                            html += `<option value='${result[i].name}'>${result[i].code} - ${result[i].name}</option>`
-                        }
-                        $('#pro_search_txtCity').append(html);
-                    }
-                }
-            });
-        },
-    
-        getAllLanguage2: function () {
-            const self = this;
-            $.ajax({
-                url: '/Profile/GetAllLanguage',
-                type: 'get',
-                dataType: 'json',
-                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-                success: function (result) {
-                    if (result.length > 0) {
-                        const targets = ['#pro_search_txtLanguageIndividual', '#pro_search_txtLanguageGroup', '#pro_search_txtLanguageContact'];
-                        targets.forEach(selector => {
-                            let ts = $(selector)[0]?.tomselect;
-                            if (ts) {
-                                ts.clearOptions();
-                                result.forEach(item => {
-                                    ts.addOption({ value: item.id, text: `${item.code} - ${item.name}` });
-                                });
-                                ts.setValue('0');
-                            }
-                        });
-                    }
-                }
-            });
-        },
-
-        getAllTitle2: function () {
-            $.ajax({
-                url: '/Profile/GetAllTitle',
-                type: 'get',
-                dataType: 'json',
-                success: function (result) {
-                    const targets = ['#pro_search_txtTitleIndividual', '#pro_search_txtTitleContact'];
-                    targets.forEach(selector => {
-                        let ts = $(selector)[0]?.tomselect;
-                        if (ts) {
-                            ts.clearOptions();
-                            result.forEach(item => {
-                                ts.addOption({ value: item.id, text: `${item.code} - ${item.name}` });
-                            });
-                            ts.setValue('0');
-                        }
-                    });
-                }
-            });
-        },
-
-        getAllNationality2: function () {
-            $.ajax({
-                url: '/Profile/GetAllNationality',
-                type: 'get',
-                dataType: 'json',
-                success: function (result) {
-                    let ts = $('#pro_search_txtNationalityIndividual')[0]?.tomselect;
-                    if (ts) {
-                        ts.clearOptions();
-                        result.forEach(item => {
-                            ts.addOption({ value: item.id, text: `${item.code} - ${item.name}` });
-                        });
-                        ts.setValue('0');
-                    }
-                }
-            });
-        },
-
-        getAllCountry2: function () {
-            $.ajax({
-                url: '/Profile/GetAllCountry',
-                type: 'get',
-                dataType: 'json',
-                success: function (result) {
-                    const targets = ['#pro_search_txtCountryIndividual', '#pro_search_txtCountryCOM', '#pro_search_txtCountryGroup', '#pro_search_txtCountryContact'];
-                    targets.forEach(selector => {
-                        let ts = $(selector)[0]?.tomselect;
-                        if (ts) {
-                            ts.clearOptions();
-                            result.forEach(item => {
-                                ts.addOption({ value: item.id, text: `${item.code} - ${item.name}` });
-                            });
-                        }
-                    });
-                }
-            });
-        },
-
-        getAllState2: function () {
-            $.ajax({
-                url: '/Profile/GetAllState',
-                type: 'get',
-                dataType: 'json',
-                success: function (result) {
-                    const targets = ['#pro_search_txtStateIndividual', '#pro_search_txtStateCOM', '#pro_search_txtStateGroup', '#pro_search_txtStateContact'];
-                    targets.forEach(selector => {
-                        let ts = $(selector)[0]?.tomselect;
-                        if (ts) {
-                            ts.clearOptions();
-                            result.forEach(item => {
-                                ts.addOption({ value: item.id, text: item.stateName });
-                            });
-                        }
-                    });
-                }
-            });
-        },
-
-        getAllCity2: function () {
-            $.ajax({
-                url: '/Profile/GetAllCity',
-                type: 'get',
-                dataType: 'json',
-                success: function (result) {
-                    const targets = ['#pro_search_txtCityIndividual', '#pro_search_txtCityCOM', '#pro_search_txtCityContact'];
-                    targets.forEach(selector => {
-                        let ts = $(selector)[0]?.tomselect;
-                        if (ts) {
-                            ts.clearOptions();
-                            result.forEach(item => {
-                                ts.addOption({ value: item.code, text: `${item.code} - ${item.name}` });
-                            });
-                        }
-                    });
-                }
-            });
-        },
-
-        getAllVIP2: function () {
-            $.ajax({
-                url: '/Profile/GetAllVIP',
-                type: 'get',
-                dataType: 'json',
-                success: function (result) {
-                    const targets = ['#pro_search_txtVIPIndividual', '#pro_search_txtVipGroup'];
-                    targets.forEach(selector => {
-                        let ts = $(selector)[0]?.tomselect;
-                        if (ts) {
-                            ts.clearOptions();
-                            result.forEach(item => {
-                                ts.addOption({ value: item.id, text: `${item.code} - ${item.name}` });
-                            });
-                        }
-                    });
-                }
-            });
-        },
-
-        getAllOwner2: function () {
-            $.ajax({
-                url: '/Profile/GetAllOwner',
-                type: 'get',
-                dataType: 'json',
-                success: function (result) {
-                    const targets = ['#pro_search_txtOwnerCOM', '#pro_search_txtOwnerContact'];
-                    targets.forEach(selector => {
-                        let ts = $(selector)[0]?.tomselect;
-                        if (ts) {
-                            ts.clearOptions();
-                            result.forEach(item => {
-                                ts.addOption({ value: item.id, text: `${item.code} - ${item.name}` });
-                            });
-                        }
-                    });
-                }
-            });
-        },
-
-        getAllTerritory2: function () {
-            $.ajax({
-                url: '/Profile/GetAllTerritory',
-                type: 'get',
-                dataType: 'json',
-                success: function (result) {
-                    const targets = ['#pro_search_txtTerritoryCOM', '#pro_search_txtTerritoryContact'];
-                    targets.forEach(selector => {
-                        let ts = $(selector)[0]?.tomselect;
-                        if (ts) {
-                            ts.clearOptions();
-                            result.forEach(item => {
-                                ts.addOption({ value: item.id, text: `${item.code} - ${item.name}` });
-                            });
-                        }
-                    });
-                }
-            });
-        },
-
-        getCompanyType2: function () {
-            $.ajax({
-                url: '/Profile/GetAllCompanyType',
-                type: 'get',
-                dataType: 'json',
-                success: function (result) {
-                    let ts = $('#pro_search_txtCompanyTypeCOM')[0]?.tomselect;
-                    if (ts) {
-                        ts.clearOptions();
-                        result.forEach(item => {
-                            ts.addOption({ value: item.id, text: `${item.code} - ${item.name}` });
-                        });
-                    }
-                }
-            });
-        },
-
-        getCurrency2: function () {
-            $.ajax({
-                url: '/Profile/GetAllCurrency',
-                type: 'get',
-                dataType: 'json',
-                success: function (result) {
-                    const targets = ['#pro_search_txtCurrencyCOM', '#pro_search_txtCurrencyGroup'];
-                    targets.forEach(selector => {
-                        let ts = $(selector)[0]?.tomselect;
-                        if (ts) {
-                            ts.clearOptions();
-                            result.forEach(item => {
-                                ts.addOption({ value: item.id, text: item.description });
-                            });
-                        }
-                    });
-                }
-            });
-        },
-
-        getMarketType2: function () {
-            const self = this;
-            $.ajax({
-                url: '/Profile/GetMarketType',
-                type: 'get',
-                dataType: 'json',
-                success: function (result) {
-                    let ts = $('#pro_search_txtMarketTypeCOM')[0]?.tomselect;
-                    if (ts) {
-                        ts.clearOptions();
-                        result.forEach(item => {
-                            ts.addOption({ value: item.id, text: item.description });
-                        });
-                    }
-                }
-            });
-        },
-
-        getMarket2: function () {
-            $.ajax({
-                url: '/Profile/GetMarketByFK',
-                type: 'get',
-                dataType: 'json',
-                data: { marketTypeID: $('#pro_search_txtMarketTypeCOM').val() },
-                success: function (result) {
-                    let ts = $('#pro_search_txtMarketCOM')[0]?.tomselect;
-                    if (ts) {
-                        ts.clearOptions();
-                        result.forEach(item => {
-                            ts.addOption({ value: item.id, text: item.description });
-                        });
-                    }
-                }
-            });
         },
 
         initializeDataGrid: function () {
@@ -546,7 +325,6 @@
                     var params = {
                         skip: loadOptions.skip || 0,
                         take: loadOptions.take || 20,
-                        // Sử dụng tiền tố pro_search_ cho các selector lấy dữ liệu search
                         code: $('#pro_search_txtCode').val(),
                         account: $('#pro_search_txtAccount').val(),
                         firstName: $('#pro_search_txtFirstName').val(),
@@ -559,6 +337,7 @@
                     $.ajax({
                         url: '/Profile/GetAllProfileTest',
                         type: 'GET',
+                        loadingGrid: '#pro_search_gridContainer',
                         dataType: 'json',
                         data: params,
                         cache: false,
@@ -693,9 +472,11 @@
                     enabled: false
                 },
                 onRowClick: function (e) {
-                    self.profileID = e.data.id;
-                    self.profileType = e.data.type;
-                    self.profileName = e.data.account;
+                    self.profileID = e.data.id || e.data.ID;
+                    self.profileType = e.data.type !== undefined ? e.data.type : e.data.Type;
+                    self.profileName = e.data.account || e.data.Account;
+
+                    console.log("Selected Profile:", self.profileID, "Type:", self.profileType);
                 },
                 onRowDblClick: function(e) {
                     // Thực thi callback trả dữ liệu về modal gọi nó nếu có
@@ -707,9 +488,6 @@
                         if (modal) modal.hide();
                     }
                 },
-                onContentReady: function () {
-                    $("#pro_search_loadingSpinner").hide();
-                }
             }).dxDataGrid("instance");
         },
 
@@ -720,362 +498,11 @@
             if ($('#pro_search_txtCity')[0]?.tomselect) {
                 $('#pro_search_txtCity')[0].tomselect.clear();
             }
+            $("#pro_search_txtShowSaleInCharge").prop("checked", false);
         },
 
         openModalOption: function() {
             $('#pro_search_modalOption').modal('show');
-        },
-
-        saveProfile: async function (manualType = null) {
-            const self = this;
-            var formData = new FormData();
-
-            // Lấy instance của grid để kiểm tra dữ liệu đang chọn (nếu là edit)
-            var grid = this.gridInstance;
-            if (!grid) return;
-
-            // Xác định loại profile đang thao tác
-            var typeValue = manualType !== null ? manualType : ($('#pro_search_txtType').val() || "0");
-            var id = grid.getSelectedRowsData()?.[0]?.id ?? 0;
-
-            // ==========================================
-            // CASE 0: INDIVIDUAL (Cá nhân)
-            // ==========================================
-            if (typeValue === "" || typeValue === "0") {
-                const individualValid = await this.checkFullName({
-                    fullNameSelector: '#pro_search_txtFullNameIndividual',
-                    firstNameSelector: '#pro_search_txtFirstNameIndividual',
-                    middleNameSelector: '#pro_search_txtMiddleNameIndividual',
-                    lastNameSelector: '#pro_search_txtLastNameIndividual',
-                    salutationSelector: '#pro_search_txtSalutationIndividual',
-                    titleSelector: '#pro_search_txtTitleIndividual',
-                    idForm: "#profile_individual"
-                });
-                if (!individualValid) return;
-
-                formData.append('ID', $("#pro_search_idIndividual").val());
-                formData.append('CodeIndividual', $("#pro_search_txtCodeIndividual").val());
-                formData.append('AccountIndividual', $("#pro_search_txtFullNameIndividual").val());
-                formData.append('LastNameIndivdual', $("#pro_search_txtLastNameIndividual").val());
-                formData.append('FirstNameIndividual', $("#pro_search_txtFirstNameIndividual").val());
-                formData.append('MiddleNameIndividual', $("#pro_search_txtMiddleNameIndividual").val());
-                formData.append('LanguageIndividual', $("#pro_search_txtLanguageIndividual").val());
-                formData.append('TitleIndividual', $("#pro_search_txtTitleIndividual").val());
-                formData.append('NationalityIndividual', $("#pro_search_txtNationalityIndividual").val());
-                formData.append('CountryIndividual', $("#pro_search_txtCountryIndividual").val());
-                formData.append('CityIndividual', $("#pro_search_txtCityIndividual").val());
-                formData.append('PostalIndividual', $("#pro_search_txtPostalIndividual").val());
-                formData.append('ReligionIndividual', $("#pro_search_txtReligionIndividual").val());
-                formData.append('NationIndividual', $("#pro_search_txtNationIndividual").val());
-                formData.append('StateIndividual', $("#pro_search_txtStateIndividual").val());
-                formData.append('PurposeIndividual', $("#pro_search_txtPurposeIndividual").val());
-                formData.append('AddressIndividual', $("#pro_search_txtAddressIndividual").val());
-                formData.append('SalutationIndividual', $("#pro_search_txtSalutationIndividual").val());
-                formData.append('VIPIndividual', $("#pro_search_txtVIPIndividual").val());
-                formData.append('ReasonIndividual', $("#pro_search_txtReasonIndividual").val());
-                formData.append('PrefRoomIndividual', $("#pro_search_txtPrefRoomIndividual").val());
-                formData.append('OtherIndividual', $("#pro_search_txtOtherIndividual").val());
-                formData.append('PassportIndividual', $("#pro_search_txtPassportIndividual").val());
-                formData.append('CardIndividual', $("#pro_search_txtCardIndividual").val());
-                formData.append('DobIndividual', $("#pro_search_txtDobIndividual").val());
-                formData.append('ActiveIndividual', $("#pro_search_txtActiveIndividual").is(":checked"));
-                formData.append('ContactIndividual', $("#pro_search_txtContactIndividual").is(":checked"));
-                formData.append('KeywordIndividual', $("#pro_search_txtKeywordIndividual").val());
-                formData.append('FullAccount', $("#pro_search_txtCompanyIndividual").val());
-                formData.append('TaxIndividual', $("#pro_search_txtTaxIndividual").val());
-                formData.append('BusAddressIndividual', $("#pro_search_txtBusAddressIndividual").val());
-                formData.append('TelephoneIndividual', $("#pro_search_txtTelephoneIndividual").val());
-                formData.append('HandPhoneIndividual', $("#pro_search_txtHandPhoneIndividual").val());
-                formData.append('FaxIndividual', $("#pro_search_txtFaxIndividual").val());
-                formData.append('EmailIndividual', $("#pro_search_txtEmailIndividual").val());
-                formData.append('WebsiteIndividual', $("#pro_search_txtWebsiteIndividual").val());
-                formData.append('Company2Individual', $("#pro_search_txtCompany2Individual").val());
-                formData.append('BusinessTitleIndividual', $("#pro_search_txtBusinessTitleIndividual").val());
-                formData.append('BlackListIndividual', $("#pro_search_txtBlackListIndividual").is(":checked"));
-                formData.append('BlackListReasonIndividual', $("#pro_search_blackListIndividual").val());
-                formData.append('NoteIndividual', $("#pro_search_txtNoteIndividual").val());
-                formData.append('Type', typeValue);
-            }
-            // ==========================================
-            // CASE 1, 2, 3: COMPANY / TRAVEL AGENT / SOURCE
-            // ==========================================
-            else if (typeValue === "1" || typeValue === "2" || typeValue === "3") {
-                formData.append('ID', $("#pro_search_idCOM").val());
-                formData.append('CodeCOM', $("#pro_search_txtCodeCOM").val());
-                formData.append('AccountCOM', $("#pro_search_txtAccountCOM").val());
-                formData.append('CountryCOM', $("#pro_search_txtCountryCOM").val());
-                formData.append('CityCOM', $("#pro_search_txtCityCOM").val());
-                formData.append('PostalCOM', $("#pro_search_txtPostalCOM").val());
-                formData.append('StateCOM', $("#pro_search_txtStateCOM").val());
-                formData.append('AddressCOM', $("#pro_search_txtAddressCOM").val());
-                formData.append('ActiveCOM', $("#pro_search_txtActiveCOM").is(":checked"));
-                formData.append('KeywordCOM', $("#pro_search_txtKeywordCOM").val());
-                formData.append('FullAccount', $("#pro_search_txtCompanyCOM").val());
-                formData.append('TaxCOM', $("#pro_search_txtTaxCOM").val());
-                formData.append('BusAddressCOM', $("#pro_search_txtBusAddressCOM").val());
-                formData.append('TelephoneCOM', $("#pro_search_txtTelephoneCOM").val());
-                formData.append('HandPhoneCOM', $("#pro_search_txtHandPhoneCOM").val());
-                formData.append('ContractName', $("#pro_search_txtContractName").val());
-                formData.append('EmailCOM', $("#pro_search_txtEmailCOM").val());
-                formData.append('WebsiteCOM', $("#pro_search_txtWebsiteCOM").val());
-                formData.append('Company2COM', $("#pro_search_txtCompany2COM").val());
-                formData.append('BusTitleCOM', $("#pro_search_txtBusTitleCOM").val());
-                formData.append('BlackListCOMchecked', $("#pro_search_txtBlackListCOM").is(":checked"));
-                formData.append('BlackListCOM', $("#pro_search_blackListCOM").val());
-                formData.append('NoteCOM', $("#pro_search_txtNoteCOM").val());
-                formData.append('OwnerCOM', $("#pro_search_txtOwnerCOM").val());
-                formData.append('TerritoryCOM', $("#pro_search_txtTerritoryCOM").val());
-                formData.append('CompanyTypeCOM', $("#pro_search_txtCompanyTypeCOM").val());
-                formData.append('ARCOM', $("#pro_search_txtARCOM").val());
-                formData.append('CurrencyCOM', $("#pro_search_txtCurrencyCOM").val());
-                formData.append('SaleInChargeCOM', $("#pro_search_txtSaleInChargeCOM").val());
-                formData.append('MarketCOM', $("#pro_search_txtMarketCOM").val());
-                formData.append('Type', typeValue);
-            }
-            // ==========================================
-            // CASE 4: GROUP
-            // ==========================================
-            else if (typeValue === "4") {
-                formData.append('ID', $("#pro_search_idGroup").val());
-                formData.append('CodeGroup', $("#pro_search_txtCodeGroup").val());
-                formData.append('GroupName', $("#pro_search_txtGroupName").val());
-                formData.append('LanguageGroup', $("#pro_search_txtLanguageGroup").val());
-                formData.append('AddressGroup', $("#pro_search_txtAddressGroup").val());
-                formData.append('HomeAddressGroup', $("#pro_search_txtHomeAddressGroup").val());
-                formData.append('CityGroup', $("#pro_search_txtCityGroup").val());
-                formData.append('PostalGroup', $("#pro_search_txtPostalGroup").val());
-                formData.append('CountryGroup', $("#pro_search_txtCountryGroup").val());
-                formData.append('StateGroup', $("#pro_search_txtStateGroup").val());
-                formData.append('TelephoneGroup', $("#pro_search_txtTelephoneGroup").val());
-                formData.append('ContractNameGroup', $("#pro_search_txtContractNameGroup").val());
-                formData.append('EmailGroup', $("#pro_search_txtEmailGroup").val());
-                formData.append('WebsiteGroup', $("#pro_search_txtWebsiteGroup").val());
-                formData.append('HandPhoneGroup', $("#pro_search_txtHandPhoneGroup").val());
-                formData.append('AcctContact', $("#pro_search_txtAcctContact").val());
-                formData.append('CurrGroup', $("#pro_search_txtCurrencyGroup").val());
-                formData.append('VipReasonGroup', $("#pro_search_txtVipReasonGroup").val());
-                formData.append('HistoryGroup', $("#pro_search_txtHistoryGroup").is(":checked"));
-                formData.append('VipGroup', $("#pro_search_txtVipGroup").val());
-                formData.append('NotesGroup', $("#pro_search_txtNotesGroup").val());
-                formData.append('Fax', $("#pro_search_txtFax").val());
-                formData.append('Type', typeValue);
-            }
-            // ==========================================
-            // CASE 5: CONTACT
-            // ==========================================
-            else if (typeValue === "5") {
-                const contactValid = await this.checkFullName({
-                    fullNameSelector: '#pro_search_txtFullNameContact',
-                    firstNameSelector: '#pro_search_txtFirstNameContact',
-                    middleNameSelector: '#pro_search_txtMiddleNameContact',
-                    lastNameSelector: '#pro_search_txtLastContact',
-                    salutationSelector: '#pro_search_txtSalulationContact',
-                    titleSelector: '#pro_search_txtTitleContact',
-                    idForm: "#profile_contact"
-                });
-                if (!contactValid) return;
-
-                formData.append('ID', $("#pro_search_idContact").val());
-                formData.append('CodeContact', $("#pro_search_txtCodeContact").val());
-                formData.append('AccountContact', $("#pro_search_txtFullNameContact").val());
-                formData.append('LastNameContact', $("#pro_search_txtLastContact").val());
-                formData.append('FirstNameContact', $("#pro_search_txtFirstNameContact").val());
-                formData.append('MiddleNameContact', $("#pro_search_txtMiddleNameContact").val());
-                formData.append('LanguageContact', $("#pro_search_txtLanguageContact").val());
-                formData.append('PositionContact', $("#pro_search_txtPositionContact").val());
-                formData.append('DeptContact', $("#pro_search_txtDeptContact").val());
-                formData.append('TitleContact', $("#pro_search_txtTitleContact").val());
-                formData.append('SalutationContact', $("#pro_search_txtSalulationContact").val());
-                formData.append('AddressContact', $("#pro_search_txtAddressContact").val());
-                formData.append('HomeAddressContact', $("#pro_search_txtHomeAddressContact").val());
-                formData.append('CityContact', $("#pro_search_txtCityContact").val());
-                formData.append('PostalContact', $("#pro_search_txtPostalCodeContact").val());
-                formData.append('CountryContact', $("#pro_search_txtCountryContact").val());
-                formData.append('StateContact', $("#pro_search_txtStateContact").val());
-                formData.append('OwnerContact', $("#pro_search_txtOwnerContact").val());
-                formData.append('TerritoryContact', $("#pro_search_txtTerritoryContact").val());
-                formData.append('ARNoContact', $("#pro_search_txtARNoContact").val());
-                formData.append('DobContact', $("#pro_search_txtDobContact").val());
-                formData.append('TelephoneContact', $("#pro_search_txtTelephoneContact").val());
-                formData.append('FaxContact', $("#pro_search_txtFaxContact").val());
-                formData.append('EmailContact', $("#pro_search_txtEmailContact").val());
-                formData.append('WebsiteContact', $("#pro_search_txtWebsiteContact").val());
-                formData.append('HandPhoneContact', $("#pro_search_txtHandPhoneContact").val());
-                formData.append('ActiveContact', $("#pro_search_txtActiveContact").is(":checked"));
-                formData.append('Type', typeValue);
-            }
-
-            // Gửi AJAX lưu dữ liệu
-            $.ajax({
-                url: '/Profile/SaveProfile',
-                type: 'POST',
-                processData: false,
-                contentType: false,
-                data: formData,
-                success: function (res) {
-                    if (res.success) {
-                        self.getAllProfiles(); // Refresh grid
-                        showToast("Success", res.message, true);
-                
-                        // Clear validation cho đúng form
-                        var formTarget = "";
-                        if (res.type == 0) formTarget = "#profile_individual";
-                        else if (res.type >= 1 && res.type <= 3) formTarget = "#profile_com_ta_source";
-                        else if (res.type == 4) formTarget = "#profile_group";
-                        else formTarget = "#profile_contact";
-                
-                        if (typeof applyValidationErrors === "function") applyValidationErrors([], formTarget);
-                
-                        self.closeFormProfile(); // Reset fields
-                        $('.profile-modal').modal('hide'); // Đóng các modal nhập liệu
-                
-                        if (self.selectedCallback) {
-                            self.selectedCallback(res.data); // Trả dữ liệu profile mới về
-                        }
-                        if (self.gridInstance) self.gridInstance.clearSelection();
-                    } else {
-                        // Xử lý hiển thị lỗi validation từ server
-                        var formTarget = "";
-                        if (res.type == 0) formTarget = "#profile_individual";
-                        else if (res.type >= 1 && res.type <= 3) formTarget = "#profile_com_ta_source";
-                        else if (res.type == 4) formTarget = "#profile_group";
-                        else formTarget = "#profile_contact";
-
-                        if (typeof applyValidationErrors === "function") applyValidationErrors(res.errors, formTarget);
-                        showToast("Error", res.message, false);
-                    }
-                },
-                error: function (xhr) {
-                    showToast("Error", "System error occurred while saving.", false);
-                }
-            });
-        },
-
-        resetForm: function () {
-            // --- 1. INDIVIDUAL (Cá nhân) ---
-            const individualInputs = [
-                "#pro_search_txtCodeIndividual", "#pro_search_txtFullNameIndividual",
-                "#pro_search_txtLastNameIndividual", "#pro_search_txtFirstNameIndividual",
-                "#pro_search_txtMiddleNameIndividual", "#pro_search_txtReasonIndividual",
-                "#pro_search_txtPostalIndividual", "#pro_search_txtReligionIndividual",
-                "#pro_search_txtNationIndividual", "#pro_search_txtPurposeIndividual",
-                "#pro_search_txtAddressIndividual", "#pro_search_txtSalutationIndividual",
-                "#pro_search_txtPrefRoomIndividual", "#pro_search_txtOtherIndividual",
-                "#pro_search_txtPassportIndividual", "#pro_search_txtCardIndividual",
-                "#pro_search_txtKeywordIndividual", "#pro_search_txtCompanyIndividual", 
-                "#pro_search_txtCompany2Individual", "#pro_search_txtTaxIndividual", 
-                "#pro_search_txtBusAddressIndividual", "#pro_search_txtTelephoneIndividual", 
-                "#pro_search_txtHandPhoneIndividual", "#pro_search_txtFaxIndividual", 
-                "#pro_search_txtEmailIndividual", "#pro_search_txtWebsiteIndividual", 
-                "#pro_search_txtBusinessTitleIndividual", "#pro_search_blackListIndividual", 
-                "#pro_search_txtNoteIndividual", "#pro_search_idIndividual", "#pro_search_txtDobIndividual"
-            ];
-
-            const individualCheckboxes = [
-                "#pro_search_txtActiveIndividual", "#pro_search_txtContactIndividual",
-                "#pro_search_txtBlackListIndividual"
-            ];
-
-            const individualTomSelects = [
-                "#pro_search_txtCityIndividual", "#pro_search_txtLanguageIndividual",
-                "#pro_search_txtTitleIndividual", "#pro_search_txtNationalityIndividual",
-                "#pro_search_txtCountryIndividual", "#pro_search_txtStateIndividual",
-                "#pro_search_txtVIPIndividual"
-            ];
-
-            // --- 2. COMPANY (Doanh nghiệp, TA, Source) ---
-            const companyInputs = [
-                "#pro_search_txtCodeCOM", "#pro_search_txtAccountCOM", "#pro_search_txtAddressCOM",
-                "#pro_search_txtPostalCOM", "#pro_search_txtCompanyCOM", "#pro_search_txtTaxCOM",
-                "#pro_search_txtBusAddressCOM", "#pro_search_txtContractName",
-                "#pro_search_txtContactNameCOM", "#pro_search_txtTelephoneCOM",
-                "#pro_search_txtEmailCOM", "#pro_search_txtWebsiteCOM",
-                "#pro_search_txtHandPhoneCOM", "#pro_search_txtCompany2COM",
-                "#pro_search_txtBusTitleCOM", "#pro_search_txtKeywordCOM",
-                "#pro_search_txtARCOM", "#pro_search_blackListCOM", "#pro_search_txtNoteCOM", "#pro_search_idCOM"
-            ];
-
-            const companyCheckboxes = [
-                "#pro_search_txtActiveCOM", "#pro_search_txtBlackListCOM"
-            ];
-
-            const companyTomSelects = [
-                "#pro_search_txtCountryCOM", "#pro_search_txtCityCOM", "#pro_search_txtStateCOM",
-                "#pro_search_txtOwnerCOM", "#pro_search_txtTerritoryCOM", "#pro_search_txtCompanyTypeCOM",
-                "#pro_search_txtCurrencyCOM", "#pro_search_txtMarketCOM", "#pro_search_txtSaleInChargeCOM",
-                "#pro_search_txtMarketTypeCOM"
-            ];
-
-            // --- 3. GROUP (Nhóm) ---
-            const groupInputs = [
-                "#pro_search_txtCodeGroup", "#pro_search_txtGroupName", "#pro_search_txtAddressGroup",
-                "#pro_search_txtHomeAddressGroup", "#pro_search_txtCityGroup", "#pro_search_txtPostalGroup",
-                "#pro_search_txtTelephoneGroup", "#pro_search_txtContractNameGroup",
-                "#pro_search_txtEmailGroup", "#pro_search_txtWebsiteGroup",
-                "#pro_search_txtHandPhoneGroup", "#pro_search_txtAcctContact", "#pro_search_txtFax",
-                "#pro_search_txtVipReasonGroup", "#pro_search_txtNotesGroup", "#pro_search_idGroup"
-            ];
-
-            const groupCheckboxes = [
-                "#pro_search_txtHistoryGroup"
-            ];
-
-            const groupTomSelects = [
-                "#pro_search_txtLanguageGroup", "#pro_search_txtCountryGroup", "#pro_search_txtStateGroup",
-                "#pro_search_txtCurrencyGroup", "#pro_search_txtAccountGroup", "#pro_search_txtVipGroup"
-            ];
-
-            // --- 4. CONTACT (Liên hệ) ---
-            const contactInputs = [
-                "#pro_search_txtCodeContact", "#pro_search_txtFullNameContact", "#pro_search_txtFirstNameContact",
-                "#pro_search_txtLastContact", "#pro_search_txtMiddleNameContact", "#pro_search_txtPositionContact",
-                "#pro_search_txtDeptContact", "#pro_search_txtSalulationContact", "#pro_search_txtAddressContact",
-                "#pro_search_txtHomeAddressContact", "#pro_search_txtPostalCodeContact", "#pro_search_txtARContact",
-                "#pro_search_txtTelephoneContact", "#pro_search_txtFaxContact", "#pro_search_txtEmailContact",
-                "#pro_search_txtWebsiteContact", "#pro_search_txtHandPhoneContact", "#pro_search_idContact",
-                "#pro_search_txtDobContact", "#pro_search_txtARNoContact"
-            ];
-
-            const contactCheckboxes = [
-                "#pro_search_txtActiveContact", "#pro_search_txtCheckboxDobContact"
-            ];
-
-            const contactTomSelects = [
-                "#pro_search_txtLanguageContact", "#pro_search_txtTitleContact", "#pro_search_txtCityContact",
-                "#pro_search_txtStateContact", "#pro_search_txtCountryContact", "#pro_search_txtOwnerContact",
-                "#pro_search_txtTerritoryContact"
-            ];
-
-            // --- THỰC THI RESET ---
-
-            // 1. Reset các Input văn bản và ẩn
-            const allInputs = [...individualInputs, ...companyInputs, ...groupInputs, ...contactInputs];
-            allInputs.forEach(id => {
-                const $el = $(id);
-                if ($el.length) $el.val("");
-            });
-
-            // 2. Reset các Checkbox
-            const allCheckboxes = [...individualCheckboxes, ...companyCheckboxes, ...groupCheckboxes, ...contactCheckboxes];
-            allCheckboxes.forEach(id => {
-                const $el = $(id);
-                if ($el.length) $el.prop("checked", false);
-            });
-
-            // 3. Reset các TomSelect (Dùng cách kiểm tra instance trực tiếp trên Element)
-            const allTomSelects = [...individualTomSelects, ...companyTomSelects, ...groupTomSelects, ...contactTomSelects];
-            allTomSelects.forEach(id => {
-                const $el = $(id);
-                if ($el.length && $el[0].tomselect) {
-                    $el[0].tomselect.clear();
-                }
-            });
-
-            // 4. Các trường hợp đặc biệt (Default values)
-            if ($("#pro_search_txtCheckboxDobContact").length) {
-                $("#pro_search_txtCheckboxDobContact").prop("checked", true);
-                $("#pro_search_txtDobContact").prop("disabled", true);
-            }
         },
 
         // Hàm History (Prefix)
@@ -1129,7 +556,7 @@
 
         deleteProfile: function () {
             const self = this;
-            if (!this.profileID || this.profileID <= 0) {
+            if (!self.profileID || self.profileID <= 0) {
                 showToast("Error", "Please choose 1 profile to delete", false);
                 return;
             }
@@ -1138,248 +565,17 @@
             $.ajax({
                 url: '/Profile/DeleteProfile',
                 type: 'POST',
-                data: { profileID: this.profileID },
+                data: { profileID: self.profileID },
                 success: function (res) {
                     if (res.success) {
                         showToast("Success", res.message, true);
+                        $("#pro_search_modalOption").modal("hide");
                         self.getAllProfiles();
                     } else {
                         showToast("Error", res.message, false);
                     }
                 }
             });
-        },
-
-        closeFormProfile: function () {
-            this.resetForm();
-            if (typeof applyValidationErrors === "function") {
-                applyValidationErrors([], "#profile_individual");
-                applyValidationErrors([], "#profile_com_ta_source");
-                applyValidationErrors([], "#profile_group");
-                applyValidationErrors([], "#profile_contact");
-            }
-        },
-
-        editProfile: function (mode) {
-            const self = this;
-            var grid = this.gridInstance;
-            if (!grid) return;
-            var selectedRowsData = grid.getSelectedRowsData();
-
-            if (mode === 'NEW') {
-                this.resetForm();
-                let type = $('#pro_search_txtType').val();
-                if (type == 0 || type === '') {
-                    $('#modalProfileIndividual').modal('show');
-                    $('#btnView').hide();
-                    $('#changeTypeIN').hide();
-                } else if (type == 4) {
-                    $('#modalProfileGroup').modal('show');
-                    $('#changeTypeGR').hide();
-                } else if (type == 5) {
-                    $('#modalProfileContact').modal('show');
-                    $('#changeTypeCON').hide();
-                } else {
-                    $('#modalProfileCompany').modal('show');
-                    $('#changeTypeCOM').hide();
-                }
-                return;
-            }
-
-            if (mode === 'EDIT') {
-                if (selectedRowsData.length < 1) {
-                    showToast("Warning", "Please choose 1 profile to edit", false);
-                    return;
-                }
-                $("#profileTypeModalLabel").text("Edit Profile");
-                $.ajax({
-                    url: '/Profile/GetProfileByID',
-                    type: 'get',
-                    dataType: 'json',
-                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-                    data: { id: selectedRowsData[0].id },
-                    success: function (result) {
-                        if (result.code != 0) {
-                            showToast("Error", result.msg, false);
-                        } else {
-                            self.fillProfileForm(result.profile);
-                        }
-                    }
-                });
-            }
-        },
-
-        fillProfileForm: function (profile) {
-            const self = this;
-
-            // ==========================================
-            // CASE 0: INDIVIDUAL (Cá nhân)
-            // ==========================================
-            if (profile.type == 0) {
-                $("#pro_search_idIndividual").val(profile.id);
-                $("#pro_search_txtCodeIndividual").val(profile.code);
-                $("#pro_search_txtFullNameIndividual").val(profile.account);
-                $("#pro_search_txtLastNameIndividual").val(profile.lastName);
-                $("#pro_search_txtFirstNameIndividual").val(profile.firstname);
-                $("#pro_search_txtMiddleNameIndividual").val(profile.middleName);
-                $("#pro_search_txtReasonIndividual").val(profile.vipReason);
-                $("#pro_search_txtPostalIndividual").val(profile.postalCode);
-                $("#pro_search_txtReligionIndividual").val(profile.religion);
-                $("#pro_search_txtNationIndividual").val(profile.nation);
-                $("#pro_search_txtPurposeIndividual").val(profile.purposeOfStay);
-                $("#pro_search_txtAddressIndividual").val(profile.address);
-                $("#pro_search_txtSalutationIndividual").val(profile.salutation);
-                $("#pro_search_txtPrefRoomIndividual").val(profile.prefRoom);
-                $("#pro_search_txtOtherIndividual").val(profile.other);
-                $("#pro_search_txtPassportIndividual").val(profile.passPort);
-                $("#pro_search_txtCardIndividual").val(profile.identityCard);
-                $("#pro_search_txtDobIndividual").val(typeof formatDateForInputISO === "function" ? formatDateForInputISO(profile.dateOfBirth) : profile.dateOfBirth);
-                $("#pro_search_txtActiveIndividual").prop("checked", profile.active === true);
-                $("#pro_search_txtContactIndividual").prop("checked", profile.contact === true);
-                $("#pro_search_txtKeywordIndividual").val(profile.keyword);
-                $("#pro_search_txtCompanyIndividual").val(profile.fullAccount);
-                $("#pro_search_txtCompany2Individual").val(profile.company);
-                $("#pro_search_txtTaxIndividual").val(profile.taxCode);
-                $("#pro_search_txtBusAddressIndividual").val(profile.homeAddress);
-                $("#pro_search_txtTelephoneIndividual").val(profile.telephone);
-                $("#pro_search_txtHandPhoneIndividual").val(profile.handPhone);
-                $("#pro_search_txtFaxIndividual").val(profile.fax);
-                $("#pro_search_txtEmailIndividual").val(profile.email);
-                $("#pro_search_txtWebsiteIndividual").val(profile.website);
-                $("#pro_search_txtBusinessTitleIndividual").val(profile.businessTitle);
-                $("#pro_search_txtBlackListIndividual").prop("checked", profile.isBlackList === true);
-                $("#pro_search_blackListIndividual").val(profile.blackListReason);
-                $("#pro_search_txtNoteIndividual").val(profile.description);
-
-                // TomSelect Individual
-                if ($('#pro_search_txtCityIndividual')[0]?.tomselect) $('#pro_search_txtCityIndividual')[0].tomselect.setValue(profile.city);
-                if ($('#pro_search_txtLanguageIndividual')[0]?.tomselect) $('#pro_search_txtLanguageIndividual')[0].tomselect.setValue(profile.languageID);
-                if ($('#pro_search_txtTitleIndividual')[0]?.tomselect) $('#pro_search_txtTitleIndividual')[0].tomselect.setValue(profile.titleID);
-                if ($('#pro_search_txtNationalityIndividual')[0]?.tomselect) $('#pro_search_txtNationalityIndividual')[0].tomselect.setValue(profile.nationalityID);
-                if ($('#pro_search_txtCountryIndividual')[0]?.tomselect) $('#pro_search_txtCountryIndividual')[0].tomselect.setValue(profile.countryID);
-                if ($('#pro_search_txtStateIndividual')[0]?.tomselect) $('#pro_search_txtStateIndividual')[0].tomselect.setValue(profile.stateID);
-                if ($('#pro_search_txtVIPIndividual')[0]?.tomselect) $('#pro_search_txtVIPIndividual')[0].tomselect.setValue(profile.vipid);
-
-                $('#modalProfileIndividual').modal('show');
-                $('#pro_search_changeTypeIN').hide();
-            }
-            // ==========================================
-            // CASE 1, 2, 3: COMPANY / TRAVEL AGENT / SOURCE
-            // ==========================================
-            else if (profile.type == 1 || profile.type == 2 || profile.type == 3) {
-                $("#pro_search_idCOM").val(profile.id);
-                $("#pro_search_txtCodeCOM").val(profile.code);
-                $("#pro_search_txtAccountCOM").val(profile.account);
-                $("#pro_search_txtAddressCOM").val(profile.address);
-                $("#pro_search_txtPostalCOM").val(profile.postalCode);
-                $("#pro_search_txtCompanyCOM").val(profile.fullAccount);
-                $("#pro_search_txtTaxCOM").val(profile.taxCode);
-                $("#pro_search_txtBusAddressCOM").val(profile.homeAddress);
-                $("#pro_search_txtContractName").val(profile.acctContact);
-                $("#pro_search_txtTelephoneCOM").val(profile.telephone);
-                $("#pro_search_txtContactNameCOM").val(profile.acctContact);
-                $("#pro_search_txtEmailCOM").val(profile.email);
-                $("#pro_search_txtWebsiteCOM").val(profile.website);
-                $("#pro_search_txtHandPhoneCOM").val(profile.handPhone);
-                $("#pro_search_txtCompany2COM").val(profile.company);
-                $("#pro_search_txtBusTitleCOM").val(profile.businessTitle);
-                $("#pro_search_txtKeywordCOM").val(profile.keyword);
-                $("#pro_search_txtARCOM").val(profile.arNo);
-                $("#pro_search_txtActiveCOM").prop("checked", profile.active === true);
-                $("#pro_search_txtBlackListCOM").prop("checked", profile.isBlackList === true);
-                $("#pro_search_blackListCOM").val(profile.blackListReason);
-                $("#pro_search_txtNoteCOM").val(profile.description);
-
-                // TomSelect Company
-                if ($('#pro_search_txtCountryCOM')[0]?.tomselect) $('#pro_search_txtCountryCOM')[0].tomselect.setValue(profile.countryID);
-                if ($('#pro_search_txtCityCOM')[0]?.tomselect) $('#pro_search_txtCityCOM')[0].tomselect.setValue(profile.city);
-                if ($('#pro_search_txtStateCOM')[0]?.tomselect) $('#pro_search_txtStateCOM')[0].tomselect.setValue(profile.stateID);
-                if ($('#pro_search_txtOwnerCOM')[0]?.tomselect) $('#pro_search_txtOwnerCOM')[0].tomselect.setValue(profile.ownerID);
-                if ($('#pro_search_txtTerritoryCOM')[0]?.tomselect) $('#pro_search_txtTerritoryCOM')[0].tomselect.setValue(profile.territoryID);
-                if ($('#pro_search_txtCompanyTypeCOM')[0]?.tomselect) $('#pro_search_txtCompanyTypeCOM')[0].tomselect.setValue(profile.memberType);
-                if ($('#pro_search_txtCurrencyCOM')[0]?.tomselect) $('#pro_search_txtCurrencyCOM')[0].tomselect.setValue(profile.currencyID);
-                if ($('#pro_search_txtMarketCOM')[0]?.tomselect) $('#pro_search_txtMarketCOM')[0].tomselect.setValue(profile.marketID);
-                if ($('#pro_search_txtSaleInChargeCOM')[0]?.tomselect) $('#pro_search_txtSaleInChargeCOM')[0].tomselect.setValue(profile.personInChargeID);
-
-                $('#modalProfileCompany').modal('show');
-                $('#pro_search_changeTypeCOM').hide();
-            }
-            // ==========================================
-            // CASE 4: GROUP
-            // ==========================================
-            else if (profile.type == 4) {
-                $("#pro_search_idGroup").val(profile.id);
-                $("#pro_search_txtCodeGroup").val(profile.code);
-                $("#pro_search_txtGroupName").val(profile.account);
-                $("#pro_search_txtAddressGroup").val(profile.address);
-                $("#pro_search_txtPostalGroup").val(profile.postalCode);
-                $("#pro_search_txtFax").val(profile.fax);
-                $("#pro_search_txtHomeAddressGroup").val(profile.homeAddress);
-                $("#pro_search_txtContractNameGroup").val(profile.acctContact);
-                $("#pro_search_txtTelephoneGroup").val(profile.telephone);
-                $("#pro_search_txtEmailGroup").val(profile.email);
-                $("#pro_search_txtWebsiteGroup").val(profile.website);
-                $("#pro_search_txtHandPhoneGroup").val(profile.handPhone);
-                $("#pro_search_txtVipReasonGroup").val(profile.vipReason);
-                $("#pro_search_txtAcctContact").val(profile.acctContact);
-                $("#pro_search_txtHistoryGroup").prop("checked", profile.history === true);
-                $("#pro_search_txtNotesGroup").val(profile.description);
-
-                // TomSelect Group
-                if ($('#pro_search_txtCountryGroup')[0]?.tomselect) $('#pro_search_txtCountryGroup')[0].tomselect.setValue(profile.countryID);
-                if ($('#pro_search_txtStateGroup')[0]?.tomselect) $('#pro_search_txtStateGroup')[0].tomselect.setValue(profile.stateID);
-                if ($('#pro_search_txtLanguageGroup')[0]?.tomselect) $('#pro_search_txtLanguageGroup')[0].tomselect.setValue(profile.languageID);
-                if ($('#pro_search_txtCurrencyGroup')[0]?.tomselect) $('#pro_search_txtCurrencyGroup')[0].tomselect.setValue(profile.currencyID);
-                if ($('#pro_search_txtVIPGroup')[0]?.tomselect) $('#pro_search_txtVIPGroup')[0].tomselect.setValue(profile.vipid);
-                $("#pro_search_txtCityGroup").val(profile.city);
-
-                $('#modalProfileGroup').modal('show');
-                $('#pro_search_changeTypeGR').hide();
-            }
-            // ==========================================
-            // CASE 5: CONTACT
-            // ==========================================
-            else if (profile.type == 5) {
-                $("#pro_search_idContact").val(profile.id);
-                $("#pro_search_txtCodeContact").val(profile.code);
-                $("#pro_search_txtFullNameContact").val(profile.account);
-                $("#pro_search_txtFirstNameContact").val(profile.firstname);
-                $("#pro_search_txtLastContact").val(profile.lastName);
-                $("#pro_search_txtMiddleNameContact").val(profile.middleName);
-                $("#pro_search_txtPositionContact").val(profile.position);
-                $("#pro_search_txtDeptContact").val(profile.department);
-                $("#pro_search_txtSalulationContact").val(profile.salutation);
-                $("#pro_search_txtAddressContact").val(profile.address);
-                $("#pro_search_txtHomeAddressContact").val(profile.homeAddress);
-                $("#pro_search_txtPostalCodeContact").val(profile.postalCode);
-                $("#pro_search_txtARContact").val(profile.arNo);
-                $("#pro_search_txtTelephoneContact").val(profile.telephone);
-                $("#pro_search_txtFaxContact").val(profile.fax);
-                $("#pro_search_txtEmailContact").val(profile.email);
-                $("#pro_search_txtWebsiteContact").val(profile.website);
-                $("#pro_search_txtHandPhoneContact").val(profile.handPhone);
-                $("#pro_search_txtActiveContact").prop("checked", profile.active === true);
-
-                if (profile.dateOfBirth) {
-                    $("#pro_search_txtDobContact").val(profile.dateOfBirth);
-                    $("#pro_search_txtCheckboxDobContact").prop("checked", true);
-                } else {
-                    $("#pro_search_txtDobContact").val("");
-                    $("#pro_search_txtCheckboxDobContact").prop("checked", false);
-                }
-
-                // TomSelect Contact
-                if ($('#pro_search_txtLanguageContact')[0]?.tomselect) $('#pro_search_txtLanguageContact')[0].tomselect.setValue(profile.languageID);
-                if ($('#pro_search_txtTitleContact')[0]?.tomselect) $('#pro_search_txtTitleContact')[0].tomselect.setValue(profile.titleID);
-                if ($('#pro_search_txtCityContact')[0]?.tomselect) $('#pro_search_txtCityContact')[0].tomselect.setValue(profile.cityID);
-                if ($('#pro_search_txtCountryContact')[0]?.tomselect) $('#pro_search_txtCountryContact')[0].tomselect.setValue(profile.countryID);
-                if ($('#pro_search_txtStateContact')[0]?.tomselect) $('#pro_search_txtStateContact')[0].tomselect.setValue(profile.stateID);
-                if ($('#pro_search_txtOwnerContact')[0]?.tomselect) $('#pro_search_txtOwnerContact')[0].tomselect.setValue(profile.ownerID);
-                if ($('#pro_search_txtTerritoryContact')[0]?.tomselect) $('#pro_search_txtTerritoryContact')[0].tomselect.setValue(profile.territoryID);
-
-                $('#modalProfileContact').modal('show');
-                $('#pro_search_changeTypeCON').hide();
-            }
         },
 
         initializeDataGridHistory: function (data) {
@@ -1435,15 +631,17 @@
                     showNavigationButtons: true,
                 },
                 scrolling: {
-                    rowRenderingMode: 'virtual',
+                    mode: "standard",
                     showScrollbar: "always"
                 },
                 onRowClick: function (e) {
-                    console.log("History ID clicked:", e.data.id);
+                    console.log("History clicked: ");
                 }
             });
         },
 
+
     };
+
 
 </script>
