@@ -1,450 +1,612 @@
-﻿@using DevExpress.XtraReports.UI
-@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
-    // Kiểm tra xem có biến `media` nào được dùng không
-    // Ví dụ: var media = Model.Media; // Đảm bảo Model có thuộc tính Media nếu cần
-}
+﻿<!-- Main Modal -->
+<div class="modal fade" id="curr_mainModal" tabindex="-1" aria-labelledby="curr_mainModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-4by3 modal-dialog-scrollable">
+        <div class="modal-content">
 
-<!-- Comment reservation.css để tránh xung đột, nhưng có thể thêm lại sau khi fix -->
-@* <link href="~/css/pages/reservation.css" rel="stylesheet" /> *@
-<style>
-    :root {
-        --main-color: #2b6cb0;
-        /* Màu chính (xanh dương) */
-        --secondary-color: #f5f5f5;
-        /* Màu nền thứ cấp (xám nhạt) */
-        --highlight-color: #d65a00;
-        /* Màu nổi bật (cam) */
-        --text-color: #2d3748;
-        /* Màu chữ (xám đậm) */
-        --accent-color: #ffffff;
-        /* Màu bổ sung (trắng) */
-    }
-
-    .menu-group-title {
-        font-weight: bold;
-        padding: 8px;
-        cursor: pointer;
-        background: var(--secondary-color);
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .menu-left .submenu {
-        display: none;
-        margin-top: 2px;
-        padding-left: 10px;
-        background: var(--accent-color);
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-        min-width: 120px;
-        position: relative;
-        z-index: 20;
-    }
-
-    .menu-left .submenu.active {
-        display: block !important;
-    }
-
-    /* Đảm bảo các style khác sử dụng biến CSS */
-    .menu-item {
-        display: block;
-        padding: 12px 16px;
-        color: var(--text-color);
-        text-decoration: none;
-        font-size: 13px;
-        font-weight: 500;
-        border-bottom: 1px solid #bcbcbc;
-        transition: all 0.3s ease;
-        border-left: 4px solid transparent;
-    }
-
-    .menu-item:hover,
-    .menu-item.active {
-        color: var(--text-color);
-        background-color: var(--secondary-color);
-        border-left: 4px solid var(--highlight-color);
-    }
-
-    .menu-group>.menu-left {
-        display: none;
-        /* ẩn mặc định */
-        margin-top: 2px;
-        background: var(--accent-color);
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-    }
-</style>
-<div class="mt-3">
-    <div class="row">
-
-        <div class="content-right">
-            <div class="header">
-                <h3 id="content-title">
-                    Currency
-
-                </h3>
+            <div class="modal-header">
+                <h5 class="modal-title" id="curr_mainModalLabel">Currency</h5>
             </div>
 
-            <div class="sticky-header bg-white p-2 shadow-sm z-3">
-                <div class="d-flex align-items-center gap-3 p-2"
-                    >
-                    <form id="itemForm">
-                        <div class="d-flex align-items-center">
-                            <div class="d-flex align-items-center me-3">
-                                <label for="code" class="me-2 mb-0">Code</label>
-                                <input type="text" id="code" name="code" class="form-control form-control-sm"
-                                    style="width: 100px;" />
+            <div class="modal-body">
+                <div class="search-filter">
+                    <div>
+                        <button id="curr_btnView" type="button" class="mui-button mui-button-search">View</button>
+                        <button id="curr_btnNew" type="button" class="mui-button mui-button-new">New</button>
+                        <button id="curr_btnEdit" type="button" class="mui-button mui-button-edit">Edit</button>
+                        <button id="curr_btnSaveItem" type="button" class="mui-button mui-button-new">Save</button>
+                        <button id="curr_btnDelete" type="button" class="mui-button mui-button-delete">Delete</button>
+                        <button id="curr_btnCancel" type="button" class="mui-button mui-button-new">Cancel</button>
+                        <button id="curr_btnExportExcel" type="button" class="mui-button mui-button-export">Excel</button>
+                        <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal" aria-label="Close">Close</button>
+                    </div>
+
+                    <form id="curr_itemForm">
+                        <div class="row g-2 mt-1">
+                            <div class="col-12 col-md-4 col-lg-3">
+                                <div class="row g-2 align-items-center">
+                                    <label for="curr_code" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                        Code
+                                    </label>
+                                    <div class="col-md-8">
+                                        <input id="curr_code"
+                                               name="curr_code"
+                                               type="text"
+                                               class="form-control form-control-sm" />
+                                    </div>
+                                </div>
                             </div>
 
-
-                            <div class="d-flex align-items-center me-3">
-                                <label for="seq" class="me-2 mb-0">Decimals</label>
-                                <input type="number" id="seq" name="seq" min="0" max="999" value="0" runat="server"
-                                    class="form-control form-control-sm" style="width: 80px;" />
-                            </div>
-                            <div class="col-auto d-flex align-items-center me-3">
-                                <input type="checkbox" id="inactive" name="inactive" class="form-check-input me-2" />
-                                <label for="inactive" class="form-check-label text-danger mb-0">Inactive</label>
-                            </div>
-                            <div class="col-auto d-flex align-items-center me-3">
-                                <input type="checkbox" id="isShow" name="isShow" class="form-check-input me-2" />
-                                <label for="isShow" class="form-check-label text-danger mb-0">IsShow</label>
-                            </div>
-                            <div class="col-auto d-flex align-items-center me-3">
-                                <input type="checkbox" id="masterStatus" name="masterStatus"
-                                    class="form-check-input me-2" />
-                                <label for="masterStatus" class="form-check-label text-danger mb-0">Master
-                                    Status</label>
-                            </div>
-                            <div class="d-flex align-items-center me-3">
-                                <label for="description" class="me-2 mb-0">Description</label>
-                                <input type="text" id="description" name="description"
-                                    class="form-control form-control-sm" style="width: 300px;" />
+                            <div class="col-12 col-md-4 col-lg-3">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Status
+                                </label>
+                                <div class="col-md-8">
+                                    <div class="d-flex align-items-center h-100">
+                                        <div class="form-check d-flex align-items-center gap-2">
+                                            <span class="status-color-box color-clean-uncheck"></span>
+                                            <input type="checkbox" id="curr_chkShowInactive" name="curr_chkShowInactive">
+                                            <label class="form-check-label" for="curr_chkShowInactive">Show Inactive</label>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-
+                        </div>
                     </form>
                 </div>
-                <div class=" mt-1">
-                    <button id="btnView" class="mui-button mui-button-new" type="button"> View</button>
-                    <button id="btnNew" class="mui-button mui-button-new" type="button">  New</button>
-                    <button id="btnEdit" class="mui-button mui-button-new" type="button"> Edit</button>
-                    <button id="btnSaveItem" class="mui-button mui-button-new" type="button"> Save</button>
-                    <button id="btnDelete" class="mui-button mui-button-new" type="button"> Delete</button>
-                    <button id="btnCancel" class="mui-button mui-button-new" type="button">  Cancel</button>
 
+                <div class="mui-card mt-1">
+                    <div id="curr_gridContainer" class="gridContainer"></div>
+                </div>
+
+                <div id="curr_loadingSpinner"
+                     style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+                     z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+                     height: 100%;display: flex;align-items: center;justify-content: center;display:none;">
+                    <div class="spinner-border text-primary"></div>
                 </div>
             </div>
 
-            <div class="mui-card">
-                <div id="gridContainerRateCode" class="mt-2 gridContainer"></div>
-            </div>
         </div>
-
     </div>
 </div>
 
-<div id="loadingSpinnerRateCode" style="display: none; text-align: center; padding: 20px;">
-    <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="curr_itemModal" tabindex="-1" aria-labelledby="curr_itemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="curr_itemModalLabel">Currency</h5>
+            </div>
+
+            <div class="modal-body">
+                <div class="search-filter">
+                    <button type="button" id="curr_modalBtnSave" class="mui-button mui-button-new">Save</button>
+                    <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <form id="curr_formContainer">
+                    <div class="row g-2 mt-1 mb-2">
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label for="curr_formCode" class="col-md-2 col-lg-4 col-form-label col-form-label-sm text-md-end">
+                                    Code
+                                </label>
+                                <div class="col-md-10 col-lg-8">
+                                    <input id="curr_formCode"
+                                           name="curr_formCode"
+                                           type="text"
+                                           class="form-control form-control-sm" />
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label for="curr_seq" class="col-md-2 col-lg-4 col-form-label col-form-label-sm text-md-end">
+                                    Decimals
+                                </label>
+                                <div class="col-md-10 col-lg-8">
+                                    <input id="curr_seq"
+                                           name="curr_seq"
+                                           type="number"
+                                           class="form-control form-control-sm text-end" />
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="row g-2">
+                                <label for="curr_description" class="col-md-2 col-form-label col-form-label-sm text-md-end">
+                                    Description
+                                </label>
+                                <div class="col-md-10">
+                                    <textarea id="curr_description"
+                                              name="curr_description"
+                                              rows="4"
+                                              class="form-control form-control-sm"
+                                              style="height:100px;"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="row g-2">
+                                <label class="col-md-2 col-form-label col-form-label-sm text-md-end">
+                                    Status
+                                </label>
+                                <div class="col-md-10">
+                                    <div class="row g-2">
+                                        <div class="col-12 col-lg-4">
+                                            <div class="form-check d-inline-flex align-items-center gap-2">
+                                                <input id="curr_inactive"
+                                                       name="curr_inactive"
+                                                       type="checkbox" />
+                                                <label for="curr_inactive" class="form-check-label text-danger">
+                                                    Inactive
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 col-lg-4">
+                                            <div class="form-check d-inline-flex align-items-center gap-2">
+                                                <input id="curr_isShow"
+                                                       name="curr_isShow"
+                                                       type="checkbox" />
+                                                <label for="curr_isShow" class="form-check-label">
+                                                    Is Show
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 col-lg-4">
+                                            <div class="form-check d-inline-flex align-items-center gap-2">
+                                                <input id="curr_masterStatus"
+                                                       name="curr_masterStatus"
+                                                       type="checkbox" />
+                                                <label for="curr_masterStatus" class="form-check-label">
+                                                    Master Status
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="curr_id" name="curr_id" value="0" />
+                </form>
+            </div>
+
+        </div>
     </div>
 </div>
 
 <script>
-    DevExpress.localization.locale("vi");
-    let selectedRowData = null;
+    var curr_Module = (() => {
+        let curr_selectedRowData = null;
+
+        const curr_selectors = {
+            mainModal: "#curr_mainModal",
+            itemModal: "#curr_itemModal",
+            itemForm: "#curr_itemForm",
+            form: "#curr_formContainer",
+            grid: "#curr_gridContainer",
+            loading: "#curr_loadingSpinner",
+            chkShowInactive: "#curr_chkShowInactive",
+
+            btnView: "#curr_btnView",
+            btnNew: "#curr_btnNew",
+            btnEdit: "#curr_btnEdit",
+            btnSaveItem: "#curr_btnSaveItem",
+            btnDelete: "#curr_btnDelete",
+            btnCancel: "#curr_btnCancel",
+            btnExportExcel: "#curr_btnExportExcel",
+            modalBtnSave: "#curr_modalBtnSave",
+
+            modalLabel: "#curr_itemModalLabel",
+
+            filterCode: "#curr_code",
+
+            id: "#curr_id",
+            code: "#curr_formCode",
+            description: "#curr_description",
+            seq: "#curr_seq",
+            inactive: "#curr_inactive",
+            masterStatus: "#curr_masterStatus",
+            isShow: "#curr_isShow"
+        };
+
+        function curr_init() {
+            curr_bindEvents();
+            curr_initializeButtons();
+            curr_loadGrid([]);
+            curr_reloadGrid();
+        }
+
+        function curr_bindEvents() {
+            $(document)
+                .off("input change", `${curr_selectors.form} input, ${curr_selectors.form} select, ${curr_selectors.form} textarea`)
+                .on("input change", `${curr_selectors.form} input, ${curr_selectors.form} select, ${curr_selectors.form} textarea`, function () {
+                    if ($(this).hasClass("is-invalid")) {
+                        $(this).removeClass("is-invalid");
+                        $(this).next(".invalid-feedback").text("");
+                    }
+                });
+
+            $(curr_selectors.itemModal)
+                .off("hidden.bs.modal")
+                .on("hidden.bs.modal", function () {
+                    applyValidationErrors([], curr_selectors.form);
+                });
+
+            $(document)
+                .off("click", curr_selectors.btnView)
+                .on("click", curr_selectors.btnView, function () {
+                    curr_reloadGrid();
+                });
+
+            $(document)
+                .off("click", curr_selectors.btnNew)
+                .on("click", curr_selectors.btnNew, function () {
+                    curr_openAddMode();
+                });
+
+            $(document)
+                .off("click", curr_selectors.btnEdit)
+                .on("click", curr_selectors.btnEdit, function () {
+                    curr_openEditMode();
+                });
+
+            $(document)
+                .off("click", curr_selectors.btnSaveItem)
+                .on("click", curr_selectors.btnSaveItem, function () {
+                    curr_save();
+                });
+
+            $(document)
+                .off("click", curr_selectors.modalBtnSave)
+                .on("click", curr_selectors.modalBtnSave, function () {
+                    curr_save();
+                });
+
+            $(document)
+                .off("click", curr_selectors.btnCancel)
+                .on("click", curr_selectors.btnCancel, function () {
+                    curr_cancel();
+                });
+
+            $(document)
+                .off("click", curr_selectors.btnDelete)
+                .on("click", curr_selectors.btnDelete, function () {
+                    curr_confirmDelete();
+                });
+
+            $(document)
+                .off("click", curr_selectors.btnExportExcel)
+                .on("click", curr_selectors.btnExportExcel, function () {
+                    curr_exportExcel();
+                });
+        }
+
+        function curr_initializeButtons() {
+            $(curr_selectors.btnEdit).show();
+            $(curr_selectors.btnDelete).show();
+            $(curr_selectors.btnCancel).hide();
+            $(curr_selectors.btnSaveItem).hide();
+            $(curr_selectors.btnNew).show();
+        }
+
+        function curr_showEditModeButtons() {
+            $(curr_selectors.btnEdit).hide();
+            $(curr_selectors.btnDelete).hide();
+            $(curr_selectors.btnCancel).show();
+            $(curr_selectors.btnSaveItem).show();
+            $(curr_selectors.btnNew).show();
+        }
+
+        function curr_showDefaultButtons() {
+            $(curr_selectors.btnEdit).show();
+            $(curr_selectors.btnDelete).show();
+            $(curr_selectors.btnCancel).hide();
+            $(curr_selectors.btnSaveItem).hide();
+            $(curr_selectors.btnNew).show();
+        }
+
+        function curr_resetMainForm() {
+            const curr_itemForm = $(curr_selectors.itemForm)[0];
+            if (curr_itemForm) {
+                curr_itemForm.reset();
+            }
+        }
+
+        function curr_resetDetailForm() {
+            const curr_form = $(curr_selectors.form)[0];
+            if (curr_form) {
+                curr_form.reset();
+            }
+            $(curr_selectors.id).val("0");
+        }
+
+        function curr_openAddMode() {
+            curr_resetMainForm();
+            $(curr_selectors.id).val("");
+            curr_showEditModeButtons();
+            $(curr_selectors.modalLabel).text("Add Currency");
+            curr_resetDetailForm();
+            $(curr_selectors.itemModal).modal("show");
+        }
+
+        function curr_openEditMode() {
+            if (!curr_selectedRowData) {
+                DevExpress.ui.notify("Please select a row first!", "warning", 2000);
+                return;
+            }
+
+            $.ajax({
+                url: "/Administration/GetCurrencyById",
+                type: "GET",
+                data: { id: curr_selectedRowData.id },
+                success: function (curr_data) {
+                    if (curr_data.success && curr_data.id) {
+                        $(curr_selectors.id).val(curr_data.id);
+                        $(curr_selectors.code).val(curr_data.id);
+                        $(curr_selectors.description).val(curr_data.description);
+                        $(curr_selectors.seq).val(curr_data.decimals);
+
+                        $(curr_selectors.inactive).prop("checked", curr_data.inactive);
+                        $(curr_selectors.masterStatus).prop("checked", curr_data.isMaster);
+                        $(curr_selectors.isShow).prop("checked", curr_data.isShow);
+
+                        curr_showEditModeButtons();
+                        $(curr_selectors.modalLabel).text("Edit Currency");
+                        $(curr_selectors.itemModal).modal("show");
+                    } else {
+                        DevExpress.ui.notify(curr_data.message || "Cannot load data!", "error", 2000);
+                    }
+                },
+                error: function (xhr) {
+                    console.error("Load data error:", xhr.responseText);
+                    DevExpress.ui.notify("Cannot load data from server!", "error", 2000);
+                }
+            });
+        }
+
+        function curr_cancel() {
+            curr_resetMainForm();
+            $(curr_selectors.id).val("0");
+            curr_showDefaultButtons();
+            curr_selectedRowData = null;
+        }
+
+        function curr_showLoading() {
+            $(curr_selectors.loading).show();
+        }
+
+        function curr_hideLoading() {
+            $(curr_selectors.loading).hide();
+        }
+
+        function curr_loadGrid(curr_data) {
+            $(curr_selectors.grid).dxDataGrid({
+                dataSource: curr_data,
+                width: "100%",
+                columnAutoWidth: true,
+                allowColumnResizing: true,
+                columnResizingMode: "widget",
+                selection: { mode: "single" },
+                columns: [
+                    { dataField: "ID", caption: "ID" },
+                    { dataField: "IsMaster", caption: "Is Master" },
+                    { dataField: "Inactive", caption: "In Active" ,
+                        cellTemplate: function (container, options) {
+                            $("<div>")
+                                .dxCheckBox({
+                                    value: options.value == 1 || options.value === true,
+                                    readOnly: true
+                                })
+                                .css("transform", "scale(0.8)")
+                                .appendTo(container);
+                        }
+                    },
+                    { dataField: "IsShow", caption: "Is Show",
+                        cellTemplate: function (container, options) {
+                            $("<div>")
+                                .dxCheckBox({
+                                    value: options.value == 1 || options.value === true,
+                                    readOnly: true
+                                })
+                                .css("transform", "scale(0.8)")
+                                .appendTo(container);
+                        }
+                    },
+                    { dataField: "Decimals", caption: "Decimals" },
+                    { dataField: "Description", caption: "Description" }
+                ],
+                filterRow: { visible: true, applyFilter: "auto" },
+                paging: { pageSize: 20 },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [20, 50, "all"],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                scrolling: { mode: "standard", showScrollbar: "always", scrollByContent: true },
+                onSelectionChanged: function (e) {
+                    curr_selectedRowData = e.selectedRowsData.length > 0 ? e.selectedRowsData[0] : null;
+                    console.log("Selected Row:", curr_selectedRowData);
+                }
+            });
+        }
+
+        function curr_reloadGrid() {
+            curr_showLoading();
+
+            $.ajax({
+                url: "/Administration/SearchCurrency",
+                type: "GET",
+                data: {
+                    code: $(curr_selectors.filterCode).val(),
+                    isActive: $(curr_selectors.chkShowInactive).prop("checked") ? 1 : 0
+                },
+                success: function (curr_data) {
+                    console.log(curr_data);
+                    curr_loadGrid(curr_data);
+                    curr_hideLoading();
+                },
+                error: function () {
+                    alert("Không thể tải dữ liệu");
+                    curr_hideLoading();
+                }
+            });
+        }
+
+        function curr_save() {
+            const curr_formData = $(curr_selectors.form).serialize();
+            console.log("FormData:", curr_formData);
+
+            let curr_url = "/Administration/InsertCurrency";
+
+            if (curr_selectedRowData) {
+                curr_url = "/Administration/UpdateCurrency";
+            }
+
+            $.ajax({
+                url: curr_url,
+                type: "POST",
+                data: curr_formData,
+                success: function (curr_res) {
+                    if (curr_res.success) {
+                        showToast("Success", curr_url.includes("Update") ? "Update success" : "Insert success", true);
+                        $(curr_selectors.form).trigger("reset");
+                        curr_selectedRowData = null;
+
+                        curr_showDefaultButtons();
+                        curr_reloadGrid();
+                        $(curr_selectors.itemModal).modal("hide");
+                    } else {
+                        showToast("Failed", curr_res.message || "Action Failed!", false);
+                    }
+                },
+                error: function (xhr) {
+                    console.error("Save error:", xhr.responseText);
+                    showToast("Error", "Request error!", false);
+                }
+            });
+        }
+
+        function curr_confirmDelete() {
+            if (!curr_selectedRowData) {
+                DevExpress.ui.notify("Please select a row first!", "warning", 2000);
+                return;
+            }
+
+            Swal.fire({
+                title: "Are you sure?",
+                text: "This action cannot be undone.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Yes, delete it!",
+                cancelButtonText: "Cancel",
+                customClass: {
+                    popup: "swal-small"
+                }
+            }).then((curr_result) => {
+                if (curr_result.isConfirmed) {
+                    curr_deleteSelectedItem();
+                }
+            });
+        }
+
+        function curr_deleteSelectedItem() {
+            $.ajax({
+                url: "/Administration/DeleteCurrency",
+                type: "POST",
+                data: { id: curr_selectedRowData.id },
+                success: function (curr_res) {
+                    if (curr_res.code === 0) {
+                        showToast("Success", "Deleted successfully!", true);
+                        curr_reloadGrid();
+                        curr_selectedRowData = null;
+                    } else {
+                        showToast("Error", curr_res.msg || "Delete failed!", false);
+                    }
+                },
+                error: function (xhr) {
+                    console.error("Delete error:", xhr.responseText);
+                    showToast("Error", "Delete error!", false);
+                }
+            });
+        }
+
+        function curr_exportExcel() {
+            const curr_grid = $(curr_selectors.grid).dxDataGrid("instance");
+
+            const curr_workbook = new ExcelJS.Workbook();
+            const curr_companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const curr_worksheet = curr_workbook.addWorksheet("Sheet 1");
+
+            curr_worksheet.addRow([curr_companyName]);
+            curr_worksheet.mergeCells("A1:D1");
+            curr_worksheet.getRow(1).font = { bold: true };
+            curr_worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "left" };
+
+            const curr_now = new Date();
+            const curr_exportDate = curr_now.toLocaleString("vi-VN");
+            curr_worksheet.addRow(["", "", "", curr_exportDate]);
+            curr_worksheet.mergeCells("D2:D2");
+            curr_worksheet.getRow(2).alignment = { vertical: "middle", horizontal: "right" };
+
+            curr_worksheet.addRow([]);
+            curr_worksheet.addRow([]);
+
+            const curr_reportRow = curr_worksheet.addRow(["Currency"]);
+            curr_worksheet.mergeCells("A5:D5");
+            curr_reportRow.font = { bold: true, size: 14 };
+            curr_reportRow.alignment = { vertical: "middle", horizontal: "center" };
+
+            curr_worksheet.addRow([]);
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: curr_grid,
+                worksheet: curr_worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                const curr_lastRow = curr_worksheet.lastRow.number + 2;
+                curr_worksheet.mergeCells(`A${curr_lastRow}:D${curr_lastRow}`);
+                curr_worksheet.getCell(`A${curr_lastRow}`).alignment = { horizontal: "center" };
+                curr_worksheet.getCell(`A${curr_lastRow}`).font = { italic: true };
+
+                let curr_fileName = "Currency.xlsx";
+                curr_workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), curr_fileName);
+                });
+            });
+        }
+
+        return {
+            init: curr_init,
+            reloadGrid: curr_reloadGrid,
+            openAddMode: curr_openAddMode,
+            openEditMode: curr_openEditMode
+        };
+    })();
 
     $(document).ready(function () {
-        $(".menu-group-title").on("click", function (event) {
-            const submenu = $(this).next(".menu-left"); // lấy thằng menu-left con
-            const icon = $(this).find("i");
-
-            // toggle submenu
-            submenu.slideToggle(200);
-
-            // đổi icon
-            icon.toggleClass("fa-chevron-down fa-chevron-up");
-        });
-        $("#btnEdit").show();
-        $("#btnDelete").show();
-        $("#btnCancel").hide();
-        $("#btnSaveItem").hide();
-        $("#btnNew").show();
-
-        reloadGrid();
+        curr_Module.init();
     });
 
-    $("#btnView").on("click", function () {
-        reloadGrid();
-    });
-
-    $("#btnNew").click(function () {
-        $("#itemForm")[0].reset();
-        $("#id").val("");
-
-        $("#btnEdit").hide();
-        $("#btnDelete").hide();
-        $("#btnCancel").show();
-        $("#btnSaveItem").show();
-    });
-
-
-    $("#btnSaveItem").click(function () {
-        const formData = $("#formContainer").serialize();
-        console.log("FormData:", formData);
-
-        let url = "/Administration/InsertCurrency";
-
-        // Nếu có row được chọn => Update
-        if (selectedRowData) {
-            url = "/Administration/UpdateCurrency";
-        }
-
-        $.ajax({
-            url: url,
-            type: "POST",
-            data: formData,
-            success: function (res) {
-                if (res.success) {
-                    showToast("Success", url.includes("Update") ? "Update success" : "Insert success", true);
-                    $("#formContainer").trigger("reset");
-                    selectedRowData = null;
-
-                    $("#btnEdit").show();
-                    $("#btnDelete").show();
-                    $("#btnCancel").hide();
-                    $("#btnSaveItem").hide();
-                    $("#btnNew").show();
-
-                    reloadGrid();
-                } else {
-                    showToast("Failed", res.message || "Action Failed!", false);
-                }
-            },
-            error: function (xhr) {
-                console.error("Save error:", xhr.responseText);
-                showToast("Error", "Request error!", false);
-            }
-        });
-    });
-
-
-    $("#btnEdit").on("click", function () {
-        if (!selectedRowData) {
-            DevExpress.ui.notify("Please select a row first!", "warning", 2000);
-            return;
-        }
-
-        // Lấy dữ liệu chi tiết từ server dựa vào ID
-        $.ajax({
-            url: "/Administration/GetCurrencyById",
-            type: "GET",
-            data: { id: selectedRowData.id },
-            success: function (data) {
-                if (data.success && data.id) {
-                    // Điền dữ liệu lên form
-                    $("#code").val(data.id);
-                    $("#description").val(data.description);
-                    $("#seq").val(data.decimals);
-
-                    $("#inactive").prop("checked", data.inactive);
-                    $("#masterStatus").prop("checked", data.isMaster);
-                    $("#isShow").prop("checked", data.isShow);
-
-                    // Ẩn/hiện nút
-                    $("#btnNew, #btnDelete").hide();
-                    $("#btnCancel, #btnSaveItem").show();
-                } else {
-                    DevExpress.ui.notify(data.message || "Cannot load data!", "error", 2000);
-                }
-            },
-            error: function (xhr) {
-                console.error("Load data error:", xhr.responseText);
-                DevExpress.ui.notify("Cannot load data from server!", "error", 2000);
-            }
-        });
-    });
-
-
-
-    $("#btnCancel").click(function () {
-        $("#itemForm")[0].reset();
-        $("#id").val("0");
-
-        $("#btnEdit").show();
-        $("#btnDelete").show();
-        $("#btnCancel").hide();
-        $("#btnSaveItem").hide();
-        $("#btnNew").show();
-    });
-
-
-
-
-    function loadGrid(data) {
-        $("#gridContainerRateCode").dxDataGrid({
-            dataSource: data,
-            height: 500,
-            width: "100%",
-            columnAutoWidth: true,
-            allowColumnResizing: true,
-            columnResizingMode: "widget",
-            selection: { mode: "single" },
-            columns: [
-                { dataField: "id", caption: "Code" },
-                { dataField: "isMaster", caption: "Master" },
-                { dataField: "decimals", caption: "Decimals" },
-                { dataField: "inactive", caption: "Inactive" },
-                { dataField: "description", caption: "Description" },
-            ],
-            filterRow: { visible: true, applyFilter: "auto" },
-            paging: { pageSize: 20 },
-            pager: {
-                visible: true,
-                allowedPageSizes: [20, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            scrolling: { mode: "standard", showScrollbar: "always", scrollByContent: true },
-            onSelectionChanged: function (e) {
-                selectedRowData = e.selectedRowsData.length > 0 ? e.selectedRowsData[0] : null;
-                console.log("Selected Row:", selectedRowData);
-            }
-        });
-    }
-
-    // Reload grid với filter từ form
-    function reloadGrid() {
-        $("#loadingSpinnerRateCode").show();
-
-        $.ajax({
-            url: "/Administration/GetCurrency",
-            type: 'GET',
-            data: {
-                code: $("#code").val(),
-                description: $("#description").val(),
-                sequence: $("#seq").val(),
-            },
-            success: function (data) {
-                console.log(data);
-                loadGrid(data);
-                $("#loadingSpinnerRateCode").hide();
-            },
-            error: function (xhr, status, error) {
-                alert("Không thể tải dữ liệu");
-                $("#loadingSpinnerRateCode").hide();
-            }
-        });
-    }
-
-
-    $("#btnDelete").on("click", function () {
-        if (!selectedRowData) {
-            DevExpress.ui.notify("Please select a row first!", "warning", 2000);
-            return;
-        }
-
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "This action cannot be undone.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!',
-            cancelButtonText: 'Cancel',
-            customClass: {
-                popup: 'swal-small'
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                deleteSelectedItem();
-            }
-        });
-
-    });
-
-    function deleteSelectedItem() {
-        $.ajax({
-            url: "/Administration/DeleteCurrency",
-            type: "POST",
-            data: { id: selectedRowData.id }, // gửi dạng form-data
-            success: function (res) {
-                if (res.code === 0) {
-                    showToast("Success", "Deleted successfully!", true);
-                    reloadGrid();
-                    selectedRowData = null;
-                } else {
-                    showToast("Error", res.msg || "Delete failed!", false);
-                }
-            },
-            error: function (xhr) {
-                console.error("Delete error:", xhr.responseText);
-                showToast("Error", "Delete error!", false);
-            }
-        });
-    }
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainerRateCode").dxDataGrid("instance");   // 🔥 khai báo grid
-
-        const workbook = new ExcelJS.Workbook();
-        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === Dòng 1: Tên công ty (merge theo 4 cột) ===
-        worksheet.addRow([companyName]);
-        worksheet.mergeCells('A1:D1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Ngày giờ xuất (bên phải) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', exportDate]);
-        worksheet.mergeCells('D2:D2');  // cột D thôi
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: trống
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-        const reportRow = worksheet.addRow(['Currency']);
-        worksheet.mergeCells('A5:D5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: trống
-        worksheet.addRow([]);
-
-        // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 }
-        }).then(function () {
-            // Footer (sau cùng)
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = "Currency.xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
-            });
-        });
-    });
-
+    window.openModalCurrency = function () {
+        $("#curr_mainModal").modal("show");
+        curr_Module.reloadGrid();
+    };
 </script>
