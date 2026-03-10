@@ -38,7 +38,7 @@
                             <div class="col-md-3">
                                 <div class="d-flex align-items-center">
                                     <label for="pro_search_txtCity" class="col-form-label text-end me-2" style="width: 85px;">City</label>
-                                    <select id="pro_search_txtCity" class="form-select flex-grow-1 form-select-sm"></select>
+                                    <select id="pro_search_txtCity" class="tomselect-custom flex-grow-1 form-select-sm"></select>
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -51,7 +51,7 @@
                             </div>
                             <div class="col-md-3">
                                 <div class="form-check ms-2">
-                                    <input type="checkbox" class="" id="pro_search_txtShowSaleInCharge">
+                                    <input type="checkbox" class="me-2" id="pro_search_txtShowSaleInCharge">
                                     <label class="form-check-label shadow-none" for="pro_search_txtShowSaleInCharge" style="font-size: 0.9rem; white-space: nowrap;">
                                         Show Sale In Charge
                                     </label>
@@ -88,11 +88,6 @@
                     </div>
                     <div class="gridContainer mt-2 d-flex flex-column flex-grow-1 overflow-auto">
                         <div id="pro_search_gridContainer"></div>
-                        <div id="pro_search_loadingSpinner" style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
-                        z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
-                        height: 100%;display: flex;align-items: center;justify-content: center;">
-                            <div class="spinner-border text-primary" role="status"></div>
-                        </div>
                     </div>
 
                 </div>
@@ -129,7 +124,7 @@
             <div class="modal-body">
                 <div class="toolbar-menu mt-2 row" id="pro_search_functionAndOption">
                     <a href="#" class="font-semibold col-md-6 mb-1" onclick="openModalChanges();">Changes</a>
-                    <a href="#" class="font-semibold col-md-6 mb-1" onclick="deleteProfile();">Delete</a>
+                    <a href="#" class="font-semibold col-md-6 mb-1" id="pro_search_btnDelete">Delete</a>
                     <a href="#" class="font-semibold col-md-6 mb-1" onclick="openModalFuture();">Future</a>
                     <a href="#" class="font-semibold col-md-6 mb-1" onclick="GetProfileHistory();">History</a>
                     <a href="#" class="font-semibold col-md-6 mb-1" onclick="openModalMembership();">Memberships</a>
@@ -145,13 +140,12 @@
 
 <div class="modal fade" id="pro_search_modalHistory" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content modal-full-height">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">History</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-2">
+                <div class="py-2">
                     <button class="mui-button mui-button-new" onclick="AttachAccompanying();">Attach</button>
                     <button class="mui-button mui-button-new" onclick="detach()">Detach</button>
                     <button class="mui-button mui-button-new" onclick="openModalViewProfile()">Profile</button>
@@ -190,56 +184,131 @@
         initDOMEvents: function () {
             const self = this;
         
-            // Nút bấm trên thanh công cụ chính
             $("#pro_search_btnSearch").on("click", () => self.getAllProfiles());
-            $("#pro_search_btnNew").on("click", () => self.editProfile('NEW'));
-            $("#pro_search_btnEdit").on("click", () => self.editProfile('EDIT'));
             $("#pro_search_btnClear").on("click", () => self.clearSearchForm());
             $("#pro_search_btnOption").on("click", () => self.openModalOption());
             $("#pro_search_btnHistory").on("click", () => self.GetProfileHistory());
-        
-            // Các nút trong Modal Option (ví dụ dùng class hoặc id cụ thể)
             $("#pro_search_btnDelete").on("click", () => self.deleteProfile());
+            $("#pro_search_txtType").on("change", function () {
+                self.getAllProfiles();
+                const by = $("#pro_search_txtType").val();
+                console.log(" view by: "+ by);
+            });
+
+            // Nút New của modal SearchProfile
+            $("#pro_search_btnNew").click(function () {
+                const type = $("#pro_search_txtType").val();
+
+                switch (type) {
+                    case "0": // Individual
+                        if (typeof openModalIndividual === 'function') {
+                            openModalIndividual();
+                        }
+                        break;
+
+                    case "1": // Travel Agent
+                    case "2": // Company
+                    case "3": // Source
+                        if (typeof openModalCompany === 'function') {
+                            openModalCompany(parseInt(type));
+                        }
+                        break;
+
+                    case "4": // Group
+                        if (typeof openModalGroup === 'function') {
+                            openModalGroup();
+                        }
+                        break;
+
+                    case "5": // Contact
+                        if (typeof openModalContact === 'function') {
+                            openModalContact();
+                        }
+                        break;
+
+                    default:
+                        showToast("Warning","Please choose profile type (View by)",false);
+                }
+            });
+
+            // Nút edit của modal SearchProfile
+            $("#pro_search_btnEdit").click(function () {
+                if (!self.profileID || self.profileID <= 0) {
+                    showToast("Warning", "Please select a profile to edit", false);
+                    return;
+                }
+
+                const id = self.profileID;
+                const type = String(self.profileType);
+
+                switch (type) {
+                    case "0": // Individual
+                        ModalManager.load('/Profile/Individual', 'modalIndividual', function() {
+                            waitForFunction("pro_ind_Module", () => {
+                                window.pro_ind_Module.init();
+                                if (window.pro_ind_Module.loadProfileByID) {
+                                    setTimeout(() => window.pro_ind_Module.loadProfileByID(id), 300);
+                                }
+                            });
+                        });
+                        break;
+                    case "1": // Travel Agent
+                    case "2": // Company
+                    case "3": // Source
+                        ModalManager.load('/Profile/Company', 'modalCompany', function() {
+                            waitForFunction("pro_com_Module", () => {
+                                window.pro_com_Module.init(parseInt(type));
+                                if (window.pro_com_Module.loadProfileByID) {
+                                    setTimeout(() => window.pro_com_Module.loadProfileByID(id), 300);
+                                }
+                            });
+                        });
+                        break;
+                    case "4": // Group
+                        ModalManager.load('/Profile/Group', 'modalGroup', function() {
+                            waitForFunction("pro_gro_Module", () => {
+                                window.pro_gro_Module.init();
+                                if (window.pro_gro_Module.loadProfileByID) {
+                                    setTimeout(() => window.pro_gro_Module.loadProfileByID(id), 300);
+                                }
+                            });
+                        });
+                        break;
+                    case "5": // Contact
+                        ModalManager.load('/Profile/Contact', 'modalContact', function() {
+                            waitForFunction("pro_con_Module", () => {
+                                window.pro_con_Module.init();
+                                if (window.pro_con_Module.loadProfileByID) {
+                                    setTimeout(() => window.pro_con_Module.loadProfileByID(id), 300);
+                                }
+                            });
+                        });
+                        break;
+                    default:
+                        showToast("Warning", "Edit logic for this type is under development", false);
+                }
+            });
+
         },
 
         bindEvents: function () {
             const self = this;
-            // Prefix: pro_search_txtFullNameIndividual
-            $('#pro_search_txtFullNameIndividual').off('blur').on('blur', function () {
-                self.checkFullName({
-                    fullNameSelector: '#pro_search_txtFullNameIndividual',
-                    firstNameSelector: '#pro_search_txtFirstNameIndividual',
-                    middleNameSelector: '#pro_search_txtMiddleNameIndividual',
-                    lastNameSelector: '#pro_search_txtLastNameIndividual',
-                    salutationSelector: '#pro_search_txtSalutationIndividual',
-                    titleSelector: '#pro_search_txtTitleIndividual',
-                    idForm: "#profile_individual" 
-                });
-            });
-
-            $('#pro_search_txtFullNameContact').off('blur').on('blur', function () {
-                self.checkFullName({
-                    fullNameSelector: '#pro_search_txtFullNameContact',
-                    firstNameSelector: '#pro_search_txtFirstNameContact',
-                    middleNameSelector: '#pro_search_txtMiddleNameContact',
-                    lastNameSelector: '#pro_search_txtLastContact',
-                    salutationSelector: '#pro_search_txtSalulationContact',
-                    titleSelector: '#pro_search_txtTitleContact',
-                    idForm: "#profile_contact"
-                });
-            });
-
-            $('#pro_search_txtMarketTypeCOM').off('change').on('change', function () {
-                self.getMarket2();
-            });
+            
         },
 
         loadInitialData: function() {
+            initTomSelect('.tomselect-custom');
+            const mapCode = (item) => ({
+                value: item.id || item.ID,
+                text: (item.code || item.Code) + "-" + (item.name || item.Name),
+                data: item
+            });
+            loadDataToTomSelect("#pro_search_txtCity", "/Profile/GetAllCity", mapCode);
+
 
         }, 
 
         getAllProfiles: function () {
-            $("#pro_search_loadingSpinner").show();
             if (this.gridInstance) {
                 this.gridInstance.refresh();
             } else {
@@ -256,7 +325,6 @@
                     var params = {
                         skip: loadOptions.skip || 0,
                         take: loadOptions.take || 20,
-                        // Sử dụng tiền tố pro_search_ cho các selector lấy dữ liệu search
                         code: $('#pro_search_txtCode').val(),
                         account: $('#pro_search_txtAccount').val(),
                         firstName: $('#pro_search_txtFirstName').val(),
@@ -269,6 +337,7 @@
                     $.ajax({
                         url: '/Profile/GetAllProfileTest',
                         type: 'GET',
+                        loadingGrid: '#pro_search_gridContainer',
                         dataType: 'json',
                         data: params,
                         cache: false,
@@ -403,9 +472,11 @@
                     enabled: false
                 },
                 onRowClick: function (e) {
-                    self.profileID = e.data.id;
-                    self.profileType = e.data.type;
-                    self.profileName = e.data.account;
+                    self.profileID = e.data.id || e.data.ID;
+                    self.profileType = e.data.type !== undefined ? e.data.type : e.data.Type;
+                    self.profileName = e.data.account || e.data.Account;
+
+                    console.log("Selected Profile:", self.profileID, "Type:", self.profileType);
                 },
                 onRowDblClick: function(e) {
                     // Thực thi callback trả dữ liệu về modal gọi nó nếu có
@@ -417,9 +488,6 @@
                         if (modal) modal.hide();
                     }
                 },
-                onContentReady: function () {
-                    $("#pro_search_loadingSpinner").hide();
-                }
             }).dxDataGrid("instance");
         },
 
@@ -430,6 +498,7 @@
             if ($('#pro_search_txtCity')[0]?.tomselect) {
                 $('#pro_search_txtCity')[0].tomselect.clear();
             }
+            $("#pro_search_txtShowSaleInCharge").prop("checked", false);
         },
 
         openModalOption: function() {
@@ -487,7 +556,7 @@
 
         deleteProfile: function () {
             const self = this;
-            if (!this.profileID || this.profileID <= 0) {
+            if (!self.profileID || self.profileID <= 0) {
                 showToast("Error", "Please choose 1 profile to delete", false);
                 return;
             }
@@ -496,60 +565,17 @@
             $.ajax({
                 url: '/Profile/DeleteProfile',
                 type: 'POST',
-                data: { profileID: this.profileID },
+                data: { profileID: self.profileID },
                 success: function (res) {
                     if (res.success) {
                         showToast("Success", res.message, true);
+                        $("#pro_search_modalOption").modal("hide");
                         self.getAllProfiles();
                     } else {
                         showToast("Error", res.message, false);
                     }
                 }
             });
-        },
-
-        editProfile: function (mode) {
-            const self = this;
-            var grid = this.gridInstance;
-            if (!grid) return;
-            var selectedRowsData = grid.getSelectedRowsData();
-
-            if (mode === 'NEW') {
-                let type = $('#pro_search_txtType').val();
-                if (type == 0 || type === '') {
-                    $('#modalIndividual').modal('show');
-                    $('#btnView').hide();
-                } else if (type == 4) {
-                    $('#modalGroup').modal('show');
-                } else if (type == 5) {
-                    $('#modalContact').modal('show');
-                } else {
-                    $('#modalCompany').modal('show');
-                }
-                return;
-            }
-
-            if (mode === 'EDIT') {
-                if (selectedRowsData.length < 1) {
-                    showToast("Warning", "Please choose 1 profile to edit", false);
-                    return;
-                }
-                $("#profileTypeModalLabel").text("Edit Profile");
-                $.ajax({
-                    url: '/Profile/GetProfileByID',
-                    type: 'get',
-                    dataType: 'json',
-                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-                    data: { id: selectedRowsData[0].id },
-                    success: function (result) {
-                        if (result.code != 0) {
-                            showToast("Error", result.msg, false);
-                        } else {
-                            self.fillProfileForm(result.profile);
-                        }
-                    }
-                });
-            }
         },
 
         initializeDataGridHistory: function (data) {
@@ -605,15 +631,17 @@
                     showNavigationButtons: true,
                 },
                 scrolling: {
-                    rowRenderingMode: 'virtual',
+                    mode: "standard",
                     showScrollbar: "always"
                 },
                 onRowClick: function (e) {
-                    console.log("History ID clicked:", e.data.id);
+                    console.log("History clicked: ");
                 }
             });
         },
 
+
     };
+
 
 </script>

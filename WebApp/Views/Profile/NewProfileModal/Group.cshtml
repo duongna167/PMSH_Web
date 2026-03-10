@@ -311,7 +311,6 @@
                 loadDataToTomSelect("#gro_txtLanguage", "/Profile/GetAllLanguage", mapCode),
                 loadDataToTomSelect("#gro_txtCity", "/Profile/GetAllCity", mapCode),
                 loadDataToTomSelect("#gro_txtCountry", "/Profile/GetAllCountry", mapCode),
-                loadDataToTomSelect("#gro_txtOwner", "/Profile/GetAllOwner", mapCode),
 
                 loadDataToTomSelect("#gro_txtCurrency", "/Profile/GetAllCurrency",(item) => {
                     const id = item.id || item.ID || "";
@@ -443,11 +442,16 @@
                 success: function (res) {
                     LoadingGlobal.hide();
                     if (res.success) {
-                        showToast("Success", res.message || 'Saved successfully!', true);
+                        showToast("Success", res.message || 'Profile saved successfully!', true);
                         setTimeout(() => { $('#modalGroup').modal('hide'); }, 1000);
                     } else {
-                        if (res.errors) ValidationAdapter.apply(res.errors, "#pro_gro_formContainer");
-                        showToast("Error", res.message || 'Error occurred', false);
+                        if (res.errors && res.errors.length > 0) {
+                            ValidationAdapter.apply(res.errors, "#pro_gro_formContainer");
+
+                            showToast("Error",'Please check the highlighted fields.', false);
+                        } else {
+                            showToast("Error",res.message || 'An error occurred', false);
+                        }
                     }
                 },
                 error: function () {
@@ -468,44 +472,69 @@
                 }
             };
 
-            $("#gro_id").val(data.ID || 0);
+            $("#gro_id").val(data.id || 0);
 
-            $("#gro_txtCode").val(data.Code || "");
-            $("#gro_txtGroupName").val(data.Account || "");
+            $("#gro_txtCode").val(data.code || "");
+            $("#gro_txtGroupName").val(data.account || "");
 
-            setTS("#gro_txtLanguage", data.LanguageID);
+            setTS("#gro_txtLanguage", data.languageID);
 
-            $("#gro_txtAddress").val(data.Address || "");
-            $("#gro_txtHomeAddress").val(data.HomeAddress || "");
+            $("#gro_txtAddress").val(data.address || "");
+            $("#gro_txtHomeAddress").val(data.homeAddress || "");
 
-            setTS("#gro_txtCity", data.City);
+            setTS("#gro_txtCity", data.city);
 
-            $("#gro_txtPostalCode").val(data.PostalCode || "");
+            $("#gro_txtPostalCode").val(data.postalCode || "");
 
-            setTS("#gro_txtCountry", data.CountryID);
-            setTS("#gro_txtState", data.StateID);
+            setTS("#gro_txtCountry", data.countryID);
+            setTS("#gro_txtState", data.stateID);
 
-            $("#gro_txtContact").val(data.AcctContact || "");
+            $("#gro_txtContact").val(data.acctContact || "");
 
-            setTS("#gro_txtCurrency", data.CurrencyID);
+            setTS("#gro_txtCurrency", data.currencyID);
 
-            setTS("#gro_txtVIP", data.VIPID);
+            setTS("#gro_txtVIP", data.vipID);
 
-            $("#gro_txtVIPReason").val(data.VIPReason || "");
+            $("#gro_txtVIPReason").val(data.vipReason || "");
 
-            $("#gro_txtNotes").val(data.Description || "");
+            $("#gro_txtNotes").val(data.description || "");
 
-            $("#gro_chkHistory").prop("checked", data.History === true);
+            $("#gro_chkHistory").prop("checked", data.history === true);
 
-            $("#gro_txtTelephone").val(data.Telephone || "");
-            $("#gro_txtEmail").val(data.Email || "");
-            $("#gro_txtWebsite").val(data.Website || "");
-            $("#gro_txtHandPhone").val(data.HandPhone || "");
+            $("#gro_txtTelephone").val(data.telephone || "");
+            $("#gro_txtEmail").val(data.email || "");
+            $("#gro_txtWebsite").val(data.website || "");
+            $("#gro_txtHandPhone").val(data.handPhone || "");
 
+        },
+
+        loadProfileByID: function (id) {
+            const self = this;
+            LoadingGlobal.show();
+            $.ajax({
+                url: '/Profile/GetProfileByID/',
+                type: 'GET',
+                data: { id: id },
+                success: function (res) {
+                    LoadingGlobal.hide();
+                    if (res.code === 0) {
+                        self.fillForm(res.profile);
+                    } else {
+                        showToast("Error", res.msg, false);
+                    }
+                },
+                error: function () {
+                    LoadingGlobal.hide();
+                    showToast("Error", "Cannot load profile", false);
+                }
+            });
         }
     };
 
-    $(document).ready(function () {
-        pro_gro_Module.init();
-    });
+    window.initGroupModal = function() {
+        if (window.pro_gro_Module) {
+            window.pro_gro_Module.init();
+        }
+    }
+
 </script>

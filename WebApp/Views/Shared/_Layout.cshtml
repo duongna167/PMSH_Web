@@ -1,4 +1,4 @@
-﻿﻿@using Microsoft.Extensions.Options
+@using Microsoft.Extensions.Options
 @using static BaseBusiness.Global
 @inject IOptions<ContactInfo> ContactConfig
 
@@ -199,12 +199,12 @@
                                     <a class="dropdown-submenu-toggle">New Profile</a>
                                     <div class="dropdown-submenu-content">
                                         @* <a href="javascript:void(0);" onclick="openModalInd()" data-action="">Individual test</a> *@
-                                        <a href="javascript:void(0);" onclick="openModalIndividual()" data-action="">Individual</a>
-                                        <a href="javascript:void(0);" onclick="openModalCompany(2)" data-action="">Company</a>
-                                        <a href="javascript:void(0);" onclick="openModalCompany(1)" data-action="">Travel Agent</a>
-                                        <a href="javascript:void(0);" onclick="openModalCompany(3)" data-action="">Source</a>
-                                        <a href="javascript:void(0);" onclick="openModalGroup()" data-action="">Group</a>
-                                        <a href="javascript:void(0);" onclick="openModalContact()" data-action="">Contact</a>
+                                        <a href="javascript:void(0);" onclick="openModalIndividual()" data-action="SearchProfile">Individual</a>
+                                        <a href="javascript:void(0);" onclick="openModalCompany(2)" data-action="SearchProfile">Company</a>
+                                        <a href="javascript:void(0);" onclick="openModalCompany(1)" data-action="SearchProfile">Travel Agent</a>
+                                        <a href="javascript:void(0);" onclick="openModalCompany(3)" data-action="SearchProfile">Source</a>
+                                        <a href="javascript:void(0);" onclick="openModalGroup()" data-action="SearchProfile">Group</a>
+                                        <a href="javascript:void(0);" onclick="openModalContact()" data-action="SearchProfile">Contact</a>
 
                                     </div>
                                 </div>
@@ -1259,21 +1259,7 @@
         init: function () {
             const self = this;
 
-            this.initGlobalEvents();
-
-            $(document).on("shown.bs.modal", ".modal", function () {
-                const $openModals = $('.modal.show').not(this);
-                if ($openModals.length > 0) {
-                    $openModals.find('.modal-content').addClass('modal-blur');
-                }
-            });
-
-            $(document).on("hidden.bs.modal", ".modal", function () {
-                const $remainingModals = $('.modal.show');
-                if ($remainingModals.length > 0) {
-                    $remainingModals.last().find('.modal-content').removeClass('modal-blur');
-                }
-            });
+            this.initGlobalEvents()
         },
 
         initGlobalEvents: function() {
@@ -1304,9 +1290,10 @@
 
         load: function (url, modalId, callback, showModal = true) {
             const $container = this.getOrCreateContainer(modalId);
-            $container.empty(); // Xóa nội dung cũ để tránh trùng lặp script/ID
 
-            $container.load(url, function (response, status, xhr) {
+            $container.empty();
+
+            $container.load(url, (response, status) => {
                 if (status === "error") return;
 
                 const modalEl = document.getElementById(modalId);
@@ -1314,43 +1301,50 @@
                     if (typeof initDateInputs === "function") initDateInputs(modalEl);
 
                     if (showModal) {
-                        const modal = new bootstrap.Modal(modalEl);
+                        const modal = new bootstrap.Modal(modalEl, {
+                            backdrop: 'static',
+                            keyboard: true
+                        });
                         modal.show();
-                        
-                        modalEl.addEventListener("hidden.bs.modal", function () {
+
+                        $(modalEl).one("hidden.bs.modal", () => {
                             modal.dispose();
                             $container.remove();
-                            if ($('.modal.show').length > 0) {
-                                $('body').addClass('modal-open');
-                            }
+                            if ($('.modal.show').length > 0) $('body').addClass('modal-open');
                         });
                     }
 
-                    // Xử lý thực thi callback sau khi HTML/Script đã được nạp vào DOM
-                    if (typeof callback === "function") {
-                        callback();
-                    } else if (typeof callback === "string") {
-                        // Chờ một chút để script trong file vừa load kịp đăng ký hàm vào window
-                        setTimeout(() => {
-                            if (typeof window[callback] === "function") {
-                                window[callback]();
-                            } else {
-                                // Nếu truyền String mà không có hàm global, thử tìm Module mặc định
-                                const moduleName = modalId.replace('_modal', '_Module');
-                                if (window[moduleName] && typeof window[moduleName].init === 'function') {
-                                    window[moduleName].init();
-                                }
-                            }
-                        }, 100);
-                    }
+                      if (typeof callback === "string") {
+                          waitForFunction(callback, () => {
+                              window[callback]();
+                          });
+                      } else if (typeof callback === "function") {
+                          callback();
+                      }
                 }
             });
         }
     };
 
-     //Phần cho reservation
- //
- //
+      
+    function waitForFunction(objName, callback, maxAttempts = 10) {
+        let attempts = 0;
+
+        const interval = setInterval(() => {
+            attempts++;
+              if (typeof window[objName] !== "undefined") {
+                  clearInterval(interval);
+                  callback(); 
+              }
+              else if (attempts >= maxAttempts) {
+                  clearInterval(interval);
+                  console.warn(`Polling: Chờ ${objName} thất bại sau ${maxAttempts} lần thử.`);
+              }
+          }, 50);
+    }
+
+    //Phần cho reservation
+
     function openSearchGroupReservation() {
         // Truyền dạng string để JS không check sự tồn tại ngay lập tức
         ModalManager.load(
@@ -1705,37 +1699,31 @@
         );
     }
 
-          
-    function openModalCompany() {
-        const url = '/Profile/Company';
-        const modalId = 'modalCompany';
-
-        ModalManager.load(url, modalId, "openModalProCom");
-    }
-    
     function openModalCompany(type) {
         const url = '/Profile/Company';
         const modalId = 'modalCompany';
 
         ModalManager.load(url, modalId, function() {
-            if (window.pro_com_Module) {
-                window.pro_com_Module.init(type); 
-            }
+            waitForFunction("pro_com_Module", () => {
+                window.pro_com_Module.init(type);
+            });
         });
     }
 
     function openModalGroup() {
-        const url = '/Profile/Group';
-        const modalId = 'modalGroup';
-
-        ModalManager.load(url, modalId, "openModalProGr");
+        ModalManager.load('/Profile/Group', 'modalGroup', function() {
+            waitForFunction("pro_gro_Module", () => {
+                window.pro_gro_Module.init();
+            });
+        });              
     }
     
     function openModalContact() {
-        const url = '/Profile/Contact';
-        const modalId = 'modalContact';
-        
-        ModalManager.load(url, modalId, "openModalProContact");
+        ModalManager.load('/Profile/Contact', 'modalContact', function() {
+            waitForFunction("pro_con_Module", () => {
+                window.pro_con_Module.init();
+            });
+        });
     }
 
     function openModalInd() {
@@ -1746,10 +1734,11 @@
     }
 
     function openModalIndividual() {
-        const url = '/Profile/Individual';
-        const modalId = 'modalIndividual';
-
-        ModalManager.load(url, modalId, "openModalProIndividual");
+        ModalManager.load('/Profile/Individual', 'modalIndividual', function() {
+            waitForFunction("pro_ind_Module", () => {
+                window.pro_ind_Module.init();
+            });
+        });
     }
 
     function openProSearch(callback) {
