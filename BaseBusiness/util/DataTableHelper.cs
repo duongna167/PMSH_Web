@@ -91,6 +91,7 @@ namespace BaseBusiness.util
                 {
                     mySqlConnectionConnFromDB.Open();
                     mySqlCommand.CommandType = CommandType.StoredProcedure;
+                    mySqlCommand.CommandTimeout = 300;
                     if (mySqlParameter != null)
                     {
                         for (int i = 0; i < mySqlParameter.Length; i++)
