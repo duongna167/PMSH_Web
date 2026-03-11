@@ -413,7 +413,7 @@ namespace Administration.Controllers
                             (case MasterStatus when 0 then '' when 1 then 'X' end)as [IsMaster],
                     (case Inactive when 0 then '' when 1 then 'X' end)as [Inactive], (b.Code+' - '+b.Description)
                     as [Trans],a.Description from Currency a left join Transactions b on a.TransactionCode=b.Code
-                    where 1=1 and a.ID like N'%{code}%' and a.Inactive = {isActive} and a.IsShow = 0 order by a.ID desc")
+                    where 1=1 and a.ID like N'%{code}%' and a.Inactive = {isActive} order by a.ID desc")
                         ];
                 DataTable dataTable = DataTableHelper.getTableData("spSearchAllForTrans", param);
 
@@ -477,7 +477,7 @@ namespace Administration.Controllers
                 member.CreateDate = DateTime.Now;
                 member.UpdateDate = DateTime.Now;
                 if (string.IsNullOrWhiteSpace(member.ID))
-                    return Json(new { success = false, message = "Code không được để trống." });
+                    return Json(new { success = false, message = "The code cannot be left blank." });
 
                 string memberId = CurrencyBO.Instance.InsertStringId(member);
 
@@ -528,7 +528,7 @@ namespace Administration.Controllers
 
                 int loginName = HttpContext.Session.GetInt32("UserID") ?? 0;
                 if (string.IsNullOrWhiteSpace(member.ID))
-                    return Json(new { success = false, message = "Code không được để trống." });
+                    return Json(new { success = false, message = "The code cannot be left blank." });
 
                 if (member.ID == "") // Insert mới
                 {
@@ -3591,7 +3591,7 @@ namespace Administration.Controllers
         {
             List<CommentTypeModel> listctry = PropertyUtils.ConvertToList<CommentTypeModel>(CommentTypeBO.Instance.FindAll());
             ViewBag.CommentTypeList = listctry;
-            return View("ItemCategory/Comment");
+            return PartialView("ItemCategory/Comment");
         }
         [HttpPost]
         public IActionResult CommentSave([FromBody] CommentModel model)
@@ -3600,8 +3600,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.CommentTypeID ?? 0, "commentTypeID", "Comment type must be choose")
+                Check(model?.Code, "comT_code", "Code is not blank."),
+                Check(model?.CommentTypeID ?? 0, "comT_commentTypeID", "Comment type must be choose")
             );
 
             if (listErrors.Count > 0)
@@ -3695,7 +3695,7 @@ namespace Administration.Controllers
         }
         public IActionResult CommentType()
         {
-            return View("ItemCategory/CommentType");
+            return PartialView("ItemCategory/CommentType");
         }
 
         [HttpPost]
@@ -3705,8 +3705,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "comTy_code", "Code is not blank."),
+                Check(model?.Name, "comTy_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -3799,7 +3799,7 @@ namespace Administration.Controllers
         }
         public IActionResult Season()
         {
-            return View("ItemCategory/Season");
+            return PartialView("ItemCategory/Season");
         }
         [HttpPost]
         public IActionResult SeasonSave([FromBody] SeasonModel model)
@@ -3808,8 +3808,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "seas_code", "Code is not blank."),
+                Check(model?.Name, "seas_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -3902,7 +3902,7 @@ namespace Administration.Controllers
         }
         public IActionResult Zone()
         {
-            return View("ItemCategory/Zone");
+            return PartialView("ItemCategory/Zone");
         }
         [HttpPost]
         public IActionResult ZoneSave([FromBody] ZoneModel model)
@@ -3911,8 +3911,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "zone_code", "Code is not blank."),
+                Check(model?.Name, "zone_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -4006,7 +4006,7 @@ namespace Administration.Controllers
         }
         public IActionResult Department()
         {
-            return View("ItemCategory/Department");
+            return PartialView("ItemCategory/Department");
         }
         [HttpPost]
         public IActionResult DepartmentSave([FromBody] DepartmentModel model)
@@ -4015,8 +4015,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model?.Name, "name", "Name is not blank.")
+                Check(model?.Code, "depa_code", "Code is not blank."),
+                Check(model?.Name, "depa_name", "Name is not blank.")
             );
 
             if (listErrors.Count > 0)
@@ -4490,7 +4490,7 @@ namespace Administration.Controllers
         }
         public IActionResult PropertyType()
         {
-            return View("ItemCategory/PropertyType");
+            return PartialView("ItemCategory/PropertyType");
         }
         [HttpPost]
         public IActionResult PropertyTypeSave([FromBody] PropertyTypeModel model)
@@ -4498,8 +4498,8 @@ namespace Administration.Controllers
             var listErrors = GetErrors(
                 Check(model == null, "general", "Invalid data"),
 
-                Check(model?.Code, "code", "Code is not blank."),
-                Check(model.Sequence < 0, "seq", "Sequence must be >= 0")
+                Check(model?.Code, "proTp_code", "Code is not blank."),
+                Check(model.Sequence < 0, "proTp_sequence", "Sequence must be >= 0")
 
             );
 
@@ -4513,8 +4513,8 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreatedDate = DateTime.Now;
-                    model.UpdatedDate = DateTime.Now;
+                    model.CreatedDate = businessDate;
+                    model.UpdatedDate = businessDate;
                     PropertyTypeBO.Instance.Insert(model);
                     message = "Insert successfully.";
                 }
@@ -4526,7 +4526,7 @@ namespace Administration.Controllers
                         model.CreatedBy = oldData.CreatedBy;
                         model.CreatedDate = oldData.CreatedDate;
                     }
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdatedDate = businessDate;
                     PropertyTypeBO.Instance.Update(model);
                     message = "Update successfully.";
                 }
@@ -4593,21 +4593,21 @@ namespace Administration.Controllers
         {
             List<PropertyTypeModel> listPropertyType = PropertyUtils.ConvertToList<PropertyTypeModel>(PropertyTypeBO.Instance.FindAll());
             ViewBag.PropertyTypeList = listPropertyType;
-            return View("ItemCategory/Property");
+            return PartialView("ItemCategory/Property");
         }
         [HttpPost]
         public IActionResult PropertySave([FromBody] PropertyModel model)
         {
             var listErrors = GetErrors(
                 Check(model, "general", "Invalid data"),
-                Check(model?.PropertyCode, "code", "Code is not blank."),
-                Check(model?.PropertyName, "propertyName", "Name is not blank."),
-                Check(model?.PropertyTypeID, "propertyType", "Property type is not blank."),
-                Check(model?.ServerName, "serverName", "Server name is not blank."),
-                Check(model?.DatabaseName, "databaseName", "Database name is not blank."),
-                Check(model?.Login, "login", "Login account is not blank."),
-                Check(model?.Password, "password", "Password is not blank."),
-                Check(model?.Password?.Length < 6, "password", "Password must be at least 6 characters.")
+                Check(model?.PropertyCode, "prop_code", "Code is not blank."),
+                Check(model?.PropertyName, "prop_propertyName", "Name is not blank."),
+                Check(model?.PropertyTypeID, "prop_propertyType", "Property type is not blank."),
+                Check(model?.ServerName, "prop_serverName", "Server name is not blank."),
+                Check(model?.DatabaseName, "prop_databaseName", "Database name is not blank."),
+                Check(model?.Login, "prop_login", "Login account is not blank."),
+                Check(model?.Password, "prop_password", "Password is not blank."),
+                Check(model?.Password?.Length < 6, "prop_password", "Password must be at least 6 characters.")
             );
 
             if (listErrors.Count > 0)
@@ -4692,7 +4692,7 @@ namespace Administration.Controllers
             ViewBag.PropertyList = listProperty;
             List<UsersModel> listuser = PropertyUtils.ConvertToList<UsersModel>(UsersBO.Instance.FindAll());
             ViewBag.UsersList = listuser;
-            return View("ItemCategory/PropertyPermission");
+            return PartialView("ItemCategory/PropertyPermission");
         }
 
         [HttpPost]
@@ -4714,8 +4714,8 @@ namespace Administration.Controllers
                 {
                     // VALIDATE REQUIRED TRƯỚC
                     var rowErrors = GetErrors(
-                        Check(model.UserID == 0, "chooseUser", "User is required."),
-                        Check(model.PropertyID == 0, "choosePropertyType", "Property is required.")
+                        Check(model.UserID == 0, "propPer_chooseUser    ", "User is required."),
+                        Check(model.PropertyID == 0, "propPer_choosePropertyType", "Property is required.")
                     );
 
                     if (rowErrors.Count > 0)

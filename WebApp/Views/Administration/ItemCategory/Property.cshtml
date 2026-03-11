@@ -1,343 +1,660 @@
 ﻿@{
-    //
+    var prop_listPropertyType = ViewBag.PropertyTypeList;
 }
 
-<div class="text-center" style="font-size: 20px">Property</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-  
-    <div class="mt-2">
-        <button id="btnNew" class="mui-button mui-button-new"> New</button>
-        <button id="btnUpdate" class="mui-button mui-button-edit"> Edit</button>
-        <button id="btnDelete" class="mui-button mui-button-delete"> Delete</button>
-    </div>
-
-</div>
-
-<!-- Modal Popup for New Item -->
-<div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+<!-- Main Modal -->
+<div class="modal fade"
+     id="prop_mainModal"
+     tabindex="-1"
+     aria-labelledby="prop_mainModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-4by3 modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="itemModalLabel">New Property</h5>
-            </div>
-
-            <div class="modal-footer justify-content-start border-bottom">
-                <button type="button" id="btnSave" class="mui-button mui-button-save"> Save</button>
-                <button type="button" data-bs-dismiss="modal" class="mui-button mui-button-close"> Close</button>
+                <h5 class="modal-title" id="prop_mainModalLabel">Property</h5>
             </div>
 
             <div class="modal-body">
-                <form id="formContainer">
-                    <div class="container-fluid">
+                <div class="search-filter">
+                    <div>
+                        <button id="prop_btnNew" type="button" class="mui-button mui-button-new">New</button>
+                        <button id="prop_btnUpdate" type="button" class="mui-button mui-button-edit">Edit</button>
+                        <button id="prop_btnDelete" type="button" class="mui-button mui-button-delete">Delete</button>
+                        <button type="button"
+                                class="mui-button mui-button-new"
+                                data-bs-dismiss="modal"
+                                aria-label="Close">
+                            Close
+                        </button>
+                    </div>
+                </div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-3">
-                                <label for="code" class="form-label mb-1 fw-bold" style="font-size: 12px;">Code <span class="text-danger">*</span></label>
-                                <input type="text" id="code" name="code" class="form-control form-control-sm" placeholder="Code..." required />
-                                <div class="invalid-feedback">Code is required.</div>
-                            </div>
-                            <div class="col-md-5">
-                                <label for="propertyName" class="form-label mb-1 fw-bold" style="font-size: 12px;">Property Name <span class="text-danger">*</span></label>
-                                <input type="text" id="propertyName" name="propertyName" class="form-control form-control-sm" placeholder="Name..." required />
-                                <div class="invalid-feedback">Property Name is required.</div>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="propertyType" class="form-label mb-1 fw-bold" style="font-size: 12px;">Property Type <span class="text-danger">*</span></label>
-                                <select id="propertyType" name="propertyType" class="form-select form-select-sm" required>
-                                    <option value="">-- Type --</option>
-                                    @foreach (var sg in ViewBag.PropertyTypeList)
-                                    {
-                                        <option value="@sg.ID" data-code="@sg.Code">@sg.Code - @sg.Description</option>
-                                    }
-                                </select>
-                                <div class="invalid-feedback">Required.</div>
-                            </div>
-                        </div>
+                <div class="mui-card mt-1">
+                    <div id="prop_gridContainer" class="gridContainer"></div>
+                </div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="address" class="form-label mb-1 fw-bold" style="font-size: 12px;">Address</label>
-                                <input type="text" id="address" name="address" class="form-control form-control-sm" placeholder="Address..." />
-                            </div>
-                            <div class="col-md-6">
-                                <label for="email" class="form-label mb-1 fw-bold" style="font-size: 12px;">Email</label>
-                                <input type="email" id="email" name="email" class="form-control form-control-sm" placeholder="Email..." />
-                            </div>
-                        </div>
+                <div id="prop_loadingSpinner"
+                     style="position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            z-index: 999;
+                            background: rgba(255, 255, 255, 0.55);
+                            backdrop-filter: blur(2px);
+                            width: 100%;
+                            height: 100%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-                        <div class="row mb-4">
-                            <div class="col-md-4">
-                                <label for="website" class="form-label mb-1 fw-bold" style="font-size: 12px;">Website</label>
-                                <input type="text" id="website" name="website" class="form-control form-control-sm" placeholder="Website..." />
-                            </div>
-                            <div class="col-md-3">
-                                <label for="telephone" class="form-label mb-1 fw-bold" style="font-size: 12px;">Telephone</label>
-                                <input type="text" id="telephone" name="telephone" class="form-control form-control-sm" placeholder="Phone..." />
-                            </div>
-                            <div class="col-md-3">
-                                <label for="fax" class="form-label mb-1 fw-bold" style="font-size: 12px;">Fax</label>
-                                <input type="text" id="fax" name="fax" class="form-control form-control-sm" placeholder="Fax..." />
-                            </div>
-                            <div class="col-md-2 d-flex align-items-end">
-                                <div class="form-check mb-1">
-                                    <input type="checkbox" id="chkshowInactive" name="inactive" class="form-check-input" style="cursor: pointer;" />
-                                    <label for="chkshowInactive" class="form-check-label text-danger" style="cursor: pointer; font-size: 12px;">Inactive</label>
+<!-- Add/Edit Modal -->
+<div class="modal fade"
+     id="prop_itemModal"
+     tabindex="-1"
+     aria-labelledby="prop_itemModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="prop_itemModalLabel">New Property</h5>
+            </div>
+
+            <div class="modal-body">
+                <div class="search-filter">
+                    <button type="button" id="prop_btnSave" class="mui-button mui-button-new">Save</button>
+                    <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <form id="prop_formContainer">
+                    <div class="row g-2 mt-1 mb-2">
+                        <div class="col-12 col-lg-3">
+                            <div class="row g-2 align-items-center">
+                                <label for="prop_code"
+                                       class="col-md-4 col-lg-5 col-form-label col-form-label-sm text-md-end">
+                                    Code <span class="text-danger">*</span>
+                                </label>
+                                <div class="col-md-8 col-lg-7">
+                                    <input id="prop_code"
+                                           name="prop_code"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           placeholder="Code..."
+                                           required />
+                                    <div class="invalid-feedback">Code is required.</div>
                                 </div>
                             </div>
                         </div>
 
-                        <hr /> <h6 class="mb-3 text-primary">Database Configuration</h6>
-
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label for="serverName" class="form-label mb-1 fw-bold" style="font-size: 12px;">Server Name <span class="text-danger">*</span></label>
-                                <input type="text" id="serverName" name="serverName" class="form-control form-control-sm" placeholder="Server..." required />
-                                <div class="invalid-feedback">Required.</div>
-                            </div>
-                            <div class="col-md-3">
-                                <label for="databaseName" class="form-label mb-1 fw-bold" style="font-size: 12px;">Database <span class="text-danger">*</span></label>
-                                <input type="text" id="databaseName" name="databaseName" class="form-control form-control-sm" placeholder="DB Name..." required />
-                                <div class="invalid-feedback">Required.</div>
-                            </div>
-                            <div class="col-md-3">
-                                <label for="login" class="form-label mb-1 fw-bold" style="font-size: 12px;">Login User <span class="text-danger">*</span></label>
-                                <input type="text" id="login" name="login" class="form-control form-control-sm" placeholder="Username..." required />
-                                <div class="invalid-feedback">Required.</div>
-                            </div>
-                            <div class="col-md-3">
-                                <label for="password" class="form-label mb-1 fw-bold" style="font-size: 12px;">Password <span class="text-danger">*</span></label>
-                                <input type="password" id="password" name="password" class="form-control form-control-sm" placeholder="Password..." required />
-                                <div class="invalid-feedback">Required.</div>
+                        <div class="col-12 col-lg-5">
+                            <div class="row g-2 align-items-center">
+                                <label for="prop_propertyName"
+                                       class="col-md-4 col-lg-5 col-form-label col-form-label-sm text-md-end">
+                                    Property Name <span class="text-danger">*</span>
+                                </label>
+                                <div class="col-md-8 col-lg-7">
+                                    <input id="prop_propertyName"
+                                           name="prop_propertyName"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           placeholder="Name..."
+                                           required />
+                                    <div class="invalid-feedback">Property Name is required.</div>
+                                </div>
                             </div>
                         </div>
 
-                        <input type="hidden" id="id" name="id" value="0" />
+                        <div class="col-12 col-lg-4">
+                            <div class="row g-2 align-items-center">
+                                <label for="prop_propertyType"
+                                       class="col-md-4 col-lg-5 col-form-label col-form-label-sm text-md-end">
+                                    Property Type <span class="text-danger">*</span>
+                                </label>
+                                <div class="col-md-8 col-lg-7">
+                                    <select id="prop_propertyType"
+                                            name="prop_propertyType"
+                                            class="tomselect-custom"
+                                            required>
+                                        <option value="">-- Type --</option>
+                                        @foreach (var prop_sg in prop_listPropertyType)
+                                        {
+                                            <option value="@prop_sg.ID" data-code="@prop_sg.Code">
+                                                @prop_sg.Code - @prop_sg.Description
+                                            </option>
+                                        }
+                                    </select>
+                                    <div class="invalid-feedback">Required.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label for="prop_address"
+                                       class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Address
+                                </label>
+                                <div class="col-md-8">
+                                    <input id="prop_address"
+                                           name="prop_address"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           placeholder="Address..." />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label for="prop_email"
+                                       class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Email
+                                </label>
+                                <div class="col-md-8">
+                                    <input id="prop_email"
+                                           name="prop_email"
+                                           type="email"
+                                           class="form-control form-control-sm"
+                                           placeholder="Email..." />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-4">
+                            <div class="row g-2 align-items-center">
+                                <label for="prop_website"
+                                       class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Website
+                                </label>
+                                <div class="col-md-8">
+                                    <input id="prop_website"
+                                           name="prop_website"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           placeholder="Website..." />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-3">
+                            <div class="row g-2 align-items-center">
+                                <label for="prop_telephone"
+                                       class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Telephone
+                                </label>
+                                <div class="col-md-8">
+                                    <input id="prop_telephone"
+                                           name="prop_telephone"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           placeholder="Phone..." />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-3">
+                            <div class="row g-2 align-items-center">
+                                <label for="prop_fax"
+                                       class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Fax
+                                </label>
+                                <div class="col-md-8">
+                                    <input id="prop_fax"
+                                           name="prop_fax"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           placeholder="Fax..." />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-2">
+                            <div class="row g-2 align-items-center">
+                                <div class="form-check d-inline-flex align-items-center gap-2">
+                                    <input id="prop_inactive"
+                                            name="prop_inactive"
+                                            type="checkbox" />
+                                    <label for="prop_inactive" class="form-check-label text-danger">
+                                        Inactive
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <hr class="my-2" />
+                            <div class="row g-2">
+                                <label class="col-md-3 col-form-label col-form-label-sm text-md-end text-primary fw-bold">
+                                    Database Configuration
+                                </label>
+                                <div class="col-md-9"></div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label for="prop_serverName"
+                                       class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Server Name <span class="text-danger">*</span>
+                                </label>
+                                <div class="col-md-8">
+                                    <input id="prop_serverName"
+                                           name="prop_serverName"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           placeholder="Server..."
+                                           required />
+                                    <div class="invalid-feedback">Required.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label for="prop_databaseName"
+                                       class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Database <span class="text-danger">*</span>
+                                </label>
+                                <div class="col-md-8">
+                                    <input id="prop_databaseName"
+                                           name="prop_databaseName"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           placeholder="DB Name..."
+                                           required />
+                                    <div class="invalid-feedback">Required.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label for="prop_login"
+                                       class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Login User <span class="text-danger">*</span>
+                                </label>
+                                <div class="col-md-8">
+                                    <input id="prop_login"
+                                           name="prop_login"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           placeholder="Username..."
+                                           required />
+                                    <div class="invalid-feedback">Required.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label for="prop_password"
+                                       class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Password <span class="text-danger">*</span>
+                                </label>
+                                <div class="col-md-8">
+                                    <input id="prop_password"
+                                           name="prop_password"
+                                           type="password"
+                                           class="form-control form-control-sm"
+                                           placeholder="Password..."
+                                           required />
+                                    <div class="invalid-feedback">Required.</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    <input type="hidden" id="prop_id" name="prop_id" value="0" />
                 </form>
             </div>
         </div>
     </div>
 </div>
 
-
 <div class="mui-card">
-    <div id="gridContainerRateCode" class="mt-2 gridContainer"></div>
+    <div id="prop_gridContainer" class="mt-2 gridContainer"></div>
 </div>
 
-<div id="loadingSpinnerRateCode" style="display: none; text-align: center; padding: 20px;">
+<div id="prop_loadingSpinner" style="display: none; text-align: center; padding: 20px;">
     <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Loading...</span>
     </div>
 </div>
 
 <script>
-    DevExpress.localization.locale("vi");
-    var selectedRowData = null;
+    var prop_Module = (() => {
+        let prop_selectedRowData = null;
 
-    $(document).ready(function () {
-        $("#formContainer").on("input change", "input, select, textarea", function () {
-            if ($(this).hasClass("is-invalid")) {
-                $(this).removeClass("is-invalid");
-                $(this).next(".invalid-feedback").text("");
-            }
-        });
-        $('#itemModal').on('hidden.bs.modal', function () {
-             applyValidationErrors([], "#formContainer");
-        });
-        reloadGrid();
-    });
-
-    function editMember(data) {
-        $("#id").val(data.id);
-        $("#code").val(data.propertyCode);
-        $("#propertyName").val(data.propertyName);
-        $("#fax").val(data.fax);
-        $("#telephone").val(data.telephone);
-        $("#email").val(data.email);
-        $("#website").val(data.website);
-        $("#address").val(data.address);
-        $("#serverName").val(data.serverName);
-        $("#databaseName").val(data.databaseName);
-        $("#login").val(data.login);
-        $("#password").val(data.password);
-        $("#chkshowInactive").prop("checked", data.inactive);
-
-        if (data.propertyTypeID) {
-            $("#propertyType").val(data.propertyTypeID).trigger("change");
-        }
-    }
-
-    // các hàm hỗ trợ grid 
-    function tooltipCell(container, options) {
-        $("<span>")
-            .text(options.value)
-            .attr("data-bs-toggle", "tooltip")
-            .attr("title", options.value)
-            .appendTo(container);
-    }
-
-    function loadGrid(data) {
-        const dataSource = data || [];
-        $("#gridContainerRateCode").dxDataGrid({
-            dataSource: dataSource,
-            height: 550,
-            width: "100%",
-            columnAutoWidth: true,
-            allowColumnResizing: true,
-            selection: { mode: "single" },
-            hoverStateEnabled: true,
-            columns: [
-                { dataField: "propertyCode", caption: "Code", width: "5%", cellTemplate: tooltipCell },
-                { dataField: "propertyName", caption: "Property Name", width: "12%", cellTemplate: tooltipCell },
-                { dataField: "propertyType", caption: "Type", width: "6%", cellTemplate: tooltipCell },
-                { dataField: "telephone", caption: "Tel", width: "7%", cellTemplate: tooltipCell },
-                { dataField: "fax", caption: "Fax", width: "6%" , cellTemplate: tooltipCell},
-                { dataField: "email", caption: "Email", width: "10%", cellTemplate: tooltipCell },
-                { dataField: "website", caption: "Website", width: "8%", cellTemplate: tooltipCell },
-                { dataField: "address", caption: "Address", width: "17%", cellTemplate: tooltipCell },
-                { dataField: "serverName", caption: "Server", width: "7%", cellTemplate: tooltipCell },
-                { dataField: "databaseName", caption: "DB Name", width: "10%", cellTemplate: tooltipCell },
-                { dataField: "login", caption: "Login", width: "6%", cellTemplate: tooltipCell },
-                { dataField: "inactive", caption: "Inactive",width: "5%"},
-            ],
-            onContentReady: function () {
-                $('[data-bs-toggle="tooltip"]').tooltip({ container: 'body' });
-            },
-            scrolling: { mode: "standard", showScrollbar: "always" },
-            filterRow: { visible: true, applyFilter: "auto" },
-            paging: { pageSize: 20 },
-            pager: { showPageSizeSelector: true, visible:true, allowedPageSizes: [20, 50, 'all'], showInfo: true,showNavigationButtons: true },
-            onSelectionChanged: function (e) {
-                selectedRowData = e.selectedRowsData.length > 0 ? e.selectedRowsData[0] : null;
-            }
-        });
-    }
-
-    function reloadGrid() {
-        $("#loadingSpinnerRateCode").show();
-
-        $.ajax({
-            url: "/Administration/GetProperty",
-            type: "GET",
-            dataType: "json",
-            cache: false,
-            success: function (data) {
-                loadGrid(data);
-            },
-            error: function (xhr, status, error) {
-                showToast("Error", "Load data failed", false);
-            },
-            complete: function () {
-                $("#loadingSpinnerRateCode").hide();
-            }
-        });
-    }
-
-    function clearForm() {
-        const $form = $("#formContainer");
-        $form.find("input[type='text'], input[type='password'], input[type='email']").val("");
-        $form.find("input[type='checkbox']").prop("checked", false);
-        $form.find("select").prop("selectedIndex", 0);
-        $form.find(".is-invalid, .is-valid").removeClass("is-invalid is-valid");
-        $form.find("[data-bs-toggle='tooltip']").tooltip("dispose");
-    }
-
-    // --- NEW ---
-    $("#btnNew").click(function () {
-        $("#formContainer")[0].reset();
-        $("#id").val("0");
-        $("#itemModalLabel").text("Add Property");
-        $("#itemModal").modal("show");
-    });
-
-    // --- EDIT ---
-    $("#btnUpdate").click(function () {
-        if (!selectedRowData) {
-            showToast("Warning", "Please select a row to edit.", false);
-            return;
-        }
-        $("#itemModalLabel").text("Edit Property");
-
-        $("#itemModal").modal("show");
-        editMember(selectedRowData);
-    });
-
-    // --- SAVE ---
-    $("#btnSave").click(function () {
-        
-
-        const id = parseInt($("#id").val()) || 0;
-        let loginName = (localStorage.getItem("Loginname") || "").trim()
-            .replace(/^"(.*)"$/, '$1');
-
-        const model = {
-            id: id,
-            propertyCode: $("#code").val().trim(),
-            propertyName: $("#propertyName").val().trim(),
-            propertyTypeID: $("#propertyType").val(), 
-            
-            address: $("#address").val().trim(),
-            email: $("#email").val().trim(),
-            website: $("#website").val().trim(),
-            telephone: $("#telephone").val().trim(),
-            fax: $("#fax").val().trim(),
-            
-            serverName: $("#serverName").val().trim(),
-            databaseName: $("#databaseName").val().trim(),
-            login: $("#login").val().trim(),
-            password: $("#password").val().trim(),
-            
-            inactive: $("#chkshowInactive").prop("checked"),
-            createdBy: loginName,
-            updatedBy: loginName,
+        const prop_selectors = {
+            mainModal: "#prop_mainModal",
+            itemModal: "#prop_itemModal",
+            form: "#prop_formContainer",
+            grid: "#prop_gridContainer",
+            loading: "#prop_loadingSpinner",
+            btnNew: "#prop_btnNew",
+            btnUpdate: "#prop_btnUpdate",
+            btnDelete: "#prop_btnDelete",
+            btnSave: "#prop_btnSave",
+            modalLabel: "#prop_itemModalLabel",
+            id: "#prop_id",
+            code: "#prop_code",
+            propertyName: "#prop_propertyName",
+            propertyType: "#prop_propertyType",
+            address: "#prop_address",
+            email: "#prop_email",
+            website: "#prop_website",
+            telephone: "#prop_telephone",
+            fax: "#prop_fax",
+            inactive: "#prop_inactive",
+            serverName: "#prop_serverName",
+            databaseName: "#prop_databaseName",
+            login: "#prop_login",
+            password: "#prop_password"
         };
 
-        $.ajax({
-            url: "/Administration/PropertySave",
-            type: "POST",
-            cache: false,
-            contentType: "application/json",
-            data: JSON.stringify(model),
-            success: function (res) {
-                if (res.success) {
-                    showToast("Success", res.message, true);
-                    reloadGrid();
-                    $("#itemModal").modal("hide");
-                } else {
-                    if (res.errors && res.errors.length > 0) {
-                        applyValidationErrors(res.errors, "#formContainer");
-                        showToast("Warning", "Please check input fields.", false);
+        function prop_init() {
+            prop_bindEvents();
+            prop_reloadGrid();
+        }
+
+        function prop_bindEvents() {
+            initTomSelect(".tomselect-custom");
+            $(document)
+                .off("input change", `${prop_selectors.form} input, ${prop_selectors.form} select, ${prop_selectors.form} textarea`)
+                .on("input change", `${prop_selectors.form} input, ${prop_selectors.form} select, ${prop_selectors.form} textarea`, function () {
+                    if ($(this).hasClass("is-invalid")) {
+                        $(this).removeClass("is-invalid");
+                        $(this).next(".invalid-feedback").text("");
+                    }
+                });
+
+            $(prop_selectors.itemModal)
+                .off("hidden.bs.modal")
+                .on("hidden.bs.modal", function () {
+                    applyValidationErrors([], prop_selectors.form);
+                });
+
+            $(document)
+                .off("click", prop_selectors.btnNew)
+                .on("click", prop_selectors.btnNew, function () {
+                    prop_openAddModal();
+                });
+
+            $(document)
+                .off("click", prop_selectors.btnUpdate)
+                .on("click", prop_selectors.btnUpdate, function () {
+                    prop_openEditModal();
+                });
+
+            $(document)
+                .off("click", prop_selectors.btnSave)
+                .on("click", prop_selectors.btnSave, function () {
+                    prop_save();
+                });
+
+            $(document)
+                .off("click", prop_selectors.btnDelete)
+                .on("click", prop_selectors.btnDelete, function () {
+                    prop_delete();
+                });
+        }
+
+        function prop_editMember(prop_data) {
+            $(prop_selectors.id).val(prop_data.id);
+            $(prop_selectors.code).val(prop_data.propertyCode);
+            $(prop_selectors.propertyName).val(prop_data.propertyName);
+            $(prop_selectors.fax).val(prop_data.fax);
+            $(prop_selectors.telephone).val(prop_data.telephone);
+            $(prop_selectors.email).val(prop_data.email);
+            $(prop_selectors.website).val(prop_data.website);
+            $(prop_selectors.address).val(prop_data.address);
+            $(prop_selectors.serverName).val(prop_data.serverName);
+            $(prop_selectors.databaseName).val(prop_data.databaseName);
+            $(prop_selectors.login).val(prop_data.login);
+            $(prop_selectors.password).val(prop_data.password);
+            $(prop_selectors.inactive).prop("checked", prop_data.inactive);
+
+            setTomSelectValue(prop_selectors.propertyType,prop_data.propertyTypeID)
+        }
+
+        function prop_tooltipCell(container, options) {
+            $("<span>")
+                .text(options.value)
+                .attr("data-bs-toggle", "tooltip")
+                .attr("title", options.value)
+                .appendTo(container);
+        }
+
+        function prop_loadGrid(prop_data) {
+            const prop_dataSource = prop_data || [];
+
+            $(prop_selectors.grid).dxDataGrid({
+                dataSource: prop_dataSource,
+                height: 550,
+                width: "100%",
+                columnAutoWidth: true,
+                allowColumnResizing: true,
+                selection: {
+                    mode: "single"
+                },
+                hoverStateEnabled: true,
+                columns: [
+                    { dataField: "propertyCode", caption: "Code", width: "5%", cellTemplate: prop_tooltipCell },
+                    { dataField: "propertyName", caption: "Property Name", width: "12%", cellTemplate: prop_tooltipCell },
+                    { dataField: "propertyType", caption: "Type", width: "6%", cellTemplate: prop_tooltipCell },
+                    { dataField: "telephone", caption: "Tel", width: "7%", cellTemplate: prop_tooltipCell },
+                    { dataField: "fax", caption: "Fax", width: "6%", cellTemplate: prop_tooltipCell },
+                    { dataField: "email", caption: "Email", width: "10%", cellTemplate: prop_tooltipCell },
+                    { dataField: "website", caption: "Website", width: "8%", cellTemplate: prop_tooltipCell },
+                    { dataField: "address", caption: "Address", width: "17%", cellTemplate: prop_tooltipCell },
+                    { dataField: "serverName", caption: "Server", width: "7%", cellTemplate: prop_tooltipCell },
+                    { dataField: "databaseName", caption: "DB Name", width: "10%", cellTemplate: prop_tooltipCell },
+                    { dataField: "login", caption: "Login", width: "6%", cellTemplate: prop_tooltipCell },
+                    { dataField: "inactive", caption: "Inactive", width: "5%",
+                        cellTemplate: function (container, options) {
+                            $("<div>")
+                                .dxCheckBox({
+                                    value: options.value == 1 || options.value === true,
+                                    readOnly: true
+                                })
+                                .css("transform", "scale(0.8)")
+                                .appendTo(container);
+                        }
+                    }
+                ],
+                onContentReady: function () {
+                    $('[data-bs-toggle="tooltip"]').tooltip({
+                        container: "body"
+                    });
+                },
+                scrolling: {
+                    mode: "standard",
+                    showScrollbar: "always"
+                },
+                filterRow: {
+                    visible: true,
+                    applyFilter: "auto"
+                },
+                paging: {
+                    pageSize: 20
+                },
+                pager: {
+                    showPageSizeSelector: true,
+                    visible: true,
+                    allowedPageSizes: [20, 50, "all"],
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                onSelectionChanged: function (e) {
+                    prop_selectedRowData = e.selectedRowsData.length > 0
+                        ? e.selectedRowsData[0]
+                        : null;
+                }
+            });
+        }
+
+        function prop_showLoading() {
+            $(prop_selectors.loading).show();
+        }
+
+        function prop_hideLoading() {
+            $(prop_selectors.loading).hide();
+        }
+
+        function prop_reloadGrid() {
+            prop_showLoading();
+
+            $.ajax({
+                url: "/Administration/GetProperty",
+                type: "GET",
+                dataType: "json",
+                cache: false,
+                success: function (prop_data) {
+                    prop_loadGrid(prop_data);
+                },
+                error: function () {
+                    showToast("Error", "Load data failed", false);
+                },
+                complete: function () {
+                    prop_hideLoading();
+                }
+            });
+        }
+
+        function prop_clearForm() {
+            const prop_form = $(prop_selectors.form);
+
+            prop_form.find("input[type='text'], input[type='password'], input[type='email']").val("");
+            prop_form.find("input[type='checkbox']").prop("checked", false);
+            prop_form.find("select").prop("selectedIndex", 0);
+            clearMultipleTomSelect(prop_selectors.propertyType);
+            prop_form.find(".is-invalid, .is-valid").removeClass("is-invalid is-valid");
+            prop_form.find("[data-bs-toggle='tooltip']").tooltip("dispose");
+        }
+
+        function prop_openAddModal() {
+            const prop_form = $(prop_selectors.form)[0];
+
+            if (prop_form) {
+                prop_form.reset();
+            }
+            clearMultipleTomSelect(prop_selectors.propertyType);
+
+            $(prop_selectors.id).val("0");
+            $(prop_selectors.modalLabel).text("Add Property");
+            $(prop_selectors.itemModal).modal("show");
+        }
+
+        function prop_openEditModal() {
+            if (!prop_selectedRowData) {
+                showToast("Warning", "Please select a row to edit.", false);
+                return;
+            }
+
+            $(prop_selectors.modalLabel).text("Edit Property");
+            $(prop_selectors.itemModal).modal("show");
+            prop_editMember(prop_selectedRowData);
+        }
+
+        function prop_getSaveModel() {
+            const prop_id = parseInt($(prop_selectors.id).val()) || 0;
+            let prop_loginName = (localStorage.getItem("Loginname") || "")
+                .trim()
+                .replace(/^"(.*)"$/, "$1");
+
+            return {
+                id: prop_id,
+                propertyCode: $(prop_selectors.code).val().trim(),
+                propertyName: $(prop_selectors.propertyName).val().trim(),
+                propertyTypeID: $(prop_selectors.propertyType).val(),
+                address: $(prop_selectors.address).val().trim(),
+                email: $(prop_selectors.email).val().trim(),
+                website: $(prop_selectors.website).val().trim(),
+                telephone: $(prop_selectors.telephone).val().trim(),
+                fax: $(prop_selectors.fax).val().trim(),
+                serverName: $(prop_selectors.serverName).val().trim(),
+                databaseName: $(prop_selectors.databaseName).val().trim(),
+                login: $(prop_selectors.login).val().trim(),
+                password: $(prop_selectors.password).val().trim(),
+                inactive: $(prop_selectors.inactive).prop("checked"),
+                createdBy: prop_loginName,
+                updatedBy: prop_loginName
+            };
+        }
+
+        function prop_save() {
+            const prop_model = prop_getSaveModel();
+
+            $.ajax({
+                url: "/Administration/PropertySave",
+                type: "POST",
+                cache: false,
+                contentType: "application/json",
+                data: JSON.stringify(prop_model),
+                success: function (prop_res) {
+                    if (prop_res.success) {
+                        showToast("Success", prop_res.message, true);
+                        prop_reloadGrid();
+                        $(prop_selectors.itemModal).modal("hide");
                     } else {
-                        showToast("Error", res.message || "Save failed", false);
+                        if (prop_res.errors && prop_res.errors.length > 0) {
+                            applyValidationErrors(prop_res.errors, prop_selectors.form);
+                            showToast("Warning", "Please check input fields.", false);
+                        } else {
+                            showToast("Error", prop_res.message || "Save failed", false);
+                        }
+                    }
+                },
+                error: function () {
+                    showToast("Error", "Save failed", false);
+                }
+            });
+        }
+
+        function prop_delete() {
+            if (!prop_selectedRowData) {
+                showToast("Warning", "Select a row to delete.", false);
+                return;
+            }
+
+            if (!confirm("Are you sure you want to delete this template?")) {
+                return;
+            }
+
+            $.ajax({
+                url: `/Administration/PropertyDelete/` + prop_selectedRowData.id,
+                type: "POST",
+                success: function (prop_res) {
+                    if (prop_res.success) {
+                        showToast("Success", "Deleted successfully", true);
+                        prop_reloadGrid();
+                        $("#btnCancel").trigger("click");
+                    } else {
+                        showToast("Error", prop_res.message, false);
                     }
                 }
-            },
-            error: function (err) {
-                showToast("Error", "Save failed", false);
-            }
-        });
-    });
-
-    // --- DELETE ---
-    $("#btnDelete").click(function () {
-        if (!selectedRowData) {
-            showToast("Warning", "Select a row to delete.", false);
-            return;
+            });
         }
-        if (!confirm("Are you sure you want to delete this template?")) return;
 
-        $.ajax({
-            url: `/Administration/PropertyDelete/` + selectedRowData.id,
-            type: "POST",
-            success: function (res) {
-                if (res.success) {
-                    showToast("Success", "Deleted successfully", true);
-                    reloadGrid();
-                    $("#btnCancel").trigger("click");
-                } else {
-                    showToast("Error", res.message, false);
-                }
-            }
-        });
+        return {
+            init: prop_init,
+            reloadGrid: prop_reloadGrid,
+            openAddModal: prop_openAddModal,
+            openEditModal: prop_openEditModal
+        };
+    })();
+
+    $(document).ready(function () {
+        prop_Module.init();
     });
+
+    window.openModalProperty = function () {
+        $("#prop_mainModal").modal("show");
+        prop_Module.reloadGrid();
+    };
 </script>
