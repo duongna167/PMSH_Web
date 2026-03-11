@@ -1,218 +1,225 @@
-﻿<div class="modal fade modal-xl" id="modalChanges" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-    aria-labelledby="staticBackdropLabel" aria-hidden="true">
+<div class="modal fade modal-xl" id="modalChanges" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+     aria-labelledby="op_changes_staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content modal-full-height">
 
             <div class="modal-header">
-                <h5 class="modal-title" id="staticBackdropLabel">Changes</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="op_changes_staticBackdropLabel">User Activity Log Profile</h5>
             </div>
-            <div class="modal-body">
-                <div class="mt-2">
-                    <button class="mui-button mui-button-new" id="btnPrintGrid"> Print</button>
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+
+                <div class="py-2 flex-shrink-0">
+                    <button class="mui-button mui-button-new" id="op_changes_btnPrintGrid"> Print</button>
                     <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                 </div>
 
-
-
-                <div class="mui-card mt-2">
-                    <div id="gridContainerSearchChanges" class="mt-2 gridContainer"></div>
+                <div class="mui-card mt-2 d-flex flex-column flex-grow-1 overflow-hidden">
+                    <div id="op_changes_gridContainerSearchChanges" class="mt-2 gridContainer flex-grow-1 h-100"></div>
                 </div>
+
             </div>
+
         </div>
     </div>
 </div>
 
 <script>
+    var op_changes_Module = {
+        profileID: 0,
 
-    document.querySelectorAll('#modalChanges').forEach(modal => {
-        modal.addEventListener('hidden.bs.modal', function () {
-            closeModalChanges();
-        });
-    });
-    function openModalChanges() {
-        GetChanges();
-        $('#modalChanges').modal('show');
-    }
-    function closeModalChanges() {
-        $('#memberName').val('');
-        $('#modalChanges').modal('hide');
-    }
-    function GetChanges() {
-        let showActive = $('#showActive').is(':checked') ? '0' : '';
-        $.ajax({
-            url: '/Profile/SearchProfileChanges',
-            type: 'GET',
-            data: {
-                profileID: profileID,
-            },
-            success: function (data) {
-                initializeDataGridChanges(data);
-            },
-            error: function () {
-                alert('Error retrieving Changes data.');
-            }
-        });
+        init: function (profileID) {
+            this.profileID = profileID || 0;
+            this.initDOMEvents();
+            this.loadData();
+        },
 
-    }
-    function initializeDataGridChanges(data) {
+        initDOMEvents: function () {
+            const self = this;
 
-        $("#gridContainerSearchChanges").dxDataGrid({
+            $("#op_changes_btnPrintGrid").off("click").on("click", function () {
+                self.printGrid();
+            });
+        },
 
-            dataSource: data,
-            allowColumnResizing: true,  // Dữ liệu từ server
-            columns: [
+        loadData: function () {
+            const self = this;
+            let showActive = $('#showActive').is(':checked') ? '0' : ''; 
 
-
-
-                { dataField: "UserName", caption: "UserName" },
-                { dataField: "Time", caption: "Time" },
-                { dataField: "Date", caption: "Date", dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "Change", caption: "Change" },
-                { dataField: "OldValue", caption: "OldValue" },
-                { dataField: "NewValue", caption: "NewValue" },
-                { dataField: "Description", caption: "Description" }
-
-            ],
-            paging: { pageSize: 15 },
-            scrolling: {
-                rowRenderingMode: 'virtual',
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [15, 20, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true,
-            },
-
-            selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "none"
-            },
-
-            showBorders: false,
-            onRowClick: function (e) {
-            }
-
-        });
-    }
-
-    function openModalNewChanges() {
-
-        resetFormChangesAdd();
-        $('#modalNewChanges').modal('show');
-    }
-    $("#btnPrintGrid").on("click", function () {
-        var container = document.getElementById("gridContainerSearchChanges");
-
-        // Clone toàn bộ container để tránh ảnh hưởng đến trang gốc
-        var clone = container.cloneNode(true);
-
-        // BƯỚC QUAN TRỌNG: Mở rộng chiều cao để hiển thị toàn bộ nội dung (bỏ scroll)
-        clone.style.height = "auto !important";
-        clone.style.maxHeight = "none !important";
-        clone.style.overflow = "visible !important";
-
-        // Nếu bảng hoặc div con có height cố định, cũng mở rộng
-        var tables = clone.querySelectorAll("table");
-        tables.forEach(function (table) {
-            table.style.height = "auto !important";
-            table.style.maxHeight = "none !important";
-        });
-
-        var scrollableDivs = clone.querySelectorAll("div[style*='overflow'], div.scrollable, div.k-grid-content");
-        scrollableDivs.forEach(function (div) {
-            div.style.height = "auto !important";
-            div.style.maxHeight = "none !important";
-            div.style.overflow = "visible !important";
-        });
-
-        var gridHtml = clone.outerHTML;
-
-        var printWindow = window.open("", "", "width=1200,height=800");
-        var doc = printWindow.document;
-        doc.open();
-
-        var html = doc.createElement("html");
-        var head = doc.createElement("head");
-        var title = doc.createElement("title");
-        title.innerText = "Changes";
-        head.appendChild(title);
-
-        // Copy tất cả <link rel="stylesheet">
-        var links = document.querySelectorAll("link[rel='stylesheet']");
-        links.forEach(function (link) {
-            if (link.href) {
-                var newLink = doc.createElement("link");
-                newLink.rel = "stylesheet";
-                newLink.href = link.href;
-                head.appendChild(newLink);
-            }
-        });
-
-        // Copy tất cả <style>
-        var styles = document.querySelectorAll("style");
-        var allStyles = "";
-        styles.forEach(function (s) {
-            allStyles += s.innerHTML + "\n";
-        });
-
-        // CSS bắt buộc để in đầy đủ + đẹp
-        allStyles += `
-            <style type="text/css">
-                body {
-                    font-family: Arial, sans-serif;
-                    margin: 15mm;
-                    print-color-adjust: exact;
-                    -webkit-print-color-adjust: exact;
+            $.ajax({
+                url: '/Profile/SearchProfileChanges',
+                type: 'GET',
+                loadingGrid: '#op_changes_gridContainerSearchChanges',
+                data: {
+                    profileID: self.profileID,
+                },
+                success: function (data) {
+                    self.renderGrid(data);
+                },
+                error: function () {
+                    alert('Error retrieving Changes data.');
                 }
-                #logGridReportContainer,
-                table, div, .k-grid, .k-grid-content {
-                    height: auto !important;
-                    max-height: none !important;
-                    overflow: visible !important;
-                }
-                table {
-                    width: 100% !important;
-                    border-collapse: collapse;
-                    page-break-inside: auto;
-                }
-                tr {
-                    page-break-inside: avoid;
-                    page-break-after: auto;
-                }
-                th, td {
-                    border: 1px solid #000 !important;
-                    padding: 6px !important;
-                    font-size: 12px !important;
-                    text-align: left;
-                }
-                @@media print {
-                    body { margin: 10mm; }
-                    .no-print { display: none !important; }
-                    @@page { margin: 10mm; }
-                }
-            </style>
-        `;
+            });
+        },
 
-        var styleTag = doc.createElement("style");
-        styleTag.innerHTML = allStyles;
-        head.appendChild(styleTag);
+        renderGrid: function (data) {
+            $("#op_changes_gridContainerSearchChanges").dxDataGrid({
+                dataSource: data,
+                height: "100%",
+                width: "100%",
 
-        html.appendChild(head);
+                allowColumnResizing: true,
+                columnAutoWidth: true,
 
-        var body = doc.createElement("body");
-        body.innerHTML = gridHtml;
-        html.appendChild(body);
+                scrolling: {
+                    mode: "standard",
+                    rowRenderingMode: "virtual",
+                    columnRenderingMode: "virtual",
+                    showScrollbar: "always",
+                    useNative: false
+                },
+                columns: [
+                    { dataField: "UserName", caption: "UserName" },
+                    { dataField: "Time", caption: "Time" },
+                    { dataField: "Date", caption: "Date", dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "Change", caption: "Change" },
+                    { dataField: "OldValue", caption: "OldValue" },
+                    { dataField: "NewValue", caption: "NewValue" },
+                    { dataField: "Description", caption: "Description" }
+                ],
+                paging: { pageSize: 15 },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [15, 20, 'all'],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true,
+                },
+                selection: {
+                    mode: "multiple",
+                    showCheckBoxesMode: "none"
+                },
+                showBorders: false,
+                onRowClick: function (e) {
+                    // Logic khi click row (nếu có)
+                }
+            });
+        },
 
-        doc.write(html.outerHTML);
-        doc.close();
+        printGrid: function () {
+            var container = document.getElementById("op_changes_gridContainerSearchChanges");
+            if (!container) return;
 
-        printWindow.onload = function () {
-            printWindow.focus();
-            printWindow.print();
-            // printWindow.close();
-        };
-    });
+            var clone = container.cloneNode(true);
+
+            clone.style.height = "auto !important";
+            clone.style.maxHeight = "none !important";
+            clone.style.overflow = "visible !important";
+
+            var tables = clone.querySelectorAll("table");
+            tables.forEach(function (table) {
+                table.style.height = "auto !important";
+                table.style.maxHeight = "none !important";
+            });
+
+            var scrollableDivs = clone.querySelectorAll("div[style*='overflow'], div.scrollable, div.k-grid-content");
+            scrollableDivs.forEach(function (div) {
+                div.style.height = "auto !important";
+                div.style.maxHeight = "none !important";
+                div.style.overflow = "visible !important";
+            });
+
+            var gridHtml = clone.outerHTML;
+
+            var printWindow = window.open("", "", "width=1200,height=800");
+            var doc = printWindow.document;
+            doc.open();
+
+            var html = doc.createElement("html");
+            var head = doc.createElement("head");
+            var title = doc.createElement("title");
+            title.innerText = "Changes";
+            head.appendChild(title);
+
+            var links = document.querySelectorAll("link[rel='stylesheet']");
+            links.forEach(function (link) {
+                if (link.href) {
+                    var newLink = doc.createElement("link");
+                    newLink.rel = "stylesheet";
+                    newLink.href = link.href;
+                    head.appendChild(newLink);
+                }
+            });
+
+            var styles = document.querySelectorAll("style");
+            var allStyles = "";
+            styles.forEach(function (s) {
+                allStyles += s.innerHTML + "\n";
+            });
+
+            allStyles += `
+                <style type="text/css">
+                    body {
+                        font-family: Arial, sans-serif;
+                        margin: 15mm;
+                        print-color-adjust: exact;
+                        -webkit-print-color-adjust: exact;
+                    }
+                    #logGridReportContainer,
+                    table, div, .k-grid, .k-grid-content {
+                        height: auto !important;
+                        max-height: none !important;
+                        overflow: visible !important;
+                    }
+                    table {
+                        width: 100% !important;
+                        border-collapse: collapse;
+                        page-break-inside: auto;
+                    }
+                    tr {
+                        page-break-inside: avoid;
+                        page-break-after: auto;
+                    }
+                    th, td {
+                        border: 1px solid #000 !important;
+                        padding: 6px !important;
+                        font-size: 12px !important;
+                        text-align: left;
+                    }
+                    @@media print {
+                        body { margin: 10mm; }
+                        .no-print { display: none !important; }
+                        @@page { margin: 10mm; }
+                    }
+                </style>
+            `;
+
+            var styleTag = doc.createElement("style");
+            styleTag.innerHTML = allStyles;
+            head.appendChild(styleTag);
+
+            html.appendChild(head);
+
+            var body = doc.createElement("body");
+            body.innerHTML = gridHtml;
+            html.appendChild(body);
+
+            doc.write(html.outerHTML);
+            doc.close();
+
+            printWindow.onload = function () {
+                printWindow.focus();
+                printWindow.print();
+                // printWindow.close();
+            };
+        }
+    };
+
+    // Hàm Global để gọi mở Modal (truyền ID của profile vào đây)
+    window.openModalChanges = function (profileID) {
+        if (window.op_changes_Module) {
+            window.op_changes_Module.init(profileID);
+        }
+    };
+    
 </script>

@@ -58,29 +58,6 @@ namespace Profile.Controllers
             return PartialView();
         }
 
-        public IActionResult Individual()
-        {
-            return PartialView("~/Views/Profile/NewProfileModal/Individual.cshtml");
-
-        }
-
-        public IActionResult Company()
-        {
-            return PartialView("~/Views/Profile/NewProfileModal/Company.cshtml");
-        }
-
-        public IActionResult Contact()
-        {
-            return PartialView("~/Views/Profile/NewProfileModal/Contact.cshtml");
-
-        }
-
-        public IActionResult Group()
-        {
-            return PartialView("~/Views/Profile/NewProfileModal/Group.cshtml");
-
-        }
-
         public IActionResult ProfileIndividual()
         {
             return PartialView("~/Views/Profile/NewProfileModal/ProfileIndividual.cshtml");
@@ -1029,7 +1006,7 @@ namespace Profile.Controllers
 
         #region Tuan_ profile
         [HttpPost]
-        public ActionResult SaveProfileTuan(SaveProfileRequestDto dto)
+        public ActionResult SaveProfileOld(SaveProfileRequestDto dto)
         {
             if (dto == null)
             {
@@ -1175,6 +1152,11 @@ namespace Profile.Controllers
         #endregion
 
         #region DatVP __ Profile Membership
+        public IActionResult Membership()
+        {
+            return PartialView("~/Views/Profile/Options/Membership.cshtml");
+
+        }
         [HttpGet]
         public async Task<IActionResult> SearchProfileMembership(int profileID, string inactive)
         {
@@ -1278,7 +1260,14 @@ namespace Profile.Controllers
 
         }
         #endregion
+
         #region Nam __ Profile changes
+
+        public IActionResult Changes()
+        {
+            return PartialView("~/Views/Profile/Options/Changes.cshtml");
+
+        }
         [HttpGet]
         public async Task<IActionResult> SearchProfileChanges(int profileID)
         {
@@ -1305,7 +1294,13 @@ namespace Profile.Controllers
 
 
         #endregion
+
         #region Nam __ Profile future
+        public IActionResult Future()
+        {
+            return PartialView("~/Views/Profile/Options/Future.cshtml");
+
+        }
         [HttpGet]
         public async Task<IActionResult> SearchProfileFuture(int profileID, int profileType)
         {
@@ -1579,8 +1574,8 @@ namespace Profile.Controllers
         }
 
 
-        [HttpGet("ProfileGroupSreach")]
-        public async Task<IActionResult> ProfileGroupSreach(string GroupName)
+        [HttpGet]
+        public async Task<IActionResult> ProfileGroupSearch(string GroupName)
         {
             try
             {
@@ -1672,6 +1667,7 @@ namespace Profile.Controllers
         }
 
         #endregion
+
         #region Nam showNotification
         [HttpGet]
         public async Task<IActionResult> ShowNotification()
@@ -1711,6 +1707,28 @@ namespace Profile.Controllers
         #endregion
 
         #region New/Edit Profile
+        public IActionResult Individual()
+        {
+            return PartialView("~/Views/Profile/NewProfileModal/Individual.cshtml");
+
+        }
+
+        public IActionResult Company()
+        {
+            return PartialView("~/Views/Profile/NewProfileModal/Company.cshtml");
+        }
+
+        public IActionResult Contact()
+        {
+            return PartialView("~/Views/Profile/NewProfileModal/Contact.cshtml");
+
+        }
+
+        public IActionResult Group()
+        {
+            return PartialView("~/Views/Profile/NewProfileModal/Group.cshtml");
+
+        }
 
         [HttpPost]
         public IActionResult SaveProfile([FromBody] ProfileModel model)
@@ -1791,14 +1809,14 @@ namespace Profile.Controllers
                     if (oldData == null) return Json(new { success = false, message = "The data does not exist or has been deleted." });
                     model.CreateDate = oldData.CreateDate;
                     model.UserInsertID = oldData.UserInsertID;
-                    model.UpdateDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
                     ProfileBO.Instance.Update(model);
                 }
                 else
                 {
 
                     model.CreateDate = businessDate;
-                    model.UpdateDate = DateTime.Now;
+                    model.UpdateDate = businessDate;
                     ProfileBO.Instance.Insert(model);
                 }
 

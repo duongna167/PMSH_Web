@@ -157,17 +157,14 @@
 
                                         <div class="col-md-6 mui-card">
                                             <hr class="my-2">
-                                            <div class="row align-items-center mb-1">
-                                                <label class="col-sm-3 col-form-label text-sm-end">Search Name</label>
-                                                <div class="col-sm-8">
-                                                    <input type="text" class="form-control" id="gro_txtSearchName" name="gro_txtSearchName">
+                                            <div class="row mb-1 align-items-center">
+                                                <label class="col-sm-2 col-form-label text-end">Search Name</label>
+                                                <div class="col-sm-4">
+                                                    <input type="text" id="gro_search_name" name="gro_search_name" class="form-control form-control-sm"
+                                                           placeholder="Enter user name" />
                                                 </div>
                                             </div>
-                                            <div class="row align-items-start">
-                                                <div class="col-md-12">
-                                                    <div id="pro_search_profileGroupGrid" class="gridContainer"></div>
-                                                </div>
-                                            </div>
+                                            <div id="pro_groupGrid" class="gridContainer"></div>
                                             <hr class="my-2">
                                         </div>
                                     </div>
@@ -278,6 +275,7 @@
         init: function () {
             this.initDOMEvents();
             this.initTomSelects();
+            this.searchGroup();
         },
 
         initDOMEvents: function () {
@@ -291,6 +289,14 @@
             // Sự kiện nút Clear
             $('#gro_btnClear').on('click', function () {
                 self.clearForm();
+            });
+
+            $('#gro_search_name, #gro_search_first').on('keydown', function (e) {
+
+                if (e.key === "Enter") {
+                    pro_gro_Module.searchGroup();
+                }
+
             });
         },
 
@@ -536,7 +542,79 @@
                     showToast("Error", "Cannot load profile", false);
                 }
             });
-        }
+        },
+
+        searchGroup: function () {
+            const self = this;
+            const fullName = $('#gro_search_name').val()?.trim() || "";
+
+            $.ajax({
+                url: '/Profile/ProfileGroupSearch',
+                type: 'GET',
+                loadingGrid: '#pro_groupGrid',
+                data: {
+                    GroupName: fullName
+                },
+                success: function (res) {
+                    if (!res.success) {
+                        showToast("Error", res.message, false);
+                        return;
+                    }
+
+                    self.renderSearchGrid(res.data || []);
+                },
+                error: function () {
+                    showToast("Error", "Cannot fetch search results", false);
+                }
+            });
+        },
+
+        renderSearchGrid: function (data) {
+
+            const self = this;
+
+            $("#pro_groupGrid").dxDataGrid({
+
+                dataSource: data,
+
+                keyExpr: "id",
+
+                columns: [
+                    {
+                        dataField: "id",
+                        visible: false
+                    },
+                    {
+                        dataField: "account",
+                        caption: "Group Name"
+                    }
+                ],
+
+                selection: {
+                    mode: "single"
+                },
+
+                hoverStateEnabled: true,
+
+                height: 300,
+                scrolling: {
+                    mode: "standard", 
+                    showScrollbar: "always"
+                },
+
+                onRowDblClick: function (e) {
+
+                    console.log("Row Data:", e.data);
+
+                    if (!e.data) return;
+
+                    self.loadProfileByID(e.data.id);
+
+                }
+
+            });
+
+        },
     };
 
     window.initGroupModal = function() {

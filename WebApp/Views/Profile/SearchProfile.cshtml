@@ -123,11 +123,11 @@
             </div>
             <div class="modal-body">
                 <div class="toolbar-menu mt-2 row" id="pro_search_functionAndOption">
-                    <a href="#" class="font-semibold col-md-6 mb-1" onclick="openModalChanges();">Changes</a>
+                    <a href="#" class="font-semibold col-md-6 mb-1" id="pro_search_btnChanges">Changes</a>
                     <a href="#" class="font-semibold col-md-6 mb-1" id="pro_search_btnDelete">Delete</a>
-                    <a href="#" class="font-semibold col-md-6 mb-1" onclick="openModalFuture();">Future</a>
+                    <a href="#" class="font-semibold col-md-6 mb-1" id="pro_search_btnFuture">Future</a>
                     <a href="#" class="font-semibold col-md-6 mb-1" onclick="GetProfileHistory();">History</a>
-                    <a href="#" class="font-semibold col-md-6 mb-1" onclick="openModalMembership();">Memberships</a>
+                    <a href="#" class="font-semibold col-md-6 mb-1" id="pro_search_btnMembership">Memberships</a>
                     <a href="#" class="font-semibold col-md-6 mb-1" onclick="openConfirmMerge();">Merge</a>
                     <a href="#" class="font-semibold col-md-6 mb-1" onclick="openNegRates();">Neg.Rates</a>
                     <a href="#" class="font-semibold col-md-6 mb-1" onclick="updateProfile();">Profile Update</a>
@@ -189,6 +189,10 @@
             $("#pro_search_btnOption").on("click", () => self.openModalOption());
             $("#pro_search_btnHistory").on("click", () => self.GetProfileHistory());
             $("#pro_search_btnDelete").on("click", () => self.deleteProfile());
+            $("#pro_search_btnChanges").on("click", () => self.openChangesModal());
+            $("#pro_search_btnFuture").off("click").on("click", () => self.openFutureModal());
+            $("#pro_search_btnMembership").off("click").on("click", () => self.openMembershipModal());
+
             $("#pro_search_txtType").on("change", function () {
                 self.getAllProfiles();
                 const by = $("#pro_search_txtType").val();
@@ -575,6 +579,62 @@
                         showToast("Error", res.message, false);
                     }
                 }
+            });
+        },
+
+        openChangesModal: function () {
+            const self = this;
+
+            if (!self.profileID || self.profileID <= 0) {
+                showToast("Warning", "Please select a profile first", false);
+                return;
+            }
+
+            $("#pro_search_modalOption").modal("hide");
+
+            if (typeof window.openModalChanges === "function") {
+                window.openModalChanges(self.profileID);
+            }
+            else { 
+                ModalManager.load('/Profile/Changes', 'modalChanges', function() {
+                    waitForFunction("openModalChanges", () => {
+                        window.openModalChanges(self.profileID);
+                    });
+                });
+            }
+        },
+
+        openFutureModal: function () {
+            const self = this;
+
+            if (!self.profileID || self.profileID <= 0) {
+                showToast("Warning", "Please select a profile first", false);
+                return;
+            }
+
+            $("#pro_search_modalOption").modal("hide");
+
+            ModalManager.load('/Profile/Future', 'modalFuture', function() {
+                waitForFunction("openModalFuture", () => {
+                    window.openModalFuture(self.profileID, self.profileType);
+                });
+            });
+        },
+
+        openMembershipModal: function () {
+            const self = this;
+
+            if (!self.profileID || self.profileID <= 0) {
+                showToast("Warning", "Please select a profile first", false);
+                return;
+            }
+
+            $("#pro_search_modalOption").modal("hide");
+
+            ModalManager.load('/Profile/Membership', 'modalMembership', function() {
+                waitForFunction("openModalMembership", () => {
+                    window.openModalMembership(self.profileID, self.profileName);
+                });
             });
         },
 

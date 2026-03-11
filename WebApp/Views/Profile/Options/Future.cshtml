@@ -1,162 +1,169 @@
-﻿<div class="modal fade modal-xl" id="modalFuture" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-    aria-labelledby="staticBackdropLabel" aria-hidden="true">
+<div class="modal fade modal-xl" id="modalFuture" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+     aria-labelledby="op_future_staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content modal-full-height">
 
             <div class="modal-header">
-                <h5 class="modal-title" id="staticBackdropLabel">Future</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="op_future_staticBackdropLabel">Future Reservation</h5>
             </div>
-            <div class="modal-body">
-                <div class="mt-2">
-                    <button class="mui-button mui-button-new" id="btnNewGrid"> New</button>
-                    <button class="mui-button mui-button-new" data-bs-dismiss="modal"">Close</button>
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+
+                <div class="py-2 flex-shrink-0">
+                    <button class="mui-button mui-button-new" id="op_future_btnNewGrid"> New</button>
+                    <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                 </div>
 
-
-
-                <div class=" mui-card mt-2">
-                        <div id="gridContainerSearchFuture" class="mt-2 gridContainer"></div>
+                <div class="mui-card mt-2 d-flex flex-column flex-grow-1 overflow-hidden">
+                    <div id="op_future_gridContainerSearchFuture" class="mt-2 gridContainer flex-grow-1 h-100"></div>
                 </div>
+
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    document.querySelectorAll('#modalFuture').forEach(modal => {
-        modal.addEventListener('hidden.bs.modal', function () {
-            closeModalFuture();
-        });
-    });
+    var op_future_Module = {
+        profileID: 0,
+        profileType: 0,
 
-    function openModalFuture() {
-        GetFuture();
-        $('#modalFuture').modal('show');
-    }
-    function closeModalFuture() {
-        $('#memberName').val('');
-    }
-    function GetFuture() {
-        $.ajax({
-            url: '/Profile/SearchProfileFuture',
-            type: 'GET',
-            data: {
-                profileID: profileID,
-                profileType: profileType
-            },
-            success: function (data) {
-                initializeDataGridFuture(data);
-            },
-            error: function () {
-                alert('Error retrieving Future data.');
-            }
-        });
+        init: function (profileID, profileType) {
+            this.profileID = profileID || 0;
+            this.profileType = profileType || 0;
 
-    }
-    $("#btnNewGrid").on("click", function () {
-        // window.location.href = "/Reservation/NewReservation";
-        var modal = $('#newReservationModal');
+            this.initDOMEvents();
+            this.loadData();
+        },
 
-        // Luôn hiển thị loading
-        modal.find('.modal-body').html(`
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-3">Loading reservation...</p>
-            </div>
-        `);
+        initDOMEvents: function () {
+            const self = this;
 
-        modal.modal('show');
-        $.ajax({
-            url: '/Reservation/NewReservation',
-            type: 'GET',
+            // Sự kiện khi bấm nút New
+            $("#op_future_btnNewGrid").off("click").on("click", function () {
+                self.openNewReservation();
+            });
+        },
 
-            cache: false,
-            success: function (html) {
-                modal.find('.modal-body').html(html);
-
-            },
-            error: function () {
-                modal.find('.modal-body').html(`
-                                <div class="alert alert-danger m-4">
-                                    <strong>Lỗi!</strong> Không thể tải thông tin đặt chỗ.
-                                </div>
-                            `);
-            }
-        });
-    });
-
-    function initializeDataGridFuture(data) {
-
-        $("#gridContainerSearchFuture").dxDataGrid({
-
-            dataSource: data,
-            allowColumnResizing: true,  // Dữ liệu từ server
-            columns: [
-                { dataField: "_ConfirmationNo", caption: "Conf.No", width: 90 },
-                { dataField: "_CRSNo", caption: "CRSNo", width: 90 },
-                { dataField: "GroupCode", caption: "Group Code", width: 120 },
-
-                { dataField: "FirstArrival", caption: "First Arr", width: 100, dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "LastDeparture", caption: "Last Dep", width: 100, dataType: "date", format: "dd/MM/yyyy" },
-
-                { dataField: "AgentName", caption: "Agent", width: 200 },
-
-                {
-                    dataField: "AmountAfterTax",
-                    caption: "Total Amount",
-                    dataType: "number",
-                    format: "#,##0",
-                    width: 130
+        loadData: function () {
+            const self = this;
+            $.ajax({
+                url: '/Profile/SearchProfileFuture',
+                type: 'GET',
+                data: {
+                    profileID: self.profileID,
+                    profileType: self.profileType
                 },
+                success: function (data) {
+                    self.renderGrid(data);
+                },
+                error: function () {
+                    alert('Error retrieving Future data.');
+                }
+            });
+        },
 
-                { dataField: "TotalRoom", caption: "Total Rms", width: 90, dataType: "number" },
-                { dataField: "TotalAdult", caption: "Total A", width: 80, dataType: "number" },
-                { dataField: "TotalChild", caption: "Total C", width: 80, dataType: "number" },
-                { dataField: "TotalChild1", caption: "Total C1", width: 80, dataType: "number" },
-                { dataField: "TotalChild2", caption: "Total C2", width: 80, dataType: "number" },
+        renderGrid: function (data) {
+            $("#op_future_gridContainerSearchFuture").dxDataGrid({
+                dataSource: data,
+                height: "100%",
+                width: "100%",
 
-                { dataField: "_Status", caption: "Status", width: 100 },
-                { dataField: "_Comment", caption: "Comment", width: 250 },
+                allowColumnResizing: true,
+                columnAutoWidth: true,
 
-                { dataField: "CreateBy", caption: "Create By", width: 120 },
-                { dataField: "CreateOn", caption: "Create On", dataType: "date", format: "dd/MM/yyyy", width: 110 },
+                scrolling: {
+                    mode: "standard",
+                    rowRenderingMode: "virtual",
+                    columnRenderingMode: "virtual",
+                    showScrollbar: "always",
+                    useNative: false
+                },
+                columns: [
+                    { dataField: "_ConfirmationNo", caption: "Conf.No", width: 90 },
+                    { dataField: "_CRSNo", caption: "CRSNo", width: 90 },
+                    { dataField: "GroupCode", caption: "Group Code", width: 120 },
+                    { dataField: "FirstArrival", caption: "First Arr", width: 100, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "LastDeparture", caption: "Last Dep", width: 100, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "AgentName", caption: "Agent", width: 200 },
+                    {
+                        dataField: "AmountAfterTax",
+                        caption: "Total Amount",
+                        dataType: "number",
+                        format: "#,##0",
+                        width: 130
+                    },
+                    { dataField: "TotalRoom", caption: "Total Rms", width: 90, dataType: "number" },
+                    { dataField: "TotalAdult", caption: "Total A", width: 80, dataType: "number" },
+                    { dataField: "TotalChild", caption: "Total C", width: 80, dataType: "number" },
+                    { dataField: "TotalChild1", caption: "Total C1", width: 80, dataType: "number" },
+                    { dataField: "TotalChild2", caption: "Total C2", width: 80, dataType: "number" },
+                    { dataField: "_Status", caption: "Status", width: 100 },
+                    { dataField: "_Comment", caption: "Comment", width: 250 },
+                    { dataField: "CreateBy", caption: "Create By", width: 120 },
+                    { dataField: "CreateOn", caption: "Create On", dataType: "date", format: "dd/MM/yyyy", width: 110 },
+                    { dataField: "UpdateBy", caption: "Update By", width: 120 },
+                    { dataField: "UpdateOn", caption: "Update On", dataType: "date", format: "dd/MM/yyyy", width: 110 }
+                ],
+                paging: { pageSize: 15 },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [15, 20, 'all'],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true,
+                },
+                selection: {
+                    mode: "multiple",
+                    showCheckBoxesMode: "none"
+                },
+                showBorders: false,
+                onRowClick: function (e) {
+                    // Logic khi click vào row (nếu có)
+                }
+            });
+        },
 
-                { dataField: "UpdateBy", caption: "Update By", width: 120 },
-                { dataField: "UpdateOn", caption: "Update On", dataType: "date", format: "dd/MM/yyyy", width: 110 }
-            ],
-            paging: { pageSize: 15 },
-            scrolling: {
-                mode: "standard",          // BẮT BUỘC để scroll ngang
-                rowRenderingMode: "virtual",
-                columnRenderingMode: "virtual"
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [15, 20, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true,
-            },
+        clearData: function () {
+            $('#memberName').val('');
+        },
 
-            selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "none"
-            },
+        openNewReservation: function () {
+            var modal = $('#newReservationModal');
 
-            showBorders: false,
-            onRowClick: function (e) {
-            }
+            modal.find('.modal-body').html(`
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3">Loading reservation...</p>
+                </div>
+            `);
 
-        });
-    }
+            modal.modal('show');
 
-    function openModalNewFuture() {
+            $.ajax({
+                url: '/Reservation/NewReservation',
+                type: 'GET',
+                cache: false,
+                success: function (html) {
+                    modal.find('.modal-body').html(html);
+                },
+                error: function () {
+                    modal.find('.modal-body').html(`
+                        <div class="alert alert-danger m-4">
+                            <strong>Lỗi!</strong> Không thể tải thông tin đặt chỗ.
+                        </div>
+                    `);
+                }
+            });
+        }
+    };
 
-        resetFormFutureAdd();
-        $('#modalNewFuture').modal('show');
-    }
-
+    // Hàm Global để gọi mở Modal từ file khác
+    window.openModalFuture = function (profileID, profileType) {
+        if (window.op_future_Module) {
+            window.op_future_Module.init(profileID, profileType);
+        }
+    };
 </script>
