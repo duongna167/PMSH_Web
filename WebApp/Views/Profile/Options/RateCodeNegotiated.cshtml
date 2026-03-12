@@ -1,0 +1,379 @@
+<style>
+    .neg-rate-form .row {
+        min-height: 32px;
+    }
+
+    .form-label-fixed {
+        width: 100px;
+    }
+
+    .neg-rate-form .form-control-sm {
+        min-width: 250px;
+    }
+</style>
+
+<div class="modal fade" id="modalRateCodeNegotiated" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+     aria-labelledby="rate_neg_label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="rate_neg_label">Negotiated Rates</h5>
+            </div>
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+
+                <!-- Toolbar -->
+                <div class="py-2 flex-shrink-0">
+                    <button class="mui-button mui-button-new" id="rate_neg_btnNew">    New</button>
+                    <button class="mui-button mui-button-edit" id="rate_neg_btnEdit">   Edit</button>
+                    <button class="mui-button mui-button-delete" id="rate_neg_btnDelete"> Delete</button>
+                    <button class="mui-button mui-button-export" id="rate_neg_btnExcel">  Excel</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal"> Close</button>
+                </div>
+
+                <!-- Grid -->
+                <div class="mui-card mt-2 d-flex flex-column flex-grow-1 overflow-hidden">
+                    <div id="rate_neg_gridRateNeg" class="mt-2 gridContainer flex-grow-1 h-100"></div>
+                </div>
+
+            </div><!-- /.modal-body -->
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade managed-modal" id="modalNegRateSetup" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+     aria-labelledby="rate_neg_setup_label" aria-hidden="true">
+    <div class="modal-dialog  modal-md">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="rate_neg_setup_label">Negotiated Rates Setup</h5>
+            </div>
+
+            <div class="modal-body">
+
+                <!-- Toolbar -->
+                <div class="py-2">
+                    <button class="mui-button mui-button-save" id="rate_neg_btnSave">Save</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <!-- Information -->
+                <div id="neg_rate_formContainer">
+                    <input hidden id="neg_rate_id" name="neg_rate_id" />
+
+                    <!-- Account -->
+                    <div class="row align-items-center mb-2">
+                        <label class="col-auto text-end pe-2 small fw-normal form-label-fixed"
+                               for="rate_neg_account">Account</label>
+
+                        <div class="col-auto">
+                            <input type="text"
+                                   class="form-control form-control-sm bg-light"
+                                   id="rate_neg_account"
+                                   readonly />
+                        </div>
+                    </div>
+
+                    <!-- Rate Code -->
+                    <div class="row align-items-center mb-2">
+                        <label class="col-auto text-end pe-2 small fw-normal form-label-fixed"
+                               for="rate_neg_rateCode">Rate Code</label>
+
+                        <div class="col-auto" style="width:195px !important">
+                            <select id="rate_neg_rateCodeID" class="tomselect-custom"></select>
+                        </div>
+                    </div>
+
+                    <!-- Start Date -->
+                    <div class="row align-items-center mb-2">
+                        <label class="col-auto text-end pe-2 small fw-normal form-label-fixed"
+                               for="rate_neg_startDate">Start Date</label>
+
+                        <div class="col-auto" style="width:195px !important">
+                            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="rate_neg_startDate">
+                                <input type="text" class="date-ui form-control form-control-sm" placeholder="From">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- End Date -->
+                    <div class="row align-items-center mb-2">
+                        <label class="col-auto text-end pe-2 small fw-normal form-label-fixed"
+                               for="rate_neg_endDate">End Date</label>
+
+                        <div class="col-auto" style="width:195px !important">
+                            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="rate_neg_endDate">
+                                <input type="text" class="date-ui form-control form-control-sm" placeholder="From">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    var rate_neg_Module = {
+        selectedRowData: null,
+        profileID: 0,
+        profileName: "",
+
+        init: function (profileID, profileName) {
+            this.profileID = profileID || 0;
+            this.profileName = profileName || "";
+           
+            if (this.profileName) {
+                $("#rate_neg_label").text("Negotiated Rates - " + this.profileName);
+                $("#rate_neg_account").val(this.profileName);
+            } else {
+                $("#rate_neg_label").text("Negotiated Rates");
+            }
+
+            this.initDOMEvents();
+            this.loadData();
+        },
+
+        initDOMEvents: function () {
+            const self = this;
+
+            $("#rate_neg_btnNew").off("click").on("click", function () {
+                self.openModalNew();
+            });
+
+            $("#rate_neg_btnEdit").off("click").on("click", function () {
+                self.openModalEdit();
+            });
+
+            $("#rate_neg_btnSave").off("click").on("click", function () {
+                self.save();
+            });
+
+            $("#rate_neg_btnDelete").off("click").on("click", function () {
+                self.deleteRateCode();
+            });
+        },
+
+        openModalNew: function() {
+            const self = this;
+
+            initDateInputs();
+            initTomSelect('select.tomselect-custom');
+            clearMultipleTomSelect(["#rate_neg_rateCodeID"]);
+
+            loadDataToTomSelect("#rate_neg_rateCodeID", "/Profile/GetRateCodes", (item) => {
+                const zip = item.rateCode || item.RateCode || "";
+                const name = item.descripton || item.Descripton || "";
+                return {
+                    value: item.id || item.ID,
+                    text: (zip && name) ? `${zip} - ${name}` : (zip || name || "Unknown"),
+                    data: item
+                };
+            }).then(() => {
+                $("#modalNegRateSetup").modal('show');
+            });
+        },
+
+        openModalEdit: function() {
+            const self = this;
+
+            if (!self.selectedRowData) {
+                showToast('Warning', "Please select exactly one record to edit.", false);
+                return;
+            }
+
+            initDateInputs();
+            initTomSelect('select.tomselect-custom');
+
+            loadDataToTomSelect("#rate_neg_rateCodeID", "/Profile/GetRateCodes", (item) => {
+                const zip = item.rateCode || item.RateCode || "";
+                const name = item.descripton || item.Descripton || "";
+                return {
+                    value: item.id || item.ID,
+                    text: (zip && name) ? `${zip} - ${name}` : (zip || name || "Unknown"),
+                    data: item
+                };
+            }).then(() => {
+                self.fillForm(self.selectedRowData);
+                $("#modalNegRateSetup").modal('show');
+            });
+        },
+
+        getFormData: function () {
+
+            const getTS = (id) => {
+                const ts = getTomSelect(id);
+                return ts ? ts.getValue() : 0;
+            };
+            const loginName = (localStorage.getItem("Loginname") || "")
+            .trim()
+            .replace(/^"(.*)"$/, '$1');
+            const loginUser = parseInt(localStorage.getItem("userID")) || 0;
+
+            const data = {
+                ID: parseInt($("#neg_rate_id").val()) || 0,
+                ProfileID: this.profileID,
+                RateCodeID: parseInt(getTS("#rate_neg_rateCodeID")) || 0,
+                BeginSellDate: $('#rate_neg_startDate').val() || dateSystem,
+                EndSellDate: $('#rate_neg_endDate').val() || dateSystem,
+                UpdatedBy: loginName,
+                CreatedBy: loginName
+            };
+
+            return data;
+        },
+
+        save: function() {
+            const self = this;
+            const data = self.getFormData();
+
+            $.ajax({
+                url: '/Profile/SaveRateCodeNegotiated',
+                type: 'POST',
+                showLoading: true,
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (res) {
+
+                    if (res.success) {
+                        self.loadData();
+                        showToast("Success",res.message || 'Neg.Rate saved successfully!', true);
+                        $("#modalNegRateSetup").modal("hide");
+
+                    } else {
+                        if (res.errors && res.errors.length > 0) {
+                            ValidationAdapter.apply(res.errors, "#neg_rate_formContainer");
+
+                            showToast("Error",'Please check the highlighted fields.', false);
+                        } else {
+                            showToast("Error",res.message || 'An error occurred', false);
+                        }
+                    }
+                },
+                error: function (xhr) {
+                    showToast("Error",'Internal Server Error. Please try again.', false);
+                    console.error(xhr);
+                }
+            });
+        },
+
+        fillForm: function(data) {
+            if (!data) return;
+
+            $("#neg_rate_id").val(data.id || data.ID || 0);
+            $("#rate_neg_account").val(this.profileName);
+
+            setTomSelectValue("#rate_neg_rateCodeID", data.rateCodeID || data.RateCodeID);
+
+            UI.setHiddenDate("rate_neg_startDate", data.beginSellDate || data.BeginSellDate);
+            UI.setHiddenDate("rate_neg_endDate", data.endSellDate || data.EndSellDate);
+        },
+
+        loadData: function () {
+            const self = this;
+
+            $.ajax({
+                url: '/Profile/GetRateCodeNegotiated',
+                type: 'GET',
+                loadingGrid: '#rate_neg_gridRateNeg',
+                data: {
+                    profileID: self.profileID,
+                },
+                success: function (data) {
+                    self.renderGrid(data);
+                },
+                error: function () {
+                    alert('Error retrieving Changes data.');
+                }
+            });
+        },
+        
+        renderGrid: function (data) {
+            const self = this;
+            $("#rate_neg_gridRateNeg").dxDataGrid({
+                dataSource: data,
+                height: "100%",
+                width: "100%",
+
+                allowColumnResizing: true,
+                columnAutoWidth: true,
+
+                scrolling: {
+                    mode: "standard",
+                    rowRenderingMode: "virtual",
+                    columnRenderingMode: "virtual",
+                    showScrollbar: "always",
+                    useNative: false
+                },
+                columns: [
+                    { dataField: "id", visible: false},
+                    { dataField: "rateCode", caption: "Rate Code" },
+                    { dataField: "rateCodeID", visible: false},
+                    { dataField: "beginSellDate", caption: "Start Date", dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "endSellDate", caption: "End Date", dataType: "date", format: "dd/MM/yyyy" },
+                ],
+                paging: { pageSize: 25 },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [25, 50, 'all'],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true,
+                },
+                selection: {
+                    mode: "single"
+                },
+                showBorders: false,
+                onSelectionChanged: function (e) {
+                    self.selectedRowData = e.selectedRowsData[0] || null;
+                    console.log("click grid neg rate ");
+                },
+                onRowDblClick: function(e) {
+                    if (e.data) {
+                        self.selectedRowData = e.data;
+                        self.openModalEdit();
+                    }
+                }
+            });
+        },
+
+        deleteRateCode: function() {
+            const self = this;
+            if (!self.selectedRowData) {
+                showToast('Warning', "Please select exactly one record to delete.", false);
+                return;
+            }
+
+            if (!confirm("Are you sure you want to delete this Negotiated Rate?")) return;
+
+            $.ajax({
+                url: '/Profile/DeleteRateCodeNegotiated', 
+                type: 'POST', 
+                data: { id: self.selectedRowData.id || self.selectedRowData.ID },
+                success: function (res) {
+                    if (res.success) {
+                        showToast('Success', res.message || 'Deleted successfully', true);
+                        self.selectedRowData = null; 
+                        self.loadData();
+                    } else {
+                        showToast('Error', res.message, false);
+                    }
+                }
+            });
+        },
+
+    };
+
+    window.openModalRateCodeNegotiated = function (profileID,profileName) {
+        if (window.rate_neg_Module) {
+            window.rate_neg_Module.init(profileID,profileName);
+        }
+    };
+    
+</script>

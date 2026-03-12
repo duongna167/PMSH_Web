@@ -336,7 +336,7 @@ async function loadDataToTomSelect(selector, source, mapFn = null) {
         ts.addOptions(formattedData);
         ts.refreshOptions(false);
 
-        console.log(`[TomSelect] Loaded ${formattedData.length} items to ${selector} from ${Array.isArray(source) ? 'Local Array' : 'API'}`);
+        //console.log(`[TomSelect] Loaded ${formattedData.length} items to ${selector} from ${Array.isArray(source) ? 'Local Array' : 'API'}`);
     } catch (error) {
         console.error(`[TomSelect] Load Data Error (${selector}):`, error);
     }
