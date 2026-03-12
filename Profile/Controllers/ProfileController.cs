@@ -1844,5 +1844,127 @@ namespace Profile.Controllers
 
         #endregion
 
+        #region Negotiated rates
+        public IActionResult RateCodeNegotiated()
+        {
+            return PartialView("~/Views/Profile/Options/RateCodeNegotiated.cshtml");
+
+        }
+
+        [HttpGet]
+        public IActionResult GetRateCodes()
+        {
+            try
+            {
+                var rateCodes = PropertyUtils.ConvertToList<RateCodeModel>(RateCodeBO.Instance.FindAll());
+                return Json(rateCodes);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+
+        [HttpGet]
+        public IActionResult GetRateCodeNegotiated(int profileID)
+        {
+            try
+            {
+                DataTable dt = TextUtils.Select($@"SELECT a.*, (b.RateCode + '-' + b.Descripton) AS RateCode, 
+                    b.RateCode AS _RateCode 
+                    FROM dbo.RateCodeNegotiated a WITH (NOLOCK), dbo.RateCode b 
+                    WITH (NOLOCK) WHERE a.RateCodeID = b.ID AND ProfileID = {profileID}
+                ");
+                var result = (from r in dt.AsEnumerable()
+                              select new
+                              {
+                                  ID = !string.IsNullOrEmpty(r["ID"].ToString()) ? r["ID"] : "",
+                                  RateCode = !string.IsNullOrEmpty(r["RateCode"].ToString()) ? r["RateCode"] : "",
+                                  RateCodeID = !string.IsNullOrEmpty(r["RateCodeID"].ToString()) ? r["RateCodeID"] : "",
+                                  BeginSellDate = !string.IsNullOrEmpty(r["BeginSellDate"].ToString()) ? r["BeginSellDate"] : "",
+                                  EndSellDate = !string.IsNullOrEmpty(r["EndSellDate"].ToString()) ? r["EndSellDate"] : ""
+                                  
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        public IActionResult SaveRateCodeNegotiated([FromBody] RateCodeNegotiatedModel model)
+        {
+            try
+            {
+
+                var checks = new List<ValidationError?>();
+                if (model == null)
+                {
+                    return Json(new { success = false, message = "Invalid data (model null)" });
+                }
+
+                checks.Add(Check(model.RateCodeID, "rate_neg_rateCodeID", "Rate code can not be blank"));
+                if (model.BeginSellDate != default && model.EndSellDate != default)
+                {
+                    checks.Add(Check(model.BeginSellDate > model.EndSellDate,
+                                     "rate_neg_endDate",
+                                     "End date must be greater than or equal start date."));
+                }
+
+                // Gom lỗi
+                var listErrors = GetErrors(checks.ToArray());
+
+                if (listErrors.Count > 0)
+                {
+                    return Json(new { success = false, errors = listErrors });
+                }
+
+                DateTime businessDate = TextUtils.GetBusinessDate();
+
+                if (model.ID > 0)
+                {
+                    var oldData = (RateCodeNegotiatedModel)RateCodeNegotiatedBO.Instance.FindByPrimaryKey(model.ID);
+                    if (oldData == null) return Json(new { success = false, message = "The data does not exist or has been deleted." });
+                    model.CreatedDate = oldData.CreatedDate;
+                    model.CreatedBy = oldData.CreatedBy;
+                    model.ProfileID = oldData.ProfileID;
+                    model.UpdatedDate = DateTime.Now;
+                    RateCodeNegotiatedBO.Instance.Update(model);
+                }
+                else
+                {
+
+                    model.CreatedDate = DateTime.Now;
+                    model.UpdatedDate = DateTime.Now;
+                    RateCodeNegotiatedBO.Instance.Insert(model);
+                }
+
+                return Json(new { success = true, message = "Save successfully" });
+
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error: " + ex.Message });
+            }
+
+        }
+
+        [HttpPost]
+        public IActionResult DeleteRateCodeNegotiated(int id)
+        {
+            try
+            {
+                RateCodeNegotiatedBO.Instance.Delete(id);
+                return Json(new { success = true });
+            }
+            catch (Exception e)
+            {
+                return Json(new { success = false, message = "Error: " + e.Message}); 
+            }
+        }
+
+        #endregion
     }
 }
