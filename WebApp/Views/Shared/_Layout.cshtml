@@ -949,7 +949,7 @@
             if (gridSelector) {
                 const el = document.querySelector(gridSelector);
                 if (el) LoadingGlobal.showElement(el);
-            } else if (settings.global !== false) {
+            } else if (settings.showLoading === false) {
                 LoadingGlobal.show();
             }
         });
@@ -961,7 +961,9 @@
                 const el = document.querySelector(gridSelector);
                 if (el) LoadingGlobal.hideElement(el);
             }
-            LoadingGlobal.hide();
+            if (settings.showLoading === true) {
+                LoadingGlobal.hide();
+            }
             window.currentAjaxGridId = null;
         });
 
@@ -1263,19 +1265,42 @@
         },
 
         initGlobalEvents: function() {
-            // Tự động xóa lỗi khi người dùng nhập liệu
+
             $(document).on("input change", ".is-invalid, .tomselect-custom, [data-date-input] input", function () {
                 if (window.ValidationAdapter) window.ValidationAdapter.clearField(this);
             });
 
-            // Hiệu ứng Blur cho Modal cha khi mở Modal con
-            $(document).on("shown.bs.modal", ".modal", function () {
+            $(document).on("shown.bs.modal", ".modal.managed-modal", function () {
+
+                $('.modal.show .modal-content').removeClass('modal-blur');
                 $('.modal.show').not(this).find('.modal-content').addClass('modal-blur');
+
+                const $modals = $('.modal.show');
+
+                $modals.each(function (index) {
+                    const zIndex = 1050 + (10 * index);
+                    $(this).css('z-index', zIndex);
+                });
+
+                $('.modal-backdrop').each(function (index) {
+                    const zIndex = 1049 + (10 * index);
+                    $(this).css('z-index', zIndex);
+                });
+
             });
-            
-            $(document).on("hidden.bs.modal", ".modal", function () {
+
+            $(document).on("hidden.bs.modal", ".modal.managed-modal", function () {
                 $('.modal.show').last().find('.modal-content').removeClass('modal-blur');
             });
+
+            $(document).on("hide.bs.modal", ".modal.managed-modal", function () {
+
+                if (document.activeElement) {
+                    document.activeElement.blur();
+                }
+
+            });
+
         },
 
         getOrCreateContainer: function (modalId) {
@@ -1289,38 +1314,57 @@
         },
 
         load: function (url, modalId, callback, showModal = true) {
+
             const $container = this.getOrCreateContainer(modalId);
 
             $container.empty();
 
             $container.load(url, (response, status) => {
+
                 if (status === "error") return;
 
                 const modalEl = document.getElementById(modalId);
+
                 if (modalEl) {
+
+                    // FIX accessibility
+                    if (document.activeElement) {
+                        document.activeElement.blur();
+                    }
+
+                    $(modalEl).addClass('managed-modal');
+
                     if (typeof initDateInputs === "function") initDateInputs(modalEl);
 
                     if (showModal) {
-                        const modal = new bootstrap.Modal(modalEl, {
-                            backdrop: 'static',
-                            keyboard: true
+
+                        const modal = new bootstrap.Modal(modalEl,{
+                            backdrop:'static',
+                            keyboard:true
                         });
+
                         modal.show();
 
                         $(modalEl).one("hidden.bs.modal", () => {
+
                             modal.dispose();
                             $container.remove();
-                            if ($('.modal.show').length > 0) $('body').addClass('modal-open');
+
+                            if ($('.modal.show').length > 0)
+                                $('body').addClass('modal-open');
+
                         });
                     }
 
-                      if (typeof callback === "string") {
-                          waitForFunction(callback, () => {
-                              window[callback]();
-                          });
-                      } else if (typeof callback === "function") {
-                          callback();
-                      }
+                    if (typeof callback === "string") {
+                        waitForFunction(callback, () => {
+                            window[callback]();
+                        });
+                    }
+                    else if (typeof callback === "function") {
+                        callback();
+                    }
+
                 }
             });
         }

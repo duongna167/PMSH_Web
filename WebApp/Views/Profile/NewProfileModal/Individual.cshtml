@@ -500,8 +500,6 @@
 
             initTomSelect('.tomselect-custom');
 
-            LoadingGlobal.show();
-
             const mapCode = (item) => ({
                 value: item.id || item.ID,
                 text: (item.code || item.Code) + "-" + (item.name || item.Name),
@@ -534,9 +532,7 @@
                 loadDataToTomSelect("#ind_txtVIP", "/Profile/GetAllVIP", mapCode)
             ];
 
-            Promise.all(loadTasks).finally(() => {
-                LoadingGlobal.hide();
-            });
+            Promise.all(loadTasks)
         },
 
         bindNameEngine: function () {
@@ -749,15 +745,14 @@
         saveProfile: function () {
             const self = this;
             const data = self.getFormData();
-            LoadingGlobal.show();
 
             $.ajax({
                 url: '/Profile/SaveProfile',
                 type: 'POST',
+                showLoading: true,
                 contentType: 'application/json',
                 data: JSON.stringify(data),
                 success: function (res) {
-                    LoadingGlobal.hide();
 
                     if (res.success) {
                         showToast("Success",res.message || 'Profile saved successfully!', true);
@@ -782,7 +777,6 @@
                     }
                 },
                 error: function (xhr) {
-                    LoadingGlobal.hide();
                     showToast("Error",'Internal Server Error. Please try again.', false);
                     console.error(xhr);
                 }
@@ -960,16 +954,12 @@
 
             const self = this;
 
-            LoadingGlobal.show();
-
             $.ajax({
                 url: '/Profile/GetProfileByID/',
                 type: 'GET',
                 contentType: "application/json",
                 data: {id: id},
                 success: function (res) {
-
-                    LoadingGlobal.hide();
 
                     if (res.code !== 0) {
                         showToast("Error", res.msg, false);
@@ -989,8 +979,6 @@
                 },
 
                 error: function () {
-
-                    LoadingGlobal.hide();
                     showToast("Error", "Cannot load profile", false);
 
                 }
