@@ -1,192 +1,282 @@
 @{
-    var chargeGroup = ViewBag.PersonInChargeGroupList;
-    var chargeZone = ViewBag.PersonInChargeZoneList;
+    var pic_chargeGroup = ViewBag.PersonInChargeGroupList;
+    var pic_chargeZone = ViewBag.PersonInChargeZoneList;
 }
-<style>
-    /* Căn chỉnh tổng thể cho hàng */
-    .align-items-center label {
-        font-size: 0.875rem !important;
-    }
 
-</style>
-
-<div class="text-center" style="font-size: 20px">Person In Charge</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="mb-2">
-        <button id="btnView" class="mui-button mui-button-search"> View</button>
-        <button id="btnNew" class="mui-button mui-button-new"> New</button>
-        <button id="btnEdit" class="mui-button mui-button-edit">  Edit</button>
-        <button id="btnDelete" class="mui-button mui-button-delete">  Delete</button>
-        <button id="btnExportExcel" class="mui-button mui-button-export">  Excel</button>
-        <button id="btnRefresh" class="mui-button mui-button-search">  Refresh</button>
-    </div>
-    <div class="row g-3 align-items-end py-1">
-        <div class="col-auto">
-            <div class="d-flex align-items-center gap-3">
-                <div class="d-flex align-items-center">
-                    <label for="codeInput" class="me-2 mb-0 fw-bold">Code:</label>
-                    <input type="text" id="codeInput" class="form-control form-control-sm" style="width: 100px;" />
-                </div>
-                <div class="d-flex align-items-center">
-                    <label for="nameInput" class="me-2 mb-0 fw-bold">Name:</label>
-                    <input type="text" id="nameInput" class="form-control form-control-sm" style="width: 150px;" />
-                </div>
-                <div class="form-check d-flex align-items-center gap-2 mb-0">
-                    <input class="form-check-input" type="checkbox" id="chkshowInactive" name="chkshowInactive">
-                    <label class="form-check-label mb-0 text-nowrap" for="chkshowInactive">Show Inactive</label>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-auto d-flex align-items-center" style="width: 250px;">
-            <label for="personInchargeGroupIds" class="pe-3 fw-bold text-nowrap">Group:</label>
-            <div class="flex-grow-1">
-                <select id="personInchargeGroupIds" name="group" class="tomselect-custom" multiple>
-                    @foreach (var sg in chargeGroup)
-                    {
-                        <option value="@sg.ID">@sg.Name</option>
-                    }
-                </select>
-            </div>
-        </div>
-
-        <div class="col-auto d-flex align-items-center" style="width: 250px;">
-            <label for="personInchargeZoneIds" class="pe-3 fw-bold text-nowrap">Zone:</label>
-            <div class="flex-grow-1">
-                <select id="personInchargeZoneIds" name="zone" class="tomselect-custom" multiple>
-                    @foreach (var i in chargeZone)
-                    {
-                        <option value="@i.ID">@i.Name</option>
-                    }
-                </select>
-            </div>
-        </div>
-
-    </div>
-
-</div>
-
-<div class="mui-card">
-    <div id="gridContainerRateCode" class="gridContainer"></div>
-</div>
-
-
-<div class="modal fade" id="itemModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+<!-- Main Modal -->
+<div class="modal fade" id="pic_mainModal" tabindex="-1" aria-labelledby="pic_mainModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-4by3 modal-dialog-scrollable">
         <div class="modal-content">
 
-            <!-- HEADER -->
-            <div class="modal-header py-2">
-                <h5 class="modal-title" id="itemModalLabel">Person In Charge</h5>
+            <div class="modal-header">
+                <h5 class="modal-title" id="pic_mainModalLabel">Person In Charge</h5>
             </div>
-            <!-- FOOTER -->
-            <div class="modal-footer justify-content-start">
-                <div>
-                    <button type="button" id="btnSaveItem" class="mui-button mui-button-save">
-                        Save
-                    </button>
-                    <button type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">
-                        Close
-                    </button>
-                </div>
-            </div>
-            <!-- BODY -->
+
             <div class="modal-body">
-                <form id="formContainer">
-                    <input type="hidden" id="id" name="id" value="0" />
+                <div class="search-filter">
+                    <div>
+                        <button id="pic_btnView" type="button" class="mui-button mui-button-search">View</button>
+                        <button id="pic_btnNew" type="button" class="mui-button mui-button-new">New</button>
+                        <button id="pic_btnEdit" type="button" class="mui-button mui-button-edit">Edit</button>
+                        <button id="pic_btnDelete" type="button" class="mui-button mui-button-delete">Delete</button>
+                        <button id="pic_btnExportExcel" type="button" class="mui-button mui-button-export">Excel</button>
+                        <button id="pic_btnRefresh" type="button" class="mui-button mui-button-search">Refresh</button>
+                        <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal" aria-label="Close">Close</button>
+                    </div>
 
-                    <div class="container-fluid">
-                        <!-- Row 1 -->
-                        <div class="row g-3 align-items-end">
-
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">
+                    <div class="row g-2 mt-1">
+                        <div class="col-12 col-md-4 col-lg-2">
+                            <div class="row g-2 align-items-center">
+                                <label for="pic_filterCode" class="col-md-4 col-form-label col-form-label-sm text-md-end">
                                     Code
                                 </label>
-                                <input type="text" id="txtcode" name="txtcode"
-                                       class="form-control form-control-sm" readonly>
-                                <div class="invalid-feedback"></div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">
-                                    Name <span class="text-danger">*</span>
-                                </label>
-                                <input type="text" id="txtname" name="txtname"
-                                       class="form-control form-control-sm" placeholder="Enter name...">
-                                <div class="invalid-feedback"></div>
-                            </div>
-
-                            <div class="col-md-2 d-flex align-items-center justify-content-end">
-                                <div class="form-check mt-3">
-                                    <input class="form-check-input" type="checkbox"
-                                           id="inactive" name="inactive">
-                                    <label class="form-check-label text-danger fw-semibold"
-                                           for="inactive">
-                                        Inactive
-                                    </label>
+                                <div class="col-md-8">
+                                    <input id="pic_filterCode"
+                                           name="pic_filterCode"
+                                           type="text"
+                                           class="form-control form-control-sm" />
                                 </div>
                             </div>
-
                         </div>
 
-                        <!-- Row 2 -->
-                        <div class="row g-3 mt-1">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Person In Charge Group</label>
-                                <select id="personInChargeGroupId" name="personInChargeGroupId"
-                                        class="tomselect-custom">
-
-                                    @foreach (var sg in chargeGroup)
-                                    {
-                                        <option value="@sg.ID">@sg.Name</option>
-                                    }
-                                </select>
-                                <div class="invalid-feedback"></div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Person In Charge Zone</label>
-                                <span class="text-danger">*</span>
-                                <select id="personInChargeZoneId" name="personInChargeZoneId"
-                                        class="tomselect-custom">
-
-                                    @foreach (var sg in chargeZone)
-                                    {
-                                        <option value="@sg.ID">@sg.Name</option>
-                                    }
-                                </select>
-                                <div class="invalid-feedback"></div>
+                        <div class="col-12 col-md-4 col-lg-3">
+                            <div class="row g-2 align-items-center">
+                                <label for="pic_filterName" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Name
+                                </label>
+                                <div class="col-md-8">
+                                    <input id="pic_filterName"
+                                           name="pic_filterName"
+                                           type="text"
+                                           class="form-control form-control-sm" />
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Row 3 -->
-                        <div class="row g-3 mt-1">
-                            <div class="col-md-4">
-                                <label class="form-label">Telephone</label>
-                                <input type="text" id="txtTelePhone" name="txtTelePhone"
-                                       class="form-control form-control-sm" placeholder="Enter telephone...">
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="form-label">Hand Phone</label>
-                                <input type="text" id="txtMobilePhone" name="txtMobilePhone"
-                                       class="form-control form-control-sm" placeholder="Enter mobile phone...">
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="form-label">Email</label>
-                                <input type="text" id="txtEmail" name="txtEmail"
-                                       class="form-control form-control-sm" placeholder="Enter email...">
+                        <div class="col-12 col-md-4 col-lg-2">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Status
+                                </label>
+                                <div class="col-md-8">
+                                    <div class="d-flex align-items-center h-100">
+                                        <div class="form-check d-flex align-items-center gap-2 mb-0">
+                                            <input class="form-check-input" type="checkbox" id="pic_chkShowInactive" name="pic_chkShowInactive">
+                                            <label class="form-check-label mb-0 text-nowrap" for="pic_chkShowInactive">Show Inactive</label>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Row 4 -->
-                        <div class="row my-2">
-                            <div class="col-12">
-                                <label class="form-label">Description</label>
-                                <textarea id="txtdescription" name="txtdescription"
-                                          class="form-control" rows="3" placeholder="Enter description..."></textarea>
+                        <div class="col-12 col-lg-3">
+                            <div class="row g-2 align-items-center">
+                                <label for="pic_filterGroupIds" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Group
+                                </label>
+                                <div class="col-md-8">
+                                    <select id="pic_filterGroupIds" name="pic_filterGroupIds" class="tomselect-custom" multiple>
+                                        @foreach (var pic_sg in pic_chargeGroup)
+                                        {
+                                            <option value="@pic_sg.ID">@pic_sg.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-2">
+                            <div class="row g-2 align-items-center">
+                                <label for="pic_filterZoneIds" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Zone
+                                </label>
+                                <div class="col-md-8">
+                                    <select id="pic_filterZoneIds" name="pic_filterZoneIds" class="tomselect-custom" multiple>
+                                        @foreach (var pic_i in pic_chargeZone)
+                                        {
+                                            <option value="@pic_i.ID">@pic_i.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mui-card mt-1">
+                    <div id="pic_gridContainer" class="gridContainer"></div>
+                </div>
+
+                <div id="pic_loadingSpinner"
+                     style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+                     z-index: 999;background: rgba(255, 255, 255, 0.55);backdrop-filter: blur(2px);width: 100%;
+                     height: 100%;display: flex;align-items: center;justify-content: center;">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="pic_itemModal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="pic_itemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="pic_itemModalLabel">Person In Charge</h5>
+            </div>
+
+            <div class="modal-body">
+                <div class="search-filter">
+                    <button type="button" id="pic_btnSave" class="mui-button mui-button-new">Save</button>
+                    <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <form id="pic_formContainer">
+                    <input type="hidden" id="pic_id" name="pic_id" value="0" />
+
+                    <div class="row g-2 mt-1 mb-2">
+                        <div class="col-12 col-lg-3">
+                            <div class="row g-2 align-items-center">
+                                <label for="pic_code" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Code
+                                </label>
+                                <div class="col-md-8">
+                                    <input id="pic_code"
+                                           name="pic_code"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           readonly />
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-7">
+                            <div class="row g-2 align-items-center">
+                                <label for="pic_name" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Name <span class="text-danger">*</span>
+                                </label>
+                                <div class="col-md-8">
+                                    <input id="pic_name"
+                                           name="pic_name"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           placeholder="Enter name..." />
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-2">
+                            <div class="row g-2 align-items-center">
+                                <label class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Status
+                                </label>
+                                <div class="col-md-8">
+                                    <div class="form-check d-inline-flex align-items-center gap-2">
+                                        <input class="form-check-input" type="checkbox" id="pic_inactive" name="pic_inactive">
+                                        <label class="form-check-label text-danger fw-semibold" for="pic_inactive">
+                                            Inactive
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label for="pic_personInChargeGroupId" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Person In Charge Group
+                                </label>
+                                <div class="col-md-8">
+                                    <select id="pic_personInChargeGroupId" name="pic_personInChargeGroupId" class="tomselect-custom">
+                                        @foreach (var pic_sg in pic_chargeGroup)
+                                        {
+                                            <option value="@pic_sg.ID">@pic_sg.Name</option>
+                                        }
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="row g-2 align-items-center">
+                                <label for="pic_personInChargeZoneId" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Person In Charge Zone <span class="text-danger">*</span>
+                                </label>
+                                <div class="col-md-8">
+                                    <select id="pic_personInChargeZoneId" name="pic_personInChargeZoneId" class="tomselect-custom">
+                                        @foreach (var pic_sg in pic_chargeZone)
+                                        {
+                                            <option value="@pic_sg.ID">@pic_sg.Name</option>
+                                        }
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-4">
+                            <div class="row g-2 align-items-center">
+                                <label for="pic_telephone" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Telephone
+                                </label>
+                                <div class="col-md-8">
+                                    <input id="pic_telephone"
+                                           name="pic_telephone"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           placeholder="Enter telephone..." />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-4">
+                            <div class="row g-2 align-items-center">
+                                <label for="pic_mobilePhone" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Hand Phone
+                                </label>
+                                <div class="col-md-8">
+                                    <input id="pic_mobilePhone"
+                                           name="pic_mobilePhone"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           placeholder="Enter mobile phone..." />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-4">
+                            <div class="row g-2 align-items-center">
+                                <label for="pic_email" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    Email
+                                </label>
+                                <div class="col-md-8">
+                                    <input id="pic_email"
+                                           name="pic_email"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           placeholder="Enter email..." />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="row g-2">
+                                <label for="pic_description" class="col-md-2 col-form-label col-form-label-sm text-md-end">
+                                    Description
+                                </label>
+                                <div class="col-md-10">
+                                    <textarea id="pic_description"
+                                              name="pic_description"
+                                              class="form-control form-control-sm"
+                                              rows="3"
+                                              placeholder="Enter description..."></textarea>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -197,298 +287,418 @@
     </div>
 </div>
 
-
-<div id="loadingSpinnerRateCode" style="display: none; text-align: center; padding: 20px;">
-    <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-    </div>
-</div>
-
 <script>
-    var selectedRowData = null;
+    var pic_Module = (() => {
+        let pic_selectedRowData = null;
 
-    $(document).ready(function () {
-        initTomSelect(".tomselect-custom");
+        const pic_selectors = {
+            mainModal: "#pic_mainModal",
+            itemModal: "#pic_itemModal",
+            form: "#pic_formContainer",
+            grid: "#pic_gridContainer",
+            loading: "#pic_loadingSpinner",
 
-        $("#btnView").trigger("click");
+            filterCode: "#pic_filterCode",
+            filterName: "#pic_filterName",
+            chkShowInactive: "#pic_chkShowInactive",
+            filterGroupIds: "#pic_filterGroupIds",
+            filterZoneIds: "#pic_filterZoneIds",
 
-        $('#itemModal').on('hidden.bs.modal', function () {
-            ValidationAdapter.clear("#formContainer");
-        });
+            btnView: "#pic_btnView",
+            btnNew: "#pic_btnNew",
+            btnEdit: "#pic_btnEdit",
+            btnDelete: "#pic_btnDelete",
+            btnExportExcel: "#pic_btnExportExcel",
+            btnRefresh: "#pic_btnRefresh",
+            btnSave: "#pic_btnSave",
 
-        $("#formContainer").on("input", "input, textarea", function () {
-            if ($(this).hasClass("is-invalid")) {
-                ValidationAdapter.clearField(this);
-            }
-        });
+            modalLabel: "#pic_itemModalLabel",
 
-        $("#formContainer").on("change", "select.tomselect-custom", function () {
-            if (this.tomselect) {
-                ValidationAdapter.clearField(this);
-            }
-        });
-
-
-    });
-
-    $("#btnRefresh").click(function() {
-        clearMultipleTomSelect(['#personInchargeGroupIds', '#personInchargeZoneIds']);
-        $("#codeInput").val("");
-        $("#nameInput").val("");
-        $("#chkshowInactive").prop("checked", false);
-    });
-
-    $("#btnNew").click(function () {
-        FormModal.open("#itemModal", "#formContainer", {
-            onOpen: () => {
-                $("#id").val(0);
-                $("#itemModalLabel").text("New Person In Charge");
-
-                clearMultipleTomSelect([
-                    "#personInChargeGroupId",
-                    "#personInChargeZoneId"
-                ]);
-            }
-        });
-    });
-
-    $("#btnEdit").click(function () {
-        if (!selectedRowData) {
-            showToast("Warning", "Please select a row first!", true);
-            return;
-        }
-
-        FormModal.open("#itemModal", "#formContainer", {
-            onOpen: () => {
-                fillForm(selectedRowData);
-                $("#itemModalLabel").text("Update Person In Charge");
-            }
-        });
-    });
-
-    function fillForm(data) {
-        $("#id").val(data.id);
-        $("#txtcode").val(data.code);
-        $("#txtname").val(data.name);
-        $("#txtdescription").val(data.description);
-        $("#txtEmail").val(data.email);
-        $("#txtTelePhone").val(data.telephone);
-        $("#txtMobilePhone").val(data.mobile);
-        $("#inactive").prop("checked", data.inactive === "True");
-
-        setTomSelectValue("#personInChargeGroupId", data.groupID);
-        setTomSelectValue("#personInChargeZoneId", data.zoneID);
-    }
-
-    $("#btnSaveItem").click(function () {
-        let loginName = (localStorage.getItem("Loginname") || "")
-            .trim()
-            .replace(/^"(.*)"$/, '$1');
-
-        const group = getTomSelectData("#personInChargeGroupId");
-        const zone  = getTomSelectData("#personInChargeZoneId");
-
-        const model = {
-            ID: parseInt($("#id").val()) || 0,
-            Code: $("#txtcode").val(),
-            Name: $("#txtname").val(),
-            Description: $("#txtdescription").val(),
-            PersonInChargeGroupID:parseInt( toBackendValue(group)) || 0,
-            PersonInChargeZoneID: parseInt(toBackendValue(zone)) || 0,
-            Email: $("#txtEmail").val(),
-            TelePhone: $("#txtTelePhone").val(),
-            MobilePhone: $("#txtMobilePhone").val(),
-            Inactive: $("#inactive").prop("checked"),
-            CreatedBy: loginName,
-            UpdatedBy: loginName
+            id: "#pic_id",
+            code: "#pic_code",
+            name: "#pic_name",
+            description: "#pic_description",
+            email: "#pic_email",
+            telephone: "#pic_telephone",
+            mobilePhone: "#pic_mobilePhone",
+            inactive: "#pic_inactive",
+            personInChargeGroupId: "#pic_personInChargeGroupId",
+            personInChargeZoneId: "#pic_personInChargeZoneId"
         };
 
-        $.ajax({
-            url: "/Administration/PersonInChargeSave",
-            type: "POST",
-            contentType: "application/json",
-            data: JSON.stringify(model),
-            success(res) {
-                if (res.success) {
-                    showToast("Success", res.message, true);
-                    FormModal.close("#itemModal", "#formContainer");
-                    $("#btnView").trigger("click");
-                } else {
-                    ValidationAdapter.apply(res.errors || [], "#formContainer");
-                    showToast("Warning", res.message || "Invalid data", false);
+        function pic_init() {
+            pic_bindEvents();
+            initTomSelect(".tomselect-custom");
+            pic_loadGrid([]);
+            pic_loadData();
+        }
+
+        function pic_bindEvents() {
+            $(pic_selectors.itemModal)
+                .off("hidden.bs.modal")
+                .on("hidden.bs.modal", function () {
+                    ValidationAdapter.clear(pic_selectors.form);
+                });
+
+            $(document)
+                .off("input", `${pic_selectors.form} input, ${pic_selectors.form} textarea`)
+                .on("input", `${pic_selectors.form} input, ${pic_selectors.form} textarea`, function () {
+                    if ($(this).hasClass("is-invalid")) {
+                        ValidationAdapter.clearField(this);
+                    }
+                });
+
+            $(document)
+                .off("change", `${pic_selectors.form} select.tomselect-custom`)
+                .on("change", `${pic_selectors.form} select.tomselect-custom`, function () {
+                    if (this.tomselect) {
+                        ValidationAdapter.clearField(this);
+                    }
+                });
+
+            $(document)
+                .off("click", pic_selectors.btnView)
+                .on("click", pic_selectors.btnView, function () {
+                    pic_loadData();
+                });
+
+            $(document)
+                .off("click", pic_selectors.btnRefresh)
+                .on("click", pic_selectors.btnRefresh, function () {
+                    clearMultipleTomSelect([pic_selectors.filterGroupIds, pic_selectors.filterZoneIds]);
+                    $(pic_selectors.filterCode).val("");
+                    $(pic_selectors.filterName).val("");
+                    $(pic_selectors.chkShowInactive).prop("checked", false);
+                });
+
+            $(document)
+                .off("click", pic_selectors.btnNew)
+                .on("click", pic_selectors.btnNew, function () {
+                    pic_openAddModal();
+                });
+
+            $(document)
+                .off("click", pic_selectors.btnEdit)
+                .on("click", pic_selectors.btnEdit, function () {
+                    pic_openEditModal();
+                });
+
+            $(document)
+                .off("click", pic_selectors.btnSave)
+                .on("click", pic_selectors.btnSave, function () {
+                    pic_save();
+                });
+
+            $(document)
+                .off("click", pic_selectors.btnDelete)
+                .on("click", pic_selectors.btnDelete, function () {
+                    pic_delete();
+                });
+
+            $(document)
+                .off("click", pic_selectors.btnExportExcel)
+                .on("click", pic_selectors.btnExportExcel, function () {
+                    pic_exportExcel();
+                });
+        }
+
+        function pic_openAddModal() {
+            FormModal.open(pic_selectors.itemModal, pic_selectors.form, {
+                onOpen: () => {
+                    $(pic_selectors.id).val(0);
+                    $(pic_selectors.modalLabel).text("New Person In Charge");
+
+                    clearMultipleTomSelect([
+                        pic_selectors.personInChargeGroupId,
+                        pic_selectors.personInChargeZoneId
+                    ]);
                 }
-            },
-            error() {
-                showToast("Error", "Save failed", false);
-            }
-        });
-    });
+            });
+        }
 
-    function loadGrid(data) {
-        var listGroupCharge = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.PersonInChargeGroupList ?? new List<object>()));
-        $("#gridContainerRateCode").dxDataGrid({
-            dataSource: data,
-            height: 500,
-            width: "100%",
-            allowColumnResizing: true,
-            columnResizingMode: "widget",
-            // selection: { mode: "multiple" ,showCheckBoxesMode: "always",selectAllMode: "page"},
-            selection: { mode: "single" },
-            hoverStateEnabled: true,
-            columnAutoWidth: false,
-            columns: [
-            { dataField: "id", caption: "ID", visible: false },
-            { dataField: "code", caption: "Code", width: "5%" },
-            { dataField: "name", caption: "Name", width: "10%" },
-            { dataField: "telePhone", caption: "Phone", width: "9%" },
-            { dataField: "mobile", caption: "Mobile", width: "9%" },
-            { dataField: "email", caption: "Email", width: "9%" },
-            {
-                dataField: "groupID",
-                caption: "Group",
-                width: "7%",
-                lookup: {
-                    dataSource: listGroupCharge,
-                    valueExpr: "ID",
-                    displayExpr: "Code"
-                }
-            },
-            { dataField: "zoneID", caption: "Zone", groupIndex: 0, visible: false },
-            { dataField: "description", caption: "Description", width: "15%" },
-            { dataField: "updatedBy", caption: "Updated By", width: "5%",},
-            { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy", width: "12%" },
-            { dataField: "createdBy", caption: "Created By", width: "5%" },
-            { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy", width: "12%" },
-            { dataField: "inactive", caption: "Inactive", width: "5%" },
-        ],
-            filterRow: { visible: true, applyFilter: "auto" },
-            paging: { pageSize: 20 },
-            pager: {
-                visible: true,
-                allowedPageSizes: [20, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            scrolling: { mode: "standard", showScrollbar: "always" },
-              onSelectionChanged: function(e){
-                  selectedRowData = e.selectedRowsData.length > 0 ? e.selectedRowsData[0] : null;
-            }
-        });
-    }
-
-    $(document).off("click", "#btnView").on("click", "#btnView", function () {
-          $("#loadingSpinnerRateCode").show();
-          const groups = getTomSelectData("#personInchargeGroupIds");
-          const zones  = getTomSelectData("#personInchargeZoneIds");
-
-          $.ajax({
-              url: "/Administration/GetPersonInCharge",
-              type: "GET",
-              cache: false,
-              data: {
-                  code: $("#codeInput").val() || "",
-                  name: $("#nameInput").val() || "",
-                  group: groups ? toBackendValue(groups).join(",") : "",
-                  zone: zones ? toBackendValue(zones).join(",") : "",
-                  isActive: $("#chkshowInactive").prop("checked") ? 1 : 0
-              },
-              crossDomain: false,
-              headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-              success: function(data){
-                  loadGrid(data);
-                  $("#loadingSpinnerRateCode").hide();
-              },
-              error: function(xhr, status, error){
-                 showToast("Error", "Unable to load data", false);
-                 $("#loadingSpinnerRateCode").hide();
-              }
-             });
-    });
-
-    $("#btnDelete").click(function () {
-           if (!selectedRowData || selectedRowData.id === 0) {
-               showToast('Warning', "Select 1 row, please!", true);
-
-               return;
-           }
-           if (!confirm("Are you sure you want to delete this record? This action cannot be undone.")) {
+        function pic_openEditModal() {
+            if (!pic_selectedRowData) {
+                showToast("Warning", "Please select a row first!", true);
                 return;
             }
-           $.ajax({
-               url: `/Administration/DeletePersonInCharge/`+ selectedRowData.id,
-               type: "POST",
-               traditional: true,
-               crossDomain: false,
-               headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-               success: function(result){
-                    if(result.success){
-                        $("#btnView").trigger("click");
-                        showToast("Success","Delete Successfully!",true);
-                    } else {
-                        showToast("Error",result.message,false);
-                    }
-               },
-               error: function(){
-                   console.log("delete "+ selectedRowData.id);
-                    showToast("Error","Delete failed!" ,false);
-                    $("#loadingSpinner").hide();
-               },
-           });
-       });
 
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainerRateCode").dxDataGrid("instance");
-
-        const workbook = new ExcelJS.Workbook();
-        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
-
-        // === Dòng 1: Tên công ty (merge theo 4 cột) ===
-        worksheet.addRow([companyName]);
-        worksheet.mergeCells('A1:D1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-        // === Dòng 2: Ngày giờ xuất (bên phải) ===
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', exportDate]);
-        worksheet.mergeCells('D2:D2');  // cột D thôi
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        // === Dòng 3–4: trống
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
-        const reportRow = worksheet.addRow(['Person In Charge']);
-        worksheet.mergeCells('A5:D5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        // === Dòng 6: trống
-        worksheet.addRow([]);
-
-        // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 }
-        }).then(function () {
-            // Footer (sau cùng)
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            // Ghi file
-            let fileName = "PersonInCharge.xlsx";
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+            FormModal.open(pic_selectors.itemModal, pic_selectors.form, {
+                onOpen: () => {
+                    pic_fillForm(pic_selectedRowData);
+                    $(pic_selectors.modalLabel).text("Update Person In Charge");
+                }
             });
-        });
-    });
+        }
 
+        function pic_fillForm(pic_data) {
+            $(pic_selectors.id).val(pic_data.id);
+            $(pic_selectors.code).val(pic_data.code);
+            $(pic_selectors.name).val(pic_data.name);
+            $(pic_selectors.description).val(pic_data.description);
+            $(pic_selectors.email).val(pic_data.email);
+            $(pic_selectors.telephone).val(pic_data.telephone);
+            $(pic_selectors.mobilePhone).val(pic_data.mobile);
+            $(pic_selectors.inactive).prop("checked", pic_data.inactive === "True");
+
+            setTomSelectValue(pic_selectors.personInChargeGroupId, pic_data.groupID);
+            setTomSelectValue(pic_selectors.personInChargeZoneId, pic_data.zoneID);
+        }
+
+        function pic_getSearchModel() {
+            const pic_groups = getTomSelectData(pic_selectors.filterGroupIds);
+            const pic_zones = getTomSelectData(pic_selectors.filterZoneIds);
+
+            return {
+                code: $(pic_selectors.filterCode).val() || "",
+                name: $(pic_selectors.filterName).val() || "",
+                group: pic_groups ? toBackendValue(pic_groups).join(",") : "",
+                zone: pic_zones ? toBackendValue(pic_zones).join(",") : "",
+                isActive: $(pic_selectors.chkShowInactive).prop("checked") ? 1 : 0
+            };
+        }
+
+        function pic_getSaveModel() {
+            let pic_loginName = (localStorage.getItem("Loginname") || "")
+                .trim()
+                .replace(/^"(.*)"$/, "$1");
+
+            const pic_group = getTomSelectData(pic_selectors.personInChargeGroupId);
+            const pic_zone = getTomSelectData(pic_selectors.personInChargeZoneId);
+
+            return {
+                ID: parseInt($(pic_selectors.id).val()) || 0,
+                Code: $(pic_selectors.code).val(),
+                Name: $(pic_selectors.name).val(),
+                Description: $(pic_selectors.description).val(),
+                PersonInChargeGroupID: parseInt(toBackendValue(pic_group)) || 0,
+                PersonInChargeZoneID: parseInt(toBackendValue(pic_zone)) || 0,
+                Email: $(pic_selectors.email).val(),
+                TelePhone: $(pic_selectors.telephone).val(),
+                MobilePhone: $(pic_selectors.mobilePhone).val(),
+                Inactive: $(pic_selectors.inactive).prop("checked"),
+                CreatedBy: pic_loginName,
+                UpdatedBy: pic_loginName
+            };
+        }
+
+        function pic_showLoading() {
+            $(pic_selectors.loading).show();
+        }
+
+        function pic_hideLoading() {
+            $(pic_selectors.loading).hide();
+        }
+
+        function pic_loadData() {
+            pic_showLoading();
+
+            $.ajax({
+                url: "/Administration/GetPersonInCharge",
+                type: "GET",
+                cache: false,
+                data: pic_getSearchModel(),
+                crossDomain: false,
+                headers: {
+                    "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val()
+                },
+                success: function (pic_data) {
+                    pic_loadGrid(pic_data || []);
+                    pic_hideLoading();
+                },
+                error: function () {
+                    showToast("Error", "Unable to load data", false);
+                    pic_hideLoading();
+                }
+            });
+        }
+
+        function pic_loadGrid(pic_data) {
+            var pic_listGroupCharge = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.PersonInChargeGroupList ?? new List<object>()));
+            var pic_listzone = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.PersonInChargeZoneList ?? new List<object>()));
+
+            $(pic_selectors.grid).dxDataGrid({
+                dataSource: pic_data,
+                width: "100%",
+                allowColumnResizing: true,
+                columnResizingMode: "widget",
+                selection: { mode: "single" },
+                hoverStateEnabled: true,
+                columnAutoWidth: false,
+                columns: [
+                    { dataField: "id", caption: "ID", visible: false },
+                    { dataField: "code", caption: "Code", width: "100" },
+                    { dataField: "name", caption: "Name", width: "150" },
+                    { dataField: "telePhone", caption: "Phone", width: "100" },
+                    { dataField: "mobile", caption: "Mobile", width: "100" },
+                    { dataField: "email", caption: "Email", width: "150" },
+                    {
+                        dataField: "groupID",
+                        caption: "Group",
+                        width: "60",
+                        lookup: {
+                            dataSource: pic_listGroupCharge,
+                            valueExpr: "ID",
+                            displayExpr: "Code"
+                        }
+                    },
+                    { dataField: "zoneID", caption: "Zone", groupIndex: 0, visible: false,
+                        lookup: {
+                            dataSource: pic_listzone,
+                            valueExpr: "ID",
+                            displayExpr: "Name"
+                        }
+                     },
+                    { dataField: "description", caption: "Description", minWidth: 200, cssClass: "col-description"},
+                    { dataField: "inactive", caption: "Inactive", width: "80" ,
+                        cellTemplate: function (container, options) {
+                            $("<div>")
+                                .dxCheckBox({
+                                    value: !!options.value,
+                                    readOnly: true
+                                })
+                                .css("transform", "scale(0.8)")
+                                .appendTo(container);
+                        }
+                    },
+                    { dataField: "createdBy", caption: "Created By", width: "80" },
+                    { dataField: "createdDate", caption: "Cre.Date", dataType: "date", format: "dd/MM/yyyy", width: "80" },
+                    { dataField: "updatedBy", caption: "Updated By", width: "80" },
+                    { dataField: "updatedDate", caption: "Upd.Date", dataType: "date", format: "dd/MM/yyyy", width: "80" },
+                ],
+                filterRow: { visible: true, applyFilter: "auto" },
+                paging: { pageSize: 20 },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [20, 50, "all"],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                scrolling: { mode: "standard", showScrollbar: "always" },
+                onSelectionChanged: function (e) {
+                    pic_selectedRowData = e.selectedRowsData.length > 0 ? e.selectedRowsData[0] : null;
+                }
+            });
+        }
+
+        function pic_save() {
+            const pic_model = pic_getSaveModel();
+
+            $.ajax({
+                url: "/Administration/PersonInChargeSave",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(pic_model),
+                success: function (pic_res) {
+                    if (pic_res.success) {
+                        showToast("Success", pic_res.message, true);
+                        FormModal.close(pic_selectors.itemModal, pic_selectors.form);
+                        pic_loadData();
+                    } else {
+                        ValidationAdapter.apply(pic_res.errors || [], pic_selectors.form);
+                        showToast("Warning", pic_res.message || "Invalid data", false);
+                    }
+                },
+                error: function () {
+                    showToast("Error", "Save failed", false);
+                }
+            });
+        }
+
+        function pic_delete() {
+            if (!pic_selectedRowData || pic_selectedRowData.id === 0) {
+                showToast("Warning", "Select 1 row, please!", true);
+                return;
+            }
+
+            if (!confirm("Are you sure you want to delete this record? This action cannot be undone.")) {
+                return;
+            }
+
+            $.ajax({
+                url: `/Administration/DeletePersonInCharge/` + pic_selectedRowData.id,
+                type: "POST",
+                traditional: true,
+                crossDomain: false,
+                headers: {
+                    "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val()
+                },
+                success: function (pic_result) {
+                    if (pic_result.success) {
+                        showToast("Success", pic_result.message || "Delete Successfully!", true);
+                        pic_loadData();
+                    } else {
+                        showToast("Error", pic_result.message, false);
+                    }
+                },
+                error: function () {
+                    showToast("Error", "Delete failed!", false);
+                    $("#loadingSpinner").hide();
+                }
+            });
+        }
+
+        function pic_exportExcel() {
+            const pic_grid = $(pic_selectors.grid).dxDataGrid("instance");
+
+            const pic_workbook = new ExcelJS.Workbook();
+            const pic_companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const pic_worksheet = pic_workbook.addWorksheet("Sheet 1");
+
+            pic_worksheet.addRow([pic_companyName]);
+            pic_worksheet.mergeCells("A1:D1");
+            pic_worksheet.getRow(1).font = { bold: true };
+            pic_worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "left" };
+
+            const pic_now = new Date();
+            const pic_exportDate = pic_now.toLocaleString("vi-VN");
+            pic_worksheet.addRow(["", "", "", pic_exportDate]);
+            pic_worksheet.mergeCells("D2:D2");
+            pic_worksheet.getRow(2).alignment = { vertical: "middle", horizontal: "right" };
+
+            pic_worksheet.addRow([]);
+            pic_worksheet.addRow([]);
+
+            const pic_reportRow = pic_worksheet.addRow(["Person In Charge"]);
+            pic_worksheet.mergeCells("A5:D5");
+            pic_reportRow.font = { bold: true, size: 14 };
+            pic_reportRow.alignment = { vertical: "middle", horizontal: "center" };
+
+            pic_worksheet.addRow([]);
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: pic_grid,
+                worksheet: pic_worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                const pic_lastRow = pic_worksheet.lastRow.number + 2;
+                pic_worksheet.mergeCells(`A${pic_lastRow}:D${pic_lastRow}`);
+                pic_worksheet.getCell(`A${pic_lastRow}`).alignment = { horizontal: "center" };
+                pic_worksheet.getCell(`A${pic_lastRow}`).font = { italic: true };
+
+                let pic_fileName = "PersonInCharge.xlsx";
+                pic_workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), pic_fileName);
+                });
+            });
+        }
+
+        return {
+            init: pic_init,
+            loadData: pic_loadData,
+            openAddModal: pic_openAddModal,
+            openEditModal: pic_openEditModal
+        };
+    })();
+
+    window.openModalPersonInCharge = function () {
+        const modalEl = document.querySelector("#pic_mainModal");
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+        $(modalEl).one("shown.bs.modal", function () {
+            pic_Module.init();
+        });
+        modal.show();
+    };
 </script>

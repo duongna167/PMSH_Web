@@ -1056,7 +1056,7 @@ namespace Administration.Controllers
             List<PersonInChargeZoneModel> listzone = PropertyUtils.ConvertToList<PersonInChargeZoneModel>(PersonInChargeZoneBO.Instance.FindAll());
 
             ViewBag.PersonInChargeZoneList = listzone;
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult GetPersonInCharge(string code, string name, string group, string zone, string isActive)
@@ -1203,7 +1203,26 @@ namespace Administration.Controllers
         {
             try
             {
+                if (PersonInChargeBO.Instance.FindByPrimaryKey(id) is not PersonInChargeModel existing || existing.ID == 0)
+                {
+                    return Ok(new { success = false, message = $"Person In Charge not found." });
+                }
+
+                var reservation = PropertyUtils.ConvertToList<ReservationModel>(
+                    ReservationBO.Instance.FindByAttribute("PersonInChargeID", id)
+                );
+
+                if (reservation != null && reservation.Count > 0)
+
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Cannot delete this Person In Charge because it is used in Reservation."
+                    });
+                }
                 PersonInChargeBO.Instance.Delete(id);
+                return Json(new { success = true, message = $"Record was removed successfully." });
             }
             catch (Exception ex)
             {
