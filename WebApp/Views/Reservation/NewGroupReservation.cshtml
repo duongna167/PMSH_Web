@@ -141,6 +141,7 @@
                                     Name
                                 </label>
                                 <div class="col-12 col-md-8 d-flex gap-1">
+                                    <input id="profileGRIndividualID" type="hidden">
                                     <input id="nameText" class="form-control">
                                     <button type="button" onclick="openModalSearchProfile()" class="btn-search-icon">
                                         <i class="fa-solid fa-arrow-down"></i>
@@ -177,9 +178,8 @@
     function openModalNewGroupReservation() {
         clearModalNewGroupReservation();
         const toDate = new Date(dateSystem);
-        toDate.setDate(toDate.getDate() + 8);
+        toDate.setDate(toDate.getDate() + 1);
         const toDateStr = toDate.toISOString().split('T')[0];
-        console.log('toDateStr', toDateStr);
 
         UI.setHiddenDate("departure2", toDateStr);
         searchRoomAvailale();
@@ -486,13 +486,15 @@
         const userID = JSON.parse(localStorage.getItem("userID"));
         const gridData = $("#gridContainerRoom").dxDataGrid("instance").getVisibleRows().map(r => r.data);
         var formData = new FormData();
+        console.log(' $("#profileGRIndividualID").val():', $("#profileGRIndividualID").val());
+        
         formData.append('lastName', $('#nameText').val());
         formData.append('resType', $("#resType").val());
         formData.append("gridData", JSON.stringify(gridData));
         formData.append('arrivalDate', $("#arrival2").val());
         formData.append('departureDate', $("#departure2").val());
         formData.append('noOfNight', $("#nights2").val());
-        formData.append('profileIndividualID', $("#name").val());
+        formData.append('profileIndividualID', $("#profileGRIndividualID").val() || "0");
         formData.append('package', $("#package").val());
         formData.append('packageCode', $("#package").find('option:selected').text());
         formData.append('market', $("#market").val());
@@ -510,13 +512,13 @@
                 if (data.code == 0) {
                     @* closeModalNew();
                     searchGroupReservation(); *@
-                        showToast('Thành công', data.msg, true);
+                        showToast('Success', data.msg, true);
                 } else {
-                    showToast('Lỗi', data.msg, false);
+                    showToast('Error', data.msg, false);
                 }
             },
             error: function (xhr, statusText, err) {
-                showToast('Lỗi', 'Đã xảy ra lỗi khi lưu đặt phòng nhóm.', false);
+                showToast('Error', 'An error occurred while saving the group booking.', false);
             }
         });
     }
