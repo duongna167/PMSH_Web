@@ -28,7 +28,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
-using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
@@ -45,6 +44,7 @@ using static log4net.Appender.RollingFileAppender;
 using static Reservation.Dto.ReservationPackageDTO;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
+using Microsoft.Data.SqlClient;
 namespace Reservation.Controllers
 {
     public class ReservationController : Controller
@@ -3392,7 +3392,7 @@ namespace Reservation.Controllers
             try
             {
 
-                (DataTable myData,int totalCount ) = _iGroupReservationService.GetGroupReservationTest(fromDate, toDate, noOfNight, skip, take);
+                (DataTable myData, int totalCount) = _iGroupReservationService.GetGroupReservationTest(fromDate, toDate, noOfNight, skip, take);
 
                 var result = (from d in myData.AsEnumerable()
 
@@ -3438,9 +3438,32 @@ namespace Reservation.Controllers
         {
             try
             {
-                var data = ReservationBO.GetRoomTypeAvailable(fromDate, toDate);
+                SqlParameter[] param = new SqlParameter[]
+                {
+                    new SqlParameter("@FromDate", fromDate),
+                    new SqlParameter("@ToDate", toDate),
+                };
+                DataTable data = DataTableHelper.getTableData("spAvailableRoomDetailfromtodate ", param);
+                var result = (from d in data.AsEnumerable()
+                              select d.Table.Columns.Cast<DataColumn>()
+                                  //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
+                                  .ToDictionary(
+                                      col => col.ColumnName,
+                                      col =>
+                                      {
+                                          var value = d[col.ColumnName];
+                                          if (value == DBNull.Value) return null;
 
-                return Json(data);
+                                          // CreatedDate: KHÔNG ToString
+                                          if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate")
+                                              return value;
+
+                                          // Các field khác: ToString
+                                          return value.ToString();
+                                      }
+                                  )).ToList();
+
+                return Json(result);
             }
             catch (Exception ex)
             {
