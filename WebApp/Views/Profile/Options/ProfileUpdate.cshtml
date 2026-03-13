@@ -1,0 +1,308 @@
+<style>
+
+</style>
+
+<div class="modal fade" id="modalProfileUpdate" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+     aria-labelledby="pro_up_label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="pro_up_label">Profile Update</h5>
+            </div>
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+
+                <!-- Toolbar -->
+                <div class="py-2 flex-shrink-0">
+                    <button class="mui-button mui-button-view" id="pro_up_btnView">View</button>
+                    <button class="mui-button mui-button-edit" id="pro_up_btnEdit">Edit</button>
+                    <button class="mui-button mui-button-export" id="pro_up_btnExcel">Excel</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal"> Close</button>
+                </div>
+
+                <!-- Filter -->
+                <div class="p-2 flex-shrink-0">
+                    <div class="row g-2 align-items-center">
+
+                        <!-- Date -->
+                        <div class="col-xl-3 col-lg-3 col-md-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="mb-0 fw-semibold">Date:</label>
+                                <div class="d-flex gap-1 flex-grow-1">
+                                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="pro_up_date">
+                                        <input type="text" class="date-ui form-control form-control-sm" placeholder="Date">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Room No -->
+                        <div class="col-xl-3 col-lg-3 col-md-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="mb-0 fw-semibold">Room No:</label>
+                                <div class="d-flex gap-2 border rounded px-2 py-1 bg-white">
+                                    <input type="text" id="pro_up_txtRoomNo">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Confirmation No -->
+                        <div class="col-xl-3 col-lg-3 col-md-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="mb-0 fw-semibold">Conf.No:</label>
+                                <div class="d-flex gap-2 border rounded px-2 py-1 bg-white">
+                                    <input type="text" id="pro_up_txtConfirmationNo">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Name -->
+                        <div class="col-xl-3 col-lg-3 col-md-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="mb-0 fw-semibold">Name:</label>
+                                <div class="d-flex gap-2 border rounded px-2 py-1 bg-white">
+                                    <input type="text" id="pro_up_txtName">
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Grid -->
+                <div class="mui-card mt-2 d-flex flex-column flex-grow-1 overflow-hidden">
+                    <div id="pro_up_gridProfileUpdate" class="mt-2 gridContainer flex-grow-1 h-100"></div>
+                </div>
+
+            </div><!-- /.modal-body -->
+
+        </div>
+    </div>
+</div>
+
+<script>
+    var pro_up_Module = {
+        selectedRowData: null,
+
+        init: function () {
+
+            this.initDOMEvents();
+            this.loadData();
+        },
+
+        initDOMEvents: function () {
+            const self = this;
+
+            $("#pro_up_btnView").off("click").on("click", function () {
+                self.loadData();
+            });
+
+            $("#pro_up_btnEdit").off("click").on("click", function () {
+                self.openModalEdit();
+            });
+
+            $("#pro_up_pro_up_btnExcel").off("click").on("click", function () {
+                self.exportToExcel();
+            });
+        },
+
+        openModalEdit: function() {
+            const self = this;
+
+            if (!self.selectedRowData) {
+                showToast('Warning', "Please select exactly one record to edit.", false);
+                return;
+            }
+
+            const id = self.selectedRowData.id;
+
+            ModalManager.load('/Profile/Individual', 'modalIndividual', function() {
+                waitForFunction("pro_ind_Module", () => {
+                    window.pro_ind_Module.init();
+                    if (window.pro_ind_Module.loadProfileByID) {
+                        setTimeout(() => window.pro_ind_Module.loadProfileByID(id), 300);
+                    }
+                });
+            });
+
+        },
+
+        loadData: function () {
+            const self = this;
+
+            $.ajax({
+                url: '/Profile/GetProfileUpdate',
+                type: 'GET',
+                loadingGrid: '#pro_up_gridProfileUpdate',
+                data: {
+                    date: $("#pro_up_date").val(),
+                    confirmationNo: $("#pro_up_txtConfirmationNo").val() || "",
+                    roomNo: $("#pro_up_txtRoomNo").val() || "",
+                    name: $("#pro_up_txtName").val() || "",
+                },
+                success: function (data) {
+                    self.renderGrid(data);
+                },
+                error: function () {
+                    alert('Error retrieving Changes data.');
+                }
+            });
+        },
+        
+        renderGrid: function (data) {
+            const self = this;
+            $("#pro_up_gridProfileUpdate").dxDataGrid({
+                dataSource: data,
+                height: "100%",
+                width: "100%",
+
+                allowColumnResizing: true,
+                columnAutoWidth: true,
+
+                scrolling: {
+                    mode: "standard",
+                    rowRenderingMode: "virtual",
+                    columnRenderingMode: "virtual",
+                    showScrollbar: "always",
+                    useNative: false
+                },
+                columns: [
+                    { dataField: "id", visible: false},
+                    { dataField: "nationality", caption: "Nationality" },
+                    { dataField: "confirmationNo", caption: "Conf.No" },
+                    { dataField: "roomNo", caption: "Room No" },
+                    { dataField: "account", caption: "Account" },
+                    { dataField: "dateOfBirth", caption: "Birthday" },
+                    { dataField: "passPort", caption: "Passport" },
+                    { dataField: "identityCard", caption: "IdentityCard" },
+                    { dataField: "email", caption: "Email" },
+                    { dataField: "address", caption: "Address" },
+                    { dataField: "createBy", caption: "Create By" },
+                    { dataField: "createDate", caption: "Create Date", dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "updateBy", caption: "Update By" },
+                    { dataField: "status", caption: "Status" },
+                    { dataField: "updateDate", caption: "Update Date", dataType: "date", format: "dd/MM/yyyy" }
+                ],
+                paging: { pageSize: 20 },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [20, 50, 'all'],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true,
+                },
+                selection: {
+                    mode: "single"
+                },
+                showBorders: false,
+                summary: {
+                    totalItems: [
+                        {
+                            column: "code",
+                            summaryType: "count",
+                            displayFormat: "Total room",
+                            alignment: "left"
+                        },
+
+                        {
+                            column: "roomNo",
+                            summaryType: "count",
+                            displayFormat: "{0}",
+                            alignment: "right"
+                        },
+                    ]
+                },
+                onSelectionChanged: function (e) {
+                    self.selectedRowData = e.selectedRowsData[0] || null;
+                    console.log("click grid profile update");
+                },
+                onRowDblClick: function(e) {
+                    if (e.data) {
+                        self.selectedRowData = e.data;
+                        self.openModalEdit();
+                    }
+                }
+            });
+        },
+
+        exportToExcel: function () {
+            const grid = $("#pro_up_gridProfileUpdate").dxDataGrid("instance");
+            if (!grid) {
+                showToast("Warning", "No data to export!", false);
+                return;
+            }
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            // === Dòng 1: Tên công ty (merge theo 4 cột) ===
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells('A1:D1');
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+            // === Dòng 2: Ngày giờ xuất (Sửa lỗi hiển thị ở đây) ===
+            const now = new Date();
+            const exportDateStr = "Export Date: " + now.toLocaleString("vi-VN");
+            const row2 = worksheet.getRow(2);
+            row2.getCell(1).value = exportDateStr; // Gán vào ô đầu tiên của vùng merge (A2)
+            worksheet.mergeCells('A2:D2');
+            row2.alignment = { vertical: 'middle', horizontal: 'left' };
+            row2.font = { italic: true };
+
+            // === Dòng 3–4: trống
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
+            const reportRow = worksheet.addRow(['']);
+            worksheet.mergeCells('A5:D5');
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            // === Dòng 6: trống
+            worksheet.addRow([]);
+
+            // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                // Footer (sau cùng)
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                // Lấy ngày hiện tại
+                const today = new Date();
+
+                // Format YYYYMMDD
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+
+                const dateString = `${yyyy}${mm}${dd}`;
+
+                // Tên file mới
+                let fileName = `ProfileUpdate_${dateString}.xlsx`;
+
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                });
+            });
+        },
+
+    };
+
+    window.openModalProfileUpdate = function () {
+        if (window.pro_up_Module) {
+            window.pro_up_Module.init();
+        }
+    };
+    
+</script>

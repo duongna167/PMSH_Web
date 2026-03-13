@@ -1966,5 +1966,48 @@ namespace Profile.Controllers
         }
 
         #endregion
+
+        #region Profile Update
+        public IActionResult ProfileUpdate()
+        {
+            return PartialView("~/Views/Profile/Options/ProfileUpdate.cshtml");
+
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetProfileUpdate(DateTime date, string confirmationNo, string roomNo, string name)
+        {
+            try
+            {
+                DataTable myData = ProfileBO.GetAllProfileUpdate( date,  confirmationNo,  roomNo,  name);
+
+                var result = (from d in myData.AsEnumerable()
+                              select new
+                              {
+                                  Nationality = !string.IsNullOrEmpty(d["Nationality"].ToString()) ? d["Nationality"] : "",
+                                  RoomNo = !string.IsNullOrEmpty(d["RoomNo"].ToString()) ? d["RoomNo"] : "",
+                                  ConfirmationNo = !string.IsNullOrEmpty(d["ConfirmationNo"].ToString()) ? d["ConfirmationNo"] : "",
+                                  Account = !string.IsNullOrEmpty(d["Account"].ToString()) ? d["Account"] : "",
+                                  DateOfBirth = !string.IsNullOrEmpty(d["DateOfBirth"].ToString()) ? d["DateOfBirth"] : "",
+                                  PassPort = !string.IsNullOrEmpty(d["PassPort"].ToString()) ? d["PassPort"] : "",
+                                  IdentityCard = !string.IsNullOrEmpty(d["IdentityCard"].ToString()) ? d["IdentityCard"] : "",
+                                  Status = !string.IsNullOrEmpty(d["Status"].ToString()) ? d["Status"] : "",
+                                  Address = !string.IsNullOrEmpty(d["Address"].ToString()) ? d["Address"] : "",
+                                  CreateBy = !string.IsNullOrEmpty(d["CreateBy"].ToString()) ? d["CreateBy"] : "",
+                                  CreateDate = !string.IsNullOrEmpty(d["CreateDate"].ToString()) ? d["CreateDate"] : "",
+                                  UpdateBy = !string.IsNullOrEmpty(d["UpdateBy"].ToString()) ? d["UpdateBy"] : "",
+                                  UpDateDate = !string.IsNullOrEmpty(d["UpDateDate"].ToString()) ? d["UpDateDate"] : "",
+                                  Email = !string.IsNullOrEmpty(d["Email"].ToString()) ? d["Email"] : "",
+                                  ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"] : "",
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+
+        #endregion
     }
 }

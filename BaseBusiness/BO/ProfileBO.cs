@@ -5,6 +5,7 @@ using BaseBusiness.util;
 using DevExpress.Xpo.DB.Helpers;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -235,6 +236,38 @@ namespace BaseBusiness.BO
             return (myTable, totalCount);
         }
 
+        public static DataTable GetAllProfileUpdate(DateTime date, string confirmationNo, string roomNo, string name)
+        {
+            DateTime businessDate = TextUtils.GetBusinessDate();
+
+            if(date == null)
+            {
+                date= businessDate;
+            }
+
+            if (string.IsNullOrEmpty(confirmationNo))
+            {
+                confirmationNo = "";
+            }
+            if (string.IsNullOrEmpty(roomNo))
+            {
+                roomNo = "";
+            }
+            if (string.IsNullOrEmpty(name))
+            {
+                name = "";
+            }
+
+            SqlParameter[] param = new SqlParameter[]
+                         {
+                    new SqlParameter("@Date", date),
+                    new SqlParameter("@ConfirmationNo", confirmationNo),
+                    new SqlParameter("@RoomNo", roomNo),
+                    new SqlParameter("@Name", name)
+            };
+            DataTable myTable = DataTableHelper.getTableData("spProfileUpdateDateSearch", param);
+            return myTable;
+        }
 
 
         public static List<ProfileModel> GetListProfileByBOD(DateTime fromDate, DateTime toDate)

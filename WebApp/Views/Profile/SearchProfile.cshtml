@@ -145,9 +145,9 @@
             </div>
             <div class="modal-body">
                 <div class="py-2">
-                    <button class="mui-button mui-button-new" onclick="AttachAccompanying();">Attach</button>
-                    <button class="mui-button mui-button-new" onclick="detach()">Detach</button>
-                    <button class="mui-button mui-button-new" onclick="openModalViewProfile()">Profile</button>
+                    <button class="mui-button mui-button-new">Attach</button>
+                    <button class="mui-button mui-button-new">Detach</button>
+                    <button class="mui-button mui-button-new">Profile</button>
                     <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                 </div>
                 <div class="mui-card mt-2">
@@ -172,7 +172,6 @@
         init: function (callback) {
             this.selectedCallback = callback;
         
-            this.bindEvents();
             this.initDOMEvents();
             
             this.loadInitialData();
@@ -192,6 +191,9 @@
             $("#pro_search_btnFuture").off("click").on("click", () => self.openFutureModal());
             $("#pro_search_btnMembership").off("click").on("click", () => self.openMembershipModal());
             $("#pro_search_btnNegRate").off("click").on("click", () => self.openRateCodeNegotiatedModal());
+            $("#pro_search_btnProfileUpdate").off("click").on("click", () => self.openProfileUpdateModal());
+            $("#pro_search_btnProfileUpdate").off("click").on("click", () => self.openProfileUpdateModal());
+            $("#pro_search_btnMerge").off("click").on("click", () => self.handleMergeProfile());
 
             $("#pro_search_txtType").on("change", function () {
                 self.getAllProfiles();
@@ -231,7 +233,7 @@
                         break;
 
                     default:
-                        showToast("Warning","Please choose profile type (View by)",false);
+                        showToast("Warning","Chooise view by profile type (Not view all)",false);
                 }
             });
 
@@ -293,11 +295,6 @@
                 }
             });
 
-        },
-
-        bindEvents: function () {
-            const self = this;
-            
         },
 
         loadInitialData: function() {
@@ -458,7 +455,6 @@
                 height: "100%",
                 allowColumnResizing: true,
                 columnResizingMode: "widget",
-                selection: { mode: "single" },
                 hoverStateEnabled: true,
                 paging: { pageSize: 20 },
                 pager: {
@@ -475,15 +471,26 @@
                 loadPanel: {
                     enabled: false
                 },
-                onRowClick: function (e) {
-                    self.profileID = e.data.id || e.data.ID;
-                    self.profileType = e.data.type !== undefined ? e.data.type : e.data.Type;
-                    self.profileName = e.data.account || e.data.Account;
-
-                    console.log("Selected Profile:", self.profileID, "Type:", self.profileType);
+                selection: {
+                    mode: "multiple",
+                    showCheckBoxesMode: "always",
+                    selectAllMode: "page"
+                },
+                onSelectionChanged: function (e) {
+                    const selectedRows = e.selectedRowsData;
+                    if (selectedRows.length > 0) {
+                        const lastSelected = selectedRows[selectedRows.length - 1];
+                        self.profileID = lastSelected.id || lastSelected.ID;
+                        self.profileType = lastSelected.type !== undefined ? lastSelected.type : lastSelected.Type;
+                        self.profileName = lastSelected.account || lastSelected.Account;
+                        console.log("Selected Profile:", self.profileID, "Type:", self.profileType);
+                    } else {
+                        self.profileID = 0;
+                        self.profileType = 0;
+                        self.profileName = "";
+                    }
                 },
                 onRowDblClick: function(e) {
-                    // Thực thi callback trả dữ liệu về modal gọi nó nếu có
                     if (self.selectedCallback && typeof self.selectedCallback === "function") {
                         self.selectedCallback(e.data);
                         const modalEl = document.getElementById('pro_search_mainModal');
@@ -508,7 +515,6 @@
             $('#pro_search_modalOption').modal('show');
         },
 
-        // Hàm History (Prefix)
         GetProfileHistory: function () {
             const self = this;
             $.ajax({
@@ -652,6 +658,21 @@
             });
         },
 
+        openProfileUpdateModal: function () {
+            const self = this;
+
+            // if (!self.profileID || self.profileID <= 0) {
+            //     showToast("Warning", "Please select a profile first", false);
+            //     return;
+            // }
+
+            ModalManager.load('/Profile/ProfileUpdate', 'modalProfileUpdate', function() {
+                waitForFunction("openModalProfileUpdate", () => {
+                    window.openModalProfileUpdate();
+                });
+            });
+        },
+
         initializeDataGridHistory: function (data) {
             const columnWidth = 150;
 
@@ -714,7 +735,27 @@
             });
         },
 
+        handleMergeProfile: function () {
+            const selectedIDs = this.getSelectedProfileIDs();
 
+            if (selectedIDs.length < 2) {
+                showToast("Warning", "Please select at least 2 profiles to merge.", false);
+                return;
+            }
+
+            if (confirm(`Are you sure you want to merge profile to original profiles?`)) {
+                console.log("Danh sách ID gửi đi merge:", selectedIDs);
+                // Gọi AJAX đến Backend xử lý merge tại đây
+                /*
+                $.ajax({
+                    url: '/Profile/MergeProfiles',
+                    type: 'POST',
+                    data: { ids: selectedIDs },
+                    success: function(res) { ... }
+                });
+                */
+            }
+        },
     };
 
 
