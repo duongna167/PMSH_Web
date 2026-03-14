@@ -2009,5 +2009,150 @@ namespace Profile.Controllers
         }
 
         #endregion
+
+        #region Profile merge
+        public IActionResult MergeProfile()
+        {
+            return PartialView("~/Views/Profile/Options/MergeProfile.cshtml");
+
+        }
+
+        [HttpGet]
+        public IActionResult GetMergeData(int sourceId, int destId)
+        {
+            try
+            {
+                // Sử dụng TextUtils.Select để lấy dữ liệu trực tiếp từ SQL cho chắc chắn
+                DataTable dtSource = TextUtils.Select($"SELECT * FROM Profile WHERE ID = {sourceId}");
+                DataTable dtDest = TextUtils.Select($"SELECT * FROM Profile WHERE ID = {destId}");
+
+                if (dtSource.Rows.Count == 0 || dtDest.Rows.Count == 0)
+                {
+                    return Ok(new { source = new { }, dest = new { }, message = "Profile not found" });
+                }
+
+                var source = RowToDictionary(dtSource.Rows[0]);
+                var dest = RowToDictionary(dtDest.Rows[0]);
+
+                return Ok(new { source, dest });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // Hàm bổ trợ để convert DataRow sang Dictionary (Tránh lỗi trả về object rỗng)
+        private Dictionary<string, object> RowToDictionary(DataRow row)
+        {
+            var dict = new Dictionary<string, object>();
+            foreach (DataColumn col in row.Table.Columns)
+            {
+                dict[col.ColumnName.ToLower()] = row[col];
+            }
+            return dict;
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ExecuteMerge([FromBody] MergeRequest request)
+        {
+            if (request.SourceID == request.DestID)
+                return Ok(new { success = false, message = "Source Profile and Destination Profile must be different." });
+
+            try
+            {
+                // Kiểm tra nghiệp vụ: Khách đã check-out (Status = 2) không được merge nếu còn Folio
+                string checkFolioSql = $@"SELECT COUNT(*) FROM Reservation WITH (NOLOCK) 
+                                 WHERE (ProfileIndividualID = {request.SourceID} 
+                                    OR ProfileAgentID = {request.SourceID} 
+                                    OR ProfileCompanyID = {request.SourceID} 
+                                    OR ProfileSourceID = {request.SourceID}) 
+                                 AND Status = 2";
+
+                int folioCount = TextUtils.ExecuteScalarInt(checkFolioSql);
+                if (folioCount > 0)
+                {
+                    return Ok(new { success = false, message = "Guest checked out cannot be merged. Please choose a profile with no existing folios to merge." });
+                }
+
+                // Lấy thông tin 2 Profile để xử lý ghi đè thông tin (Override Fields)
+                var sourcePro = (ProfileModel)ProfileBO.Instance.FindByPrimaryKey(request.SourceID);
+                var destPro = (ProfileModel)ProfileBO.Instance.FindByPrimaryKey(request.DestID);
+
+                if (sourcePro == null || destPro == null)
+                    return Ok(new { success = false, message = "Profile not found." });
+
+                // Xử lý ghi đè các trường thông tin được người dùng tích chọn "X"
+                foreach (var field in request.OverrideFields)
+                {
+                    var property = typeof(ProfileModel).GetProperty(field);
+                    if (property != null && property.CanWrite)
+                    {
+                        var sourceValue = property.GetValue(sourcePro);
+                        property.SetValue(destPro, sourceValue);
+                    }
+                }
+
+                // Cập nhật thông tin Profile Destination (Trường thông tin mới + User/Date update)
+                destPro.UserUpdateID = request.UserUpdateID;
+                destPro.UpdateDate = TextUtils.GetSystemDate();
+                ProfileBO.Instance.Update(destPro);
+
+                // Cập nhật thống kê Return Guest & Stay No (Dựa trên Region 2 của Winform)
+                string stayCountSql = $@"SELECT COUNT(ID) FROM Reservation WITH (NOLOCK) 
+                                WHERE (ProfileIndividualID = {request.DestID} OR ProfileIndividualID = {request.SourceID}) 
+                                AND ReservationNo > 0 AND Status IN (1,2,6)";
+                int totalStays = TextUtils.ExecuteScalarInt(stayCountSql);
+
+                // Cập nhật lại số lần quay lại vào bảng Profile
+                TextUtils.ExcuteSQL($@"UPDATE Profile SET ReturnGuest = {totalStays - 1}, 
+                             StayNo = {totalStays} WHERE ID = {request.DestID}");
+
+                // Cập nhật tất cả các bảng liên quan (Chuyển ID từ Source sang Dest)
+                // Cập nhật Reservation dựa trên loại Profile
+                // (Type 0: Individual, 1: Agent, 2: Company, 3: Source, 4:Group, 5:Contact)
+                string resvColumn = request.Type switch
+                {
+                    0 => "ProfileIndividualID",
+                    1 => "ProfileAgentID",
+                    2 => "ProfileCompanyID",
+                    3 => "ProfileSourceID",
+                    //4 => "ProfileGroupID",
+                    //5 => "ProfileContactID",
+                    _ => "ProfileIndividualID"
+                };
+
+                // Danh sách các bảng cần update (Region 3 trong Winform)
+                string[] updateQueries = new string[] {
+                    $"UPDATE Reservation SET {resvColumn} = {request.DestID} WHERE {resvColumn} = {request.SourceID}",
+                    $"UPDATE ARAccountReceivable SET ProfileID = {request.DestID} WHERE ProfileID = {request.SourceID}",
+                    $"UPDATE BusinessBlock SET DestinationRoomInventoryID = {request.DestID} WHERE DestinationRoomInventoryID = {request.SourceID}",
+                    $"UPDATE Folio SET ProfileID = {request.DestID}, AccountName = N'{destPro.Account.Replace("'", "''")}' WHERE ProfileID = {request.SourceID}",
+                    $"UPDATE ReservationAccompany SET ProfileIndividualID = {request.DestID} WHERE ProfileIndividualID = {request.SourceID}",
+                    $"UPDATE ReservationGroup SET ProfileContactID = {request.DestID} WHERE ProfileContactID = {request.SourceID}",
+                    $"UPDATE ReservationTraces SET ProfileID = {request.DestID} WHERE ProfileID = {request.SourceID}",
+                    $"UPDATE Routing SET ProfileID = {request.DestID}, AccountName = N'{destPro.Account.Replace("'", "''")}' WHERE ProfileID = {request.SourceID}",
+                    $"UPDATE RoutingPM SET ProfileGroupID = {request.DestID} WHERE ProfileGroupID = {request.SourceID}",
+                    $"UPDATE WakeUpCall SET ProfileGroupID = {request.DestID} WHERE ProfileGroupID = {request.SourceID}"
+                };
+
+                foreach (var sql in updateQueries)
+                {
+                    TextUtils.ExcuteSQL(sql);
+                }
+
+                // Xóa Profile cũ và ghi Activity Log
+                ProfileBO.Instance.Delete(request.SourceID);
+                TextUtils.InsertActivityLog("Profile", request.DestID, "Merge", sourcePro.Account, destPro.Account, "Merge Profile via Web");
+
+                return Ok(new { success = true, message = "Merge profiles completed successfully." });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new { success = false, message = "Error during merge: " + ex.Message });
+            }
+        }
+
+        #endregion
     }
 }

@@ -193,7 +193,7 @@
             $("#pro_search_btnNegRate").off("click").on("click", () => self.openRateCodeNegotiatedModal());
             $("#pro_search_btnProfileUpdate").off("click").on("click", () => self.openProfileUpdateModal());
             $("#pro_search_btnProfileUpdate").off("click").on("click", () => self.openProfileUpdateModal());
-            $("#pro_search_btnMerge").off("click").on("click", () => self.handleMergeProfile());
+            $("#pro_search_btnMerge").off("click").on("click", () => self.openConfirmMerge());
 
             $("#pro_search_txtType").on("change", function () {
                 self.getAllProfiles();
@@ -736,12 +736,23 @@
             });
         },
 
-        handleMergeProfile: function () {
-            
+        openConfirmMerge: function () {
+            const selectedRows = pro_search_Module.gridInstance.getSelectedRowsData();
 
             if ($("#pro_search_txtType").val() == "") {
                 showToast("Warning","Chooise view by profile type (Not view all) to merge, please!",false);
             }
+
+            if (selectedRows.length !== 2) {
+                showToast("Warning", "Please select exactly 2 profiles to merge", false);
+                return;
+            }
+
+            ModalManager.load('/Profile/MergeProfile', 'modalMergeProfile', function() {
+                waitForFunction("openModalMerge", () => {
+                    window.openModalMerge(selectedRows[0].id, selectedRows[1].id, selectedRows[0].type);
+                });
+            });
         },
     };
 

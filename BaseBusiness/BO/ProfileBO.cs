@@ -269,7 +269,6 @@ namespace BaseBusiness.BO
             return myTable;
         }
 
-
         public static List<ProfileModel> GetListProfileByBOD(DateTime fromDate, DateTime toDate)
         {
             // Định dạng ngày thành YYYY-MM-DD

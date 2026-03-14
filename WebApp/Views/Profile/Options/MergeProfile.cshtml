@@ -1,0 +1,227 @@
+<div class="modal fade" id="modalMergeProfile" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"> Profile Merge</h5>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <div class="py-2">
+                        <button type="button" class="mui-button mui-button-save" id="pro_merge_btnMerge">
+                             Merge
+                        </button>
+                        <button type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="mui-button mui-button-close" id="pro_merge_btnSwap">
+                            Swap
+                        </button>
+                    </div>
+                   
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 border-end">
+                        <div class="alert alert-warning p-2 text-center"><b>Profile to Merge (Delete)</b></div>
+                        <div id="gridMergeSource"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="alert alert-success p-2 text-center"><b>Original Profile (Keep)</b></div>
+                        <div id="gridMergeDest"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var pro_merge_Module = {
+        sourceID: 0,
+        destID: 0,
+        profileType: 0,
+
+        lookups: {
+            titles: [],
+            languages: [],
+            nationalities: [],
+            countries: [],
+            vips: []
+        },
+
+        init: function(sourceId, destId, type) {
+            this.sourceID = sourceId;
+            this.destID = destId;
+            this.profileType = type;
+
+            this.loadAllLookups().then(() => {
+                this.loadData();
+                this.initDOMEvents();
+            });
+        },
+
+        loadAllLookups: function() {
+            return Promise.all([
+                $.get('/Profile/GetAllTitle'),
+                $.get('/Profile/GetAllLanguage'),
+                $.get('/Profile/GetAllNationality'),
+                $.get('/Profile/GetAllCountry'),
+                $.get('/Profile/GetAllVIP')
+            ]).then(([titles, languages, nats, countries, vips]) => {
+                this.lookups.titles = titles;
+                this.lookups.languages = languages;
+                this.lookups.nationalities = nats;
+                this.lookups.countries = countries;
+                this.lookups.vips = vips;
+            });
+        },
+
+        initDOMEvents: function () {
+            const self = this;
+            $("#pro_merge_btnMerge").off("click").on("click", () => self.executeMerge());
+            $("#pro_merge_btnSwap").off("click").on("click", () => self.swapProfiles());
+        },
+
+        // Hàm hoán đổi vị trí Original và Delete
+        swapProfiles: function() {
+            let temp = this.sourceID;
+            this.sourceID = this.destID;
+            this.destID = temp;
+            this.loadData();
+        },
+
+        loadData: function() {
+            $.get(`/Profile/GetMergeData?sourceId=${this.sourceID}&destId=${this.destID}`, (res) => {
+                this.renderGrids(res.source, res.dest);
+            });
+        },
+
+        renderGrids: function(sourceData, destData) {
+            // Danh sách các field cần so sánh tương đương Winform
+            const fields = [
+                { key: 'account', label: 'Name' },
+                { key: 'titleID', label: 'Title', lookupSource: self.lookups.titles },
+                { key: 'address', label: 'Address' },
+                { key: 'languageID', label: 'Language',lookupSource: self.lookups.languages },
+                { key: 'nationalityID', label: 'Nationality',lookupSource: self.lookups.nationalities },
+                { key: 'city', label: 'City' },
+                { key: 'countryID', label: 'Country',lookupSource: self.lookups.countries },
+                { key: 'memberType', label: 'Member Type' },
+                { key: 'passPort', label: 'Passport' },
+                { key: 'identityCard', label: 'Identity Card' },
+                { key: 'dateOfBirth', label: 'Date of Birth' },
+                { key: 'telephone', label: 'Telephone' },
+                { key: 'fax', label: 'Fax' },
+                { key: 'email', label: 'Email' },
+                { key: 'website', label: 'Website' },
+                { key: 'vipID', label: 'VIP',lookupSource: self.lookups.vips },
+                { key: 'lastRoom', label: 'LastRoom' },
+                { key: 'returnGuestOld', label: 'Return' },
+                { key: 'company', label: 'Company' },
+                { key: 'taxCode', label: 'Tax Code' },
+                { key: 'businessTitle', label: 'Business Address' }
+            ];
+
+            const columnsConfig = (isSource) => [
+                {
+                    dataField: "selected",
+                    caption: "X",
+                    dataType: "boolean",
+                    width: 40,
+                    visible: isSource
+                },
+                {
+                    dataField: "label",
+                    caption: "Field",
+                    width: 130,
+                    allowEditing: false
+                },
+                {
+                    dataField: "value",
+                    caption: isSource ? "Data" : "Original Data",
+                    // Xử lý hiển thị Lookup động
+                    calculateDisplayValue: function(rowData) {
+                        if (rowData.lookupSource && rowData.value) {
+                            const item = rowData.lookupSource.find(x => (x.id || x.ID) == rowData.value);
+                            return item ? (item.code || item.Code || item.name || item.Name) : rowData.value;
+                        }
+                        return rowData.value;
+                    },
+                    // Format ngày tháng nếu là Date
+                    customizeText: function(cellInfo) {
+                        if (cellInfo.value && fields.find(f => f.label === cellInfo.row.data.label)?.isDate) {
+                            return moment(cellInfo.value).format('DD/MM/YYYY');
+                        }
+                        return cellInfo.valueText;
+                    }
+                }
+            ];
+
+            $("#gridMergeSource").dxDataGrid({
+                dataSource: fields.map(f => ({ ...f, value: sourceData[f.key], selected: false })),
+                columns: columnsConfig(true),
+                editing: { mode: "cell", allowUpdating: true },
+                height: 450,
+                showBorders: true
+            });
+
+            $("#gridMergeDest").dxDataGrid({
+                dataSource: fields.map(f => ({ ...f, value: destData[f.key] })),
+                columns: columnsConfig(false),
+                height: 450,
+                showBorders: true
+            });
+        },
+
+        executeMerge: function() {
+            const self = this;
+
+            const loginUser = parseInt(localStorage.getItem("userID")) || 0;
+
+            // Lấy danh sách field được tích chọn (Cột X)
+            const gridInstance = $("#gridMergeSource").dxDataGrid("instance");
+            const items = gridInstance.getDataSource().items();
+            const selectedFields = items.filter(i => i.selected).map(i => i.key);
+
+            Swal.fire({
+                title: 'Confirm Merge',
+                text: "Are you sure you want to merge profile to original profile? This action cannot be undone!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Yes, merge it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const payload = {
+                        SourceID: self.sourceID,
+                        DestID: self.destID,
+                        OverrideFields: selectedFields,
+                        Type: self.profileType,
+                        UserUpdateID: loginUser
+                    };
+
+                    $.ajax({
+                        url: '/Profile/ExecuteMerge',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(payload),
+                        success: (res) => {
+                            if(res.success) {
+                                showToast("Success", "Profiles merged successfully", true);
+                                $('#modalMergeProfile').modal('hide');
+                                if(pro_search_Module) pro_search_Module.getAllProfiles();
+                            } else {
+                                showToast("Error", res.message, false);
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+    };
+
+    window.openModalMerge = function(sourceId, destId, type) {
+        if (pro_merge_Module) {
+            pro_merge_Module.init(sourceId, destId, type);
+        }
+    };
+</script>
