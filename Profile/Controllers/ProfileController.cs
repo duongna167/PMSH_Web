@@ -2013,6 +2013,8 @@ namespace Profile.Controllers
         #region Profile merge
         public IActionResult MergeProfile()
         {
+            //List<ShortcutKeyModel> listsc = PropertyUtils.ConvertToList<ShortcutKeyModel>(ShortcutKeyBO.Instance.FindAll());
+            //ViewBag.ShortcutKeyList = listsc;
             return PartialView("~/Views/Profile/Options/MergeProfile.cshtml");
 
         }
@@ -2022,7 +2024,6 @@ namespace Profile.Controllers
         {
             try
             {
-                // Sử dụng TextUtils.Select để lấy dữ liệu trực tiếp từ SQL cho chắc chắn
                 DataTable dtSource = TextUtils.Select($"SELECT * FROM Profile WHERE ID = {sourceId}");
                 DataTable dtDest = TextUtils.Select($"SELECT * FROM Profile WHERE ID = {destId}");
 
