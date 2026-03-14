@@ -1,3 +1,26 @@
+<style>
+    /* Làm cho modal chiếm toàn bộ chiều cao màn hình */
+    #modalMergeProfile .modal-dialog {
+        max-width: 95% !important;
+        margin: 10px auto;
+    }
+
+    #modalMergeProfile .modal-content {
+        height: calc(100vh - 40px);
+    }
+
+    #modalMergeProfile .modal-body {
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+    /* Container cho Grid để có scroll riêng */
+    .grid-merge-wrapper {
+        flex-grow: 1;
+        height: calc(100vh - 250px);
+        min-height: 400px;
+    }
+</style>
 <div class="modal fade" id="modalMergeProfile" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content modal-full-height">
@@ -21,11 +44,11 @@
                 <div class="row">
                     <div class="col-md-6 border-end">
                         <div class="alert alert-warning p-2 text-center"><b>Profile to Merge (Delete)</b></div>
-                        <div id="gridMergeSource"></div>
+                        <div id="gridMergeSource" class="gridContainer"></div>
                     </div>
                     <div class="col-md-6">
                         <div class="alert alert-success p-2 text-center"><b>Original Profile (Keep)</b></div>
-                        <div id="gridMergeDest"></div>
+                        <div id="gridMergeDest" class="gridContainer"></div>
                     </div>
                 </div>
             </div>
@@ -146,11 +169,27 @@
                         }
                         return rowData.value;
                     },
-                    // Format ngày tháng nếu là Date
                     customizeText: function(cellInfo) {
-                        if (cellInfo.value && fields.find(f => f.label === cellInfo.row.data.label)?.isDate) {
-                            return moment(cellInfo.value).format('DD/MM/YYYY');
+                        if (!cellInfo || !cellInfo.row || !cellInfo.row.data) {
+                            return cellInfo.valueText;
                         }
+
+                        const currentLabel = cellInfo.row.data.label;
+                        const fieldCfg = fields.find(f => f.label === currentLabel);
+
+                        if (cellInfo.value && fieldCfg?.isDate) {
+                            try {
+                                if (typeof moment !== 'undefined') {
+                                    return moment(cellInfo.value).format('DD/MM/YYYY');
+                                } else {
+                                    const date = new Date(cellInfo.value);
+                                    return date.toLocaleDateString('vi-VN'); 
+                                }
+                            } catch (e) {
+                                return cellInfo.valueText;
+                            }
+                        }
+
                         return cellInfo.valueText;
                     }
                 }
