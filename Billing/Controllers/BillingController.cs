@@ -2473,144 +2473,198 @@ namespace Billing.Controllers
         [HttpPost]
         public IActionResult PostingSave([FromBody] List<FolioDetailModel> models)
         {
+            ProcessTransactions pt = new ProcessTransactions();
             try
             {
-                if (models == null || models.Count == 0)
-                {
-                    return BadRequest("No data received.");
-                }
+                if (models == null || models.Count == 0) return BadRequest("No data received.");
+
+                pt.OpenConnection();
+                pt.BeginTransaction();
 
                 int nextInvoiceNo = FolioDetailBO.GetTopInvoiceNo() + 1;
                 string batchInvoiceNo = nextInvoiceNo.ToString();
 
-                int nextTransNo = FolioDetailBO.GetTopTransactioNo(); 
-                string baseTransactionNo = nextTransNo.ToString();
-
+                int nextTransNo = FolioDetailBO.GetTopTransactioNo();
                 int count = 0;
+                DateTime businessDate = TextUtils.GetBusinessDate();
+
+                bool isInvoicePosting = models.Any(m => m.PostType == 3);
+
+                if (isInvoicePosting)
+                {
+                    decimal totalAmount = models.Sum(m => m.Amount);
+                    decimal totalAmountBeforeTax = models.Sum(m => m.AmountBeforeTax);
+                    var firstItem = models.First();
+
+                    // LẤY TÊN INVOICE TỪ TRƯỜNG "Property" 
+                    string invoiceName = !string.IsNullOrEmpty(firstItem.Property) ? firstItem.Property : "Invoicing Package";
+
+                    string masterTransCode = "8449";
+                    int mGroupId = 0, mSubgroupId = 0;
+                    string mGroupCode = "", mSubgroupCode = "";
+
+                    var masterTransList = TransactionsBO.Instance.FindByAttribute("Code", masterTransCode);
+                    if (masterTransList != null && masterTransList.Count > 0)
+                    {
+                        var tInfo = (TransactionsModel)masterTransList[0];
+                        mGroupId = tInfo.TransactionGroupID;
+                        mGroupCode = tInfo.GroupCode;
+                        mSubgroupId = tInfo.TransactionSubGroupID;
+                        mSubgroupCode = tInfo.SubgroupCode;
+                    }
+
+                    // TẠO DÒNG MASTER INVOICE
+                    FolioDetailModel masterLine = new FolioDetailModel
+                    {
+                        UserID = firstItem.UserID,
+                        UserName = firstItem.UserName,
+                        ShiftID = firstItem.ShiftID,
+                        CashierNo = firstItem.CashierNo,
+                        FolioID = firstItem.FolioID,
+                        OriginFolioID = firstItem.OriginFolioID,
+                        ReservationID = firstItem.ReservationID,
+                        OriginReservationID = firstItem.OriginReservationID,
+                        RoomID = firstItem.RoomID,
+                        RoomType = firstItem.RoomType,
+                        RoomTypeID = firstItem.RoomTypeID,
+
+                        CreateDate = DateTime.Now,
+                        UpdateDate = DateTime.Now,
+                        TransactionDate = businessDate,
+                        InvoiceNo = batchInvoiceNo,
+                        TransactionNo = (nextTransNo + count).ToString(),
+
+                        TransactionCode = masterTransCode,
+                        Description = invoiceName,
+                        TransactionGroupID = mGroupId,
+                        GroupCode = mGroupCode,
+                        TransactionSubgroupID = mSubgroupId,
+                        SubgroupCode = mSubgroupCode,
+
+                        Reference = firstItem.Reference,
+                        Supplement = firstItem.Supplement,
+                        CheckNo = firstItem.CheckNo,
+
+                        Quantity = 1,
+                        Price = totalAmount,
+                        Amount = totalAmount,
+                        AmountMaster = totalAmount,
+                        AmountGross = totalAmount,
+                        AmountMasterGross = totalAmount,
+                        AmountBeforeTax = totalAmountBeforeTax,
+                        AmountMasterBeforeTax = totalAmountBeforeTax,
+                        CurrencyID = firstItem.CurrencyID,
+                        CurrencyMaster = firstItem.CurrencyMaster,
+
+                        RowState = 1, // MASTER HIỂN THỊ TRÊN BILLING
+                        PostType = 2,
+                        Status = false,
+                        ProfitCenterID = 2,
+                        ProfitCenterCode = "0",
+                        IsTransfer = false,
+                        IsPostedAR = false,
+                        Property = "",
+                        OriginARNo = ""
+                    };
+                    FolioDetailBO.Instance.Insert(masterLine);
+
+                    // History cho Master Line
+                    PostingHistoryModel phMaster = new PostingHistoryModel
+                    {
+                        ActionType = 0,
+                        ActionText = $"[POST_INV_MASTER] - {masterLine.TransactionCode} - {masterLine.Description}",
+                        ActionDate = DateTime.Now,
+                        ActionUser = masterLine.UserName,
+                        Amount = masterLine.Amount,
+                        InvoiceNo = masterLine.InvoiceNo,
+                        Code = masterLine.TransactionCode,
+                        Description = masterLine.Description,
+                        TransactionDate = masterLine.TransactionDate,
+                        Machine = Environment.MachineName,
+                        Action_FolioID = masterLine.FolioID,
+                        AfterAction_FolioID = masterLine.FolioID,
+                        Property = "PMS"
+                    };
+                    PostingHistoryBO.Instance.Insert(phMaster);
+
+                    count++;
+                }
+
+                //CÁC DÒNG CHI TIẾT (Sub-details)
                 foreach (var item in models)
                 {
-                    #region calculate amount after any discounts or express.
-                    decimal baseAmount = item.Quantity * item.Price;
-                    decimal finalAmount = baseAmount;
-
-                    if (!string.IsNullOrEmpty(item.Reference))
-                    {
-                        decimal originalAmount = item.Amount; 
-                        decimal percent = 0;
-                        bool isDiscount = false;
-                        bool isExpress = false;
-
-                        // Regex tìm chuỗi "Discount Service : 10%" hoặc "Express Service : 50%"
-                        var match = Regex.Match(item.Reference, @"\b(Discount|Express)\s+Service\s*:\s*(\d+(\.\d{1,2})?)%", RegexOptions.IgnoreCase);
-
-                        if (match.Success)
-                        {
-                            string type = match.Groups[1].Value; 
-                            string pctStr = match.Groups[2].Value; 
-
-                            if (decimal.TryParse(
-                                pctStr,
-                                NumberStyles.Any,
-                                CultureInfo.InvariantCulture,
-                                out percent))
-                            {
-                                isDiscount = type.Equals("Discount", StringComparison.OrdinalIgnoreCase);
-                                isExpress  = type.Equals("Express", StringComparison.OrdinalIgnoreCase);
-                            }
-                        }
-
-                        if (percent > 0)
-                        {
-                            decimal adj = baseAmount * (percent / 100m);
-
-                            if (isDiscount) finalAmount -= adj;
-                            if (isExpress) finalAmount += adj;
-                        } else
-                        {
-                            finalAmount = baseAmount;
-                        }
-                    }
-                    item.Amount = item.AmountMaster = item.AmountGross = item.AmountMasterGross = finalAmount;
-                    #endregion
-
                     var transList = TransactionsBO.Instance.FindByAttribute("Code", item.TransactionCode);
-
                     if (transList != null && transList.Count > 0)
                     {
                         var transInfo = (TransactionsModel)transList[0];
-
-                        if (transInfo != null)
-                        {
-                            item.TransactionGroupID = transInfo.TransactionGroupID;
-                            item.GroupCode = transInfo.GroupCode;
-
-                            item.TransactionSubgroupID = transInfo.TransactionSubGroupID;
-                            item.SubgroupCode = transInfo.SubgroupCode;
-
-                        }
+                        item.TransactionGroupID = transInfo.TransactionGroupID;
+                        item.GroupCode = transInfo.GroupCode;
+                        item.TransactionSubgroupID = transInfo.TransactionSubGroupID;
+                        item.SubgroupCode = transInfo.SubgroupCode;
                     }
 
                     var roomTypeList = RoomTypeBO.Instance.FindByAttribute("Code", item.RoomType);
-
                     if (roomTypeList != null && roomTypeList.Count > 0)
                     {
                         var roomTypeInfo = (RoomTypeModel)roomTypeList[0];
-                        if (roomTypeInfo != null)
-                        {
-                            item.RoomTypeID = roomTypeInfo.ID;
-                        }
+                        item.RoomTypeID = roomTypeInfo.ID;
                     }
 
-                    #region Lưu transaction vào folio detail
-                    item.CreateDate = DateTime.Now;
-                    item.UpdateDate = DateTime.Now;
-                    item.TransactionDate = DateTime.Now.Date;
-
-                    item.InvoiceNo = batchInvoiceNo;
-
-                    item.TransactionNo = (nextTransNo + count).ToString();
+                    item.CreateDate = DateTime.Now; item.UpdateDate = DateTime.Now; item.TransactionDate = businessDate;
+                    item.InvoiceNo = batchInvoiceNo; item.TransactionNo = (nextTransNo + count).ToString();
                     count++;
 
-                    item.Status = false;
-                    item.ProfitCenterID = 2;
-                    item.ProfitCenterCode = "";
-                    item.RowState = 1;
-                    item.IsPostedAR = false;
-                    item.ARTransID = 0;
-                    item.IsTransfer = false;
+                    // TRẢ LẠI PROPERTY RỖNG (XÓA DỮ LIỆU ĐÃ MƯỢN) TRƯỚC KHI INSERT VÀO DB
+                    item.Property = "";
+
+                    item.Status = false; item.ProfitCenterID = 2; item.ProfitCenterCode = "0"; item.OriginARNo = "";
+                    item.RowState = isInvoicePosting ? 2 : 1; // Ẩn Sub-details (RowState = 2) nếu là Package
+                    item.IsPostedAR = false; item.ARTransID = 0; item.IsTransfer = false;
 
                     FolioDetailBO.Instance.Insert(item);
-                    #endregion
 
-                    #region lưu posting history
-
-                    PostingHistoryModel postingHistory = new PostingHistoryModel();
-                    postingHistory.ActionType = 0;
-                    postingHistory.ActionText = $"[POST_GEN] - {item.TransactionCode} - {item.Description}";
-                    postingHistory.ActionDate = DateTime.Now;
-                    postingHistory.ActionUser = item.UserName;
-                    postingHistory.Amount = item.Amount;
-                    postingHistory.InvoiceNo = item.InvoiceNo;
-                    postingHistory.Supplement = "";
-                    postingHistory.Code = item.TransactionCode;
-                    postingHistory.Description = item.Description;
-                    postingHistory.TransactionDate = item.TransactionDate;
-                    postingHistory.ReasonCode = "";
-                    postingHistory.ReasonText = "";
-                    postingHistory.Terminal = "";
-                    postingHistory.Machine = Environment.MachineName;
-                    postingHistory.Action_FolioID = postingHistory.AfterAction_FolioID = item.FolioID;
-                    postingHistory.Property = "PMS";
+                    PostingHistoryModel postingHistory = new PostingHistoryModel
+                    {
+                        ActionType = 0,
+                        ActionText = $"[POST_GEN] - {item.TransactionCode} - {item.Description}",
+                        ActionDate = DateTime.Now,
+                        ActionUser = item.UserName,
+                        Amount = item.Amount,
+                        InvoiceNo = item.InvoiceNo,
+                        Code = item.TransactionCode,
+                        Description = item.Description,
+                        TransactionDate = item.TransactionDate,
+                        Machine = Environment.MachineName,
+                        Action_FolioID = item.FolioID,
+                        AfterAction_FolioID = item.FolioID,
+                        Property = "PMS"
+                    };
                     PostingHistoryBO.Instance.Insert(postingHistory);
-                    #endregion
-
                 }
 
+                // CẬP NHẬT LẠI BALANCE
+                int reservationID = models.First().ReservationID;
+                int folioID = models.First().FolioID;
+                decimal balance = FolioDetailBO.CalculateBalance(reservationID);
+
+                FolioModel currentFolio = (FolioModel)FolioBO.Instance.FindByPrimaryKey(folioID);
+                if (currentFolio != null) { currentFolio.BalanceVND = balance; FolioBO.Instance.Update(currentFolio); }
+
+                ReservationModel res = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(reservationID);
+                if (res != null) { res.BalanceVND = balance; ReservationBO.Instance.Update(res); }
+
+                // COMMIT GIAO DỊCH
+                pt.CommitTransaction();
                 return Ok(new { success = true, message = "Posting successful!", invoiceNo = batchInvoiceNo });
             }
             catch (Exception ex)
             {
+                pt.RollBack();
                 return StatusCode(500, new { success = false, message = ex.Message });
+            }
+            finally
+            {
+                pt.CloseConnection();
             }
         }
         #endregion

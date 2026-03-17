@@ -372,7 +372,6 @@
         let cleanStr = str.toString().replace(/\./g, '').replace(/,/g, '.');
         let result = parseFloat(cleanStr);
         return isNaN(result) ? 0 : result;
-
     }
 
     // --- HELPER: Lấy element trong Tab đang active ---
@@ -1120,36 +1119,27 @@
             var receiptNo = $pane.find('.js-invoice-checkNo').val() || "";
 
             var model = {
-                UserID: loginUser,
-                UserName: loginName,
-                ShiftID: shiftID,
-                CashierNo: loginName,
-                FolioID: selectedFolioID,
-                OriginFolioID: selectedFolioID,
-                ReservationID: idReservation,
-                OriginReservationID: idReservation,
-                RoomType: roomType,
-                ReceiptNo: receiptNo,
-                CheckNo: receiptNo,
-                RoomID: roomID,
+                UserID: loginUser, UserName: loginName, ShiftID: shiftID, CashierNo: loginName,
+                FolioID: selectedFolioID, OriginFolioID: selectedFolioID,
+                ReservationID: idReservation, OriginReservationID: idReservation, RoomType: roomType, RoomID: roomID,
+                ReceiptNo: receiptNo, CheckNo: receiptNo,
 
                 TransactionCode: tCode,
                 Description: $pane.find('.js-trans-desc').val(),
                 ArticleCode: $pane.find('.js-art-code').val(),
 
-                Quantity: qty,
-                Price: price,
-                AmountBeforeTax:parseNumberWithComma( $pane.find('.js-amount-gross').val()),
-                AmountMasterBeforeTax:parseNumberWithComma( $pane.find('.js-amount-gross').val()),
+                Quantity: qty, Price: price,
+                // Thêm các field Amount quan trọng bị thiếu ở JS cũ
+                Amount: amount, AmountMaster: amount,
+                AmountGross: amount, AmountMasterGross: amount,
+                AmountBeforeTax: parseNumberWithComma($pane.find('.js-amount-gross').val()),
+                AmountMasterBeforeTax: parseNumberWithComma($pane.find('.js-amount-gross').val()),
 
-                CurrencyID: $pane.find('.currency-select').val(),
-                CurrencyMaster: $pane.find('.currency-select').val(),
-                Reference: reference,
-                Supplement: supplement,
+                CurrencyID: $pane.find('.currency-select').val(), CurrencyMaster: $pane.find('.currency-select').val(),
+                Reference: reference, Supplement: supplement,
 
-                PostType: 2,
-                RowState: 2,
-                GroupType: 1,
+                PostType: 2, GroupType: 1,
+
                 UserInsertID: loginUser,
                 UserUpdateID: loginUser
 
@@ -1164,7 +1154,6 @@
                 return;
             }
 
-            // Lấy thông tin chung của cả Invoice (Invoice Info Header)
             var $pane = $('#invoice-pane');
             var invCheckNo = $pane.find('.js-invoice-checkNo').val();
             var invDesc = $pane.find('.js-invoice-desc').val();
@@ -1173,42 +1162,35 @@
            
             invoiceList.forEach(function(item) {
                 var model = {
-                    UserID: loginUser,
-                    UserName: loginName,
-                    ShiftID: shiftID,
-                    CashierNo: loginName,
-                    FolioID: selectedFolioID,
-                    OriginFolioID: selectedFolioID,
-                    ReservationID: idReservation,
-                    OriginReservationID: idReservation,
-                    RoomType: roomType,
-                    ReceiptNo: item.checkNo,
-                    CheckNo: item.checkNo,
-                    RoomID: roomID,
+                    UserID: loginUser, UserName: loginName, ShiftID: shiftID, CashierNo: loginName,
+                    FolioID: selectedFolioID, OriginFolioID: selectedFolioID,
+                    ReservationID: idReservation, OriginReservationID: idReservation, RoomType: roomType, RoomID: roomID,
+                    ReceiptNo: item.checkNo, CheckNo: invCheckNo,
 
                     TransactionCode: item.code,
-                    Description: item.description, 
+                    Description: item.description,
                     ArticleCode: item.articleCode,
 
-                    Quantity: item.quantity,
-                    Price: item.price,
-                    AmountBeforeTax: parseNumberWithComma(item.amountBeforeTax),
-                    AmountMasterBeforeTax:parseNumberWithComma( item.amountBeforeTax),
+                    // tên InvoiceDesc xuống Backend
+                    Property: invDesc,
 
-                    CurrencyID: $pane.find('.currency-select').val(),
-                    CurrencyMaster: $pane.find('.currency-select').val(),
+                    Quantity: item.quantity, Price: item.price,
+
+                    Amount: item.amount, AmountMaster: item.amount,
+                    AmountGross: item.amount, AmountMasterGross: item.amount,
+                    AmountBeforeTax: parseNumberWithComma(item.amountBeforeTax),
+                    AmountMasterBeforeTax: parseNumberWithComma(item.amountBeforeTax),
+
+                    CurrencyID: $pane.find('.currency-select').val(), CurrencyMaster: $pane.find('.currency-select').val(),
 
                     Reference: item.reference ? (item.reference + ". " + invRef) : invRef,
+                    Supplement: invSuppl,
 
-                    Supplement: supplement, 
-                    CheckNo: invCheckNo,
+                    PostType: 3, GroupType: 1,
 
-                    PostType: 3,
-                    RowState: 3,
-                    GroupType: 1,
                     UserInsertID: loginUser,
                     UserUpdateID: loginUser
-                };  
+                };
 
                 dataToSend.push(model);
             });
@@ -1342,10 +1324,8 @@
         }
 
         function clearInvoiceList() {
-            if(confirm('Clear all items?')) {
-                invoiceList = [];
-                refreshInvoiceGrid();
-            }
+            invoiceList = [];
+            refreshInvoiceGrid();
         }
 
         function updateFooterTotal() {

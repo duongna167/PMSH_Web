@@ -155,14 +155,18 @@
                     width: 40,
                     visible: isSource,
                     cellTemplate: function (container, options) {
-                            $("<div>")
-                                .dxCheckBox({
-                                    value: options.value == 1 || options.value === true,
-                                    readOnly: true
-                                })
-                                .css("transform", "scale(0.8)")
-                                .appendTo(container);
-                        }
+
+                        $("<div>")
+                            .dxCheckBox({
+                                value: options.data.selected,
+                                onValueChanged: function(e) {
+                                    options.data.selected = e.value;
+                                }
+                            })
+                            .css("transform", "scale(0.8)")
+                            .appendTo(container);
+
+                    }
                 },
                 {
                     dataField: "label",
@@ -194,17 +198,19 @@
                 height: "100%",
                 showBorders: true,
                 paging: { enabled: false }, 
-                editing: {
-                    mode: "cell",
-                    allowUpdating: true,
-                    showDirtyStateIndicator: false
-                },
                 scrolling: { mode: "standard" },
-                onEditorPreparing: function(e) {
-                    if (e.dataField !== "selected") {
-                        e.cancel = true; 
+                onCellClick: function(e) {
+                    if (e.column.dataField === "selected") {
+                        e.data.selected = !e.data.selected;
+                        e.component.refresh();
                     }
+                },
+                onRowClick: function(e) {
+                if (e.rowType === "data") {
+                    e.data.selected = !e.data.selected;
+                    e.component.refresh();
                 }
+            }
             });
 
             $("#gridMergeDest").dxDataGrid({
@@ -228,12 +234,40 @@
             const selectedFields = items.filter(i => i.selected).map(i => i.key);
 
             if (!confirm("Are you sure you want to merge profile to original profile?")) return;
+            const sourceData = {};
+            items.forEach(i => {
+                sourceData[i.key] = i.value;
+            });
+
             const payload = {
                 SourceID: self.sourceID,
                 DestID: self.destID,
-                OverrideFields: selectedFields,
                 Type: self.profileType,
-                UserUpdateID: loginUser
+                UserUpdateID: loginUser,
+                OverrideFields: selectedFields,
+
+                // dữ liệu source profile
+                Account: sourceData.account,
+                TitleID: sourceData.titleid,
+                Address: sourceData.address,
+                LanguageID: sourceData.languageid,
+                NationalityID: sourceData.nationalityid,
+                City: sourceData.city,
+                CountryID: sourceData.countryid,
+                MemberType: sourceData.membertype,
+                Passport: sourceData.passpport,
+                IdentityCard: sourceData.identitycard,
+                DateOfBirth: sourceData.dateofbirth,
+                Telephone: sourceData.telephone,
+                Fax: sourceData.fax,
+                Email: sourceData.email,
+                Website: sourceData.website,
+                VIPID: sourceData.vipid,
+                LastRoom: sourceData.lastroom,
+                ReturnGuestOld: sourceData.returnguestold,
+                Company: sourceData.company,
+                TaxCode: sourceData.taxcode,
+                BusinessTitle: sourceData.businesstitle
             };
             
             $.ajax({
@@ -245,6 +279,7 @@
                     if(res.success) {
                         showToast("Success", "Profiles merged successfully", true);
                         $('#modalMergeProfile').modal('hide');
+                        $('#pro_search_modalOption').modal('hide');
                         
                         if(pro_search_Module) pro_search_Module.getAllProfiles();
                     } else {

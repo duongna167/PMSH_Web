@@ -151,6 +151,7 @@
                                 <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">Transfer to Window</a>
                                 <div class="dropdown-menu" id="listTransferToWindow"></div>
                             </div>
+                            <a href="#" onclick="openModalTransactionDetail();">View Transaction Detail</a>
                             <a href="#" onclick="openModalTransferTransaction();">Transfer Transaction</a>
                             <a href="#" onclick="openModalSelectOption();">Options</a>
                         </div>
@@ -228,7 +229,7 @@
 
     function openBilling0(){ searchFolioDetail(0); }
     function openBilling1(){ searchFolioDetail(1); }
-    function openBilling2(){ searchFolioDetail(0); }
+    function openBilling2(){ searchFolioDetail(2); }
     function searchFolioDetail(type) {
          var $gridElement = $("#gridContainerBilling");
 
@@ -395,6 +396,7 @@
         $('#totalBilling').text(totalCharges.toLocaleString('vi-VN'));
         $('#balanceBillingMaster').text(totalBalance.toLocaleString('vi-VN'));
     }
+        
     function initializeDataGridBilling(data) {
         updateBillingHeaderStats(data);
 
@@ -405,14 +407,18 @@
             dataSource: data,
             keyExpr: "id",
             height: '100%',
+            width: "100%",
             columnAutoWidth: false,
             allowColumnResizing: true,
             columnResizingMode: "widget",
-            columnHidingEnabled: true,
+            wordWrapEnabled: false, 
             scrolling: {
                 mode: "standard",
-                showScrollbar: "always"
+                showScrollbar: "always",
+                scrollByContent: true, 
+                scrollByThumb: true
             },
+
             showRowLines: true,
             rowAlternationEnabled: true,
             hoverStateEnabled: true,
@@ -427,7 +433,7 @@
             columns: [
                 {
                     type: "selection",
-                    width: "3%",
+                    width: 40, 
                     fixed: true,
                     allowResizing: false
                 },
@@ -435,126 +441,77 @@
                 {
                     dataField: 'date',
                     caption: 'Date',
-                    width: "7%",
-                    calculateCellValue: function (rowData) {
-                        if (!rowData.date) return '';
-
-                        const datePart = rowData.date.split(' ')[0];
-                        const parts = datePart.split('/');
-
-                        if (parts.length !== 3) return rowData.date;
-
-                        const day   = parts[0].padStart(2, '0');
-                        const month = parts[1].padStart(2, '0');
-                        const year  = parts[2];
-
-                        return `${day}/${month}/${year}`;
-                    }
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    width: 90 
+                },
+                {
+                    dataField: 'codePrefix',
+                    caption: '...',
+                    width: 40,
+                    alignment: "center"
                 },
                 {
                     dataField: "code",
                     caption: "Code",
-                    width: "5%",
-                    hidingPriority: 4
+                    width: 60
                 },
                 {
                     dataField: "description",
                     caption: "Description",
-                    width: "26%",
-                    cellTemplate: function(container, options) {
-                        $("<div>")
-                            .addClass("text-truncate")
-                            .attr("title", options.value)
-                            .css("font-weight", "600")
-                            .text(options.value)
-                            .appendTo(container);
-                    }
+                    minWidth: 200
                 },
                 {
                     dataField: "invoiceNo",
-                    caption: "Inv.No",
-                    width: "6%"
+                    caption: "Inv#",
+                    width: 80
                 },
                 {
                     dataField: "amount",
                     caption: "Amount",
-                    width: "6%",
+                    width: 100,
                     dataType: "number",
                     format: { type: "fixedPoint", precision: 0 },
-                    hidingPriority: 10
+                    cssClass: "fw-bold text-end" 
                 },
-                { dataField: "supplement", caption: "Supplement", width: "7%" },
-                { dataField: "reference", caption: "Reference", width: "9%" },
-                { dataField: "userName", caption: "User", width: "5%"},
+                { dataField: "currency", caption: "$", width: 50, alignment: "center" },
+                { dataField: "supplement", caption: "Supplement", width: 120 },
+                { dataField: "reference", caption: "Reference", width: 120 },
+                { dataField: "userName", caption: "User", width: 80 },
                 {
+                    dataField: 'time',
                     caption: "Time",
-                    width: "5%",
-                    calculateCellValue: function (rowData) {
-                        if (!rowData.date) return '';
-
-                        const dateStr = rowData.date;
-                        const datePart = dateStr.split(' ')[0];
-                        const timePart = dateStr.split(' ')[1] || '00:00';
-
-                        const dParts = datePart.split('/');
-                        if (dParts.length !== 3) return '';
-
-                        const day   = parseInt(dParts[0], 10);
-                        const month = parseInt(dParts[1], 10) - 1;
-                        const year  = parseInt(dParts[2], 10);
-
-                        const tParts = timePart.split(':');
-                        const hour   = parseInt(tParts[0] || 0, 10);
-                        const minute = parseInt(tParts[1] || 0, 10);
-
-                        const d = new Date(year, month, day, hour, minute);
-
-                        let h = d.getHours();
-                        const m = d.getMinutes().toString().padStart(2, '0');
-                        const ampm = h >= 12 ? 'PM' : 'AM';
-
-                        h = h % 12;
-                        h = h ? h : 12;
-
-                        return `${h}:${m} ${ampm}`;
-                    }
+                    dataType: "date",
+                    format: "HH:mm",
+                    width: 60,
+                    alignment: "center"
                 },
-                {
-                    dataField: "groupCode",
-                    caption: "Group",
-                    width: "5%",
-                    hidingPriority: 0
-                },
-                {
-                    dataField: "subgroupCode",
-                    caption: "Sub",
-                    width: "6%",
-                    hidingPriority: 1
-                },
-                {
-                    dataField: "shiftID",
-                    caption: "Shift",
-                    width: "5%",
-                    hidingPriority: 2
-                },
-                {
-                    dataField: "transactionNo",
-                    caption: "Trn.No",
-                    width: "5%",
-                    hidingPriority: 3
-                }
+                { dataField: "groupCode", caption: "Group", width: 60 },
+                { dataField: "subgroupCode", caption: "Sub", width: 60 },
+                { dataField: "shiftID", caption: "Shift.No", width: 70 },
+                { dataField: "property", caption: "Property", width: 80 },
+                { dataField: "invoiceNo", caption: "Inv.No", width: 80 },
+                { dataField: "transactionNo", caption: "Trn.No", width: 70 }
             ],
             filterRow: { visible: true, applyFilter: "auto" },
             selection: { mode: "multiple", showCheckBoxesMode: "always" },
             onContextMenuPreparing: function(e) {
                 if (e.row && e.row.rowType === "data") {
-                    // Lưu lại thông tin dòng được click để các hàm bên trong menu sử dụng
+                    // Lấy danh sách các key đang được select
+                    var selectedKeys = e.component.getSelectedRowKeys();
+
+                    // LOGIC QUAN TRỌNG:
+                    // Nếu click chuột phải vào dòng chưa được select -> Chọn duy nhất nó (xóa các chọn lựa cũ)
+                    // Nếu click chuột phải vào dòng đã select rồi -> Giữ nguyên để thao tác hàng loạt
+                    if (!selectedKeys.includes(e.row.key)) {
+                        e.component.selectRows([e.row.key], false);
+                    }
+
+                    // Vẫn lưu lại ID của dòng vừa click (cho các thao tác đơn lẻ nếu có)
                     invoiceNoPosting = e.row.data.invoiceNo;
                     folioDetailID = e.row.data.id;
 
-                    // Tự động select dòng đó khi chuột phải (tùy chọn)
-                    e.component.selectRows([e.row.key], false);
-
+                    // Mở context menu
                     const menu = $("#functionMenu");
                     menu.css({
                         display: "block",
@@ -562,21 +519,26 @@
                         top: e.event.pageY + "px"
                     });
 
-                    // Ngăn chặn menu mặc định của trình duyệt
                     e.event.preventDefault();
                 }
             },
-            // Bạn có thể bỏ đoạn code hiển thị menu trong onRowClick cũ để tránh xung đột
             onRowClick: function(e) {
                 if (e.rowType === "data") {
-                    var component = e.component;
-                    var key = e.key;
-                    if (component.isRowSelected(key)) {
-                        component.deselectRows([key]);
-                    } else {
-                        component.selectRows([key], true);
+                    $("#functionMenu").hide(); // Ẩn menu khi click trái
+
+                    // Tránh xung đột nếu user click thẳng vào ô Checkbox mặc định của DevExtreme
+                    var isCheckboxClicked = $(e.event.target).closest('.dx-command-select').length > 0;
+
+                    // Nếu KHÔNG click vào checkbox, ta mới code logic toggle thủ công để tick chọn khi click vào body của dòng
+                    if (!isCheckboxClicked) {
+                        var component = e.component;
+                        var key = e.key;
+                        if (component.isRowSelected(key)) {
+                            component.deselectRows([key]);
+                        } else {
+                            component.selectRows([key], true); // true: Giữ nguyên các row đã chọn khác
+                        }
                     }
-                    $("#functionMenu").hide(); // Ẩn menu khi click trái bình thường
                 }
             },
             onContentReady: function(e) {
@@ -593,14 +555,12 @@
                     selectedRows.forEach(function(item) {
                         totalSelected += (parseFloat(item.amount) || 0);
                     });
-                }
-
-                if (selectedRows.length === 0) {
-                    $("#functionMenu").hide(); 
+                } else {
+                    $("#functionMenu").hide(); // Ẩn menu nếu bỏ chọn hết
                 }
 
                 $('#totalBillingMaster').text(totalSelected.toLocaleString('vi-VN'));
-            },
+            }
         });
     }
     function clearSelectedRowsBilling() {
@@ -889,37 +849,44 @@
             };
         };
     }
-    function transferToWindow(folioID){
+        function transferToWindow(folioID){
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
         var grid = $("#gridContainerBilling").dxDataGrid("instance");
         var selectedRows = grid.getSelectedRowsData();
 
-        if (selectedRows.length !== 1) {
-            showToast('Error', 'Please select exactly one row to transfer', false);
+        // SỬA Ở ĐÂY: Thay vì chặn !== 1, chỉ chặn nếu = 0
+        if (selectedRows.length === 0) {
+            showToast('Error', 'Please select at least one row to transfer', false);
             return;
         }
+
+        // selectedIds lúc này sẽ là một mảng: [12, 15, 18...]
         var selectedIds = selectedRows.map(row => row.id);
+
         $.ajax({
             url: '/Billing/TransferToWindow',
             type: 'POST',
             data: {
                 userName: userName,
-                userID:userID,
-                folioDetailID: selectedIds,
+                userID: userID,
+                folioDetailID: selectedIds, // Mảng IDs gửi xuống Backend
                 folioMasterID: folioNoID,
                 folioID: folioID,
             },
             success: function (data) {
                 if (data.code == 0) {
-                    getFolioNo();
+                    getFolioNo(); // Render lại danh sách window
                     showToast('Success', data.msg, true);
-                   GetBalanceVND(idReservation);
+                    GetBalanceVND(idReservation); // Cập nhật lại tổng tiền
+                    $("#functionMenu").hide();
                 } else {
                     showToast('Error', data.msg, false);
                 }
             },
-            error: function (xhr, statusText, err) { }
+            error: function (xhr, statusText, err) {
+                console.error(err);
+            }
         });
     }
     function openModalConfirmTransaction(){
@@ -984,21 +951,6 @@
                 }
             });
         }
-    }
-    function deleteFolioNo(folioID){
-        var formData = new FormData();
-        formData.append('folioNo', folioID);
-        $.ajax({
-            url: '/Billing/DeleteFolio', type: 'POST', processData: false, contentType: false, data: formData,
-            success: function (data) {
-                if (data.code == 0) {
-                    getFolioNo(); // Load lại danh sách
-                    showToast('Success', data.msg, true);
-                } else {
-                    showToast('Error', data.msg, false);
-                }
-            }
-        });
     }
 
     // function Print
