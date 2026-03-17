@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -44,7 +45,6 @@ using static log4net.Appender.RollingFileAppender;
 using static Reservation.Dto.ReservationPackageDTO;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
-using Microsoft.Data.SqlClient;
 namespace Reservation.Controllers
 {
     public class ReservationController : Controller
@@ -2681,10 +2681,18 @@ namespace Reservation.Controllers
                               select new
                               {
                                   Select = d["Select"].ToString(),
+                                  Date = d["Date"].ToString(),
+
                                   CodePrefix = d["CodePrefix"].ToString(),
-                                  ID = d["ID"].ToString(),
-                                  FolioID = d["FolioID"].ToString(),
-                                  GroupType = d["GroupType"].ToString(),
+                                  Code = d["Code"].ToString(),
+                                  Description = d["Description"].ToString(),
+
+                                  Amount = d["Amount"].ToString(),
+                                  Currency = d["Currency"].ToString(),
+                                  Supplement = d["Supplement"].ToString(),
+                                  Reference = d["Reference"].ToString(),
+                                  UserName = d["UserName"].ToString(),
+                                  Time = d["Time"].ToString(),
                                   GroupCode = d["GroupCode"].ToString(),
                                   SubgroupCode = d["SubgroupCode"].ToString(),
                                   PostType = d["PostType"].ToString(),
@@ -2692,14 +2700,10 @@ namespace Reservation.Controllers
                                   IsSplit = d["IsSplit"].ToString(),
                                   InvoiceNo = d["InvoiceNo"].ToString(),
                                   TransactionNo = d["TransactionNo"].ToString(),
-                                  Date = d["Date"].ToString(),
-                                  Code = d["Code"].ToString(),
-                                  Description = d["Description"].ToString(),
-                                  Amount = d["Amount"].ToString(),
-                                  Currency = d["Currency"].ToString(),
-                                  Supplement = d["Supplement"].ToString(),
-                                  Reference = d["Reference"].ToString(),
-                                  UserName = d["UserName"].ToString(),
+
+                                  ID = d["ID"].ToString(),
+                                  FolioID = d["FolioID"].ToString(),
+                                  GroupType = d["GroupType"].ToString(),
                                   ShiftID = d["ShiftID"].ToString(),
                                   ProfitCenterID = d["ProfitCenterID"].ToString(),
                                   ProfitCenterCode = d["ProfitCenterCode"].ToString(),
