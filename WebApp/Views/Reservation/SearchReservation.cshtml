@@ -180,9 +180,9 @@
                     <a href="#" class="font-semibold col-md-4 mb-1 text-start" onclick="openModalCheckOut();"
                         id="unAssignRoom">C/O</a>
                     <a href="#" class="font-semibold col-md-4 mb-1 text-start" onclick="openRoomAssignment();"
-                        id="assignRoom">Assignment</a>
+                        id="assign">Assignment</a>
                     <a href="#" class="font-semibold col-md-4 mb-1 text-start" onclick="openConfirmRoomUnAssign();"
-                        id="unAssignRoom">UnAssign</a>
+                        id="unAssign">UnAssign</a>
                     <a href="#" class="font-semibold col-md-4 mb-1 text-start">Advance</a>
                     <a href="#" class="font-semibold col-md-4 mb-1 text-start">Clear</a>
                     <a href="#" onclick="editBooking();" class="font-semibold col-md-4 mb-1 text-start">Edit</a>
@@ -622,6 +622,7 @@
         }
     }
 
+    window.searchReservation = searchReservation;
     var idReservation = 0;
     var status = '';
     var roomStatus = '';
@@ -896,6 +897,10 @@
                     }
                 });
 
+                // Xử lý nút assign / unassign
+
+               
+
                 // Gán biến toàn cục
                 reservationStatus = e.data.ReservationStatus;
                 getFolioNo();
@@ -932,6 +937,24 @@
                         el.style.cursor = 'not-allowed';
                     }
                 }
+
+                const canAssign = status === "CHECKED IN" || status === "RESVED";
+                const canUnassign = status === "CHECKED IN";
+
+                [
+                    { id: "assign", enabled: canAssign },
+                    { id: "unAssign", enabled: canUnassign }
+                ].forEach(({ id, enabled }) => {
+                    const el = document.getElementById(id);
+
+                    if (!el) return;
+
+                    el.style.pointerEvents = enabled ? "auto" : "none";
+                    el.style.color = enabled ? "" : "gray";
+                    el.style.cursor = enabled ? "pointer" : "not-allowed";
+
+                });
+
             },
             onRowPrepared: function (e) {
                 if (e.rowType === "data") {
@@ -1074,7 +1097,10 @@
     function editBooking() {
         // // Hiển thị lớp phủ để vô hiệu hóa tương tác
         // $('#overlay').show();
-
+        if(idReservation <=0){
+            showToast("Warning", "Please select a row again to edit.", false);
+            return
+        }
         // // Vô hiệu hóa tất cả các phần tử tương tác trên trang
         // $('body').css('pointer-events', 'none');
         var modal = $('#newReservationModal');

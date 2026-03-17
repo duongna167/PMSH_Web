@@ -10,8 +10,27 @@ using System.Threading.Tasks;
 
 namespace Security.Services.Implements
 {
-    public class SecurityService: ISecurityService
+    public class SecurityService : ISecurityService
     {
+        public DataTable UserGroupData(string? Code, string? Name, int inactive = 0)
+        {
+            try
+            {
+                SqlParameter[] param = [
+                    new SqlParameter("@Code", Code ?? string.Empty),
+                    new SqlParameter("@Name", Name ?? string.Empty),
+                    new SqlParameter("@Inactive", inactive)
+                    ];
+                DataTable myTable = DataTableHelper.getTableData("spFrmUserGroupSearch", param);
+                return myTable;
+
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"ERROR: {ex.Message}", ex);
+            }
+        }
+
         public DataTable AddFuncitionsToListData(string codetag, string namerights, int isDataRight)
         {
             SqlParameter[] param = new SqlParameter[]
@@ -19,7 +38,7 @@ namespace Security.Services.Implements
                 new SqlParameter("@Code", codetag),
                 new SqlParameter("@Name", namerights),
                 new SqlParameter("@IsDataRight", isDataRight),
-              
+
             };
 
             DataTable myTable = DataTableHelper.getTableData("spPermissionAndShortcutKey_Search", param);

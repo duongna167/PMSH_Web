@@ -34,6 +34,57 @@ namespace Security.Controllers
             _iSecurityService = iSecurityService;
             _httpContextAccessor = httpContextAccessor;
         }
+
+        #region Users Group 
+        public IActionResult UserGroup()
+        {
+            return PartialView();
+        }
+
+        public IActionResult UserGroupData(string? code, string? name, int inactive = 0)
+        {
+            try
+            {
+                DataTable dataTable = _iSecurityService.UserGroupData(code, name, inactive);
+
+                var data = (from d in dataTable.AsEnumerable()
+                            select d.Table.Columns.Cast<DataColumn>()
+                                //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
+                                .ToDictionary(
+                                    col => col.ColumnName,
+                                    col =>
+                                    {
+                                        var value = d[col.ColumnName];
+                                        if (value == DBNull.Value) return null;
+
+                                        // CreatedDate: KHÔNG ToString
+                                        if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate")
+                                            return value;
+
+                                        // Các field khác: ToString
+                                        return value.ToString();
+                                    }
+                                )).ToList();
+                return Json(new
+                {
+                    totalCount = data.Count, // 🔥 số bản ghi
+                    data
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    totalCount = 0,
+                    data = new List<object>(),
+                    error = ex.Message
+                });
+            }
+        }
+
+
+        #endregion
+
         #region  AddFuncitionsToList
         public IActionResult AddFuncitionsToList()
         {
@@ -288,7 +339,7 @@ namespace Security.Controllers
         }
         #endregion
 
-        #region
+        #region UsersManagement 
         public IActionResult UsersManagement()
         {
             List<UserGroupModel> listug = PropertyUtils.ConvertToList<UserGroupModel>(UserGroupBO.Instance.FindAll());
@@ -438,8 +489,8 @@ namespace Security.Controllers
                 // Update
                 UsersBO.Instance.Update(modelRoom);
 
-                    return Json(new { success = true, message = "User Reset Pass successfully." });
-                
+                return Json(new { success = true, message = "User Reset Pass successfully." });
+
             }
             catch (Exception ex)
             {

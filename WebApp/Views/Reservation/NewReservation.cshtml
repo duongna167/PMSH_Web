@@ -1605,6 +1605,7 @@
 
             UI.setHiddenDate("departure", departureIso);
             Promise.resolve().then(updateDates);
+            recalculateReservationAmounts();
 
         } finally {
             window.isSyncingDates = false;
@@ -1644,6 +1645,7 @@
 
             Promise.resolve().then(updateDates);
 
+            recalculateReservationAmounts();
         } catch (err) {
             console.error("Lỗi cập nhật ngày tháng:", err);
         } finally {
@@ -1736,6 +1738,36 @@
         return radio ? radio.value : null;
     }
 
+    function recalculateReservationAmounts() {
+        const nights = parseInt($('#nights').val(), 10) || 1;
+        const rateAmount = ($('#txtRateAmount').val() || '').replace(/[^0-9]/g, '');
+        const discountPercent = ($('#txtDiscountPercent').val() || '').replace(/[^0-9]/g, '');
+        const discountAmount = ($('#txtDiscountAmount').val() || '').replace(/[^0-9]/g, '');
+
+        if (!rateAmount) {
+            $('#txtNetAmount').val('0');
+            $('#txtRateAfterDiscount').val('0');
+            $('#txtNetAfterDiscount').val('0');
+            $('#txtTotal').val('0');
+            $('#txtTotalNet').val('0');
+            return;
+        }
+
+        calculateNet(
+            $('#arrival').val(),
+            $('#departure').val(),
+            0,
+            $('#txtRoomType').val(),
+            'VND',
+            0,
+            nights,
+            rateAmount,
+            '',
+            discountPercent || 0,
+            discountAmount || 0
+        );
+    }
+
     function calculateNet(fromDate, toDate, rateCodeID, roomTypeID, currencyID, packageID, day, value, transactionCode, discountPercent, discountAmount) {
         return $.ajax({
             url: '/Reservation/CaculateNet',
@@ -1757,29 +1789,18 @@
                 discountAmount: discountAmount
             },
             success: function (result) {
-                var value = parseFloat(result.priceAfter);
-                valueFloat = Math.round(value).toLocaleString('vi-VN', {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0
-                });
-                $('#txtNetAmount').val(valueFloat);
+                const nights = parseInt(day, 10) || 1;
 
-                var valueRateAfter = parseFloat(result.priceDiscount);
-                valueRateAfterFloat = Math.round(valueRateAfter).toLocaleString('vi-VN', {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0
-                });
-                $('#txtRateAfterDiscount').val(valueRateAfterFloat);
-                $('#txtTotal').val(valueRateAfterFloat);
+                const netPerNight = parseFloat(result.priceAfter || 0);
+                const rateAfterDiscountPerNight = parseFloat(result.priceDiscount || 0);
+                const netAfterDiscountPerNight = parseFloat(result.priceAfterDiscount || 0);
 
-                var valueNetAfter = parseFloat(result.priceAfterDiscount);
-                valueNetAfterFloat = Math.round(valueNetAfter).toLocaleString('vi-VN', {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0
-                });
-                $('#txtNetAfterDiscount').val(valueNetAfterFloat);
-                $('#txtTotalNet').val(valueNetAfterFloat);
+                $('#txtNetAmount').val(Math.round(netPerNight).toLocaleString('vi-VN'));
+                $('#txtRateAfterDiscount').val(Math.round(rateAfterDiscountPerNight).toLocaleString('vi-VN'));
+                $('#txtNetAfterDiscount').val(Math.round(netAfterDiscountPerNight).toLocaleString('vi-VN'));
 
+                $('#txtTotal').val(Math.round(rateAfterDiscountPerNight * nights).toLocaleString('vi-VN'));
+                $('#txtTotalNet').val(Math.round(netAfterDiscountPerNight * nights).toLocaleString('vi-VN'));
             },
             error: function (xhr, statusText, err) {
 
@@ -2043,9 +2064,9 @@
         formData.append('reservationID', idReservation);
 
         formData.append('profileAgentID', $('#txtAgentID').val());
-        formData.append('agentName', $('#txtAgent').val());
-        formData.append('profileCompanyID', $('#txtCompanyID').val());
-        formData.append('companyName', $('#txtCompany').val());
+        formData.append('agentName', $('#txtAgent').val() || "");
+        formData.append('profileCompanyID', $('#txtCompanyID').val()|| 0);
+        formData.append('companyName', $('#txtCompany').val() || "");
         formData.append('groupCode', $("#txtGroupCode").val());
         formData.append('profileContactID', $('#txtContactID').val());
         formData.append('contactName', $('#txtContact').val());
@@ -2287,6 +2308,9 @@
     }
     function closeForm() {
         $('#newReservationModal').modal('hide');
+        resetForm();
+        $('#errorMessage').hide();
+        $('#txtName').removeClass('is-invalid').addClass('is-valid');
     }
 
     function resetForm() {

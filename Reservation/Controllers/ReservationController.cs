@@ -1020,7 +1020,7 @@ namespace Reservation.Controllers
                     reservationModel.Eta = !string.IsNullOrEmpty(Request.Form["eta"].ToString()) ? Request.Form["eta"].ToString() : "";
                     reservationModel.CheckInDate = DateTime.Parse(Request.Form["arrival"].ToString());
                     reservationModel.Etd = !string.IsNullOrEmpty(Request.Form["etd"].ToString()) ? Request.Form["etd"].ToString() : "";
-                    reservationModel.CheckOutDate = DateTime.Parse(Request.Form["arrival"].ToString());
+                    reservationModel.CheckOutDate = DateTime.Parse(Request.Form["departure"].ToString());
                     reservationModel.ReservationTypeId = int.Parse(Request.Form["reservationType"].ToString());
                     reservationModel.ReservationTypeCode = Request.Form["reservationTypeCode"].ToString();
                     if (string.IsNullOrEmpty(Request.Form["marketID"].ToString()))
@@ -4761,8 +4761,12 @@ namespace Reservation.Controllers
                 ReservationModel reservation = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(int.Parse(Request.Form["rsvID"].ToString()));
                 if (reservation == null || reservation.ID == 0)
                 {
-                    return Json(new { code = 0, msg = "Can not find Reservation!" });
+                    return Json(new { code = 1, msg = "Can not find Reservation!" });
 
+                }
+                if (reservation.Status != 0 && reservation.Status != 5)
+                {
+                    return Json(new { code = 1, msg = "Only Reservation or Due In status can be assigned/unassigned." });
                 }
                 #region update lại room Reservation
                 reservation.RoomId = 0;
@@ -4870,8 +4874,8 @@ namespace Reservation.Controllers
                     @CleanAndInspected = confirmationNo;
                 }
 
-                //var data = _iGroupAdminService.SearchGroupCheckInRoom(confirmationNo, @Inspected, @Clean, @AllRooms, @CleanAndInspected);
-                var data = _iGroupAdminService.SearchGroupAdmin(confirmationNo, type.ToString(), name, roomNo);
+                var data = _iGroupAdminService.SearchGroupCheckInRoom(confirmationNo, @Inspected, @Clean, @AllRooms, @CleanAndInspected);
+                // var data = _iGroupAdminService.SearchGroupAdmin(confirmationNo, type.ToString(), name, roomNo);
                 var result = (from d in data.AsEnumerable()
                               select d.Table.Columns.Cast<DataColumn>()
                                   //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
@@ -5208,21 +5212,48 @@ namespace Reservation.Controllers
 
         #region DatVP __ Reservation: Changes
         [HttpGet]
-        public async Task<IActionResult> SearchChanges(DateTime date)
+        public IActionResult SearchChanges(int objectId)
         {
             try
             {
+                SqlParameter[] param =
+                [
+                    new SqlParameter("@sqlCommand", $@"
+                    SELECT 
+                        UserName,
+                        CONVERT(varchar, ChangeDate, 108) AS [Time],
+                        ChangeDate AS [Date],
+                        Change,
+                        OldValue,
+                        NewValue,
+                        Description
+                    FROM ActivityLog WITH (NOLOCK)
+                    WHERE TableName = 'Reservation'
+                    AND ObjectID = {objectId}
+                    ORDER BY ChangeDate")];
 
-                string sqlCommand = $"SELECT Date, RoomType, Quantity, OverBookLevel AS [NotoSell], CASE WHEN [Type] = 0 THEN (OverBookLevel - Quantity) ELSE '''' END AS Overbooking, CASE WHEN [Type] = 0 THEN ''Number'' ELSE ''Percentage'' END AS [Type], CreateBy, CreateDate , UpdateBy, UpdateDate, ID, RoomTypeID FROM OverBooking WITH (NOLOCK) WHERE DATEDIFF(day,Date, '{date}') <= 0 ORDER BY Date ";
-                var data = _iReservationService.SearchOverBooking(sqlCommand);
+                DataTable data = DataTableHelper.getTableData("spSearchAllForTrans", param);
+
                 var result = (from d in data.AsEnumerable()
                               select d.Table.Columns.Cast<DataColumn>()
+                                  //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
                                   .ToDictionary(
                                       col => col.ColumnName,
-                                      col => d[col.ColumnName]?.ToString()
-                                  )).ToList();
-                return Json(result);
+                                      col =>
+                                      {
+                                          var value = d[col.ColumnName];
+                                          if (value == DBNull.Value) return null;
 
+                                          // CreatedDate: KHÔNG ToString
+                                          if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate" || col.ColumnName == "IsShow" || col.ColumnName == "Inactive")
+                                              return value;
+
+                                          // Các field khác: ToString
+                                          return value.ToString();
+                                      }
+                                  )).ToList();
+
+                return Json(result);
             }
             catch (Exception ex)
             {

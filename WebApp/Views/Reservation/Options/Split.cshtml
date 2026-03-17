@@ -62,6 +62,7 @@
     }
     function closseModalSplit() {
         $('#modalSplit').modal('hide');
+        loadGroupData();
     }
     function openConfirmSplit(text) {
         if (idReservation == 0) {
@@ -157,6 +158,10 @@
             error: function (xhr, statusText, err) {
                 showToast('Error', err, false);
 
+            },
+            complete: function(){
+                idReservationSplit = 0 ;
+                idReservation = 0;
             }
         });
 
@@ -293,38 +298,37 @@
 
     }
 
-    function initializeDataGridSplit(data) {
-        const columns = columnAdG;
-
-        // Thêm cột checkbox đầu tiên
-        columns.push({
-            caption: "",
-            width: 50,
-            allowFiltering: false,
-            allowSorting: false,
-            cellTemplate: function (cellElement, cellInfo) {
-                if (cellInfo.data && cellInfo.data.NoOfRoom !== '0') {
-                    $("<input>")
-                        .attr("type", "checkbox")
-                        .prop("checked", cellInfo.data._checked || false)
-                        .on("change", function () {
-                            console.log("Checkbox for ID:", cellInfo.data.ID, "Checked:", this.checked);
-                            cellInfo.data._checked = this.checked;
-                        })
-                        .appendTo(cellElement);
+    function getSplitColumns() {
+        return [
+            @* {
+                caption: "",
+                width: 50,
+                allowFiltering: false,
+                allowSorting: false,
+                cellTemplate: function (cellElement, cellInfo) {
+                    if (cellInfo.data && cellInfo.data.NoOfRoom !== '0') {
+                        $("<input>")
+                            .attr("type", "checkbox")
+                            .prop("checked", cellInfo.data._checked || false)
+                            .on("change", function () {
+                                cellInfo.data._checked = this.checked;
+                            })
+                            .appendTo(cellElement);
+                    }
                 }
-            }
-        });
+            }, *@
+            ...columnAdG.map(col => ({ ...col }))
+        ];
+    }
 
-        // Tự động thêm các cột từ dữ liệu
-        if (data.length > 0) {
-            for (const key of Object.keys(data[0])) {
-                columns.push({
-                    dataField: key,
-                    caption: key,
-                    alignment: typeof data[0][key] === 'number' ? 'right' : 'left'
-                });
-            }
+    function initializeDataGridSplit(data) {
+        const columns = getSplitColumns();
+
+        const gridElement = document.getElementById("gridContainerSplit");
+        const oldGrid = DevExpress.ui.dxDataGrid.getInstance(gridElement);
+        if (oldGrid) {
+            oldGrid.dispose();
+            $("#gridContainerSplit").empty();
         }
 
         $("#gridContainerSplit").dxDataGrid({
