@@ -1,4 +1,4 @@
-
+Ôªø
 using BaseBusiness.BO;
 using BaseBusiness.Model;
 using Microsoft.Data.SqlClient;
@@ -11,6 +11,7 @@ using System.Data.SqlClient;
 //using System.Data.SqlClient;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using SqlCommand = Microsoft.Data.SqlClient.SqlCommand;
 using SqlConnection = Microsoft.Data.SqlClient.SqlConnection;
@@ -87,7 +88,7 @@ namespace BaseBusiness.util
 		{
 			try
 			{
-				// S?a: Ch? truy?n tÍn SP v‡ c·c SqlParameter
+				// S?a: Ch? truy?n t√™n SP v√† c√°c SqlParameter
 				DataTable dt = getTable("spExchangeCurrency",
 					new SqlParameter("@DateTime", date),
 					new SqlParameter("@FromCurrency", FromCurrencyID),
@@ -108,7 +109,7 @@ namespace BaseBusiness.util
 		}
 		private static readonly string _connectionString;
 
-		// Static constructor: ch?y m?t l?n duy nh?t khi class ???c d˘ng l?n ??u
+		// Static constructor: ch?y m?t l?n duy nh?t khi class ???c d√πng l?n ??u
 		static TextUtils()
 		{
 			try
@@ -123,12 +124,12 @@ namespace BaseBusiness.util
 
 				if (string.IsNullOrEmpty(_connectionString))
 				{
-					throw new Exception("KhÙng tÏm th?y Connection String 'DefaultConnection' trong appsettings.json");
+					throw new Exception("Kh√¥ng tÃÅm th?y Connection String 'DefaultConnection' trong appsettings.json");
 				}
 			}
 			catch (Exception ex)
 			{
-				// N?u khÙng load ???c config, nÈm l?i rı r‡ng ?? d? debug
+				// N?u kh√¥ng load ???c config, n√©m l?i r∆° r√†ng ?? d? debug
 				throw new Exception("L?i kh?i t?o Connection String: " + ex.Message, ex);
 			}
 		}
@@ -399,7 +400,7 @@ namespace BaseBusiness.util
 
 		public static string FormatDateToMonthNDayVN(DateTime date)
 		{
-			return "ng‡y " + date.ToString("dd MMMMMMM", new CultureInfo("vi-VN", true));
+			return "ng√†y " + date.ToString("dd MMMMMMM", new CultureInfo("vi-VN", true));
 		}
 
 		/// <summary>
@@ -842,6 +843,48 @@ namespace BaseBusiness.util
 			mAL.Description = _description;
 			ActivityLogBO.Instance.Insert(mAL);
 		}
+        public static void FillValues<T>(ActivityLogModel log, T oldModel, T newModel)
+        {
+            var oldValues = new List<string>();
+            var newValues = new List<string>();
+
+            PropertyInfo[] properties = typeof(T).GetProperties();
+
+            string[] ignoreProps = { "ID", "UserUpdateID", "UpdateDate", "CreateDate", "UpdatedDate",
+        "CreatedDate", "UserInsertID", "CreateBy", "UpdateBy", "CreatedBy", "UpdatedBy", "ImagePath"};
+
+            foreach (var prop in properties)
+            {
+                if (ignoreProps.Contains(prop.Name)) continue;
+
+                object oldVal = oldModel != null ? prop.GetValue(oldModel) : null;
+                object newVal = newModel != null ? prop.GetValue(newModel) : null;
+
+                string oldStr = oldVal?.ToString()?.Trim() ?? "";
+                string newStr = newVal?.ToString()?.Trim() ?? "";
+
+                if (oldStr != newStr)
+                {
+                    if (oldModel == null)
+                    {
+                        if (string.IsNullOrEmpty(newStr) || newStr == "0" || newStr == "0,00" || newStr.ToLower() == "false")
+                            continue;
+                    }
+
+                    oldValues.Add($"{prop.Name}: {(string.IsNullOrEmpty(oldStr) ? "(null)" : oldStr)}");
+                    newValues.Add($"{prop.Name}: {(string.IsNullOrEmpty(newStr) ? "(null)" : newStr)}");
+                }
+            }
+
+            log.OldValue = string.Join(" | ", oldValues);
+            log.NewValue = string.Join(" | ", newValues);
+
+            if (string.IsNullOrEmpty(log.NewValue))
+            {
+                log.Description = "No significant changes detected.";
+            }
+        }
+
         public static string GetSplitString(string Name)
         {
             string paraName;

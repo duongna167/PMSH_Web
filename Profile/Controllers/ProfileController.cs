@@ -1289,17 +1289,32 @@ namespace Profile.Controllers
         {
             try
             {
-
-                string sql = $"SELECT UserName,  Convert(varchar,ChangeDate, 108) Time, ChangeDate Date, Change, OldValue,NewValue, Description FROM ActivityLog WITH (NOLOCK)WHERE TableName = 'Profile' AND ObjectID = '{profileID}' ORDER BY ChangeDate";
+                string sql = $@"  SELECT UserName,  Convert(varchar,ChangeDate, 108) Time, ChangeDate Date, Change, OldValue,NewValue, Description 
+                              FROM ActivityLog WITH (NOLOCK)
+                              WHERE TableName = 'Profile' AND ObjectID = {profileID} ORDER BY ChangeDate";
 
                 DataTable dataTable = TextUtils.Select(sql);
 
+                //var result = (from d in dataTable.AsEnumerable()
+                //              select d.Table.Columns.Cast<DataColumn>()
+                //                  .ToDictionary(
+                //                      col => col.ColumnName,
+                //                      col => d[col.ColumnName]?.ToString()
+                //                  )).ToList();
+
                 var result = (from d in dataTable.AsEnumerable()
-                              select d.Table.Columns.Cast<DataColumn>()
-                                  .ToDictionary(
-                                      col => col.ColumnName,
-                                      col => d[col.ColumnName]?.ToString()
-                                  )).ToList();
+                              select new
+                              {
+                                  UserName = !string.IsNullOrEmpty(d["UserName"].ToString()) ? d["UserName"] : "",
+                                  Time = !string.IsNullOrEmpty(d["Time"].ToString()) ? d["Time"] : "",
+                                  Date = !string.IsNullOrEmpty(d["Date"].ToString()) ? d["Date"] : "",
+                                  Change = !string.IsNullOrEmpty(d["Change"].ToString()) ? d["Change"] : "",
+                                  OldValue = !string.IsNullOrEmpty(d["OldValue"].ToString()) ? d["OldValue"] : "",
+                                  NewValue = !string.IsNullOrEmpty(d["NewValue"].ToString()) ? d["NewValue"] : "",
+                                  Description = !string.IsNullOrEmpty(d["Description"].ToString()) ? d["Description"] : "",
+
+
+                              }).ToList();
                 return Json(result);
             }
             catch (Exception ex)
@@ -1751,7 +1766,6 @@ namespace Profile.Controllers
         {
             try
             {
-
                 var checks = new List<ValidationError?>();
                 if (model == null)
                 {
@@ -1818,18 +1832,45 @@ namespace Profile.Controllers
                 if (model.ID > 0)
                 {
                     var oldData = (ProfileModel)ProfileBO.Instance.FindByPrimaryKey(model.ID);
+                    var user = (UsersModel)UsersBO.Instance.FindByPrimaryKey(model.UserUpdateID);
+
                     if (oldData == null) return Json(new { success = false, message = "The data does not exist or has been deleted." });
                     model.CreateDate = oldData.CreateDate;
                     model.UserInsertID = oldData.UserInsertID;
                     model.UpdateDate = businessDate;
                     ProfileBO.Instance.Update(model);
+                    #region Insert log activity for update profile
+                    ActivityLogModel activityLog = new ActivityLogModel();
+                    activityLog.TableName = "Profile";
+                    activityLog.ObjectID = model.ID;
+                    activityLog.UserID = model.UserUpdateID;
+                    activityLog.UserName = user.LoginName;
+                    activityLog.ChangeDate = DateTime.Now;
+                    activityLog.Change = "Update";
+                    TextUtils.FillValues(activityLog, oldData, model);
+                    activityLog.Description = $"Update Profile for name: {model.Account}";
+                    ActivityLogBO.Instance.Insert(activityLog);
+                    #endregion
                 }
                 else
                 {
+                    var user = (UsersModel)UsersBO.Instance.FindByPrimaryKey(model.UserInsertID);
 
                     model.CreateDate = businessDate;
                     model.UpdateDate = businessDate;
                     ProfileBO.Instance.Insert(model);
+                    #region Insert log activity for insert profile
+                    ActivityLogModel activityLog = new ActivityLogModel();
+                    activityLog.TableName = "Profile";
+                    activityLog.ObjectID = model.ID;
+                    activityLog.UserID = model.UserUpdateID;
+                    activityLog.UserName = user.LoginName;
+                    activityLog.ChangeDate = DateTime.Now;
+                    activityLog.Change = "Insert";
+                    TextUtils.FillValues(activityLog, (ProfileModel)null, model);
+                    activityLog.Description = $"Create New Profile: {model.Account}";
+                    ActivityLogBO.Instance.Insert(activityLog);
+                    #endregion
                 }
 
                 return Json(new { success = true, message = "Save successfully" });
@@ -2013,8 +2054,6 @@ namespace Profile.Controllers
         #region Profile merge
         public IActionResult MergeProfile()
         {
-            //List<ShortcutKeyModel> listsc = PropertyUtils.ConvertToList<ShortcutKeyModel>(ShortcutKeyBO.Instance.FindAll());
-            //ViewBag.ShortcutKeyList = listsc;
             return PartialView("~/Views/Profile/Options/MergeProfile.cshtml");
 
         }

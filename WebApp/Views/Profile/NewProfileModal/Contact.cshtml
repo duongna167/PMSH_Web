@@ -280,7 +280,6 @@
 
         init: function () {
             this.initDOMEvents();
-            this.bindNameEngine();
             this.initTomSelects();
         },
 
@@ -306,55 +305,71 @@
                 if (!isChecked) $wrapper.addClass('opacity-50');
                 else $wrapper.removeClass('opacity-50');
             });
-        },
 
-         bindNameEngine: function () {
-            const self = this;
-            const $full = $("#con_txtFullName");
-            const $salutation = $("#con_txtSalutation");
+            $('#con_txtFirstName, #con_txtMiddleName, #con_txtLastName').on('input', function() {
+                self.syncFullNameFromParts();
+            });
 
-            function processNameParsing() {
-                let nameVal = $full.val();
-                if (!nameVal) return;
+            $("#con_txtFullName").on("blur", function() {
+                self.syncPartsFromFullName();
+            });
 
-                let p = GuestNameEngine.parseFullName(nameVal);
-                console.log("Parsed Name:", p);
-
-                $("#con_txtFirstName").val(p.first).trigger("input");
-                $("#con_txtMiddleName").val(p.middle).trigger("input");
-                $("#con_txtLastName").val(p.last).trigger("input");
-
-                let resultSalutation = GuestNameEngine.buildSalutation(p.first, p.last);
-                $salutation.val(resultSalutation);
-            }
-
-            $full.on("blur", processNameParsing);
-
-            $full.on("keydown", function(e) {
+            $("#con_txtFullName").on("keydown", function(e) {
                 if (e.which === 13) {
                     e.preventDefault();
-                    processNameParsing();
-
+                    self.syncPartsFromFullName();
                     $("#con_txtFirstName").focus();
                 }
             });
 
             $("#con_txtTitle").on("change", function() {
                 const lastName = $("#con_txtLastName").val();
-
                 const ts = getTomSelect("#con_txtTitle");
                 if (!ts) return;
 
                 const val = ts.getValue();
+                const titleText = (val && ts.options[val]) ? ts.options[val].text : "";
 
-                const titleText = val ? ts.options[val]?.text : "";
+                if (!lastName) return;
 
-                if (lastName && titleText && titleText !== "Enter or select...") {
-                    $salutation.val("Dear " + titleText + " " + GuestNameEngine.smartCapitalize(lastName));
-                } else if (lastName) {
-                    $salutation.val("Dear " + GuestNameEngine.smartCapitalize(lastName));
+                const capitalizedLastName = GuestNameEngine.smartCapitalize(lastName);
+
+                if (titleText && titleText !== "Enter or select...") {
+                    $("#con_txtSalutation").val("Dear " + titleText + " " + capitalizedLastName);
+                }
+                else {
+                    $("#con_txtSalutation").val("Dear " + capitalizedLastName);
                 }
             });
+        },
+
+        syncFullNameFromParts: function() {
+            const first = $("#con_txtFirstName").val();
+            const middle = $("#con_txtMiddleName").val();
+            const last = $("#con_txtLastName").val();
+
+            const fullName = GuestNameEngine.buildFullName(first, middle, last);
+            $("#con_txtFullName").val(fullName);
+
+            this.updateSalutation(first, last);
+        },
+
+        syncPartsFromFullName: function() {
+            const fullName = $("#con_txtFullName").val();
+            if (!fullName) return;
+
+            const p = GuestNameEngine.parseFullName(fullName);
+
+            $("#con_txtFirstName").val(p.first);
+            $("#con_txtMiddleName").val(p.middle);
+            $("#con_txtLastName").val(p.last);
+
+            this.updateSalutation(p.first, p.last);
+        },
+
+        updateSalutation: function(first, last) {
+            const salutation = GuestNameEngine.buildSalutation(first, last);
+            $("#con_txtSalutation").val(salutation);
         },
 
         initTomSelects: function () {
