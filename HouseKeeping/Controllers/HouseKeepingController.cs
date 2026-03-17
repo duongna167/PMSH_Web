@@ -180,7 +180,7 @@ namespace HouseKeeping.Controllers
             ViewBag.ZoneList = listzo;
             List<ReservationTypeModel> listrety = PropertyUtils.ConvertToList<ReservationTypeModel>(ReservationTypeBO.Instance.FindAll());
             ViewBag.ReservationType = listrety;
-            return View();
+            return PartialView();
         }
         [HttpGet]
         public IActionResult RoomAvailabilityData(DateTime fromDate, string zone, string restype, int displayofday, string showNonDeduct, string showOcc3, string showRoomNight, string includeOutOfOrder, string includeOverbooking, string includeAllotment)

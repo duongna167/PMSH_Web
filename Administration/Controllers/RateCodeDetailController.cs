@@ -21,8 +21,16 @@ namespace Administration.Controllers
         {
             List<RateCodeModel> listRateCode = PropertyUtils.ConvertToList<RateCodeModel>(RateCodeBO.Instance.FindAll());
             List<RateCategoryModel> listRateCate = PropertyUtils.ConvertToList<RateCategoryModel>(RateCategoryBO.Instance.FindAll());
+            List<SeasonModel> listSeason = PropertyUtils.ConvertToList<SeasonModel>(SeasonBO.Instance.FindAll());
+            List<PackageModel> listPackage = PropertyUtils.ConvertToList<PackageModel>(PackageBO.Instance.FindAll());
+            List<RoomTypeModel> listRoomType = PropertyUtils.ConvertToList<RoomTypeModel>(RoomTypeBO.Instance.FindAll());
+            List<TransactionsModel> listTransaction = PropertyUtils.ConvertToList<TransactionsModel>(TransactionsBO.Instance.FindAll());
             ViewBag.RateCodeList = listRateCode;
             ViewBag.RateCateList = listRateCate;
+            ViewBag.RateSeason = listSeason;
+            ViewBag.PackageList = listPackage;
+            ViewBag.RoomTypeList = listRoomType;
+            ViewBag.TransactionList = listTransaction;
             return PartialView("~/Views/Administration/RateCode/RateCodeDetail.cshtml");
             // Truyền đường dẫn chuẩn vào để tìm đúng
         }
