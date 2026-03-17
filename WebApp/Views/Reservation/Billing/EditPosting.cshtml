@@ -111,8 +111,8 @@
                         <div class="row g-0 align-items-center">
                             <label class="col-4 text-md-end pe-2 col-form-label col-form-label-sm text-nowrap">Post Date</label>
                             <div class="col-8">
-                                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="postingDate" readonly>
-                                    <input type="text" class="date-ui form-control form-control-sm" placeholder="Post date" readonly>
+                                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="postingDate" disabled>
+                                    <input type="text" class="date-ui form-control form-control-sm" placeholder="Post date" disabled>
                                 </div>
                             </div>
 
@@ -122,8 +122,8 @@
                         <div class="row g-0 align-items-center">
                             <label class="col-4 text-md-end pe-2 col-form-label col-form-label-sm text-nowrap">Add. Date</label>
                             <div class="col-8">
-                                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="additionalDate" readonly>
-                                    <input type="text" class="date-ui form-control form-control-sm" placeholder="Add date" readonly>
+                                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="additionalDate">
+                                    <input type="text" class="date-ui form-control form-control-sm" placeholder="Add date">
                                 </div>
                             </div>
                         </div>
@@ -265,40 +265,70 @@
     }
 
     $("#priceEditPosting").blur(function () {
-        var price = parseLocaleNumber($('#priceEditPosting').val());
-        var quantity = parseLocaleNumber($('#quantityEditPosting').val()) || 1;
+        var price = parseNumberWithComma($('#priceEditPosting').val());
+        var quantity = parseNumberWithComma($('#quantityEditPosting').val()) || 1;
 
-        $('#priceEditPosting').val(price.toLocaleString('vi-VN'));
-        $('#amountEditPosing').val((price * quantity).toLocaleString('vi-VN'));
+        $('#priceEditPosting').val(formatNumberWithComma(price));
+        $('#amountEditPosing').val(formatNumberWithComma(price * quantity));
     });
 
     $("#amountEditPosing").blur(function () {
-        var amount = parseLocaleNumber($('#amountEditPosing').val()); 
-        var quantity = parseLocaleNumber($('#quantityEditPosting').val()) || 1;
+        var amount = parseNumberWithComma($('#amountEditPosing').val());
+        var quantity = parseNumberWithComma($('#quantityEditPosting').val()) || 1;
 
         var price = 0;
         if(quantity !== 0) {
             price = amount / quantity;
         }
 
-        $('#priceEditPosting').val(price.toLocaleString('vi-VN'));
-        $('#amountEditPosing').val(amount.toLocaleString('vi-VN'));
+        $('#priceEditPosting').val(formatNumberWithComma(price));
+        $('#amountEditPosing').val(formatNumberWithComma(amount));
     });
 
     $("#quantityEditPosting").blur(function () {
-        var price = parseLocaleNumber($('#priceEditPosting').val()) || 0;
-        var quantity = parseLocaleNumber($("#quantityEditPosting").val()) || 1; 
+        var price = parseNumberWithComma($('#priceEditPosting').val()) || 0;
+        var quantity = parseNumberWithComma($("#quantityEditPosting").val()) || 1;
 
         var newAmount = price * quantity;
-
-        $('#amountEditPosing').val(newAmount.toLocaleString('vi-VN'));
+        $('#amountEditPosing').val(formatNumberWithComma(newAmount));
     });
 
-    $("#priceEditPosting, #quantityEditPosting").keypress(function (event) {
-        if (event.which === 13 || event.keyCode === 13) {
-            event.preventDefault(); 
+    $("#priceEditPosting, #quantityEditPosting").on('keypress', function (e) {
+        var charCode = (e.which) ? e.which : e.keyCode;
 
+        if (charCode === 13) {
+            e.preventDefault();
             $(this).blur();
+            return false;
+        }
+
+        if ((charCode >= 48 && charCode <= 57) || charCode === 46 || charCode === 44) {
+            return true;
+        }
+
+        return false;
+    });
+
+    $("#priceEditPosting, #quantityEditPosting").on('paste', function (e) {
+        e.preventDefault();
+        var pastedData = (e.originalEvent || e).clipboardData.getData('text/plain');
+
+        var cleanData = pastedData.replace(/[^0-9.,]/g, '');
+
+        document.execCommand("insertText", false, cleanData);
+    });
+
+    $("#priceEditPosting, #quantityEditPosting").on('blur', function () {
+        var valStr = $(this).val();
+        var cleanStr = valStr.replace(/\./g, '').replace(/,/g, '.');
+        var valNum = parseFloat(cleanStr);
+
+        if (valNum < 0) {
+            alert("Negative numbers are not allowed!");
+            $(this).val(0);
+            if($(this).attr('id') === 'quantityEditPosting') {
+                $(this).val(1); 
+            }
         }
     });
 
@@ -357,9 +387,9 @@
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
 
-        var rawPrice = parseLocaleNumber($('#priceEditPosting').val());
-        var rawAmount = parseLocaleNumber($('#amountEditPosing').val());
-        var rawQuantity = parseLocaleNumber($('#quantityEditPosting').val());
+        var rawPrice = parseNumberWithComma($('#priceEditPosting').val());
+        var rawAmount = parseNumberWithComma($('#amountEditPosing').val());
+        var rawQuantity = parseNumberWithComma($('#quantityEditPosting').val());
 
         formData.append('userName', userName);
         formData.append('transactionNo', transactionNoPost);
