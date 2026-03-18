@@ -2381,7 +2381,7 @@ namespace BaseBusiness.BO
                 //Update
                 else
                 {
-                    ReservationAmountByCurrencyModel mRA = (ReservationAmountByCurrencyModel)Instance.FindByPrimaryKey("ReservationAmountByCurrency", ((ReservationAmountByCurrencyModel)arrRA1[0]).ID);
+                    ReservationAmountByCurrencyModel mRA = (ReservationAmountByCurrencyModel)Instance.FindByPrimaryKey(((ReservationAmountByCurrencyModel)arrRA1[0]).ID);
                     mRA.ID = ((ReservationAmountByCurrencyModel)arrRA1[0]).ID;
                     mRA.ConfirmationNo = ConfirmationNo;
                     mRA.AmountBeforTax = AmountBeforTax + ((ReservationAmountByCurrencyModel)arrRA1[0]).AmountBeforTax;
@@ -2570,7 +2570,7 @@ namespace BaseBusiness.BO
             {
                 for (int i = 0; i < arrP.Count; i++)
                 {
-                    ReservationSpecialModel mRS = (ReservationSpecialModel)Instance.FindByPrimaryKey("ReservationSpecial", ((ReservationSpecialModel)arrP[i]).ID);
+                    ReservationSpecialModel mRS = (ReservationSpecialModel)Instance.FindByPrimaryKey(((ReservationSpecialModel)arrP[i]).ID);
                     mRS.ReservationID = pNewReservationID;
                     pt.Insert(mRS);
 
@@ -2610,7 +2610,7 @@ namespace BaseBusiness.BO
             {
                 for (int i = 0; i < arrP.Count; i++)
                 {
-                    ReservationPackageModel mP = (ReservationPackageModel)Instance.FindByPrimaryKey("ReservationPackage", ((ReservationPackageModel)arrP[i]).ID);
+                    ReservationPackageModel mP = (ReservationPackageModel)Instance.FindByPrimaryKey(((ReservationPackageModel)arrP[i]).ID);
                     mP.ReservationID = pNewReservationID;
                     mP.CreateDate = TextUtils.GetSystemDate();
                     mP.UpdateDate = TextUtils.GetSystemDate();
@@ -2634,7 +2634,7 @@ namespace BaseBusiness.BO
                 }
                 else
                 {
-                    ReservationOptionsModel mRO = (ReservationOptionsModel)Instance.FindByPrimaryKey("ReservationOptions", ReservationOptionID);
+                    ReservationOptionsModel mRO = (ReservationOptionsModel)Instance.FindByPrimaryKey(ReservationOptionID);
                     mRO.ID = ReservationOptionID;
                     mRO.PackageOption = true;
                     pt.Update(mRO);
