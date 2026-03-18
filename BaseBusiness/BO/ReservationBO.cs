@@ -157,7 +157,7 @@ namespace BaseBusiness.BO
                     mOR.RoomId = mORms.ID;
                     mOR.RoomNo = mORms.RoomNo;
                     mOR.RoomTypeId = mORms.RoomTypeID;
-                    mOR.RoomType = ((RoomTypeModel)Instance.FindByPrimaryKey(mORms.RoomTypeID)).Code;
+                    mOR.RoomType = ((RoomTypeModel)pt.FindByPK("RoomType", mORms.RoomTypeID)).Code;
                     if (mOR.RateCodeId == 0)
                         mOR.RtcId = mOR.RoomTypeId;
                     mOR.UserUpdateId = UserID;
@@ -304,7 +304,7 @@ namespace BaseBusiness.BO
             //Đổ dữ liệu ra model từ bảng room
             RoomModel mR = null;
             if (pt != null)
-                mR = (RoomModel)Instance.FindByPrimaryKey(RoomID);
+                mR = (RoomModel)pt.FindByPK("Room", RoomID);
             else
                 mR = (RoomModel)RoomBO.Instance.FindByPrimaryKey(RoomID);
             DateTime _BusDate = TextUtils.GetBusinessDate();
@@ -466,11 +466,11 @@ namespace BaseBusiness.BO
                         {
                             //Xác định đặt phòng đã tồn tại để lấy giá trị 
                             ReservationID = (((ReservationModel)aRsv[iR]).ID);
-                            ReservationModel mOR = (ReservationModel)Instance.FindByPrimaryKey(ReservationID);
+                            ReservationModel mOR = (ReservationModel)pt.FindByPK("Reservation", ReservationID);
 
                             #region Tạo mới Profile
                             //DataTable CR = pt.Select("Select Top 1 MAX(Convert(int,Code)) AS Code FROM Profile WITH (NOLOCK)");
-                            ProfileModel mP = (ProfileModel)Instance.FindByPrimaryKey(mOR.ProfileIndividualId);
+                            ProfileModel mP = (ProfileModel)pt.FindByPK("Profile", mOR.ProfileIndividualId);
                             //int leg = CR.Rows[0]["Code"].ToString().Length;
                             //mP.Code = "0000" + Convert.ToString(Convert.ToUInt32(CR.Rows[0]["Code"].ToString()) + 1);
                             //mP.Code = mP.Code.Remove(0, mP.Code.Length - leg);
@@ -527,12 +527,12 @@ namespace BaseBusiness.BO
                             //Trường hợp này dùng cho Room Assignment
                             if (RoomID > 0)
                             {
-                                RoomModel mORms = (RoomModel)Instance.FindByPrimaryKey(RoomID);
+                                RoomModel mORms = (RoomModel)pt.FindByPK("Room", RoomID);
                                 mOR.RoomId = RoomID;
                                 mOR.RoomNo = mORms.RoomNo;
                                 mOR.RoomTypeId = mORms.RoomTypeID;
                                 mOR.RtcId = mORms.RoomTypeID;
-                                mOR.RoomType = ((RoomTypeModel)Instance.FindByPrimaryKey(mORms.RoomTypeID)).Code;
+                                mOR.RoomType = ((RoomTypeModel)pt.FindByPK("RoomType", mORms.RoomTypeID)).Code;
                             }
                             Rsv1ID = (int)pt.Insert(mOR);
                             //Update ReservationNo,ConfirmNo vào bảng Rsv
@@ -558,7 +558,7 @@ namespace BaseBusiness.BO
                                     }
                                     else
                                     {
-                                        ReservationOptionsModel mRO = (ReservationOptionsModel)Instance.FindByPrimaryKey(ReservationOptionID);
+                                        ReservationOptionsModel mRO = (ReservationOptionsModel)pt.FindByPK("ReservationOptions", ReservationOptionID);
                                         mRO.ID = ReservationOptionID;
                                         mRO.Shares = true;
                                         pt.Update(mRO);
@@ -602,7 +602,7 @@ namespace BaseBusiness.BO
                             RoomModel mpORms = null;
                             if (RoomID > 0)
                             {
-                                mpORms = (RoomModel)Instance.FindByPrimaryKey(RoomID);
+                                mpORms = (RoomModel)pt.FindByPK("Room", RoomID);
                             }
                             //Select dữ liệu từ bảng ReservationRate    
                             DataTable CRR = pt.getTable("spCheckReservationRate", "tbRsvR",
@@ -642,7 +642,7 @@ namespace BaseBusiness.BO
                                     mRr.RoomID = RoomID;
                                     mRr.RoomNo = mpORms.RoomNo;
                                     mRr.RoomTypeID = mpORms.RoomTypeID;
-                                    mRr.RoomType = ((RoomTypeModel)Instance.FindByPrimaryKey(mpORms.RoomTypeID)).Code;
+                                    mRr.RoomType = ((RoomTypeModel)pt.FindByPK("RoomType", mpORms.RoomTypeID)).Code;
                                 }
                                 mRr.UserInsertID = mRr.UserUpdateID = UserID;
                                 mRr.CreateDate = mRr.UpdateDate = TextUtils.GetSystemDate();
@@ -698,7 +698,7 @@ namespace BaseBusiness.BO
                                 }
                                 else
                                 {
-                                    ReservationOptionsModel mRO = (ReservationOptionsModel)Instance.FindByPrimaryKey(ReservationOptionID); ;
+                                    ReservationOptionsModel mRO = (ReservationOptionsModel)pt.FindByPK("ReservationOptions", ReservationOptionID); ;
                                     mRO.ID = ReservationOptionID;
                                     if (mOR.ProfileGroupId > 0)
                                         mRO.GroupOptions = true;
@@ -870,7 +870,7 @@ namespace BaseBusiness.BO
         public static void GetRoomRevenue(int ReservationID, ProcessTransactions pt)
         {
             #region 1.Khai báo biến 
-            ReservationModel mR = (ReservationModel)Instance.FindByPrimaryKey(ReservationID);
+            ReservationModel mR = (ReservationModel)pt.FindByPK("Reservation", ReservationID);
             DataTable dtCS = null;
             DataTable dtFC = null;
             DataTable dtPkg = null;
@@ -2028,7 +2028,8 @@ namespace BaseBusiness.BO
                 //TextUtils.GetSourceAmount(dtRR.Rows[i]["TransactionCode"].ToString(), Rate, ref RoomRevenueBeforeTax, ref RoomRevenueAfterTax);
                 //if (RoomRevenueBeforeTax >= 0 && RoomRevenueAfterTax >= 0)
                 //{
-                ReservationRateModel mRR = (ReservationRateModel)Instance.FindByPrimaryKey(TextUtils.ToInt(dtRR.Rows[i]["ID"].ToString()));
+                
+                ReservationRateModel mRR = (ReservationRateModel)pt.FindByPK("ReservationRate", TextUtils.ToInt(dtRR.Rows[i]["ID"].ToString()));
                 if (RoomRevenueBeforeTax >= 0)
                 {
                     mRR.RoomRevenueBeforeTax = RoomRevenueBeforeTax;
@@ -2053,8 +2054,7 @@ namespace BaseBusiness.BO
             Decimal AmountBefore = 0;
             Decimal AmountAfter = 0;
             //Lấy Model của phiếu đặt phòng
-            // Note Edit: Sửa Chuyển FindPK qua BO
-            ReservationModel mR = (ReservationModel)Instance.FindByPrimaryKey(ReservationID);
+            ReservationModel mR = (ReservationModel)pt.FindByPK("Reservation", ReservationID);
             //Xác định tiền của RC, FC, PK
             for (int i = 1; i < 4; i++)
             {
@@ -2381,7 +2381,7 @@ namespace BaseBusiness.BO
                 //Update
                 else
                 {
-                    ReservationAmountByCurrencyModel mRA = (ReservationAmountByCurrencyModel)Instance.FindByPrimaryKey(((ReservationAmountByCurrencyModel)arrRA1[0]).ID);
+                    ReservationAmountByCurrencyModel mRA = (ReservationAmountByCurrencyModel)pt.FindByPK("ReservationAmountByCurrency", ((ReservationAmountByCurrencyModel)arrRA1[0]).ID);
                     mRA.ID = ((ReservationAmountByCurrencyModel)arrRA1[0]).ID;
                     mRA.ConfirmationNo = ConfirmationNo;
                     mRA.AmountBeforTax = AmountBeforTax + ((ReservationAmountByCurrencyModel)arrRA1[0]).AmountBeforTax;
@@ -2570,7 +2570,7 @@ namespace BaseBusiness.BO
             {
                 for (int i = 0; i < arrP.Count; i++)
                 {
-                    ReservationSpecialModel mRS = (ReservationSpecialModel)Instance.FindByPrimaryKey(((ReservationSpecialModel)arrP[i]).ID);
+                    ReservationSpecialModel mRS = (ReservationSpecialModel)pt.FindByPK("ReservationSpecial", ((ReservationSpecialModel)arrP[i]).ID);
                     mRS.ReservationID = pNewReservationID;
                     pt.Insert(mRS);
 
@@ -2590,7 +2590,7 @@ namespace BaseBusiness.BO
                 //}
                 //else
                 //{
-                //    ReservationOptionsModel mRO = (ReservationOptionsModel)Instance.FindByPrimaryKey("ReservationOptions", ReservationOptionID);
+                //    ReservationOptionsModel mRO = (ReservationOptionsModel)pt.FindByPK("ReservationOptions", ReservationOptionID);
                 //    mRO.ID = ReservationOptionID;
                 //    mRO.ItemInv = true;
                 //    pt.Update(mRO);
@@ -2610,7 +2610,7 @@ namespace BaseBusiness.BO
             {
                 for (int i = 0; i < arrP.Count; i++)
                 {
-                    ReservationPackageModel mP = (ReservationPackageModel)Instance.FindByPrimaryKey(((ReservationPackageModel)arrP[i]).ID);
+                    ReservationPackageModel mP = (ReservationPackageModel)pt.FindByPK("ReservationPackage", ((ReservationPackageModel)arrP[i]).ID);
                     mP.ReservationID = pNewReservationID;
                     mP.CreateDate = TextUtils.GetSystemDate();
                     mP.UpdateDate = TextUtils.GetSystemDate();
@@ -2634,7 +2634,7 @@ namespace BaseBusiness.BO
                 }
                 else
                 {
-                    ReservationOptionsModel mRO = (ReservationOptionsModel)Instance.FindByPrimaryKey(ReservationOptionID);
+                    ReservationOptionsModel mRO = (ReservationOptionsModel)pt.FindByPK("ReservationOptions", ReservationOptionID);
                     mRO.ID = ReservationOptionID;
                     mRO.PackageOption = true;
                     pt.Update(mRO);
