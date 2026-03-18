@@ -18,6 +18,7 @@ namespace BaseBusiness.util
 {
     public class ProcessTransactions
     {
+        protected BaseFacade baseFacade = null;
         public string HistoryContent = "";
         int CountTransaction = 0;
         string Header_UpdateCommand = "UPDATE_COM : ";
@@ -26,7 +27,7 @@ namespace BaseBusiness.util
 
         #region Khai bao cac bien dung chung
         protected string strcon;
-        private readonly SqlConnection  cnn;
+        private readonly SqlConnection cnn;
         private SqlTransaction tran;
         private SqlCommand cmd;
         //private SqlDataAdapter da;
@@ -111,7 +112,7 @@ namespace BaseBusiness.util
         public static BaseModel PopulateModel(DataRow dr, string name)
         {
             //return (BaseModel)PopulateObject(dr, "eDongPOS." + name);
-            return (BaseModel)PopulateObject(dr, "BaseBussiness.Model." + name);
+            return (BaseModel)PopulateObject(dr, "BaseBusiness.Model." + name);
         }
 
         #endregion
@@ -489,6 +490,19 @@ namespace BaseBusiness.util
             }
         }
 
+
+        public BaseModel FindByPrimaryKey(long value)
+        {
+            try
+            {
+                return baseFacade.FindByPrimaryKey(value);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+
         public List<BaseModel> FindAll(string tableName)
         {
             List<BaseModel> result = new List<BaseModel>();
@@ -710,8 +724,9 @@ namespace BaseBusiness.util
 
                     }
 
-                    else { 
-                            cmd.Parameters.Add("@" + propertiesName[i].Name, DBUtils.ConvertToSQLType(propertiesName[i].PropertyType)).Value = "";
+                    else
+                    {
+                        cmd.Parameters.Add("@" + propertiesName[i].Name, DBUtils.ConvertToSQLType(propertiesName[i].PropertyType)).Value = "";
                     }
                 }
             }
@@ -781,7 +796,7 @@ namespace BaseBusiness.util
             {
                 logger.Error(sqlText + "=> Error:" + se.Message);
                 tran.Rollback();
-              
+
                 throw new Exception("Update " + baseModel.GetType().Name + " error :" + se.Message);
             }
             finally
@@ -793,10 +808,10 @@ namespace BaseBusiness.util
                 ThreadContext.Properties["KeyID"] = ID.ToString();
                 if (logger.IsDebugEnabled)
                     logger.Info(sqlText);
-          
+
             }
         }
-        
+
 
         /// <summary>
         /// Hàm Update dữ liệu 
@@ -921,12 +936,12 @@ namespace BaseBusiness.util
                 ThreadContext.Properties["ActionType"] = actionType;
 
                 // Extract TableName using regex (assuming table name follows the action keyword)
-            
+
                 ThreadContext.Properties["TableName"] = tableName;
 
                 if (logger.IsDebugEnabled)
                     logger.Info(sql);
-     
+
             }
         }
 
@@ -979,7 +994,7 @@ namespace BaseBusiness.util
         /// Lay ve ngay thang cua he thong.
         /// </summary>
         /// <returns></returns>
-        public  DateTime GetSystemDate()
+        public DateTime GetSystemDate()
         {
             try
             {
@@ -1044,7 +1059,7 @@ namespace BaseBusiness.util
         /// Lấy ngày Business Date
         /// -- Duongna --, 03/09/09
         /// <returns> BusinessDate </returns>
-        public  DateTime GetBusinessDate()
+        public DateTime GetBusinessDate()
         {
             DateTime DateTimeValue = DateTime.Today;
             DateTimeValue = ((BusinessDateModel)BusinessDateBO.Instance.FindAll()[0]).BusinessDate;
@@ -1052,7 +1067,7 @@ namespace BaseBusiness.util
             //return Global.GetBusinessDate;
         }
 
-        public  DateTime GetBusinessDateTime()
+        public DateTime GetBusinessDateTime()
         {
             try
             {
@@ -1072,7 +1087,7 @@ namespace BaseBusiness.util
                 throw new Exception(ex.Message);
             }
         }
-        public  decimal ExchangeCurrency(DateTime date, string FromCurrencyID, string ToCurrencyID, decimal Amount)
+        public decimal ExchangeCurrency(DateTime date, string FromCurrencyID, string ToCurrencyID, decimal Amount)
         {
             try
             {
@@ -1139,7 +1154,7 @@ namespace BaseBusiness.util
             { RollBack(); throw new Exception(Header_Update + ex.Message); }
         }
 
-        public  void UpdateDataBase(string command)
+        public void UpdateDataBase(string command)
         {
             SqlConnection cnn = new SqlConnection(DBUtils.GetDBConnectionString());
             try
@@ -1162,7 +1177,7 @@ namespace BaseBusiness.util
             }
         }
 
-        public  string GetSystemTime()
+        public string GetSystemTime()
         {
             try
             {
