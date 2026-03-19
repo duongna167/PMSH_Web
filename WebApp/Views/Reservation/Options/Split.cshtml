@@ -53,11 +53,17 @@
 
 
 <script>
+    const splitButtons = ['splitBtn', 'splitAllBtn', 'splitSpecialBtn', 'splitAllSpecialBtn'];
+    const roomSharerButtons = ['roomSharerBtn'];
+    const allButtons = [...splitButtons, ...roomSharerButtons];
+    let noOfRoomSplit = 0;
+
     function openModalSplit() {
         console.log('listReservationByConfirmationNo', listReservationByConfirmationNo);
 
         listReservationSplitID = listReservationByConfirmationNo.map(x => x.ID);
         initializeDataGridSplit(listReservationByConfirmationNo);
+        UI.toggleButtons(allButtons, true);
         $('#modalSplit').modal('show');
     }
     function closseModalSplit() {
@@ -72,6 +78,7 @@
         $('#titleSplitReservation').text(text);
         document.getElementById("confirmBoxSplit").style.display = "flex";
     }
+    
     function closeConfirmSplit() {
 
         document.getElementById("confirmBoxSplit").style.display = "none";
@@ -135,6 +142,7 @@
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
         formData.append('reservationID', idReservationSplit);
+        formData.append('noOfRoom', noOfRoomSplit);
         formData.append('userName', userName);
         formData.append('userID', userID);
 
@@ -359,24 +367,17 @@
             },
             onRowClick: function (e) {
                 idReservationSplit = e.data.ID;
-                if (e.data.NoOfRoom === '1' || e.data.NoOfRoom === '0') {
-                    ['splitBtn', 'splitAllBtn', 'splitAllSpecialBtn'].forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) {
-                            el.style.pointerEvents = 'none';
-                            el.style.color = 'gray';
-                            el.style.cursor = 'not-allowed';
-                        }
-                    });
-                } else {
-                    ['splitBtn', 'splitAllBtn', 'splitAllSpecialBtn'].forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) {
-                            el.style.pointerEvents = 'auto';
-                            el.style.color = '';
-                            el.style.cursor = 'pointer';
-                        }
-                    });
+                console.log('e.data',e.data);
+                
+                noOfRoomSplit = Number(e.data.Rms ?? e.data.NoOfRoom ?? 0);
+
+                // reset trước
+                UI.toggleButtons(allButtons, true);
+
+                if (noOfRoomSplit > 1) {
+                    UI.toggleButtons(splitButtons, false);
+                } else if (noOfRoomSplit === 1) {
+                    UI.toggleButtons(['splitSpecialBtn'], false);
                 }
             },
             columns: columns

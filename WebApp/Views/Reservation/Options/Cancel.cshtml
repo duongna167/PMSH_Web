@@ -34,6 +34,7 @@
             return;
         }
         $('#modalCancel').modal('show');
+        reloadGrid();
     }
     function closeModalCancel(){
         clearCancel();
@@ -43,6 +44,52 @@
     $('#reasonCancel').on('change', function() {
         $('#descriptionCancel').text($(this).find('option:selected').text().split('-')[1]);
     });
+
+    function reloadGrid(reservationID) {
+
+            $.ajax({
+                url: '/Reservation/FindCancelReservation',
+                type: 'GET',
+                data: {reservationID:idReservation},
+                success: function (result) {
+                    const rows = result?.data || [];
+                    gridCancel(rows);
+
+                    if (!rows.length) showToast("Warning", "No records.", false);
+                },
+                error: function () {
+                    showToast("Error", "Cannot load data.", false);
+                }
+            });
+        }
+
+    function gridCancel(data) {
+    gridRateCodes = $("#cancel_grid").dxDataGrid({
+        dataSource: data,
+        showBorders: true,
+        width: "100%",
+        height: "100%",
+        selection: { mode: "single" },
+        paging: { pageSize: 20 },
+        pager: {
+            visible: true,
+            showPageSizeSelector: true,
+            allowedPageSizes: [20, 50, 100, "all"],
+            showInfo: true,
+            showNavigationButtons: true
+        },
+        filterRow: { visible: true, applyFilter: "auto" },
+        columns: [
+            { dataField: "ID", visible: false },
+            { dataField: "CancellationNo", caption: "Cancel No", minWidth: 120,cssClass: "col-description" },
+            { dataField: "ReasonCancellation", caption: "Code", width: 140 },
+            { dataField: "Description", caption: "Description", dataType: "date", format: "dd/MM/yyyy", width: 80 },
+            { dataField: "LoginName", caption: "User", dataType: "date", format: "dd/MM/yyyy", width: 80 },
+            { dataField: "CreateDate", caption: "Date", dataType: "date", format: "dd/MM/yyyy", width: 80 }
+        ],
+    }).dxDataGrid("instance");
+}
+
     function clearCancel(){
         $('#reasonCancel').val('');
         $('#descriptionCancel').val('');

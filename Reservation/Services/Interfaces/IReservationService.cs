@@ -131,5 +131,10 @@ namespace Reservation.Services.Interfaces
         List<ReservationPackageSummary> GetReservationPackagePhase2(int reservationId, int packageId, DateTime beginDate, DateTime endDate, int rateCodeId);
 
         public DataTable GetSetUpPackage(string searchKey = "");
+
+        // Split 
+        int Split(int ReservationID, int pNoOfRoom, int UserID, string PartyGuest, int RoomID);
+
+        int SplitAll(int ReservationID, int pNoOfRoom, int UserID, string username, string PartyGuest);
     }
 }
