@@ -1,56 +1,85 @@
-﻿<div>
+<div>
 
 </div>
 <script>
-    function checkIn(){
-        if(idReservation == 0){
-            showToast('Error', 'Please choose booking', false);
+    function checkIn() {
+        if (idReservation == 0) {
+            showToast('Error', 'Please choose a booking first!', false);
             return;
         }
-        checkInBooking(roomStatus,roomNo,status);
-    }
-    function checkInBooking(roomStatus, roomNo, status){
-        if(roomNo == ''){
-            showToast('ERROR', 'Booking has not room No', false);
-            return;
-        }
-        if (status != 'RESVED' && status != 'DUE IN' ) {
-            return;
-        } 
-        if(roomStatus != 'VC'){
-            showToast('ERROR', 'Room Status not in VC status', false);
-            return;
-        }
-        const userName = JSON.parse(localStorage.getItem("Loginname"));
-        const userID = JSON.parse(localStorage.getItem("userID"));
-        var formData = new FormData();
 
+        //  Kiểm tra số phòng
+        if (!roomID || roomID <= 0) {
+            showToast('Error', 'Booking has not been assigned a Room No.', false);
+            
+            return;
+        }
+
+        //  Kiểm tra trạng thái bằng ID
+        // 1: CheckedIn, 2: CheckedOut, 3: CancelRsv, 7: NoShow
+        const blockedStatus = [1, 2, 3, 7];
+
+        if (blockedStatus.includes(parseInt(statusID))) {
+            let msg = "Cannot check-in. ";
+            if (statusID == 1) msg += "Guest already checked-in.";
+            else if (statusID == 2) msg += "Guest already checked-out.";
+            else if (statusID == 3) msg += "Booking was cancelled.";
+            else msg += "Invalid status.";
+
+            showToast('Warning', msg, false);
+            return;
+        }
+
+        // Chỉ cho phép CI nếu là 0: Reservation hoặc 5: Due In
+        if (statusID != 0 && statusID != 5) {
+            showToast('Error', 'Booking status is not valid for Check-in.', false);
+            return;
+        }
+
+        //  Kiểm tra trạng thái phòng (Housekeeping)
+        if (roomStatus != 'VC' && roomStatus != 'IP') {
+            showToast('Error', `Room ${roomNo} is ${roomStatus}. Need Clean/Inspected room.`, false);
+            return;
+        }
+
+        //  Xác nhận
+        if (confirm(`Do you want to Check-in Room ${roomNo} for guest ${lastname}?`)) {
+            checkInBooking();
+        }
+    }
+
+    function checkInBooking() {
+        const loginName = localStorage.getItem("Loginname")?.replace(/"/g, ""); 
+        const userID = localStorage.getItem("userID");
+
+        var formData = new FormData();
         formData.append('rsvID', idReservation);
-        formData.append('status', status);
-        formData.append('roomStatus', roomStatus);
-        formData.append('roomNo', roomNo);
-        formData.append('userName', userName);
+        formData.append('userName', loginName);
         formData.append('userID', userID);
+
         $.ajax({
             url: '/Reservation/CheckInBooking',
             type: 'POST',
+            showLoading: true,
             processData: false,
             contentType: false,
-            // headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             data: formData,
             success: function (data) {
                 if (data.code == 0) {
                     showToast('Success', data.msg, true);
-                    searchReservation();
+
+                    if (typeof searchReservation === 'function') searchReservation();
+                    if (typeof GetInforReservation === 'function') GetInforReservation(idReservation);
+
                 } else {
-                    showToast('Error', data.msg, false);
+                    alert("Check-in Failed: " + data.msg);
                 }
-
             },
-            error: function (xhr, statusText, err) {
-
+            error: function (xhr) {
+                // hideLoading();
+                showToast('Error', 'System error occurred during Check-in.', false);
+                console.error(xhr);
             }
         });
-
     }
 </script>

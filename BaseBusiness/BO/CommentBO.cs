@@ -1,12 +1,12 @@
 ﻿using BaseBusiness.bc;
 using BaseBusiness.Facade;
 using BaseBusiness.Model;
+using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Data.SqlClient;
 namespace BaseBusiness.BO
 {
     using Dapper;
@@ -28,7 +28,8 @@ namespace BaseBusiness.BO
 
         public static List<CommentModel> GetReasonAdjust()
         {
-            string query = $"SELECT * FROM Comment where CommentTypeID = 8 and Inactive = 0";
+            string query = $"Select * from Comment where ((Code like N'%') or (Description like N'%')) " +
+                $"AND CommentTypeID = 9 Order by Code";
             return instance.GetList<CommentModel>(query);
         }
         public CommentModel GetById(int id, SqlConnection conn, SqlTransaction tx)

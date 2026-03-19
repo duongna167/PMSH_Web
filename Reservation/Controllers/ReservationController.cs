@@ -19,6 +19,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Logging;
 using Newtonsoft.Json;
 using Reservation.Commons.Helpers;
 using Reservation.Dto;
@@ -2537,33 +2538,137 @@ namespace Reservation.Controllers
         }
         #endregion
 
-        #region DatVP __ Reservation : check in
+        #region Reservation : CheckIn
         [HttpPost]
-        public ActionResult CheckInBooking()
+        public IActionResult CheckInBooking()
         {
             ProcessTransactions pt = new ProcessTransactions();
             try
             {
+                int rsvID = int.Parse(Request.Form["rsvID"].ToString());
+                string userName = Request.Form["userName"].ToString();
+                int userID = int.Parse(Request.Form["userID"].ToString());
+
                 pt.OpenConnection();
                 pt.BeginTransaction();
-                ReservationModel reservation = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(int.Parse(Request.Form["rsvID"].ToString()));
-                reservation.Status = 1;
-                reservation.UpdateBy = Request.Form["userName"].ToString();
-                reservation.UserUpdateId = int.Parse(Request.Form["userID"].ToString());
-                reservation.SpecialUpdateBy = Request.Form["userName"].ToString();
-                reservation.SpecialUpdateDate = reservation.UpdateDate = DateTime.Now;
+
+                ReservationModel reservation = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(rsvID);
+                if (reservation == null) return Json(new { code = 1, msg = "Reservation not found." });
+
+                DateTime businessDate = TextUtils.GetBusinessDate();
+                if (reservation.ArrivalDate.Date != businessDate.Date)
+                {
+                    return Json(new { code = 1, msg = $"Arrival Date must be equal to Business Date ({businessDate:dd/MM/yyyy})." });
+                }
+
+                //  VALIDATION: Trạng thái  0:Reservation hoặc 5:Due In được Check-in
+                if (reservation.Status == 1) return Json(new { code = 1, msg = "Guest is already Checked-in." });
+                int[] blockStatus = { 2, 3, 7 }; // CO, Cancel, NoShow
+                if (blockStatus.Contains(reservation.Status))
+                {
+                    return Json(new { code = 1, msg = "Invalid status for Check-in." });
+                }
+
+                // VALIDATION: Số phòng
+                if (reservation.RoomId <= 0)
+                {
+                    return Json(new { code = 1, msg = "Please assign a room before Check-in." });
+                }
+
+                if (reservation.NoOfRoom > 1)
+                {
+                    return Json(new { code = 1, msg = "Split first reservation. Please!" });
+                }
+
+                // VALIDATION: Share Room 
+                if (reservation.ShareRoom > 0 && !reservation.MainGuest)
+                {
+                    string sqlCheckMG = $@"SELECT COUNT(*) FROM Reservation 
+                                   WHERE RoomId = {reservation.RoomId} 
+                                   AND MainGuest = 1 AND Status = 1";
+
+                    DataTable dtMG = TextUtils.Select(sqlCheckMG);
+                    int countMG = (dtMG.Rows.Count > 0) ? Convert.ToInt32(dtMG.Rows[0][0]) : 0;
+
+                    if (countMG <= 0)
+                    {
+                        return Json(new { code = 1, msg = "Main guest must be checked in before room sharer." });
+                    }
+                }
+
+                // VALIDATION: Tình trạng phòng thực tế 
+                var room = (RoomModel)RoomBO.Instance.FindByPrimaryKey(reservation.RoomId);
+                if (room != null)
+                {
+                    if (room.FOStatus == 1)
+                        return Json(new { code = 1, msg = $"Room {room.RoomNo} is Occupied." });
+
+                    // HKStatusID:  4 - Inspected, 1 - Clean
+                    if (room.HKStatusID != 4 && room.HKStatusID != 1)
+                    {
+                        return Json(new { code = 1, msg = $"Room {room.RoomNo} is not Clean/Inspected (Current HK: {room.HKStatusID})." });
+                    }
+                }
+
+                ReservationModel oldData = (ReservationModel)reservation.Clone();
+
+                reservation.Status = 1; // Checked-In
+                reservation.CheckInDate = DateTime.Now;
+                reservation.UpdateBy = userName;
+                reservation.UserUpdateId = userID;
+                reservation.UpdateDate = DateTime.Now;
+                reservation.SpecialUpdateBy = userName;
+                reservation.SpecialUpdateDate = DateTime.Now;
                 ReservationBO.Instance.Update(reservation);
 
+                // sinh folio cho khách chính
+                if (reservation.MainGuest == true)
+                {
+                    string checkSql = $"SELECT COUNT(*) FROM Folio WHERE ReservationID = {reservation.ID}";
+                    int countFolio = Convert.ToInt32(TextUtils.Select(checkSql).Rows[0][0]);
 
+                    if (countFolio == 0)
+                    {
+                        FolioModel newFolio = new FolioModel();
+                        newFolio.ReservationID = reservation.ID;
+                        newFolio.FolioDate = businessDate; 
+                        newFolio.FolioNo = 1;
+                        newFolio.ProfileID = reservation.ProfileIndividualId;
+                        newFolio.AccountName = reservation.LastName + " " + reservation.FirstName;
+                        newFolio.ConfirmationNo = reservation.ConfirmationNo;
+                        newFolio.Status = false; 
+                        newFolio.IsMasterFolio = false;
+                        newFolio.CreateDate = DateTime.Now;
+                        newFolio.UpdateDate = DateTime.Now;
+                        newFolio.UserInsertID = userID;
+                        newFolio.UserUpdateID = userID;
+                        newFolio.BalanceVND = 0;
+                        newFolio.BalanceUSD = 0;
+
+                        FolioBO.Instance.Insert(newFolio);
+
+                    }
+                }
+
+                if (room != null)
+                {
+                    room.FOStatus = 1;         // Occupied
+                    room.CurrResvStatus = 1;   // Đánh dấu phòng có khách In-house
+                    room.UserUpdateID = userID;
+                    room.UpdateDate = DateTime.Now;
+                    RoomBO.Instance.Update(room);
+                }
+
+                // KHỞI TẠO OPTIONS (ReservationOptions)
                 ReservationOptionsModel option = new ReservationOptionsModel
                 {
                     ReservationID = reservation.ID,
-
+                    Billing = true, // Sau CI vào Billing luôn
+                                    // Các trường khác mặc định false
                     Accompany = false,
                     AddOn = false,
                     AgentCompany = false,
                     Alerts = false,
-                    Billing = true,
                     CallerInfo = false,
                     Cancel = false,
                     Changes = false,
@@ -2571,48 +2676,40 @@ namespace Reservation.Controllers
                     CreditCards = false,
                     Del = false,
                     DepositCancelation = false,
-                    FacilityScheduler = false,
-                    FixedCharges = false,
                     History = false,
                     HouseKeeping = false,
-                    Locator = false,
                     Messages = false,
-                    PackageOption = false,
-                    Party = false,
-                    Privileges = false,
-                    Queue = false,
-                    RateInfo = false,
-                    RegisterCard = false,
-                    RoomMove = false,
-                    Routing = false,
                     Shares = false,
-                    Traces = false,
-                    TrackIt = false,
-                    WaitList = false,
-                    WakeUpCall = false,
-
-                    ItemInv = false,          // field này là int → giữ nguyên
-                    GroupOptions = false,
-                    MoreFields = false
+                    Traces = false
                 };
-
                 ReservationOptionsBO.Instance.Insert(option);
 
-
+                //  GHI LOG 
+                ActivityLogModel activityLog = new ActivityLogModel
+                {
+                    TableName = "Reservation",
+                    ObjectID = reservation.ID,
+                    UserID = userID,
+                    UserName = userName,
+                    ChangeDate = DateTime.Now,
+                    Change = "Check-In",
+                    Description = $"Check-in guest: {reservation.LastName} {reservation.FirstName} - Room: {reservation.RoomNo} | Auto generate folio no 1"
+                };
+              
+                TextUtils.FillValues(activityLog, oldData, reservation);
+                ActivityLogBO.Instance.Insert(activityLog);
 
                 pt.CommitTransaction();
-                return Json(new { code = 0, msg = "Check in was successfully" });
-
+                return Json(new { code = 0, msg = $"Check-in success! Room: {room?.RoomNo}" });
             }
             catch (Exception ex)
             {
                 pt.RollBack();
-                return Json(new { code = 1, msg = ex.Message });
+                return Json(new { code = 1, msg = "System Error: " + ex.Message });
             }
             finally
             {
                 pt.CloseConnection();
-
             }
         }
 
