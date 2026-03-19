@@ -241,8 +241,8 @@
                 </div>
             </div>
             <div class="content-right">
-                <div class="mui-card mx-1">
-                    <div class="row">
+                <div class="mui-card px-2">
+                    <div class="row px-2">
                         <div class="col-md-8">
 
 
@@ -250,25 +250,25 @@
                                 style="display:none;column-gap:4px">
                                 <a href="#" class="font-semibold col-md-2 mb-2"
                                     style="background-color:white;color:black;border: 1px solid #009444;border-radius: 4px !important;"
-                                    onclick="openModalBilling();">Billing</a>
+                                    id="resv_btnPostingBilling">Billing</a>
                                 <a href="#" class="font-semibold col-md-2 mb-2"
                                     style="background-color:white;color:black;border: 1px solid #009444;border-radius: 4px !important;"
-                                    onclick="openModalPackage();">Packages</a>
+                                   onclick="openModalPackage();" id="resv_btnPackage">Packages</a>
                                 <a href="#" class="font-semibold col-md-2 mb-2"
                                     style="background-color:white;color:black;border: 1px solid #009444;border-radius: 4px !important;"
-                                    onclick="openModalDeposit();">Dep/DXL</a>
+                                   onclick="openModalDeposit();" id="resv_btnDeposit">Dep/DXL</a>
                                 <a href="#" class="font-semibold col-md-2 mb-2"
                                     style="background-color:white;color:black;border: 1px solid #009444;border-radius: 4px !important;"
-                                    onclick="editBooking();">Edit</a>
+                                   onclick="editBooking();" id="resv_btnEdit">Edit</a>
                                 <a href="#" id="groupAdmin" class="font-semibold col-md-2 mb-2"
-                                    onclick="openGroupAdmin();"
+                                    onclick="openGroupAdmin();" 
                                     style="border-radius: 4px !important;background-color:white;color:black;border: 1px solid #009444;">Gr.Admin</a>
                                 <a href="#" class="font-semibold col-md-2 mb-2" onclick="openModalSearchRoom();"
                                     id="assignRoom"
                                     style="border-radius: 4px !important;background-color:white;color:black;border: 1px solid #009444;">Assign</a>
-                                <a href="#" onclick="openModalSplit();" class="font-semibold col-md-2 mb-2"
+                                <a href="#" onclick="openModalSplit();" class="font-semibold col-md-2 mb-2" id="resv_btnSplit"
                                     style="border-radius: 4px !important;background-color:white;color:black;border: 1px solid #009444;">Split</a>
-                                <a href="#" onclick="checkIn();" class="font-semibold col-md-2 mb-2"
+                                <a href="#" onclick="checkIn();" class="font-semibold col-md-2 mb-2" id="resv_btnCheckIn"
                                     style="border-radius: 4px !important;background-color:white;color:black;border: 1px solid #009444;">Check
                                     In</a>
                                 <a href="#" class="font-semibold col-md-2 mb-2" onclick="openModalCheckOut();"
@@ -456,6 +456,8 @@
         offcanvas.show();
     }
     $(document).ready(async function () {
+        initTomSelect(".tomselect-custom");
+
         await getBusinessDate();
         setupDefaultCaret();
         const urlParams = new URLSearchParams(window.location.search);
@@ -639,7 +641,9 @@
 
     window.searchReservation = searchReservation;
     var idReservation = 0;
+    var listFolioData = [];     
     var status = '';
+    var statusID = 0;
     var roomStatus = '';
     var roomNo = '';
     var roomID = 0;
@@ -693,6 +697,7 @@
             { dataField: 'MG', caption: 'MG', visible: true },
             { dataField: 'Nationality', caption: 'Nationality', visible: true },
             { dataField: 'GuestName', caption: 'Guest Name', visible: true },
+            { dataField: 'NoOfRoom', caption: 'Rms', visible: true },
             { dataField: 'RoomNo', caption: 'Room No', visible: true, alignment: 'right' },
             { dataField: 'RoomStatus', caption: 'Rm Status', visible: true },
             { dataField: 'RoomType', caption: 'Room Type', visible: true },
@@ -794,7 +799,6 @@
             { dataField: 'MarketCode', caption: 'Market Code', visible: false },
             { dataField: 'MemberNo', caption: 'Member No', visible: false },
             { dataField: 'MemberType', caption: 'Member Type', visible: false },
-            { dataField: 'NoOfRoom', caption: 'No of Rooms', visible: false },
             { dataField: 'OriginCode', caption: 'Origin Code', visible: false },
             { dataField: 'PM', caption: 'PM', visible: false },
             { dataField: 'PersonInChargeID', caption: 'Person In Charge ID', visible: false },
@@ -852,7 +856,68 @@
             });
         }
 
-        // 7. KHỞI TẠO GRID
+        const RESV_STATUS = {
+            Reservation: 0,
+            CheckedIn: 1,
+            CheckedOut: 2,
+            Cancel: 3,
+            Waitlist: 4,
+            DueIn: 5,
+            DueOut: 6,
+            NoShow: 7,
+            DayUse: 8
+        };
+
+        function toggleButton($el, disabled) {
+            if (disabled) {
+                $el.addClass('disabled').css({
+                    // 'pointer-events': 'none',
+                    'opacity': '0.5',
+                    'cursor': 'not-allowed'
+                });
+            } else {
+                $el.removeClass('disabled').css({
+                    'cursor': 'pointer',
+                    'opacity': '1'
+                });
+            }
+        }
+
+        $('#resv_btnPostingBilling').off('click').on('click', function (e) {
+
+            if ($(this).hasClass('disabled')) {
+                e.preventDefault();
+                return;
+            }
+
+            openModalBilling();
+        });
+
+        function handleReservationActions(data) {
+
+            const sID = Number(data.ReservationStatus);
+
+            if (isNaN(sID)) {
+                console.warn("Invalid ReservationStatus:", data.ReservationStatus);
+                return;
+            }
+
+            console.log("ReservationStatus:", sID);
+
+            const blockedStatus = [
+                RESV_STATUS.CheckedOut,
+                RESV_STATUS.Cancel,
+                RESV_STATUS.Waitlist,
+                RESV_STATUS.NoShow,
+                RESV_STATUS.DueIn
+            ];
+
+            const isBlocked = blockedStatus.includes(sID);
+
+            toggleButton($('#resv_btnPostingBilling'), isBlocked);
+        }
+
+        //  KHỞI TẠO GRID
         const grid = $("#gridContainer").dxDataGrid({
             dataSource: processedData,
             allowColumnResizing: true,
@@ -874,6 +939,7 @@
                 $('#functionAndOptionTable').show();
                 $('#listFunction').show();
                 idReservation = e.data.ID;
+                statusID = e.data.ReservationStatus;
                 console.log('e.data', e.data);
 
                 $('#moreInfo').empty();
@@ -884,15 +950,10 @@
                 $('#moreInfo').append(html);
                 $('#cmt_wrapper').empty().append(`<span><b>Comment:</b> <i>${e.data.Comment || ''}</i></span>`).show();
 
-                // Billing – dùng format mới (không thập phân)
                 $('#rsvStatusBilling').text(e.data.Status);
-                if (e.data.Status === 'CHECKED OUT') {
-                    $('#btnPaymentBilling').hide(); // chỉ ẩn Payment
-                    $('#btnPostingBilling').hide(); // chỉ ẩn Payment
-                } else {
-                    $('#btnPaymentBilling').show();
-                    $('#btnPostingBilling').show();
-                }
+
+                handleReservationActions(e.data);
+
                 $('#conNoBilling').text(e.data.ConfirmationNo);
                 $('#arivalBilling').text(e.data.Arrival ? e.data.Arrival.split(' ')[0] : '');
                 $('#departureBilling').text(e.data.Departure ? e.data.Departure.split(' ')[0] : '');
@@ -1020,7 +1081,6 @@
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     }
-
 
     function exportExcel() {
         const grid = $("#gridContainer").dxDataGrid("instance");
@@ -1177,8 +1237,6 @@
         return values.join(","); // Trả về chuỗi dạng 'a,c,v,c'
     }
 
-
-
     function getSelectedRadio(name) {
         const radio = document.querySelector(`input[type="radio"][name="${name}"]:checked`);
         return radio ? radio.value : null;
@@ -1329,4 +1387,25 @@
         }
     }
 
+    function resetBillingData() {
+        folioNoID = 0;
+        listFolioNoID = [];
+        listFolioData = [];
+        folioPosting = 1;
+        totalAmountBilling = 0;
+
+        $('#infoBillingName').html('<i class="fas fa-spinner fa-spin"></i> Loading...');
+        $('#balanceBilling').text('0');
+        $('#totalBilling').text('0');
+        $('#balanceBillingMaster').text('0');
+        $('#totalBillingMaster').text('0');
+
+        $('#listFolioNo').empty();
+
+        var grid = $("#gridContainerBilling").dxDataGrid("instance");
+        if (grid) {
+            grid.option("dataSource", []);
+            grid.refresh();
+        }
+    }
 </script>
