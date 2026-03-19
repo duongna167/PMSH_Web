@@ -8,6 +8,7 @@ using DevExpress.Web.Internal;
 using DevExpress.XtraReports.Design;
 using DevExpress.XtraReports.UI;
 using DevExpress.XtraRichEdit.Fields;
+using DevExpress.XtraRichEdit.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -896,12 +897,7 @@ namespace Billing.Controllers
             try
             {
                 List<ReservationModel> posting = new List<ReservationModel>();
-  
-                
                    posting = ReservationBO.GetBalanceVND(rsvID);
-   
-                
-
                 return Json(posting);
             }
             catch (Exception ex)
@@ -2667,7 +2663,45 @@ namespace Billing.Controllers
         }
         #endregion
 
-
+        #region Billing: View Transaction Detail
+        [HttpGet]
+        public IActionResult GetTransactionDetailBreakdown(int invoiceNo)
+        {
+            try
+            {
+                DataTable dataTable = _iPostService.TransactionDetail(invoiceNo);
+                var result = (from d in dataTable.AsEnumerable()
+                              select new
+                              {
+                                  ID = !string.IsNullOrEmpty(d["Index"].ToString()) ? d["Index"] : "",
+                                  GroupCode = !string.IsNullOrEmpty(d["GroupCode"].ToString()) ? d["GroupCode"] : "",
+                                  SubgroupCode = !string.IsNullOrEmpty(d["SubgroupCode"].ToString()) ? d["SubgroupCode"] : "",
+                                  PostType = !string.IsNullOrEmpty(d["PostType"].ToString()) ? d["PostType"] : "",
+                                  RowState = !string.IsNullOrEmpty(d["RowState"].ToString()) ? d["RowState"] : "",
+                                  IsSplit = !string.IsNullOrEmpty(d["IsSplit"].ToString()) ? d["IsSplit"] : "",
+                                  InvoiceNo = !string.IsNullOrEmpty(d["InvoiceNo"].ToString()) ? d["InvoiceNo"] : "",
+                                  TransactionNo = !string.IsNullOrEmpty(d["TransactionNo"].ToString()) ? d["TransactionNo"] : "",
+                                  Date = !string.IsNullOrEmpty(d["Date"].ToString()) ? d["Date"] : "",
+                                  Time = !string.IsNullOrEmpty(d["Time"].ToString()) ? d["Time"] : "",
+                                  IsVisible = !string.IsNullOrEmpty(d["IsVisible"].ToString()) ? d["IsVisible"] : "",
+                                  Code = !string.IsNullOrEmpty(d["Code"].ToString()) ? d["Code"] : "",
+                                  Description = !string.IsNullOrEmpty(d["Description"].ToString()) ? d["Description"] : "",
+                                  VirtualCode = !string.IsNullOrEmpty(d["VirtualCode"].ToString()) ? d["VirtualCode"] : "",
+                                  Amount = !string.IsNullOrEmpty(d["Amount"].ToString()) ? d["Amount"] : "",
+                                  Currency = !string.IsNullOrEmpty(d["Currency"].ToString()) ? d["Currency"] : "",
+                                  Supplement = !string.IsNullOrEmpty(d["Supplement"].ToString()) ? d["Supplement"] : "",
+                                  Reference = !string.IsNullOrEmpty(d["Reference"].ToString()) ? d["Reference"] : "",
+                                  UserName = !string.IsNullOrEmpty(d["UserName"].ToString()) ? d["UserName"] : "",
+                                  ShiftID = !string.IsNullOrEmpty(d["ShiftID"].ToString()) ? d["ShiftID"] : ""
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+        #endregion
 
     }
 }

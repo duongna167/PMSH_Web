@@ -4875,6 +4875,7 @@ namespace Reservation.Controllers
         }
 
         #endregion
+
         #region  DatVP __ Reservation: Group check in 
         [HttpGet]
         public async Task<IActionResult> SearchGroupCheckInRoom(string confirmationNo, int type, string name, string roomNo)
@@ -6669,6 +6670,7 @@ namespace Reservation.Controllers
         //}
 
         //#endregion
+
         #region Tuan_GetSetUpPackage
         [HttpGet]
         public IActionResult GetSetUpPackage(string searchKey = "")
@@ -6702,6 +6704,7 @@ namespace Reservation.Controllers
             }
         }
         #endregion
+
         #region
         public IActionResult RateQuery()
         {
