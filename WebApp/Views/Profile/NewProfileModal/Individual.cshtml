@@ -392,7 +392,7 @@
                                                     <input type="text" class="form-control"
                                                            id="ind_txtBlackListReason" name="ind_txtBlackListReason"
                                                            style="background-color: black; color: white; border-radius: 0; height: 31px;"
-                                                           placeholder="Enter reason...">
+                                                           placeholder="Enter reason..." disabled>
                                                 </div>
                                                 <div class="col-sm-1">
                                                     <input type="checkbox" class=""
@@ -454,7 +454,6 @@
 
         init: function () {
             this.initDOMEvents();
-            this.bindNameEngine();
             this.initStateControls();
             this.initTomSelects();
         },
@@ -478,6 +477,35 @@
                     pro_ind_Module.searchIndividual();
                 }
 
+            });
+
+            $('#ind_txtFirstName, #ind_txtMiddleName, #ind_txtLastName').on('input', function() {
+                self.syncFullNameFromParts();
+            });
+
+            $("#ind_txtFullName").on("blur", function() {
+                self.syncPartsFromFullName();
+            });
+
+            $("#ind_txtFullName").on("keydown", function(e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    self.syncPartsFromFullName();
+                    $("#ind_txtFirstName").focus();
+                }
+            });
+
+            $("#ind_txtTitle").on("change", function() {
+                const lastName = $("#ind_txtLastName").val();
+                const ts = getTomSelect("#ind_txtTitle");
+                if (!ts) return;
+
+                const val = ts.getValue();
+                const titleText = val ? ts.options[val]?.text : "";
+
+                if (lastName && titleText && titleText !== "Enter or select...") {
+                    $("#ind_txtSalutation").val("Dear " + titleText + " " + GuestNameEngine.smartCapitalize(lastName));
+                }
             });
         },
 
@@ -533,55 +561,6 @@
             ];
 
             Promise.all(loadTasks)
-        },
-
-        bindNameEngine: function () {
-            const self = this;
-            const $full = $("#ind_txtFullName");
-            const $salutation = $("#ind_txtSalutation");
-
-            function processNameParsing() {
-                let nameVal = $full.val();
-                if (!nameVal) return;
-
-                let p = GuestNameEngine.parseFullName(nameVal);
-                console.log("Parsed Name:", p);
-
-                $("#ind_txtFirstName").val(p.first).trigger("input");
-                $("#ind_txtMiddleName").val(p.middle).trigger("input");
-                $("#ind_txtLastName").val(p.last).trigger("input");
-
-                let resultSalutation = GuestNameEngine.buildSalutation(p.first, p.last);
-                $salutation.val(resultSalutation);
-            }
-
-            $full.on("blur", processNameParsing);
-
-            $full.on("keydown", function(e) {
-                if (e.which === 13) {
-                    e.preventDefault();
-                    processNameParsing();
-
-                    $("#ind_txtFirstName").focus();
-                }
-            });
-
-            $("#ind_txtTitle").on("change", function() {
-                const lastName = $("#ind_txtLastName").val();
-
-                const ts = getTomSelect("#ind_txtTitle");
-                if (!ts) return;
-
-                const val = ts.getValue();
-
-                const titleText = val ? ts.options[val]?.text : "";
-
-                if (lastName && titleText && titleText !== "Enter or select...") {
-                    $salutation.val("Dear " + titleText + " " + GuestNameEngine.smartCapitalize(lastName));
-                } else if (lastName) {
-                    $salutation.val("Dear " + GuestNameEngine.smartCapitalize(lastName));
-                }
-            });
         },
 
         initStateControls: function () {
@@ -990,8 +969,36 @@
             });
 
         },
-    };
 
+        syncFullNameFromParts: function() {
+            const first = $("#ind_txtFirstName").val();
+            const middle = $("#ind_txtMiddleName").val();
+            const last = $("#ind_txtLastName").val();
+
+            const fullName = GuestNameEngine.buildFullName(first, middle, last);
+            $("#ind_txtFullName").val(fullName);
+
+            this.updateSalutation(first, last);
+        },
+
+        syncPartsFromFullName: function() {
+            const fullName = $("#ind_txtFullName").val();
+            if (!fullName) return;
+
+            const p = GuestNameEngine.parseFullName(fullName);
+
+            $("#ind_txtFirstName").val(p.first);
+            $("#ind_txtMiddleName").val(p.middle);
+            $("#ind_txtLastName").val(p.last);
+
+            this.updateSalutation(p.first, p.last);
+        },
+
+        updateSalutation: function(first, last) {
+            const salutation = GuestNameEngine.buildSalutation(first, last);
+            $("#ind_txtSalutation").val(salutation);
+        },
+    };
 
     window.initIndividualModal = function() {
         if (window.pro_ind_Module) {
