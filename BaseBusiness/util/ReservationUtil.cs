@@ -215,6 +215,173 @@ namespace BaseBusiness.util
             #endregion
         }
 
+        /// <summary>
+        /// Tạo Profile với profile đã có
+        /// -- CSS, 27/03/2010
+        /// </summary>
+        /// <param name="ProfileIndividualID">ID Profile truyền vào</param>
+        /// <param name="UserID">UserID người tạo</param>
+        /// <param name="pt"> Transaction</param>
+        /// <returns></returns>
+        public static int CreateProfile(int ProfileIndividualID, int UserID, ProcessTransactions pt)
+        {
+            int pProfileID = 0;
+            string _maxcode = ProfileBO.Instance.GenerateNo4("Code");
+            //DataTable CR = pt.Select("Select Top 1 MAX(Convert(int,Code)) AS Code FROM Profile WITH (NOLOCK)");
+            ProfileModel mP = (ProfileModel)pt.FindByPK("Profile", ProfileIndividualID);
+            if (_maxcode != "")
+            {
+                //int leg = CR.Rows[0]["Code"].ToString().Length;
+                //mP.Code = "0000" + Convert.ToString(Convert.ToUInt32(CR.Rows[0]["Code"].ToString()) + 1);
+                //mP.Code = mP.Code.Remove(0, mP.Code.Length - leg);
+                mP.Code = _maxcode;
+                mP.CreateDate = mP.UpdateDate = TextUtils.GetSystemDate();
+                mP.UserInsertID = mP.UserUpdateID = UserID;
+                mP.IdentityCard = "";
+                mP.PassPort = "";
+                mP.Address = "";
+                mP.IsBlackList = false;
+                mP.BlackListReason = "";
+                mP.DateOfBirth = Convert.ToDateTime("01/01/1900");
+                #region 1.&&
+                mP.ReturnGuest = -1;
+                mP.StayNo = 0;
+                mP.GuestNo = mP.Occupation = mP.Birthplace = "";
+                mP.BonusPoints = mP.GuestGroupID = 0;
+                mP.ExpressCheckout = mP.PayTV = false;
+                mP.CreditCard = mP.RateCode = "";
+                mP.RoomNights = mP.BedNights = 0;
+                mP.TotalTurnover = mP.LodgeTurnover = mP.LodgePackageTurover = mP.FBTurnover = mP.EventTurnover = mP.OtherTurnover = 0;
+                mP.FirstReservation = Convert.ToDateTime("01/01/1900");
+                mP.LastReservation = Convert.ToDateTime("01/01/1900");
+                mP.WeddingAnniversary = Convert.ToDateTime("01/01/1900");
+                mP.Firstvisit = Convert.ToDateTime("01/01/1900");
+                mP.Expiry = Convert.ToDateTime("01/01/1900");
+                mP.LastContact = Convert.ToDateTime("01/01/1900");
+                mP.Telephone = ""; mP.HandPhone = ""; mP.Email = ""; mP.Fax = ""; mP.Website = "";
+                mP.TaxCode = ""; mP.HomeAddress = ""; mP.FullAccount = "";
+                mP.VIPID = 0; mP.VIPReason = "";
+                #endregion
+                pProfileID = (int)pt.Insert(mP);
+            }
+            return pProfileID;
+        }
+        //No Transaction
+        public static int CreateProfile(int ProfileIndividualID, int UserID)
+        {
+            int pProfileID = 0;
+            string _maxCode = " ";
+            //_maxCode = ProfileBO.Instance.GenerateNo3("Code");
+            //DataTable CR = TextUtils.Select("Select Top 1 MAX(Convert(int,Code)) AS Code FROM Profile WITH (NOLOCK)");
+            ProfileModel mP = (ProfileModel)ProfileBO.Instance.FindByPrimaryKey(ProfileIndividualID);
+            if (_maxCode != "")
+            {
+                //int leg = CR.Rows[0]["Code"].ToString().Length;
+                //mP.Code = "0000" + Convert.ToString(Convert.ToUInt32(CR.Rows[0]["Code"].ToString()) + 1);
+                //mP.Code = mP.Code.Remove(0, mP.Code.Length - leg);
+                mP.Code = _maxCode;
+                mP.CreateDate = mP.UpdateDate = TextUtils.GetSystemDate();
+                mP.UserInsertID = mP.UserUpdateID = UserID;
+                mP.IdentityCard = "";
+                mP.PassPort = "";
+                mP.Address = "";
+                mP.IsBlackList = false;
+                mP.BlackListReason = "";
+                mP.DateOfBirth = Convert.ToDateTime("01/01/1900");
+                #region 1.&&
+                mP.StayNo = 0;
+                mP.ReturnGuest = -1;
+                mP.GuestNo = mP.Occupation = mP.Birthplace = "";
+                mP.BonusPoints = mP.GuestGroupID = 0;
+                mP.ExpressCheckout = mP.PayTV = false;
+                mP.CreditCard = mP.RateCode = "";
+                mP.RoomNights = mP.BedNights = 0;
+                mP.TotalTurnover = mP.LodgeTurnover = mP.LodgePackageTurover = mP.FBTurnover = mP.EventTurnover = mP.OtherTurnover = 0;
+                mP.FirstReservation = Convert.ToDateTime("01/01/1900");
+                mP.LastReservation = Convert.ToDateTime("01/01/1900");
+                mP.WeddingAnniversary = Convert.ToDateTime("01/01/1900");
+                mP.Firstvisit = Convert.ToDateTime("01/01/1900");
+                mP.Expiry = Convert.ToDateTime("01/01/1900");
+                mP.LastContact = Convert.ToDateTime("01/01/1900");
+                mP.Telephone = ""; mP.HandPhone = ""; mP.Email = ""; mP.Fax = ""; mP.Website = "";
+                mP.TaxCode = ""; mP.HomeAddress = ""; mP.FullAccount = "";
+                mP.VIPID = 0; mP.VIPReason = "";
+                #endregion
+                pProfileID = (int)ProfileBO.Instance.Insert(mP);
+            }
+            return pProfileID;
+        }
+
+        #region Phần GetRoomShareName
+        /// <summary>
+        /// Xác định tên của từng người trong phòng để update vào bảng Reservation (Trường ShareRoomName)
+        /// -- CSS, 27/03/2010
+        /// </summary>
+        /// <param name="Name"></param>
+        /// <returns></returns>
+        public static void GetRoomShareName(int ShareRoom, ProcessTransactions pt)
+        {
+            #region Xác định xem có bao nhiêu phiếu đặt phòng trong phòng 
+            Expression expSR = new Expression("ShareRoom", ShareRoom, "=");
+            ArrayList arrSR = pt.FindByExpression("Reservation", expSR);
+            if (arrSR.Count > 0)
+            {
+                for (int sr = 0; sr < arrSR.Count; sr++)
+                {
+                    ReservationModel mR = (ReservationModel)pt.FindByPK("Reservation", ((ReservationModel)arrSR[sr]).ID);
+                    //Nhặt ra Name cần Update cho từng BK
+                    string ShareRoomName = "";
+                    Expression expSR1 = new Expression("ShareRoom", ShareRoom, "=");
+                    expSR1 = expSR1.And(new Expression("ID", ((ReservationModel)arrSR[sr]).ID, "<>"));
+                    ArrayList arrSR1 = pt.FindByExpression("Reservation", expSR1);
+                    for (int sr1 = 0; sr1 < arrSR1.Count; sr1++)
+                    {
+                        if (ShareRoomName != "")
+                            ShareRoomName = ShareRoomName + "; " + ((ReservationModel)arrSR1[sr1]).LastName;
+                        else
+                            ShareRoomName = ((ReservationModel)arrSR1[sr1]).LastName;
+                    }
+                    //Update vao BK - C1
+                    mR.ShareRoomName = ShareRoomName;
+                    pt.Update(mR);
+                    //Update vao BK - C2(Lỗi khi tên có ký tự đặc biệt)                            
+                    ////pt.UpdateCommand("UPDATE Reservation SET ShareRoomName = N'" + ShareRoomName + "' " +
+                    ////                 "WHERE ID = " + ((ReservationModel)arrSR[sr]).ID + " ");
+                }
+            }
+            #endregion
+        }
+        //No Transaction
+        public static void GetRoomShareName(int ShareRoom)
+        {
+            // Xác định xem có bao nhiêu phiếu đặt phòng trong phòng 
+            Expression expSR = new Expression("ShareRoom", ShareRoom, "=");
+            ArrayList arrSR = ReservationBO.Instance.FindByExpression(expSR);
+            if (arrSR.Count > 0)
+            {
+                for (int sr = 0; sr < arrSR.Count; sr++)
+                {
+                    ReservationModel mR = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(((ReservationModel)arrSR[sr]).ID);
+                    //Nhặt ra Name cần Update cho từng BK
+                    string ShareRoomName = "";
+                    Expression expSR1 = new Expression("ShareRoom", ShareRoom, "=");
+                    expSR1 = expSR1.And(new Expression("ID", ((ReservationModel)arrSR[sr]).ID, "<>"));
+                    ArrayList arrSR1 = ReservationBO.Instance.FindByExpression(expSR1);
+                    for (int sr1 = 0; sr1 < arrSR1.Count; sr1++)
+                    {
+                        if (ShareRoomName != "")
+                            ShareRoomName = ShareRoomName + "; " + ((ReservationModel)arrSR1[sr1]).LastName;
+                        else
+                            ShareRoomName = ((ReservationModel)arrSR1[sr1]).LastName;
+                    }
+                    //Update vao BK - C1
+                    mR.ShareRoomName = ShareRoomName;
+                    ReservationBO.Instance.Update(mR);
+                }
+            }
+        }
+
+        #endregion
 
         #region 16.Interface
 
@@ -1061,6 +1228,520 @@ namespace BaseBusiness.util
             //}
         }
 
+
+        #endregion
+        /// <summary>
+        /// Kiểm tra số lượng đã được Share
+        /// -- CSS, 21/05/2010
+        /// </summary>
+        /// <param name="ShareRoom"></param>
+        /// <returns></returns>
+        public static int CheckShareRoom(int ShareRoom)
+        {
+            Expression expR = new Expression("ShareRoom", ShareRoom, "=");
+            //expR = expR.And(new Expression("Type", Type, "="));
+            ArrayList arrR = ReservationBO.Instance.FindByExpression(expR);
+            if (arrR.Count > 0)
+                return arrR.Count;
+            else
+                return 0;
+        }
+
+        public static int CheckShareRoomTotal(int ShareRoom)
+        {
+            DataTable dtR = TextUtils.Select("SELECT SUM(NoOfAdult + NoOfChild + NoOfChild1 + NoOfChild2) as TotalPerson " +
+                                             "FROM Reservation WITH (NOLOCK)" +
+                                             "WHERE ShareRoom = " + ShareRoom + " ");
+            if (dtR.Rows.Count > 0)
+                return int.Parse(dtR.Rows[0][0].ToString());
+            else
+                return 0;
+        }
+
+        #region GenCreateRoomShare Transaction And no Transaction
+        /// <summary>
+        /// Tạo Room Share cho phiếu đặt phòng với same thông tin khách chính
+        /// -- CSS, 27/03/2010
+        /// </summary>
+        public static void GenCreateRoomShare(int ReservationID, int UserID)
+        {
+            int pID;
+            DateTime pArrival;
+            DateTime _BusDate = TextUtils.GetBusinessDateTime();
+            //CSS, 26/03/2010
+            if (ReservationID > 0)
+            {
+                ReservationModel mOR = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(ReservationID);
+
+                ProcessTransactions pt = new ProcessTransactions();
+                pt.OpenConnection();
+                pt.BeginTransaction();
+                try
+                {
+                    pArrival = mOR.ArrivalDate;
+
+                    #region Tạo mới thông tin Profile cho RS
+                    int _ProfileIndividualID = CreateProfile(mOR.ProfileIndividualId, UserID, pt);
+                    #endregion
+
+                    #region Tạo mới phiếu đặt phòng cho RS
+
+                    #region Cập nhật dữ liệu vào bảng Reservation
+                    mOR.UserInsertId = mOR.UserUpdateId = UserID;
+                    mOR.CreateDate = mOR.UpdateDate = mOR.SpecialUpdateDate = DateTime.Now;
+                    mOR.CreateBy = mOR.UpdateBy = mOR.SpecialUpdateBy = Global.UserName;
+                    mOR.ReservationDate = _BusDate;
+                    //trường hợp ngày đến = BB Status = DI
+                    if (TextUtils.CompareDate(mOR.ArrivalDate, _BusDate) == 0)
+                    {
+                        //Trường hợp CL và WL thì giữ nguyên trạng thái
+                        if (mOR.Status != 3 && mOR.Status != 4)
+                            mOR.Status = 5;
+                    }
+                    else
+                    {
+                        //Trường hợp CL và WL thì giữ nguyên trạng thái
+                        if (mOR.Status != 3 && mOR.Status != 4)
+                            mOR.Status = 0;
+                    }
+                    //Trường hợp ngày đến < Ngày BB lấy ngày đến = BB
+                    if (TextUtils.CompareDate(mOR.ArrivalDate, _BusDate) == -1)
+                    {
+                        mOR.ArrivalDate = _BusDate;
+                        //Trường hợp CL và WL thì giữ nguyên trạng thái
+                        if (mOR.Status != 3 && mOR.Status != 4)
+                        {
+                            mOR.Status = 5;
+                        }
+                        mOR.NoOfNight = TextUtils.NumberOfDay("d", mOR.DepartureDate, mOR.ArrivalDate);
+                    }
+                    mOR.PostingMaster = false;
+                    mOR.NoOfRoom = 0;
+                    mOR.Packages = "";
+                    mOR.FixedCharge = "";
+                    mOR.ItemInventory = "";
+                    mOR.AccompanyName = "";
+                    mOR.Specials = "";
+                    mOR.RoutingTransaction = "";
+                    mOR.RoutingToProfile = "";
+                    mOR.Vip = "";
+                    mOR.VipId = 0;
+                    mOR.MemberType = "";
+                    mOR.MemberNo = "";
+                    mOR.MemberLevel = "";
+                    mOR.Email = "";
+                    mOR.Phone = "";
+                    mOR.Address = "";
+                    mOR.MainGuest = false;
+                    mOR.RateCodeId = 0;
+                    mOR.Rate = 0;
+                    mOR.RateAfterTax = 0;
+                    mOR.TotalAmount = 0;
+                    mOR.NoOfAdult = 0;
+                    mOR.NoOfChild = 0;
+                    mOR.NoOfChild1 = 0;
+                    mOR.NoOfChild2 = 0;
+                    mOR.BalanceUSD = 0;
+                    mOR.BalanceVND = 0;
+                    mOR.DiscountAmount = mOR.DiscountRate = 0;
+                    mOR.DiscountReason = "";
+                    mOR.ProfileIndividualId = _ProfileIndividualID;
+                    mOR.ShareRoom = mOR.ShareRoom;
+
+                    pID = (int)pt.Insert(mOR);
+                    //Update ReservationNo vào bảng Rsv
+                    mOR.ID = pID;
+                    mOR.ReservationNo = pID.ToString();
+
+                    pt.Update(mOR);
+
+                    #endregion
+
+                    #region Cập nhật dữ liệu vào bảng ReservationRate
+                    //Trường hợp ngày đến và đi không thay đổi so với MG
+                    if (TextUtils.CompareDate(pArrival, _BusDate) >= 0)
+                    {
+                        //Select dữ liệu từ bảng ReservationRate    
+                        DataTable CRR = pt.getTable("spCheckReservationRate", "tbRsvR",
+                                       new SqlParameter("@ReservationID", ReservationID));
+                        for (int i = 0; i < CRR.Rows.Count; i++)
+                        {
+                            ReservationRateModel mRR = (ReservationRateModel)pt.FindByPK("ReservationRate", TextUtils.ToInt(CRR.Rows[i]["ID"].ToString()));
+                            mRR.ReservationID = pID;
+                            mRR.RateCodeID = 0;
+                            mRR.Rate = 0;
+                            mRR.RateAfterTax = 0;
+                            mRR.DiscountRate = 0;
+                            mRR.DiscountAmount = 0;
+                            mRR.NoOfAdult = 0;
+                            mRR.NoOfChild = 0;
+                            mRR.NoOfChild1 = 0;
+                            mRR.NoOfChild2 = 0;
+                            mRR.RoomRevenueBeforeTax = 0;
+                            mRR.RoomRevenueAfterTax = 0;
+                            mRR.UserInsertID = UserID;
+                            mRR.CreateDate = DateTime.Now;
+                            mRR.UpdateDate = DateTime.Now;
+                            mRR.UserUpdateID = UserID;
+                            int pRsvRateID = (int)pt.Insert(mRR);
+
+                            //Gán ID vào model
+                            mRR.ID = pRsvRateID;
+                        }
+                    }
+                    // Trường hợp nếu ngày đến có thay đổi so với MG
+                    else
+                    {
+                        for (int i = 0; i < mOR.NoOfNight; i++)
+                        {
+                            ReservationRateModel mRR = new ReservationRateModel();
+                            mRR.ReservationID = pID;
+                            mRR.RateCodeID = 0;
+                            mRR.RateDate = mOR.ArrivalDate.AddDays(i);
+                            mRR.RateDate = new DateTime(mRR.RateDate.Year, mRR.RateDate.Month, mRR.RateDate.Day, 0, 0, 0);
+                            mRR.Rate = 0;
+                            mRR.RoomID = mOR.RoomId;
+                            mRR.RoomNo = mOR.RoomNo;
+                            mRR.RoomTypeID = mOR.RoomTypeId;
+                            mRR.RoomType = mOR.RoomType;
+                            mRR.MarketID = mOR.MarketId;
+                            mRR.SourceID = mOR.SourceId;
+                            mRR.AllotmentID = mOR.AllotmentId;
+                            mRR.CurrencyID = TextUtils.GetMasterCurrency();
+                            mRR.UserInsertID = mRR.UserUpdateID = UserID;
+                            mRR.CreateDate = mRR.UpdateDate = DateTime.Now;
+                            int pRsvRateID = (int)pt.Insert(mRR);
+
+                            //Gán ID vào model
+                            mRR.ID = pRsvRateID;
+                        }
+                    }
+                    #endregion
+
+                    #endregion
+
+                    #region Ghi dữ liệu vào ReservationOption
+
+                    //Cập nhật RS cho rsv gốc
+                    int ReservationOptionID = ReservationBO.GetReservationOptionID(ReservationID, pt);
+                    if (ReservationOptionID == 0)
+                    {
+                        ReservationOptionsModel mRO = new ReservationOptionsModel();
+                        mRO.ReservationID = ReservationID;
+                        mRO.Shares = true;
+                        if (mOR.ProfileGroupId > 0)
+                            mRO.GroupOptions = true;
+                        pt.Insert(mRO);
+                    }
+                    else
+                    {
+                        ReservationOptionsModel mRO = (ReservationOptionsModel)pt.FindByPK("ReservationOptions", ReservationOptionID);
+                        mRO.ID = ReservationOptionID;
+                        mRO.Shares = true;
+                        if (mOR.ProfileGroupId > 0)
+                            mRO.GroupOptions = true;
+                        pt.Update(mRO);
+                    }
+                    //Trường hợp có Routing thì ghi hoặc sửa dữ liệu trong bảng ReservationOptions
+                    bool _Routing = false;
+                    ReservationBO.CheckRouting(mOR.ConfirmationNo, ref _Routing, pt);
+                    if (_Routing == true)
+                    {
+                        int pReservationOptionID = ReservationBO.GetReservationOptionID(pID, pt);
+                        if (pReservationOptionID == 0)
+                        {
+                            ReservationOptionsModel mRO = new ReservationOptionsModel();
+                            mRO.ReservationID = pID;
+                            //mRO.Shares = true;                           
+                            mRO.Routing = true;
+                            pt.Insert(mRO);
+                        }
+                        else
+                        {
+                            ReservationOptionsModel mRO = (ReservationOptionsModel)pt.FindByPK("ReservationOptions", pReservationOptionID);
+                            mRO.ID = pReservationOptionID;
+                            //mRO.Shares = true;
+                            mRO.Routing = true;
+                            pt.Update(mRO);
+                        }
+                    }
+                    #endregion
+
+                    #region Update lại tên của khách ở cùng phòng vào từng đặt phòng (Trường ShareRoomName)
+                    GetRoomShareName(mOR.ShareRoom, pt);
+                    #endregion
+
+                    #region Update lại tên của khách ở cùng phòng vào từng đặt phòng (Trường AccompanyName)
+                    ReservationBO.GetAccompanyName(ReservationID, pt);
+                    #endregion
+
+                    #region Ghi dữ liệu vào bảng ReservationAmountByCurrency
+                    ////Xóa dữ liệu trước khi Insert
+                    //pt.DeleteByAttribute("ReservationAmountByCurrency", "ReservationID", pID.ToString());
+                    ////Tính lại số liệu rồi ghi dữ liệu 
+                    //ClassReservation.GetAmountByCurrency(pID, UserID, pt);
+                    #endregion
+
+                    #region Ghi dữ liệu vào bảng ReservationGroup và ReservationGroupAmountByCurrency
+                    ////Chú ý phải thực hiện ghi dữ liệu vào bảng ReservationAmountByCurrency trước                            
+                    //ClassReservation.CreateReservationGroup(pID, mOR.ConfirmationNo, UserID, "", pt);
+                    #endregion
+
+                    #region Interface
+                    //if (ClassReservation.GetDateNoOfDay(mOR.ArrivalDate, _BusDate) <= 3)
+                    IF_REN(mOR, ReservationID);
+                    #endregion
+
+                    //Xử lý bưa ăn của khách theo Package
+                    ProcessMeal(pt, mOR, false);
+
+                    //Nếu không bị lỗi - ghi dữ liệu vào bảng
+                    pt.CommitTransaction();
+                }
+                catch (Exception ex)
+                {
+                    //Đóng connection
+                    pt.CloseConnection();
+                    throw new Exception(ex.Message);
+                }
+                //Nếu bị lỗi Rollback lại dữ liệu đã ghi
+                finally
+                {
+                    pt.CloseConnection();
+                }
+            }
+        }
+
+        //No transaction
+        public static void GenCreateRoomShareNoTransaction(int ReservationID, int UserID)
+        {
+            int pID;
+            DateTime pArrival;
+            DateTime _BusDate = TextUtils.GetBusinessDateTime();
+            if (ReservationID > 0)
+            {
+                ReservationModel mOR = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(ReservationID);
+                try
+                {
+                    pArrival = mOR.ArrivalDate;
+
+                    #region Tạo mới thông tin Profile cho RS
+                    int _ProfileIndividualID = CreateProfile(mOR.ProfileIndividualId, UserID);
+                    #endregion
+
+                    #region Tạo mới phiếu đặt phòng cho RS
+
+                    #region Cập nhật dữ liệu vào bảng Reservation
+                    mOR.UserInsertId = mOR.UserUpdateId = UserID;
+                    mOR.CreateDate = mOR.UpdateDate = mOR.SpecialUpdateDate = DateTime.Now;
+                    mOR.CreateBy = mOR.UpdateBy = mOR.SpecialUpdateBy = Global.UserName;
+                    mOR.ReservationDate = _BusDate;
+                    //trường hợp ngày đến = BB Status = DI
+                    if (TextUtils.CompareDate(mOR.ArrivalDate, _BusDate) == 0)
+                    {
+                        //Trường hợp CL và WL thì giữ nguyên trạng thái
+                        if (mOR.Status != 3 && mOR.Status != 4)
+                            mOR.Status = 5;
+                    }
+                    else
+                    {
+                        //Trường hợp CL và WL thì giữ nguyên trạng thái
+                        if (mOR.Status != 3 && mOR.Status != 4)
+                            mOR.Status = 0;
+                    }
+                    //Trường hợp ngày đến < Ngày BB lấy ngày đến = BB
+                    if (TextUtils.CompareDate(mOR.ArrivalDate, _BusDate) == -1)
+                    {
+                        mOR.ArrivalDate = _BusDate;
+                        //Trường hợp CL và WL thì giữ nguyên trạng thái
+                        if (mOR.Status != 3 && mOR.Status != 4)
+                        {
+                            mOR.Status = 5;
+                        }
+                        mOR.NoOfNight = TextUtils.NumberOfDay("d", mOR.DepartureDate, mOR.ArrivalDate);
+                    }
+                    mOR.PostingMaster = false;
+                    mOR.NoOfRoom = 0;
+                    mOR.Packages = "";
+                    mOR.FixedCharge = "";
+                    mOR.ItemInventory = "";
+                    mOR.AccompanyName = "";
+                    mOR.Specials = "";
+                    mOR.RoutingTransaction = "";
+                    mOR.RoutingToProfile = "";
+                    mOR.Vip = "";
+                    mOR.VipId = 0;
+                    mOR.MemberType = "";
+                    mOR.MemberNo = "";
+                    mOR.MemberLevel = "";
+                    mOR.Email = "";
+                    mOR.Phone = "";
+                    mOR.Address = "";
+                    mOR.MainGuest = false;
+                    mOR.RateCodeId = 0;
+                    mOR.Rate = 0;
+                    mOR.RateAfterTax = 0;
+                    mOR.TotalAmount = 0;
+                    mOR.NoOfAdult = 0;
+                    mOR.NoOfChild = 0;
+                    mOR.NoOfChild1 = 0;
+                    mOR.NoOfChild2 = 0;
+                    mOR.BalanceUSD = 0;
+                    mOR.BalanceVND = 0;
+                    mOR.DiscountAmount = mOR.DiscountRate = 0;
+                    mOR.DiscountReason = "";
+                    mOR.ProfileIndividualId = _ProfileIndividualID;
+                    mOR.ShareRoom = mOR.ShareRoom;
+                    pID = (int)ReservationBO.Instance.Insert(mOR);
+                    //Update ReservationNo vào bảng Rsv
+                    mOR.ID = pID;
+                    mOR.PinCode = pID.ToString();
+                    mOR.ReservationNo = pID.ToString();
+                    ReservationBO.Instance.Update(mOR);
+                    #endregion
+
+                    #region Cập nhật dữ liệu vào bảng ReservationRate
+                    //Trường hợp ngày đến và đi không thay đổi so với MG
+                    if (TextUtils.CompareDate(pArrival, _BusDate) >= 0)
+                    {
+                        //Select dữ liệu từ bảng ReservationRate    
+                        DataTable CRR = TextUtils.getTable("spCheckReservationRate",
+                                       new SqlParameter("@ReservationID", ReservationID));
+                        for (int i = 0; i < CRR.Rows.Count; i++)
+                        {
+                            ReservationRateModel mRR = (ReservationRateModel)ReservationRateBO.Instance.FindByPrimaryKey(TextUtils.ToInt(CRR.Rows[i]["ID"].ToString()));
+                            mRR.ReservationID = pID;
+                            mRR.RateCodeID = 0;
+                            mRR.Rate = 0;
+                            mRR.RateAfterTax = 0;
+                            mRR.DiscountRate = 0;
+                            mRR.DiscountAmount = 0;
+                            mRR.NoOfAdult = 0;
+                            mRR.NoOfChild = 0;
+                            mRR.NoOfChild1 = 0;
+                            mRR.NoOfChild2 = 0;
+                            mRR.RoomRevenueBeforeTax = 0;
+                            mRR.RoomRevenueAfterTax = 0;
+                            mRR.UserInsertID = UserID;
+                            mRR.CreateDate = DateTime.Now;
+                            mRR.UpdateDate = DateTime.Now;
+                            mRR.UserUpdateID = UserID;
+                            int pRsvRateID = (int)ReservationRateBO.Instance.Insert(mRR);
+                            //Gán ID vào model
+                            mRR.ID = pRsvRateID;
+                        }
+                    }
+                    // Trường hợp nếu ngày đến có thay đổi so với MG
+                    else
+                    {
+                        for (int i = 0; i < mOR.NoOfNight; i++)
+                        {
+                            ReservationRateModel mRR = new ReservationRateModel();
+                            mRR.ReservationID = pID;
+                            mRR.RateCodeID = 0;
+                            mRR.RateDate = mOR.ArrivalDate.AddDays(i);
+                            mRR.RateDate = new DateTime(mRR.RateDate.Year, mRR.RateDate.Month, mRR.RateDate.Day, 0, 0, 0);
+                            mRR.Rate = 0;
+                            mRR.RoomID = mOR.RoomId;
+                            mRR.RoomNo = mOR.RoomNo;
+                            mRR.RoomTypeID = mOR.RoomTypeId;
+                            mRR.RoomType = mOR.RoomType;
+                            mRR.MarketID = mOR.MarketId;
+                            mRR.SourceID = mOR.SourceId;
+                            mRR.AllotmentID = mOR.AllotmentId;
+                            mRR.CurrencyID = TextUtils.GetMasterCurrency();
+                            mRR.UserInsertID = mRR.UserUpdateID = UserID;
+                            mRR.CreateDate = mRR.UpdateDate = DateTime.Now;
+                            int pRsvRateID = (int)ReservationRateBO.Instance.Insert(mRR);
+                            //Gán ID vào model
+                            mRR.ID = pRsvRateID;
+                        }
+                    }
+                    #endregion
+
+                    #endregion
+
+                    #region Ghi dữ liệu vào ReservationOption
+
+                    //Cập nhật RS cho rsv gốc
+                    int ReservationOptionID = ReservationBO.GetReservationOptionID(ReservationID);
+                    if (ReservationOptionID == 0)
+                    {
+                        ReservationOptionsModel mRO = new ReservationOptionsModel();
+                        mRO.ReservationID = ReservationID;
+                        mRO.Shares = true;
+                        if (mOR.ProfileGroupId > 0)
+                            mRO.GroupOptions = true;
+                        ReservationOptionsBO.Instance.Insert(mRO);
+                    }
+                    else
+                    {
+                        ReservationOptionsModel mRO = (ReservationOptionsModel)ReservationOptionsBO.Instance.FindByPrimaryKey(ReservationOptionID);
+                        mRO.ID = ReservationOptionID;
+                        mRO.Shares = true;
+                        if (mOR.ProfileGroupId > 0)
+                            mRO.GroupOptions = true;
+                        ReservationOptionsBO.Instance.Update(mRO);
+                    }
+                    //Trường hợp có Routing thì ghi hoặc sửa dữ liệu trong bảng ReservationOptions
+                    bool _Routing = false;
+                    ReservationBO.CheckRouting(mOR.ConfirmationNo, ref _Routing);
+                    if (_Routing == true)
+                    {
+                        int pReservationOptionID = ReservationBO.GetReservationOptionID(pID);
+                        if (pReservationOptionID == 0)
+                        {
+                            ReservationOptionsModel mRO = new ReservationOptionsModel();
+                            mRO.ReservationID = pID;
+                            //mRO.Shares = true;                           
+                            mRO.Routing = true;
+                            ReservationOptionsBO.Instance.Insert(mRO);
+                        }
+                        else
+                        {
+                            ReservationOptionsModel mRO = (ReservationOptionsModel)ReservationOptionsBO.Instance.FindByPrimaryKey(pReservationOptionID);
+                            mRO.ID = pReservationOptionID;
+                            mRO.Routing = true;
+                            ReservationOptionsBO.Instance.Update(mRO);
+                        }
+                    }
+                    #endregion
+
+                    #region Update lại tên của khách ở cùng phòng vào từng đặt phòng (Trường ShareRoomName)
+                    GetRoomShareName(mOR.ShareRoom);
+                    #endregion
+
+                    #region Update lại tên của khách ở cùng phòng vào từng đặt phòng (Trường AccompanyName)
+                    ReservationBO.GetAccompanyName(ReservationID);
+                    #endregion
+
+                    #region Ghi dữ liệu vào bảng ReservationAmountByCurrency - Bỏ
+                    ////Xóa dữ liệu trước khi Insert
+                    //ReservationAmountByCurrencyBO.Instance.DeleteByAttribute("ReservationID", pID.ToString());
+                    ////Tính lại số liệu rồi ghi dữ liệu 
+                    //CreateReservationAmountByCurrency(pID, UserID);
+                    #endregion
+
+                    #region Ghi dữ liệu vào bảng ReservationGroup và ReservationGroupAmountByCurrency - Bỏ
+                    ////Chú ý phải thực hiện ghi dữ liệu vào bảng ReservationAmountByCurrency trước                            
+                    //ClassReservation.CreateReservationGroup(pID, mOR.ConfirmationNo, "");
+                    #endregion
+
+                    #region Interface
+                    //if (ClassReservation.GetDateNoOfDay(mOR.ArrivalDate, _BusDate) <= 3)
+                    IF_REN(mOR, ReservationID);
+                    #endregion
+
+                    //Xử lý bưa ăn của khách theo Package
+                    ProcessMeal(null, mOR, false);
+
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception(ex.Message);
+                }
+            }
+        }
 
         #endregion
 

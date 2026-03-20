@@ -2,6 +2,9 @@
     #modalSplit {
         z-index: 1600;
     }
+    #modalResByConfNoList{
+        z-index: 1602;
+    }
 </style>
 <div id="confirmBoxSplit" class="confirm-overlay">
     <div class="confirm-box">
@@ -13,6 +16,7 @@
         </div>
     </div>
 </div>
+
 <div class="modal fade modal-xl" id="modalSplit" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
     aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -34,7 +38,7 @@
                             Special</button>
                         <button class="mui-button mui-button-new" id="splitAllSpecialBtn"
                             onclick="splitAllSpecialReservation();">Split All Special</button>
-                        <button class="mui-button mui-button-new" onclick="splitAllRoomSharerReservation();">Split All
+                        <button class="mui-button mui-button-new" onclick="openModalResByConfNoList();">Split All
                             RoomSharer for all main guests</button>
                         <button type="button" class="mui-button mui-button-new"
                             onclick="closseModalSplit()">Close</button>
@@ -52,20 +56,80 @@
 </div>
 
 
+<div class="modal fade modal-xl" id="modalResByConfNoList" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="staticBackdropLabel">Reservation by Conf.No List</h5>
+            </div>
+            <div class="modal-body">
+                <div class="search-filter">
+                    <div>
+
+                        <button class="mui-button mui-button-new" id="resConfNoListSaveBtn"
+                            onclick="splitAllRoomSharerReservation()">Save</button>
+                        <button type="button" class="mui-button mui-button-new"
+                            onclick="closseModalResByConfNo()">Close</button>
+
+                    </div>
+
+                </div>
+                <div class="mui-card mt-2">
+                    <div id="gridContainerresConfNoList" class="mt-2 gridContainer"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
 <script>
     const splitButtons = ['splitBtn', 'splitAllBtn', 'splitSpecialBtn', 'splitAllSpecialBtn'];
     const roomSharerButtons = ['roomSharerBtn'];
     const allButtons = [...splitButtons, ...roomSharerButtons];
     let noOfRoomSplit = 0;
+    let confirmationNoToResList = 0;
+
+    function openModalResByConfNoList() {
+        if(!idReservationSplit){
+            showToast("Error", "Please select 1 row to delete.", false);
+            return;
+        }
+        $.ajax({
+            url: '/Reservation/GenSearchMultipleSelect',
+            type: 'GET',
+            headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() },
+            data: {confirmationNo:confirmationNo},
+            success: function (result) {
+                    const rows = result || [];
+                    renderGridResList(rows);
+
+                    if (!rows.length) showToast("Warning", "No records found.", false);
+            },
+            error: function (xhr, statusText, err) {
+                showToast('Error', err, false);
+
+            }
+        });
+        $('#modalResByConfNoList').modal('show');
+    }
+
+    function closseModalResByConfNo() {
+        $('#modalResByConfNoList').modal('hide');
+        loadGroupData();
+    }
 
     function openModalSplit() {
-        console.log('listReservationByConfirmationNo', listReservationByConfirmationNo);
 
         listReservationSplitID = listReservationByConfirmationNo.map(x => x.ID);
         initializeDataGridSplit(listReservationByConfirmationNo);
         UI.toggleButtons(allButtons, true);
         $('#modalSplit').modal('show');
     }
+
     function closseModalSplit() {
         $('#modalSplit').modal('hide');
         loadGroupData();
@@ -103,7 +167,7 @@
         type = 4;
     }
     function splitAllRoomSharerReservation() {
-        const grid = $("#gridContainerSplit").dxDataGrid("instance");
+        const grid = $("#gridContainerresConfNoList").dxDataGrid("instance");
         checkedIds = grid.getVisibleRows()
             .map(row => row.data)
             .map(row => row.ID); // Lấy ID
@@ -125,7 +189,7 @@
             ConfirmSplitSpecialAllReservation();
         }
         else if (type == 5) {
-            ConfirmSplitAlllRoomSharer();
+            ConfirmSplitAllRoomSharer();
         }
     }
 
@@ -178,7 +242,7 @@
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
-        formData.append('reservationID', listReservationSplitID);
+        formData.append('reservationID', idReservationSplit);
         formData.append('userName', userName);
         formData.append('userID', userID);
 
@@ -212,10 +276,11 @@
         var formData = new FormData();
         formData.append('reservationID', idReservationSplit);
         formData.append('userName', userName);
+        formData.append('noOfRoom', noOfRoomSplit);
         formData.append('userID', userID);
 
         $.ajax({
-            url: '/Reservation/SplitSpecialReservation',
+            url: '/Reservation/SplitAllRoomShare',
             type: 'POST',
             processData: false,
             contentType: false,
@@ -243,7 +308,7 @@
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
-        formData.append('reservationID', listReservationSplitID);
+        formData.append('reservationID', idReservationSplit);
         formData.append('userName', userName);
         formData.append('userID', userID);
 
@@ -273,22 +338,22 @@
     }
 
 
-    function ConfirmSplitAlllRoomSharer() {
+    function ConfirmSplitAllRoomSharer() {
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
         formData.append('reservationID', checkedIds);
-        formData.append('userName', userName);
         formData.append('userID', userID);
 
         $.ajax({
-            url: '/Reservation/SplitSpecialAllReservation',
+            url: '/Reservation/SplitAllRoomShare',
             type: 'POST',
             processData: false,
             contentType: false,
             data: formData,
             success: function (data) {
                 if (data.code == 0) {
+                    closseModalResByConfNo();
                     closeConfirmSplit();
                     closseModalSplit();
                     searchReservation();
@@ -307,37 +372,13 @@
     }
 
     function getSplitColumns() {
-        return [
-            @* {
-                caption: "",
-                width: 50,
-                allowFiltering: false,
-                allowSorting: false,
-                cellTemplate: function (cellElement, cellInfo) {
-                    if (cellInfo.data && cellInfo.data.NoOfRoom !== '0') {
-                        $("<input>")
-                            .attr("type", "checkbox")
-                            .prop("checked", cellInfo.data._checked || false)
-                            .on("change", function () {
-                                cellInfo.data._checked = this.checked;
-                            })
-                            .appendTo(cellElement);
-                    }
-                }
-            }, *@
-            ...columnAdG.map(col => ({ ...col }))
-        ];
+        return [...columnAdG.map(col => ({ ...col })) ];
     }
 
     function initializeDataGridSplit(data) {
         const columns = getSplitColumns();
 
         const gridElement = document.getElementById("gridContainerSplit");
-        const oldGrid = DevExpress.ui.dxDataGrid.getInstance(gridElement);
-        if (oldGrid) {
-            oldGrid.dispose();
-            $("#gridContainerSplit").empty();
-        }
 
         $("#gridContainerSplit").dxDataGrid({
             dataSource: data,
@@ -367,8 +408,7 @@
             },
             onRowClick: function (e) {
                 idReservationSplit = e.data.ID;
-                console.log('e.data',e.data);
-                
+                confirmationNoToResList = e.data.ConfirmationNo;
                 noOfRoomSplit = Number(e.data.Rms ?? e.data.NoOfRoom ?? 0);
 
                 // reset trước
@@ -382,6 +422,63 @@
             },
             columns: columns
         });
+    }
+
+    function renderGridResList(data) {
+        gridInstance = $("#gridContainerresConfNoList").dxDataGrid({
+            dataSource: data,
+            showBorders: true,
+            height: "100%",
+            width: "100%",
+
+            allowColumnResizing: true,
+            columnAutoWidth: true,
+            selection: {
+                mode: "multiple",
+                showCheckBoxesMode: "always",
+                selectAllMode: "page",
+                allowSelectAll: true
+            },
+            paging: { pageSize: 50 },
+            pager: {
+                visible: true,
+                allowedPageSizes: [50, 100, "all"],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            },
+            filterRow: { visible: true, applyFilter: "auto" },
+
+            columns: [
+                { dataField: "ID", visible: false },
+                { dataField: "ConfNo", caption: "Conf.No", width: 80 },
+                { dataField: "MG", caption: "MG", width: 50 },
+// Cột này sẽ ăn phần còn dư
+                {
+                    dataField: "Nbr",
+                    caption: "Nbr",
+                    width: 50,
+                    
+                },
+                {
+                    dataField: "Nat",
+                    caption: "Nat",
+                    width: 50,
+                    
+                },
+                { dataField: "Name", caption: "Name", width: 80, minWidth: 120, cssClass: "col-description" },
+                { dataField: "RoNo", caption: "Ro.No", width: 80 },
+                { dataField: "RoType", caption: "Ro.Type", width: 80 },
+                { dataField: "Arrival", caption: "Arrival", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "Departure", caption: "Departure", width: 80, dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "A", caption: "A", width: 30 },
+                { dataField: "C", caption: "C", width: 30 },
+                { dataField: "C1", caption: "C1", width: 30 },
+                { dataField: "C2", caption: "C2", width: 30 },
+                { dataField: "SR", caption: "SR", width: 50 },
+                { dataField: "Status", caption: "Status", width: 50 },
+            ],
+        }).dxDataGrid("instance");
     }
 
 </script>

@@ -127,163 +127,6 @@ namespace BaseBusiness.BO
                 throw new Exception(ex.Message);
             }
         }
-        public static void RoomAssignment(ReservationModel mOR, int ReservationID, int RoomID, int UserID, bool RoomSharer)
-        {
-            ProcessTransactions pt = new ProcessTransactions();
-            pt.OpenConnection();
-            pt.BeginTransaction();
-            //Xác định đặt phòng đã tồn tại để lấy giá trị
-            RoomModel mORms = (RoomModel)RoomBO.Instance.FindByPrimaryKey(RoomID);
-
-            #region Kiếm tra xem có bao nhiêu khách ở cùng phòng với khách này 
-            DataTable dtARS = pt.getTable("spCheckReservationAssignRoomSharer", "dtARS",
-                      new SqlParameter("@ReservationID", ReservationID),
-                      new SqlParameter("@ShareRoom", mOR.ShareRoom));
-            if (dtARS.Rows.Count > 0)
-            {
-                RoomSharer = true;
-            }
-            #endregion
-
-            //Mở conn
-
-            try
-            {
-                #region Trường hợp Chưa có số phòng và số Rooms = 1 
-                if (mOR.RoomId == 0 && mOR.NoOfRoom == 1)
-                {
-                    #region Assign khách chính 
-                    //Update lại dữ liệu vào bảng Rsv
-                    mOR.RoomId = mORms.ID;
-                    mOR.RoomNo = mORms.RoomNo;
-                    mOR.RoomTypeId = mORms.RoomTypeID;
-                    mOR.RoomType = ((RoomTypeModel)pt.FindByPK("RoomType", mORms.RoomTypeID)).Code;
-                    if (mOR.RateCodeId == 0)
-                        mOR.RtcId = mOR.RoomTypeId;
-                    mOR.UserUpdateId = UserID;
-                    pt.Update(mOR);
-                    //Update lại dữ liệu vào bảng RsvRate
-                    if (mOR.RateCodeId == 0)
-                    {
-                        string sqlRR = "Update ReservationRate with (rowlock) SET " +
-                                       "RoomID = " + mORms.ID + ", " +
-                                       "RoomNo = '" + mORms.RoomNo + "', " +
-                                       "RoomTypeID = " + mORms.RoomTypeID + ", " +
-                                       "RoomType = '" + mOR.RoomType + "', " +
-                                       "RTCID = " + mORms.RoomTypeID + ", " +
-                                       "UserUpdateID = " + UserID + " " +
-                                       "WHERE ID IN (SELECT ID FROM ReservationRate WITH (NOLOCK) WHERE ReservationID = " + ReservationID + ") ";
-                        pt.UpdateCommand(sqlRR);
-                    }
-                    else
-                    {
-                        string sqlRR = "Update ReservationRate with (rowlock) SET " +
-                                     "RoomID = " + mORms.ID + ", " +
-                                     "RoomNo = '" + mORms.RoomNo + "', " +
-                                     "RoomTypeID = " + mORms.RoomTypeID + ", " +
-                                     "RoomType = '" + mOR.RoomType + "', " +
-                                     "UserUpdateID = " + UserID + " " +
-                                     "WHERE ID IN (SELECT ID FROM ReservationRate WITH (NOLOCK) WHERE ReservationID = " + ReservationID + ") ";
-                        pt.UpdateCommand(sqlRR);
-                    }
-
-                    #region Interface
-                    ReservationBO.IF_REC(mOR.ID, mORms.RoomNo);
-                    //ReservationBO.IF_REC(mOR, mOR.ID, null, 0, mOR.RoomNo, 0, 1);
-                    #endregion
-
-                    #endregion
-
-                    #region Assign khách ở cùng phòng
-                    if (RoomSharer == true)
-                    {
-                        for (int i = 0; i < dtARS.Rows.Count; i++)
-                        {
-                            //Không có RateCode
-                            if (mOR.RateCodeId == 0)
-                            {
-                                //Cập nhật lại RoomID trong bảng Reservaton
-                                string sqlRS = "UPDATE Reservation with (rowlock) SET " +
-                                               "RoomID = " + mORms.ID + ", " +
-                                               "RoomNo = '" + mORms.RoomNo + "', " +
-                                               "RoomTypeID = " + mORms.RoomTypeID + ", " +
-                                               "RoomType = '" + mOR.RoomType + "', " +
-                                               "RTCID = " + mORms.RoomTypeID + ", " +
-                                               "UserUpdateID = " + UserID + " " +
-                                               "WHERE ID = " + TextUtils.ToInt(dtARS.Rows[i]["ID"].ToString()) + " ";
-                                pt.UpdateCommand(sqlRS);
-                                //Cập nhật lại RoomID trong bảng ReservatonRate
-                                string sqlRRS = "UPDATE ReservationRate with (rowlock) SET " +
-                                                "RoomID = " + mORms.ID + ", " +
-                                                "RoomNo = '" + mORms.RoomNo + "', " +
-                                                "RoomTypeID = " + mORms.RoomTypeID + ", " +
-                                                "RoomType = '" + mOR.RoomType + "', " +
-                                                "RTCID = " + mORms.RoomTypeID + ", " +
-                                                "UserUpdateID = " + UserID + " " +
-                                                "WHERE ID IN (SELECT ID FROM ReservationRate WITH (NOLOCK) WHERE ReservationID = " + TextUtils.ToInt(dtARS.Rows[i]["ID"].ToString()) + ") ";
-                                pt.UpdateCommand(sqlRRS);
-                            }
-                            else
-                            {
-                                //Cập nhật lại RoomID trong bảng Reservaton
-                                string sqlRS = "UPDATE Reservation with (rowlock) SET " +
-                                               "RoomID = " + mORms.ID + ", " +
-                                               "RoomNo = '" + mORms.RoomNo + "', " +
-                                               "RoomTypeID = " + mORms.RoomTypeID + ", " +
-                                               "RoomType = '" + mOR.RoomType + "', " +
-                                               "UserUpdateID = " + UserID + " " +
-                                               "WHERE ID = " + TextUtils.ToInt(dtARS.Rows[i]["ID"].ToString()) + " ";
-                                pt.UpdateCommand(sqlRS);
-                                //Cập nhật lại RoomID trong bảng ReservatonRate
-                                string sqlRRS = "UPDATE ReservationRate with (rowlock) SET " +
-                                                "RoomID = " + mORms.ID + ", " +
-                                                "RoomNo = '" + mORms.RoomNo + "', " +
-                                                "RoomTypeID = " + mORms.RoomTypeID + ", " +
-                                                "RoomType = '" + mOR.RoomType + "', " +
-                                                "UserUpdateID = " + UserID + " " +
-                                                "WHERE ID IN (SELECT ID FROM ReservationRate WITH (NOLOCK) WHERE ReservationID = " + TextUtils.ToInt(dtARS.Rows[i]["ID"].ToString()) + ") ";
-                                pt.UpdateCommand(sqlRRS);
-                            }
-
-                            #region Interface
-                            ReservationBO.IF_REC(TextUtils.ToInt(dtARS.Rows[i]["ID"].ToString()), mORms.RoomNo);
-                            //ReservationBO.IF_REC(null, TextUtils.ToInt(dtARS.Rows[i]["ID"].ToString()), null, 0, mOR.RoomNo, 0, 1);
-                            #endregion
-                        }
-                    }
-                    #endregion
-
-                }
-                #endregion
-
-                #region Trường hợp số Rooms > 1 
-                if (mOR.NoOfRoom > 1)
-                {
-                    ReservationBO.Split(ReservationID, mOR.NoOfRoom, UserID, "", mORms.ID);
-                }
-                #endregion
-
-                //Nếu không bị lỗi - ghi dữ liệu vào bảng
-                pt.CommitTransaction();
-            }
-            catch (Exception ex)
-            {
-                //Lỗi đóng Conn 
-                pt.CloseConnection();
-
-            }
-            //Nếu bị lỗi Rollback lại dữ liệu đã ghi
-            finally
-            {
-                pt.CloseConnection();
-            }
-
-            #region Update lại trạng thái CurrResvStatus trong bảng Room 
-            if (mORms.ID > 0)
-                ReservationBO.UpdateReservationStatus(null, mORms.ID);
-            #endregion
-
-        }
         public static void UpdateReservationStatus(ProcessTransactions pt, int RoomID)
         {
             #region Khai báo biến 
@@ -434,439 +277,6 @@ namespace BaseBusiness.BO
                     RoomBO.Instance.Update(mR);
             }
         }
-        public static int Split(int ReservationID, int pNoOfRoom, int UserID, string PartyGuest, int RoomID)
-        {
-            //CSS, 05/12/2009    
-            int Rsv1ID = 0;
-            if (pNoOfRoom > 1)
-            {
-                string ConfNo = "";
-                int ShareRoom = 0;
-                int pReservationID = ReservationID;
-                //Kiểm tra xem Booking này có RoomShare hay không?
-                ReservationModel m = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(pReservationID);
-                //process here...
-                //if (m.NoOfRoom == 1)
-                //    return;
-                //if (m.NoOfRoom < pNoOfRoom)
-                //    pNoOfRoom = m.NoOfRoom;
-
-                Expression eRsv = new Expression("ShareRoom", m.ShareRoom, "=");
-                ArrayList aRsv = ReservationBO.Instance.FindByExpression(eRsv);
-
-                //Mở conn
-                ProcessTransactions pt = new ProcessTransactions();
-                pt.OpenConnection();
-                pt.BeginTransaction();
-                try
-                {
-                    if (aRsv.Count > 0)
-                    {
-                        for (int iR = 0; iR < aRsv.Count; iR++)
-                        {
-                            //Xác định đặt phòng đã tồn tại để lấy giá trị 
-                            ReservationID = (((ReservationModel)aRsv[iR]).ID);
-                            ReservationModel mOR = (ReservationModel)pt.FindByPK("Reservation", ReservationID);
-
-                            #region Tạo mới Profile
-                            //DataTable CR = pt.Select("Select Top 1 MAX(Convert(int,Code)) AS Code FROM Profile WITH (NOLOCK)");
-                            ProfileModel mP = (ProfileModel)pt.FindByPK("Profile", mOR.ProfileIndividualId);
-                            //int leg = CR.Rows[0]["Code"].ToString().Length;
-                            //mP.Code = "0000" + Convert.ToString(Convert.ToUInt32(CR.Rows[0]["Code"].ToString()) + 1);
-                            //mP.Code = mP.Code.Remove(0, mP.Code.Length - leg);
-                            mP.Code = ProfileBO.Instance.GenerateNo3("Code");
-                            mP.ReturnGuest = -1;
-                            mP.StayNo = 0;
-
-                            #region 1.&&
-                            mP.GuestNo = mP.Occupation = mP.Birthplace = "";
-                            mP.BonusPoints = mP.GuestGroupID = 0;
-                            mP.ExpressCheckout = mP.PayTV = false;
-                            mP.CreditCard = mP.RateCode = "";
-                            mP.RoomNights = mP.BedNights = 0;
-                            mP.TotalTurnover = mP.LodgeTurnover = mP.LodgePackageTurover = mP.FBTurnover = mP.EventTurnover = mP.OtherTurnover = 0;
-                            mP.FirstReservation = Convert.ToDateTime("01/01/1900");
-                            mP.LastReservation = Convert.ToDateTime("01/01/1900");
-                            mP.WeddingAnniversary = Convert.ToDateTime("01/01/1900");
-                            mP.Firstvisit = Convert.ToDateTime("01/01/1900");
-                            mP.Expiry = Convert.ToDateTime("01/01/1900");
-                            mP.LastContact = Convert.ToDateTime("01/01/1900");
-                            #endregion
-
-                            int pProfileID = (int)pt.Insert(mP);
-                            #endregion
-
-                            #region Cập nhật dữ liệu vào bảng Reservation
-                            //mOR.UserInsertID = UserID;
-                            mOR.UserUpdateId = UserID;
-                            //mOR.CreateDate = mOR.UpdateDate = mOR.SpecialUpdateDate = TextUtils.GetSystemDate();
-                            //mOR.CreateBy = Global.UserName;
-                            mOR.SpecialUpdateBy = mOR.UpdateBy = Global.UserName;
-                            //mOR.ReservationDate = TextUtils.GetBusinessDate();
-                            mOR.Specials = "";
-                            mOR.ItemInventory = "";
-                            mOR.FixedCharge = "";
-                            mOR.Vip = "";
-                            mOR.VipId = 0;
-                            mOR.Phone = "";
-                            mOR.Email = "";
-                            mOR.MemberLevel = "";
-                            mOR.MemberNo = "";
-                            mOR.MemberType = "";
-                            mOR.Address = "";
-                            if (TextUtils.CompareDate(mOR.ArrivalDate, mOR.ReservationDate) == 0)
-                                mOR.Status = 5;
-                            else
-                                mOR.Status = 0;
-                            mOR.PostingMaster = false;
-                            if (mOR.MainGuest == true)
-                                mOR.NoOfRoom = 1;
-                            else
-                                mOR.NoOfRoom = 0;
-                            mOR.ProfileIndividualId = pProfileID;
-                            //Trường hợp này dùng cho Room Assignment
-                            if (RoomID > 0)
-                            {
-                                RoomModel mORms = (RoomModel)pt.FindByPK("Room", RoomID);
-                                mOR.RoomId = RoomID;
-                                mOR.RoomNo = mORms.RoomNo;
-                                mOR.RoomTypeId = mORms.RoomTypeID;
-                                mOR.RtcId = mORms.RoomTypeID;
-                                mOR.RoomType = ((RoomTypeModel)pt.FindByPK("RoomType", mORms.RoomTypeID)).Code;
-                            }
-                            Rsv1ID = (int)pt.Insert(mOR);
-                            //Update ReservationNo,ConfirmNo vào bảng Rsv
-                            mOR.ID = Rsv1ID;
-                            mOR.PinCode = Rsv1ID.ToString();
-                            mOR.ReservationNo = Rsv1ID.ToString();
-                            mOR.BalanceUSD = 0;
-                            mOR.BalanceVND = 0;
-                            if (mOR.MainGuest == true)
-                            {
-                                mOR.ShareRoom = Rsv1ID;
-                                ShareRoom = Rsv1ID;
-                                if (aRsv.Count > 1)
-                                {
-                                    #region Ghi dữ liệu vào ReservationOption
-                                    int ReservationOptionID = ReservationBO.GetReservationOptionID(Rsv1ID, pt);
-                                    if (ReservationOptionID == 0)
-                                    {
-                                        ReservationOptionsModel mRO = new ReservationOptionsModel();
-                                        mRO.ReservationID = Rsv1ID;
-                                        mRO.Shares = true;
-                                        pt.Insert(mRO);
-                                    }
-                                    else
-                                    {
-                                        ReservationOptionsModel mRO = (ReservationOptionsModel)pt.FindByPK("ReservationOptions", ReservationOptionID);
-                                        mRO.ID = ReservationOptionID;
-                                        mRO.Shares = true;
-                                        pt.Update(mRO);
-                                    }
-                                    #endregion
-                                }
-                            }
-                            else
-                            {
-                                mOR.ShareRoom = ShareRoom;
-                            }
-
-                            pt.Update(mOR);
-
-                            if (mOR.MainGuest == true)
-                            {
-                                //19/01/2010 - Cập nhật lại số NoOfRoom của đặt phòng đã tồn tại (Khi làm RS số NoOfRoom của RS = số NoOfRoom của MG)
-                                string sqlmOR = "UPDATE Reservation with (rowlock) Set NoOfRoom = " + pNoOfRoom + " - " + 1 + ", PartyGuest = '" + PartyGuest + "' " +
-                                                "WHERE ID = " + ReservationID + " ";
-                                pt.UpdateCommand(sqlmOR);
-                            }
-                            //Nếu số NoOfRoom của RS = 2 - 1 thì update lại No.Rms = 0 trong bảng Rsv
-                            if (mOR.MainGuest == false && pNoOfRoom == 2)
-                            {
-                                string sql = "UPDATE Reservation with (rowlock) Set NoOfRoom = 0, PartyGuest = '" + PartyGuest + "' " +
-                                           "WHERE ID = " + ReservationID + " ";
-                                pt.UpdateCommand(sql);
-                            }
-
-                            //Update date PartyGuest de Liet ke danh sach da tach Party
-                            if (PartyGuest != "")
-                            {
-                                string sqlP = "UPDATE Reservation with (rowlock) Set PartyGuest = '" + PartyGuest + "' " +
-                                              "WHERE ID = " + Rsv1ID + " ";
-                                pt.UpdateCommand(sqlP);
-                            }
-                            #endregion
-
-                            #region Cập nhật dữ liệu vào bảng ReservationRate
-                            //Trường hợp này dùng cho Room Assignment
-                            RoomModel mpORms = null;
-                            if (RoomID > 0)
-                            {
-                                mpORms = (RoomModel)pt.FindByPK("Room", RoomID);
-                            }
-                            //Select dữ liệu từ bảng ReservationRate    
-                            DataTable CRR = pt.getTable("spCheckReservationRate", "tbRsvR",
-                                           new SqlParameter("@ReservationID", ReservationID));
-                            for (int i = 0; i < CRR.Rows.Count; i++)
-                            {
-                                ReservationRateModel mRr = new ReservationRateModel();
-                                mRr.ReservationID = Rsv1ID;
-                                mRr.RateCodeID = int.Parse(CRR.Rows[i]["RateCodeID"].ToString());
-                                mRr.TransactionCode = CRR.Rows[i]["TransactionCode"].ToString();
-                                mRr.RateDate = Convert.ToDateTime(CRR.Rows[i]["RateDate"]);
-                                mRr.RateDate = new DateTime(mRr.RateDate.Year, mRr.RateDate.Month, mRr.RateDate.Day, 0, 0, 0);
-                                mRr.Rate = Convert.ToDecimal(CRR.Rows[i]["Rate"].ToString());
-                                mRr.RateAfterTax = Convert.ToDecimal(CRR.Rows[i]["RateAfterTax"].ToString());
-                                mRr.RoomRevenueBeforeTax = Convert.ToDecimal(CRR.Rows[i]["RoomRevenueBeforeTax"].ToString());
-                                mRr.RoomRevenueAfterTax = Convert.ToDecimal(CRR.Rows[i]["RoomRevenueAfterTax"].ToString());
-                                mRr.DiscountAmount = Convert.ToDecimal(CRR.Rows[i]["DiscountAmount"].ToString());
-                                mRr.DiscountRate = Convert.ToDecimal(CRR.Rows[i]["DiscountRate"].ToString());
-                                mRr.IsTaxInclude = bool.Parse(CRR.Rows[i]["IsTaxInclude"].ToString());
-                                mRr.NoOfAdult = TextUtils.ToInt(CRR.Rows[i]["NoOfAdult"].ToString());
-                                mRr.NoOfChild = TextUtils.ToInt(CRR.Rows[i]["NoOfChild"].ToString());
-                                mRr.NoOfChild1 = TextUtils.ToInt(CRR.Rows[i]["NoOfChild1"].ToString());
-                                mRr.NoOfChild2 = TextUtils.ToInt(CRR.Rows[i]["NoOfChild2"].ToString());
-                                mRr.MarketID = TextUtils.ToInt(CRR.Rows[i]["MarketID"].ToString());
-                                mRr.SourceID = TextUtils.ToInt(CRR.Rows[i]["SourceID"].ToString());
-                                mRr.AllotmentID = TextUtils.ToInt(CRR.Rows[i]["AllotmentID"].ToString());
-                                mRr.CurrencyID = CRR.Rows[i]["CurrencyID"].ToString();
-                                mRr.FixedRate = bool.Parse(CRR.Rows[i]["FixedRate"].ToString());
-                                mRr.RoomID = int.Parse(CRR.Rows[i]["RoomID"].ToString());
-                                mRr.RoomNo = CRR.Rows[i]["RoomNo"].ToString();
-                                mRr.RoomTypeID = int.Parse(CRR.Rows[i]["RoomTypeID"].ToString());
-                                mRr.RoomType = CRR.Rows[i]["RoomType"].ToString();
-                                mRr.RTCID = int.Parse(CRR.Rows[i]["RTCID"].ToString());
-                                //Trường hợp này dùng cho Room Assignment
-                                if (RoomID > 0)
-                                {
-                                    mRr.RoomID = RoomID;
-                                    mRr.RoomNo = mpORms.RoomNo;
-                                    mRr.RoomTypeID = mpORms.RoomTypeID;
-                                    mRr.RoomType = ((RoomTypeModel)pt.FindByPK("RoomType", mpORms.RoomTypeID)).Code;
-                                }
-                                mRr.UserInsertID = mRr.UserUpdateID = UserID;
-                                mRr.CreateDate = mRr.UpdateDate = TextUtils.GetSystemDate();
-                                int RR1ID = (int)pt.Insert(mRr);
-                            }
-                            #endregion
-
-                            #region Tạo Routing Khi tách từ Origin Reservation
-                            ////Tìm kiếm xem Reservation Origin có bao nhiêu Routing
-                            //Expression expR = new Expression("FromReservationID", ReservationID, "=");
-                            //ArrayList arrR = pt.FindByExpression("Routing", expR);
-                            //if (arrR.Count > 0)
-                            //{
-                            //    for (int r = 0; r < arrR.Count; r++)
-                            //    {
-                            //        //Nếu WindownNo ==1 thì Routing default về chính nó
-                            //        if (((RoutingModel)arrR[r]).ToFolioNo == 1)
-                            //            ReservationBO.CreateRouting(Rsv1ID, Rsv1ID, ((RoutingModel)arrR[r]).ToFolioNo, ((RoutingModel)arrR[r]).FromDate, ((RoutingModel)arrR[r]).ToDate, pProfileID, ((RoutingModel)arrR[r]).TransactionCodes, pt);
-                            //        else
-                            //            ReservationBO.CreateRouting(Rsv1ID, ((RoutingModel)arrR[r]).ToReservationID, ((RoutingModel)arrR[r]).ToFolioNo, ((RoutingModel)arrR[r]).FromDate, ((RoutingModel)arrR[r]).ToDate, ((RoutingModel)arrR[r]).ProfileID, ((RoutingModel)arrR[r]).TransactionCodes, pt);
-                            //    }
-                            //}
-                            #endregion
-
-                            #region Cập nhật dự liệu vào bảng ReservationPackage nếu có
-                            ReservationBO.CopyTbReservationPackage(ReservationID, Rsv1ID, UserID, pt);
-                            #endregion
-
-                            #region Cập nhật dự liệu vào bảng ReservationFixedCharge nếu có
-                            //ReservationBO.CopyTbReservationFixedCharge(ReservationID, Rsv1ID, UserID, pt);
-
-                            //Cập nhật dự liệu vào bảng ReservationSpeacial nếu có
-                            ReservationBO.CopyTbReservationSpecial(ReservationID, Rsv1ID, UserID, pt);
-                            #endregion
-
-                            #region Ghi dữ liệu vào ReservationOption nếu có
-                            //Check Routing FolioMaster
-                            bool _Routing = false;
-                            ReservationBO.CheckRouting(mOR.ConfirmationNo, ref _Routing, pt);
-                            //Trường hợp có Group hoặc có Routing thì ghi hoặc sửa dữ liệu trong bảng ReservationOptions
-                            if (mOR.ProfileGroupId > 0 || _Routing == true)
-                            {
-                                int ReservationOptionID = ReservationBO.GetReservationOptionID(Rsv1ID, pt);
-                                if (ReservationOptionID == 0)
-                                {
-                                    ReservationOptionsModel mRO = new ReservationOptionsModel();
-                                    mRO.ReservationID = Rsv1ID;
-                                    if (mOR.ProfileGroupId > 0)
-                                        mRO.GroupOptions = true;
-                                    if (_Routing == true)
-                                        mRO.Routing = true;
-                                    pt.Insert(mRO);
-                                }
-                                else
-                                {
-                                    ReservationOptionsModel mRO = (ReservationOptionsModel)pt.FindByPK("ReservationOptions", ReservationOptionID); ;
-                                    mRO.ID = ReservationOptionID;
-                                    if (mOR.ProfileGroupId > 0)
-                                        mRO.GroupOptions = true;
-                                    if (_Routing == true)
-                                        mRO.Routing = true;
-                                    pt.Update(mRO);
-                                }
-                            }
-                            #endregion
-
-                            #region Ghi dữ liệu vào bảng ReservationAmountByCurrency
-                            //Xóa dữ liệu trước khi Insert
-                            pt.DeleteByAttribute("ReservationAmountByCurrency", "ReservationID", Rsv1ID.ToString());
-                            //Tính lại số liệu rồi ghi dữ liệu 
-                            ReservationBO.GetAmountByCurrency(Rsv1ID, UserID, pt);
-                            #endregion
-
-                            #region Tính RoomRevenue theo từng ngày cho bảng ReservationRate
-                            if (Rsv1ID > 0)
-                                ReservationBO.GetRoomRevenue(Rsv1ID, pt);
-                            #endregion
-
-                            #region Interface
-                            //if (ReservationBO.GetDateNoOfDay(mOR.ArrivalDate, TextUtils.GetBusinessDate()) <= 3)
-                            //ReservationBO.IF_REN(mOR, mOR.ID);
-                            //#endregion
-
-                            ////Xử lý bưa ăn của khách theo Package
-                            //ReservationBO.ProcessMeal(pt, mOR, false);
-                        }
-                        //Xác định lại số Rooms còn lại để Split
-                        pNoOfRoom = pNoOfRoom - 1;
-
-                        #region Ghi dữ liệu vào bảng ReservationAmountByCurrency - Rsv gốc
-                        if (pReservationID > 0)
-                        {
-                            //Xóa dữ liệu trước khi Insert
-                            pt.DeleteByAttribute("ReservationAmountByCurrency", "ReservationID", pReservationID.ToString());
-                            //Tính lại số liệu rồi ghi dữ liệu 
-                            ReservationBO.GetAmountByCurrency(pReservationID, UserID, pt);
-                        }
-                        #endregion
-
-                    }
-                    //Nếu không bị lỗi - ghi dữ liệu vào bảng
-                    pt.CommitTransaction();
-                }
-                catch (Exception ex)
-                {
-                    //Đóng connection
-                    pt.CloseConnection();
-
-                    return 0;
-                }
-                //Nếu bị lỗi Rollback lại dữ liệu đã ghi
-                finally
-                {
-                    pt.CloseConnection();
-                }
-
-                #region Tính RoomRevenue theo từng ngày cho bảng ReservationRate - Rsv gốc
-                if (pReservationID > 0)
-                    ReservationBO.GetRoomRevenue(pReservationID, null);
-                #endregion
-
-                #region Ghi dữ liệu vào bảng ReservationGroup và ReservationGroupAmountByCurrency
-                //Chú ý phải thực hiện ghi dữ liệu vào bảng ReservationAmountByCurrency trước                            
-                //ReservationBO.CreateReservationGroup(pReservationID, m.ConfirmationNo, "");
-                #endregion
-            }
-            return Rsv1ID;
-        }
-        //public static void CreateReservationGroup(int ReservationID, string ConfirmationNo, string Comment)
-        //{
-        //    int ReservationGroupID = 0;
-
-        //    #region Kiểm tra và ghi dữ liệu vào bảng ReservationGroup 
-        //    DataTable dtRG = TextUtils.Select("SELECT MIN(ArrivalDate) AS FirstArrival, " +
-        //                               "MAX(DepartureDate) AS LastDeparture, " +
-        //                               "SUM(NoOfRoom) AS TotalRoom, " +
-        //                               "SUM(CASE WHEN NoOfRoom <> 0 THEN (NoOfAdult*NoOfRoom) ELSE NoOfAdult END) AS TotalAdult, " +
-        //                               "SUM(CASE WHEN NoOfRoom <> 0 THEN (NoOfChild*NoOfRoom) ELSE NoOfChild END) AS TotalChild, " +
-        //                               "SUM(CASE WHEN NoOfRoom <> 0 THEN (NoOfChild1*NoOfRoom) ELSE NoOfChild1 END) AS TotalChild1, " +
-        //                               "SUM(CASE WHEN NoOfRoom <> 0 THEN (NoOfChild2*NoOfRoom) ELSE NoOfChild2 END) AS TotalChild2, " +
-        //                               "SUM(BalanceUSD) AS TotalReservationBalance " +
-        //                               "FROM Reservation WITH (NOLOCK)" +
-        //                               "WHERE ConfirmationNo = '" + ConfirmationNo + "' " +
-        //                               "AND Status <> 3 AND Status <> 4 AND Status <> 7 AND RoomType <> 'XXX' " +
-        //                               "AND (ReservationNo > 0 OR ID = " + ReservationID + ") ");
-        //    //Tìm kiếm xem trong bảng ReservationGroup đã tồn tại hay chưa
-        //    Expression expRG = new Expression("ConfirmationNo", ConfirmationNo, "=");
-        //    ArrayList arrRG = ReservationGroupBO.Instance.FindByExpression(expRG);
-        //    //Insert
-        //    if (arrRG.Count == 0)
-        //    {
-        //        if (TextUtils.ToInt(dtRG.Rows[0]["TotalRoom"].ToString()) > 0)
-        //        {
-        //            ReservationGroupModel mRG = new ReservationGroupModel();
-        //            mRG.ConfirmationNo = int.Parse(ConfirmationNo.ToString());
-        //            mRG.FirstArrival = Convert.ToDateTime(dtRG.Rows[0]["FirstArrival"]);
-        //            mRG.LastDeparture = Convert.ToDateTime(dtRG.Rows[0]["LastDeparture"]);
-        //            mRG.TotalRoom = TextUtils.ToInt(dtRG.Rows[0]["TotalRoom"]);
-        //            mRG.TotalAdult = TextUtils.ToInt(dtRG.Rows[0]["TotalAdult"]);
-        //            mRG.TotalChild = TextUtils.ToInt(dtRG.Rows[0]["TotalChild"]);
-        //            mRG.TotalChild1 = TextUtils.ToInt(dtRG.Rows[0]["TotalChild1"]);
-        //            mRG.TotalChild2 = TextUtils.ToInt(dtRG.Rows[0]["TotalChild2"]);
-        //            mRG.TotalReservationBalance = TextUtils.ToDecimal(dtRG.Rows[0]["TotalReservationBalance"]);
-        //            mRG.Comment = Comment;
-        //            mRG.UserInsertID = mRG.UserUpdateID = Global.UserID;
-        //            mRG.CreateDate = mRG.UpdateDate = TextUtils.GetSystemDate();
-        //            mRG.OptionDate = Convert.ToDateTime("1900/1/1");
-        //            mRG.OptionDateDesc = "";
-        //            ReservationGroupID = (int)ReservationGroupBO.Instance.Insert(mRG);
-        //        }
-        //    }
-        //    //Update
-        //    else if (arrRG.Count > 0)
-        //    {
-        //        if (TextUtils.ToInt(dtRG.Rows[0]["TotalRoom"].ToString()) > 0)
-        //        {
-        //            ReservationGroupModel mRG = (ReservationGroupModel)ReservationGroupBO.Instance.FindByPK(((ReservationGroupModel)arrRG[0]).ID);
-        //            mRG.FirstArrival = Convert.ToDateTime(dtRG.Rows[0]["FirstArrival"]);
-        //            mRG.LastDeparture = Convert.ToDateTime(dtRG.Rows[0]["LastDeparture"]);
-        //            mRG.TotalRoom = TextUtils.ToInt(dtRG.Rows[0]["TotalRoom"]);
-        //            mRG.TotalAdult = TextUtils.ToInt(dtRG.Rows[0]["TotalAdult"]);
-        //            mRG.TotalChild = TextUtils.ToInt(dtRG.Rows[0]["TotalChild"]);
-        //            mRG.TotalChild1 = TextUtils.ToInt(dtRG.Rows[0]["TotalChild1"]);
-        //            mRG.TotalChild2 = TextUtils.ToInt(dtRG.Rows[0]["TotalChild2"]);
-        //            mRG.TotalReservationBalance = TextUtils.ToDecimal(dtRG.Rows[0]["TotalReservationBalance"]);
-        //            if (Comment != "")
-        //                mRG.Comment = Comment;
-        //            mRG.UserUpdateID = Global.UserID;
-        //            mRG.UpdateDate = TextUtils.GetBusinessDate();
-        //            mRG.ID = ((ReservationGroupModel)arrRG[0]).ID;
-        //            ReservationGroupBO.Instance.Update(mRG);
-        //            ReservationGroupID = mRG.ID;
-        //        }
-        //    }
-        //    #endregion
-
-        //    #region Kiểm tra và Ghi dữ liệu vào bảng ReservationGroupAmountByCurrency 
-        //    DataTable dtRGA = TextUtils.Select("SELECT SUM(a.AmountBeforTax) AmountBeforTax, " +
-        //                                "SUM(a.AmountAfterTax) AmountAfterTax, " +
-        //                                "a.CurrencyID " +
-        //                                "FROM ReservationAmountByCurrency a WITH (NOLOCK), Reservation b WITH (NOLOCK)" +
-        //                                "WHERE a.ReservationID = b.ID " +
-        //                                "AND a.ConfirmationNo = '" + ConfirmationNo + "' " +
-        //                                "AND b.Status <> 3 AND b.Status <> 4 AND b.Status <> 7 AND RoomType <> 'XXX' " +
-        //                                "AND (b.ReservationNo > 0 OR b.ID = " + ReservationID + ") " +
-        //                                "GROUP BY a.CurrencyID ");
-        //    if (dtRGA.Rows.Count > 0)
-        //    {
-        //        //Xóa dữ liệu trước khi Insert
-        //        ReservationBO.UpdateDataBase("DELETE ReservationGroupAmountByCurrency WHERE ID IN (SELECT ID FROM ReservationGroupAmountByCurrency WITH (NOLOCK) WHERE ReservationGroupID = " + ReservationGroupID + ") ");
-        //        for (int i = 0; i < dtRGA.Rows.Count; i++)
-        //        {
-        //            ReservationGroupAmountByCurrencyModel mRGA = new ReservationGroupAmountByCurrencyModel();
-        //            mRGA.ReservationGroupID = ReservationGroupID;
-        //            mRGA.CurrencyID = dtRGA.Rows[i]["CurrencyID"].ToString();
-        //            mRGA.AmountBeforTax = TextUtils.ToDecimal(dtRGA.Rows[i]["AmountBeforTax"]);
-        //            mRGA.AmountAfterTax = TextUtils.ToDecimal(dtRGA.Rows[i]["AmountAfterTax"]);
-        //            mRGA.UserInsertID = mRGA.UserUpdateID = Global.UserID;
-        //            mRGA.CreateDate = mRGA.UpdateDate = TextUtils.GetSystemDate();
-        //            ReservationGroupAmountByCurrencyBO.Instance.Insert(mRGA);
-        //        }
-        //    }
-        //    #endregion
-        //}
         public static void GetRoomRevenue(int ReservationID, ProcessTransactions pt)
         {
             #region 1.Khai báo biến 
@@ -2028,7 +1438,7 @@ namespace BaseBusiness.BO
                 //TextUtils.GetSourceAmount(dtRR.Rows[i]["TransactionCode"].ToString(), Rate, ref RoomRevenueBeforeTax, ref RoomRevenueAfterTax);
                 //if (RoomRevenueBeforeTax >= 0 && RoomRevenueAfterTax >= 0)
                 //{
-                
+
                 ReservationRateModel mRR = (ReservationRateModel)pt.FindByPK("ReservationRate", TextUtils.ToInt(dtRR.Rows[i]["ID"].ToString()));
                 if (RoomRevenueBeforeTax >= 0)
                 {
@@ -2545,6 +1955,47 @@ namespace BaseBusiness.BO
         {
             return Convert.ToDecimal(InputAmount.Trim('B'));
         }
+        #region 2.Routing và Folio 
+
+        #region 2.1 Kiểm tra Routing để tạo Folio 
+        /// <summary>
+        /// Kiểm tra xem trong bảng Routing có cửa sổ Windown No thứ 2,3...8 không? Nếu có sẽ tạo Folio
+        /// -- CSS, 25/12/2009
+        /// </summary>
+        /// <param name="FromReservationID"></param>
+        /// <param name="ToReservationID"></param>
+        /// <param name="WindownNo">Default ==1</param>
+        /// <param name="pt"></param>
+        public static ArrayList CheckRouting(int FromReservationID, int ToReservationID, string ConfirmationNo, ProcessTransactions pt)
+        {
+
+            //Tim kiem Routing
+            Expression expR = new Expression("FromReservationID", FromReservationID, "=");
+            expR = expR.Or(new Expression("ToFolioNo", "-1", "="));
+            expR = expR.And(new Expression("ConfirmationNo", ConfirmationNo, "="));
+            ArrayList arrR = pt.FindByExpression("Routing", expR);
+            //Kiểm tra điều kiện để trả về giá trị              
+            if (arrR.Count == 0)
+                return null;
+            else
+                return arrR;
+            //return ((RoutingModel)arrR[0]).ID;
+
+        }
+        //C2 Không dùng Transaction
+        public static ArrayList CheckRouting(int FromReservationID, int ToReservationID)
+        {
+            //Tim kiem Routing
+            Expression expR = new Expression("FromReservationID", FromReservationID, "=");
+            expR = expR.And(new Expression("ToReservationID", ToReservationID, "="));
+            ArrayList arrR = RoutingBO.Instance.FindByExpression(expR);
+            //Kiểm tra điều kiện để trả về giá trị
+            if (arrR.Count == 0)
+                return null;
+            else
+                return arrR;
+        }
+        //Kiểm tra xe có Routing MasterFolio không ( Dùng cho tách BK)
         public static void CheckRouting(string ConfirmationNo, ref bool _Routing, ProcessTransactions pt)
         {
             //Tim kiem Routing
@@ -2559,6 +2010,430 @@ namespace BaseBusiness.BO
                 _Routing = true;
             }
         }
+        //No Transaction
+        public static void CheckRouting(string ConfirmationNo, ref bool _Routing)
+        {
+            //Tim kiem Routing
+            Expression expR = new Expression("ConfirmationNo", ConfirmationNo, "=");
+            expR = expR.And(new Expression("IsMasterFolio", "1", "="));
+            ArrayList arrR = RoutingBO.Instance.FindByExpression(expR);
+            //Kiểm tra điều kiện để trả về giá trị
+            if (arrR.Count == 0)
+                _Routing = false;
+            else
+                _Routing = true;
+        }
+        #endregion
+
+        #region 2.2 Lấy RoutingID nếu đã tồn tại
+        /// <summary>
+        /// Lấy RoutingID nếu đã tồn tại
+        /// -- CSS, 04/12/2009
+        /// </summary>
+        /// <param name="ReservationID"></param>
+        /// <param name="WindowNo"></param>
+        /// <param name="pt"></param>
+        /// <returns></returns>
+        public static int GetRoutingID(int ReservationID, int WindowNo, ProcessTransactions pt)
+        {
+            //Tim kiem Folio
+            Expression expR = new Expression("FromReservationID", ReservationID, "=");
+            expR = expR.And(new Expression("ToFolioNo", WindowNo, "="));
+            ArrayList arrR = pt.FindByExpression("Routing", expR);
+            //Kiem tra dieu kien va tra ve ket qua
+            if (arrR.Count == 0)
+                return 0;
+            else
+                return ((RoutingModel)arrR[0]).ID;
+        }
+        #endregion
+
+        #region 2.3 Tạo Routing
+        /// <summary>
+        /// Tạo Routing
+        /// -- CSS, 04/12/2009
+        /// </summary>
+        /// <param name="ReservationID"></param>
+        /// <returns></returns>
+        public static int CreateRouting(int ReservationID, int WindowNo, DateTime ArrivalDate, DateTime DepartureDate, int ProfileIndividualID, ProcessTransactions pt)
+        {
+            RoutingModel mRo = new RoutingModel();
+            mRo.Type = 0;
+            mRo.FromReservationID = ReservationID;
+            mRo.ToReservationID = ReservationID;
+            mRo.ToFolioNo = WindowNo;
+            mRo.ToRoomID = 0;
+            mRo.ProfileID = ProfileIndividualID;
+            if (ProfileIndividualID > 0)
+                mRo.AccountName = ((ProfileModel)pt.FindByPK("Profile", ProfileIndividualID)).Account;
+            else
+                mRo.AccountName = "";
+            mRo.TransactionCodes = "";
+            mRo.Limit = 0;
+            mRo.FromDate = ArrivalDate;
+            mRo.ToDate = DepartureDate;
+            mRo.EntireDate = true;
+            mRo.IsDefault = true;
+            mRo.IsMasterFolio = false;
+            mRo.ID = (int)pt.Insert(mRo);
+
+            #region Ghi dữ liệu vào History
+            //ClassReservation.InsertHistory("INSERT", mRo,pt);
+            #endregion
+
+            return mRo.ID;
+        }
+        //C2 Dùng cho Quick CheckIn
+        public static int CreateRouting(int FromReservationID, int ToReservationID, int WindowNo,
+        DateTime ArrivalDate, DateTime DepartureDate, int ProfileID, string TransactionCode, ProcessTransactions pt)
+        {
+            RoutingModel mRo = new RoutingModel();
+            mRo.Type = 0;
+            mRo.FromReservationID = FromReservationID;
+            mRo.ToReservationID = ToReservationID;
+            mRo.ToFolioNo = WindowNo;
+            mRo.ToRoomID = 0;
+            mRo.ProfileID = ProfileID;
+            if (ProfileID > 0)
+                mRo.AccountName = ((ProfileModel)pt.FindByPK("Profile", ProfileID)).Account;
+            else
+                mRo.AccountName = "";
+            mRo.TransactionCodes = TransactionCode;
+            mRo.Limit = 0;
+            mRo.FromDate = ArrivalDate;
+            mRo.ToDate = DepartureDate;
+            mRo.EntireDate = true;
+            mRo.IsDefault = true;
+            mRo.IsMasterFolio = false;
+            return (int)pt.Insert(mRo);
+        }
+        #endregion
+
+        #region 2.4 Lấy ra ID của Folio nếu đã tồn tại
+        /// <summary>
+        /// Lấy ra ID của Folio nếu đã tồn tại
+        /// -- CSS, 25/12/2009
+        /// </summary>
+        /// <param name="ReservationID"></param>
+        /// <param name="WindowNo"></param>
+        /// <param name="ProfileID"></param>
+        /// <param name="pt"></param>
+        /// <returns></returns>
+        public static int GetFolioID(int ReservationID, int WindowNo, string ConfirmationNo, ProcessTransactions pt)
+        {
+            //Tim kiem Folio
+            Expression exp = new Expression("ReservationID", ReservationID, "=");
+            exp = exp.And(new Expression("FolioNo", WindowNo, "="));
+            exp = exp.And(new Expression("ConfirmationNo", ConfirmationNo, "="));
+            exp = exp.And(new Expression("Status", 0, "="));
+            ArrayList arr = pt.FindByExpression("Folio", exp);
+            //Kiem tra dieu kien va tra ve ket qua
+            if (arr.Count == 0)
+                return 0;
+            else
+                return ((FolioModel)arr[0]).ID;
+        }
+        //C2 Không dùng Transaction
+        public static int GetFolioID(int ReservationID, int WindowNo, string ConfirmationNo)
+        {
+            try
+            {
+                //Tim kiem Folio
+                Expression exp = new Expression("ReservationID", ReservationID, "=");
+                exp = exp.And(new Expression("FolioNo", WindowNo, "="));
+                exp = exp.And(new Expression("ConfirmationNo", ConfirmationNo, "="));
+                exp = exp.And(new Expression("Status", 0, "="));
+                ArrayList arr = FolioBO.Instance.FindByExpression(exp);
+                //Kiem tra dieu kien va tra ve ket qua
+                if (arr.Count == 0)
+                    return 0;
+                else
+                {
+                    return ((FolioModel)arr[0]).ID;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+        //C3 Nhặt ra Folio Master
+        public static int GetFolioMasterID(int ReservationID, int IsMasterFolio, ProcessTransactions pt)
+        {
+            //Lấy ra ConfNo
+            ReservationModel mR = (ReservationModel)pt.FindByPK("Reservation", ReservationID);
+            //Tim kiem Folio                
+            Expression exp = new Expression("ConfirmationNo", mR.ConfirmationNo, "=");
+            exp = exp.And(new Expression("IsMasterFolio", IsMasterFolio, "="));
+            ArrayList arr = pt.FindByExpression("Folio", exp);
+            //Kiem tra dieu kien va tra ve ket qua
+            if (arr.Count == 0)
+                return 0;
+            else
+            {
+                return ((FolioModel)arr[0]).ID;
+            }
+        }
+        #endregion
+
+        #region 2.5 Tạo Folio
+        /// <summary>
+        /// Tạo Folio
+        /// -- CSS, 25/12/2009
+        /// </summary>
+        /// <param name="ReservationID">ID của Reservation</param>
+        /// <param name="WindowNo">Số thứ tự của Window Folio </param>
+        /// <returns></returns>
+        //public static int CreateFolio(int ReservationID, int WindowNo, int ProfileID, ProcessTransaction pt)
+        public static int CreateFolio(int RoutingID, string ConfirmationNo, ProcessTransactions pt)
+        {
+
+            RoutingModel mOR = (RoutingModel)pt.FindByPK("Routing", RoutingID);
+
+            FolioModel mF = new FolioModel();
+            mF.FolioDate = TextUtils.GetBusinessDate();
+            mF.FolioNo = mOR.ToFolioNo;
+            mF.ReservationID = mOR.ToReservationID;
+            //mF.RoomID = mOR.ToRoomID;
+            //if (mOR.ToRoomID != 0)
+            //    mF.RoomNo = ((RoomModel)pt.FindByPK("Room", mOR.ToRoomID)).RoomNo;
+            //else
+            //    mF.RoomNo = "";
+            mF.ProfileID = mOR.ProfileID;
+            if (mOR.ProfileID > 0)
+                mF.AccountName = ((ProfileModel)pt.FindByPK("Profile", mOR.ProfileID)).Account;
+            else
+                mF.AccountName = "";
+            mF.Status = false;
+            if (mOR.IsMasterFolio == false)
+                mF.IsMasterFolio = false;
+            else
+                mF.IsMasterFolio = true;
+            mF.ConfirmationNo = ConfirmationNo;//((ReservationModel)pt.FindByPK("Reservation",mOR.FromReservationID)).ConfirmationNo;
+
+            mF.UserInsertID = Global.UserID;
+            mF.CreateDate = TextUtils.GetSystemDate();
+            mF.UserUpdateID = Global.UserID;
+            mF.UpdateDate = mF.CreateDate;
+
+            return (int)pt.Insert(mF);
+
+            #region Code cũ
+            //FolioModel mF = new FolioModel();
+            //mF.FolioDate = TextUtils.GetBusinessDate();
+            //mF.FolioNo = WindowNo;
+            //mF.ReservationID = ReservationID;
+            //mF.RoomID = 0;
+            //mF.RoomNo = "";
+            //mF.ProfileID = ProfileID;
+            //if (ProfileID > 0)
+            //    mF.AccountName = ((ProfileModel)pt.FindByPK("Profile",ProfileID)).Account;
+            //else
+            //    mF.AccountName = "";
+            //mF.Status = false;
+            //mF.FolioMaster = false;
+
+            //mF.UserInsertID = Global.UserID;
+            //mF.CreateDate =TextUtils.GetSystemDate();
+            //mF.UserUpdateID = Global.UserID;
+            //mF.UpdateDate = mF.CreateDate;
+
+            //return (int)pt.Insert(mF);
+            #endregion
+
+        }
+        //C2 Không dùng Transaction
+        public static int CreateFolio(int RoutingID)
+        {
+            try
+            {
+                RoutingModel mOR = (RoutingModel)RoutingBO.Instance.FindByPrimaryKey(RoutingID);
+
+                FolioModel mF = new FolioModel();
+                mF.FolioDate = TextUtils.GetBusinessDate();
+                mF.FolioNo = mOR.ToFolioNo;
+                mF.ReservationID = mOR.ToReservationID;
+                //mF.RoomID = mOR.ToRoomID;
+                //if (mOR.ToRoomID != 0)
+                //    mF.RoomNo = ((RoomModel)RoomBO.Instance.FindByPK(mOR.ToRoomID)).RoomNo;
+                //else
+                //    mF.RoomNo = "";
+                mF.ProfileID = mOR.ProfileID;
+                if (mOR.ProfileID > 0)
+                    mF.AccountName = ((ProfileModel)ProfileBO.Instance.FindByPrimaryKey(mOR.ProfileID)).Account;
+                else
+                    mF.AccountName = "";
+                mF.Status = false;
+                if (mOR.IsMasterFolio == false)
+                    mF.IsMasterFolio = false;
+                else
+                    mF.IsMasterFolio = true;
+                if (mOR.FromReservationID > 0)
+                    mF.ConfirmationNo = ((ReservationModel)ReservationBO.Instance.FindByPrimaryKey(mOR.FromReservationID)).ConfirmationNo;
+                else
+                    mF.ConfirmationNo = mOR.ConfirmationNo;
+
+                mF.UserInsertID = Global.UserID;
+                mF.CreateDate = TextUtils.GetSystemDate();
+                mF.UserUpdateID = Global.UserID;
+                mF.UpdateDate = mF.CreateDate;
+
+                return (int)FolioBO.Instance.Insert(mF);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+        //C3 Không có Routing
+        public static int CreateFolio(int ReservationID, int FolioNo)
+        {
+            try
+            {
+                ReservationModel mOR = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(ReservationID);
+
+                FolioModel mF = new FolioModel();
+                mF.FolioDate = TextUtils.GetBusinessDate();
+                mF.FolioNo = FolioNo;
+                mF.ProfileID = mOR.ProfileIndividualId;
+                mF.AccountName = mOR.LastName;
+                //mF.RoomID = mOR.RoomID;
+                //mF.RoomNo = mOR.RoomNo;
+                mF.ReservationID = ReservationID;
+                mF.Status = false;
+                mF.IsMasterFolio = false;
+                mF.ConfirmationNo = mOR.ConfirmationNo;
+                mF.UserInsertID = Global.UserID;
+                mF.CreateDate = TextUtils.GetSystemDate();
+                mF.UserUpdateID = Global.UserID;
+                mF.UpdateDate = mF.CreateDate;
+
+                return (int)FolioBO.Instance.Insert(mF);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+        //C4 Không có Routing, Transaction
+        public static int CreateFolio(int ReservationID, int FolioNo, ProcessTransactions pt)
+        {
+
+            ReservationModel mOR = (ReservationModel)pt.FindByPK("Reservation", ReservationID);
+
+            FolioModel mF = new FolioModel();
+            mF.FolioDate = TextUtils.GetBusinessDate();
+            mF.FolioNo = FolioNo;
+            mF.ProfileID = mOR.ProfileIndividualId;
+            mF.AccountName = mOR.LastName;
+            //mF.RoomID = mOR.RoomID;
+            //mF.RoomNo = mOR.RoomNo;
+            mF.ReservationID = ReservationID;
+            mF.Status = false;
+            mF.IsMasterFolio = false;
+            mF.ConfirmationNo = mOR.ConfirmationNo;
+            mF.UserInsertID = Global.UserID;
+            mF.CreateDate = TextUtils.GetSystemDate();
+            mF.UserUpdateID = Global.UserID;
+            mF.UpdateDate = mF.CreateDate;
+
+            return (int)pt.Insert(mF);
+
+        }
+
+        /// <summary>
+        /// Tạo Folio cho khách trường hợp ko có Routing
+        /// -- CSS, 24/03/2010
+        /// </summary>
+        /// <param name="ReservationID"></param>
+        /// <param name="pt"></param>
+        /// <returns></returns>
+        public static int CreateFolioNoRouting(int ReservationID, int _WinNo, ProcessTransactions pt)
+        {
+            ReservationModel mOR = (ReservationModel)pt.FindByPK("Reservation", ReservationID);
+            FolioModel mF = new FolioModel();
+            mF.FolioDate = TextUtils.GetBusinessDate();
+            mF.FolioNo = _WinNo;//1;
+            mF.ReservationID = ReservationID;
+            mF.ProfileID = mOR.ProfileIndividualId;
+            if (_WinNo < 0)
+            {
+                if (mOR.ProfileAgentId > 0)
+                    mF.ProfileID = mOR.ProfileAgentId;
+                else
+                    mF.ProfileID = mOR.ProfileCompanyId;
+            }
+            mF.AccountName = mOR.LastName;
+            if (mF.AccountName == "")
+                if (mF.ProfileID > 0)
+                    mF.AccountName = ((ProfileModel)pt.FindByPK("Profile", mF.ProfileID)).Account;
+            mF.Status = false;
+            if (_WinNo == -1)
+                mF.IsMasterFolio = true;
+            else
+                mF.IsMasterFolio = false;
+            mF.ConfirmationNo = mOR.ConfirmationNo;
+            mF.UserInsertID = Global.UserID;
+            mF.CreateDate = TextUtils.GetSystemDate();
+            mF.UserUpdateID = Global.UserID;
+            mF.UpdateDate = mF.CreateDate;
+
+            return (int)pt.Insert(mF);
+        }
+
+        /// <summary>
+        /// Tạo FolioMaster
+        /// -- CSS, 23/03/2010
+        /// </summary>
+        /// <param name="ReservationID"></param>
+        /// <param name="RoomID"></param>
+        /// <param name="RoomNo"></param>
+        /// <param name="WindowNo"></param>
+        /// <param name="pt"></param>
+        /// <returns></returns>
+        public static int CreateFolioMasterID(int ReservationID, int RoomID, string RoomNo, ProcessTransactions pt)
+        {
+            ReservationModel mOR = (ReservationModel)pt.FindByPK("Reservation", ReservationID);
+            FolioModel mF = new FolioModel();
+            mF.FolioDate = TextUtils.GetBusinessDate();
+            mF.FolioNo = -1;
+            mF.ReservationID = ReservationID;
+            if (mOR.ProfileAgentId > 0)
+                mF.ProfileID = mOR.ProfileAgentId;
+            else
+                mF.ProfileID = mOR.ProfileCompanyId;
+            mF.AccountName = mOR.LastName;
+            if (mF.AccountName == "")
+                if (mF.ProfileID > 0)
+                    mF.AccountName = ((ProfileModel)pt.FindByPK("Profile", mF.ProfileID)).Account;
+            mF.IsMasterFolio = true;
+            mF.ConfirmationNo = mOR.ConfirmationNo;
+            mF.UserInsertID = Global.UserID;
+            mF.CreateDate = TextUtils.GetSystemDate();
+            mF.UserUpdateID = Global.UserID;
+            mF.UpdateDate = mF.CreateDate;
+
+            return (int)pt.Insert(mF);
+        }
+
+        public static int UpdateFolioNoRouting(int FolioID, int ProfileIndividualID, string LastName, string ConfirmationNo, int FolioNo, ProcessTransactions pt)
+        {
+            FolioModel mF = (FolioModel)pt.FindByPK("Folio", FolioID);
+            mF.FolioDate = TextUtils.GetBusinessDate();
+            mF.FolioNo = FolioNo;
+            mF.ProfileID = ProfileIndividualID;
+            mF.AccountName = LastName;
+            mF.ConfirmationNo = ConfirmationNo;
+            mF.UserInsertID = mF.UserUpdateID = Global.UserID;
+            mF.CreateDate = mF.UpdateDate = TextUtils.GetSystemDate();
+            pt.Update(mF);
+            return mF.ID;
+        }
+        #endregion
+
+        #endregion
+
+
         public static int CopyTbReservationSpecial(int ReservationID, int pNewReservationID, int UserID, ProcessTransactions pt)
         {
 
@@ -2654,6 +2529,73 @@ namespace BaseBusiness.BO
             else
                 return ((ReservationOptionsModel)arr[0]).ID;
         }
+
+        //No Transaction
+        public static int GetReservationOptionID(int ReservationID)
+        {
+
+            //Tim kiem ReservationOptions
+            Expression exp = new Expression("ReservationID", ReservationID, "=");
+            ArrayList arr = ReservationOptionsBO.Instance.FindByExpression(exp);
+            //Kiem tra dieu kien va tra ve ket qua
+            if (arr.Count == 0)
+                return 0;
+            else
+                return ((ReservationOptionsModel)arr[0]).ID;
+        }
+
+        /// <summary>
+        /// Xác định xem có bao nhiêu Accompany trong phòng này để update vào trường AccompanyName trong bảng Reservation
+        /// -- CSS, 27/03/2010
+        /// </summary>
+        /// <param name="ReservationID"></param>
+        /// <param name="pt"></param>
+        /// <returns></returns>
+        public static void GetAccompanyName(int ReservationID, ProcessTransactions pt)
+        {
+            string AccompanyName = "";
+            //Lấy dữ liệu trong bảng ReservationFixedCharge
+            DataTable dtA = pt.Select("SELECT ReservationID,ProfileIndividualID FROM ReservationAccompany WITH (NOLOCK) where ReservationID = " + ReservationID + " ");
+            for (int i = 0; i < dtA.Rows.Count; i++)
+            {
+                if (TextUtils.ToInt(dtA.Rows[i]["ProfileIndividualID"].ToString()) > 0)
+                {
+                    ProfileModel mP = (ProfileModel)pt.FindByPK("Profile", TextUtils.ToInt(dtA.Rows[i]["ProfileIndividualID"].ToString()));
+                    if (AccompanyName != "")
+                        AccompanyName = AccompanyName + ";" + mP.Account;
+                    else
+                        AccompanyName = mP.Account;
+                }
+            }
+            //Ghi dữ liệu vào bảng Reservation
+            if (dtA.Rows.Count > 0)
+                TextUtils.UpdateTable("Reservation", "AccompanyName", AccompanyName, "ID", ReservationID.ToString(), pt);
+
+        }
+        //No Transaction
+        public static void GetAccompanyName(int ReservationID)
+        {
+            string AccompanyName = "";
+            //Lấy dữ liệu trong bảng ReservationFixedCharge
+            DataTable dtA = TextUtils.Select("SELECT ReservationID,ProfileIndividualID FROM ReservationAccompany WITH (NOLOCK) where ReservationID = " + ReservationID + " ");
+            for (int i = 0; i < dtA.Rows.Count; i++)
+            {
+                if (TextUtils.ToInt(dtA.Rows[i]["ProfileIndividualID"].ToString()) > 0)
+                {
+                    ProfileModel mP = (ProfileModel)ProfileBO.Instance.FindByPrimaryKey(TextUtils.ToInt(dtA.Rows[i]["ProfileIndividualID"].ToString()));
+                    if (AccompanyName != "")
+                        AccompanyName = AccompanyName + ";" + mP.Account;
+                    else
+                        AccompanyName = mP.Account;
+                }
+            }
+            //Ghi dữ liệu vào bảng Reservation
+            if (dtA.Rows.Count > 0)
+                TextUtils.UpdateTable("Reservation", "AccompanyName", AccompanyName, "ID", ReservationID.ToString());
+        }
+
+
+
         public static int GetFOStatus(int RoomID)
         {
             ProcessTransactions pt = new ProcessTransactions();
@@ -2862,6 +2804,5 @@ namespace BaseBusiness.BO
             _if_in = TextUtils.Select("SELECT KeyValue FROM ConfigSystem WHERE KeyName ='IF_IN' ").Rows[0][0].ToString();
             return _if_in;
         }
-        #endregion
     }
 }

@@ -1001,6 +1001,89 @@ namespace BaseBusiness.util
 			}
 		}
 
+		#region Hàm tính số đêm 
+		public static int NumberOfDay(string unit, DateTime endDate, DateTime startDate)
+		{
+			if (string.IsNullOrWhiteSpace(unit))
+				throw new ArgumentException("Unit is required.");
+			return unit.ToLower() switch
+			{
+				"d" => (endDate.Date - startDate.Date).Days,
+				"h" => (int)(endDate - startDate).TotalHours,
+				"m" => (int)(endDate - startDate).TotalMinutes,
+				_ => throw new ArgumentException("Unsupported unit. Use 'd', 'h', or 'm'."),
+			};
+		}
+		#endregion
+
+		#region Lấy CurrencyId
+		public static string GetMasterCurrency()
+		{
+			try
+			{
+				DataTable dt = TextUtils.Select("select ID from Currency where MasterStatus=1");
+				return dt.Rows[0][0].ToString() ?? "";
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message);
+			}
+		}
+		#endregion
+
+
+		#region Phần UpdateTable
+		/// <summary>
+		/// Update lại dữ liệu vào table
+		/// -- CSS, 20/02/2010
+		/// </summary>
+		/// <param name="Table">Tên bảng</param>
+		/// <param name="Field"> Tên trường cần update</param>
+		/// <param name="Field"> Giá trị của trường cần update</param>
+		/// <param name="WHERE">Khóa chính của bảng (Điều kiện Where)</param>
+		/// <param name="WHEREValue">Giá trị của điều kiện Where</param>
+		/// <returns></returns>
+		//C1 - 01 Field
+		public static void UpdateTable(string Table, string Field, string FieldValue, string WHERE, string WHEREValue)
+		{
+			FieldValue = FieldValue.Replace("'", "´");
+			SqlCommand cmd;
+			SqlConnection cnn = new SqlConnection(DBUtils.GetDBConnectionString());
+			cnn.Open();
+			string strSQL = "UPDATE " + Table + " with (rowlock) SET " + Field + " = N'" + FieldValue + "' WHERE " + WHERE + " = '" + WHEREValue + "' ";
+			cmd = new SqlCommand(strSQL, cnn);
+			cmd.ExecuteNonQuery();
+			cnn.Close();
+		}
+		//C1 - 01 Fields - Có Transaction
+		public static void UpdateTable(string Table, string Field, string FieldValue, string WHERE, string WHEREValue, ProcessTransactions pt)
+		{
+			FieldValue = FieldValue.Replace("'", "´");
+			pt.UpdateCommand("UPDATE " + Table + " with (rowlock) SET " + Field + " = N'" + FieldValue + "' WHERE ID IN (SELECT ID FROM " + Table + " WITH (NOLOCK) WHERE " + WHERE + " = '" + WHEREValue + "') ");
+		}
+		//C2 - 02 Fields
+		public static void UpdateTable(string Table, string Field, string FieldValue, string Field1, string FieldValue1, string WHERE, string WHEREValue)
+		{
+			FieldValue = FieldValue.Replace("'", "´");
+			FieldValue1 = FieldValue1.Replace("'", "´");
+			SqlCommand cmd;
+			SqlConnection cnn = new SqlConnection(DBUtils.GetDBConnectionString());
+			cnn.Open();
+			string strSQL = "UPDATE " + Table + " with (rowlock) SET " + Field + " = N'" + FieldValue + "'," + Field1 + " = N'" + FieldValue1 + "' WHERE " + WHERE + " = '" + WHEREValue + "' ";
+			cmd = new SqlCommand(strSQL, cnn);
+			cmd.ExecuteNonQuery();
+			cnn.Close();
+		}
+		//C3 - 02 Fields - Transaction
+		public static void UpdateTable(string Table, string Field, string FieldValue, string Field1, string FieldValue1, string WHERE, string WHEREValue, ProcessTransactions pt)
+		{
+			FieldValue = FieldValue.Replace("'", "´");
+			FieldValue1 = FieldValue1.Replace("'", "´");
+			pt.UpdateCommand("UPDATE " + Table + " with (rowlock) SET " + Field + " = N'" + FieldValue + "'," + Field1 + " = N'" + FieldValue1 + "' WHERE ID IN (SELECT ID FROM " + Table + " WITH (NOLOCK) WHERE " + WHERE + " = '" + WHEREValue + "') ");
+		}
+
+
+		#endregion
 	}
 
 }

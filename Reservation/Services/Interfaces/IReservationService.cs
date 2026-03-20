@@ -136,5 +136,9 @@ namespace Reservation.Services.Interfaces
         int Split(int ReservationID, int pNoOfRoom, int UserID, string PartyGuest, int RoomID);
 
         int SplitAll(int ReservationID, int pNoOfRoom, int UserID, string username, string PartyGuest);
+        int SplitSpecial(int ReservationID, int pNoOfRoom, int UserID, string PartyGuest);
+        int SplitAllSpecial(int ReservationID, int pNoOfRoom, int UserID, string PartyGuest);
+        void SplitAllRoomSharer(List<int> reservationIds, int UserID);
+        DataTable ResConfNoList(int confirmationNo);
     }
 }
