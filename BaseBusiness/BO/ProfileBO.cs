@@ -240,9 +240,9 @@ namespace BaseBusiness.BO
         {
             DateTime businessDate = TextUtils.GetBusinessDate();
 
-            if(date == null)
+            if (date == null)
             {
-                date= businessDate;
+                date = businessDate;
             }
 
             if (string.IsNullOrEmpty(confirmationNo))
@@ -362,6 +362,97 @@ namespace BaseBusiness.BO
             }
 
 
+        }
+
+
+        // TuanDB: 18/3/2026 with chatGPT giữ nghiệp vụ gần GenerateNo3 nhưng tránh lỗi convert và dễ dùng hơn
+        public string GenerateNo4(string columnName)
+        {
+            IConfiguration config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false)
+                .Build();
+
+            string strcon = config.GetConnectionString("DefaultConnection");
+            string tableName = "Profile";
+
+            // Chỉ lấy các giá trị code hiện có, không convert ở SQL để tránh lỗi dữ liệu lẫn chữ.
+            string sql = $"SELECT {columnName} FROM {tableName} WITH (NOLOCK) WHERE {columnName} IS NOT NULL AND LTRIM(RTRIM({columnName})) <> ''";
+
+            List<string> codes = new List<string>();
+
+            using (SqlConnection conn = new SqlConnection(strcon))
+            using (SqlCommand cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = sql;
+                cmd.CommandType = CommandType.Text;
+
+                conn.Open();
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        codes.Add(reader[0].ToString());
+                    }
+                }
+            }
+
+            // Không có dữ liệu thì trả về mặc định như logic cũ
+            if (codes.Count == 0)
+            {
+                return "00001";
+            }
+
+            string bestPrefix = "";
+            int bestNumber = 0;
+            int bestDigitLength = 5;
+
+            foreach (string code in codes)
+            {
+                if (string.IsNullOrWhiteSpace(code))
+                    continue;
+
+                string trimmedCode = code.Trim();
+
+                // Tách phần số ở cuối chuỗi
+                int index = trimmedCode.Length - 1;
+                while (index >= 0 && char.IsDigit(trimmedCode[index]))
+                {
+                    index--;
+                }
+
+                string prefix = trimmedCode.Substring(0, index + 1);
+                string digitPart = trimmedCode.Substring(index + 1);
+
+                // Nếu không có số cuối chuỗi thì bỏ qua ở vòng so sánh,
+                // vì logic cũ chỉ tăng được khi có phần số
+                if (string.IsNullOrEmpty(digitPart))
+                    continue;
+
+                if (!int.TryParse(digitPart, out int number))
+                    continue;
+
+                // Chọn mã có giá trị số lớn nhất
+                if (number > bestNumber)
+                {
+                    bestNumber = number;
+                    bestPrefix = prefix;
+                    bestDigitLength = digitPart.Length;
+                }
+            }
+
+            // Nếu toàn bộ dữ liệu không có phần số cuối chuỗi
+            // thì giữ hành vi gần giống no3: lấy chuỗi đầu tiên + 00001
+            if (bestNumber == 0 && string.IsNullOrEmpty(bestPrefix))
+            {
+                string firstCode = codes.First().Trim();
+                return firstCode + "00001";
+            }
+
+            int nextNumber = bestNumber + 1;
+            string newDigitPart = nextNumber.ToString().PadLeft(bestDigitLength, '0');
+
+            return bestPrefix + newDigitPart;
         }
 
         public bool IsDuplicateCode(string code, long id = 0)

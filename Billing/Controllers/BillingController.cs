@@ -8,6 +8,7 @@ using DevExpress.Web.Internal;
 using DevExpress.XtraReports.Design;
 using DevExpress.XtraReports.UI;
 using DevExpress.XtraRichEdit.Fields;
+using DevExpress.XtraRichEdit.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -896,12 +897,7 @@ namespace Billing.Controllers
             try
             {
                 List<ReservationModel> posting = new List<ReservationModel>();
-  
-                
                    posting = ReservationBO.GetBalanceVND(rsvID);
-   
-                
-
                 return Json(posting);
             }
             catch (Exception ex)
@@ -911,9 +907,9 @@ namespace Billing.Controllers
         }
         #endregion
 
-        #region DatVP __ Billing: Create Folio
+        #region Billing: Create Folio
         [HttpPost]
-        public ActionResult CreateFolio()
+        public ActionResult CreateFolio([FromBody] FolioModel model)
         {
             ProcessTransactions pt = new ProcessTransactions();
             try
@@ -921,45 +917,43 @@ namespace Billing.Controllers
                 pt.OpenConnection();
                 pt.BeginTransaction();
 
-                int reservationID = int.Parse(Request.Form["rsvID"].ToString());
-                int folioNo = int.Parse(Request.Form["folioNo"].ToString());
-                var folio = FolioBO.GetFolioNoByReservationID(reservationID, folioNo);
-                if (folio.Count > 0)
+                var res = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(model.ReservationID);
+
+                if (model.IsMasterFolio)
                 {
-                    return Json(new { code = 1, msg = $"Can not create folio. Invalid folio no {folioNo} for this reservation" });
+                    if (res.ProfileCompanyId <= 0 && res.ProfileAgentId <= 0 && res.ProfileGroupId <= 0)
+                    {
+                        return Json(new { code = 1, msg = "This booking has no Company/Agent/Group. Cannot create Master Folio." });
+                    }
 
+                    if (model.ProfileID <= 0 || model.ProfileID == res.ProfileIndividualId)
+                    {
+                        model.ProfileID = res.ProfileCompanyId > 0 ? res.ProfileCompanyId : (res.ProfileAgentId > 0 ? res.ProfileAgentId : res.ProfileGroupId);
+
+                        DataTable dtProfile = TextUtils.Select($"SELECT Account FROM Profile WHERE ID = {model.ProfileID}");
+                        if (dtProfile.Rows.Count > 0)
+                        {
+                            model.AccountName = dtProfile.Rows[0]["Account"].ToString();
+                        }
+                    }
                 }
-                List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
-                var folioMain = FolioBO.GetFolioNo(reservationID);
-                FolioModel createFolio = new FolioModel();
-                createFolio.ARNo = "";
-                createFolio.FolioDate = businessDateModel[0].BusinessDate;
-                createFolio.FolioNo = folioNo;
-                createFolio.ReservationID = reservationID;
-                createFolio.ProfileID = folioMain[0].ProfileID;
-                createFolio.AccountName = folioMain[0].AccountName;
 
-                createFolio.Status = false;
-                createFolio.IsMasterFolio = false;
-                createFolio.ConfirmationNo = folioMain[0].ConfirmationNo;
-                createFolio.BalanceUSD = createFolio.BalanceVND = 0;
-                createFolio.CreateDate = createFolio.UpdateDate = DateTime.Now;
-                createFolio.UserInsertID = createFolio.UserUpdateID = int.Parse(Request.Form["userID"].ToString());
-                FolioBO.Instance.Insert(createFolio);
+                var existing = FolioBO.GetFolioNoByReservationID(model.ReservationID, model.FolioNo);
+                if (existing.Count > 0) return Json(new { code = 1, msg = $"Window {model.FolioNo} is already in use." });
+
+                model.FolioDate = TextUtils.GetBusinessDate();
+                model.CreateDate = model.UpdateDate = DateTime.Now;
+                FolioBO.Instance.Insert(model);
+
                 pt.CommitTransaction();
-                return Json(new { code = 0, msg = "New Folio was created successfully" });
-
+                return Json(new { code = 0, msg = "Folio created successfully", profileName = model.AccountName });
             }
             catch (Exception ex)
             {
                 pt.RollBack();
                 return Json(new { code = 1, msg = ex.Message });
             }
-            finally
-            {
-                pt.CloseConnection();
-
-            }
+            finally { pt.CloseConnection(); }
         }
         #endregion
 
@@ -2287,7 +2281,7 @@ namespace Billing.Controllers
         }
         #endregion
 
-        #region PhucLX __ Billing: Posting
+        #region Billing: Posting
         [HttpGet]
         public IActionResult GetCurrencies()
         {
@@ -2669,7 +2663,45 @@ namespace Billing.Controllers
         }
         #endregion
 
-
+        #region Billing: View Transaction Detail
+        [HttpGet]
+        public IActionResult GetTransactionDetailBreakdown(int invoiceNo)
+        {
+            try
+            {
+                DataTable dataTable = _iPostService.TransactionDetail(invoiceNo);
+                var result = (from d in dataTable.AsEnumerable()
+                              select new
+                              {
+                                  ID = !string.IsNullOrEmpty(d["Index"].ToString()) ? d["Index"] : "",
+                                  GroupCode = !string.IsNullOrEmpty(d["GroupCode"].ToString()) ? d["GroupCode"] : "",
+                                  SubgroupCode = !string.IsNullOrEmpty(d["SubgroupCode"].ToString()) ? d["SubgroupCode"] : "",
+                                  PostType = !string.IsNullOrEmpty(d["PostType"].ToString()) ? d["PostType"] : "",
+                                  RowState = !string.IsNullOrEmpty(d["RowState"].ToString()) ? d["RowState"] : "",
+                                  IsSplit = !string.IsNullOrEmpty(d["IsSplit"].ToString()) ? d["IsSplit"] : "",
+                                  InvoiceNo = !string.IsNullOrEmpty(d["InvoiceNo"].ToString()) ? d["InvoiceNo"] : "",
+                                  TransactionNo = !string.IsNullOrEmpty(d["TransactionNo"].ToString()) ? d["TransactionNo"] : "",
+                                  Date = !string.IsNullOrEmpty(d["Date"].ToString()) ? d["Date"] : "",
+                                  Time = !string.IsNullOrEmpty(d["Time"].ToString()) ? d["Time"] : "",
+                                  IsVisible = !string.IsNullOrEmpty(d["IsVisible"].ToString()) ? d["IsVisible"] : "",
+                                  Code = !string.IsNullOrEmpty(d["Code"].ToString()) ? d["Code"] : "",
+                                  Description = !string.IsNullOrEmpty(d["Description"].ToString()) ? d["Description"] : "",
+                                  VirtualCode = !string.IsNullOrEmpty(d["VirtualCode"].ToString()) ? d["VirtualCode"] : "",
+                                  Amount = !string.IsNullOrEmpty(d["Amount"].ToString()) ? d["Amount"] : "",
+                                  Currency = !string.IsNullOrEmpty(d["Currency"].ToString()) ? d["Currency"] : "",
+                                  Supplement = !string.IsNullOrEmpty(d["Supplement"].ToString()) ? d["Supplement"] : "",
+                                  Reference = !string.IsNullOrEmpty(d["Reference"].ToString()) ? d["Reference"] : "",
+                                  UserName = !string.IsNullOrEmpty(d["UserName"].ToString()) ? d["UserName"] : "",
+                                  ShiftID = !string.IsNullOrEmpty(d["ShiftID"].ToString()) ? d["ShiftID"] : ""
+                              }).ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+        #endregion
 
     }
 }

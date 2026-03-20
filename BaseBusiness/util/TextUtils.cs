@@ -7,7 +7,6 @@ using System;
 using System.Collections;
 using System.Collections.Specialized;
 using System.Data;
-using System.Data.SqlClient;
 //using System.Data.SqlClient;
 using System.Globalization;
 using System.IO;
@@ -18,6 +17,7 @@ using SqlConnection = Microsoft.Data.SqlClient.SqlConnection;
 using SqlDataAdapter = Microsoft.Data.SqlClient.SqlDataAdapter;
 using SqlException = Microsoft.Data.SqlClient.SqlException;
 using SqlParameter = Microsoft.Data.SqlClient.SqlParameter;
+using SqlTransaction = Microsoft.Data.SqlClient.SqlTransaction;
 namespace BaseBusiness.util
 {
 	/// <summary>
@@ -31,6 +31,17 @@ namespace BaseBusiness.util
 			// TODO: Add constructor logic here
 			//
 		}
+
+		public string HistoryContent = "";
+		int CountTransaction = 0;
+
+		protected string strcon;
+		private readonly SqlConnection cnn;
+		private Microsoft.Data.SqlClient.SqlTransaction tran;
+		//private SqlDataAdapter da;
+		public SqlConnection Connection => cnn;
+		public SqlTransaction Transaction => tran;
+
 		public static DateTime dtNull = DateTime.Parse("01/01/1900");
 
 		public static string ToString(Object obj)
@@ -47,36 +58,36 @@ namespace BaseBusiness.util
 				return 1;
 
 		}
-        public static string[] GetArrayTransaction(string strRouting)
-        {
-            string strReturn = "";
-            string[] array = strRouting.Trim().Split(',');
-            for (int i = 0; i < array.Length; i++)
-            {
-                if (!array[i].Trim().Equals(""))
-                {
-                    DataTable tb = TextUtils.Select("Select * from RoutingCode Where Code =N'" + array[i].ToString().Trim() + "'");
-                    if (tb.Rows.Count > 0)
-                    {
-                        if (strReturn == "")
-                            strReturn = tb.Rows[0]["TransactionCodes"].ToString().Trim();
-                        else
-                            strReturn = strReturn + "," + tb.Rows[0]["TransactionCodes"].ToString().Trim();
-                    }
-                    else
-                    {
-                        if (strReturn == "")
-                            strReturn = array[i].Trim();
-                        else
-                            strReturn = strReturn + "," + array[i].Trim();
-                    }
-                }
-            }
-            string[] arrayReturn = strReturn.Split(',');
+		public static string[] GetArrayTransaction(string strRouting)
+		{
+			string strReturn = "";
+			string[] array = strRouting.Trim().Split(',');
+			for (int i = 0; i < array.Length; i++)
+			{
+				if (!array[i].Trim().Equals(""))
+				{
+					DataTable tb = Select("Select * from RoutingCode Where Code =N'" + array[i].ToString().Trim() + "'");
+					if (tb.Rows.Count > 0)
+					{
+						if (strReturn == "")
+							strReturn = tb.Rows[0]["TransactionCodes"].ToString().Trim();
+						else
+							strReturn = strReturn + "," + tb.Rows[0]["TransactionCodes"].ToString().Trim();
+					}
+					else
+					{
+						if (strReturn == "")
+							strReturn = array[i].Trim();
+						else
+							strReturn = strReturn + "," + array[i].Trim();
+					}
+				}
+			}
+			string[] arrayReturn = strReturn.Split(',');
 
-            return arrayReturn;
-        }
-        public static DateTime GetBussinessDateTime()
+			return arrayReturn;
+		}
+		public static DateTime GetBussinessDateTime()
 		{
 			var businessDate = PropertyUtils
 								.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll())![0]
@@ -107,6 +118,13 @@ namespace BaseBusiness.util
 				return 0;
 			}
 		}
+
+		private void SetHistory(string Table, string Function, string Content)
+		{
+			HistoryContent += "" + (CountTransaction + 1) + "." + Function + " " + Table + " : " + Content + "\r\n";
+			CountTransaction++;
+		}
+
 		private static readonly string _connectionString;
 
 		// Static constructor: ch?y m?t l?n duy nh?t khi class ???c dùng l?n ??u
@@ -124,38 +142,38 @@ namespace BaseBusiness.util
 
 				if (string.IsNullOrEmpty(_connectionString))
 				{
-					throw new Exception("Không t́m th?y Connection String 'DefaultConnection' trong appsettings.json");
+					throw new Exception("Can't not find Connection String 'DefaultConnection' trong appsettings.json");
 				}
 			}
 			catch (Exception ex)
 			{
-				// N?u không load ???c config, ném l?i rơ ràng ?? d? debug
+				// Nếu không load ???c config, n�m l?i r� r�ng ?? d? debug
 				throw new Exception("L?i kh?i t?o Connection String: " + ex.Message, ex);
 			}
 		}
-        public static DataTable getTable2(
-            string spName,
-            string nameSetToTable,
-            params SqlParameter[] parameters)
-        {
-            DataSet ds = new DataSet();
+		public static DataTable getTable2(
+			string spName,
+			string nameSetToTable,
+			params SqlParameter[] parameters)
+		{
+			DataSet ds = new DataSet();
 
-            using (SqlConnection conn = new SqlConnection(_connectionString))
-            using (SqlCommand cmd = new SqlCommand(spName, conn))
-            {
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddRange(parameters);
+			using (SqlConnection conn = new SqlConnection(_connectionString))
+			using (SqlCommand cmd = new SqlCommand(spName, conn))
+			{
+				cmd.CommandType = CommandType.StoredProcedure;
+				cmd.Parameters.AddRange(parameters);
 
-                using (SqlDataAdapter da = new SqlDataAdapter(cmd))
-                {
-                    da.Fill(ds, nameSetToTable);
-                }
-            }
+				using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+				{
+					da.Fill(ds, nameSetToTable);
+				}
+			}
 
-            return ds.Tables[nameSetToTable];
-        }
+			return ds.Tables[nameSetToTable];
+		}
 
-        public static DataTable getTable(string spName, params SqlParameter[] parameters)
+		public static DataTable getTable(string spName, params SqlParameter[] parameters)
 		{
 			DataTable dt = new DataTable();
 
@@ -173,32 +191,32 @@ namespace BaseBusiness.util
 
 			return dt;
 		}
-        public static int CreateFolioAtNight(int ReservationID, int RoomID, string RoomNo, string ConfirmationNo, int WindowNo, int ProfileID, string ProfileName)
-        {
-            try
-            {
-                FolioModel mF = new FolioModel();
-                mF.Status = false;
-                mF.CreateDate = GetSystemDate();
-                mF.FolioDate = GetBusinessDate();
-                //mF.IsMasterFolio = false;
-                mF.ConfirmationNo = ConfirmationNo;// ((ReservationModel)ReservationBO.Instance.FindByPK(ReservationID)).ConfirmationNo;
-                mF.FolioNo = WindowNo;
-                mF.ReservationID = ReservationID;
-                mF.ProfileID = ProfileID;
-                mF.AccountName = ProfileName;
-                mF.UpdateDate = mF.CreateDate;
-                mF.UserInsertID = Global.UserID;
-                mF.UserUpdateID = Global.UserID;
+		public static int CreateFolioAtNight(int ReservationID, int RoomID, string RoomNo, string ConfirmationNo, int WindowNo, int ProfileID, string ProfileName)
+		{
+			try
+			{
+				FolioModel mF = new FolioModel();
+				mF.Status = false;
+				mF.CreateDate = GetSystemDate();
+				mF.FolioDate = GetBusinessDate();
+				//mF.IsMasterFolio = false;
+				mF.ConfirmationNo = ConfirmationNo;// ((ReservationModel)ReservationBO.Instance.FindByPK(ReservationID)).ConfirmationNo;
+				mF.FolioNo = WindowNo;
+				mF.ReservationID = ReservationID;
+				mF.ProfileID = ProfileID;
+				mF.AccountName = ProfileName;
+				mF.UpdateDate = mF.CreateDate;
+				mF.UserInsertID = Global.UserID;
+				mF.UserUpdateID = Global.UserID;
 
-                return (int)FolioBO.Instance.Insert(mF);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message);
-            }
-        }
-        public static string GetHostName()
+				return (int)FolioBO.Instance.Insert(mF);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message);
+			}
+		}
+		public static string GetHostName()
 		{
 			return System.Environment.MachineName; //System.Net.Dns.GetHostName();
 
@@ -495,7 +513,7 @@ namespace BaseBusiness.util
 			}
 			else
 			{
-				strReturn = TextUtils.FormatNumber(x, 0);
+				strReturn = FormatNumber(x, 0);
 			}
 
 			return strReturn.Replace(".", ",");
@@ -514,7 +532,7 @@ namespace BaseBusiness.util
 			}
 			else
 			{
-				strReturn = TextUtils.FormatNumber(x, 0);
+				strReturn = FormatNumber(x, 0);
 			}
 
 			return strReturn.Replace(".", ",");
@@ -708,7 +726,7 @@ namespace BaseBusiness.util
 			if (x == 0)
 				outValue = "";
 			else
-				outValue = TextUtils.FormatCurrencyVND(x);
+				outValue = FormatCurrencyVND(x);
 			return outValue;
 
 		}
@@ -722,7 +740,7 @@ namespace BaseBusiness.util
 			if (x == 0)
 				outValue = "0";
 			else
-				outValue = TextUtils.FormatCurrencyVND(x);
+				outValue = FormatCurrencyVND(x);
 			return outValue;
 
 		}
@@ -836,99 +854,237 @@ namespace BaseBusiness.util
 			mAL.ObjectID = _ID;
 			mAL.UserID = Global.UserID;
 			mAL.UserName = Global.UserName;
-			mAL.ChangeDate = TextUtils.GetSystemDate();
+			mAL.ChangeDate = GetSystemDate();
 			mAL.Change = _change;
 			mAL.OldValue = _oldvalue;
 			mAL.NewValue = _newvalue;
 			mAL.Description = _description;
 			ActivityLogBO.Instance.Insert(mAL);
 		}
-        public static void FillValues<T>(ActivityLogModel log, T oldModel, T newModel)
-        {
-            var oldValues = new List<string>();
-            var newValues = new List<string>();
+		public static void FillValues<T>(ActivityLogModel log, T oldModel, T newModel)
+		{
+			var oldValues = new List<string>();
+			var newValues = new List<string>();
 
-            PropertyInfo[] properties = typeof(T).GetProperties();
+			PropertyInfo[] properties = typeof(T).GetProperties();
 
-            string[] ignoreProps = { "ID", "UserUpdateID", "UpdateDate", "CreateDate", "UpdatedDate",
-        "CreatedDate", "UserInsertID", "CreateBy", "UpdateBy", "CreatedBy", "UpdatedBy", "ImagePath"};
+			string[] ignoreProps = { "ID", "UserUpdateID", "UpdateDate", "CreateDate", "UpdatedDate",
+		"CreatedDate", "UserInsertID", "CreateBy", "UpdateBy", "CreatedBy", "UpdatedBy", "ImagePath"};
 
-            foreach (var prop in properties)
-            {
-                if (ignoreProps.Contains(prop.Name)) continue;
+			foreach (var prop in properties)
+			{
+				if (ignoreProps.Contains(prop.Name)) continue;
 
-                object oldVal = oldModel != null ? prop.GetValue(oldModel) : null;
-                object newVal = newModel != null ? prop.GetValue(newModel) : null;
+				object oldVal = oldModel != null ? prop.GetValue(oldModel) : null;
+				object newVal = newModel != null ? prop.GetValue(newModel) : null;
 
-                string oldStr = oldVal?.ToString()?.Trim() ?? "";
-                string newStr = newVal?.ToString()?.Trim() ?? "";
+				string oldStr = oldVal?.ToString()?.Trim() ?? "";
+				string newStr = newVal?.ToString()?.Trim() ?? "";
 
-                if (oldStr != newStr)
-                {
-                    if (oldModel == null)
-                    {
-                        if (string.IsNullOrEmpty(newStr) || newStr == "0" || newStr == "0,00" || newStr.ToLower() == "false")
-                            continue;
-                    }
+				if (oldStr != newStr)
+				{
+					if (oldModel == null)
+					{
+						if (string.IsNullOrEmpty(newStr) || newStr == "0" || newStr == "0,00" || newStr.ToLower() == "false")
+							continue;
+					}
 
-                    oldValues.Add($"{prop.Name}: {(string.IsNullOrEmpty(oldStr) ? "(null)" : oldStr)}");
-                    newValues.Add($"{prop.Name}: {(string.IsNullOrEmpty(newStr) ? "(null)" : newStr)}");
-                }
-            }
+					oldValues.Add($"{prop.Name}: {(string.IsNullOrEmpty(oldStr) ? "(null)" : oldStr)}");
+					newValues.Add($"{prop.Name}: {(string.IsNullOrEmpty(newStr) ? "(null)" : newStr)}");
+				}
+			}
 
-            log.OldValue = string.Join(" | ", oldValues);
-            log.NewValue = string.Join(" | ", newValues);
+			log.OldValue = string.Join(" | ", oldValues);
+			log.NewValue = string.Join(" | ", newValues);
 
-            if (string.IsNullOrEmpty(log.NewValue))
-            {
-                log.Description = "No significant changes detected.";
-            }
-        }
+			if (string.IsNullOrEmpty(log.NewValue))
+			{
+				log.Description = "No significant changes detected.";
+			}
+		}
 
-        public static string GetSplitString(string Name)
-        {
-            string paraName;
-            string[] arrConfirmationNo = null;
-            paraName = "";
-            if (Name != "")
-            {
-                arrConfirmationNo = Name.Split(',');
-                if (arrConfirmationNo.Length > 0)
-                {
-                    for (int i = 0; i < arrConfirmationNo.Length; i++)
-                    {
-                        if (i != 0)
-                            paraName = paraName + "'" + "," + "'" + arrConfirmationNo[i].ToString().Trim();
-                        else
-                            paraName = arrConfirmationNo[i].ToString().Trim();
-                    }
-                }
-            }
-            return paraName;
-        }
+		public static string GetSplitString(string Name)
+		{
+			string paraName;
+			string[] arrConfirmationNo = null;
+			paraName = "";
+			if (Name != "")
+			{
+				arrConfirmationNo = Name.Split(',');
+				if (arrConfirmationNo.Length > 0)
+				{
+					for (int i = 0; i < arrConfirmationNo.Length; i++)
+					{
+						if (i != 0)
+							paraName = paraName + "'" + "," + "'" + arrConfirmationNo[i].ToString().Trim();
+						else
+							paraName = arrConfirmationNo[i].ToString().Trim();
+					}
+				}
+			}
+			return paraName;
+		}
 
-        public static int ExecuteScalarInt(string strSQL)
-        {
-            using (SqlConnection cn = new SqlConnection(_connectionString))
-            {
-                try
-                {
-                    using (SqlCommand cmd = new SqlCommand(strSQL, cn))
-                    {
-                        cmd.CommandType = CommandType.Text;
-                        cmd.CommandTimeout = 0;
-                        cn.Open();
+		public static int ExecuteScalarInt(string strSQL)
+		{
+			using (SqlConnection cn = new SqlConnection(_connectionString))
+			{
+				try
+				{
+					using (SqlCommand cmd = new SqlCommand(strSQL, cn))
+					{
+						cmd.CommandType = CommandType.Text;
+						cmd.CommandTimeout = 0;
+						cn.Open();
 
-                        object result = cmd.ExecuteScalar();
+						object result = cmd.ExecuteScalar();
 
-                        return (result == null || result == DBNull.Value) ? 0 : Convert.ToInt32(result);
-                    }
-                }
-                catch (SqlException se)
-                {
-                    throw new Exception("ExecuteScalarInt error: " + se.Message);
-                }
-            }
-        }
-    }
+						return (result == null || result == DBNull.Value) ? 0 : Convert.ToInt32(result);
+					}
+				}
+				catch (SqlException se)
+				{
+					throw new Exception("ExecuteScalarInt error: " + se.Message);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Update dữ liệu vào DB
+		/// -- CSS, 01/11/2010
+		/// </summary>
+		/// <param name="command"></param>
+		public static void UpdateDataBase(string command)
+		{
+			SqlConnection cnn = new SqlConnection(DBUtils.GetDBConnectionString());
+			try
+			{
+				SqlCommand cmd = new SqlCommand();
+				cnn.Open();
+				cmd = new SqlCommand("spSearchAllForTrans", cnn);
+				//cmd.CommandTimeout = 6000;
+				cmd.CommandType = CommandType.StoredProcedure;
+				cmd.Parameters.Add(new SqlParameter("@sqlCommand", command));
+				cmd.ExecuteNonQuery();
+			}
+			catch (SqlException ex)
+			{
+				throw new Exception("Update error :" + ex.Message);
+			}
+			finally
+			{
+				cnn.Close();
+			}
+		}
+
+
+		public static void UpdateCommand(string command)
+		{
+			SqlConnection cnn = new SqlConnection(DBUtils.GetDBConnectionString());
+			try
+			{
+				SqlCommand cmd = new SqlCommand("spSearchAllForTrans", cnn);
+				cmd.CommandType = CommandType.StoredProcedure;
+				cmd.Parameters.Add(new SqlParameter("@sqlCommand", command));
+
+				// Ghi váo history để sư dụng tra cứu DeadLock.
+				// Excute
+				cmd.ExecuteNonQuery();
+			}
+			catch (SqlException se)
+			{
+				throw new Exception("Update error :" + se.Message);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Update error :" + ex.Message);
+			}
+		}
+
+		#region Hàm tính số đêm 
+		public static int NumberOfDay(string unit, DateTime endDate, DateTime startDate)
+		{
+			if (string.IsNullOrWhiteSpace(unit))
+				throw new ArgumentException("Unit is required.");
+			return unit.ToLower() switch
+			{
+				"d" => (endDate.Date - startDate.Date).Days,
+				"h" => (int)(endDate - startDate).TotalHours,
+				"m" => (int)(endDate - startDate).TotalMinutes,
+				_ => throw new ArgumentException("Unsupported unit. Use 'd', 'h', or 'm'."),
+			};
+		}
+		#endregion
+
+		#region Lấy CurrencyId
+		public static string GetMasterCurrency()
+		{
+			try
+			{
+				DataTable dt = TextUtils.Select("select ID from Currency where MasterStatus=1");
+				return dt.Rows[0][0].ToString() ?? "";
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message);
+			}
+		}
+		#endregion
+
+
+		#region Phần UpdateTable
+		/// <summary>
+		/// Update lại dữ liệu vào table
+		/// -- CSS, 20/02/2010
+		/// </summary>
+		/// <param name="Table">Tên bảng</param>
+		/// <param name="Field"> Tên trường cần update</param>
+		/// <param name="Field"> Giá trị của trường cần update</param>
+		/// <param name="WHERE">Khóa chính của bảng (Điều kiện Where)</param>
+		/// <param name="WHEREValue">Giá trị của điều kiện Where</param>
+		/// <returns></returns>
+		//C1 - 01 Field
+		public static void UpdateTable(string Table, string Field, string FieldValue, string WHERE, string WHEREValue)
+		{
+			FieldValue = FieldValue.Replace("'", "´");
+			SqlCommand cmd;
+			SqlConnection cnn = new SqlConnection(DBUtils.GetDBConnectionString());
+			cnn.Open();
+			string strSQL = "UPDATE " + Table + " with (rowlock) SET " + Field + " = N'" + FieldValue + "' WHERE " + WHERE + " = '" + WHEREValue + "' ";
+			cmd = new SqlCommand(strSQL, cnn);
+			cmd.ExecuteNonQuery();
+			cnn.Close();
+		}
+		//C1 - 01 Fields - Có Transaction
+		public static void UpdateTable(string Table, string Field, string FieldValue, string WHERE, string WHEREValue, ProcessTransactions pt)
+		{
+			FieldValue = FieldValue.Replace("'", "´");
+			pt.UpdateCommand("UPDATE " + Table + " with (rowlock) SET " + Field + " = N'" + FieldValue + "' WHERE ID IN (SELECT ID FROM " + Table + " WITH (NOLOCK) WHERE " + WHERE + " = '" + WHEREValue + "') ");
+		}
+		//C2 - 02 Fields
+		public static void UpdateTable(string Table, string Field, string FieldValue, string Field1, string FieldValue1, string WHERE, string WHEREValue)
+		{
+			FieldValue = FieldValue.Replace("'", "´");
+			FieldValue1 = FieldValue1.Replace("'", "´");
+			SqlCommand cmd;
+			SqlConnection cnn = new SqlConnection(DBUtils.GetDBConnectionString());
+			cnn.Open();
+			string strSQL = "UPDATE " + Table + " with (rowlock) SET " + Field + " = N'" + FieldValue + "'," + Field1 + " = N'" + FieldValue1 + "' WHERE " + WHERE + " = '" + WHEREValue + "' ";
+			cmd = new SqlCommand(strSQL, cnn);
+			cmd.ExecuteNonQuery();
+			cnn.Close();
+		}
+		//C3 - 02 Fields - Transaction
+		public static void UpdateTable(string Table, string Field, string FieldValue, string Field1, string FieldValue1, string WHERE, string WHEREValue, ProcessTransactions pt)
+		{
+			FieldValue = FieldValue.Replace("'", "´");
+			FieldValue1 = FieldValue1.Replace("'", "´");
+			pt.UpdateCommand("UPDATE " + Table + " with (rowlock) SET " + Field + " = N'" + FieldValue + "'," + Field1 + " = N'" + FieldValue1 + "' WHERE ID IN (SELECT ID FROM " + Table + " WITH (NOLOCK) WHERE " + WHERE + " = '" + WHEREValue + "') ");
+		}
+
+
+		#endregion
+	}
+
 }
+

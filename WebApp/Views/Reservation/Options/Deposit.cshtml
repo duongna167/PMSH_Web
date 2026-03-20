@@ -1,6 +1,6 @@
 <div style="z-index:1056" class="modal fade modal-xl" id="modalDeposit" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
     aria-labelledby="staticBackdropLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="staticBackdropLabel">Deposit Information</h5>
@@ -32,7 +32,7 @@
 </div>
 <!-- Modal request-->
 <div class="modal fade" id="modalDepositRequest" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-    aria-labelledby="depositModalLabel" aria-hidden="true">
+    aria-labelledby="depositModalLabel" aria-hidden="true" style="z-index: 1057;">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
@@ -410,23 +410,47 @@
         $('#currencyDepositRequest').prop('disabled', false);
         $('#commentDepositRequest').prop('disabled', false);
     }
+
     function getDepositRule() {
         $.ajax({
             url: '/Reservation/GetDepositRule',
             type: 'get',
             dataType: 'json',
-
             crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                $('#ruleDepositRequest').empty();
-                var html = `<option value='0'></option>`;
-                if (result.length > 0) {
-                    for (var i = 0; i < result.length; i++) {
-                        html += `<option value='${result[i].id}'>${result[i].code}</option>`
+            headers: {
+                "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val()
+            },
+            success: async function (result) {
+                console.log('resu:',result);
+                
+
+                await bindTomSelectData({
+                    selector: '#ruleDepositRequest',
+                    data: result,
+
+                    valueField: 'id',
+                    labelField: 'code',
+                    searchField: ['code', 'description'],
+
+                    tomSelectOptions: {
+                        placeholder: 'Please choose rule'
+                    },
+
+                    mapFn: (x) => ({
+                        id: x.id,
+                        code: x.code,
+                        description: x.description
+                    }),
+
+                    // tương đương option value=0
+                    addDefaultOption: {
+                        value: '0',
+                        text: '',
+                        setValue: true
                     }
-                }
-                $('#ruleDepositRequest').append(html);
+
+                });
+
             },
             error: function (xhr, statusText, err) {
                 if (xhr.status == 401) {
@@ -435,6 +459,7 @@
             }
         });
     }
+    
     function getDepositRuleByID(id) {
         $.ajax({
             url: '/Reservation/GetDepositRuleByID',

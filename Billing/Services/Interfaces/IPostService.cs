@@ -1,5 +1,7 @@
-﻿using System;
+﻿using BaseBusiness.Model;
+using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,6 +29,8 @@ namespace Billing.Services.Interfaces
 
         decimal CalculatePriceNet(string transactionCode, decimal grossPrice);
         decimal CalculatePricePlusPlus(string transactionCode, decimal netPrice);
+
+        DataTable TransactionDetail(int invoiceNo);
 
     }
 }

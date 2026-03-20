@@ -1837,7 +1837,7 @@ namespace Profile.Controllers
                     if (oldData == null) return Json(new { success = false, message = "The data does not exist or has been deleted." });
                     model.CreateDate = oldData.CreateDate;
                     model.UserInsertID = oldData.UserInsertID;
-                    model.UpdateDate = businessDate;
+                    model.UpdateDate = DateTime.Now;
                     ProfileBO.Instance.Update(model);
                     #region Insert log activity for update profile
                     ActivityLogModel activityLog = new ActivityLogModel();
@@ -1856,8 +1856,8 @@ namespace Profile.Controllers
                 {
                     var user = (UsersModel)UsersBO.Instance.FindByPrimaryKey(model.UserInsertID);
 
-                    model.CreateDate = businessDate;
-                    model.UpdateDate = businessDate;
+                    model.CreateDate = DateTime.Now;
+                    model.UpdateDate = DateTime.Now;
                     ProfileBO.Instance.Insert(model);
                     #region Insert log activity for insert profile
                     ActivityLogModel activityLog = new ActivityLogModel();

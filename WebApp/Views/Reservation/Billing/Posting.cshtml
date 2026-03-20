@@ -17,7 +17,7 @@
                     <div class="mobile-nav">
                         <button onclick="switchView('group')" id="nav-group">1. Group Trans.</button>
                         <button onclick="switchView('trans')" id="nav-trans">2. List Trans.</button>
-                        <button onclick="switchView('form')" id="nav-form" class="active">3. Posting (F2/F3)</button>
+                        <button onclick="switchView('form')" id="nav-form" class="active">3. Posting</button>
                     </div>
 
                     <div class="container-fluid main-content flex-grow-1 d-flex flex-column" style="min-height: 0;">
@@ -447,13 +447,20 @@
 
     // --- EVENTS ---
     $(document).ready(function() {
-            // sự kiện mở modal
+        $('#modalPosting').on('show.bs.modal', function () {
+            resetAllPostingData();
+        });
+        
         $('#modalPosting').on('shown.bs.modal', function () {
             loadGroups();
             loadCurrencies();
             loadFolioWindows();
-            const activeTab = $('.nav-link.active').attr('id');
+            $('.js-search-box[data-target="#list-group-container"]').focus();
             syncToolbarLogic();
+        });
+
+        $('#modalPosting').on('hidden.bs.modal', function () {
+            resetAllPostingData(); 
         });
 
         //  Search List (transGroup,...,article)
@@ -876,7 +883,7 @@
                 });
                 $('#list-group-container').html(html);
                 if (data.length > 0) {
-                    $('#list-group-container .list-group-item:first-child').trigger('click');
+                    $('#list-group-container .list-group-item:first-child').click();
                 }
             }
         });
@@ -1333,5 +1340,36 @@
             $('.js-total-footer').text(formatNumberWithComma(total));
         }
         //end thao tác F3 invoice list
+
+        function resetAllPostingData() {
+            isReset = true;
+            isSilentReset = true;
+
+            $('#modalPosting').find('input').val('');
+            $('#modalPosting').find('.js-input-qty').val('1');
+            $('#modalPosting').find('.js-input-price, .js-input-price-net, .js-amount-gross, .js-amount-net').val('0,00');
+
+            $('.js-chk-express, .js-chk-discount').prop('checked', false);
+            $('.express-box input[type="text"], .express-box input[type="radio"]').prop('disabled', true);
+
+            $('#list-group-container').empty().html('<div class="p-2 text-muted">Loading...</div>');
+            $('#list-subgroup-container').empty();
+            $('#list-transaction-container').empty();
+            $('#list-article-container').empty();
+
+            $('.list-group-item').removeClass('active-item-custom');
+
+            if (typeof invoiceList !== 'undefined') invoiceList = [];
+
+            var gridFooter = $("#gridInvoiceFooter").data("dxDataGrid");
+            if (gridFooter) gridFooter.option("dataSource", []);
+
+            switchView('group');
+
+            setTimeout(() => {
+                isReset = false;
+                isSilentReset = false;
+            }, 200);
+        }
 
 </script>

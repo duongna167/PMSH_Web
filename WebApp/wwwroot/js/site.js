@@ -516,3 +516,16 @@ $(document).ready(async function () {
         window.initDateInputs();
     });
 });
+
+// Func cho phép bật tắt button nhanh
+UI.toggleButtons = function (ids, disabled) {
+    ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        el.disabled = disabled;
+        el.style.pointerEvents = disabled ? 'none' : 'auto';
+        el.style.color = disabled ? 'gray' : '';
+        el.style.cursor = disabled ? 'not-allowed' : 'pointer';
+    });
+};

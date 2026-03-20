@@ -5,6 +5,7 @@ using Billing.Services.Interfaces;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -169,6 +170,17 @@ namespace Billing.Services.Implements
             {
                 throw new Exception($"Error CalculateNet: {ex.Message}", ex);
             }
+        }
+
+        public DataTable TransactionDetail(int invoiceNo)
+        {
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@InvoiceNo", invoiceNo)
+            };
+
+            DataTable myTable = DataTableHelper.getTableData("spSearchTransactionDetailInFolioByDev", param);
+            return myTable;
         }
     }
 }

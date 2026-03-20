@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="~/css/pages/billing.css" asp-append-version="true" />
 
-<div class="modal fade" id="modalBilling" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabelBilling" aria-hidden="true">
+<div class="modal fade managed-modal" id="modalBilling" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabelBilling" aria-hidden="true">
     <div class="modal-dialog modal-xl billing-module-dialog">
         <div class="modal-content billing-module">
             <div class="modal-header">
@@ -97,8 +97,8 @@
                 <div class="billing-body-main">
                     <div class="folio-container">
                         <div class="folio-header">
-                            <span>Folio no</span>
-                            <span data-tooltip="Add Folio"><i class="fas fa-plus add-icon" onclick="openModalNewWindow();"></i></span>
+                            @* <span>Folio no</span> *@
+                            @* <span data-tooltip="Add Folio"><i class="fas fa-plus add-icon" onclick="openModalNewWindow();"></i></span> *@
                         </div>
                         <ul id="listFolioNo" class="folio-list"></ul>
                     </div>
@@ -121,6 +121,9 @@
                         </div>
 
                         <div class="overlay-menu" id="functionMenu" style="display: none;">
+                            <a href="#" onclick="openModalNewWindow();">New Window</a>
+                            <a href="#" onclick="openModalDeleteWindow();">Delete Window</a>
+
                             <div class="dropdown">
                                 <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">Lock Folio</a>
                                 <div class="dropdown-menu">
@@ -173,6 +176,10 @@
                 <h5 class="modal-title">Deletion Reason</h5>
             </div>
             <div class="modal-body">
+                <div class="d-flex py-2 gap-2">
+                    <button class="mui-button mui-button-option" onclick="closeModalConfirmTransaction();"> Close</button>
+                    <button class="mui-button mui-button-delete" onclick="confirmDelete();">Confirm Delete</button>
+                </div>
                 <div class="mb-3">
                     <label class="form-label">Select Reason</label>
                     <select id="codeDeletionReason" class="form-select form-select-sm"></select>
@@ -181,11 +188,24 @@
                     <label class="form-label">Description</label>
                     <textarea class="form-control form-control-sm" id="descriptionDeletionReason" rows="3"></textarea>
                 </div>
-                <div class="d-flex justify-content-end gap-2">
-                    <button class="mui-button mui-button-option" onclick="closeModalConfirmTransaction();"> Close</button>
-                    <button class="mui-button mui-button-delete" onclick="confirmDelete();">Confirm Delete</button>
-                </div>
+                
             </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade managed-modal" id="modalTransactionDetail" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title"> Detail Transaction Post </h6>
+            </div>
+            <div class="modal-body p-2">
+                <div class="py-2">
+                    <button type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div class="gridContainer" id="gridTransactionDetail" style="height: 300px; width: 100%;"></div>
+            </div>
+           
         </div>
     </div>
 </div>
@@ -218,9 +238,48 @@
         });
 
         getDeletionReason();
+
+        // SỰ KIỆN CHUỘT PHẢI TOÀN VÙNG GRID
+        $("#gridContainerBilling").on("contextmenu", function(e) {
+            e.preventDefault(); 
+
+            const grid = $("#gridContainerBilling").dxDataGrid("instance");
+
+            const rowElement = $(e.target).closest(".dx-data-row");
+
+            if (rowElement.length > 0) {
+                const rowIndex = rowElement.index();
+                const rowData = grid.getVisibleRows()[rowIndex].data;
+
+                if (!grid.isRowSelected(rowData.id)) {
+                    grid.selectRows([rowData.id], false);
+                }
+
+                folioDetailID = rowData.id;
+                invoiceNoPosting = rowData.invoiceNo;
+            } else {
+               
+            }
+
+            $("#functionMenu").css({
+                display: "block",
+                position: "fixed",
+                left: e.pageX + "px",
+                top: e.pageY + "px",
+                zIndex: 9999
+            });
+        });
+
+        // Ẩn menu khi click chuột trái ra ngoài
+        $(document).on("click", function(e) {
+            if (!$(e.target).closest("#functionMenu").length) {
+                $("#functionMenu").hide();
+            }
+        });
     });
 
     var folioPosting = 1;
+    var isMasterFolio = 0;
     var transactionNoPost = "0";
     var totalAmountBilling = 0;
     var invoiceNoPosting = 0;
@@ -239,6 +298,7 @@
         }
          $.ajax({
              url: '/Reservation/GetFolioDetailByFolioID',
+             loadingGrid: "#gridContainerBilling",
              type: 'get',
              dataType: 'json',
              data:{
@@ -255,70 +315,47 @@
              }
          });
     }
-    
+
     invoiceNoPosting = 0;
 
     function getFolioNo() {
-        if(typeof lastname !== 'undefined' && typeof idReservation !== 'undefined'){
-             if(folioNoID === 0) {
-                 $('#infoBillingName').text('[1]  ' +  lastname + '(' + idReservation + ')');
-             }
-        }
-
         $.ajax({
             url: '/Billing/GetFolioNo',
             type: 'get',
-            dataType: 'json',
             data: { reservationID: idReservation },
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                console.log(result);
+                listFolioData = result;
+
                 listFolioNoID = [];
                 $('#listFolioNo').empty();
                 $('#listTransferToWindow').empty();
 
+                isMasterFolio = result[0].isMasterFolio;
+                console.log("Master folio? "+isMasterFolio);
+
                 var html = '';
                 var htmlWindow = '';
-
-                var isCurrentFolioFound = false;
-                var foundIndex = 0;
-                var needInitialLoad = false; 
 
                 if(result.length > 0){
                     for(var i = 0; i < result.length; i++){
                         listFolioNoID.push(result[i].id);
 
-                        htmlWindow += `<a class="dropdown-item" href="#" onclick="transferToWindow(${result[i].id});">Window ${i+1}</a>`;
+                        // Nếu là Master thì hiện M + (số thứ tự), Guest thì hiện số
+                        let label = result[i].isMasterFolio ? "M" + (i + 1) : result[i].folioNo;
 
-                        var activeClass = '';
+                        htmlWindow += `<a class="dropdown-item" href="#" onclick="transferToWindow(${result[i].id});">Window ${label}</a>`;
 
-                        if (folioNoID !== 0 && folioNoID === result[i].id) {
-                            activeClass = 'active';
-                            isCurrentFolioFound = true;
-                            foundIndex = i;
-                        }
-                        else if (folioNoID === 0 && i === 0) {
-                            activeClass = 'active';
-                            isCurrentFolioFound = true;
-                            folioNoID = result[i].id;
-                            foundIndex = 0;
-                            needInitialLoad = true;  
-                        }
+                        let activeClass = (folioNoID === result[i].id || (folioNoID === 0 && i === 0)) ? 'active' : '';
+                        if (activeClass === 'active') folioNoID = result[i].id;
 
-                        var lockIcon = result[i].status ? '<i class="fas fa-lock lock-icon"></i>' : '';
-                        var deleteClass = result[i].status ? 'disabled' : '';
-                        var deleteAction = result[i].status ? '' : `onclick="deleteFolioNo(${result[i].id}); event.stopPropagation();"`;
+                        let lockIcon = result[i].status ? '<i class="fas fa-lock lock-icon"></i>' : '';
 
                         html += `
                         <li class="folio-row">
                             <div class="folio-item ${activeClass}" onclick="filterByFolioNo(${result[i].id}, ${i}, this)">
-                                ${result[i].folioNo}
+                                ${label}
                             </div>
                             ${lockIcon}
-                            <span data-tooltip="Delete">
-                                <i class="fas fa-times delete-icon ${deleteClass}"${deleteAction}></i>
-                            </span>
                         </li>`;
                     }
                 }
@@ -327,31 +364,14 @@
                 $('#listTransferToWindow').append(htmlWindow);
 
                 if (result.length > 0) {
-                    if (!isCurrentFolioFound) {
-                        folioNoID = listFolioNoID[0];
-                        setTimeout(function(){
-                            $('#listFolioNo .folio-item').first().addClass('active');
-                            filterByFolioNo(folioNoID, 0);
-                        }, 50);
-                    }
-                    else if (needInitialLoad) {
-                        filterByFolioNo(folioNoID, 0);
-                    }
-                    else {
-                        if(typeof lastname !== 'undefined'){
-                            $('#infoBillingName').text('[' + (foundIndex + 1) + ']  ' +  lastname + '(' + idReservation + ')');
-                        }
-
-                        searchFolioDetail(0);
-                    }
+                    filterByFolioNo(folioNoID, 0);
                 }
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) sessionTimeout();
             }
         });
     }
-    function filterByFolioNo(folioNo, index, element){
+
+
+    function filterByFolioNo(folioNo, index, element) {
         $('.folio-item').removeClass('active');
 
         if (element) {
@@ -360,14 +380,19 @@
             $('#listFolioNo .folio-row').eq(index).find('.folio-item').addClass('active');
         }
 
-        if(typeof lastname !== 'undefined' && typeof idReservation !== 'undefined'){
-            $('#infoBillingName').text('[' + (index + 1) + ']  ' +  lastname + '(' + idReservation + ')');
-        }
+        let currentFolio = listFolioData.find(f => f.id === folioNo);
+
+        let displayName = (currentFolio && currentFolio.accountName) ? currentFolio.accountName : lastname;
+
+        let label = (currentFolio && currentFolio.isMasterFolio) ? "M" + (index + 1) : (index + 1);
+
+        $('#infoBillingName').html(`[${label}] &nbsp; <b>${displayName}</b> (${folioNo})`);
 
         folioNoID = folioNo;
         folioPosting = index + 1;
         searchFolioDetail(0);
     }
+
     function getTotalAmount(data) {
         return data.reduce((total, item) => total + (parseFloat(item.amount) || 0), 0);
     }
@@ -386,15 +411,15 @@
 
                 totalBalance += val;
 
-                if (val > 0) {
-                    totalCharges += val;
-                }
+                totalCharges += val;
             });
         }
+        const formattedVal = totalBalance.toLocaleString('vi-VN');
 
-        $('#balanceBilling').text(totalBalance.toLocaleString('vi-VN'));
-        $('#totalBilling').text(totalCharges.toLocaleString('vi-VN'));
-        $('#balanceBillingMaster').text(totalBalance.toLocaleString('vi-VN'));
+        $('#balanceBilling').text(formattedVal);
+        $('#totalBilling').text(formattedVal); 
+        $('#balanceBillingMaster').text(formattedVal);
+
     }
         
     function initializeDataGridBilling(data) {
@@ -441,9 +466,21 @@
                 {
                     dataField: 'date',
                     caption: 'Date',
-                    dataType: "date",
-                    format: "dd/MM/yyyy",
-                    width: 90 
+                    width: 90 ,
+                    calculateCellValue: function (rowData) {
+                        if (!rowData.date) return '';
+
+                        const datePart = rowData.date.split(' ')[0];
+                        const parts = datePart.split('/');
+
+                        if (parts.length !== 3) return rowData.date;
+
+                        const day   = parts[0].padStart(2, '0');
+                        const month = parts[1].padStart(2, '0');
+                        const year  = parts[2];
+
+                        return `${day}/${month}/${year}`;
+                    }
                 },
                 {
                     dataField: 'codePrefix',
@@ -462,7 +499,7 @@
                     minWidth: 200
                 },
                 {
-                    dataField: "invoiceNo",
+                    dataField: "",
                     caption: "Inv#",
                     width: 80
                 },
@@ -481,10 +518,36 @@
                 {
                     dataField: 'time',
                     caption: "Time",
-                    dataType: "date",
-                    format: "HH:mm",
                     width: 60,
-                    alignment: "center"
+                    calculateCellValue: function (rowData) {
+                        if (!rowData.time) return '';
+
+                        const dateStr = rowData.time;
+                        const datePart = dateStr.split(' ')[0];
+                        const timePart = dateStr.split(' ')[1] || '00:00';
+
+                        const dParts = datePart.split('/');
+                        if (dParts.length !== 3) return '';
+
+                        const day   = parseInt(dParts[0], 10);
+                        const month = parseInt(dParts[1], 10) - 1;
+                        const year  = parseInt(dParts[2], 10);
+
+                        const tParts = timePart.split(':');
+                        const hour   = parseInt(tParts[0] || 0, 10);
+                        const minute = parseInt(tParts[1] || 0, 10);
+
+                        const d = new Date(year, month, day, hour, minute);
+
+                        let h = d.getHours();
+                        const m = d.getMinutes().toString().padStart(2, '0');
+                        const ampm = h >= 12 ? 'AM' : 'PM';
+
+                        h = h % 12;
+                        h = h ? h : 12;
+
+                        return `${h}:${m} ${ampm}`;
+                    }
                 },
                 { dataField: "groupCode", caption: "Group", width: 60 },
                 { dataField: "subgroupCode", caption: "Sub", width: 60 },
@@ -497,69 +560,76 @@
             selection: { mode: "multiple", showCheckBoxesMode: "always" },
             onContextMenuPreparing: function(e) {
                 if (e.row && e.row.rowType === "data") {
-                    // Lấy danh sách các key đang được select
-                    var selectedKeys = e.component.getSelectedRowKeys();
+                    const grid = e.component;
+                    const rowData = e.row.data;
 
-                    // LOGIC QUAN TRỌNG:
-                    // Nếu click chuột phải vào dòng chưa được select -> Chọn duy nhất nó (xóa các chọn lựa cũ)
-                    // Nếu click chuột phải vào dòng đã select rồi -> Giữ nguyên để thao tác hàng loạt
-                    if (!selectedKeys.includes(e.row.key)) {
-                        e.component.selectRows([e.row.key], false);
+                    if (!grid.isRowSelected(rowData.id)) {
+                        grid.selectRows([rowData.id], false);
                     }
 
-                    // Vẫn lưu lại ID của dòng vừa click (cho các thao tác đơn lẻ nếu có)
-                    invoiceNoPosting = e.row.data.invoiceNo;
-                    folioDetailID = e.row.data.id;
+                    folioDetailID = rowData.id;
+                    invoiceNoPosting = rowData.invoiceNo;
 
-                    // Mở context menu
-                    const menu = $("#functionMenu");
-                    menu.css({
+                    // Hiển thị Menu tại vị trí chuột
+                    $("#functionMenu").css({
                         display: "block",
+                        position: "fixed",
                         left: e.event.pageX + "px",
-                        top: e.event.pageY + "px"
+                        top: e.event.pageY + "px",
+                        zIndex: 9999
                     });
 
                     e.event.preventDefault();
                 }
             },
+
+            // 2. CLICK DÒNG (TỐI ƯU TOGGLE SELECTION)
             onRowClick: function(e) {
                 if (e.rowType === "data") {
-                    $("#functionMenu").hide(); // Ẩn menu khi click trái
+                    $("#functionMenu").hide();
 
-                    // Tránh xung đột nếu user click thẳng vào ô Checkbox mặc định của DevExtreme
-                    var isCheckboxClicked = $(e.event.target).closest('.dx-command-select').length > 0;
-
-                    // Nếu KHÔNG click vào checkbox, ta mới code logic toggle thủ công để tick chọn khi click vào body của dòng
-                    if (!isCheckboxClicked) {
-                        var component = e.component;
-                        var key = e.key;
-                        if (component.isRowSelected(key)) {
-                            component.deselectRows([key]);
+                    // Kiểm tra nếu không phải click vào ô checkbox mặc định của Grid
+                    if (!$(e.event.target).closest('.dx-command-select').length) {
+                        const isSelected = e.component.isRowSelected(e.key);
+                        if (isSelected) {
+                            e.component.deselectRows([e.key]);
                         } else {
-                            component.selectRows([key], true); // true: Giữ nguyên các row đã chọn khác
+                            // true để giữ lại các dòng đã chọn trước đó
+                            e.component.selectRows([e.key], true);
                         }
                     }
                 }
             },
-            onContentReady: function(e) {
-                if (typeof selectedCodesFromResult !== 'undefined' && data) {
-                    const keysToSelect = data.filter(item => selectedCodesFromResult.includes(item.code)).map(item => item.id);
-                    if (keysToSelect.length > 0) e.component.selectRows(keysToSelect, false);
-                }
-            },
+
+            // 3. THAY ĐỔI LỰA CHỌN (NƠI DUY NHẤT TÍNH TỔNG TIỀN)
             onSelectionChanged: function(e) {
-                var selectedRows = e.selectedRowsData;
-                var totalSelected = 0;
+                const selectedRows = e.selectedRowsData;
+                let totalSelected = 0;
 
                 if (selectedRows.length > 0) {
-                    selectedRows.forEach(function(item) {
+                    selectedRows.forEach(item => {
                         totalSelected += (parseFloat(item.amount) || 0);
                     });
                 } else {
-                    $("#functionMenu").hide(); // Ẩn menu nếu bỏ chọn hết
+                    $("#functionMenu").hide();
                 }
 
+                // Cập nhật text hiển thị tổng tiền được chọn
                 $('#totalBillingMaster').text(totalSelected.toLocaleString('vi-VN'));
+            },
+
+            // 4. KHI DỮ LIỆU LOAD XONG (CHỌN SẴN DÒNG NẾU CÓ)
+            onContentReady: function(e) {
+                // Chỉ chạy khi có biến selectedCodesFromResult (thường dùng sau khi Split/Transfer)
+                if (typeof selectedCodesFromResult !== 'undefined' && data.length > 0) {
+                    const keysToSelect = data
+                        .filter(item => selectedCodesFromResult.includes(item.code))
+                        .map(item => item.id);
+
+                    if (keysToSelect.length > 0) {
+                        e.component.selectRows(keysToSelect, false);
+                    }
+                }
             }
         });
     }
@@ -629,16 +699,17 @@
             showToast('Error', 'Booking status must not be Reservation or Cancel', false);
             return;
         }
+
+        resetBillingData();
         getInforServices();
         getFolioNo();
-        // searchFolioDetail(0);
-                // $('#infoBillingName').text('[1]  ' +  lastname + '(' + idReservation + ')');
 
         $('#staticBackdropLabelBilling').text('Billing [' + lastname + ' - ' + 'RoomNo: ' + roomNo + ']');
         $('#modalBilling').modal('show');
     }
     function closeModalBilling(){
         $('#modalBilling').modal('hide');
+        resetBillingData();
     }
 
     var groupTransaction = [];
@@ -849,13 +920,13 @@
             };
         };
     }
-        function transferToWindow(folioID){
+        
+    function transferToWindow(folioID){
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
         var grid = $("#gridContainerBilling").dxDataGrid("instance");
         var selectedRows = grid.getSelectedRowsData();
 
-        // SỬA Ở ĐÂY: Thay vì chặn !== 1, chỉ chặn nếu = 0
         if (selectedRows.length === 0) {
             showToast('Error', 'Please select at least one row to transfer', false);
             return;
@@ -932,7 +1003,7 @@
         if($('#codeDeletionReason').val() != ""){
             $.ajax({
                 url: '/Billing/GetDeletionReasonByCode',
-                type: 'get',
+                type: 'get',    
                 data:{
                     code: $('#codeDeletionReason').val()
                 },
@@ -1170,5 +1241,82 @@
         window.open(doc.output("bloburl"), "_blank");
     }
     // end print
+
+    // view detail transaction
+    function openModalTransactionDetail() {
+        if (!invoiceNoPosting || invoiceNoPosting <= 0) {
+            showToast('Warning', "Please select a transaction that has an Invoice No.", false);
+            return;
+        }
+
+        $('#modalTransactionDetail').modal('show');
+        loadTransactionDetail(invoiceNoPosting);
+    }
+
+    function loadTransactionDetail(invNo) {
+        $.ajax({
+            url: '/Billing/GetTransactionDetailBreakdown',
+            type: 'GET',
+            data: { invoiceNo: invNo }, 
+            success: function (data) {
+                if(data.error) {
+                    showToast('Error', data.error, false);
+                } else {
+                    renderDetailGrid(data);
+                }
+            },
+            error: function () {
+                showToast('Error', "Could not load transaction details", false);
+            }
+        });
+    }
+
+    function renderDetailGrid(data) {
+        $("#gridTransactionDetail").dxDataGrid({
+            dataSource: data,
+            keyExpr: "id",
+            showBorders: true,
+            showRowLines: true,
+            columnAutoWidth: true,
+            rowAlternationEnabled: true,
+            height: 280,
+            paging: { enabled: false },
+            columns: [
+                { dataField: "date", caption: "Date", width: 90, dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "code", caption: "Code", width: 60, alignment: "center" },
+                { dataField: "description", caption: "Description", minWidth: 150 },
+                {
+                    dataField: "amount",
+                    caption: "Amount",
+                    format: { type: "fixedPoint", precision: 2 },
+                    width: 110,
+                    cssClass: "fw-bold text-end",
+                    cellTemplate: function(container, options) {
+                        let val = options.value || 0;
+                        let color = val < 0 ? "red" : "blue";
+                        $("<span>").css("color", color).text(options.text).appendTo(container);
+                    }
+                },
+                { dataField: "currency", caption: "$", width: 50, alignment: "center" },
+                { dataField: "supplement", caption: "Supplement" },
+                { dataField: "reference", caption: "Reference" },
+                { dataField: "userName", caption: "User", width: 80 },
+                { dataField: "time", caption: "Time", width: 80,customizeText: function(e) {
+                    const d = new Date(e.value);
+                    return d.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+                } },
+                { dataField: "groupCode", caption: "Grp.Code", width: 70 },
+                { dataField: "subgroupCode", caption: "Sub.Code", width: 70 },
+                { dataField: "shiftID", caption: "Shift", width: 60 },
+                { dataField: "invoiceNo", caption: "Inv.No", width: 70 },
+                { dataField: "transactionNo", caption: "Trn.No", width: 80 }
+            ]
+        });
+    }
+
 
 </script>
