@@ -100,6 +100,63 @@ namespace Reservation.Controllers
             }
         }
 
+        public IActionResult NewReservationFix(string key)
+        {
+            int? id = null;
+            if (!string.IsNullOrEmpty(key))
+            {
+                try
+                {
+                    string decryptedId = Decrypt(key, _secretKey, _iv);
+                    id = int.Parse(decryptedId);
+                }
+                catch (Exception)
+                {
+                    return BadRequest("Invalid key");
+                }
+            }
+
+            List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
+            ViewBag.cboNationality = ListItemHelper.GetNationalityProvider();
+            ViewBag.cboTitle = ListItemHelper.GetTitleProviderRSV();
+            ViewBag.cboCity = ListItemHelper.GetCityProvider();
+            ViewBag.cboVIP = ListItemHelper.GetVIPProvider();
+            ViewBag.cboMemberType = ListItemHelper.GetMemberTypeProvider();
+
+            ViewBag.cboRoomType = ListItemHelper.GetRoomTyeProvider();
+            ViewBag.cboCurrency = ListItemHelper.GetCurrencyProvider();
+            ViewBag.cboPackage = ListItemHelper.GetPackagesProvider();
+            ViewBag.cboReason = ListItemHelper.GetReasonProvider();
+            ViewBag.cboReservationType = ListItemHelper.GetReservationTypeProvider();
+            ViewBag.cboSource = ListItemHelper.GetSourceProvider();
+            ViewBag.cboMarket = ListItemHelper.GetMarketProvider();
+            ViewBag.cboAllotmentType = ListItemHelper.GetAllotmentTypeProvider();
+            ViewBag.cboZone = ListItemHelper.GetZoneProvider();
+            ViewBag.cboPersonInCharge = ListItemHelper.GetPersonInChargeProvider();
+            ViewBag.cboPaymentMethod = ListItemHelper.GetPaymentMethodProvider();
+            ViewBag.cboPromotion = ListItemHelper.GetPromotionProvider();
+            ViewBag.cboGroupPreferenceProvider = ListItemHelper.GetGroupPreferenceProvider();
+            ViewBag.cboTransportType = ListItemHelper.GetTransportTypeProvider();
+            ViewBag.businesDate = businessDateModel[0].BusinessDate;
+            ViewBag.cboItem = ListItemHelper.GetItemInventoryProvider();
+            ViewBag.configETA = _iReservationService.GetConfigETA();
+            ViewBag.configETD = _iReservationService.GetConfigETD();
+
+            ReservationModel reservation = new ReservationModel();
+            if (id.HasValue)
+            {
+                reservation = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(id.Value);
+            }
+            ViewBag.Reservation = reservation;
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return PartialView(); // hoặc PartialView("_NewReservationPartial")
+            }
+            return PartialView();
+        }
+
+
         public IActionResult NewReservation(string key)
         {
             int? id = null;
@@ -4684,6 +4741,7 @@ namespace Reservation.Controllers
         }
 
         #endregion
+
         #region  DatVP __ Reservation: Group check in 
         [HttpGet]
         public async Task<IActionResult> SearchGroupCheckInRoom(string confirmationNo, int type, string name, string roomNo)
@@ -6478,6 +6536,7 @@ namespace Reservation.Controllers
         //}
 
         //#endregion
+
         #region Tuan_GetSetUpPackage
         [HttpGet]
         public IActionResult GetSetUpPackage(string searchKey = "")
@@ -6511,6 +6570,7 @@ namespace Reservation.Controllers
             }
         }
         #endregion
+
         #region
         public IActionResult RateQuery()
         {

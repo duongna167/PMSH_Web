@@ -193,6 +193,22 @@
         </div>
     </div>
 </div>
+<div class="modal fade managed-modal" id="modalTransactionDetail" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title"> Detail Transaction Post </h6>
+            </div>
+            <div class="modal-body p-2">
+                <div class="py-2">
+                    <button type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div class="gridContainer" id="gridTransactionDetail" style="height: 300px; width: 100%;"></div>
+            </div>
+           
+        </div>
+    </div>
+</div>
 
 <img id="logoSource" src="/images/logo-parner.png" hidden>
 
@@ -225,33 +241,26 @@
 
         // SỰ KIỆN CHUỘT PHẢI TOÀN VÙNG GRID
         $("#gridContainerBilling").on("contextmenu", function(e) {
-            e.preventDefault(); // Chặn menu mặc định của trình duyệt
+            e.preventDefault(); 
 
             const grid = $("#gridContainerBilling").dxDataGrid("instance");
 
-            // Tìm xem vị trí click có nằm trên một dòng dữ liệu nào không
             const rowElement = $(e.target).closest(".dx-data-row");
 
             if (rowElement.length > 0) {
-                // NẾU CLICK TRÚNG DÒNG:
                 const rowIndex = rowElement.index();
                 const rowData = grid.getVisibleRows()[rowIndex].data;
 
-                // Nếu dòng này chưa được chọn, thì chọn duy nhất nó
                 if (!grid.isRowSelected(rowData.id)) {
                     grid.selectRows([rowData.id], false);
                 }
 
-                // Gán thông tin dòng hiện tại cho các chức năng Edit/Delete...
                 folioDetailID = rowData.id;
                 invoiceNoPosting = rowData.invoiceNo;
             } else {
-                // NẾU CLICK VÙNG TRỐNG:
-                // Không làm gì với selection (giữ nguyên các dòng đã chọn trước đó)
-                // Hoặc có thể reset nếu muốn: grid.deselectAll();
+               
             }
 
-            // LUÔN HIỂN THỊ MENU
             $("#functionMenu").css({
                 display: "block",
                 position: "fixed",
@@ -270,6 +279,7 @@
     });
 
     var folioPosting = 1;
+    var isMasterFolio = 0;
     var transactionNoPost = "0";
     var totalAmountBilling = 0;
     var invoiceNoPosting = 0;
@@ -319,6 +329,9 @@
                 listFolioNoID = [];
                 $('#listFolioNo').empty();
                 $('#listTransferToWindow').empty();
+
+                isMasterFolio = result[0].isMasterFolio;
+                console.log("Master folio? "+isMasterFolio);
 
                 var html = '';
                 var htmlWindow = '';
@@ -1228,5 +1241,82 @@
         window.open(doc.output("bloburl"), "_blank");
     }
     // end print
+
+    // view detail transaction
+    function openModalTransactionDetail() {
+        if (!invoiceNoPosting || invoiceNoPosting <= 0) {
+            showToast('Warning', "Please select a transaction that has an Invoice No.", false);
+            return;
+        }
+
+        $('#modalTransactionDetail').modal('show');
+        loadTransactionDetail(invoiceNoPosting);
+    }
+
+    function loadTransactionDetail(invNo) {
+        $.ajax({
+            url: '/Billing/GetTransactionDetailBreakdown',
+            type: 'GET',
+            data: { invoiceNo: invNo }, 
+            success: function (data) {
+                if(data.error) {
+                    showToast('Error', data.error, false);
+                } else {
+                    renderDetailGrid(data);
+                }
+            },
+            error: function () {
+                showToast('Error', "Could not load transaction details", false);
+            }
+        });
+    }
+
+    function renderDetailGrid(data) {
+        $("#gridTransactionDetail").dxDataGrid({
+            dataSource: data,
+            keyExpr: "id",
+            showBorders: true,
+            showRowLines: true,
+            columnAutoWidth: true,
+            rowAlternationEnabled: true,
+            height: 280,
+            paging: { enabled: false },
+            columns: [
+                { dataField: "date", caption: "Date", width: 90, dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "code", caption: "Code", width: 60, alignment: "center" },
+                { dataField: "description", caption: "Description", minWidth: 150 },
+                {
+                    dataField: "amount",
+                    caption: "Amount",
+                    format: { type: "fixedPoint", precision: 2 },
+                    width: 110,
+                    cssClass: "fw-bold text-end",
+                    cellTemplate: function(container, options) {
+                        let val = options.value || 0;
+                        let color = val < 0 ? "red" : "blue";
+                        $("<span>").css("color", color).text(options.text).appendTo(container);
+                    }
+                },
+                { dataField: "currency", caption: "$", width: 50, alignment: "center" },
+                { dataField: "supplement", caption: "Supplement" },
+                { dataField: "reference", caption: "Reference" },
+                { dataField: "userName", caption: "User", width: 80 },
+                { dataField: "time", caption: "Time", width: 80,customizeText: function(e) {
+                    const d = new Date(e.value);
+                    return d.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+                } },
+                { dataField: "groupCode", caption: "Grp.Code", width: 70 },
+                { dataField: "subgroupCode", caption: "Sub.Code", width: 70 },
+                { dataField: "shiftID", caption: "Shift", width: 60 },
+                { dataField: "invoiceNo", caption: "Inv.No", width: 70 },
+                { dataField: "transactionNo", caption: "Trn.No", width: 80 }
+            ]
+        });
+    }
+
 
 </script>
