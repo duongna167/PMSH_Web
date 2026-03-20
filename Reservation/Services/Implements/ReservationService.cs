@@ -38,7 +38,7 @@ namespace Reservation.Services.Implements
 
                 };
 
-                DataTable myTable = DataTableHelper.getTableData("spSearchAllForTrans", param);
+                DataTable myTable = DataTableHelper.getTableData("spSearchzAllForTrans", param);
                 return myTable;
             }
             catch (SqlException ex)
@@ -1657,6 +1657,164 @@ namespace Reservation.Services.Implements
             #endregion
         }
 
+        public void RoomAssignment(ReservationModel mOR, int ReservationID, int RoomID, int UserID, bool RoomSharer)
+        {
+            ProcessTransactions pt = new ProcessTransactions();
+            pt.OpenConnection();
+            pt.BeginTransaction();
+            //Xác định đặt phòng đã tồn tại để lấy giá trị
+            RoomModel mORms = (RoomModel)RoomBO.Instance.FindByPrimaryKey(RoomID);
+
+            #region Kiếm tra xem có bao nhiêu khách ở cùng phòng với khách này 
+            DataTable dtARS = pt.getTable("spCheckReservationAssignRoomSharer", "dtARS",
+                      new SqlParameter("@ReservationID", ReservationID),
+                      new SqlParameter("@ShareRoom", mOR.ShareRoom));
+            if (dtARS.Rows.Count > 0)
+            {
+                RoomSharer = true;
+            }
+            #endregion
+
+            //Mở conn
+
+            try
+            {
+                #region Trường hợp Chưa có số phòng và số Rooms = 1 
+                if (mOR.RoomId == 0 && mOR.NoOfRoom == 1)
+                {
+                    #region Assign khách chính 
+                    //Update lại dữ liệu vào bảng Rsv
+                    mOR.RoomId = mORms.ID;
+                    mOR.RoomNo = mORms.RoomNo;
+                    mOR.RoomTypeId = mORms.RoomTypeID;
+                    mOR.RoomType = ((RoomTypeModel)pt.FindByPK("RoomType", mORms.RoomTypeID)).Code;
+                    if (mOR.RateCodeId == 0)
+                        mOR.RtcId = mOR.RoomTypeId;
+                    mOR.UserUpdateId = UserID;
+                    pt.Update(mOR);
+                    //Update lại dữ liệu vào bảng RsvRate
+                    if (mOR.RateCodeId == 0)
+                    {
+                        string sqlRR = "Update ReservationRate with (rowlock) SET " +
+                                       "RoomID = " + mORms.ID + ", " +
+                                       "RoomNo = '" + mORms.RoomNo + "', " +
+                                       "RoomTypeID = " + mORms.RoomTypeID + ", " +
+                                       "RoomType = '" + mOR.RoomType + "', " +
+                                       "RTCID = " + mORms.RoomTypeID + ", " +
+                                       "UserUpdateID = " + UserID + " " +
+                                       "WHERE ID IN (SELECT ID FROM ReservationRate WITH (NOLOCK) WHERE ReservationID = " + ReservationID + ") ";
+                        pt.UpdateCommand(sqlRR);
+                    }
+                    else
+                    {
+                        string sqlRR = "Update ReservationRate with (rowlock) SET " +
+                                     "RoomID = " + mORms.ID + ", " +
+                                     "RoomNo = '" + mORms.RoomNo + "', " +
+                                     "RoomTypeID = " + mORms.RoomTypeID + ", " +
+                                     "RoomType = '" + mOR.RoomType + "', " +
+                                     "UserUpdateID = " + UserID + " " +
+                                     "WHERE ID IN (SELECT ID FROM ReservationRate WITH (NOLOCK) WHERE ReservationID = " + ReservationID + ") ";
+                        pt.UpdateCommand(sqlRR);
+                    }
+
+                    #region Interface
+                    ReservationBO.IF_REC(mOR.ID, mORms.RoomNo);
+                    //ReservationBO.IF_REC(mOR, mOR.ID, null, 0, mOR.RoomNo, 0, 1);
+                    #endregion
+
+                    #endregion
+
+                    #region Assign khách ở cùng phòng
+                    if (RoomSharer == true)
+                    {
+                        for (int i = 0; i < dtARS.Rows.Count; i++)
+                        {
+                            //Không có RateCode
+                            if (mOR.RateCodeId == 0)
+                            {
+                                //Cập nhật lại RoomID trong bảng Reservaton
+                                string sqlRS = "UPDATE Reservation with (rowlock) SET " +
+                                               "RoomID = " + mORms.ID + ", " +
+                                               "RoomNo = '" + mORms.RoomNo + "', " +
+                                               "RoomTypeID = " + mORms.RoomTypeID + ", " +
+                                               "RoomType = '" + mOR.RoomType + "', " +
+                                               "RTCID = " + mORms.RoomTypeID + ", " +
+                                               "UserUpdateID = " + UserID + " " +
+                                               "WHERE ID = " + TextUtils.ToInt(dtARS.Rows[i]["ID"].ToString()) + " ";
+                                pt.UpdateCommand(sqlRS);
+                                //Cập nhật lại RoomID trong bảng ReservatonRate
+                                string sqlRRS = "UPDATE ReservationRate with (rowlock) SET " +
+                                                "RoomID = " + mORms.ID + ", " +
+                                                "RoomNo = '" + mORms.RoomNo + "', " +
+                                                "RoomTypeID = " + mORms.RoomTypeID + ", " +
+                                                "RoomType = '" + mOR.RoomType + "', " +
+                                                "RTCID = " + mORms.RoomTypeID + ", " +
+                                                "UserUpdateID = " + UserID + " " +
+                                                "WHERE ID IN (SELECT ID FROM ReservationRate WITH (NOLOCK) WHERE ReservationID = " + TextUtils.ToInt(dtARS.Rows[i]["ID"].ToString()) + ") ";
+                                pt.UpdateCommand(sqlRRS);
+                            }
+                            else
+                            {
+                                //Cập nhật lại RoomID trong bảng Reservaton
+                                string sqlRS = "UPDATE Reservation with (rowlock) SET " +
+                                               "RoomID = " + mORms.ID + ", " +
+                                               "RoomNo = '" + mORms.RoomNo + "', " +
+                                               "RoomTypeID = " + mORms.RoomTypeID + ", " +
+                                               "RoomType = '" + mOR.RoomType + "', " +
+                                               "UserUpdateID = " + UserID + " " +
+                                               "WHERE ID = " + TextUtils.ToInt(dtARS.Rows[i]["ID"].ToString()) + " ";
+                                pt.UpdateCommand(sqlRS);
+                                //Cập nhật lại RoomID trong bảng ReservatonRate
+                                string sqlRRS = "UPDATE ReservationRate with (rowlock) SET " +
+                                                "RoomID = " + mORms.ID + ", " +
+                                                "RoomNo = '" + mORms.RoomNo + "', " +
+                                                "RoomTypeID = " + mORms.RoomTypeID + ", " +
+                                                "RoomType = '" + mOR.RoomType + "', " +
+                                                "UserUpdateID = " + UserID + " " +
+                                                "WHERE ID IN (SELECT ID FROM ReservationRate WITH (NOLOCK) WHERE ReservationID = " + TextUtils.ToInt(dtARS.Rows[i]["ID"].ToString()) + ") ";
+                                pt.UpdateCommand(sqlRRS);
+                            }
+
+                            #region Interface
+                            ReservationBO.IF_REC(TextUtils.ToInt(dtARS.Rows[i]["ID"].ToString()), mORms.RoomNo);
+                            //ReservationBO.IF_REC(null, TextUtils.ToInt(dtARS.Rows[i]["ID"].ToString()), null, 0, mOR.RoomNo, 0, 1);
+                            #endregion
+                        }
+                    }
+                    #endregion
+
+                }
+                #endregion
+
+                #region Trường hợp số Rooms > 1 
+                if (mOR.NoOfRoom > 1)
+                {
+                    Split(ReservationID, mOR.NoOfRoom, UserID, "", mORms.ID);
+                }
+                #endregion
+
+                //Nếu không bị lỗi - ghi dữ liệu vào bảng
+                pt.CommitTransaction();
+            }
+            catch (Exception ex)
+            {
+                //Lỗi đóng Conn 
+                pt.CloseConnection();
+                throw new Exception(ex.Message);
+
+            }
+            //Nếu bị lỗi Rollback lại dữ liệu đã ghi
+            finally
+            {
+                pt.CloseConnection();
+            }
+
+            #region Update lại trạng thái CurrResvStatus trong bảng Room 
+            if (mORms.ID > 0)
+                ReservationBO.UpdateReservationStatus(null, mORms.ID);
+            #endregion
+
+        }
 
         //Split 
         public int Split(int reservationID, int pNoOfRoom, int userID, string partyGuest, int roomID)
@@ -2103,7 +2261,6 @@ namespace Reservation.Services.Implements
         {
             if (pNoOfRoom > 1)
             {
-                string ConfNo = "";
                 int ShareRoom = 0;
                 int pReservationID = ReservationID;
                 //Kiểm tra xem Booking này có RoomShare hay không?
@@ -2411,7 +2568,234 @@ namespace Reservation.Services.Implements
             return ReservationID;
         }
 
+        public int SplitSpecial(int ReservationID, int pNoOfRoom, int UserID, string PartyGuest)
+        {
+            int roomID = 0;
+            int pNewReservationID;
 
+            // Lưu lại reservation gốc ban đầu để cuối hàm còn recalculate amount / group cho đúng booking gốc.
+            int originalReservationID = ReservationID;
 
+            // Lấy reservation gốc để xác định dữ liệu hiện tại.
+            ReservationModel m = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(originalReservationID) ?? throw new Exception("Reservation not found.");
+
+            // Lấy dữ liệu thật từ reservation gốc
+            int _ShareRoom = m.ShareRoom;
+            int _NoOfAdult = m.NoOfAdult;
+            int _NoOfChild = m.NoOfChild;
+            int _NoOfChild1 = m.NoOfChild1;
+            int _NoOfChild2 = m.NoOfChild2;
+
+            // Lưu lại ProfileIndividualID
+            int pOldProfileIndividualID = m.ProfileIndividualId;
+
+            if (pNoOfRoom <= 0)
+                throw new Exception("Number of room is invalid.");
+
+            if (pNoOfRoom > 1)
+            {
+                #region Tách phiếu đặt phòng - Main Guest
+                pNewReservationID = Split(ReservationID, pNoOfRoom, UserID, PartyGuest, roomID);
+                #endregion
+
+                if (pNewReservationID <= 0)
+                    throw new Exception("Split reservation failed.");
+
+                // Kiểm tra xem Booking này có RoomShare hay không?
+                Expression eRsv = new("ShareRoom", _ShareRoom, "=");
+                eRsv = eRsv.And(new Expression("MainGuest", 0, "="));
+                ArrayList aRsv = ReservationBO.Instance.FindByExpression(eRsv);
+
+                if (aRsv.Count == 0)
+                {
+                    #region Tạo Room Sharer từ phiếu đặt phòng - Room Sharer
+
+                    // Chỉ tạo RS cho phiếu đặt phòng mới tách ra
+                    if (pNoOfRoom > 2)
+                    {
+                        int Person = _NoOfAdult + _NoOfChild + _NoOfChild1 + _NoOfChild2;
+                        for (int i = 0; i < Person - 1; i++)
+                            ReservationUtil.GenCreateRoomShareNoTransaction(pNewReservationID, UserID);
+                    }
+
+                    // Tạo RS cho phiếu đặt phòng mới tách ra và phiếu đặt phòng gốc
+                    if (pNoOfRoom == 2)
+                    {
+                        int Person = _NoOfAdult + _NoOfChild + _NoOfChild1 + _NoOfChild2;
+                        for (int j = 0; j < Person - 1; j++)
+                        {
+                            ReservationUtil.GenCreateRoomShareNoTransaction(pNewReservationID, UserID);
+                            ReservationUtil.GenCreateRoomShareNoTransaction(ReservationID, UserID);
+                        }
+                    }
+
+                    #endregion
+                }
+
+                return pNewReservationID;
+            }
+            else if (pNoOfRoom == 1)
+            {
+                if (pOldProfileIndividualID == 0)
+                    throw new Exception("Old profile individual ID is invalid.");
+
+                // Kiểm tra xem số RS vượt quá số lượng cho phép không cho Share nữa
+                if (ReservationUtil.CheckShareRoom(_ShareRoom) >= ReservationUtil.CheckShareRoomTotal(_ShareRoom))
+                    throw new Exception("RoomSharer exceed number person.");
+
+                // Kiểm tra xem Booking này có RoomShare hay không?
+                Expression eRsv = new Expression("ShareRoom", _ShareRoom, "=");
+                eRsv = eRsv.And(new Expression("MainGuest", 0, "="));
+                ArrayList aRsv = ReservationBO.Instance.FindByExpression(eRsv);
+
+                // Nếu không có Rs mới tạo RS - đi số RS đã tạo
+                int Person = _NoOfAdult + _NoOfChild + _NoOfChild1 + _NoOfChild2 - aRsv.Count;
+                for (int i = 0; i < Person - 1; i++)
+                    ReservationUtil.GenCreateRoomShare(ReservationID, UserID);
+
+                return ReservationID;
+            }
+
+            throw new Exception("Unhandled split special case.");
+        }
+        public int SplitAllSpecial(int ReservationID, int pNoOfRoom, int UserID, string PartyGuest)
+        {
+            int roomID = 0;
+            int lastNewReservationID = 0;
+
+            // Lưu lại reservation gốc ban đầu để cuối hàm còn recalculate amount / group cho đúng booking gốc.
+            int originalReservationID = ReservationID;
+
+            // Lấy reservation gốc để xác định dữ liệu hiện tại.
+            ReservationModel m = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(originalReservationID) ?? throw new Exception("Reservation not found.");
+
+            // Lấy dữ liệu thật từ reservation gốc
+            int _ShareRoom = m.ShareRoom;
+            int _NoOfAdult = m.NoOfAdult;
+            int _NoOfChild = m.NoOfChild;
+            int _NoOfChild1 = m.NoOfChild1;
+            int _NoOfChild2 = m.NoOfChild2;
+
+            // Lưu lại ProfileIndividualID
+
+            if (pNoOfRoom <= 0)
+                throw new Exception("Number of room is invalid.");
+
+            if (pNoOfRoom > 1)
+            {
+                // Kiểm tra xem Booking này có RoomShare hay không?
+                Expression eRsv = new("ShareRoom", _ShareRoom, "=");
+                eRsv = eRsv.And(new Expression("MainGuest", 0, "="));
+                ArrayList aRsv = ReservationBO.Instance.FindByExpression(eRsv);
+
+                //Tách alll
+                int splitLimit = Math.Min(pNoOfRoom, 5); // hoặc 4 nếu đúng nghiệp vụ là 4
+                int currentRoomCount = pNoOfRoom;
+                int splitCount = 0;
+
+                //Chỉ chạy mỗi lần 5 phòng 
+                while (currentRoomCount > 1 && splitCount < splitLimit)
+                {
+                    int newReservationID = Split(ReservationID, currentRoomCount, UserID, "", roomID);
+                    if (newReservationID <= 0)
+                        throw new Exception("Split reservation failed.");
+                    lastNewReservationID = newReservationID;
+
+                    if (aRsv.Count == 0)
+                    {
+                        int person = _NoOfAdult + _NoOfChild + _NoOfChild1 + _NoOfChild2;
+
+                        if (currentRoomCount > 2)
+                        {
+                            for (int i = 0; i < person - 1; i++)
+                                ReservationUtil.GenCreateRoomShareNoTransaction(newReservationID, UserID);
+                        }
+                        else if (currentRoomCount == 2)
+                        {
+                            for (int i = 0; i < person - 1; i++)
+                            {
+                                ReservationUtil.GenCreateRoomShareNoTransaction(newReservationID, UserID);
+                                ReservationUtil.GenCreateRoomShareNoTransaction(ReservationID, UserID);
+                            }
+                        }
+                    }
+
+                    currentRoomCount--;
+                    splitCount++;
+                }
+                return lastNewReservationID;
+            }
+            throw new Exception("Unhandled split special case.");
+        }
+
+        public void SplitAllRoomSharer(List<int> reservationIds, int UserID)
+        {
+            if (reservationIds == null || reservationIds.Count == 0)
+            {
+                throw new Exception("No Reservaion Selected.");
+            }
+            foreach (int reservationId in reservationIds)
+            {
+                ReservationModel reservation = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(reservationId);
+                if (reservation == null || reservation.ID == 0)
+                    continue;
+
+                int person = reservation.NoOfAdult + reservation.NoOfChild
+                            + reservation.NoOfChild1 + reservation.NoOfChild2;
+
+                Expression eRsv = new Expression("ShareRoom", reservation.ShareRoom, "=");
+                eRsv = eRsv.And(new Expression("MainGuest", 0, "="));
+                eRsv = eRsv.And(new Expression("Status", 3, "<>"));
+                eRsv = eRsv.And(new Expression("Status", 4, "<>"));
+                eRsv = eRsv.And(new Expression("Status", 7, "<>"));
+
+                ArrayList aRsv = ReservationBO.Instance.FindByExpression(eRsv);
+
+                if (reservation.NoOfRoom == 1)
+                {
+                    int missingSharerCount = (person - aRsv.Count) -1;
+                    if (missingSharerCount> 0)
+                    {
+                        for (int j = 0; j < missingSharerCount; j++)
+                        {
+                            ReservationUtil.GenCreateRoomShareNoTransaction(reservation.ID,UserID);
+                        }
+                    }
+                }
+            }
+        }
+        public DataTable ResConfNoList(int confirmationNo)
+        {
+            try
+            {
+                SqlParameter[] param =
+                [
+                    new SqlParameter("@sqlCommand",
+                    $@"  SELECT ID,
+                            ConfirmationNo AS [ConfNo],
+                            CASE WHEN MainGuest = 1 then 'X' ELSE '' END AS [MG],
+                            NoOfRoom as [Nbr],
+                            Country AS [Nat], 
+                            LastName AS [Name], 
+                            RoomNo AS [RoNo], 
+                            RoomType as [RoType],  
+                            ArrivalDate as [Arrival], 
+                            DepartureDate as [Departure], 
+                            NoOfAdult as [A], NoOfChild as [C], 
+                            NoOfChild1 as [C1], NoOfChild2 as [C2], 
+                            ShareRoom as [SR], dbo.fnGetRsvStatus(Status) 
+                            AS Status 
+                        FROM Reservation WITH (NOLOCK)
+                        WHERE ConfirmationNo = '{confirmationNo}' AND ReservationNo > 0 AND MainGuest = 1 AND (Status = 0 OR Status = 5 OR Status = 1 OR Status = 6) ORDER BY Arrival, [RoNo], [RoType], ID ASC, Nbr DESC")
+                        ];
+                DataTable dataTable = DataTableHelper.getTableData("spSearchAllForTrans", param);
+                return dataTable;
+
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"ERROR: {ex.Message}", ex);
+            }
+        }
     }
 }
