@@ -1858,12 +1858,15 @@ namespace Profile.Controllers
 
                     model.CreateDate = DateTime.Now;
                     model.UpdateDate = DateTime.Now;
-                    ProfileBO.Instance.Insert(model);
+
+                    int newID = Convert.ToInt32(ProfileBO.Instance.Insert(model));
+                    model.ID = newID;
+
                     #region Insert log activity for insert profile
                     ActivityLogModel activityLog = new ActivityLogModel();
                     activityLog.TableName = "Profile";
                     activityLog.ObjectID = model.ID;
-                    activityLog.UserID = model.UserUpdateID;
+                    activityLog.UserID = model.UserInsertID;
                     activityLog.UserName = user.LoginName;
                     activityLog.ChangeDate = DateTime.Now;
                     activityLog.Change = "Insert";

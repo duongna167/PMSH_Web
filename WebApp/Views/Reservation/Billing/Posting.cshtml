@@ -463,6 +463,61 @@
             resetAllPostingData(); 
         });
 
+        // --- SỰ KIỆN NHẬP LIỆU TIỀN TỆ TỨC THÌ ---
+        //  Chặn ký tự lạ ngay khi nhấn phím (Chỉ cho phép số và một dấu trừ ở đầu)
+        $(document).on('keypress', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function(e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var value = $(this).val();
+
+            // Phím trừ (-)
+            if (charCode === 45) {
+                // Chỉ cho phép dấu trừ nếu chưa có và phải ở vị trí đầu tiên
+                if (value.indexOf('-') !== -1 || e.target.selectionStart !== 0) {
+                    e.preventDefault();
+                }
+                return;
+            }
+
+            // Các phím không phải số (48-57)
+            if (charCode < 48 || charCode > 57) {
+                e.preventDefault();
+            }
+        });
+
+        // Format dấu chấm phân cách ngay khi đang gõ (Live Format)
+        $(document).on('input', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function() {
+            formatCurrencyLive(this);
+        });
+
+        //  Khi Focus: Xóa "0,00" để nhập mới
+        $(document).on('focus', '.js-input-price, .js-input-price-net', function() {
+            let val = $(this).val();
+            if (val === "0,00" || val === "0") {
+                $(this).val("");
+            }
+        });
+
+        // Khi Blur: Thêm đuôi thập phân và gọi API tính toán
+        $(document).on('blur', '.js-input-price, .js-input-price-net', function() {
+            if (isSilentReset) return;
+
+            let val = $(this).val();
+            if (val === "" || val === "-") {
+                $(this).val("0,00");
+            } else {
+                // Format chuẩn kế toán x.xxx,xx
+                let num = parseNumberWithComma(val);
+                $(this).val(formatNumberWithComma(num));
+            }
+
+            // Gọi API tính toán logic Net/Gross
+            if ($(this).hasClass('js-input-price')) {
+                apiCalcNetFromPlus();
+            } else if ($(this).hasClass('js-input-price-net')) {
+                apiCalcPlusFromNet();
+            }
+        });
+
         //  Search List (transGroup,...,article)
         $(document).on('keyup', '.js-search-box', function() {
             var value = $(this).val().toLowerCase();
@@ -1370,6 +1425,34 @@
                 isReset = false;
                 isSilentReset = false;
             }, 200);
+        }
+
+        function formatCurrencyLive(input) {
+            let selectionStart = input.selectionStart;
+            let originalLength = input.value.length;
+
+            let value = input.value;
+            let isNegative = value.startsWith('-');
+            let cleanValue = value.replace(/\D/g, ""); // Chỉ lấy số
+
+            if (cleanValue === "") {
+                input.value = isNegative ? "-" : "";
+                return;
+            }
+
+            // Format theo chuẩn vi-VN (dấu chấm)
+            let formattedValue = new Intl.NumberFormat('vi-VN').format(parseInt(cleanValue, 10));
+            if (isNegative) formattedValue = "-" + formattedValue;
+
+            // QUAN TRỌNG: Chỉ cập nhật nếu giá trị thực sự thay đổi
+            if (input.value !== formattedValue) {
+                input.value = formattedValue;
+
+                // Tính toán lại vị trí con trỏ chuột
+                let newLength = input.value.length;
+                selectionStart = selectionStart + (newLength - originalLength);
+                input.setSelectionRange(selectionStart, selectionStart);
+            }
         }
 
 </script>
