@@ -89,14 +89,27 @@
 
 <script>
 
-    function openModalNewWindow(){
+    async function openModalNewWindow(){
         // Set mặc định
         $('#radioGuestFolio').prop('checked', true);
 
-        if(isMasterFolio === false){
+        let canCreateMaster = false;
+        try {
+            const resData = await $.ajax({
+                url: '/Reservation/GetReservationByID',
+                type: 'GET',
+                data: { ID: typeof idReservation !== "undefined" ? idReservation : 0 }
+            });
+            if (resData && (resData.profileCompanyId > 0 || resData.profileAgentId > 0 || resData.profileGroupId > 0)) {
+                canCreateMaster = true;
+            }
+        } catch (e) {
+            console.error("Failed to check master folio eligibility:", e);
+        }
+
+        if(!canCreateMaster){
             $('#radioMasterFolio').prop('disabled', true);
             $('#radioMasterFolio').closest('.form-check').addClass('text-muted').attr('data-tooltip', 'No Company/Agent/Group found for this booking');
-
             $('#radioGuestFolio').prop('checked', true);
         } else {
             $('#radioMasterFolio').prop('disabled', false);
@@ -105,13 +118,13 @@
 
         toggleFolioType();
 
-        $('#folioNoCreate').val(listFolioNoID.length + 1);
-        $('#new_folio_profileName').val(lastname);
-        $('#new_folio_profileID').val(profileID); // profileID lấy từ row được chọn ở grid billing/resveration
+        $('#folioNoCreate').val(typeof listFolioNoID !== "undefined" ? listFolioNoID.length + 1 : 1);
+        $('#new_folio_profileName').val(typeof lastname !== "undefined" ? lastname : "");
+        $('#new_folio_profileID').val(typeof profileID !== "undefined" ? profileID : ""); 
 
         // Master info
-        $('#folioConfNo').val(confirmationNo);
-        $('#masterAccountName').val(lastname);
+        $('#folioConfNo').val(typeof confirmationNo !== "undefined" ? confirmationNo : "");
+        $('#masterAccountName').val(typeof lastname !== "undefined" ? lastname : ""); // Backend creates actual name
 
         $('#modalNewWindow').modal('show');
     }
@@ -121,14 +134,10 @@
         if(isMaster) {
             $('#masterFolioSection').removeClass('opacity-50').css('pointer-events', 'auto');
             $('#guestFolioSection').addClass('opacity-50').css('pointer-events', 'none');
-
-            let masterName = companyName || agentName || groupName || "";
-            $('#masterAccountName').val(masterName);
-
         } else {
             $('#guestFolioSection').removeClass('opacity-50').css('pointer-events', 'auto');
             $('#masterFolioSection').addClass('opacity-50').css('pointer-events', 'none');
-            $('#new_folio_profileName').val(lastname);
+            $('#new_folio_profileName').val(typeof lastname !== "undefined" ? lastname : "");
         }
     }
 
@@ -146,7 +155,8 @@
             UserUpdateID: JSON.parse(localStorage.getItem("userID")),
             Status: false,
             BalanceVND: 0,
-            BalanceUSD: 0
+            BalanceUSD: 0,
+            IsMasterFolio: isMaster
         };
 
         $.ajax({

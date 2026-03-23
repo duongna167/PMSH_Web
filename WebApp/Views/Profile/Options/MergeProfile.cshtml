@@ -99,27 +99,27 @@
             const self = this;
             // Danh sách các field cần so sánh tương đương Winform
             const fields = [
-                { key: 'account', label: 'Name' },
-                { key: 'titleid', label: 'Title', lookupSource: self.lookups.titles },
-                { key: 'address', label: 'Address' },
-                { key: 'languageid', label: 'Language', lookupSource: self.lookups.languages },
-                { key: 'nationalityid', label: 'Nationality', lookupSource: self.lookups.nationalities },
-                { key: 'city', label: 'City' }, 
-                { key: 'countryid', label: 'Country', lookupSource: self.lookups.countries },
-                { key: 'membertype', label: 'Member Type' },
-                { key: 'passpport', label: 'Passport' },
-                { key: 'identitycard', label: 'Identity Card' },
-                { key: 'dateofbirth', label: 'Date of Birth', isDate: true }, 
-                { key: 'telephone', label: 'Telephone' },
-                { key: 'fax', label: 'Fax' },
-                { key: 'email', label: 'Email' },
-                { key: 'website', label: 'Website' },
-                { key: 'vipid', label: 'VIP', lookupSource: self.lookups.vips },
-                { key: 'lastroom', label: 'LastRoom' },
-                { key: 'returnguestold', label: 'Return' },
-                { key: 'company', label: 'Company' },
-                { key: 'taxcode', label: 'Tax Code' },
-                { key: 'businesstitle', label: 'Business Address' }
+                { key: 'Account', label: 'Name' },
+                { key: 'TitleID', label: 'Title', lookupSource: self.lookups.titles },
+                { key: 'Address', label: 'Address' },
+                { key: 'LanguageID', label: 'Language', lookupSource: self.lookups.languages },
+                { key: 'NationalityID', label: 'Nationality', lookupSource: self.lookups.nationalities },
+                { key: 'City', label: 'City' }, 
+                { key: 'CountryID', label: 'Country', lookupSource: self.lookups.countries },
+                { key: 'MemberType', label: 'Member Type' },
+                { key: 'Passport', label: 'Passport' },
+                { key: 'IdentityCard', label: 'Identity Card' },
+                { key: 'DateOfBirth', label: 'Date of Birth', isDate: true }, 
+                { key: 'Telephone', label: 'Telephone' },
+                { key: 'Fax', label: 'Fax' },
+                { key: 'Email', label: 'Email' },
+                { key: 'Website', label: 'Website' },
+                { key: 'VIPID', label: 'VIP', lookupSource: self.lookups.vips },
+                { key: 'LastRoom', label: 'LastRoom' },
+                { key: 'ReturnGuestOld', label: 'Return' },
+                { key: 'Company', label: 'Company' },
+                { key: 'TaxCode', label: 'Tax Code' },
+                { key: 'BusinessTitle', label: 'Business Address' }
             ];
 
             const calculateDisplay = function(rowData) {
@@ -149,26 +149,6 @@
 
             const columnsConfig = (isSource) => [
                 {
-                    dataField: "selected",
-                    caption: "X",
-                    dataType: "boolean",
-                    width: 40,
-                    visible: isSource,
-                    cellTemplate: function (container, options) {
-
-                        $("<div>")
-                            .dxCheckBox({
-                                value: options.data.selected,
-                                onValueChanged: function(e) {
-                                    options.data.selected = e.value;
-                                }
-                            })
-                            .css("transform", "scale(0.8)")
-                            .appendTo(container);
-
-                    }
-                },
-                {
                     dataField: "label",
                     caption: "Field",
                     width: 130,
@@ -192,29 +172,29 @@
             ];
 
             $("#gridMergeSource").dxDataGrid({
-                dataSource: fields.map(f => ({ ...f, value: sourceData[f.key], selected: false })),
+                dataSource: new DevExpress.data.ArrayStore({
+                    key: "key",
+                    data: fields.map(f => ({
+                        ...f,
+                        value: sourceData[f.key.toLowerCase()] 
+                    }))
+                }),
                 columns: columnsConfig(true),
-                editing: { mode: "cell", allowUpdating: true },
+                selection: { 
+                    mode: "multiple", 
+                    showCheckBoxesMode: "always" 
+                },
                 height: "100%",
                 showBorders: true,
                 paging: { enabled: false }, 
-                scrolling: { mode: "standard" },
-                onCellClick: function(e) {
-                    if (e.column.dataField === "selected") {
-                        e.data.selected = !e.data.selected;
-                        e.component.refresh();
-                    }
-                },
-                onRowClick: function(e) {
-                if (e.rowType === "data") {
-                    e.data.selected = !e.data.selected;
-                    e.component.refresh();
-                }
-            }
+                scrolling: { mode: "standard" }
             });
 
             $("#gridMergeDest").dxDataGrid({
-                dataSource: fields.map(f => ({ ...f, value: destData[f.key] })),
+                dataSource: fields.map(f => ({
+                    ...f,
+                    value: destData[f.key.toLowerCase()] 
+                })),
                 columns: columnsConfig(false),
                 height: "100%",
                 showBorders: true,
@@ -228,12 +208,17 @@
 
             const loginUser = parseInt(localStorage.getItem("userID")) || 0;
 
-            // Lấy danh sách field được tích chọn (Cột X)
+            // Lấy danh sách field được tích chọn bằng selectedRowKeys của DevExtreme
             const gridInstance = $("#gridMergeSource").dxDataGrid("instance");
-            const items = gridInstance.getDataSource().items();
-            const selectedFields = items.filter(i => i.selected).map(i => i.key);
+            const selectedFields = gridInstance.getSelectedRowKeys();
+
+
+            if (selectedFields.includes('Account')) {
+                selectedFields.push('Firstname', 'LastName', 'MiddleName');
+            }
 
             if (!confirm("Are you sure you want to merge profile to original profile?")) return;
+            const items = gridInstance.getDataSource().items();
             const sourceData = {};
             items.forEach(i => {
                 sourceData[i.key] = i.value;
@@ -247,27 +232,27 @@
                 OverrideFields: selectedFields,
 
                 // dữ liệu source profile
-                Account: sourceData.account,
-                TitleID: sourceData.titleid,
-                Address: sourceData.address,
-                LanguageID: sourceData.languageid,
-                NationalityID: sourceData.nationalityid,
-                City: sourceData.city,
-                CountryID: sourceData.countryid,
-                MemberType: sourceData.membertype,
-                Passport: sourceData.passpport,
-                IdentityCard: sourceData.identitycard,
-                DateOfBirth: sourceData.dateofbirth,
-                Telephone: sourceData.telephone,
-                Fax: sourceData.fax,
-                Email: sourceData.email,
-                Website: sourceData.website,
-                VIPID: sourceData.vipid,
-                LastRoom: sourceData.lastroom,
-                ReturnGuestOld: sourceData.returnguestold,
-                Company: sourceData.company,
-                TaxCode: sourceData.taxcode,
-                BusinessTitle: sourceData.businesstitle
+                    Account: sourceData.Account,
+                    TitleID: sourceData.TitleID,
+                    Address: sourceData.Address,
+                    LanguageID: sourceData.LanguageID,
+                    NationalityID: sourceData.NationalityID,
+                    City: sourceData.City,
+                    CountryID: sourceData.CountryID,
+                    MemberType: sourceData.MemberType,
+                    Passport: sourceData.Passport,
+                    IdentityCard: sourceData.IdentityCard,
+                    DateOfBirth: sourceData.DateOfBirth,
+                    Telephone: sourceData.Telephone,
+                    Fax: sourceData.Fax,
+                    Email: sourceData.Email,
+                    Website: sourceData.Website,
+                    VIPID: sourceData.VIPID,
+                    LastRoom: sourceData.LastRoom,
+                    ReturnGuestOld: sourceData.ReturnGuestOld,
+                    Company: sourceData.Company,
+                    TaxCode: sourceData.TaxCode,
+                    BusinessTitle: sourceData.BusinessTitle
             };
             
             $.ajax({
