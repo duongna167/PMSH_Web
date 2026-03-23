@@ -143,15 +143,15 @@
             <div class="modal-header">
                 <h5 class="modal-title">History</h5>
             </div>
-            <div class="modal-body">
+            <div class="modal-body  d-flex flex-column" style="height: calc(100vh - 120px);">
                 <div class="py-2">
-                    <button class="mui-button mui-button-new">Attach</button>
-                    <button class="mui-button mui-button-new">Detach</button>
-                    <button class="mui-button mui-button-new">Profile</button>
+                    @* <button class="mui-button mui-button-new">Attach</button> *@
+                    @* <button class="mui-button mui-button-new">Detach</button> *@
+                    <button class="mui-button mui-button-new" id="pro_search_excel_history">Excel</button>
                     <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                 </div>
-                <div class="mui-card mt-2">
-                    <div id="pro_search_gridContainerHistory" class="gridContainer"></div>
+                <div class="gridContainer mt-2 flex-grow-1 d-flex flex-column position-relative" style="min-height: 0;">
+                    <div id="pro_search_gridContainerHistory"></div>
                 </div>
             </div>
         </div>
@@ -185,7 +185,7 @@
             $("#pro_search_btnSearch").on("click", () => self.getAllProfiles());
             $("#pro_search_btnClear").on("click", () => self.clearSearchForm());
             $("#pro_search_btnOption").on("click", () => self.openModalOption());
-            $("#pro_search_btnHistory").on("click", () => self.GetProfileHistory());
+            $("#pro_search_btnHistory").on("click", () => self.getProfileHistory());
             $("#pro_search_btnDelete").on("click", () => self.deleteProfile());
             $("#pro_search_btnChanges").on("click", () => self.openOpChangesModal());
             $("#pro_search_btnFuture").off("click").on("click", () => self.openFutureModal());
@@ -194,6 +194,7 @@
             $("#pro_search_btnProfileUpdate").off("click").on("click", () => self.openProfileUpdateModal());
             $("#pro_search_btnProfileUpdate").off("click").on("click", () => self.openProfileUpdateModal());
             $("#pro_search_btnMerge").off("click").on("click", () => self.openConfirmMerge());
+            $("#pro_search_excel_history").off("click").on("click", () => self.exportToExcelHistory());
 
             $("#pro_search_txtType").on("change", function () {
                 self.getAllProfiles();
@@ -295,6 +296,13 @@
                 }
             });
 
+            $('#pro_search_modalHistory').on('hidden.bs.modal', function () {
+                var $grid = $("#pro_search_gridContainerHistory");
+                if ($grid.data("dxDataGrid")) {
+                    $grid.dxDataGrid("instance").option("dataSource", []);
+                    $grid.dxDataGrid("instance").endCustomLoading();
+                }
+            });
         },
 
         loadInitialData: function() {
@@ -516,13 +524,24 @@
             $('#pro_search_modalOption').modal('show');
         },
 
-        GetProfileHistory: function () {
+        getProfileHistory: function () {
             const self = this;
+             if (!self.profileID || self.profileID <= 0) {
+                showToast("Warning", "Please choose 1 profile to view history", false);
+                return; 
+            }
+
+            $('#pro_search_modalHistory').modal('show');
+
             $.ajax({
                 url: '/Profile/SearchProfileHistory',
-                data: { profileID: this.profileID },
+                data: {
+                    profileID: this.profileID,
+                    type: this.profileType,
+                    confirmationNo: ""
+                },
+                loadingGrid: "#pro_search_gridContainerHistory",
                 success: function (result) {
-                    $('#pro_search_modalHistory').modal('show'); // Prefix
                     self.initializeDataGridHistory(result);
                 }
             });
@@ -670,49 +689,164 @@
         },
 
         initializeDataGridHistory: function (data) {
-            const columnWidth = 150;
+            const self = this;
+            const isIndividual = (this.profileType == 0);
 
             const columns = [
-                { dataField: 'ConfirmationNo', caption: 'Conf.No', visible: true, width: columnWidth },
-                { dataField: 'CRSNo', caption: 'CRSNo', visible: true, width: columnWidth },
-                { dataField: 'ArrivalDate', caption: 'ArrivalDate', visible: true, width: columnWidth, dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: 'DepartureDate', caption: 'DepartureDate', visible: true, width: columnWidth, dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: 'RoomNo', caption: 'Room', visible: true, width: columnWidth },
-                { dataField: 'RoomType', caption: 'Room Type', visible: true, width: columnWidth },
-                { dataField: 'Rate', caption: 'Rate', visible: true, width: columnWidth },
-                { dataField: 'CurrencyID', caption: 'Currency', visible: true, width: columnWidth },
-                { dataField: 'RateCode', caption: 'Rate Code', visible: true, width: columnWidth },
-                { dataField: 'NoOfAdult', caption: 'A', visible: true, width: columnWidth },
-                { dataField: 'NoOfChild', caption: 'C', visible: true, width: columnWidth },
-                { dataField: 'NoOfChild1', caption: 'C1', visible: true, width: columnWidth },
-                { dataField: 'NoOfChild2', caption: 'C2', visible: true, width: columnWidth },
-                { dataField: 'LastName', caption: 'Guest Name', visible: true, width: columnWidth },
-                { dataField: 'BusinessBlockCode', caption: 'Block', visible: true, width: columnWidth },
-                { dataField: 'MarketCode', caption: 'Market', visible: true, width: columnWidth },
-                { dataField: 'SourceCode', caption: 'Source', visible: true, width: columnWidth },
-                { dataField: 'ReservationHolder', caption: 'Reservation Holder', visible: true, width: columnWidth },
-                { dataField: 'Status', caption: 'Status', visible: true, width: columnWidth },
-                { dataField: 'TotalRevenue', caption: 'Total Rev', visible: true, width: columnWidth },
-                { dataField: 'RoomRevenue', caption: 'Room Rev', visible: true, width: columnWidth },
-                { dataField: 'FBRevenue', caption: 'F&B Rev', visible: true, width: columnWidth },
-                { dataField: 'ExtraRevenue', caption: 'Extra Rev', visible: true, width: columnWidth },
-                { dataField: 'NonRevenue', caption: 'Non Rev', visible: true, width: columnWidth },
-                { dataField: 'UserInsert', caption: 'Created By', visible: true, width: columnWidth },
-                { dataField: 'CreateDate', caption: 'Created On', visible: true, width: columnWidth },
-                { dataField: 'UserUpdate', caption: 'Updated By', visible: true, width: columnWidth },
-                { dataField: 'UpdateDate', caption: 'Update On', visible: true, width: columnWidth },
+                {
+                    dataField: isIndividual ? 'ConfirmationNo' : '_ConfirmationNo',
+                    caption: 'Conf.No',
+                    width: 80,
+                    alignment: "center"
+                },
+                {
+                    dataField: 'CRSNo',
+                    caption: 'CRS.No',
+                    width: 80,
+                    alignment: "center"
+                },
+                {
+                    dataField: isIndividual ? 'ArrivalDate' : 'FirstArrival',
+                    caption: 'Arrival',
+                    width: 90,
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                },
+                {
+                    dataField: isIndividual ? 'DepartureDate' : 'LastDeparture',
+                    caption: 'Departure',
+                    width: 90,
+                    dataType: "date",
+                    format: "dd/MM/yyyy"
+                },
+                {
+                    dataField: 'RoomNo',
+                    caption: 'Room',
+                    width: 70,
+                    alignment: "center",
+                    visible: isIndividual
+                },
+                {
+                    dataField: isIndividual ? 'RoomType' : 'TotalRoom',
+                    caption: isIndividual ? 'Room Type' : 'Total Room',
+                    width: 90
+                },
+                {
+                    dataField: 'Rate',
+                    caption: 'Rate',
+                    width: 100,
+                    format: { type: "fixedPoint", precision: 2 },
+                    alignment: "right"
+                },
+                {
+                    dataField: 'CurrencyID',
+                    caption: 'Curr',
+                    width: 50,
+                    alignment: "center"
+                },
+                {
+                    dataField: 'RateCode',
+                    caption: 'Rate Code',
+                    width: 90
+                },
+
+                { dataField: 'NoOfAdult', caption: 'A', width: 35, alignment: "center" },
+                { dataField: 'NoOfChild', caption: 'C', width: 35, alignment: "center" },
+                { dataField: 'NoOfChild1', caption: 'C1', width: 35, alignment: "center" },
+                { dataField: 'NoOfChild2', caption: 'C2', width: 35, alignment: "center" },
+
+                {
+                    dataField: isIndividual ? 'LastName' : 'GroupName',
+                    caption: 'Guest Name',
+                    width: 150
+                },
+                { dataField: 'BusinessBlockCode', caption: 'Block', width: 80 },
+                { dataField: 'MarketCode', caption: 'Market', width: 90 },
+                { dataField: 'SourceCode', caption: 'Source', width: 90 },
+                {
+                    dataField: isIndividual ? 'ReservationHolder' : 'CompanyName',
+                    caption: 'Reservation Holder',
+                    width: 180
+                },
+                {
+                    dataField: isIndividual ? 'Status' : '_Status',
+                    caption: 'Status',
+                    width: 85,
+                    alignment: "center"
+                },
+
+                {
+                    dataField: isIndividual ? 'TotalRevenue' : '_TotalRevenue',
+                    caption: 'Total Rev',
+                    width: 100,
+                    format: { type: "fixedPoint", precision: 2 },
+                    alignment: "right",
+                    cssClass: "fw-bold"
+                },
+                {
+                    dataField: isIndividual ? 'RoomRevenue' : '_RoomRevenue',
+                    caption: 'Room Rev',
+                    width: 90,
+                    format: { type: "fixedPoint", precision: 2 },
+                    alignment: "right"
+                },
+                {
+                    dataField: isIndividual ? 'FBRevenue' : '_FBRevenue',
+                    caption: 'F&B Rev',
+                    width: 90,
+                    format: { type: "fixedPoint", precision: 2 },
+                    alignment: "right"
+                },
+                {
+                    dataField: isIndividual ? 'ExtraRevenue' : '_ExtraRevenue',
+                    caption: 'Extra Rev',
+                    width: 90,
+                    format: { type: "fixedPoint", precision: 2 },
+                    alignment: "right"
+                },
+                {
+                    dataField: isIndividual ? 'NonRevenue' : '_NonRevenue',
+                    caption: 'Non Rev',
+                    width: 90,
+                    format: { type: "fixedPoint", precision: 2 },
+                    alignment: "right"
+                },
+
+                {
+                    dataField: isIndividual ? 'UserInsert' : 'CreateBy',
+                    caption: 'Create By',
+                    width: 90
+                },
+                {
+                    dataField: isIndividual ? 'CreateDate' : 'CreateOn',
+                    caption: 'Create On',
+                    width: 85,
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    alignment: "center"
+                },
+                {
+                    dataField: isIndividual ? 'UserUpdate' : 'UpdateBy',
+                    caption: 'Update By',
+                    width: 90
+                },
+                {
+                    dataField: isIndividual ? 'UpdateDate' : 'UpdateOn',
+                    caption: 'Update On',
+                    width: 85,
+                    dataType: "date",
+                    format: "dd/MM/yyyy",
+                    alignment: "center"
+                }
             ];
 
             $("#pro_search_gridContainerHistory").dxDataGrid({
                 dataSource: data,
+                height: '100%',
                 columns: columns,
                 allowColumnResizing: true,
-                columnAutoWidth: true,
+                columnAutoWidth: false,
                 showBorders: false,
-                selection: {
-                    mode: "multiple",
-                    showCheckBoxesMode: "none"
-                },
                 paging: { pageSize: 15 },
                 pager: {
                     visible: true,
@@ -721,12 +855,14 @@
                     showInfo: true,
                     showNavigationButtons: true,
                 },
-                scrolling: {
+                scrolling: {    
                     mode: "standard",
                     showScrollbar: "always"
                 },
-                onRowClick: function (e) {
-                    console.log("History clicked: ");
+                onRowDblClick: function(e) {
+                    if (isIndividual && e.data.pReservationID) {
+                        console.log("History clicked: ");
+                    }
                 }
             });
         },
@@ -747,6 +883,65 @@
             ModalManager.load('/Profile/MergeProfile', 'modalMergeProfile', function() {
                 waitForFunction("openModalMerge", () => {
                     window.openModalMerge(selectedRows[0].id, selectedRows[1].id, selectedRows[0].type);
+                });
+            });
+        },
+
+        exportToExcelHistory: function () {
+            const grid = $("#pro_search_gridContainerHistory").dxDataGrid("instance");
+            if (!grid) {
+                showToast("Warning", "No data to export!", false);
+                return;
+            }
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            // === Dòng 1: Tên công ty (merge theo 4 cột) ===
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells('A1:D1');
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+            // === Dòng 2: Ngày giờ xuất (Sửa lỗi hiển thị ở đây) ===
+            const now = new Date();
+            const exportDateStr = "Export Date: " + now.toLocaleString("vi-VN");
+            const row2 = worksheet.getRow(2);
+            row2.getCell(1).value = exportDateStr; // Gán vào ô đầu tiên của vùng merge (A2)
+            worksheet.mergeCells('A2:D2');
+            row2.alignment = { vertical: 'middle', horizontal: 'left' };
+            row2.font = { italic: true };
+
+            // === Dòng 3–4: trống
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
+            const reportRow = worksheet.addRow(['Profile History']);
+            worksheet.mergeCells('A5:I5');
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            // === Dòng 6: trống
+            worksheet.addRow([]);
+
+            // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                // Footer (sau cùng)
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
+                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+                worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+                // Ghi file
+                let fileName = "ProfileHistory.xlsx";
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
                 });
             });
         },

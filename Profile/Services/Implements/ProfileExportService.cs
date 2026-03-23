@@ -35,7 +35,7 @@ namespace Profile.Services.Implements
             }
         }
 
-        public DataTable SearchProfileHistory(int profileID, int type, string confirmationNo)
+        public DataTable SearchProfileHistory(string profileID, int type, string confirmationNo)
         {
             try
             {
@@ -44,11 +44,12 @@ namespace Profile.Services.Implements
                     new SqlParameter("@ProfileID", profileID),
 
                      new SqlParameter("@Type", type),
-                    new SqlParameter("@ConfirmationNo", confirmationNo),
+                    new SqlParameter("@ConfirmationNo", string.IsNullOrEmpty(confirmationNo) ? "" : confirmationNo),
 
                 };
 
                 DataTable myTable = DataTableHelper.getTableData("spProfileHistoryStayInfo", param);
+                //DataTable myTable = DataTableHelper.getTableData("spProfileHistoryStayInfo_Test", param);
                 return myTable;
             }
             catch (SqlException ex)

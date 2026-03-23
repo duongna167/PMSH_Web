@@ -1128,17 +1128,17 @@ namespace Profile.Controllers
 
         #region DatVP __ Profile History
         [HttpGet]
-        public async Task<IActionResult> SearchProfileHistory(int profileID)
+        public async Task<IActionResult> SearchProfileHistory(string profileID, int type, string confirmationNo)
         {
             try
             {
-                var data = _iProfileService.SearchProfileHistory(profileID, 0, "");
+                var data = _iProfileService.SearchProfileHistory(profileID, type, confirmationNo);
 
                 var result = (from d in data.AsEnumerable()
                               select d.Table.Columns.Cast<DataColumn>()
                                   .ToDictionary(
                                       col => col.ColumnName,
-                                      col => d[col.ColumnName]?.ToString()
+                                      col => d[col.ColumnName] == DBNull.Value ? null : d[col.ColumnName]
                                   )).ToList();
                 return Json(result);
             }
