@@ -2097,76 +2097,74 @@ namespace Profile.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ExecuteMerge([FromBody] MergeRequest request)
+        public IActionResult ExecuteMerge([FromBody] MergeRequest request)
         {
-            if (request.SourceID == request.DestID)
-                return Ok(new { success = false, message = "Source Profile and Destination Profile must be different." });
+            ProcessTransactions trans = new ProcessTransactions();
 
             try
             {
-                // Kiểm tra nghiệp vụ: Khách đã check-out (Status = 2) không được merge nếu còn Folio
-                string checkFolioSql = $@"SELECT COUNT(*) FROM Reservation WITH (NOLOCK) 
-                                 WHERE (ProfileIndividualID = {request.SourceID} 
-                                    OR ProfileAgentID = {request.SourceID} 
-                                    OR ProfileCompanyID = {request.SourceID} 
-                                    OR ProfileSourceID = {request.SourceID}) 
-                                 AND Status = 2";
+                trans.OpenConnection();
+                trans.BeginTransaction();
 
-                int folioCount = TextUtils.ExecuteScalarInt(checkFolioSql);
-                if (folioCount > 0)
-                {
-                    return Ok(new { success = false, message = "Guest checked out cannot be merged. Please choose a profile with no existing folios to merge." });
-                }
+                if (request.SourceID == request.DestID)
+                    return Ok(new { success = false, message = "Source and Destination must be different." });
 
-                // Lấy thông tin 2 Profile để xử lý ghi đè thông tin (Override Fields)
-                var sourcePro = (ProfileModel)ProfileBO.Instance.FindByPrimaryKey(request.SourceID);
-                var destPro = (ProfileModel)ProfileBO.Instance.FindByPrimaryKey(request.DestID);
+                // ===== 1. Load dữ liệu WITH LOCK =====
+                var sourcePro = (ProfileModel)trans.FindByPK("Profile", request.SourceID);
+                var destPro = (ProfileModel)trans.FindByPK("Profile", request.DestID);
 
                 if (sourcePro == null || destPro == null)
-                    return Ok(new { success = false, message = "Profile not found." });
+                    throw new Exception("Profile not found");
 
-                // Xử lý ghi đè các trường thông tin được người dùng tích chọn "X"
+                // ===== 2. Override field (SAFE) =====
                 foreach (var field in request.OverrideFields)
                 {
-                    var property = typeof(ProfileModel).GetProperty(field);
+                    var property = typeof(ProfileModel)
+                        .GetProperties()
+                        .FirstOrDefault(p => p.Name.Equals(field, StringComparison.OrdinalIgnoreCase));
+
                     if (property != null && property.CanWrite)
                     {
                         var sourceValue = property.GetValue(sourcePro);
-                        property.SetValue(destPro, sourceValue);
+
+                        // ❗ Không overwrite null
+                        if (sourceValue != null && !string.IsNullOrEmpty(sourceValue.ToString()))
+                        {
+                            property.SetValue(destPro, sourceValue);
+                        }
                     }
                 }
 
-                // Cập nhật thông tin Profile Destination (Trường thông tin mới + User/Date update)
+                // ===== 3. Business logic merge (CỘNG DỒN) =====
+                destPro.BonusPoints += sourcePro.BonusPoints;
+                destPro.TotalTurnover += sourcePro.TotalTurnover;
+                destPro.RoomNights += sourcePro.RoomNights;
+                destPro.BedNights += sourcePro.BedNights;
+
+                // ===== 4. Rebuild FullName nếu có merge Account =====
+                if (request.OverrideFields.Any(f => f.Equals("Account", StringComparison.OrdinalIgnoreCase)))
+                {
+                    destPro.FullAccount = $"{destPro.LastName} {destPro.MiddleName} {destPro.Firstname}".Trim();
+                }
+
+                // ===== 5. Update Profile =====
                 destPro.UserUpdateID = request.UserUpdateID;
-                destPro.UpdateDate = TextUtils.GetSystemDate();
-                ProfileBO.Instance.Update(destPro);
+                destPro.UpdateDate = trans.GetSystemDate();
 
-                // Cập nhật thống kê Return Guest & Stay No (Dựa trên Region 2 của Winform)
-                string stayCountSql = $@"SELECT COUNT(ID) FROM Reservation WITH (NOLOCK) 
-                                WHERE (ProfileIndividualID = {request.DestID} OR ProfileIndividualID = {request.SourceID}) 
-                                AND ReservationNo > 0 AND Status IN (1,2,6)";
-                int totalStays = TextUtils.ExecuteScalarInt(stayCountSql);
+                trans.Update(destPro);
 
-                // Cập nhật lại số lần quay lại vào bảng Profile
-                TextUtils.ExcuteSQL($@"UPDATE Profile SET ReturnGuest = {totalStays - 1}, 
-                             StayNo = {totalStays} WHERE ID = {request.DestID}");
-
-                // Cập nhật tất cả các bảng liên quan (Chuyển ID từ Source sang Dest)
-                // Cập nhật Reservation dựa trên loại Profile
-                // (Type 0: Individual, 1: Agent, 2: Company, 3: Source, 4:Group, 5:Contact)
+                // ===== 6. Update Reservation & related tables =====
                 string resvColumn = request.Type switch
                 {
                     0 => "ProfileIndividualID",
                     1 => "ProfileAgentID",
                     2 => "ProfileCompanyID",
                     3 => "ProfileSourceID",
-                    //4 => "ProfileGroupID",
-                    //5 => "ProfileContactID",
                     _ => "ProfileIndividualID"
                 };
 
-                // Danh sách các bảng cần update (Region 3 trong Winform)
-                string[] updateQueries = new string[] {
+                string[] queries =
+                {
                     $"UPDATE Reservation SET {resvColumn} = {request.DestID} WHERE {resvColumn} = {request.SourceID}",
                     $"UPDATE ARAccountReceivable SET ProfileID = {request.DestID} WHERE ProfileID = {request.SourceID}",
                     $"UPDATE BusinessBlock SET DestinationRoomInventoryID = {request.DestID} WHERE DestinationRoomInventoryID = {request.SourceID}",
@@ -2179,23 +2177,46 @@ namespace Profile.Controllers
                     $"UPDATE WakeUpCall SET ProfileGroupID = {request.DestID} WHERE ProfileGroupID = {request.SourceID}"
                 };
 
-                foreach (var sql in updateQueries)
+                foreach (var sql in queries)
                 {
-                    TextUtils.ExcuteSQL(sql);
+                    trans.ExcuteSQL(sql);
                 }
 
-                // Xóa Profile cũ và ghi Activity Log
-                ProfileBO.Instance.Delete(request.SourceID);
-                TextUtils.InsertActivityLog("Profile", request.DestID, "Merge", sourcePro.Account, destPro.Account, "Merge Profile via Web");
+                // ===== 7. Recalculate Stay =====
+                string staySql = $@"
+                SELECT COUNT(ID) 
+                FROM Reservation WITH (NOLOCK)
+                WHERE (ProfileIndividualID = {request.DestID} OR ProfileIndividualID = {request.SourceID})
+                AND ReservationNo > 0 AND Status IN (1,2,6)";
 
-                return Ok(new { success = true, message = "Merge profiles completed successfully." });
+                int totalStays = Convert.ToInt32(trans.Select(staySql).Rows[0][0]);
+
+                trans.ExcuteSQL($@"
+                UPDATE Profile 
+                SET ReturnGuest = {totalStays - 1}, StayNo = {totalStays}
+                WHERE ID = {request.DestID}");
+
+                // ===== 8. Delete source =====
+                trans.Delete("Profile", request.SourceID);
+
+                // ===== 9. Log =====
+                TextUtils.InsertActivityLog("Profile", request.DestID, "Merge",
+                    sourcePro.Account, destPro.Account, "Merge Profile via Web");
+
+                // ===== COMMIT =====
+                trans.CommitTransaction();
+                trans.CloseConnection();
+
+                return Ok(new { success = true });
             }
             catch (Exception ex)
             {
-                return Ok(new { success = false, message = "Error during merge: " + ex.Message });
+                trans.RollBack();
+                trans.CloseConnection();
+
+                return Ok(new { success = false, message = ex.Message });
             }
         }
-
         #endregion
     }
 }

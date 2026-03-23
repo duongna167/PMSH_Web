@@ -1,4 +1,4 @@
-﻿using BaseBusiness.BO;
+using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using Billing.Dto;
@@ -919,34 +919,32 @@ namespace Billing.Controllers
 
                 var res = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(model.ReservationID);
 
+                var existingFolios = FolioBO.Instance.FindByAttribute("ReservationID", model.ReservationID);
+                var usedFolioNos = existingFolios.Cast<FolioModel>().Select(x => x.FolioNo).ToList();
+
+                // Validate if user's requested window is already in use
+                if (usedFolioNos.Contains(model.FolioNo))
+                {
+                    return Json(new { code = 1, msg = $"Window {model.FolioNo} is already in use. Please select another window!" });
+                }
+
                 if (model.IsMasterFolio)
                 {
-                    if (res.ProfileCompanyId <= 0 && res.ProfileAgentId <= 0 && res.ProfileGroupId <= 0)
-                    {
-                        return Json(new { code = 1, msg = "This booking has no Company/Agent/Group. Cannot create Master Folio." });
-                    }
-
+                    // If UI lacks profile, mapping Company/Agent correctly
                     if (model.ProfileID <= 0 || model.ProfileID == res.ProfileIndividualId)
                     {
                         model.ProfileID = res.ProfileCompanyId > 0 ? res.ProfileCompanyId : (res.ProfileAgentId > 0 ? res.ProfileAgentId : res.ProfileGroupId);
-
                         DataTable dtProfile = TextUtils.Select($"SELECT Account FROM Profile WHERE ID = {model.ProfileID}");
-                        if (dtProfile.Rows.Count > 0)
-                        {
-                            model.AccountName = dtProfile.Rows[0]["Account"].ToString();
-                        }
+                        if (dtProfile.Rows.Count > 0) model.AccountName = dtProfile.Rows[0]["Account"].ToString();
                     }
                 }
-
-                var existing = FolioBO.GetFolioNoByReservationID(model.ReservationID, model.FolioNo);
-                if (existing.Count > 0) return Json(new { code = 1, msg = $"Window {model.FolioNo} is already in use." });
 
                 model.FolioDate = TextUtils.GetBusinessDate();
                 model.CreateDate = model.UpdateDate = DateTime.Now;
                 FolioBO.Instance.Insert(model);
 
                 pt.CommitTransaction();
-                return Json(new { code = 0, msg = "Folio created successfully", profileName = model.AccountName });
+                return Json(new { code = 0, msg = "Folio created successfully", folioNo = model.FolioNo, profileName = model.AccountName });
             }
             catch (Exception ex)
             {

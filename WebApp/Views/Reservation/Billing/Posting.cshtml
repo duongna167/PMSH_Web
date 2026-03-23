@@ -380,7 +380,6 @@
     }
 
     // --- API CALCULATIONS  ---
-
     // Nhập Net -> Ra Gross (amount++)
     function apiCalcPlusFromNet() {
         if (isReset) return;
@@ -444,7 +443,9 @@
         getActiveEl('.js-amount-gross').val(formatNumberWithComma(totalGross));
         getActiveEl('.js-amount-net').val(formatNumberWithComma(totalNet));
     }
-
+    
+    var isComposing = false;
+    
     // --- EVENTS ---
     $(document).ready(function() {
         $('#modalPosting').on('show.bs.modal', function () {
@@ -464,6 +465,24 @@
         });
 
         // --- SỰ KIỆN NHẬP LIỆU TIỀN TỆ TỨC THÌ ---
+
+        $(document).on('compositionstart', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function () {
+            isComposing = true;
+        });
+
+        $(document).on('compositionend', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function () {
+            isComposing = false;
+
+            // Sau khi gõ xong mới format
+            formatCurrencyLive(this);
+        });
+
+        $(document).on('input', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function () {
+            if (isComposing) return; // ❗ bỏ qua khi đang gõ Telex
+
+            formatCurrencyLive(this);
+        });
+
         //  Chặn ký tự lạ ngay khi nhấn phím (Chỉ cho phép số và một dấu trừ ở đầu)
         $(document).on('keypress', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function(e) {
             var charCode = (e.which) ? e.which : e.keyCode;
@@ -477,7 +496,7 @@
                 }
                 return;
             }
-
+                
             // Các phím không phải số (48-57)
             if (charCode < 48 || charCode > 57) {
                 e.preventDefault();
@@ -1433,7 +1452,7 @@
 
             let value = input.value;
             let isNegative = value.startsWith('-');
-            let cleanValue = value.replace(/\D/g, ""); // Chỉ lấy số
+            let cleanValue = value.replace(/[^\d]/g, "");
 
             if (cleanValue === "") {
                 input.value = isNegative ? "-" : "";

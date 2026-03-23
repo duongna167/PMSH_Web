@@ -2659,7 +2659,7 @@ namespace Reservation.Controllers
                 reservation.SpecialUpdateDate = DateTime.Now;
                 ReservationBO.Instance.Update(reservation);
 
-                // sinh folio cho khách chính
+                #region sinh folio cho main guest
                 if (reservation.MainGuest == true)
                 {
                     string checkSql = $"SELECT COUNT(*) FROM Folio WHERE ReservationID = {reservation.ID}";
@@ -2667,26 +2667,51 @@ namespace Reservation.Controllers
 
                     if (countFolio == 0)
                     {
-                        FolioModel newFolio = new FolioModel();
-                        newFolio.ReservationID = reservation.ID;
-                        newFolio.FolioDate = businessDate;
-                        newFolio.FolioNo = 1;
-                        newFolio.ProfileID = reservation.ProfileIndividualId;
-                        newFolio.AccountName = reservation.LastName + " " + reservation.FirstName;
-                        newFolio.ConfirmationNo = reservation.ConfirmationNo;
-                        newFolio.Status = false;
-                        newFolio.IsMasterFolio = false;
-                        newFolio.CreateDate = DateTime.Now;
-                        newFolio.UpdateDate = DateTime.Now;
-                        newFolio.UserInsertID = userID;
-                        newFolio.UserUpdateID = userID;
-                        newFolio.BalanceVND = 0;
-                        newFolio.BalanceUSD = 0;
+                        // --- TẠO GUEST FOLIO (Window 1) ---
+                        FolioModel guestFolio = new FolioModel
+                        {
+                            ReservationID = reservation.ID,
+                            FolioDate = businessDate,
+                            FolioNo = 1,
+                            ProfileID = reservation.ProfileIndividualId,
+                            AccountName = $"{reservation.LastName} {reservation.FirstName}",
+                            ConfirmationNo = reservation.ConfirmationNo,
+                            Status = false,
+                            IsMasterFolio = false,
+                            CreateDate = DateTime.Now,
+                            UpdateDate = DateTime.Now,
+                            UserInsertID = userID,
+                            UserUpdateID = userID
+                        };
+                        FolioBO.Instance.Insert(guestFolio);
 
-                        FolioBO.Instance.Insert(newFolio);
+                        if (reservation.ProfileCompanyId > 0 || reservation.ProfileAgentId > 0 || reservation.ProfileGroupId > 0)
+                        {
+                            int masterProfileID = reservation.ProfileCompanyId > 0 ? reservation.ProfileCompanyId : (reservation.ProfileAgentId > 0 ? reservation.ProfileAgentId : reservation.ProfileGroupId);
+                            string accName = "";
+                            DataTable dtAcc = TextUtils.Select($"SELECT Account FROM Profile WHERE ID = {masterProfileID}");
+                            if (dtAcc.Rows.Count > 0) accName = dtAcc.Rows[0]["Account"].ToString();
 
+                            FolioModel masterFolio = new FolioModel
+                            {
+                                ReservationID = reservation.ID,
+                                FolioDate = businessDate,
+                                FolioNo = -1,
+                                ProfileID = masterProfileID,
+                                AccountName = accName,
+                                ConfirmationNo = reservation.ConfirmationNo,
+                                Status = false,
+                                IsMasterFolio = true,
+                                CreateDate = DateTime.Now,
+                                UpdateDate = DateTime.Now,
+                                UserInsertID = userID,
+                                UserUpdateID = userID
+                            };
+                            FolioBO.Instance.Insert(masterFolio);
+                        }
                     }
                 }
+                #endregion
 
                 if (room != null)
                 {
