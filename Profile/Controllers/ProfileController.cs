@@ -2109,14 +2109,16 @@ namespace Profile.Controllers
                 if (request.SourceID == request.DestID)
                     return Ok(new { success = false, message = "Source and Destination must be different." });
 
-                // ===== 1. Load dữ liệu WITH LOCK =====
+                // =====  Load dữ liệu WITH LOCK =====
                 var sourcePro = (ProfileModel)trans.FindByPK("Profile", request.SourceID);
                 var destPro = (ProfileModel)trans.FindByPK("Profile", request.DestID);
 
                 if (sourcePro == null || destPro == null)
                     throw new Exception("Profile not found");
 
-                // ===== 2. Override field (SAFE) =====
+                ProfileModel oldDestPro = (ProfileModel)destPro.Clone();
+
+                // =====  Override field (SAFE) =====
                 foreach (var field in request.OverrideFields)
                 {
                     var property = typeof(ProfileModel)
@@ -2135,25 +2137,25 @@ namespace Profile.Controllers
                     }
                 }
 
-                // ===== 3. Business logic merge (CỘNG DỒN) =====
+                // =====  Business logic merge (CỘNG DỒN) =====
                 destPro.BonusPoints += sourcePro.BonusPoints;
                 destPro.TotalTurnover += sourcePro.TotalTurnover;
                 destPro.RoomNights += sourcePro.RoomNights;
                 destPro.BedNights += sourcePro.BedNights;
 
-                // ===== 4. Rebuild FullName nếu có merge Account =====
+                // ===== Rebuild FullName nếu có merge Account =====
                 if (request.OverrideFields.Any(f => f.Equals("Account", StringComparison.OrdinalIgnoreCase)))
                 {
                     destPro.FullAccount = $"{destPro.LastName} {destPro.MiddleName} {destPro.Firstname}".Trim();
                 }
 
-                // ===== 5. Update Profile =====
+                // =====  Update Profile =====
                 destPro.UserUpdateID = request.UserUpdateID;
                 destPro.UpdateDate = trans.GetSystemDate();
 
                 trans.Update(destPro);
 
-                // ===== 6. Update Reservation & related tables =====
+                // ===== Update Reservation & related tables =====
                 string resvColumn = request.Type switch
                 {
                     0 => "ProfileIndividualID",
@@ -2182,7 +2184,7 @@ namespace Profile.Controllers
                     trans.ExcuteSQL(sql);
                 }
 
-                // ===== 7. Recalculate Stay =====
+                // =====  Recalculate Stay =====
                 string staySql = $@"
                 SELECT COUNT(ID) 
                 FROM Reservation WITH (NOLOCK)
@@ -2196,12 +2198,34 @@ namespace Profile.Controllers
                 SET ReturnGuest = {totalStays - 1}, StayNo = {totalStays}
                 WHERE ID = {request.DestID}");
 
-                // ===== 8. Delete source =====
+                // =====  Delete source =====
                 trans.Delete("Profile", request.SourceID);
 
-                // ===== 9. Log =====
-                TextUtils.InsertActivityLog("Profile", request.DestID, "Merge",
-                    sourcePro.Account, destPro.Account, "Merge Profile via Web");
+                string getUserSql = $"SELECT LoginName FROM Users WITH (NOLOCK) WHERE ID = {request.UserUpdateID}";
+                DataTable dtUser = trans.Select(getUserSql);
+                string currentUserName = dtUser.Rows.Count > 0 ? dtUser.Rows[0]["LoginName"].ToString() : "Unknown";
+                // =====  Log =====
+                ActivityLogModel activityLog = new ActivityLogModel();
+                activityLog.TableName = "Profile";
+                activityLog.ObjectID = destPro.ID;
+                activityLog.UserID = request.UserUpdateID;
+                activityLog.UserName = currentUserName;
+                activityLog.ChangeDate = DateTime.Now;
+                activityLog.Change = "Merge";
+                activityLog.Description = $"Merged with Source Profile ID: {request.SourceID} ({sourcePro.Account})";
+
+                TextUtils.FillValues(activityLog, oldDestPro, destPro);
+
+                ActivityLogBO.Instance.Insert(activityLog);
+
+                // ===== Log profile bị xóa sau khi merge ====
+                ActivityLogModel sourceLog = new ActivityLogModel();
+                sourceLog.TableName = "Profile";
+                sourceLog.ObjectID = request.SourceID;
+                sourceLog.UserID = request.UserUpdateID;
+                sourceLog.Change = "DeleteByMerge";
+                sourceLog.Description = $"This profile was merged into Destination ID: {request.DestID} ({destPro.Account}) and deleted.";
+                ActivityLogBO.Instance.Insert(sourceLog);
 
                 // ===== COMMIT =====
                 trans.CommitTransaction();
