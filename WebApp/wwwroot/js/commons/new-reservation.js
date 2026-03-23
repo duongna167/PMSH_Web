@@ -13,7 +13,7 @@
         $('#btnClear').show();
 
         // ĐỌC DỮ LIỆU TỪ data-reservation của div
-    const modalBody = $('#newReservationModalBody');
+        const modalBody = $('#newReservationModalBody');
         let result = null;
 
         if (modalBody.length) {
@@ -48,5 +48,5 @@
         // await setTomSelect();
 
         // Các init chung khác...
-    }
+    },
 };

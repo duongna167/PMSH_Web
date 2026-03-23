@@ -1272,7 +1272,8 @@ namespace Reservation.Controllers
                     #endregion
 
                     #region update profile
-                    ProfileModel profile = (ProfileModel)ProfileBO.Instance.FindByPrimaryKey(int.Parse(Request.Form["profileIndividualID"].ToString()));
+                    int profileIndividualIDUpdate = int.Parse(Request.Form["profileIndividualID"].ToString());
+                    ProfileModel profile = (ProfileModel)ProfileBO.Instance.FindByPrimaryKey(profileIndividualIDUpdate);
                     if (profile == null || profile.ID == 0)
                     {
                         pt.RollBack();
@@ -1692,6 +1693,7 @@ namespace Reservation.Controllers
                     //string ContactPhone = Request.Form["ContactPhone"].ToString();
                     //string PrefRoom = Request.Form["PrefRoom"].ToString();
                     profile.TitleID = !string.IsNullOrEmpty(Request.Form["title"].ToString()) ? int.Parse(Request.Form["title"].ToString()) : 0;
+                    profile.RoomNights = int.Parse(Request.Form["roomNight"].ToString());
                     profile.HandPhone = !string.IsNullOrEmpty(Request.Form["phone"].ToString()) ? Request.Form["phone"].ToString() : "";
                     profile.Email = !string.IsNullOrEmpty(Request.Form["email"].ToString()) ? Request.Form["email"].ToString() : "";
                     profile.Address = !string.IsNullOrEmpty(Request.Form["address"].ToString()) ? Request.Form["address"].ToString() : "";
@@ -6562,7 +6564,15 @@ namespace Reservation.Controllers
         {
             try
             {
-                ReservationOptionsModel model = (ReservationOptionsModel)ReservationOptionsBO.Instance.FindByAttribute("ReservationID", id)[0];
+                var model = ReservationOptionsBO.Instance
+                    .FindByAttribute("ReservationID", id)?
+                    .Cast<object>()
+                    .FirstOrDefault() as ReservationOptionsModel;
+
+                if (model == null)
+                {
+                    return Json(null);
+                }
                 return Json(model);
             }
             catch (Exception ex)
