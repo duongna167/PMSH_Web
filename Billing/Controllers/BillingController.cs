@@ -1,4 +1,4 @@
-using BaseBusiness.BO;
+﻿using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using Billing.Dto;
@@ -2613,6 +2613,9 @@ namespace Billing.Controllers
                     item.RowState = isInvoicePosting ? 2 : 1; // Ẩn Sub-details (RowState = 2) nếu là Package
                     item.IsPostedAR = false; item.ARTransID = 0; item.IsTransfer = false;
 
+                    List<GenerateTransactionModel> generateTransactionCheck = PropertyUtils.ConvertToList<GenerateTransactionModel>(GenerateTransactionBO.Instance.FindByAttribute("TransactionCode", item.TransactionCode));
+                    item.IsSplit = generateTransactionCheck.Count > 0;
+
                     FolioDetailBO.Instance.Insert(item);
 
                     PostingHistoryModel postingHistory = new PostingHistoryModel
@@ -2632,6 +2635,185 @@ namespace Billing.Controllers
                         Property = "PMS"
                     };
                     PostingHistoryBO.Instance.Insert(postingHistory);
+
+                    #region lưu transaction từ generate transaction và folio detail
+                    List<GenerateTransactionModel> generateTransaction = PropertyUtils.ConvertToList<GenerateTransactionModel>(GenerateTransactionBO.Instance.FindByAttribute("TransactionCode", item.TransactionCode));
+                    if (generateTransaction.Count > 0)
+                    {
+                        bool isVat = false;
+                        bool isSvc = false;
+                        int indexVat = -1;
+                        int indexSvc = -1;
+                        for (int i = 0; i < generateTransaction.Count; i++)
+                        {
+                            if (generateTransaction[i].GroupCode == "Tax" && generateTransaction[i].SubgroupCode == "Tax")
+                            {
+                                isVat = true;
+                                indexVat = i;
+                            }
+                            else if (generateTransaction[i].GroupCode == "Tax" && generateTransaction[i].SubgroupCode == "SVC")
+                            {
+                                isSvc = true;
+                                indexSvc = i;
+                            }
+                        }
+
+                        decimal baseNet = item.AmountMasterBeforeTax;
+
+                        foreach (var genItem in generateTransaction)
+                        {
+                            if (genItem.GroupCode == "Tax" && genItem.SubgroupCode == "Tax")
+                            {
+                                decimal svcAmount = 0;
+                                if (isSvc)
+                                {
+                                    decimal svcPercent = generateTransaction[indexSvc].Percentage / 100m;
+                                    svcAmount = baseNet * svcPercent;
+                                }
+                                decimal taxPercent = genItem.Percentage / 100m;
+                                decimal taxAmount = (baseNet + svcAmount) * taxPercent;
+
+                                FolioDetailModel folioSub = new FolioDetailModel
+                                {
+                                    UserID = item.UserID,
+                                    UserName = item.UserName,
+                                    ShiftID = item.ShiftID,
+                                    CashierNo = item.CashierNo,
+                                    ReservationID = item.ReservationID,
+                                    OriginReservationID = item.OriginReservationID,
+                                    FolioID = item.FolioID,
+                                    OriginFolioID = item.OriginFolioID,
+                                    InvoiceNo = item.InvoiceNo,
+                                    TransactionNo = item.TransactionNo,
+                                    ReceiptNo = "",
+                                    TransactionDate = item.TransactionDate,
+                                    ProfitCenterID = 2,
+                                    ProfitCenterCode = "0",
+                                    TransactionGroupID = genItem.TransactionGroupID,
+                                    TransactionSubgroupID = genItem.TransactionSubGroupID,
+                                    GroupCode = genItem.GroupCode,
+                                    SubgroupCode = genItem.SubgroupCode,
+                                    GroupType = genItem.GroupType,
+                                    TransactionCode = genItem.TransactionCodeDetail,
+                                    ArticleCode = "",
+                                    Status = false,
+                                    RowState = isInvoicePosting ? 3 : 2,
+                                    PostType = 2,
+                                    IsSplit = false,
+                                    Quantity = 1,
+                                    Price = taxAmount,
+                                    Amount = taxAmount, AmountMaster = taxAmount,
+                                    AmountBeforeTax = taxAmount, AmountMasterBeforeTax = taxAmount,
+                                    AmountGross = taxAmount, AmountMasterGross = taxAmount,
+                                    CurrencyID = item.CurrencyID, CurrencyMaster = item.CurrencyMaster,
+                                    Description = genItem.Description,
+                                    Reference = "", Supplement = "",
+                                    RoomType = "", RoomTypeID = 0, RoomID = item.RoomID,
+                                    UserInsertID = item.UserID, UserUpdateID = item.UserID,
+                                    CreateDate = DateTime.Now, UpdateDate = DateTime.Now,
+                                    Property = "", CheckNo = "", OriginARNo = "",
+                                    IsPostedAR = false, ARTransID = 0, IsTransfer = false
+                                };
+                                FolioDetailBO.Instance.Insert(folioSub);
+                            }
+                            else if (genItem.GroupCode == "Tax" && genItem.SubgroupCode == "SVC")
+                            {
+                                decimal svcPercent = genItem.Percentage / 100m;
+                                decimal svcAmount = baseNet * svcPercent;
+                                
+                                FolioDetailModel folioSub = new FolioDetailModel
+                                {
+                                    UserID = item.UserID,
+                                    UserName = item.UserName,
+                                    ShiftID = item.ShiftID,
+                                    CashierNo = item.CashierNo,
+                                    ReservationID = item.ReservationID,
+                                    OriginReservationID = item.OriginReservationID,
+                                    FolioID = item.FolioID,
+                                    OriginFolioID = item.OriginFolioID,
+                                    InvoiceNo = item.InvoiceNo,
+                                    TransactionNo = item.TransactionNo,
+                                    ReceiptNo = "",
+                                    TransactionDate = item.TransactionDate,
+                                    ProfitCenterID = 2,
+                                    ProfitCenterCode = "0",
+                                    TransactionGroupID = genItem.TransactionGroupID,
+                                    TransactionSubgroupID = genItem.TransactionSubGroupID,
+                                    GroupCode = genItem.GroupCode,
+                                    SubgroupCode = genItem.SubgroupCode,
+                                    GroupType = genItem.GroupType,
+                                    TransactionCode = genItem.TransactionCodeDetail,
+                                    ArticleCode = "",
+                                    Status = false,
+                                    RowState = isInvoicePosting ? 3 : 2,
+                                    PostType = 2,
+                                    IsSplit = false,
+                                    Quantity = 1,
+                                    Price = svcAmount,
+                                    Amount = svcAmount, AmountMaster = svcAmount,
+                                    AmountBeforeTax = svcAmount, AmountMasterBeforeTax = svcAmount,
+                                    AmountGross = svcAmount, AmountMasterGross = svcAmount,
+                                    CurrencyID = item.CurrencyID, CurrencyMaster = item.CurrencyMaster,
+                                    Description = genItem.Description,
+                                    Reference = "", Supplement = "",
+                                    RoomType = "", RoomTypeID = 0, RoomID = item.RoomID,
+                                    UserInsertID = item.UserID, UserUpdateID = item.UserID,
+                                    CreateDate = DateTime.Now, UpdateDate = DateTime.Now,
+                                    Property = "", CheckNo = "", OriginARNo = "",
+                                    IsPostedAR = false, ARTransID = 0, IsTransfer = false
+                                };
+                                FolioDetailBO.Instance.Insert(folioSub);
+                            }
+                            else
+                            {
+                                decimal genPercent = genItem.Percentage / 100m;
+                                decimal allocAmount = baseNet * genPercent;
+                                FolioDetailModel folioSub = new FolioDetailModel
+                                {
+                                    UserID = item.UserID,
+                                    UserName = item.UserName,
+                                    ShiftID = item.ShiftID,
+                                    CashierNo = item.CashierNo,
+                                    ReservationID = item.ReservationID,
+                                    OriginReservationID = item.OriginReservationID,
+                                    FolioID = item.FolioID,
+                                    OriginFolioID = item.OriginFolioID,
+                                    InvoiceNo = item.InvoiceNo,
+                                    TransactionNo = item.TransactionNo,
+                                    ReceiptNo = "",
+                                    TransactionDate = item.TransactionDate,
+                                    ProfitCenterID = 2,
+                                    ProfitCenterCode = "0",
+                                    TransactionGroupID = genItem.TransactionGroupID,
+                                    TransactionSubgroupID = genItem.TransactionSubGroupID,
+                                    GroupCode = genItem.GroupCode,
+                                    SubgroupCode = genItem.SubgroupCode,
+                                    GroupType = genItem.GroupType,
+                                    TransactionCode = genItem.TransactionCodeDetail,
+                                    ArticleCode = "",
+                                    Status = false,
+                                    RowState = isInvoicePosting ? 3 : 2,
+                                    PostType = 2,
+                                    IsSplit = false,
+                                    Quantity = 1,
+                                    Price = allocAmount,
+                                    Amount = allocAmount, AmountMaster = allocAmount,
+                                    AmountBeforeTax = allocAmount, AmountMasterBeforeTax = allocAmount,
+                                    AmountGross = allocAmount, AmountMasterGross = allocAmount,
+                                    CurrencyID = item.CurrencyID, CurrencyMaster = item.CurrencyMaster,
+                                    Description = genItem.Description,
+                                    Reference = "", Supplement = "",
+                                    RoomType = "", RoomTypeID = 0, RoomID = item.RoomID,
+                                    UserInsertID = item.UserID, UserUpdateID = item.UserID,
+                                    CreateDate = DateTime.Now, UpdateDate = DateTime.Now,
+                                    Property = "", CheckNo = "", OriginARNo = "",
+                                    IsPostedAR = false, ARTransID = 0, IsTransfer = false
+                                };
+                                FolioDetailBO.Instance.Insert(folioSub);
+                            }
+                        }
+                    }
+                    #endregion
                 }
 
                 // CẬP NHẬT LẠI BALANCE

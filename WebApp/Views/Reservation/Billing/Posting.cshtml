@@ -645,29 +645,32 @@
             }
             updateReferenceText();
         });
-          
+
         function updateReferenceText() {
             var $activePane = $('.tab-pane.active');
             var $refInput = $activePane.find('.js-ref-main');
 
-            var $chkExpress = $activePane.find('.js-chk-express');
-            var pctExpress = $activePane.find('.js-input-express-pct').val();
+            var isExpress = $activePane.find('.js-chk-express').is(':checked');
+            var pctExpress = parseFloat($activePane.find('.js-input-express-pct').val());
 
-            var $chkDiscount = $activePane.find('.js-chk-discount');
-            var pctDiscount = $activePane.find('.js-input-discount-pct').val();
+            var isDiscount = $activePane.find('.js-chk-discount').is(':checked');
+            var pctDiscount = parseFloat($activePane.find('.js-input-discount-pct').val());
 
-            var currentRef = $refInput.val();
+            var currentRef = $refInput.val() || "";
 
-            var cleanRef = currentRef.replace(/ Express Service : \d+(\.\d+)?%$/g, '')
-                                     .replace(/ Discount Service : \d+(\.\d+)?%$/g, '');
+            // Xóa các đoạn text cũ để tránh bị lặp lại nhiều lần "Express Service..."
+            var cleanRef = currentRef.replace(/ Express Service : .*%/g, '')
+                                     .replace(/ Discount Service : .*%/g, '')
+                                     .trim();
 
-                if ($chkExpress.is(':checked') && pctExpress) {
-                    cleanRef = cleanRef + " Express Service : " + pctExpress + "%";
-                }
-                else if ($chkDiscount.is(':checked') && pctDiscount) {
-                    cleanRef = cleanRef + " Discount Service : " + pctDiscount + "%";
-                }
-                $refInput.val(cleanRef);
+            if (isExpress && !isNaN(pctExpress)) {
+                cleanRef = (cleanRef ? cleanRef + " " : "") + "Express Service : " + pctExpress.toFixed(2) + "%";
+            }
+            else if (isDiscount && !isNaN(pctDiscount)) {
+                cleanRef = (cleanRef ? cleanRef + " " : "") + "Discount Service : " + pctDiscount.toFixed(2) + "%";
+            }
+
+            $refInput.val(cleanRef);
         }
 
         function toggleInputs($container, isChecked) {
@@ -756,38 +759,37 @@
 
     function resetFormPosting() {
         let $pane = $('.tab-pane.active');
-        if ($pane.length === 0) return; // Bảo vệ nếu không tìm thấy tab active
+        if ($pane.length === 0) return;
 
         isReset = true;
         isSilentReset = true;
 
+        // 1. Reset các input text thông thường (trừ thông tin Invoice)
         $pane.find('input')
-            .not('.js-invoice-desc, .js-invoice-ref, .js-invoice-supp, .js-invoice-checkNo')
+            .not('.js-invoice-desc, .js-invoice-ref, .js-invoice-supp, .js-invoice-checkNo, .js-chk-express, .js-chk-discount')
             .val('');
 
+        // 2. Gán giá trị mặc định cho Quantity và các ô Price
         $pane.find('.js-input-qty').val('1');
         $pane.find('.js-input-price, .js-input-price-net').val('0,00');
         $pane.find('.js-amount-gross, .js-amount-net').val('0,00');
 
-        // $pane.find('.js-chk-express, .js-chk-discount').prop('checked', false);
-        // $pane.find('.express-box input').prop('disabled', true);
-        // Bỏ tích checkbox
+        // 3. RESET LOGIC EXPRESS & DISCOUNT (Theo yêu cầu của bạn)
+        // - Bỏ tích 2 checkbox chính
         $pane.find('.js-chk-express, .js-chk-discount').prop('checked', false);
 
-        // Chỉ disable các ô nhập liệu bên trong, NHƯNG phải giữ các checkbox được ENABLE
-        $pane.find('.express-box').each(function() {
-            // Disable text input và radio
-            $(this).find('input[type="text"], input[type="radio"]').prop('disabled', true);
-            // Đảm bảo checkbox luôn luôn được phép nhấn
-            $(this).find('.form-check-input').prop('disabled', false);
-        });
-        $pane.find('.js-input-price, .js-input-price-net')
-            .removeClass('active-user-input');
+        // - Disable toàn bộ ô nhập liệu và radio bên trong
+        $pane.find('.express-box input[type="text"], .express-box input[type="radio"]').prop('disabled', true);
 
-        // var grid = $("#gridInvoiceFooter").data("dxDataGrid");
-        // if (grid) { grid.option("dataSource", []); }
+        // - Ô text Percent về 10.00
+        $pane.find('.js-input-express-pct, .js-input-discount-pct').val('10.00');
 
-        // Trả lại trạng thái sau khi xử lý xong DOM
+        // - Radio Button về mốc 10%
+        $pane.find('input[type="radio"][value="10"]').prop('checked', true);
+
+        // 4. Xóa class focus màu mè
+        $pane.find('.js-input-price, .js-input-price-net').removeClass('active-user-input');
+
         setTimeout(() => {
             isReset = false;
             isSilentReset = false;
@@ -991,6 +993,10 @@
     function loadTransactions(subGroupId, element) {
         highlightItem(element, '#list-subgroup-container');
         let groupId = $('#view-group').data('selected-group-id');
+
+        let subGroupDesc = $(element).text().trim();
+        $('.js-invoice-desc').val(subGroupDesc);
+
         $('#list-transaction-container').html('<div class="p-2">Loading...</div>');
         $('#list-article-container').empty();
 
@@ -1097,22 +1103,27 @@
 
             var qty = parseFloat($activePane.find('.js-input-qty').val()) || 0;
             var price = parseNumberWithComma($activePane.find('.js-input-price-net').val());
+            var priceGross = parseNumberWithComma($activePane.find('.js-input-price').val());
 
             // Tính toán amount hiển thị
             var rawTotal = qty * price;
+            var rawTotalGross = qty * priceGross;
             var pctVal = 0;
             var serviceType = '';
             var finalTotal = rawTotal;
+            var finalTotalGross = rawTotalGross;
 
             if ($activePane.find('.js-chk-express').is(':checked')) {
                 pctVal = parseFloat($activePane.find('.js-input-express-pct').val()) || 0;
                 serviceType = 'EXP';
                 finalTotal += rawTotal * (pctVal / 100);
+                finalTotalGross += rawTotalGross * (pctVal / 100);
             } 
             else if ($activePane.find('.js-chk-discount').is(':checked')) {
                 pctVal = parseFloat($activePane.find('.js-input-discount-pct').val()) || 0;
                 serviceType = 'DIS';
                 finalTotal -= rawTotal * (pctVal / 100);
+                finalTotalGross -= rawTotalGross * (pctVal / 100);
             }
 
             var itemObj = {
@@ -1120,12 +1131,13 @@
                 code: transCode,
                 articleCode: $activePane.find('.js-art-code').val() || "",
                 description: $activePane.find('.js-art-desc').val() || $activePane.find('.js-trans-desc').val(),
-                amountBeforeTax: parseNumberWithComma($activePane.find('.js-amount-gross').val()),
+                amountBeforeTax: finalTotal,
                 quantity: qty,
                 price: price,
                 serviceType: serviceType,
                 servicePct: pctVal,
-                amount: finalTotal,
+                amount: finalTotalGross,
+                amountNet: finalTotal,
                 reference: $activePane.find('.js-ref-main').val(),
                 remark: $activePane.find('.js-invoice-desc').val(),
                 checkNo: $activePane.find('.js-invoice-checkNo').val()
@@ -1193,7 +1205,8 @@
 
             var qty = parseFloat($pane.find('.js-input-qty').val()) || 0;
             var price = parseNumberWithComma($pane.find('.js-input-price-net').val());
-            var amount = parseNumberWithComma($pane.find('.js-amount-net').val());
+            var amountNet = parseNumberWithComma($pane.find('.js-amount-net').val());
+            var amountGross = parseNumberWithComma($pane.find('.js-amount-gross').val());
 
             var reference = $pane.find('.js-ref-main').val();
             var supplement = $pane.find('.js-sup-folio').val() || "";
@@ -1211,15 +1224,15 @@
 
                 Quantity: qty, Price: price,
                 // Thêm các field Amount quan trọng bị thiếu ở JS cũ
-                Amount: amount, AmountMaster: amount,
-                AmountGross: amount, AmountMasterGross: amount,
-                AmountBeforeTax: parseNumberWithComma($pane.find('.js-amount-gross').val()),
-                AmountMasterBeforeTax: parseNumberWithComma($pane.find('.js-amount-gross').val()),
+                Amount: amountGross, AmountMaster: amountGross,
+                AmountGross: amountGross, AmountMasterGross: amountGross,
+                AmountBeforeTax: amountNet,
+                AmountMasterBeforeTax: amountNet,
 
                 CurrencyID: $pane.find('.currency-select').val(), CurrencyMaster: $pane.find('.currency-select').val(),
                 Reference: reference, Supplement: supplement,
 
-                PostType: 2, GroupType: 1,
+                PostType: 1, GroupType: 1,
 
                 UserInsertID: loginUser,
                 UserUpdateID: loginUser
@@ -1419,13 +1432,13 @@
             isReset = true;
             isSilentReset = true;
 
+            // Reset toàn bộ input trong modal
             $('#modalPosting').find('input').val('');
-            $('#modalPosting').find('.js-input-qty').val('1');
-            $('#modalPosting').find('.js-input-price, .js-input-price-net, .js-amount-gross, .js-amount-net').val('0,00');
 
-            $('.js-chk-express, .js-chk-discount').prop('checked', false);
-            $('.express-box input[type="text"], .express-box input[type="radio"]').prop('disabled', true);
+            // Gọi reset logic chung cho tab đang active (để đưa Percent về 10 và radio về 10)
+            resetFormPosting();
 
+            // Reset các danh sách bên trái
             $('#list-group-container').empty().html('<div class="p-2 text-muted">Loading...</div>');
             $('#list-subgroup-container').empty();
             $('#list-transaction-container').empty();
@@ -1433,11 +1446,12 @@
 
             $('.list-group-item').removeClass('active-item-custom');
 
+            // Clear danh sách Invoice tạm thời (F3)
             if (typeof invoiceList !== 'undefined') invoiceList = [];
-
             var gridFooter = $("#gridInvoiceFooter").data("dxDataGrid");
             if (gridFooter) gridFooter.option("dataSource", []);
 
+            // Quay về view Group (cho mobile)
             switchView('group');
 
             setTimeout(() => {
