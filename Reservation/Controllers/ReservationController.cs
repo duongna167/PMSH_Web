@@ -1173,7 +1173,8 @@ namespace Reservation.Controllers
                     reservationModel.Lunch = false;
                     reservationModel.FixedMeal = false;
                     reservationModel.VoucherId = "";
-                    long reservationID = ReservationBO.Instance.Insert(reservationModel);
+                    int reservationID = Convert.ToInt32(ReservationBO.Instance.Insert(reservationModel));
+                    reservationModel.ID = reservationID;
                     #endregion
 
 
@@ -1185,7 +1186,8 @@ namespace Reservation.Controllers
                     activityLog.UserName = Request.Form["userName"].ToString();
                     activityLog.ChangeDate = DateTime.Now;
                     activityLog.Change = "Insert";
-                    activityLog.OldValue = activityLog.NewValue = activityLog.Description = "";
+                    TextUtils.FillValues(activityLog, (ReservationModel)null, reservationModel);
+                    activityLog.Description = $"Create New Reservation: {reservationModel.ConfirmationNo}";
                     ActivityLogBO.Instance.Insert(activityLog);
                     #endregion
 
@@ -1358,7 +1360,7 @@ namespace Reservation.Controllers
                         return Json(new { code = 1, msg = "Could not fint reservation" });
 
                     }
-
+                    ReservationModel oldReservationData = (ReservationModel)reservationModel.Clone();
                     #region edit reservation
                     reservationModel.ProfileAgentId = string.IsNullOrEmpty(Request.Form["profileAgentID"].ToString()) ? 0 : int.Parse(Request.Form["profileAgentID"].ToString());
                     reservationModel.AgentName = Request.Form["agentName"].ToString();
@@ -1628,6 +1630,19 @@ namespace Reservation.Controllers
                     ReservationBO.Instance.Update(reservationModel);
                     #endregion
 
+                    #region lưu log activity update reservation
+                    ActivityLogModel activityLog = new ActivityLogModel();
+                    activityLog.TableName = "Reservation";
+                    activityLog.ObjectID = reservationModel.ID;
+                    activityLog.UserID = int.Parse(Request.Form["userID"].ToString());
+                    activityLog.UserName = Request.Form["userName"].ToString();
+                    activityLog.ChangeDate = DateTime.Now;
+                    activityLog.Change = "Update";
+                    TextUtils.FillValues(activityLog, oldReservationData, reservationModel);
+                    activityLog.Description = $"Update Reservation: {reservationModel.ConfirmationNo}";
+                    ActivityLogBO.Instance.Insert(activityLog);
+                    #endregion
+
                     #region edit reservation rate
                     ReservationRateModel reservationRate = PropertyUtils.ConvertToList<ReservationRateModel>(ReservationRateBO.Instance.FindByAttribute("ReservationID", reservationModel.ID)).FirstOrDefault();
                     if (reservationRate != null)
@@ -1659,20 +1674,10 @@ namespace Reservation.Controllers
                     }
                     #endregion
 
-                    #region lưu log activity insert reservation
-                    ActivityLogModel activityLog = new ActivityLogModel();
-                    activityLog.TableName = "Reservation";
-                    activityLog.ObjectID = reservationModel.ID;
-                    activityLog.UserID = int.Parse(Request.Form["userID"].ToString());
-                    activityLog.UserName = Request.Form["userName"].ToString();
-                    activityLog.ChangeDate = DateTime.Now;
-                    activityLog.Change = "Update";
-                    activityLog.OldValue = activityLog.NewValue = activityLog.Description = "";
-                    ActivityLogBO.Instance.Insert(activityLog);
-                    #endregion
-
                     #region update profile
                     ProfileModel profile = (ProfileModel)ProfileBO.Instance.FindByPrimaryKey(int.Parse(Request.Form["profileIndividualID"].ToString()));
+                    //data cũ để viết log 
+                    ProfileModel oldProfileData = (ProfileModel)profile.Clone();
                     if (profile == null || profile.ID == 0)
                     {
                         pt.RollBack();
@@ -1707,6 +1712,27 @@ namespace Reservation.Controllers
                     profile.CreditCard = !string.IsNullOrEmpty(Request.Form["memberNo"].ToString()) ? Request.Form["memberNo"].ToString() : "";
                     ProfileBO.Instance.Update(profile);
                     #endregion
+
+                    #region Viết log cho profile nếu update
+                    ActivityLogModel profileLog = new ActivityLogModel
+                    {
+                        TableName = "Profile",
+                        ObjectID = profile.ID,
+                        UserID = int.Parse(Request.Form["userID"].ToString()),
+                        UserName = Request.Form["userName"].ToString(),
+                        ChangeDate = DateTime.Now,
+                        Change = "Update",
+                        Description = $"Update Profile Info from Reservation: {reservationModel.ConfirmationNo}"
+                    };
+                    TextUtils.FillValues(profileLog, oldProfileData, profile);
+
+                    // Chỉ Insert Log nếu có thay đổi
+                    if (!string.IsNullOrEmpty(profileLog.NewValue))
+                    {
+                        ActivityLogBO.Instance.Insert(profileLog);
+                    }
+                    #endregion
+
                     pt.CommitTransaction();
                     return Json(new { code = 0, msg = $"Update reservation created successfully. ConfirmationNo : {reservationModel.ConfirmationNo}" });
                 }
