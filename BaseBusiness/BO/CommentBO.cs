@@ -32,6 +32,11 @@ namespace BaseBusiness.BO
                 $"AND CommentTypeID = 9 Order by Code";
             return instance.GetList<CommentModel>(query);
         }
+        public static List<CommentModel> GetReasonAdjustForReservation()
+        {
+            string query = $"Select * from Comment where Convert(nvarchar,CommentTypeID)=Convert(nvarchar,5) AND (Code like N'%' or Description like N'%')";
+            return instance.GetList<CommentModel>(query);
+        }
         public CommentModel GetById(int id, SqlConnection conn, SqlTransaction tx)
         {
             const string sql = "SELECT ID, Code, Name, Description, CreatedBy, CreatedDate,  UpdatedBy, UpdatedDate FROM Comment WHERE ID = @id";
