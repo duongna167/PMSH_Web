@@ -139,14 +139,8 @@ namespace NightAudit.Controllers
         {
             DateTime businessDate = TextUtils.GetBusinessDateTime();
             string businessDateSql = businessDate.ToString("yyyy-MM-dd");
-
-            dataNotCheckIn = TextUtils.Select(
-    "SELECT RoomNo, ReservationNo, LastName, FirstName, ArrivalDate, DepartureDate, [Address] " +
-    "FROM dbo.Reservation WITH(NOLOCK) " +
-    "WHERE  Status = 0 " +
-    "AND DATEDIFF(day, '" + businessDateSql + "', DepartureDate) = 0 " +
-    "AND ReservationNo > 0"
-);
+            string sql = $@" SELECT ConfirmationNo, RoomNo, ReservationNo, LastName, FirstName, ArrivalDate, DepartureDate, [Address] FROM dbo.Reservation WITH(NOLOCK) WHERE Status = 0 AND DATEDIFF(DAY, '{businessDateSql}', ArrivalDate) = 0 AND ReservationNo > 0 ";
+            dataNotCheckIn = TextUtils.Select(sql);
 
             // dataNotCheckIn = pt.getTable("spNightAuditNotCheckInSearch", new SqlParameter("@ArrivalDate", pt.GetBusinessDateTime()), "tblNotCheckIn");
             if (dataNotCheckIn.Rows.Count > 0)
@@ -173,7 +167,7 @@ namespace NightAudit.Controllers
             string businessDateSql = businessDate.ToString("yyyy-MM-dd");
 
             dataNotCheckIn = TextUtils.Select(
-    "SELECT RoomNo, ReservationNo, LastName, FirstName, ArrivalDate, DepartureDate, [Address] " +
+    "SELECT ConfirmationNo,RoomNo, ReservationNo, LastName, FirstName, ArrivalDate, DepartureDate, [Address] " +
     "FROM dbo.Reservation WITH(NOLOCK) " +
     "WHERE (Status = 1 Or Status = 6) " +
     "AND DATEDIFF(day, '" + businessDateSql + "', DepartureDate) = 0 " +
