@@ -11,7 +11,7 @@
                 <div class="search-filter">
                     <div>
                         <button class="mui-button mui-button-new" onclick="getDataPreference();">Search</button>
-
+                        <button type="button" id="btn-save-preference" class="mui-button mui-button-new">Save</button>
                         <button type="button" id="btn-clear-prefence" class="mui-button mui-button-new">Clear</button>
                         <button type="button" class="mui-button mui-button-new"
                             onclick="closeModalSearchPreference()">Close</button>
@@ -66,6 +66,16 @@
         resetPreferenceSearch();
     });
 
+    $(document).off("click", "#btn-save-preference").on("click", "#btn-save-preference", function () {
+        const grid = $("#gridContainerSearchPreference").dxDataGrid("instance");
+        const selectedRows = grid.getSelectedRowsData();
+        const selectedCodes = selectedRows.map(x => x.code);
+
+        $('#txtPreference').val(selectedCodes.join(','));
+        $('#clearSpecial').toggle(selectedCodes.length > 0);
+        $('#modalPreference').modal('hide');
+    });
+
     function resetPreferenceSearch() {
 
         // Clear Code input
@@ -110,14 +120,31 @@
 
         });
     }
+    
+    function bindSelectedPreferenceToGrid(grid) {
+        let value = $('#txtPreference').val() || '';
+
+        const selectedCodes = value
+            .split(',')
+            .map(x => x.trim())
+            .filter(x => x !== '');
+
+        grid.clearSelection();
+
+        if (selectedCodes.length > 0) {
+            grid.selectRows(selectedCodes, true);
+        }
+    }
+
     function initializeDataGridSearchPreference(data) {
         $("#gridContainerSearchPreference").dxDataGrid({
-
-            dataSource: data, allowColumnResizing: true,
+            dataSource: data,
+            keyExpr: "code",
+            allowColumnResizing: true,
             columns: [
                 { dataField: "ID", caption: "ID", visible: false },
-                { dataField: "code", caption: "Code", },
-                { dataField: "description", caption: "Description", },
+                { dataField: "code", caption: "Code" },
+                { dataField: "description", caption: "Description" },
             ],
             paging: { pageSize: 15 },
             scrolling: {
@@ -135,18 +162,30 @@
                 applyFilter: "auto"
             },
             selection: {
-                mode: "single" // Allows only one row to be selected at a time
+                mode: "multiple"
+            },
+                onContentReady: function (e) {
+                bindSelectedPreferenceToGrid(e.component);
+            },
+            onSelectionChanged: function (e) {
+                const selectedCodes = e.selectedRowsData.map(x => x.code);
+                $('#txtPreference').val(selectedCodes.join(','));
+                $('#clearSpecial').toggle(selectedCodes.length > 0);
             },
             onRowDblClick: function (e) {
-                $('#modalPreference').modal('hide');
-                $('#codePreferenceSearch').val(e.data.code);
-                $('#txtPreference').val(e.data.code);
-                $('#clearSpecial').show();
+                const grid = $("#gridContainerSearchPreference").dxDataGrid("instance");
+                const selectedRows = grid.getSelectedRowsData();
+                const selectedCodes = selectedRows.map(x => x.code);
 
+                $('#modalPreference').modal('hide');
+                $('#codePreferenceSearch').val(selectedCodes.join(','));
+                $('#txtPreference').val(selectedCodes.join(','));
+                $('#clearSpecial').show();
             }
         });
     }
-    function clearSpecial() {
+    
+   function clearSpecial() {
         $('#codePreferenceSearch').val('');
         $('#txtPreference').val('');
         $('#clearSpecial').hide();

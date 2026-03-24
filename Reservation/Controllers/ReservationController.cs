@@ -117,6 +117,9 @@ namespace Reservation.Controllers
             }
 
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
+
+            ViewBag.cboReasonRes = ListItemHelper.GetReasonAdjustForReservationProvider();
+            ViewBag.cboNationality = ListItemHelper.GetNationalityProvider();
             ViewBag.cboNationality = ListItemHelper.GetNationalityProvider();
             ViewBag.cboTitle = ListItemHelper.GetTitleProviderRSV();
             ViewBag.cboCity = ListItemHelper.GetCityProvider();
@@ -840,11 +843,9 @@ namespace Reservation.Controllers
 
                 ConfigSystemModel configSystems = PropertyUtils.ConvertToList<ConfigSystemModel>(ConfigSystemBO.Instance.FindByAttribute("KeyName", "RoomChargeVND")).FirstOrDefault();
 
-                int memberTypeID = 0; int roomTypeID = 0; int vipID = 0;
-                if (string.IsNullOrEmpty(Request.Form["memberType"].ToString()))
-                {
-                    memberTypeID = 0;
-                }
+                int roomTypeID = 0; int vipID = 0;
+                int.TryParse(Request.Form["memberType"].ToString(), out int memberTypeID);
+
                 if (string.IsNullOrEmpty(Request.Form["vipID"].ToString()))
                 {
                     vipID = 0;
@@ -1077,7 +1078,7 @@ namespace Reservation.Controllers
                     reservationModel.CRSNo = "";
                     reservationModel.DiscountAmount = decimal.Parse(Request.Form["discountAmount"].ToString());
                     reservationModel.DiscountRate = decimal.Parse(Request.Form["discountRate"].ToString());
-                    reservationModel.DiscountReason = "";
+                    reservationModel.DiscountReason = Request.Form["discountReason"].ToString();
                     reservationModel.Comment = Request.Form["comment"].ToString();
                     reservationModel.BalanceUSD = 0;
                     reservationModel.BalanceVND = decimal.Parse(Request.Form["rateAfter"].ToString());
@@ -1525,7 +1526,7 @@ namespace Reservation.Controllers
                     reservationModel.CRSNo = "";
                     reservationModel.DiscountAmount = decimal.Parse(Request.Form["discountAmount"].ToString());
                     reservationModel.DiscountRate = decimal.Parse(Request.Form["discountRate"].ToString());
-                    reservationModel.DiscountReason = "";
+                    reservationModel.DiscountReason =  Request.Form["discountReason"].ToString();
                     reservationModel.Comment = Request.Form["comment"].ToString();
                     reservationModel.BalanceUSD = 0;
                     reservationModel.BalanceVND = decimal.Parse(Request.Form["rateAfter"].ToString());

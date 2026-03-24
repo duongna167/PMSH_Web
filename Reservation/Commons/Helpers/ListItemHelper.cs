@@ -1006,5 +1006,44 @@ namespace Reservation.Commons.Helpers
                 return new List<SelectListItem>();
             }
         }
+
+        public static List<SelectListItem> GetReasonAdjustForReservationProvider(bool defaultValue = false, string textDefault = "")
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(textDefault))
+                    textDefault = _textDefault; // nếu class bạn đã có biến này
+
+                var items = new List<SelectListItem>();
+                List<CommentModel> list = CommentBO.GetReasonAdjustForReservation();
+
+                if (list.Count > 0)
+                {
+                    items = list.Select(p => new SelectListItem
+                    {
+                        Value = p.Description,
+                        Text = p.Code + " - " + p.Description,
+                        Selected = false
+                    }).ToList();
+                }
+
+                if (defaultValue)
+                {
+                    items.Insert(0, new SelectListItem
+                    {
+                        Text = textDefault,
+                        Value = "0",
+                        Selected = true
+                    });
+                }
+
+                return items;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                return [];
+            }
+        }
     }
 }
