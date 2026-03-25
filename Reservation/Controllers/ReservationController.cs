@@ -4868,9 +4868,19 @@ namespace Reservation.Controllers
                               select d.Table.Columns.Cast<DataColumn>()
                                   //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
                                   .ToDictionary(
-                                      col => col.ColumnName,
-                                      col => d[col.ColumnName]?.ToString()
-                                  )).ToList();
+                                    col => col.ColumnName,
+                                    col =>
+                                      {
+                                          var value = d[col.ColumnName];
+                                          if (value == DBNull.Value) return null;
+
+                                          // CreatedDate: KHÔNG ToString
+                                          if (col.ColumnName == "Departure" || col.ColumnName == "Arrival")
+                                              return value;
+
+                                          // Các field khác: ToString
+                                          return value.ToString();
+                                      })).ToList();
                 return Json(result);
             }
             catch (Exception ex)
