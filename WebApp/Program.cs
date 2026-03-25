@@ -208,9 +208,11 @@ builder.Services.AddSingleton<IPackageService, PackageService>();
 builder.Services.AddSingleton<ITransactionArticleLinkService, TransactionArticleLinkService>();
 builder.Services.AddSingleton<INewProfileService, NewProfileService>();
 builder.Services.AddSingleton<IExtendProfileService, ExtendProfileService>();
-builder.Services.AddSingleton<ISecurityService,SecurityService>();
+builder.Services.AddSingleton<ISecurityService, SecurityService>();
 
 builder.Services.AddSingleton<IAllotmentService, AllotmentService>();
+
+builder.Services.AddSingleton<ICancelReservationService, CancelReservationService>();
 
 
 builder.Services.AddAuthentication(options =>
@@ -272,7 +274,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapHub<TagScanHub>("/tagScanHub");
 app.UseHttpsRedirection();
-app.UseResponseCompression(); // ??t sau UseStaticFiles và tr??c UseRouting
+app.UseResponseCompression(); // ??t sau UseStaticFiles vï¿½ tr??c UseRouting
 app.UseRouting();
 app.UseSession();
 app.UseAuthentication();
