@@ -1270,9 +1270,17 @@
         });
     }
 
+    var fullTransactionData = [];
+
     function renderDetailGrid(data) {
+        fullTransactionData = data;
+
+        //các dòng có IsSplit = 1
+        //mặc định hiển thị (Dòng cha - PostType = 3 và IsVisible = 1)
+        let displayData = data.filter(item => item.isVisible == 1);
+
         $("#gridTransactionDetail").dxDataGrid({
-            dataSource: data,
+            dataSource: displayData,
             keyExpr: "id",
             showBorders: true,
             showRowLines: true,
@@ -1282,7 +1290,28 @@
             paging: { enabled: false },
             columns: [
                 { dataField: "date", caption: "Date", width: 90, dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "code", caption: "Code", width: 60, alignment: "center" },
+                { dataField: "code", caption: "Code", width: 60, alignment: "center",
+                    cellTemplate: function(container, options) {
+                        let item = options.data;
+                        let isExpanded = item._isExpanded || false;
+                        let displayCode = item.code;
+
+                        // Nếu dòng này có thể mở 
+                        if (item.isSplit == true || item.isSplit == 1) {
+                            displayCode = isExpanded ? item.code.replace('+', '-') : item.code;
+
+                            $("<a>")
+                                .text(displayCode)
+                                .css({ "cursor": "pointer", "font-weight": "bold", "color": "blue" })
+                                .on("click", function() {
+                                    toggleExpandRow(item);
+                                })
+                                .appendTo(container);
+                        } else {
+                            $("<span>").text(displayCode).appendTo(container);
+                        }
+                    }
+                },
                 { dataField: "description", caption: "Description", minWidth: 150 },
                 {
                     dataField: "amount",
@@ -1317,5 +1346,30 @@
         });
     }
 
+    function toggleExpandRow(clickedItem) {
+        let grid = $("#gridTransactionDetail").dxDataGrid("instance");
+        let currentData = grid.option("dataSource");
+
+        clickedItem._isExpanded = !clickedItem._isExpanded;
+
+        if (clickedItem._isExpanded) {
+            let children = fullTransactionData.filter(d =>
+                d.transactionNo === clickedItem.transactionNo && d.isVisible == 0
+            );
+
+            let index = currentData.findIndex(d => d.id === clickedItem.id);
+            if (index !== -1) {
+                currentData.splice(index + 1, 0, ...children);
+            }
+        } else {
+            currentData = currentData.filter(d =>
+                !(d.transactionNo === clickedItem.transactionNo && d.isVisible == 0)
+            );
+        }
+
+        grid.option("dataSource", currentData);
+    }
+
+    //end view transaction detail
 
 </script>
