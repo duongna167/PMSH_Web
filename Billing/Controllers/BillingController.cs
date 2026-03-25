@@ -2488,8 +2488,7 @@ namespace Billing.Controllers
                     decimal totalAmountBeforeTax = models.Sum(m => m.AmountBeforeTax);
                     var firstItem = models.First();
 
-                    // LẤY TÊN INVOICE TỪ TRƯỜNG "Property" 
-                    string invoiceName = !string.IsNullOrEmpty(firstItem.Property) ? firstItem.Property : "Invoicing Package";
+                    string invoiceName = !string.IsNullOrEmpty(firstItem.Description) ? firstItem.Description : "Invoicing Package";
 
                     string masterTransCode = "8449";
                     int mGroupId = 0, mSubgroupId = 0;
@@ -2533,8 +2532,17 @@ namespace Billing.Controllers
                         TransactionSubgroupID = mSubgroupId,
                         SubgroupCode = mSubgroupCode,
 
-                        Reference = firstItem.Reference,
-                        Supplement = firstItem.Supplement,
+                        Reference = string.Join(" | ", models
+                        .SelectMany(m => (m.Reference ?? "").Split('|'))
+                        .Select(x => x.Trim())
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .Distinct()),
+
+                        Supplement = string.Join(" | ", models
+                        .SelectMany(m => (m.Supplement ?? "").Split('|'))
+                        .Select(x => x.Trim())
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .Distinct()),
                         CheckNo = firstItem.CheckNo,
 
                         Quantity = 1,
@@ -2606,18 +2614,28 @@ namespace Billing.Controllers
                     item.InvoiceNo = batchInvoiceNo; item.TransactionNo = (nextTransNo + count).ToString();
                     count++;
 
-                    // TRẢ LẠI PROPERTY RỖNG (XÓA DỮ LIỆU ĐÃ MƯỢN) TRƯỚC KHI INSERT VÀO DB
-                    item.Property = "";
-
                     item.Status = false; item.ProfitCenterID = 2; item.ProfitCenterCode = "0"; item.OriginARNo = "";
                     item.RowState = isInvoicePosting ? 2 : 1; // Ẩn Sub-details (RowState = 2) nếu là Package
                     item.IsPostedAR = false; item.ARTransID = 0; item.IsTransfer = false;
 
+
                     List<GenerateTransactionModel> generateTransactionCheck = PropertyUtils.ConvertToList<GenerateTransactionModel>(GenerateTransactionBO.Instance.FindByAttribute("TransactionCode", item.TransactionCode));
                     item.IsSplit = generateTransactionCheck.Count > 0;
 
+                    item.Reference = (item.Reference ?? "")
+                                        .Replace("-DIS(", "DIS-")
+                                        .Replace("+EX(", "EX-")
+                                        .Replace(")", "")
+                                        .Trim();
+
+                    item.Supplement = (item.Supplement ?? "")
+                                        .Replace("-DIS(", "DIS-")
+                                        .Replace("+EX(", "EX-")
+                                        .Replace(")", "")
+                                        .Trim();
                     FolioDetailBO.Instance.Insert(item);
 
+                    // Lưu Posting history
                     PostingHistoryModel postingHistory = new PostingHistoryModel
                     {
                         ActionType = 0,
