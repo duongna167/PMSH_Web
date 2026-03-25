@@ -1,4 +1,4 @@
-﻿<!-- Modal search profile-->
+<!-- Modal search profile-->
 <div class="modal fade modal-xl" id="modalProfile" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
      aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -147,6 +147,7 @@
      *  MODAL
      * ========================= */
     function openModalSearchProfile(type) {
+        clearSearch();
         openProfileModal('normal', type);
     }
 
@@ -204,20 +205,23 @@
         var d = $.Deferred();
 
         $.ajax({
-            url: '/Profile/GetAllProfiles2',
+            url: '/Profile/GetAllProfileTest',
             type: 'GET',
+            loadingGrid: '#gridContainerSearchProfile',
             dataType: 'json',
+            cache: false,
             data: buildSearchParams(loadOptions),
             headers: {
                 "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
             },
-            success: function (res) {
-                d.resolve(res.data, { totalCount: res.totalCount });
+            success: function (result) {
+                d.resolve({
+                    data: result.data,
+                    totalCount: result.totalCount
+                });
             },
             error: function (xhr) {
-                xhr.status === 401 ? sessionTimeout() :
-                    informBox(TOAST_STATUS.DANGER, "Lỗi tải danh sách Profile");
-                d.reject();
+                d.reject("Error loading data from the server.");
             }
         });
 
@@ -233,8 +237,8 @@
             city: $('#cityProfileSearch').val(),
             type: $('#viewByProfileSearch').val(),
             showSaleInCharge: $('#sale').is(':checked'),
-            page: loadOptions.skip / loadOptions.take + 1,
-            pageSize: loadOptions.take
+            skip: loadOptions.skip || 0,
+            take: loadOptions.take || 20,
         };
     }
 

@@ -1,44 +1,63 @@
-﻿<div class="modal fade modal" id="modalSplitTransaction" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
+<div class="modal fade" id="modalSplitTransaction" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-sm">
 
-            <div class="modal-header">
-                <h5 class="modal-title" id="staticBackdropLabel">Split Transaction</h5>
-                <button type="button" class="btn-close" onclick="closeModalSplitTransaction()"></button>
+            <!-- HEADER -->
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-semibold">Split Transaction</h5>
             </div>
+
+            <!-- BODY -->
             <div class="modal-body">
-                <div>
-                    <button class="mui-button mui-button-search" onclick="SplitTransaction();"> Split</button>
-                    <button class="mui-button mui-button-clear" onclick="closeModalSplitTransaction();">Close</button>
+
+                <!-- ACTION -->
+                <div class="d-flex gap-2 py-2">
+                    <button class="mui-button mui-button-search" onclick="SplitTransaction();">
+                        Split
+                    </button>
+                    <button class="mui-button mui-button-clear" onclick="closeModalSplitTransaction();">
+                        Close
+                    </button>
                 </div>
-                <div class=" row mt-2">
-                    <label class="col-md-3" >Transaction.Infor:</label>
 
-                    <span class="col-md-9" id="transactionInfoSplit" ></span>
+                <!-- INFO CARD -->
+                <div class="p-3 border rounded bg-light mb-3">
+
+                    <div class="row mb-2">
+                        <label class="col-4 text-muted">Transaction Info</label>
+                        <div class="col-8 fw-semibold text-dark" id="transactionInfoSplit"></div>
+                    </div>
+
+                    <div class="row">
+                        <label class="col-4 text-muted">Amount</label>
+                        <div class="col-8 fw-semibold text-dark" id="amountTtoalSplit"></div>
+                    </div>
 
                 </div>
-                <div class=" row mt-2">
-                    <label class="col-md-3" style="width:auto">Amount:</label>
 
-                    <span class="col-md-9" id="amountTtoalSplit"></span>
+                <!-- TYPE -->
+                <div class="mb-3">
+                    <label class="form-label text-muted">Split Type</label>
 
+                    <div class="d-flex gap-4 mt-1">
+                        <div class="form-check">
+                            
+                            <label class="form-check-label"><input class="me-1" type="radio" name="typeDiscountSplit" value="0" checked>Amount</label>
+                        </div>
+
+                        <div class="form-check">
+                            <label class="form-check-label"><input class="me-1" type="radio" name="typeDiscountSplit" value="1">Percentage</label>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="typeDiscountSplit"  value="0" checked>
-                    <label class="form-check-label" >
-                        Amount
+
+                <div class="d-flex align-items-center gap-2">
+                    <label class="form-label text-muted mb-0" style="min-width: 80px;">
+                        Value
                     </label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="typeDiscountSplit" value="1">
-                    <label class="form-check-label" >
-                        Percentage
-                    </label>
-                </div>
-
-                <div class="row mt-2">
-                    <label class="col-md-2">Value</label>
-                    <input id="valueSplitTransaction" class="col-md-10" style="text-align:right"/>
+                    <input id="valueSplitTransaction"
+                           class="form-control text-end"
+                           placeholder="Enter value" />
                 </div>
             </div>
         </div>
@@ -46,82 +65,99 @@
 </div>
 
 <script>
+
+    /* =========================
+     * OPEN MODAL
+     * ========================= */
     function openModalSplitTransaction(){
+
+        // reset radio
         $('input[name="typeDiscountSplit"][value="0"]').prop('checked', true);
 
-        // Alternatively, if selecting by order:
-        const $radios = $('input[name="typeDiscountSplit"]');
-        if ($radios.length > 0) {
-            $radios.eq(0).prop('checked', true);
-        }
         var grid = $("#gridContainerBilling").dxDataGrid("instance");
-
         var selectedRows = grid.getSelectedRowsData();
+
+        if (!selectedRows || selectedRows.length === 0) return;
 
         const amount = parseFloat(selectedRows[0].amount) || 0;
 
+        // hiển thị amount (format chuẩn)
+        $("#amountTtoalSplit").text(formatNumberWithComma(amount));
 
-        const integerAmount = Math.floor(amount);
-        // Hiển thị có định dạng (giữ phần thập phân)
-        $("#amountTtoalSplit").text(integerAmount);
-
-
-        $("#valueSplitTransaction").val(integerAmount);
-
-        if (amount === 0) {
-            $("#amountTtoalSplit").text('0,00');
-            $("#valueSplitTransaction").val('0');
-        }
-
+        // set value input
+        $("#valueSplitTransaction").val(formatNumberWithComma(amount));
 
         folioDetailID = selectedRows[0].id;
-        $("#transactionInfoSplit").text(selectedRows[0].code + ' - ' + selectedRows[0].description);
+
+        $("#transactionInfoSplit").text(
+            selectedRows[0].code + ' - ' + selectedRows[0].description
+        );
+
         $('#modalSplitTransaction').modal('show');
     }
+
     function closeModalSplitTransaction(){
         $('#modalSplitTransaction').modal('hide');
     }
 
-        // Validate input: chỉ cho phép số, và theo điều kiện type
-    $('#valueSplitTransaction').on('input', function() {
+    /* =========================
+     * INPUT FORMAT REALTIME
+     * ========================= */
+    $('#valueSplitTransaction').on('input', function () {
+        formatCurrencyLive(this);
 
+        const selectedType = $('input[name="typeDiscountSplit"]:checked').val();
+        const value = $(this).val();
+        const numValue = parseNumberWithComma(value);
+        const amountTotal = parseNumberWithComma($('#amountTtoalSplit').text());
 
-        const numValue = parseFloat(value);
-
-        if (selectedType == 1) { // Percentage
+        if (selectedType == 1) { // %
             if (numValue > 100) {
-                $(this).val(100);
+                $(this).val('100');
             } else if (numValue < 0) {
-                $(this).val(0);
+                $(this).val('0');
             }
         } else { // Amount
             if (numValue > amountTotal) {
-                $(this).val(amountTotal.toFixed(2));
+                $(this).val(formatNumberWithComma(amountTotal));
             } else if (numValue < 0) {
-                $(this).val(0);
+                $(this).val('0');
             }
         }
     });
 
-    // Khi thay đổi type, reset giá trị phù hợp
-    $('input[name="typeDiscountSplit"]').on('change', function() {
+    /* =========================
+     * CHANGE TYPE
+     * ========================= */
+    $('input[name="typeDiscountSplit"]').on('change', function () {
+
         const selectedValue = $(this).val();
-        const amountTotal = $('#amountTtoalSplit').text().replace(/,/g, '');
+        const amountTotal = parseNumberWithComma($('#amountTtoalSplit').text());
+
         if (selectedValue == 1) {
-            $('#valueSplitTransaction').val(''); // Reset khi chọn %
+            $('#valueSplitTransaction').val('');
         } else {
-            $('#valueSplitTransaction').val(amountTotal);
+            $('#valueSplitTransaction').val(formatNumberWithComma(amountTotal));
+        }
+
+        // đổi đơn vị hiển thị nếu có
+        if ($("#unitSplit").length) {
+            $('#unitSplit').text(selectedValue == 1 ? '%' : 'VND');
         }
     });
 
-    // Cập nhật hàm SplitTransaction để kiểm tra kỹ hơn
+    /* =========================
+     * MAIN ACTION
+     * ========================= */
     function SplitTransaction(){
-        const selectedValue = $('input[name="typeDiscountSplit"]:checked').val();
-        let inputVal = $('#valueSplitTransaction').val();
-        const amountTotal = parseFloat($('#amountTtoalSplit').text()) || 0;
 
-        // Kiểm tra rỗng
-        if (!inputVal || parseFloat(inputVal) <= 0) {
+        const selectedValue = $('input[name="typeDiscountSplit"]:checked').val();
+        const inputVal = $('#valueSplitTransaction').val();
+
+        const amountTotal = parseNumberWithComma($('#amountTtoalSplit').text());
+        const inputNumber = parseNumberWithComma(inputVal);
+
+        if (!inputVal || inputNumber <= 0) {
             showToast('Error', 'Please enter a value greater than zero', false);
             return;
         }
@@ -130,13 +166,15 @@
         let discountPercent = 0;
 
         if (selectedValue == 0) { // Amount
-            discountAmount = parseFloat(inputVal);
+            discountAmount = inputNumber;
+
             if (discountAmount >= amountTotal) {
                 showToast('Error', 'Split amount must be less than transaction amount', false);
                 return;
             }
-        } else { // Percentage
-            discountPercent = parseFloat(inputVal);
+        } else { // %
+            discountPercent = inputNumber;
+
             if (discountPercent > 100 || discountPercent <= 0) {
                 showToast('Error', 'Percentage must be between 1 and 100', false);
                 return;
@@ -147,6 +185,7 @@
         const userID = JSON.parse(localStorage.getItem("userID"));
         const shiftID = localStorage.getItem("shiftID");
         const shiftName = localStorage.getItem("shiftName");
+
         $.ajax({
             url: '/Billing/SplitTransaction',
             type: 'post',
@@ -161,18 +200,73 @@
                 shiftID: shiftID,
                 shiftName: shiftName
             },
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            headers: {
+                "X-CSRF-TOKEN-HEADERNAME":
+                jQuery("input[name='__RequestVerificationToken']").val()
+            },
             success: function (result) {
                 closeModalSplitTransaction();
                 clearSelectedRowsBilling();
                 getFolioNo();
                 showToast('Success', result.msg, true);
             },
-            error: function (xhr, statusText, err) {
+            error: function (xhr) {
                 if (xhr.status == 401) {
                     sessionTimeout();
                 }
             }
         });
+    }
+
+    /* =========================
+     * UTILS
+     * ========================= */
+
+    function formatNumberWithComma(num) {
+        if (num === null || num === undefined || isNaN(num) || num === '') return '0,00';
+        return parseFloat(num).toLocaleString('vi-VN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function parseNumberWithComma(str) {
+        if (!str) return 0;
+        if (typeof str === 'number') return str;
+
+        let cleanStr = str.toString()
+            .replace(/\./g, '')   // bỏ dấu . (ngăn cách nghìn)
+            .replace(/,/g, '.');  // đổi , thành .
+
+        let result = parseFloat(cleanStr);
+        return isNaN(result) ? 0 : result;
+    }
+
+    function formatCurrencyLive(input) {
+        let selectionStart = input.selectionStart;
+        let originalLength = input.value.length;
+
+        let value = input.value;
+        let isNegative = value.startsWith('-');
+
+        let cleanValue = value.replace(/[^\d]/g, "");
+
+        if (cleanValue === "") {
+            input.value = isNegative ? "-" : "";
+            return;
+        }
+
+        let formattedValue = new Intl.NumberFormat('vi-VN')
+            .format(parseInt(cleanValue, 10));
+
+        if (isNegative) formattedValue = "-" + formattedValue;
+
+        if (input.value !== formattedValue) {
+            input.value = formattedValue;
+
+            let newLength = input.value.length;
+            selectionStart = selectionStart + (newLength - originalLength);
+            input.setSelectionRange(selectionStart, selectionStart);
+        }
     }
 </script>

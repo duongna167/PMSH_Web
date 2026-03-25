@@ -1105,6 +1105,36 @@ namespace BaseBusiness.util
             }
         }
 
+        /// <summary>
+        /// false: Not cancel
+        /// true: cancel
+        /// </summary>
+        /// <param name="ResvID"></param>
+        /// <returns></returns>
+        public static bool CheckReinstateCI(int ResvID)
+        {
+            string _deposit = _GetDepositCode();
+            DataTable dt = TextUtils.Select("SELECT COUNT(ID) FROM dbo.FolioDetail WITH (NOLOCK) WHERE [Status] = 0 AND ReservationID = " + ResvID + " AND TransactionCode <>  '" + _deposit + "' ");
+            int count = TextUtils.ToInt(dt.Rows[0][0]?.ToString() ?? "0");
+            return count <= 0;
+        }
+
+        /// <summary>
+        /// true: OK
+        /// false: not ok
+        /// </summary>
+        /// <returns></returns>
+
+        public static string _GetDepositCode()
+        {
+            string _str = "";
+            DataTable dt = TextUtils.Select("SELECT dbo.fnGetConfigsystem('DEPOSIT')");
+            if (dt != null)
+                if (dt.Rows.Count > 0)
+                    _str = dt.Rows[0][0].ToString() ?? "";
+
+            return _str;
+        }
 
         /// <summary>
         /// Xử lý bữa ăn của khách 
@@ -1742,6 +1772,79 @@ namespace BaseBusiness.util
                 }
             }
         }
+
+        public static bool HasOtherCheckedInRoomSharer(ReservationModel rsv)
+        {
+            // TODO:
+            // map sang query kiểu:
+            // ShareRoom = current.ShareRoom
+            // AND Status = CheckedIn
+            // AND ID <> current.ID
+            Expression expC = new Expression("ShareRoom", rsv.ShareRoom, "=");
+            expC = expC.And(new Expression("Status", 1, "="));
+            expC = expC.And(new Expression("ID", rsv.ID, "<>"));
+            ArrayList arrc = ReservationBO.Instance.FindByExpression(expC);
+            if (arrc.Count > 0)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public static bool CheckTransactionByMaster(string _conf, ProcessTransactions? pt)
+        {
+            string _deposit = _GetDepositCode();
+            DataTable _dt = TextUtils.Select("SELECT COUNT(a.ID) FROM dbo.FolioDetail a WITH (NOLOCK), dbo.Reservation b with (nolock) " +
+                                "WHERE a.ReservationID = b.ID and  a.[Status] = 0 and b.ConfirmationNo = '" + _conf + "' and b.ReservationNo = '0' " +
+                                "AND a.TransactionCode <> '" + _deposit + "'");
+            //return
+            int count = TextUtils.ToInt(_dt.Rows[0][0]?.ToString() ?? "0");
+            if (count > 0)
+                return true;
+            else
+                return false;
+        }
+
+
+        /// <summary>
+        /// _type =1: Cancel CI
+        /// _type =0: Cancel Rsv
+        /// </summary>
+        /// <param name="_conf"></param>
+        /// <param name="_type"></param>
+        /// <param name="pt"></param>
+        /// <returns></returns>
+        public static bool LastGuestReinstateCI(string _conf, int _type, ProcessTransactions? pt)
+        {
+            bool _para = false;
+            // Hủy CI
+            if (_type == 1)
+            {
+                DataTable _dt;
+
+                if (pt != null)
+                    _dt = pt.Select("SELECT count(ID) FROM Reservation WITH (NOLOCK) WHERE ConfirmationNo ='" + _conf + "' AND (Status = 1 OR Status = 6) AND ReservationNo > 0 ");
+                else
+                    _dt = TextUtils.Select("SELECT count(ID) FROM Reservation WITH (NOLOCK) WHERE ConfirmationNo ='" + _conf + "' AND (Status = 1 OR Status = 6) AND ReservationNo > 0 ");
+                int count = TextUtils.ToInt(_dt.Rows[0][0]?.ToString() ?? "0");
+
+                _para = count <= 1;
+            }
+            // Hủy đặt phòng
+            else if (_type == 0)
+            {
+                DataTable _dt;
+                if (pt != null)
+                    _dt = pt.Select("SELECT count(ID) FROM Reservation WITH (NOLOCK) WHERE ConfirmationNo ='" + _conf + "' AND (Status = 0 OR Status = 5) AND ReservationNo > 0 ");
+                else
+                    _dt = TextUtils.Select("SELECT count(ID) FROM Reservation WITH (NOLOCK) WHERE ConfirmationNo ='" + _conf + "' AND (Status = 0 OR Status = 5) AND ReservationNo > 0 ");
+
+                int count = TextUtils.ToInt(_dt.Rows[0][0]?.ToString() ?? "0");
+                _para = count == 0;
+            }
+            return _para;
+        }
+
 
         #endregion
 
