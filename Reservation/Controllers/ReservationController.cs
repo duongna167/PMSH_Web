@@ -698,7 +698,8 @@ namespace Reservation.Controllers
                     Where(x => x.KeyName == "RoomCharge").ToList()[0].KeyValue;
 
                 }
-                var (originalPrice, priceAfter, priceDiscount, priceAfterDiscount) = _iReservationService.CalculateNet(price, transactionCode, discountAmount, discountPercent);
+                       
+                   var (originalPrice, priceAfter, priceDiscount, priceAfterDiscount) = _iReservationService.CalculateNet(price, transactionCode, discountAmount, discountPercent);
 
                 // Tạo đối tượng JSON để trả về
                 var result = new
@@ -715,6 +716,153 @@ namespace Reservation.Controllers
                 return Json(ex.Message);
             }
         }
+        protected static decimal GetAmount(ArrayList arr, decimal InputAmount)
+        {
+            #region Khai báo biến
+
+            string s1 = "B0", s2 = "B0", s3 = "B0";
+            string BaseAmount = "B";
+            string CurrentAmount = "";
+
+            GenerateTransactionModel mGT;
+
+            string result = "";
+
+            #endregion
+
+            for (int i = 0; i < arr.Count; i++)
+            {
+                #region Do du lieu vao Model
+                mGT = (GenerateTransactionModel)arr[i];
+                #endregion
+
+                #region Lay ra CurrentAmount
+
+                if (mGT.BaseAmount == 0)
+                    CurrentAmount = "B" + Convert.ToString(Convert.ToDecimal(mGT.Percentage) / 100);
+                else if (mGT.BaseAmount == 1)
+                    CurrentAmount = "B" + (mGT.Percentage * GetNumber(s1)) / 100;
+                else if (mGT.BaseAmount == 2)
+                    CurrentAmount = "B" + (mGT.Percentage * GetNumber(s2)) / 100;
+                else
+                    CurrentAmount = "B" + (mGT.Percentage * GetNumber(s3)) / 100;
+
+                #endregion
+
+                #region Lay du lieu vao s1,s2,s3
+                if ((mGT.Subtotal1 == true) && (mGT.Subtotal2 == false) && (mGT.Subtotal3 == false))
+                {
+                    s1 = "B" + (GetNumber(s1) + GetNumber(CurrentAmount));
+                }
+                else if ((mGT.Subtotal1 == true) && (mGT.Subtotal2 == true) && (mGT.Subtotal3 == false))
+                {
+                    s1 = "B" + (GetNumber(s1) + GetNumber(CurrentAmount));
+                    s2 = CurrentAmount;
+                }
+                else if ((mGT.Subtotal1 == true) && (mGT.Subtotal2 == false) && (mGT.Subtotal3 == true))
+                {
+                    s1 = "B" + (GetNumber(s1) + GetNumber(CurrentAmount));
+                    s3 = CurrentAmount;
+                }
+                else if ((mGT.Subtotal1 == true) && (mGT.Subtotal2 == true) && (mGT.Subtotal3 == true))
+                {
+                    s1 = "B" + (GetNumber(s1) + GetNumber(CurrentAmount));
+                    s2 = CurrentAmount;
+                    s3 = CurrentAmount;
+                }
+                #endregion
+
+                if (result.Equals(""))
+                    result = CurrentAmount;
+                else
+                    result = "B" + (GetNumber(result) + GetNumber(CurrentAmount));
+            }
+
+            return InputAmount / GetNumber(result);
+        }
+        public static decimal GetNumber(string InputAmount)
+        {
+            return Convert.ToDecimal(InputAmount.Trim('B'));
+        }
+        [HttpGet]
+        public async Task<IActionResult> CaculateNetDiscount(DateTime fromDate, DateTime toDate, int rateCodeID, int roomTypeID,
+          string currencyID, int packageID, int day, decimal price, string transactionCode, decimal discountPercent, decimal discountAmount)
+        {
+            try
+            {
+                if (rateCodeID != 0)
+                {
+                    var data = _iReservationService.ReservationGetRateQueryDetail(fromDate, toDate, rateCodeID, roomTypeID, currencyID, packageID, day);
+                    transactionCode = data.Rows[0]["TransactionCode"].ToString();
+                }
+                else
+                {
+
+                    transactionCode = PropertyUtils.ConvertToList<ConfigSystemModel>(ConfigSystemBO.Instance.FindAll()).
+                    Where(x => x.KeyName == "RoomCharge").ToList()[0].KeyValue;
+
+                }
+                ArrayList arr = GenerateTransactionBO.Instance.FindByAttribute("TransactionCode", transactionCode);
+                decimal AmountNet = price - (price * discountPercent) / 100 - discountAmount;
+
+                AmountNet = Math.Round(AmountNet, 0, MidpointRounding.AwayFromZero);
+
+                decimal Amount = GetAmount(arr, AmountNet);
+
+                Amount = Math.Round(Amount, 0, MidpointRounding.AwayFromZero);
+
+                
+
+                // Tạo đối tượng JSON để trả về
+                var result = new
+                {
+                    Amount = Amount,
+                    AmountNet = AmountNet,
+          
+                };
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+        //[HttpGet] 
+        //public async Task<IActionResult> CaculateNetDiscount(  decimal cleanValueDiscountPercent, decimal cleanValueDiscountAmount, decimal cleanValuerate, decimal cleanValuerate)
+        //{
+        //    try
+        //    {
+        //        if (rateCodeID != 0)
+        //        {
+        //            var data = _iReservationService.ReservationGetRateQueryDetail(fromDate, toDate, rateCodeID, roomTypeID, currencyID, packageID, day);
+        //            transactionCode = data.Rows[0]["TransactionCode"].ToString();
+        //        }
+        //        else
+        //        {
+
+        //            transactionCode = PropertyUtils.ConvertToList<ConfigSystemModel>(ConfigSystemBO.Instance.FindAll()).
+        //            Where(x => x.KeyName == "RoomCharge").ToList()[0].KeyValue;
+
+        //        }
+        //        var (originalPrice, priceAfter, priceDiscount, priceAfterDiscount) = _iReservationService.CalculateNet(price, transactionCode, discountAmount, discountPercent);
+
+        //        // Tạo đối tượng JSON để trả về
+        //        var result = new
+        //        {
+        //            Price = originalPrice,
+        //            PriceAfter = priceAfter,
+        //            PriceDiscount = priceDiscount,
+        //            PriceAfterDiscount = priceAfterDiscount
+        //        };
+        //        return Json(result);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return Json(ex.Message);
+        //    }
+        //}
+
+
         [HttpGet]
         public async Task<IActionResult> CaculateNetReverse(DateTime fromDate, DateTime toDate, int rateCodeID, int roomTypeID,
     string currencyID, int packageID, int day, decimal price, string transactionCode, decimal discountPercent, decimal discountAmount)
