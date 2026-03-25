@@ -23,19 +23,47 @@
         </div>
     </div>
 </div>
+
+<div id="confirmBoxCancel" class="confirm-overlay">
+    <div class="confirm-box">
+        <h2>Confirmation Action</h2>
+        <p id="titleCancelReservation"></p>
+        <div class="confirm-buttons">
+            <button class="mui-button mui-button-search" onclick="onConfirmCancel()">OK</button>
+            <button class="mui-button mui-button-clear" onclick="closeConfirmCancel()">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <script>
     function openModalCancel(){
         if(idReservation == 0){
             showToast('Error', 'Please choose booking', false);
             return;
         }
-        if(reservationStatus != 5 && reservationStatus!= 0 ){
+        if(reservationStatus != 5 && reservationStatus!= 0 && reservationStatus != 1){
             showToast('Error', 'Cannot cancel because booking is not in Reservation status', false);
             return;
         }
+        if (reservationStatus == 1) {
+            $('#titleCancelReservation').text('Do you want to change room to dirty?');
+            document.getElementById("confirmBoxCancel").style.display = "flex";
+            return;
+        }
+
         $('#modalCancel').modal('show');
         reloadGrid();
     }
+
+    function onConfirmCancel() {
+    document.getElementById("confirmBoxCancel").style.display = "none";
+    CancelReservation(true);
+    }
+
+    function closeConfirmCancel() {
+        document.getElementById("confirmBoxCancel").style.display = "none";
+    }
+
     function closeModalCancel(){
         clearCancel();
         $('#modalCancel').modal('hide');
@@ -94,16 +122,17 @@
         $('#reasonCancel').val('');
         $('#descriptionCancel').val('');
     }
-    function CancelReservation() {
+    function CancelReservation(changeRoomToDirty) {
 
         const userName = JSON.parse(localStorage.getItem("Loginname"));
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
         formData.append('rsvID', idReservation);
-        formData.append('reasonCancellation',$('#reasonCancel').find('option:selected').text().split('-')[0]);
-        formData.append('description', $('#reasonCancel').find('option:selected').text().split('-')[1]);
+        formData.append('reasonCancellation', $('#reasonCancel').val() || '');
+        formData.append('description', $('#descriptionCancel').val() || '');
         formData.append('userID', userID);
-            formData.append('userName', userName);
+        formData.append('userName', userName);
+        formData.append('changeRoomToDirty', changeRoomToDirty);
         $.ajax({
             url: '/Reservation/CancelReservation',
             type: 'POST',

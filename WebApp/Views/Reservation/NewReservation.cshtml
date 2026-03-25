@@ -489,7 +489,7 @@
                                                         <label class="col-md-4 col-form-label text-start pe-0"
                                                                for="txtLastStay">Last Stay</label>
                                                         <div class="col-md-7">
-                                                            <input type="text" id="txtLastStay" value="1"
+                                                            <input type="text" id="txtLastStay" value="0"
                                                                    class="form-control" style="text-align:right" disabled/>
                                                         </div>
                                                     </div>
@@ -1363,12 +1363,17 @@
         let formattedAmount = amount.toLocaleString('vi-VN').replace(/,/g, '.'); // Đảm bảo dấu phẩy
         let amountNet = result.rateAfterTax; // Giả sử result.rate là 4409171
         let formattedNet = amountNet.toLocaleString('vi-VN').replace(/,/g, '.'); // Đảm bảo dấu phẩy
+         let nights = parseInt(result.noOfNight || 0);
         $("#txtRateAmount").val(formattedAmount); // Kết quả: 4,409,171
         $("#txtNetAmount").val(formattedNet);
         $('#txtRateAfterDiscount').val(formattedAmount);
         $('#txtNetAfterDiscount').val(formattedNet);
-        $('#txtTotal').val(formattedAmount);
-        $('#txtTotalNet').val(formattedNet);
+            let total = amount * nights;
+        let totalNet = amountNet * nights;
+
+        // gán total
+        $('#txtTotal').val(total.toLocaleString('vi-VN'));
+        $('#txtTotalNet').val(totalNet.toLocaleString('vi-VN'));
         // $("#txtColor").val(result.color);
         if (result.color) {
             // Hiển thị dạng HEX để trình duyệt hiểu
@@ -1920,11 +1925,23 @@
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             data: requestData,
             success: function (result) {
-                $('#txtNetAmount').val(parseFloat(result.priceAfter || 0).toLocaleString('vi-VN'));
+                console.log(result);
+                // $('#txtNetAmount').val(parseFloat(result.priceAfter || 0).toLocaleString('vi-VN'));
                 $('#txtRateAfterDiscount').val(parseFloat(result.priceDiscount || 0).toLocaleString('vi-VN'));
-                $('#txtNetAfterDiscount').val(parseFloat(result.priceAfterDiscount || 0).toLocaleString('vi-VN'));
-                $('#txtTotal').val((parseFloat(result.priceDiscount || 0) * (parseInt(day, 10) || 1)).toLocaleString('vi-VN'));
-                $('#txtTotalNet').val((parseFloat(result.priceAfterDiscount || 0) * (parseInt(day, 10) || 1)).toLocaleString('vi-VN'));
+                // $('#txtNetAfterDiscount').val(parseFloat(result.priceAfterDiscount || 0).toLocaleString('vi-VN'));
+                // $('#txtTotal').val((parseFloat(result.priceDiscount || 0) * (parseInt(day, 10) || 1)).toLocaleString('vi-VN'));
+                // $('#txtTotalNet').val((parseFloat(result.priceAfterDiscount || 0) * (parseInt(day, 10) || 1)).toLocaleString('vi-VN'));
+                             // lấy lại value từ input (loại dấu ,)
+                           const rateAfterDiscount = parseFloat($('#txtRateAfterDiscount').val().replace(/\./g, '').replace(',', '.')) || 0;
+                     const netAfterDiscount = parseFloat($('#txtNetAfterDiscount').val().replace(/\./g, '').replace(',', '.')) || 0;
+                     const numDay = parseInt(day, 10) || 1;
+                          console.log(rateAfterDiscount);
+                                 console.log(numDay);
+                     const total = rateAfterDiscount * numDay;
+                     const totalNet = netAfterDiscount * numDay;
+
+                     $('#txtTotal').val(total.toLocaleString('vi-VN'));
+                     $('#txtTotalNet').val(totalNet.toLocaleString('vi-VN'));
             },
             error: function (xhr, status, error) {
                 console.error('[calculateNet] ERROR', {
@@ -1935,8 +1952,52 @@
             }
         });
     }
+        function calculateNetDiscount(fromDate, toDate, rateCodeID, roomTypeID, currencyID, packageID, day, value, transactionCode, discountPercent, discountAmount) {
+         const requestData = {
+             fromDate,
+             toDate,
+             rateCodeID,
+             roomTypeID,
+             currencyID,
+             packageID,
+             day,
+             price: value,
+             transactionCode,
+             discountPercent,
+             discountAmount
+         };
 
-    function calculateNetReverse(fromDate, toDate, rateCodeID, roomTypeID, currencyID, packageID, day, value, transactionCode, discountPercent, discountAmount) {
+         $.ajax({
+             url: '/Reservation/CaculateNetDiscount',
+             type: 'get',
+             dataType: 'json',
+             crossDomain: false,
+             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+             data: requestData,
+             success: function (result) {
+                 console.log(result);
+                 $('#txtRateAfterDiscount').val(
+                    parseFloat(result.amount || 0).toLocaleString('vi-VN')
+                );
+
+                $('#txtNetAfterDiscount').val(
+                    parseFloat(result.amountNet || 0).toLocaleString('vi-VN')
+                );
+ 
+             },
+             error: function (xhr, status, error) {
+                 console.error('[calculateNet] ERROR', {
+                     status,
+                     error,
+                     responseText: xhr?.responseText
+                 });
+             }
+         });
+     }
+
+
+
+     function calculateNetReverse(fromDate, toDate, rateCodeID, roomTypeID, currencyID, packageID, day, value, transactionCode, discountPercent, discountAmount) {
         return $.ajax({
             url: '/Reservation/CaculateNetReverse',
             type: 'get',
@@ -2092,23 +2153,24 @@
         }
     });
     $('#txtDiscountAmount').blur(function () {
-        let value = $('#txtRateAmount').val();
+         let value = $('#txtNetAmount').val();
         let cleanValue = value.replace(/[^0-9]/g, '');
         let valueDiscountPercent = $('#txtDiscountPercent').val();
         let cleanValueDiscountPercent = valueDiscountPercent.replace(/[^0-9]/g, '');
         let valueDiscountAmount = $(this).val();
         let cleanValueDiscountAmount = valueDiscountAmount.replace(/[^0-9]/g, '');
-        calculateNet($('#arrival').val(), $('#departure').val(), 0,
+         calculateNetDiscount($('#arrival').val(), $('#departure').val(), 0,
             $('#txtRoomType').val(), 'VND', 0, 0, cleanValue, '', cleanValueDiscountPercent, cleanValueDiscountAmount);
     });
+   
     $('#txtDiscountPercent').blur(function () {
-        let value = $('#txtRateAmount').val();
+         let value = $('#txtNetAmount').val();
         let cleanValue = value.replace(/[^0-9]/g, '');
         let valueDiscountPercent = $(this).val();
         let cleanValueDiscountPercent = valueDiscountPercent.replace(/[^0-9]/g, '');
         let valueDiscountAmount = $('#txtDiscountAmount').val();
         let cleanValueDiscountAmount = valueDiscountAmount.replace(/[^0-9]/g, '');
-        calculateNet($('#arrival').val(), $('#departure').val(), 0,
+         calculateNetDiscount($('#arrival').val(), $('#departure').val(), 0,
             $('#txtRoomType').val(), 'VND', 0, 0, cleanValue, '', cleanValueDiscountPercent, cleanValueDiscountAmount);
     });
      function showButton() {
