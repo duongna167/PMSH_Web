@@ -45,7 +45,7 @@ namespace Billing.Controllers
         public string ArticleCode { get; set; }
         public bool Status { get; set; }
         public int RowState { get; set; }
-        public bool IsSplit { get; set; }
+        public int IsSplit { get; set; }
         public int Quantity { get; set; }
         public decimal Price { get; set; }
         public decimal AmountMaster { get; set; }

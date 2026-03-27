@@ -33,7 +33,7 @@ namespace BaseBusiness.Model
         public bool Status { get; set; }
         public int RowState { get; set; }
         public int PostType { get; set; }
-        public bool IsSplit { get; set; }
+        public Boolean IsSplit { get; set; }
         public int Quantity { get; set; }
         public decimal Price { get; set; }
         public decimal Amount { get; set; }

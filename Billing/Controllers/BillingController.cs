@@ -2548,7 +2548,7 @@ namespace Billing.Controllers
                         CurrencyID = firstItem.CurrencyID,
                         CurrencyMaster = firstItem.CurrencyMaster,
 
-                        RowState = 1,
+                        RowState = 1, // MASTER HIỂN THỊ TRÊN BILLING
                         PostType = 3,
                         IsSplit = true,
                         Status = false,
@@ -2611,9 +2611,8 @@ namespace Billing.Controllers
                     count++;
 
                     item.Status = false; item.ProfitCenterID = 2; item.ProfitCenterCode = "0"; item.OriginARNo = "";
-                    item.PostType = isInvoicePosting ? 3 : 1;
                     item.RowState = isInvoicePosting ? 2 : 1;
-                    item.IsSplit = false;
+                    item.IsSplit = currentGenConfigs.Count > 0;
                     item.IsPostedAR = false; item.ARTransID = 0; item.IsTransfer = false;
 
                     FolioDetailBO.Instance.Insert(item);
@@ -2697,8 +2696,8 @@ namespace Billing.Controllers
                                     TransactionCode = genItem.TransactionCodeDetail,
                                     ArticleCode = "",
                                     Status = false,
-                                    PostType = 2,
-                                    RowState = 1,
+                                    RowState = isInvoicePosting ? 3 : 2,
+                                    PostType = 3,
                                     IsSplit = false,
                                     Quantity = 1,
                                     Price = taxAmount,
@@ -2758,8 +2757,8 @@ namespace Billing.Controllers
                                     TransactionCode = genItem.TransactionCodeDetail,
                                     ArticleCode = "",
                                     Status = false,
-                                    PostType = 2,
-                                    RowState = 1,
+                                    RowState = isInvoicePosting ? 3 : 2,
+                                    PostType = 3,
                                     IsSplit = false,
                                     Quantity = 1,
                                     Price = svcAmount,
@@ -2818,8 +2817,8 @@ namespace Billing.Controllers
                                     TransactionCode = genItem.TransactionCodeDetail,
                                     ArticleCode = "",
                                     Status = false,
-                                    PostType = 2,
-                                    RowState = 1,
+                                    RowState = isInvoicePosting ? 3 : 2,
+                                    PostType = 3,
                                     IsSplit = false,
                                     Quantity = 1,
                                     Price = allocAmount,
