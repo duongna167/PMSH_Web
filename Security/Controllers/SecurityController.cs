@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -58,7 +59,7 @@ namespace Security.Controllers
                                         if (value == DBNull.Value) return null;
 
                                         // CreatedDate: KHÔNG ToString
-                                        if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate")
+                                        if (col.ColumnName == "CreatedDate" || col.ColumnName == "UpdatedDate" || col.ColumnName == "Inactive")
                                             return value;
 
                                         // Các field khác: ToString
@@ -82,7 +83,145 @@ namespace Security.Controllers
             }
         }
 
+        [HttpPost]
+        public async Task<IActionResult> UserGroupSave(string id, string codeUG, string nameUG, string descriptionaccty, string user, string inactive)
+        {
+            try
+            {
+                // Collect validation errors
+                var errors = new List<object>();
 
+                // Validate inputs
+                if (string.IsNullOrWhiteSpace(codeUG))
+                    errors.Add(new { field = "code", message = "Code is required." });
+                else if (codeUG.Length > 50)
+                    errors.Add(new { field = "code", message = "Code must be at most 50 characters." });
+                if (string.IsNullOrWhiteSpace(nameUG))
+                    errors.Add(new { field = "name", message = "Name is required." });
+                else if (nameUG.Length > 50)
+                    errors.Add(new { field = "name", message = "Name must be at most 50 characters." });
+
+                if (!string.IsNullOrEmpty(descriptionaccty) && descriptionaccty.Length > 500)
+                    errors.Add(new { field = "description", message = "Description must be at most 500 characters." });
+
+                if (string.IsNullOrWhiteSpace(user))
+                    return NotFound(new { success = false, message = "Rate Class not found UserID ." });
+                else
+                {
+                    user = user.Trim().Trim('"');
+                    if (user.Length > 100)
+                        return NotFound(new { success = false, message = "Rate Class must be at most 100 characters ." });
+                }
+
+                if (inactive != null && inactive != "0" && inactive != "1")
+                    errors.Add(new { field = "ckActive", message = "Active must be checked or uncheked." });
+
+                // Validate ID format for update
+                int parsedId = 0;
+                bool isUpdate = false;
+                if (!string.IsNullOrWhiteSpace(id) && id != "0")
+                {
+                    if (!int.TryParse(id, out parsedId) || parsedId <= 0)
+                        return NotFound(new { success = false, message = "Invalid Rate Class ID format." });
+                    else
+                        isUpdate = true;
+                }
+
+                // Get business dates
+                List<BusinessDateModel> businessDates = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
+                if (businessDates == null || businessDates.Count == 0)
+                    return NotFound(new { success = false, message = "Business date not available. Contact system administrator." });
+
+
+                // Check for duplicate Code (case-insensitive) for insert/update
+                if (!string.IsNullOrWhiteSpace(codeUG))
+                {
+                    var allUserGroups = PropertyUtils.ConvertToList<UserGroupModel>(UserGroupBO.Instance.FindAll()) ?? [];
+                    bool duplicate = allUserGroups.Any(r => string.Equals(r.Code?.Trim(), codeUG.Trim(), StringComparison.OrdinalIgnoreCase) && r.ID != parsedId);
+                    if (duplicate)
+                        errors.Add(new { field = "code", message = "Code already exists." });
+
+                }
+
+                // Return errors if any
+                if (errors.Count != 0)
+                {
+                    return Json(new { success = false, message = "Validation failed.", errors });
+                }
+
+                // Prepare model
+                UserGroupModel _Model = new()
+                {
+                    Code = codeUG.Trim(),
+                    Name = nameUG.Trim(),
+                    Description = descriptionaccty ?? string.Empty,
+                    Inactive = inactive == "1"
+                };
+
+                if (isUpdate)
+                {
+                    // Verify existing record
+                    if (UserGroupBO.Instance.FindByPrimaryKey(parsedId) is not UserGroupModel existing || existing.ID == 0)
+                    {
+                        return NotFound(new { success = false, message = $"User Group not found (ID = {parsedId})" });
+                    }
+
+                    _Model.ID = parsedId;
+                    _Model.UpdatedBy = user;
+                    _Model.UpdatedDate = businessDates![0].BusinessDate;
+                    _Model.CreatedBy = existing.CreatedBy;
+                    _Model.CreatedDate = existing.CreatedDate;
+                    UserGroupBO.Instance.Update(_Model);
+                    return Json(new
+                    {
+                        success = true,
+                        message = $"Changes saved successfully ID: {_Model.ID}.",
+                        data = new { id = _Model.ID }
+                    });
+                }
+                else
+                {
+                    _Model.UpdatedBy = user;
+                    _Model.CreatedBy = user;
+                    _Model.CreatedDate = businessDates![0].BusinessDate;
+                    _Model.UpdatedDate = _Model.CreatedDate;
+                    UserGroupBO.Instance.Insert(_Model);
+                    return Json(new { success = true, message = "Record has been created successfully.", data = new { id = _Model.ID } });
+
+                }
+
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public IActionResult UserGroupDelete(int id)
+        {
+            try
+            {
+                // ArrayList arr = UserGroupBO.Instance.FindByAttribute("RateClassID", id);
+                // if (arr.Count > 0)
+                // {
+                //     return Json(new { success = false, message = "Rate Class is being referenced to in other modules.\nDelete failed.!" });
+                // }
+                var checkID = UserGroupBO.Instance.FindByPrimaryKey(id);
+                if (checkID == null)
+                {
+                    return Json(new { success = false, message = "User Group not found.!" });
+                }
+
+                UserGroupBO.Instance.Delete(id);
+
+                return Json(new { success = true, message = $"Record was removed successfully ID: {id}." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
         #endregion
 
         #region  AddFuncitionsToList
