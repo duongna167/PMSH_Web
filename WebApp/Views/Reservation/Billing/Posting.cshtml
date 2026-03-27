@@ -63,7 +63,6 @@
 
                                     @* Nội dung của tab Post detail/Post Invoice*@
                                     <div class="tab-content h-100" id="postingTabsContent">
-
                                         @* Nội dung của tab Post detail*@
                                         <div class="tab-pane fade show active h-100" id="detail-pane" role="tabpanel">
                                             <form class="d-flex flex-column h-100 posting-form-content">
@@ -142,9 +141,9 @@
 
                                                             </div>
                                                             <div class="small d-flex align-items-center gap-2">
-                                                                <label><input type="radio" name="express_group" value="10" class="js-radio-opt" disabled /> 10%</label>
-                                                                <label><input type="radio" name="express_group" value="50" class="js-radio-opt" checked disabled /> 50%</label>
-                                                                <label><input type="radio" name="express_group" value="100" class="js-radio-opt" disabled /> 100%</label>
+                                                                <label><input type="radio" name="express_group" value="10" class="js-radio-opt"  /> 10%</label>
+                                                                <label><input type="radio" name="express_group" value="50" class="js-radio-opt" checked  /> 50%</label>
+                                                                <label><input type="radio" name="express_group" value="100" class="js-radio-opt"  /> 100%</label>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -161,9 +160,9 @@
 
                                                             </div>
                                                             <div class="small d-flex align-items-center gap-2">
-                                                                <label><input type="radio" name="discount_group" value="10" class="js-radio-opt" checked disabled /> 10%</label>
-                                                                <label><input type="radio" name="discount_group" value="20" class="js-radio-opt" disabled /> 20%</label>
-                                                                <label><input type="radio" name="discount_group" value="50" class="js-radio-opt" disabled /> 50%</label>
+                                                                <label><input type="radio" name="discount_group" value="10" class="js-radio-opt" checked  /> 10%</label>
+                                                                <label><input type="radio" name="discount_group" value="20" class="js-radio-opt"  /> 20%</label>
+                                                                <label><input type="radio" name="discount_group" value="50" class="js-radio-opt"  /> 50%</label>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -279,9 +278,9 @@
 
                                                             </div>
                                                             <div class="small d-flex align-items-center gap-2">
-                                                                <label><input type="radio" name="express_group" value="10" class="js-radio-opt" disabled /> 10%</label>
-                                                                <label><input type="radio" name="express_group" value="50" class="js-radio-opt" checked disabled /> 50%</label>
-                                                                <label><input type="radio" name="express_group" value="100" class="js-radio-opt" disabled /> 100%</label>
+                                                                <label><input type="radio" name="express_group" value="10" class="js-radio-opt"  /> 10%</label>
+                                                                <label><input type="radio" name="express_group" value="50" class="js-radio-opt" checked  /> 50%</label>
+                                                                <label><input type="radio" name="express_group" value="100" class="js-radio-opt"  /> 100%</label>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -298,9 +297,9 @@
 
                                                             </div>
                                                             <div class="small d-flex align-items-center gap-2">
-                                                                <label><input type="radio" name="discount_group" value="10" class="js-radio-opt" checked disabled /> 10%</label>
-                                                                <label><input type="radio" name="discount_group" value="20" class="js-radio-opt" disabled /> 20%</label>
-                                                                <label><input type="radio" name="discount_group" value="50" class="js-radio-opt" disabled /> 50%</label>
+                                                                <label><input type="radio" name="discount_group" value="10" class="js-radio-opt" checked  /> 10%</label>
+                                                                <label><input type="radio" name="discount_group" value="20" class="js-radio-opt"  /> 20%</label>
+                                                                <label><input type="radio" name="discount_group" value="50" class="js-radio-opt"  /> 50%</label>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -376,23 +375,6 @@
         return isNaN(result) ? 0 : result;
     }
 
-    function validateAndNormalizeNumberInput(el, { allowNegative = false, defaultValue = 0 } = {}) {
-        let raw = $(el).val();
-
-        let num = parseNumberWithComma(raw);
-
-        if (!allowNegative && num < 0) {
-            showToast("Warning", "Negative numbers are not allowed!", false);
-            num = defaultValue;
-        }
-
-        return num;
-    }
-
-    function getActivePane() {
-        return $('.tab-pane.active');
-    }
-
     // --- HELPER: Lấy element trong Tab đang active ---
     function getActiveEl(selector) {
         return $('.tab-pane.active').find(selector);
@@ -418,7 +400,7 @@
                     getActiveEl('.js-input-price').val(fmtGross);
 
                     $netInput.val(formatNumberWithComma(netVal));
-                    debounceApi(calculateLineTotal);
+                    calculateLineTotal();
                 }
             }
         });
@@ -444,52 +426,33 @@
 
                     // Format lại ô Gross
                     $grossInput.val(formatNumberWithComma(grossVal));
-                    debounceApi(calculateLineTotal);
+                    calculateLineTotal();
                 }
             }
         });
     }
 
-    //tính tổng tiền
+    // Tính tổng tiền
     function calculateLineTotal() {
-        let $pane = $('.tab-pane.active');
+        let qty = parseFloat(getActiveEl('.js-input-qty').val()) || 0;
+        let priceGross = parseNumberWithComma(getActiveEl('.js-input-price').val());
+        let priceNet   = parseNumberWithComma(getActiveEl('.js-input-price-net').val());
 
-        let qty = parseFloat($pane.find('.js-input-qty').val()) || 0;
-        let price = parseNumberWithComma($pane.find('.js-input-price-net').val());
+        let totalGross = qty * priceGross;
+        let totalNet   = qty * priceNet;
 
-        let isExpress = $pane.find('.js-chk-express').is(':checked');
-        let isDiscount = $pane.find('.js-chk-discount').is(':checked');
-
-        let pctExpress = parseFloat($pane.find('.js-input-express-pct').val()) || 0;
-        let pctDiscount = parseFloat($pane.find('.js-input-discount-pct').val()) || 0;
-
-        let taxRate = 0; 
-
-        let result = calculateLineTotalPMS({
-            qty,
-            price,
-            taxRate,
-            isExpress,
-            pctExpress,
-            isDiscount,
-            pctDiscount
-        });
-
-        // update UI
-        $pane.find('.js-amount-net').val(formatNumberWithComma(result.net));
-        $pane.find('.js-amount-gross').val(formatNumberWithComma(result.gross));
-
-        return result;
+        getActiveEl('.js-amount-gross').val(formatNumberWithComma(totalGross));
+        getActiveEl('.js-amount-net').val(formatNumberWithComma(totalNet));
     }
-    
+
     var isComposing = false;
-    
+
     // --- EVENTS ---
     $(document).ready(function() {
         $('#modalPosting').on('show.bs.modal', function () {
             resetAllPostingData();
         });
-        
+
         $('#modalPosting').on('shown.bs.modal', function () {
             loadGroups();
             loadCurrencies();
@@ -499,10 +462,10 @@
         });
 
         $('#modalPosting').on('hidden.bs.modal', function () {
-            resetAllPostingData(); 
+            resetAllPostingData();
         });
 
-        // --- SỰ KIỆN NHẬP LIỆU TIỀN TỆ  ---
+        // --- SỰ KIỆN NHẬP LIỆU TIỀN TỆ TỨC THÌ ---
 
         $(document).on('compositionstart', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function () {
             isComposing = true;
@@ -511,6 +474,38 @@
         $(document).on('compositionend', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function () {
             isComposing = false;
 
+            // Sau khi gõ xong mới format
+            formatCurrencyLive(this);
+        });
+
+        $(document).on('input', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function () {
+            if (isComposing) return; // ❗ bỏ qua khi đang gõ Telex
+
+            formatCurrencyLive(this);
+        });
+
+        //  Chặn ký tự lạ ngay khi nhấn phím (Chỉ cho phép số và một dấu trừ ở đầu)
+        $(document).on('keypress', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function(e) {
+            var charCode = (e.which) ? e.which : e.keyCode;
+            var value = $(this).val();
+
+            // Phím trừ (-)
+            if (charCode === 45) {
+                // Chỉ cho phép dấu trừ nếu chưa có và phải ở vị trí đầu tiên
+                if (value.indexOf('-') !== -1 || e.target.selectionStart !== 0) {
+                    e.preventDefault();
+                }
+                return;
+            }
+
+            // Các phím không phải số (48-57)
+            if (charCode < 48 || charCode > 57) {
+                e.preventDefault();
+            }
+        });
+
+        // Format dấu chấm phân cách ngay khi đang gõ (Live Format)
+        $(document).on('input', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function() {
             formatCurrencyLive(this);
         });
 
@@ -522,11 +517,32 @@
             }
         });
 
+        // Khi Blur: Thêm đuôi thập phân và gọi API tính toán
+        $(document).on('blur', '.js-input-price, .js-input-price-net', function() {
+            if (isSilentReset) return;
+
+            let val = $(this).val();
+            if (val === "" || val === "-") {
+                $(this).val("0,00");
+            } else {
+                // Format chuẩn kế toán x.xxx,xx
+                let num = parseNumberWithComma(val);
+                $(this).val(formatNumberWithComma(num));
+            }
+
+            // Gọi API tính toán logic Net/Gross
+            if ($(this).hasClass('js-input-price')) {
+                apiCalcNetFromPlus();
+            } else if ($(this).hasClass('js-input-price-net')) {
+                apiCalcPlusFromNet();
+            }
+        });
+
         //  Search List (transGroup,...,article)
         $(document).on('keyup', '.js-search-box', function() {
             var value = $(this).val().toLowerCase();
-            var valueNoTone = removeVietnameseTones(value); 
-            var targetId = $(this).data('target'); 
+            var valueNoTone = removeVietnameseTones(value);
+            var targetId = $(this).data('target');
 
             // Duyệt qua tất cả các thẻ <a> (item) trong danh sách tương ứng
             $(targetId + ' .list-group-item').filter(function() {
@@ -538,15 +554,58 @@
             });
         });
 
-        // Xử lý sự kiện Paste (Dán) 
-        $(document).on('paste', '.js-input-qty, .js-input-price, .js-input-price-net', function(e) {
+        // Chỉ cho phép nhập số dương và dấu chấm/phẩy (cho Price, Percent, Quantity)
+        $(document).on('keypress', '.js-input-qty, .js-input-price, .js-input-price-net, .js-input-express-pct, .js-input-discount-pct', function(e) {
+            // Mã ký tự (char code)
+            var charCode = (e.which) ? e.which : e.keyCode;
+
+            if ((charCode >= 48 && charCode <= 57) || charCode === 46 || charCode === 44) {
+                return true;
+            }
+
+            return false;
+        });
+
+        // Xử lý sự kiện Paste (Dán)
+        $(document).on('paste', '.js-input-qty, .js-input-price, .js-input-price-net, .js-input-express-pct, .js-input-discount-pct', function(e) {
             e.preventDefault();
 
             var pastedData = (e.originalEvent || e).clipboardData.getData('text/plain');
 
             var cleanData = pastedData.replace(/[^0-9.,]/g, '');
 
-            $(this).val(cleanData);
+            document.execCommand("insertText", false, cleanData);
+        });
+
+        //  Kiểm tra input để đảm bảo không âm khi blur
+        $(document).on('blur', '.js-input-qty, .js-input-price, .js-input-price-net', function() {
+            if (isSilentReset) return;
+            var valStr = $(this).val();
+            // Chuyển dấu phẩy thành chấm để parse
+            var cleanStr = valStr.replace(/\./g, '').replace(/,/g, '.');
+            var valNum = parseFloat(cleanStr);
+
+            if (valNum < 0) {
+                alert("Negative numbers are not allowed!");
+                $(this).val(0);
+                if($(this).hasClass('js-input-qty')) $(this).val(1);
+            }
+        });
+
+        //  INPUT PRICE ++
+        $(document).on('blur keypress', '.js-input-price', function(e) {
+            if (isSilentReset) return;
+            if (e.type === 'keypress' && e.which !== 13) return;
+            if (e.type === 'keypress') { e.preventDefault(); $(this).blur(); return; }
+            apiCalcNetFromPlus();
+        });
+
+        //  INPUT PRICE NET
+        $(document).on('blur keypress', '.js-input-price-net', function(e) {
+            if (isSilentReset) return;
+            if (e.type === 'keypress' && e.which !== 13) return;
+            if (e.type === 'keypress') { e.preventDefault(); $(this).blur(); return; }
+            apiCalcPlusFromNet();
         });
 
         //  QUANTITY
@@ -569,132 +628,96 @@
         });
 
         // --- EXPRESS/DISCOUNT SERVICE ---
-
-        $('.js-chk-express, .js-chk-discount').on('change', function () {
-            let $pane = $(this).closest('.tab-pane');
-            buildRefAndSuppl($pane);
+        //  Sự kiện Radio & Input Express và Discount
+        $(document).on('change', '.js-express-radio, .js-discount-radio', function() {
+            var val = parseFloat($(this).val()).toFixed(2);
+            $(this).closest('.express-input-group').find('input[type="text"]').val(val);
+            updateReferenceText();
         });
 
-        $('.js-input-express-pct, .js-input-discount-pct').on('input', function () {
-            let $pane = $(this).closest('.tab-pane');
-            buildRefAndSuppl($pane);
-        });
+        $(document).on('input blur propertychange', '.js-input-express-pct, .js-input-discount-pct', function() {
+            var valNum = parseFloat($(this).val());
+            var $container = $(this).closest('.express-box');
 
-        $('input[name="expressRadio"], input[name="discountRadio"]').on('change', function () {
-            let $pane = $(this).closest('.tab-pane');
-            buildRefAndSuppl($pane);
+            $container.find('input[type="radio"]').prop('checked', false);
+
+            if ([10, 20, 50, 100].includes(valNum)) {
+                $container.find(`input[value="${valNum}"]`).prop('checked', true);
+            }
+            updateReferenceText();
         });
 
         function updateReferenceText() {
-            let $pane = $('.tab-pane.active');
-            let rs = buildRefAndSuppl($pane);
+            var $activePane = $('.tab-pane.active');
+            var $refInput = $activePane.find('.js-ref-main');
 
-            $pane.find('.js-ref-main').val(rs.reference);
+            var $chkExpress = $activePane.find('.js-chk-express');
+            var pctExpress = $activePane.find('.js-input-express-pct').val();
+
+            var $chkDiscount = $activePane.find('.js-chk-discount');
+            var pctDiscount = $activePane.find('.js-input-discount-pct').val();
+
+            var currentRef = $refInput.val();
+
+            var cleanRef = currentRef.replace(/ Express Service : \d+(\.\d+)?%$/g, '')
+                                     .replace(/ Discount Service : \d+(\.\d+)?%$/g, '');
+
+                if ($chkExpress.is(':checked') && pctExpress) {
+                    cleanRef = cleanRef + " Express Service : " + pctExpress + "%";
+                }
+                else if ($chkDiscount.is(':checked') && pctDiscount) {
+                    cleanRef = cleanRef + " Discount Service : " + pctDiscount + "%";
+                }
+                $refInput.val(cleanRef);
         }
 
-        // sự kiện xử lý ô nhập phần trăm
-        $(document).on('input', '.js-pct-input', function () {
-            let rawVal = $(this).val();
-            let val = parseFloat(rawVal) || 0;
-            let $parentGroup = $(this).closest('.express-input-group');
+        function toggleInputs($container, isChecked) {
+            $container.find('input[type="text"], input[type="radio"]').prop('disabled', !isChecked);
+        }
 
-            // Đồng bộ trạng thái radio dựa trên số vừa nhập
-            $parentGroup.find('.js-radio-opt').each(function() {
-                if (parseFloat($(this).val()) === val) {
-                    $(this).prop('checked', true);
-                } else {
-                    $(this).prop('checked', false);
+        //  Sự kiện Checkbox EXPRESS
+        $(document).on('change', '.js-chk-express', function() {
+            var isChecked = $(this).is(':checked');
+            var $activePane = $(this).closest('.tab-pane');
+            var $container = $(this).closest('.express-box');
+
+            toggleInputs($container, isChecked);
+
+            if(isChecked) {
+                var $chkDiscount = $activePane.find('.js-chk-discount');
+                if ($chkDiscount.is(':checked')) {
+                    $chkDiscount.prop('checked', false).trigger('change');
                 }
-            });
-
-            updateReferenceText();
-            calculateLineTotal();
-        });
-
-        //sự kiện xử lý các nút radio
-        $(document).on('change', '.js-radio-opt', function () {
-            let val = $(this).val();
-            // Tìm đến group chứa cả radio và input percent
-            let $parentGroup = $(this).closest('.express-input-group');
-            // Gán giá trị vào ô input percent tương ứng (Express hoặc Discount)
-            $parentGroup.find('.js-pct-input').val(val).trigger('input');
-        });
-
-        // express/discount
-        $(document).on('change', '.js-chk-express, .js-chk-discount', function () {
-            let isChecked = $(this).is(':checked');
-            let $box = $(this).closest('.express-box');
-
-            // Gỡ disabled cho cả ô nhập percent và các nút radio
-            $box.find('.js-pct-input, .js-radio-opt').prop('disabled', !isChecked);
-
-            updateReferenceText();
-            calculateLineTotal();
-        });
-
-        // amount    
-        $(document).on('blur', '.js-input-qty, .js-input-price, .js-input-price-net', function () {
-            if (isSilentReset) return;
-
-            let $el = $(this);
-            let isQty = $el.hasClass('js-input-qty');
-            let isGross = $el.hasClass('js-input-price');
-            let isNet = $el.hasClass('js-input-price-net');
-
-            let num = validateAndNormalizeNumberInput(this, {
-                allowNegative: false,
-                defaultValue: isQty ? 1 : 0
-            });
-
-            if (isQty) {
-                $el.val(num || 1);
-                calculateLineTotal();
-                return;
-            }
-
-            // price / net
-            $el.val(formatNumberWithComma(num));
-
-            if (isGross) {
-                debounceApi(apiCalcNetFromPlus);
-            } else if (isNet) {
-                debounceApi(apiCalcPlusFromNet);
+                updateReferenceText();
+                getActiveEl('.js-ref-main').focus();
+            } else {
+                updateReferenceText();
             }
         });
 
-        var formatTimer;
-        $(document).on('input', '.js-input-price, .js-input-price-net', function () {
-            clearTimeout(formatTimer);
-            let el = this;
+        //  Sự kiện Checkbox DISCOUNT
+        $(document).on('change', '.js-chk-discount', function() {
+            var isChecked = $(this).is(':checked');
+            var $activePane = $(this).closest('.tab-pane');
+            var $container = $(this).closest('.express-box');
 
-            formatTimer = setTimeout(() => {
-                formatCurrencyLive(el);
-            }, 50);
+            toggleInputs($container, isChecked);
+
+            if(isChecked) {
+                var $chkExpress = $activePane.find('.js-chk-express');
+                if ($chkExpress.is(':checked')) {
+                    $chkExpress.prop('checked', false).trigger('change');
+                }
+                updateReferenceText();
+                getActiveEl('.js-ref-main').focus();
+            } else {
+                updateReferenceText();
+            }
         });
 
-        $(document).on('focus', '.js-ref-main', function () {
-            let currentVal = $(this).val();
-
-            $(this).data("base-ref", currentVal);
-        });
     });
 
-    var apiTimer;
-    var isCallingApi = false;
-        
-    function debounceApi(fn, delay = 300) {
-        clearTimeout(apiTimer);
-        apiTimer = setTimeout(() => {
-            if (isCallingApi) return;
-            isCallingApi = true;
-
-            Promise.resolve(fn()).finally(() => {
-                isCallingApi = false;
-            });
-        }, delay);
-    }
-
-        // --- DATA LOADING & FORM FILLING ---
+    // --- DATA LOADING & FORM FILLING ---
 
     function fillToForm(tCode, tDesc, aCode, aDesc, price, element) {
         if (element) highlightItem(element, '#list-article-container');
@@ -723,7 +746,7 @@
         activeForm.find('.js-input-price-net').removeClass('active-user-input');
 
         if (price > 0) {
-            debounceApi(apiCalcNetFromPlus);
+            apiCalcNetFromPlus();
         }
 
         if (window.innerWidth < 768) switchView('form');
@@ -734,50 +757,47 @@
 
     function resetFormPosting() {
         let $pane = $('.tab-pane.active');
-        if ($pane.length === 0) return;
+        if ($pane.length === 0) return; // Bảo vệ nếu không tìm thấy tab active
 
         isReset = true;
         isSilentReset = true;
 
-        // Reset các trường text cơ bản
         $pane.find('input')
-            .not('.js-invoice-desc, .js-invoice-ref, .js-invoice-supp, .js-invoice-checkNo, .js-chk-express, .js-chk-discount')
+            .not('.js-invoice-desc, .js-invoice-ref, .js-invoice-supp, .js-invoice-checkNo')
             .val('');
 
-        // Giá trị mặc định
         $pane.find('.js-input-qty').val('1');
         $pane.find('.js-input-price, .js-input-price-net').val('0,00');
         $pane.find('.js-amount-gross, .js-amount-net').val('0,00');
 
-        // Reset Express/Discount về 10.00 và Disable
+        // $pane.find('.js-chk-express, .js-chk-discount').prop('checked', false);
+        // $pane.find('.express-box input').prop('disabled', true);
+        // Bỏ tích checkbox
         $pane.find('.js-chk-express, .js-chk-discount').prop('checked', false);
 
-        // Mặc định cho Express là 50%
-        $pane.find('.js-input-express-pct').val('50.00');
-        $pane.find('.js-express-radio[value="50"]').prop('checked', true);
+        // Chỉ disable các ô nhập liệu bên trong, NHƯNG phải giữ các checkbox được ENABLE
+        $pane.find('.express-box').each(function() {
+            // Disable text input và radio
+            $(this).find('input[type="text"], input[type="radio"]').prop('disabled', true);
+            // Đảm bảo checkbox luôn luôn được phép nhấn
+            $(this).find('.form-check-input').prop('disabled', false);
+        });
+        $pane.find('.js-input-price, .js-input-price-net')
+            .removeClass('active-user-input');
 
-        // Mặc định cho Discount là 10%
-        $pane.find('.js-input-discount-pct').val('10.00');
-        $pane.find('.js-discount-radio[value="10"]').prop('checked', true);
+        // var grid = $("#gridInvoiceFooter").data("dxDataGrid");
+        // if (grid) { grid.option("dataSource", []); }
 
-        // chỉ disable radio + input %, KHÔNG disable checkbox
-        $pane.find('.express-box input[type="radio"]').prop('disabled', true);
-        $pane.find('.express-box input[type="text"]').prop('disabled', true);
-
-        // enable checkbox
-        $pane.find('.js-chk-express, .js-chk-discount').prop('disabled', false);
-
-        // Tích chọn radio 10% mặc định
-        $pane.find('input[type="radio"][value="10"]').prop('checked', true);
-
-        $pane.find('.js-ref-main').data("base-ref", "");
-        $pane.find('.js-ref-main').val("");
-
-        isReset = false;
-        isSilentReset = false;
+        // Trả lại trạng thái sau khi xử lý xong DOM
+        setTimeout(() => {
+            isReset = false;
+            isSilentReset = false;
+        }, 200);
     }
 
+
     //  các hàm hỗ trợ mở modal chuyển view v.v
+
     function openModalPosting() {
         localStorage.setItem("currentFromID", "modalPosting");
         const crashierLogin = localStorage.getItem("crashierLogin");
@@ -787,6 +807,20 @@
             $('#modalPosting').modal('show');
         }
     }
+
+    // function switchView(viewName) {
+    //     document.querySelectorAll(".mobile-nav button").forEach((btn) => btn.classList.remove("active"));
+    //     document.getElementById("nav-" + viewName).classList.add("active");
+    //     const cols = ["view-trans", "view-group", "view-form"];
+    //     cols.forEach((id) => {
+    //         const el = document.getElementById(id);
+    //         if (id === "view-" + viewName) {
+    //         el.classList.add("active-view");
+    //         if (viewName === 'form') syncToolbarLogic();
+    //     }
+    //         else el.classList.remove("active-view");
+    //     });
+    // }
 
     function switchView(viewName) {
         const isMobile = window.innerWidth < 768;
@@ -917,7 +951,7 @@
             url: '/Billing/GetTransactionGroups',
             type: 'GET',
             success: function (data) {
-                if (data.error) { showToast("Warning",data.error,false); return; }
+                if (data.error) { alert(data.error); return; }
                 let html = '';
                 data.forEach(item => {
                     html += `<a href="javascript:void(0)" onclick="loadSubGroups(${item.id}, this)" class="list-group-item list-group-item-action">${item.description}</a>`;
@@ -958,10 +992,6 @@
     function loadTransactions(subGroupId, element) {
         highlightItem(element, '#list-subgroup-container');
         let groupId = $('#view-group').data('selected-group-id');
-
-        let subGroupDesc = $(element).text().trim();
-        $('.js-invoice-desc').val(subGroupDesc);
-
         $('#list-transaction-container').html('<div class="p-2">Loading...</div>');
         $('#list-article-container').empty();
 
@@ -1052,66 +1082,72 @@
         }
     });
 
+
     // nut add and post
     var invoiceList = [];
 
-    $('#btn-add').click(function () {
-        var $pane = $('#invoice-pane');
+        // --- NÚT ADD RENDER DATA VÀO INVOICE LIST ---
+        $('#btn-add').click(function() {
+            var $activePane = $('#invoice-pane');
+            var transCode = $activePane.find('.js-trans-code').val();
 
-        var transCode = $pane.find('.js-trans-code').val();
-        if (!transCode) {
-            showToast("Warning", "Please select a transaction first!", true);
-            return;
-        }
+            if (!transCode) {
+                showToast("Warning","Please select a transaction first!",true);
+                return;
+            }
 
-        var qty = parseFloat($pane.find('.js-input-qty').val()) || 0;
-        var price = parseNumberWithComma($pane.find('.js-input-price-net').val());
+            var qty = parseFloat($activePane.find('.js-input-qty').val()) || 0;
+            var price = parseNumberWithComma($activePane.find('.js-input-price-net').val());
 
-        const calc = calculateLineTotalPMS({
-            qty: qty,
-            price: price,
-            taxRate: 0,
-            isExpress: $pane.find('.js-chk-express').is(':checked'),
-            pctExpress: parseFloat($pane.find('.js-input-express-pct').val()) || 0,
-            isDiscount: $pane.find('.js-chk-discount').is(':checked'),
-            pctDiscount: parseFloat($pane.find('.js-input-discount-pct').val()) || 0
+            // Tính toán amount hiển thị
+            var rawTotal = qty * price;
+            var pctVal = 0;
+            var serviceType = '';
+            var finalTotal = rawTotal;
+
+            if ($activePane.find('.js-chk-express').is(':checked')) {
+                pctVal = parseFloat($activePane.find('.js-input-express-pct').val()) || 0;
+                serviceType = 'EXP';
+                finalTotal += rawTotal * (pctVal / 100);
+            }
+            else if ($activePane.find('.js-chk-discount').is(':checked')) {
+                pctVal = parseFloat($activePane.find('.js-input-discount-pct').val()) || 0;
+                serviceType = 'DIS';
+                finalTotal -= rawTotal * (pctVal / 100);
+            }
+
+            var itemObj = {
+                id: Date.now(),
+                code: transCode,
+                articleCode: $activePane.find('.js-art-code').val() || "",
+                description: $activePane.find('.js-art-desc').val() || $activePane.find('.js-trans-desc').val(),
+                amountBeforeTax: parseNumberWithComma($activePane.find('.js-amount-gross').val()),
+                quantity: qty,
+                price: price,
+                serviceType: serviceType,
+                servicePct: pctVal,
+                amount: finalTotal,
+                reference: $activePane.find('.js-ref-main').val(),
+                remark: $activePane.find('.js-invoice-desc').val(),
+                checkNo: $activePane.find('.js-invoice-checkNo').val()
+            };
+
+            invoiceList.push(itemObj);
+            // Thêm hiệu ứng thông báo nhỏ hoặc cuộn xuống cuối
+                showToast("Success", "Item added to list", true);
+
+                // Tùy chọn: Tự động cuộn xuống phần Footer để xem danh sách
+                $('.form-body-scroll').animate({
+                    scrollTop: $('.form-footer-fixed').offset().top
+                }, 500);
+            refreshInvoiceGrid();
+            resetFormKeepInvoiceInfo();
         });
-
-        // BUILD REF + SUPPL
-        const rs = buildRefAndSuppl($pane);
-
-        var itemObj = {
-            id: Date.now(),
-            code: transCode,
-            articleCode: $pane.find('.js-art-code').val() || "",
-            description: $pane.find('.js-art-desc').val()
-                 || $pane.find('.js-trans-desc').val(),
-
-            invoiceDesc: $pane.find('.js-invoice-desc').val(),
-
-            quantity: qty,
-            price: price,
-
-            amountBeforeTax: calc.net,
-            amount: calc.gross,
-
-            reference: rs.reference,
-            supplement: rs.supplement,
-
-            checkNo: $pane.find('.js-invoice-checkNo').val()
-        };
-
-        invoiceList.push(itemObj);
-
-        showToast("Success", "Item added to list", true);
-        refreshInvoiceGrid();
-        resetFormKeepInvoiceInfo();
-    });
 
     // ---. HÀM RESET FORM NHƯNG GIỮ INPUT FIELD INVOICE DESC (CHO NÚT ADD) ---
     function resetFormKeepInvoiceInfo() {
         var $activePane = $('#invoice-pane');
-        var currentDesc = $activePane.find('.js-invoice-desc').val(); 
+        var currentDesc = $activePane.find('.js-invoice-desc').val();
 
         resetFormPosting();
 
@@ -1126,140 +1162,107 @@
         const loginName = (localStorage.getItem("Loginname") || "").trim().replace(/^"(.*)"$/, '$1');
         const shiftID = parseInt(localStorage.getItem("shiftID")) || 0;
 
+        //  Xác định Tab đang active
         var $activePane = $('.tab-pane.active');
         var activeTabId = $activePane.attr('id');
         var dataToSend = [];
 
-        var selectedFolioID = parseInt($activePane.find('.js-window-select').val());
+        var $selectBox = $activePane.find('.js-window-select');
+        var selectedFolioID = parseInt($selectBox.val());
 
         if (!selectedFolioID) {
             showToast('Error', "Please select a Window No (Folio)!", false);
             return;
         }
 
-        var isLocked = $activePane.find('.js-window-select option:selected').attr('data-locked');
+        var $selectedOption = $selectBox.find('option:selected');
+        var isLocked = $selectedOption.attr('data-locked');
+
         if (isLocked === 'true') {
-            showToast('Error', "This Folio is Locked!", false);
+            showToast('Error', "This Folio is Locked. Cannot Post Transaction!", false);
             return;
         }
 
-        //  DETAIL-PANE
         if (activeTabId === 'detail-pane') {
             var $pane = $('#detail-pane');
-
             var tCode = $pane.find('.js-trans-code').val();
-            if (!tCode) return showToast("Warning","No transaction selected!",false);
+
+            if (!tCode) { alert("No transaction selected!"); return; }
 
             var qty = parseFloat($pane.find('.js-input-qty').val()) || 0;
             var price = parseNumberWithComma($pane.find('.js-input-price-net').val());
+            var amount = parseNumberWithComma($pane.find('.js-amount-net').val());
 
-            var amountNet = parseNumberWithComma($pane.find('.js-amount-net').val());
-            var amountGross = parseNumberWithComma($pane.find('.js-amount-gross').val());
-
-            let rs = buildRefAndSuppl($pane);
+            var reference = $pane.find('.js-ref-main').val();
+            var supplement = $pane.find('.js-sup-folio').val() || "";
+            var receiptNo = $pane.find('.js-invoice-checkNo').val() || "";
 
             var model = {
-                UserID: loginUser,
-                UserName: loginName,
-                ShiftID: shiftID,
-                CashierNo: loginName,
-
-                FolioID: selectedFolioID,
-                OriginFolioID: selectedFolioID,
-
-                ReservationID: idReservation,
-                OriginReservationID: idReservation,
-                RoomType: roomType,
-                RoomID: roomID,
-
-                ReceiptNo: "",
-                CheckNo: "",
+                UserID: loginUser, UserName: loginName, ShiftID: shiftID, CashierNo: loginName,
+                FolioID: selectedFolioID, OriginFolioID: selectedFolioID,
+                ReservationID: idReservation, OriginReservationID: idReservation, RoomType: roomType, RoomID: roomID,
+                ReceiptNo: receiptNo, CheckNo: receiptNo,
 
                 TransactionCode: tCode,
                 Description: $pane.find('.js-trans-desc').val(),
                 ArticleCode: $pane.find('.js-art-code').val(),
 
-                Quantity: qty,
-                Price: price,
+                Quantity: qty, Price: price,
+                // Thêm các field Amount quan trọng bị thiếu ở JS cũ
+                Amount: amount, AmountMaster: amount,
+                AmountGross: amount, AmountMasterGross: amount,
+                AmountBeforeTax: parseNumberWithComma($pane.find('.js-amount-gross').val()),
+                AmountMasterBeforeTax: parseNumberWithComma($pane.find('.js-amount-gross').val()),
 
-                Amount: amountGross,
-                AmountMaster: amountGross,
-                AmountGross: amountGross,
-                AmountMasterGross: amountGross,
-                AmountBeforeTax: amountNet,
-                AmountMasterBeforeTax: amountNet,
+                CurrencyID: $pane.find('.currency-select').val(), CurrencyMaster: $pane.find('.currency-select').val(),
+                Reference: reference, Supplement: supplement,
 
-                CurrencyID: $pane.find('.currency-select').val(),
-                CurrencyMaster: $pane.find('.currency-select').val(),
-
-                Reference: rs.reference,
-                Supplement: rs.supplement,
-
-                PostType: 1,
-                GroupType: 1,
+                PostType: 2, GroupType: 1,
 
                 UserInsertID: loginUser,
                 UserUpdateID: loginUser
+
             };
 
             dataToSend.push(model);
+
         }
-
-        // INVOICE-PANE
         else if (activeTabId === 'invoice-pane') {
-
             if (invoiceList.length === 0) {
-                showToast("Warning","Invoice list is empty!",false);
+                alert("Invoice list is empty! Please 'Add' items first.");
                 return;
             }
 
             var $pane = $('#invoice-pane');
-
             var invCheckNo = $pane.find('.js-invoice-checkNo').val();
             var invDesc = $pane.find('.js-invoice-desc').val();
             var invRef = $pane.find('.js-invoice-ref').val();
+            var invSuppl = $pane.find('.js-invoice-supp').val();
 
-            invoiceList.forEach(function (item) {
+            invoiceList.forEach(function(item) {
                 var model = {
-                    UserID: loginUser,
-                    UserName: loginName,
-                    ShiftID: shiftID,
-                    CashierNo: loginName,
-
-                    FolioID: selectedFolioID,
-                    OriginFolioID: selectedFolioID,
-
-                    ReservationID: idReservation,
-                    OriginReservationID: idReservation,
-                    RoomType: roomType,
-
-                    RoomID: roomID,
-
-                    ReceiptNo: item.checkNo,
-                    CheckNo: invCheckNo,
+                    UserID: loginUser, UserName: loginName, ShiftID: shiftID, CashierNo: loginName,
+                    FolioID: selectedFolioID, OriginFolioID: selectedFolioID,
+                    ReservationID: idReservation, OriginReservationID: idReservation, RoomType: roomType, RoomID: roomID,
+                    ReceiptNo: item.checkNo, CheckNo: invCheckNo,
 
                     TransactionCode: item.code,
                     Description: invDesc || item.description,
                     ArticleCode: item.articleCode,
 
-                    Quantity: item.quantity,
-                    Price: item.price,
+                    Quantity: item.quantity, Price: item.price,
 
-                    Amount: item.amount,
-                    AmountMaster: item.amount,
-                    AmountGross: item.amount,
-                    AmountMasterGross: item.amount,
-                    AmountBeforeTax: item.amountBeforeTax,
-                    AmountMasterBeforeTax: item.amountBeforeTax,
+                    Amount: item.amount, AmountMaster: item.amount,
+                    AmountGross: item.amount, AmountMasterGross: item.amount,
+                    AmountBeforeTax: parseNumberWithComma(item.amountBeforeTax),
+                    AmountMasterBeforeTax: parseNumberWithComma(item.amountBeforeTax),
 
-                    CurrencyID: $pane.find('.currency-select').val(),
-                    CurrencyMaster: $pane.find('.currency-select').val(),
+                    CurrencyID: $pane.find('.currency-select').val(), CurrencyMaster: $pane.find('.currency-select').val(),
 
-                    Reference: item.reference,
-                    Supplement: item.supplement,
+                    Reference: item.reference ? (item.reference + ". " + invRef) : invRef,
+                    Supplement: invSuppl,
 
-                    PostType: 3,
-                    GroupType: 1,
+                    PostType: 3, GroupType: 1,
 
                     UserInsertID: loginUser,
                     UserUpdateID: loginUser
@@ -1269,11 +1272,12 @@
             });
         }
 
-        submitToDB(dataToSend, selectedFolioID);
+        submitToDB(dataToSend,selectedFolioID);
     }
 
     // Hàm confirm post (api)
     function submitToDB(dataList,targetFolioID) {
+        $('#loadingOverlay').css("display", "flex").hide().fadeIn(200);
 
         $.ajax({
             url: '/Billing/PostingSave',
@@ -1281,6 +1285,7 @@
             contentType: 'application/json',
             data: JSON.stringify(dataList),
             success: function (res) {
+                $('#loadingOverlay').fadeOut(200);
                 if (res.success) {
                     showToast("Success","Posted Successfully! Invoice No: " + res.invoiceNo,true);
 
@@ -1304,7 +1309,7 @@
                 }
             },
             error: function (err) {
-
+                $('#loadingOverlay').fadeOut(200);
                 console.error(err);
                 showToast('Error', "System Error: " + (err.statusText || "Unknown"), false);
             }
@@ -1324,28 +1329,28 @@
                     showBorders: true,
                     showRowLines: true,
                     rowAlternationEnabled: true,
-                    columnAutoWidth: false,         
+                    columnAutoWidth: false,
                     scrolling: {
-                        mode: "standard",            
+                        mode: "standard",
                         useNative: true
                     },
                     paging: { enabled: false },
-                    loadPanel: { enabled: false }, 
+                    loadPanel: { enabled: false },
                     columns: [
                         { dataField: "code", caption: "Code", width: 40, cssClass: "fw-bold" },
                         {
-                            dataField: "description", caption: "Description", minWidth: 150,
+                            dataField: "description", caption: "Description", minWidth: 110,
                             cellTemplate: function(container, options) {
                                 $("<div>").addClass("text-truncate").attr("title", options.value).text(options.value).appendTo(container);
                             }
                         },
                         { dataField: "quantity", caption: "Qty", width: 30 },
                         {
-                            dataField: "price", caption: "Price", width: 70,
+                            dataField: "price", caption: "Price", width: 100,
                             format: { type: "fixedPoint", precision: 0 }
                         },
                         {
-                            dataField: "amount", caption: "Total", width: 70,
+                            dataField: "amount", caption: "Total", width: 100,
                             cssClass: "fw-bold",
                             format: { type: "fixedPoint", precision: 0 }
                         },
@@ -1409,13 +1414,13 @@
             isReset = true;
             isSilentReset = true;
 
-            // Reset toàn bộ input trong modal
             $('#modalPosting').find('input').val('');
+            $('#modalPosting').find('.js-input-qty').val('1');
+            $('#modalPosting').find('.js-input-price, .js-input-price-net, .js-amount-gross, .js-amount-net').val('0,00');
 
-            // Gọi reset logic chung cho tab đang active (để đưa Percent về 10 và radio về 10)
-            resetFormPosting();
+            $('.js-chk-express, .js-chk-discount').prop('checked', false);
+            $('.express-box input[type="text"], .express-box input[type="radio"]').prop('disabled', true);
 
-            // Reset các danh sách bên trái
             $('#list-group-container').empty().html('<div class="p-2 text-muted">Loading...</div>');
             $('#list-subgroup-container').empty();
             $('#list-transaction-container').empty();
@@ -1423,12 +1428,11 @@
 
             $('.list-group-item').removeClass('active-item-custom');
 
-            // Clear danh sách Invoice tạm thời (F3)
             if (typeof invoiceList !== 'undefined') invoiceList = [];
+
             var gridFooter = $("#gridInvoiceFooter").data("dxDataGrid");
             if (gridFooter) gridFooter.option("dataSource", []);
 
-            // Quay về view Group (cho mobile)
             switchView('group');
 
             setTimeout(() => {
@@ -1438,99 +1442,31 @@
         }
 
         function formatCurrencyLive(input) {
-            if (isComposing) return;
+            let selectionStart = input.selectionStart;
+            let originalLength = input.value.length;
 
             let value = input.value;
-
             let isNegative = value.startsWith('-');
+            let cleanValue = value.replace(/[^\d]/g, "");
 
-            // giữ lại số + dấu ,
-            let clean = value.replace(/[^\d,]/g, '');
-
-            // chỉ cho 1 dấu ,
-            let parts = clean.split(',');
-            if (parts.length > 2) {
-                clean = parts[0] + ',' + parts.slice(1).join('');
+            if (cleanValue === "") {
+                input.value = isNegative ? "-" : "";
+                return;
             }
 
-            let [intPart, decPart] = clean.split(',');
+            // Format theo chuẩn vi-VN (dấu chấm)
+            let formattedValue = new Intl.NumberFormat('vi-VN').format(parseInt(cleanValue, 10));
+            if (isNegative) formattedValue = "-" + formattedValue;
 
-            if (!intPart) intPart = '0';
+            // QUAN TRỌNG: Chỉ cập nhật nếu giá trị thực sự thay đổi
+            if (input.value !== formattedValue) {
+                input.value = formattedValue;
 
-            let formattedInt = new Intl.NumberFormat('vi-VN').format(Number(intPart));
-
-            let result = formattedInt;
-
-            if (decPart !== undefined) {
-                result += ',' + decPart.slice(0, 2); 
+                // Tính toán lại vị trí con trỏ chuột
+                let newLength = input.value.length;
+                selectionStart = selectionStart + (newLength - originalLength);
+                input.setSelectionRange(selectionStart, selectionStart);
             }
-
-            if (isNegative) result = '-' + result;
-
-            input.value = result;
         }
 
-        function calculateLineTotalPMS({
-            qty = 1,
-            price = 0,
-            taxRate = 0,
-            isExpress = false,
-            pctExpress = 0,
-            isDiscount = false,
-            pctDiscount = 0
-        }) {
-            let base = qty * price;
-
-            let expressAmount = 0;
-            if (isExpress && pctExpress > 0) {
-                expressAmount = base * (pctExpress / 100);
-            }
-
-            let discountAmount = 0;
-            if (isDiscount && pctDiscount > 0) {
-                discountAmount = base * (pctDiscount / 100); // tính trên base
-            }
-
-            let net = base + expressAmount - discountAmount;
-
-            let tax = net * (taxRate / 100);
-            let gross = net + tax;
-
-            return { net, tax, gross };
-        }
-
-        function buildRefAndSuppl($pane) {
-            let $refInput = $pane.find('.js-ref-main');
-
-            let baseRef = $refInput.data("base-ref") || "";
-
-            let parts = [];
-
-            let isExpress = $pane.find('.js-chk-express').is(':checked');
-            let pctExpress = parseFloat($pane.find('.js-input-express-pct').val()) || 0;
-
-            let isDiscount = $pane.find('.js-chk-discount').is(':checked');
-            let pctDiscount = parseFloat($pane.find('.js-input-discount-pct').val()) || 0;
-
-            if (isExpress && pctExpress > 0) {
-                parts.push(`EX-${pctExpress}%`);
-            }
-
-            if (isDiscount && pctDiscount > 0) {
-                parts.push(`DIS-${pctDiscount}%`);
-            }
-
-            let finalRef = baseRef;
-
-            if (parts.length > 0) {
-                finalRef = (baseRef ? baseRef + " | " : "") + parts.join(" | ");
-            }
-
-            $refInput.val(finalRef);
-
-            return {
-                reference: finalRef,
-                supplement: parts.join(" | ")
-            };
-        }
 </script>
