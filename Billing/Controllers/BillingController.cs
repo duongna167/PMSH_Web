@@ -922,7 +922,6 @@ namespace Billing.Controllers
                 var existingFolios = FolioBO.Instance.FindByAttribute("ReservationID", model.ReservationID);
                 var usedFolioNos = existingFolios.Cast<FolioModel>().Select(x => x.FolioNo).ToList();
 
-                // Validate if user's requested window is already in use
                 if (usedFolioNos.Contains(model.FolioNo))
                 {
                     return Json(new { code = 1, msg = $"Window {model.FolioNo} is already in use. Please select another window!" });
@@ -930,7 +929,6 @@ namespace Billing.Controllers
 
                 if (model.IsMasterFolio)
                 {
-                    // If UI lacks profile, mapping Company/Agent correctly
                     if (model.ProfileID <= 0 || model.ProfileID == res.ProfileIndividualId)
                     {
                         model.ProfileID = res.ProfileCompanyId > 0 ? res.ProfileCompanyId : (res.ProfileAgentId > 0 ? res.ProfileAgentId : res.ProfileGroupId);
