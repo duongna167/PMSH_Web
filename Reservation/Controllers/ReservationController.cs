@@ -702,8 +702,8 @@ namespace Reservation.Controllers
                     Where(x => x.KeyName == "RoomCharge").ToList()[0].KeyValue;
 
                 }
-                       
-                   var (originalPrice, priceAfter, priceDiscount, priceAfterDiscount) = _iReservationService.CalculateNet(price, transactionCode, discountAmount, discountPercent);
+
+                var (originalPrice, priceAfter, priceDiscount, priceAfterDiscount) = _iReservationService.CalculateNet(price, transactionCode, discountAmount, discountPercent);
 
                 // Tạo đối tượng JSON để trả về
                 var result = new
@@ -816,14 +816,14 @@ namespace Reservation.Controllers
 
                 Amount = Math.Round(Amount, 0, MidpointRounding.AwayFromZero);
 
-                
+
 
                 // Tạo đối tượng JSON để trả về
                 var result = new
                 {
                     Amount = Amount,
                     AmountNet = AmountNet,
-          
+
                 };
                 return Json(result);
             }
@@ -886,7 +886,7 @@ namespace Reservation.Controllers
                     Where(x => x.KeyName == "RoomCharge").ToList()[0].KeyValue;
 
                 }
-                
+
                 var (originalPrice, priceAfter, priceDiscount, priceAfterDiscount) = _iReservationService.CalculateNetReverse(price, transactionCode, discountAmount, discountPercent);
 
                 // Tạo đối tượng JSON để trả về
@@ -2960,30 +2960,30 @@ namespace Reservation.Controllers
                         };
                         FolioBO.Instance.Insert(guestFolio);
 
-                        if (reservation.ProfileCompanyId > 0 || reservation.ProfileAgentId > 0 || reservation.ProfileGroupId > 0)
-                        {
-                            int masterProfileID = reservation.ProfileCompanyId > 0 ? reservation.ProfileCompanyId : (reservation.ProfileAgentId > 0 ? reservation.ProfileAgentId : reservation.ProfileGroupId);
-                            string accName = "";
-                            DataTable dtAcc = TextUtils.Select($"SELECT Account FROM Profile WHERE ID = {masterProfileID}");
-                            if (dtAcc.Rows.Count > 0) accName = dtAcc.Rows[0]["Account"].ToString();
+                        // if (reservation.ProfileCompanyId > 0 || reservation.ProfileAgentId > 0 || reservation.ProfileGroupId > 0)
+                        // {
+                        //     int masterProfileID = reservation.ProfileCompanyId > 0 ? reservation.ProfileCompanyId : (reservation.ProfileAgentId > 0 ? reservation.ProfileAgentId : reservation.ProfileGroupId);
+                        //     string accName = "";
+                        //     DataTable dtAcc = TextUtils.Select($"SELECT Account FROM Profile WHERE ID = {masterProfileID}");
+                        //     if (dtAcc.Rows.Count > 0) accName = dtAcc.Rows[0]["Account"].ToString();
 
-                            FolioModel masterFolio = new FolioModel
-                            {
-                                ReservationID = reservation.ID,
-                                FolioDate = businessDate,
-                                FolioNo = -1,
-                                ProfileID = masterProfileID,
-                                AccountName = accName,
-                                ConfirmationNo = reservation.ConfirmationNo,
-                                Status = false,
-                                IsMasterFolio = true,
-                                CreateDate = DateTime.Now,
-                                UpdateDate = DateTime.Now,
-                                UserInsertID = userID,
-                                UserUpdateID = userID
-                            };
-                            FolioBO.Instance.Insert(masterFolio);
-                        }
+                        //     FolioModel masterFolio = new FolioModel
+                        //     {
+                        //         ReservationID = reservation.ID,
+                        //         FolioDate = businessDate,
+                        //         FolioNo = -1,
+                        //         ProfileID = masterProfileID,
+                        //         AccountName = accName,
+                        //         ConfirmationNo = reservation.ConfirmationNo,
+                        //         Status = false,
+                        //         IsMasterFolio = true,
+                        //         CreateDate = DateTime.Now,
+                        //         UpdateDate = DateTime.Now,
+                        //         UserInsertID = userID,
+                        //         UserUpdateID = userID
+                        //     };
+                        //     FolioBO.Instance.Insert(masterFolio);
+                        // }
                     }
                 }
                 #endregion

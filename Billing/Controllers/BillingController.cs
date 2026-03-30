@@ -896,8 +896,17 @@ namespace Billing.Controllers
         {
             try
             {
-                List<ReservationModel> posting = new List<ReservationModel>();
-                   posting = ReservationBO.GetBalanceVND(rsvID);
+                List<ReservationModel> posting = ReservationBO.GetBalanceVND(rsvID);
+                if (posting != null && posting.Count > 0)
+                {
+                    var groupReservations = ReservationBO.Instance.FindByAttribute("ConfirmationNo", posting[0].ConfirmationNo).Cast<ReservationModel>().ToList();
+                    decimal totalGrpBalance = 0;
+                    foreach (var r in groupReservations)
+                    {
+                        totalGrpBalance += r.BalanceVND;
+                    }
+                    posting[0].BalanceVND = totalGrpBalance;
+                }
                 return Json(posting);
             }
             catch (Exception ex)
@@ -1332,33 +1341,36 @@ namespace Billing.Controllers
         }
         #endregion
 
-        #region DatVP __ Billing: Split Transaction
+        #region Billing: Split Transaction
         [HttpPost]
-        public ActionResult SplitTransaction(int folioDetailID, decimal discountAmount, decimal discountPercent, decimal amount, string userName, string userID, int shiftID, string shiftName)
+        public ActionResult SplitTransaction([FromBody] BaseBusiness.Model.SplitTransactionDto request)
         {
             ProcessTransactions pt = new ProcessTransactions();
             try
             {
                 pt.OpenConnection();
                 pt.BeginTransaction();
-                FolioDetailModel folioDetail = (FolioDetailModel)FolioDetailBO.Instance.FindByPrimaryKey(folioDetailID);
+                FolioDetailModel folioDetail = (FolioDetailModel)FolioDetailBO.Instance.FindByPrimaryKey(request.FolioDetailID);
                 if (folioDetail == null || folioDetail.ID == 0)
                 {
-                    return Json(new { code = 0, msg = "Could not find transaction to spliy " });
+                    return Json(new { code = 0, msg = "Could not find transaction to split " });
 
                 }
 
                 List<FolioDetailModel> listFolioDetail = PropertyUtils.ConvertToList<FolioDetailModel>(FolioDetailBO.Instance.FindByAttribute("TransactionNo", folioDetail.TransactionNo));
-                // precentMain là tỉ lệ của transaction sẽ được thêm, percentSub là tỉ lệ của transaction sẽ được update
-                decimal percentMain = discountPercent / 100;
-                decimal percentSub = (100 - discountPercent) / 100;
-                if (discountAmount > 0)
+                // percentMain là tỉ lệ của transaction sẽ được thêm, percentSub là tỉ lệ của transaction sẽ được update
+                decimal percentMain = request.DiscountPercent / 100;
+                decimal percentSub = (100 - request.DiscountPercent) / 100;
+                if (request.DiscountAmount > 0)
                 {
-                    percentMain = discountAmount / amount;
-                    percentSub = (amount - discountAmount) / amount;
+                    percentMain = request.DiscountAmount / request.Amount;
+                    percentSub = (request.Amount - request.DiscountAmount) / request.Amount;
                 }
                 if (listFolioDetail.Count > 0)
                 {
+                    string newInvoiceNo = (FolioDetailBO.GetTopInvoiceNo() + 1).ToString();
+                    string newTransactionNo = (FolioDetailBO.GetTopTransactioNo() + 1).ToString();
+
                     foreach (var item in listFolioDetail)
                     {
                         #region Insert 1 transaction theo transaction split 
@@ -1370,14 +1382,14 @@ namespace Billing.Controllers
                         folioDetailMain.AmountMasterBeforeTax = Math.Round(item.AmountMasterBeforeTax * percentMain);
                         folioDetailMain.AmountGross = Math.Round(item.AmountGross * percentMain);
                         folioDetailMain.AmountMasterGross = Math.Round(item.AmountMasterGross * percentMain);
-                        folioDetailMain.ShiftID = shiftID;
-                        folioDetailMain.CashierNo = shiftName.ToString();
-                        folioDetailMain.UserID = int.Parse(userID);
-                        folioDetailMain.UserName = userName;
+                        folioDetailMain.ShiftID = request.ShiftID;
+                        folioDetailMain.CashierNo = request.ShiftName?.ToString() ?? "";
+                        folioDetailMain.UserID = int.Parse(request.UserID ?? "0");
+                        folioDetailMain.UserName = request.UserName;
                         folioDetailMain.ReservationID = folioDetailMain.OriginReservationID = item.ReservationID;
                         folioDetailMain.FolioID = folioDetailMain.OriginFolioID = item.FolioID;
-                        folioDetailMain.InvoiceNo = (FolioDetailBO.GetTopInvoiceNo() + 1).ToString();
-                        folioDetailMain.TransactionNo = (FolioDetailBO.GetTopTransactioNo() + 1).ToString();
+                        folioDetailMain.InvoiceNo = newInvoiceNo;
+                        folioDetailMain.TransactionNo = newTransactionNo;
                         folioDetailMain.ReceiptNo = item.ReceiptNo;
                         folioDetailMain.TransactionDate = item.TransactionDate;
                         folioDetailMain.ProfitCenterID = item.ProfitCenterID;
@@ -1399,7 +1411,7 @@ namespace Billing.Controllers
                         folioDetailMain.Description = item.Description;
                         folioDetailMain.RoomType = item.RoomType;
                         folioDetailMain.RoomTypeID = item.RoomTypeID;
-                        folioDetailMain.UserInsertID = folioDetailMain.UserUpdateID = int.Parse(userID);
+                        folioDetailMain.UserInsertID = folioDetailMain.UserUpdateID = int.Parse(request.UserID ?? "0");
                         folioDetailMain.CreateDate = folioDetailMain.UpdateDate = DateTime.Now;
                         folioDetailMain.RoomID = item.RoomID;
                         folioDetailMain.Property = folioDetailMain.CheckNo = folioDetailMain.OriginARNo = item.Property;
@@ -1418,16 +1430,16 @@ namespace Billing.Controllers
                         #region update lại transaction split
                         if (item.IsSplit == true)
                         {
-                            item.Reference = $"{item.AmountMaster} split in to {Math.Round(item.AmountGross * percentSub)}";
+                            item.Reference = $"{item.AmountMaster} split in to {item.AmountGross - folioDetailMain.AmountGross}";
                         }
-                        item.Price = Math.Round(item.Price * percentSub);
-                        item.Amount = Math.Round(item.Amount * percentSub);
-                        item.AmountMaster = Math.Round(item.AmountMaster * percentSub);
-                        item.AmountBeforeTax = Math.Round(item.AmountBeforeTax * percentSub);
-                        item.AmountMasterBeforeTax = Math.Round(item.AmountMasterBeforeTax * percentSub);
-                        item.AmountGross = Math.Round(item.AmountGross * percentSub);
-                        item.AmountMasterGross = Math.Round(item.AmountMasterGross * percentSub);
-                        item.UserUpdateID = int.Parse(userID);
+                        item.Price = item.Price - folioDetailMain.Price;
+                        item.Amount = item.Amount - folioDetailMain.Amount;
+                        item.AmountMaster = item.AmountMaster - folioDetailMain.AmountMaster;
+                        item.AmountBeforeTax = item.AmountBeforeTax - folioDetailMain.AmountBeforeTax;
+                        item.AmountMasterBeforeTax = item.AmountMasterBeforeTax - folioDetailMain.AmountMasterBeforeTax;
+                        item.AmountGross = item.AmountGross - folioDetailMain.AmountGross;
+                        item.AmountMasterGross = item.AmountMasterGross - folioDetailMain.AmountMasterGross;
+                        item.UserUpdateID = int.Parse(request.UserID ?? "0");
                         item.UpdateDate = DateTime.Now;
                         FolioDetailBO.Instance.Update(item);
                         #endregion
@@ -1440,7 +1452,7 @@ namespace Billing.Controllers
                             postingHistory.ActionType = 6;
                             postingHistory.ActionText = $"[SPLIT_TRANSACTION] - {folioDetailMain.TransactionCode} from {folioDetailMain.Reference}";
                             postingHistory.ActionDate = DateTime.Now;
-                            postingHistory.ActionUser = Request.Form["userName"].ToString();
+                            postingHistory.ActionUser = request.UserName;
                             postingHistory.Amount = folioDetailMain.AmountMaster;
                             postingHistory.InvoiceNo = folioDetailMain.InvoiceNo;
                             postingHistory.Supplement = "";
@@ -1462,7 +1474,7 @@ namespace Billing.Controllers
                             postingHistory.ActionType = 6;
                             postingHistory.ActionText = $"[SPLIT_TRANSACTION] - {item.TransactionCode} from {item.Reference}";
                             postingHistory.ActionDate = DateTime.Now;
-                            postingHistory.ActionUser = Request.Form["userName"].ToString();
+                            postingHistory.ActionUser = request.UserName;
                             postingHistory.Amount = item.AmountMaster;
                             postingHistory.InvoiceNo = item.InvoiceNo;
                             postingHistory.Supplement = "";

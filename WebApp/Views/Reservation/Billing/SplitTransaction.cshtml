@@ -12,7 +12,7 @@
 
                 <!-- ACTION -->
                 <div class="d-flex gap-2 py-2">
-                    <button class="mui-button mui-button-search" onclick="SplitTransaction();">
+                    <button class="mui-button mui-button-search" id="btnSplitTransaction">
                         Split
                     </button>
                     <button class="mui-button mui-button-clear" onclick="closeModalSplitTransaction();">
@@ -42,34 +42,35 @@
                     <div class="d-flex gap-4 mt-1">
                         <div class="form-check">
                             
-                            <label class="form-check-label"><input class="me-1" type="radio" name="typeDiscountSplit" value="0" checked>Amount</label>
+                            <label class="form-check-label"><input class="me-1" type="radio" name="typeDiscountSplit"
+                                                                       value="0" checked>Amount</label>
+                            </div>
+
+                            <div class="form-check">
+                                <label class="form-check-label"><input class="me-1" type="radio" name="typeDiscountSplit"
+                                                                           value="1">Percentage</label>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="form-check">
-                            <label class="form-check-label"><input class="me-1" type="radio" name="typeDiscountSplit" value="1">Percentage</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label text-muted mb-0" style="min-width: 80px;">
+                                Value
+                            </label>
+                            <input id="valueSplitTransaction" class="form-control text-end" placeholder="Enter value" />
                         </div>
                     </div>
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    <label class="form-label text-muted mb-0" style="min-width: 80px;">
-                        Value
-                    </label>
-                    <input id="valueSplitTransaction"
-                           class="form-control text-end"
-                           placeholder="Enter value" />
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 <script>
 
     /* =========================
      * OPEN MODAL
      * ========================= */
-    function openModalSplitTransaction(){
+    function openModalSplitTransaction() {
 
         // reset radio
         $('input[name="typeDiscountSplit"][value="0"]').prop('checked', true);
@@ -96,9 +97,13 @@
         $('#modalSplitTransaction').modal('show');
     }
 
-    function closeModalSplitTransaction(){
+    function closeModalSplitTransaction() {
         $('#modalSplitTransaction').modal('hide');
     }
+
+    $(document).on('click', '.mui-button-search', function () {
+        SplitTransaction();
+    });
 
     /* =========================
      * INPUT FORMAT REALTIME
@@ -149,8 +154,13 @@
     /* =========================
      * MAIN ACTION
      * ========================= */
-    function SplitTransaction(){
+    var isSplitting = false;
+    function SplitTransaction() {
+        if (isSplitting) return;
+        isSplitting = true;
 
+        const $btn = $('#btnSplitTransaction');
+        $btn.prop('disabled', true);
         const selectedValue = $('input[name="typeDiscountSplit"]:checked').val();
         const inputVal = $('#valueSplitTransaction').val();
 
@@ -188,21 +198,22 @@
 
         $.ajax({
             url: '/Billing/SplitTransaction',
-            type: 'post',
+            type: 'POST',
+            contentType: 'application/json',
             dataType: 'json',
-            data: {
-                folioDetailID: folioDetailID,
-                discountAmount: discountAmount,
-                discountPercent: discountPercent,
-                amount: amountTotal,
-                userName: userName,
-                userID: userID,
-                shiftID: shiftID,
-                shiftName: shiftName
-            },
+            data: JSON.stringify({
+                FolioDetailID: folioDetailID,
+                DiscountAmount: discountAmount,
+                DiscountPercent: discountPercent,
+                Amount: amountTotal,
+                UserName: userName,
+                UserID: userID,
+                ShiftID: shiftID,
+                ShiftName: shiftName
+            }),
             headers: {
                 "X-CSRF-TOKEN-HEADERNAME":
-                jQuery("input[name='__RequestVerificationToken']").val()
+                    jQuery("input[name='__RequestVerificationToken']").val()
             },
             success: function (result) {
                 closeModalSplitTransaction();
