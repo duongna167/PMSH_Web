@@ -708,11 +708,12 @@ namespace Reservation.Controllers
                 // Tạo đối tượng JSON để trả về
                 var result = new
                 {
-                    Price = originalPrice,
-                    PriceAfter = priceAfter,
-                    PriceDiscount = priceDiscount,
-                    PriceAfterDiscount = priceAfterDiscount
+                    Price = Math.Round(originalPrice, 0, MidpointRounding.AwayFromZero),
+                    PriceAfter = Math.Round(priceAfter, 0, MidpointRounding.AwayFromZero),
+                    PriceDiscount = Math.Round(priceDiscount, 0, MidpointRounding.AwayFromZero),
+                    PriceAfterDiscount = Math.Round(priceAfterDiscount, 0, MidpointRounding.AwayFromZero)
                 };
+
                 return Json(result);
             }
             catch (Exception ex)
@@ -885,16 +886,18 @@ namespace Reservation.Controllers
                     Where(x => x.KeyName == "RoomCharge").ToList()[0].KeyValue;
 
                 }
+                
                 var (originalPrice, priceAfter, priceDiscount, priceAfterDiscount) = _iReservationService.CalculateNetReverse(price, transactionCode, discountAmount, discountPercent);
 
                 // Tạo đối tượng JSON để trả về
                 var result = new
                 {
-                    Price = originalPrice,
-                    PriceAfter = priceAfter,
-                    PriceDiscount = priceDiscount,
-                    PriceAfterDiscount = priceAfterDiscount
+                    Price = Math.Round(originalPrice, 0, MidpointRounding.AwayFromZero),
+                    PriceAfter = Math.Round(priceAfter, 0, MidpointRounding.AwayFromZero),
+                    PriceDiscount = Math.Round(priceDiscount, 0, MidpointRounding.AwayFromZero),
+                    PriceAfterDiscount = Math.Round(priceAfterDiscount, 0, MidpointRounding.AwayFromZero)
                 };
+
                 return Json(result);
             }
             catch (Exception ex)
