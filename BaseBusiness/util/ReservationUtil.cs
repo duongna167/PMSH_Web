@@ -1848,7 +1848,90 @@ namespace BaseBusiness.util
 
         #endregion
 
+
+        /// <summary>
+        /// Lấy thông tin Alerts cho từng đặt phòng
+        /// -- CSS, 30/03/2010
+        /// </summary>
+        /// <param name="ReservationID"></param>
+        /// <returns></returns>
+        public static ArrayList GetReservationAlerts(int ReservationID)
+        {
+            try
+            {
+                string Area = "";
+                ////Lấy thông tin bảng Rsv 
+                //ReservationModel mR = (ReservationModel)ReservationBO.Instance.FindByPK(ReservationID);
+                //if (mR.Status == 0 || mR.Status == 5)
+                //    Area = "Reservation";
+                //else if (mR.Status == 5 || mR.Status == 6)
+                //    Area = "Check-In";
+                //else if (mR.Status == 2)
+                //    Area = "Check-Out";
+                //Tim kiem Routing
+                Expression expR = new Expression("ReservationID", ReservationID, "=");
+                //expR = expR.And(new Expression("Area", Area, "="));
+                ArrayList arrR = ReservationAlertsBO.Instance.FindByExpression(expR);
+                //Kiểm tra điều kiện để trả về giá trị
+                if (arrR.Count == 0)
+                    return arrR;
+                else
+                {
+                    return arrR;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+        //C2- Có pt
+        public static ArrayList GetReservationAlerts(int ReservationID, ProcessTransactions pt)
+        {
+
+            string Area = "";
+            //Lấy thông tin bảng Rsv 
+            //ReservationModel mR = (ReservationModel)pt.FindByPK("Reservation",ReservationID);
+            //if (mR.Status == 0 || mR.Status == 5)
+            //    Area = "Reservation";
+            //else if (mR.Status == 1 || mR.Status == 6)
+            //    Area = "Check-In";
+            //else if (mR.Status == 2)
+            //    Area = "Check-Out";
+            //Tim kiem Routing
+            Expression expR = new Expression("ReservationID", ReservationID, "=");
+            //expR = expR.And(new Expression("Area", Area, "="));
+            ArrayList arrR = pt.FindByExpression("ReservationAlerts", expR);
+            //Kiểm tra điều kiện để trả về giá trị
+            if (arrR.Count == 0)
+                return arrR;
+            else
+            {
+                return arrR;
+            }
+
+        }
+
+        public static void InsertActivityLog(int reservationId, int userId, string userName, string change, string oldValue, string newValue, string description)
+        {
+            // Tạo audit log cho thay đổi reservation
+            ActivityLogModel activityLog = new()
+            {
+                TableName = "Reserrvation",
+                ObjectID = reservationId,
+                UserID = userId,
+                UserName = userName,
+                ChangeDate = DateTime.Now,
+                Change = change,
+                OldValue = oldValue,
+                NewValue = newValue,
+                Description = description
+            };
+            ActivityLogBO.Instance.Insert(activityLog);
+        }
+
         #endregion
 
     }
+
 }
