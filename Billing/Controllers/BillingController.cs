@@ -1,4 +1,4 @@
-﻿using BaseBusiness.BO;
+using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using Billing.Dto;
@@ -919,15 +919,34 @@ namespace Billing.Controllers
 
                 var res = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(model.ReservationID);
 
-                var existingFolios = FolioBO.Instance.FindByAttribute("ReservationID", model.ReservationID);
-                var usedFolioNos = existingFolios.Cast<FolioModel>().Select(x => x.FolioNo).ToList();
+                // For Master Folios, we must attach the folio to the Master/Paymaster Reservation
+                if (model.IsMasterFolio == true)
+                {
+                    var masterRes = ReservationBO.Instance.FindByAttribute("ConfirmationNo", res.ConfirmationNo)
+                                                          .Cast<ReservationModel>()
+                                                          .FirstOrDefault(r => r.PostingMaster == true);
+                    if (masterRes != null)
+                    {
+                        model.ReservationID = masterRes.ID;
+                        res = masterRes;
+                    }
+                }
+
+                List<FolioModel> existingFolios;
+                if (model.IsMasterFolio == true)
+                    existingFolios = FolioBO.Instance.FindByAttribute("ConfirmationNo", res.ConfirmationNo).Cast<FolioModel>().ToList();
+                else
+                    existingFolios = FolioBO.Instance.FindByAttribute("ReservationID", model.ReservationID).Cast<FolioModel>().ToList();
+
+                var usedFolioNos = existingFolios.Where(x => x.IsMasterFolio == model.IsMasterFolio)
+                                                 .Select(x => x.FolioNo).ToList();
 
                 if (usedFolioNos.Contains(model.FolioNo))
                 {
                     return Json(new { code = 1, msg = $"Window {model.FolioNo} is already in use. Please select another window!" });
                 }
 
-                if (model.IsMasterFolio)
+                if (model.IsMasterFolio == true)
                 {
                     if (model.ProfileID <= 0 || model.ProfileID == res.ProfileIndividualId)
                     {
@@ -937,6 +956,7 @@ namespace Billing.Controllers
                     }
                 }
 
+                model.IsPrintVAT = false;
                 model.FolioDate = TextUtils.GetBusinessDate();
                 model.CreateDate = model.UpdateDate = DateTime.Now;
                 FolioBO.Instance.Insert(model);

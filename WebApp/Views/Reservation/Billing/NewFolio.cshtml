@@ -94,6 +94,7 @@
         $('#radioGuestFolio').prop('checked', true);
 
         let canCreateMaster = false;
+        let masterNameToDisplay = "";
         try {
             const resData = await $.ajax({
                 url: '/Reservation/GetReservationByID',
@@ -102,6 +103,9 @@
             });
             if (resData && (resData.profileCompanyId > 0 || resData.profileAgentId > 0 || resData.profileGroupId > 0)) {
                 canCreateMaster = true;
+                if (resData.profileCompanyId > 0) masterNameToDisplay = resData.companyName;
+                else if (resData.profileAgentId > 0) masterNameToDisplay = resData.agentName;
+                else if (resData.profileGroupId > 0) masterNameToDisplay = resData.groupName;
             }
         } catch (e) {
             console.error("Failed to check master folio eligibility:", e);
@@ -118,13 +122,30 @@
 
         toggleFolioType();
 
-        $('#folioNoCreate').val(typeof listFolioNoID !== "undefined" ? listFolioNoID.length + 1 : 1);
+        let nextGuestFolioNo = 1;
+        let nextMasterFolioNo = -1;
+
+        if (typeof listFolioData !== "undefined" && listFolioData !== null) {
+            const guestFolios = listFolioData.filter(f => !f.isMasterFolio).map(f => f.folioNo);
+            const masterFolios = listFolioData.filter(f => f.isMasterFolio).map(f => f.folioNo);
+
+            while(guestFolios.includes(nextGuestFolioNo)) {
+                nextGuestFolioNo++;
+            }
+            while(masterFolios.includes(nextMasterFolioNo)) {
+                nextMasterFolioNo--;
+            }
+        }
+
+        $('#folioNoCreate').val(nextGuestFolioNo);
+        $('#masterFolioNo').val(nextMasterFolioNo);
+
         $('#new_folio_profileName').val(typeof lastname !== "undefined" ? lastname : "");
         $('#new_folio_profileID').val(typeof profileID !== "undefined" ? profileID : ""); 
 
         // Master info
         $('#folioConfNo').val(typeof confirmationNo !== "undefined" ? confirmationNo : "");
-        $('#masterAccountName').val(typeof lastname !== "undefined" ? lastname : ""); // Backend creates actual name
+        $('#masterAccountName').val(masterNameToDisplay !== "" ? masterNameToDisplay : (typeof lastname !== "undefined" ? lastname : ""));
 
         $('#modalNewWindow').modal('show');
     }
@@ -155,8 +176,7 @@
             UserUpdateID: JSON.parse(localStorage.getItem("userID")),
             Status: false,
             BalanceVND: 0,
-            BalanceUSD: 0,
-            IsMasterFolio: isMaster
+            BalanceUSD: 0
         };
 
         $.ajax({

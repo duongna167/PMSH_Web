@@ -324,6 +324,14 @@
             type: 'get',
             data: { reservationID: idReservation },
             success: function (result) {
+                if (result && result.length > 0) {
+                    result.sort((a, b) => {
+                        if (a.isMasterFolio === b.isMasterFolio) {
+                            return Math.abs(a.folioNo) - Math.abs(b.folioNo);
+                        }
+                        return a.isMasterFolio ? 1 : -1;
+                    });
+                }
                 listFolioData = result;
 
                 listFolioNoID = [];
@@ -340,7 +348,7 @@
                         listFolioNoID.push(result[i].id);
 
                         // Nếu là Master thì hiện M + (số thứ tự), Guest thì hiện số
-                        let label = result[i].isMasterFolio ? "M" + (i + 1) : result[i].folioNo;
+                        let label = result[i].isMasterFolio ? "M" + Math.abs(result[i].folioNo) : result[i].folioNo;
 
                         htmlWindow += `<a class="dropdown-item" href="#" onclick="transferToWindow(${result[i].id});">Window ${label}</a>`;
 
@@ -383,7 +391,7 @@
 
         let displayName = (currentFolio && currentFolio.accountName) ? currentFolio.accountName : lastname;
 
-        let label = (currentFolio && currentFolio.isMasterFolio) ? "M" + (index + 1) : (index + 1);
+        let label = (currentFolio && currentFolio.isMasterFolio) ? "M" + Math.abs(currentFolio.folioNo) : (currentFolio ? currentFolio.folioNo : (index + 1));
 
         $('#infoBillingName').html(`[${label}] &nbsp; <b>${displayName}</b> (${folioNo})`);
 
@@ -402,23 +410,17 @@
     //TÍNH TOÁN BALANCE & TOTAL ---
     function updateBillingHeaderStats(data) {
         let totalBalance = 0; 
-        let totalCharges = 0;
 
         if (data && data.length > 0) {
             data.forEach(item => {
                 let val = parseFloat(item.amount) || 0;
 
                 totalBalance += val;
-
-                totalCharges += val;
             });
         }
         const formattedVal = totalBalance.toLocaleString('vi-VN');
 
-        $('#balanceBilling').text(formattedVal);
-        $('#totalBilling').text(formattedVal); 
         $('#balanceBillingMaster').text(formattedVal);
-
     }
         
     function initializeDataGridBilling(data) {

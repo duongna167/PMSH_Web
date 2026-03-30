@@ -1,4 +1,4 @@
-﻿using BaseBusiness.bc;
+using BaseBusiness.bc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
