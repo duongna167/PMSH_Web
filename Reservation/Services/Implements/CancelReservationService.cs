@@ -73,7 +73,7 @@ namespace Reservation.Services.Implements
                 //Lưu vào db
                 ReservationBO.Instance.Update(item);
                 // ghi log
-                InsertActivityLog(
+                ReservationUtil.InsertActivityLog(
                     item.ID,
                     userId,
                     userName,
@@ -163,7 +163,7 @@ namespace Reservation.Services.Implements
             ReservationBO.Instance.Update(rsv);
 
             // 8) Ghi log status change
-            InsertActivityLog(
+            ReservationUtil.InsertActivityLog(
                 rsv.ID,
                 userId,
                 userName,
@@ -307,24 +307,6 @@ namespace Reservation.Services.Implements
             };
 
             ReservationCancellationBO.Instance.Insert(reservationCancellationModel);
-        }
-
-        private static void InsertActivityLog(int reservationId, int userId, string userName, string change, string oldValue, string newValue, string description)
-        {
-            // Tạo audit log cho thay đổi reservation
-            ActivityLogModel activityLog = new()
-            {
-                TableName = "Reserrvation",
-                ObjectID = reservationId,
-                UserID = userId,
-                UserName = userName,
-                ChangeDate = DateTime.Now,
-                Change = change,
-                OldValue = oldValue,
-                NewValue = newValue,
-                Description = description
-            };
-            ActivityLogBO.Instance.Insert(activityLog);
         }
 
         public static bool CheckMaster(string _conf, int _rsvID, int _type)

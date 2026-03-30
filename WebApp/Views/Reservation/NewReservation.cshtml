@@ -1768,6 +1768,7 @@
             Promise.resolve().then(updateDates);
 
             recalculateReservationAmounts();
+            recalculateNetReverseReservationAmounts();
         } catch (err) {
             console.error("Lỗi cập nhật ngày tháng:", err);
         } finally {
@@ -1888,6 +1889,47 @@
         };
 
         calculateNet(
+            payload.fromDate,
+            payload.toDate,
+            payload.rateCodeID,
+            payload.roomTypeID,
+            payload.currencyID,
+            payload.packageID,
+            payload.day,
+            payload.price,
+            payload.transactionCode,
+            payload.discountPercent,
+            payload.discountAmount
+        );
+    }
+    function recalculateNetReverseReservationAmounts() {
+        const arrival = $('#arrival').val();
+        const departure = $('#departure').val();
+        const roomTypeId = $('#txtRoomType').val();
+        const nights = parseInt($('#nights').val(), 10) || 1;
+        const rateAmount = ($('#txtRateAmount').val() || '').replace(/[^0-9]/g, '');
+        const discountPercent = ($('#txtDiscountPercent').val() || '').replace(/[^0-9]/g, '');
+        const discountAmount = ($('#txtDiscountAmount').val() || '').replace(/[^0-9]/g, '');
+
+            if (!arrival || !departure || roomTypeId <= 0 || rateAmount <= 0 || nights < 1) {
+            return;
+            }
+
+        const payload = {
+            fromDate: arrival,
+            toDate: departure,
+            rateCodeID: 0,
+            roomTypeID: roomTypeId,
+            currencyID: 'VND',
+            packageID: 0,
+            day: nights,
+            price: rateAmount,
+            transactionCode: '',
+            discountPercent: discountPercent || 0,
+            discountAmount: discountAmount || 0
+        };
+
+        calculateNetReverse(
             payload.fromDate,
             payload.toDate,
             payload.rateCodeID,

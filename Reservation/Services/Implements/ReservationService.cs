@@ -2753,12 +2753,12 @@ namespace Reservation.Services.Implements
 
                 if (reservation.NoOfRoom == 1)
                 {
-                    int missingSharerCount = (person - aRsv.Count) -1;
-                    if (missingSharerCount> 0)
+                    int missingSharerCount = (person - aRsv.Count) - 1;
+                    if (missingSharerCount > 0)
                     {
                         for (int j = 0; j < missingSharerCount; j++)
                         {
-                            ReservationUtil.GenCreateRoomShareNoTransaction(reservation.ID,UserID);
+                            ReservationUtil.GenCreateRoomShareNoTransaction(reservation.ID, UserID);
                         }
                     }
                 }
@@ -2778,13 +2778,14 @@ namespace Reservation.Services.Implements
                             Country AS [Nat], 
                             LastName AS [Name], 
                             RoomNo AS [RoNo], 
+                            RoomID As [RoomID],
                             RoomType as [RoType],  
                             ArrivalDate as [Arrival], 
                             DepartureDate as [Departure], 
                             NoOfAdult as [A], NoOfChild as [C], 
                             NoOfChild1 as [C1], NoOfChild2 as [C2], 
                             ShareRoom as [SR], dbo.fnGetRsvStatus(Status) 
-                            AS Status 
+                            AS Status,  Status as [HKStatusID]
                         FROM Reservation WITH (NOLOCK)
                         WHERE ConfirmationNo = '{confirmationNo}' AND ReservationNo > 0 AND MainGuest = 1 AND (Status = 0 OR Status = 5 OR Status = 1 OR Status = 6) ORDER BY Arrival, [RoNo], [RoType], ID ASC, Nbr DESC")
                         ];
