@@ -127,6 +127,36 @@ namespace BaseBusiness.BO
                 throw new Exception(ex.Message);
             }
         }
+        public static ArrayList GetReservationAlert(int ReservationID)
+        {
+            try
+            {
+                string Area = "";
+                ////Lấy thông tin bảng Rsv 
+                //ReservationModel mR = (ReservationModel)ReservationBO.Instance.FindByPK(ReservationID);
+                //if (mR.Status == 0 || mR.Status == 5)
+                //    Area = "Reservation";
+                //else if (mR.Status == 5 || mR.Status == 6)
+                //    Area = "Check-In";
+                //else if (mR.Status == 2)
+                //    Area = "Check-Out";
+                //Tim kiem Routing
+                Expression expR = new Expression("ReservationID", ReservationID, "=");
+                //expR = expR.And(new Expression("Area", Area, "="));
+                ArrayList arrR = ReservationAlertsBO.Instance.FindByExpression(expR);
+                //Kiểm tra điều kiện để trả về giá trị
+                if (arrR.Count == 0)
+                    return arrR;
+                else
+                {
+                    return arrR;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
         public static void UpdateReservationStatus(ProcessTransactions pt, int RoomID)
         {
             #region Khai báo biến 
@@ -2518,6 +2548,63 @@ namespace BaseBusiness.BO
             }
             return 0;
         }
+
+        /// <summary>
+        /// Copy thông tin của ReservationFixedCharge tới đặt phòng nếu có
+        /// -- CSS, 25/12/2009
+        /// </summary>
+        /// <param name="ReservationID"></param>
+        /// <param name="pNewReservationID"></param>
+        /// <param name="pt"></param>
+        /// <returns></returns>
+        public static int CopyTbReservationFixedCharge(int ReservationID, int pNewReservationID, int UserID, ProcessTransactions pt)
+        {
+
+            //dbo.ReservationFixedCharge
+            Expression expF = new Expression("ReservationID", ReservationID, "=");
+            ArrayList arrF = pt.FindByExpression("ReservationFixedCharge", expF);
+            //Kiểm tra điều kiện để trả về giá trị
+            if (arrF.Count > 0)
+            {
+                for (int i = 0; i < arrF.Count; i++)
+                {
+                    ReservationFixedChargeModel mF = (ReservationFixedChargeModel)pt.FindByPK("ReservationFixedCharge", ((ReservationFixedChargeModel)arrF[i]).ID);
+                    mF.ReservationID = pNewReservationID;
+                    mF.CreateDate = TextUtils.GetSystemDate();
+                    mF.UpdateDate = TextUtils.GetSystemDate();
+                    mF.UserInsertID = UserID;
+                    mF.UserUpdateID = UserID;
+                    pt.Insert(mF);
+
+                    #region Ghi dữ liệu vào History
+                    //ClassReservation.InsertHistory("INSERT", mF);
+                    #endregion
+                }
+
+                #region Ghi dữ liệu vào ReservationOption
+
+                int ReservationOptionID = ReservationBO.GetReservationOptionID(pNewReservationID, pt);
+                if (ReservationOptionID == 0)
+                {
+                    ReservationOptionsModel mRO = new ReservationOptionsModel();
+                    mRO.ReservationID = pNewReservationID;
+                    mRO.FixedCharges = true;
+                    pt.Insert(mRO);
+                }
+                else
+                {
+                    ReservationOptionsModel mRO = (ReservationOptionsModel)pt.FindByPK("ReservationOptions", ReservationOptionID);
+                    mRO.ID = ReservationOptionID;
+                    mRO.FixedCharges = true;
+                    pt.Update(mRO);
+                }
+                #endregion
+            }
+            return 0;
+
+        }
+
+
         public static int GetReservationOptionID(int ReservationID, ProcessTransactions pt)
         {
             //Tim kiem ReservationOptions

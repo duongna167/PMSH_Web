@@ -134,28 +134,41 @@
 
 
     function GroupCheckIn() {
-        showToast("Error", "The check-in/Gr check-in flow is experiencing logic errors with WinForms. We are currently checking it...", false);
-        return;
         const dataGrid = $("#gridContainerSearchGroupCheckInRoom").dxDataGrid("instance");
-
-        // Lấy toàn bộ dữ liệu đã load
-        const allData = dataGrid.getDataSource().items();
-
-        // Lọc các dòng có checkbox được tích
-        const selectedItems = allData.filter(item => item.isSelected);
-
-        // Lấy danh sách ID
+        const selectedItems = dataGrid.getSelectedRowsData();
         const selectedIds = selectedItems.map(item => item.ID);
+        const userID = JSON.parse(localStorage.getItem("userID")) || 0;
+        const selectedType = parseInt($('input[name="grouupCheckInType"]:checked').val() || "3");
+
+        if (selectedIds.length === 0) {
+            showToast('Error', 'Please select at least one reservation.', false);
+            return;
+        }
+
+        const request = {
+            confirmationNo: confirmationNo,
+            userId: userID,
+            filterType: selectedType,
+            ignoreAlert: false,
+            selectedReservationIds: selectedIds
+        };
 
         $.ajax({
             url: '/Reservation/GroupCheckIn',
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify(selectedIds),
+            data: JSON.stringify(request),
             success: function (data) {
-                closeModalGroupCheckIn();
-                //window.location.href = '/Reservation/SearchReservation';
+                if (data.code === 0) {
+                    closeModalGroupCheckIn();
+                    showToast('Success', data.msg, true);
+                    if (typeof loadGroupData === 'function') {
+                        loadGroupData();
+                    }
+                    return;
+                }
 
+                showToast('Error', data.msg, false);
             },
             error: function (err) {
                 console.error("Lỗi khi gửi danh sách ID:", err);
