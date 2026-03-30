@@ -14,6 +14,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
@@ -63,6 +64,7 @@ namespace Reservation.Controllers
         private readonly IMessageService _iMessageService;
         private readonly IShareService _iShareService;
         private readonly IGroupAdminService _iGroupAdminService;
+        private readonly IGroupCheckInService _iGroupCheckInService;
         private readonly IWebHostEnvironment _environment;
         private readonly ICancelReservationService _cancelReservation;
         private readonly string _secretKey;
@@ -70,7 +72,8 @@ namespace Reservation.Controllers
         public ReservationController(ILogger<ReservationController> logger,
                 IMemoryCache cache, IConfiguration configuration, IReservationService iReservationService, IFolioDetailService folioDetailService,
                 IDepositService iDepositService, IRoutingService iRoutingService, IGroupReservationService iGroupReservationService,
-                IMessageService iMessageService, IShareService iShareService, IGroupAdminService iGroupAdminService
+                IMessageService iMessageService, IShareService iShareService, IGroupAdminService iGroupAdminService,
+                IGroupCheckInService iGroupCheckInService
             , IWebHostEnvironment environment, ICancelReservationService cancel)
         {
             _secretKey = configuration["Encryption:Key"] ?? throw new ArgumentNullException("Encryption:Key is missing in configuration");
@@ -87,6 +90,7 @@ namespace Reservation.Controllers
             _iMessageService = iMessageService;
             _iShareService = iShareService;
             _iGroupAdminService = iGroupAdminService;
+            _iGroupCheckInService = iGroupCheckInService;
             _environment = environment;
             _cancelReservation = cancel;
         }
@@ -702,8 +706,8 @@ namespace Reservation.Controllers
                     Where(x => x.KeyName == "RoomCharge").ToList()[0].KeyValue;
 
                 }
-                       
-                   var (originalPrice, priceAfter, priceDiscount, priceAfterDiscount) = _iReservationService.CalculateNet(price, transactionCode, discountAmount, discountPercent);
+
+                var (originalPrice, priceAfter, priceDiscount, priceAfterDiscount) = _iReservationService.CalculateNet(price, transactionCode, discountAmount, discountPercent);
 
                 // Tạo đối tượng JSON để trả về
                 var result = new
@@ -815,14 +819,14 @@ namespace Reservation.Controllers
 
                 Amount = Math.Round(Amount, 0, MidpointRounding.AwayFromZero);
 
-                
+
 
                 // Tạo đối tượng JSON để trả về
                 var result = new
                 {
                     Amount = Amount,
                     AmountNet = AmountNet,
-          
+
                 };
                 return Json(result);
             }
@@ -4982,7 +4986,7 @@ namespace Reservation.Controllers
 
         #endregion
 
-        #region  DatVP __ Reservation: Group check in 
+        #region Group Check-In
         [HttpGet]
         public async Task<IActionResult> SearchGroupCheckInRoom(string confirmationNo, int type, string name, string roomNo)
         {
@@ -5038,46 +5042,52 @@ namespace Reservation.Controllers
         }
 
         [HttpPost]
-        public ActionResult GroupCheckIn([FromBody] List<int> ids)
+        public ActionResult GroupCheckIn([FromBody] CheckInGroupDTO.CheckInRequest request)
         {
-            ProcessTransactions pt = new ProcessTransactions();
-
             try
             {
-                pt.OpenConnection();
-                pt.BeginTransaction();
-                for (int i = 0; i < ids.Count; i++)
+                if (request == null)
                 {
-                    ReservationModel reservation = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(ids[i]);
-                    if (reservation == null || reservation.ID == 0)
-                    {
-                        return Json(new { code = 1, msg = "Can not find reservation" });
-
-                    }
-                    reservation.Status = 1;
-                    ReservationBO.Instance.Update(reservation);
-
-                    ReservationOptionsModel optionsModel = new ReservationOptionsModel();
-                    optionsModel.ReservationID = reservation.ID;
-                    optionsModel.Billing = true;
-                    ReservationOptionsBO.Instance.Insert(optionsModel);
+                    return Json(new { code = 1, msg = "Request is null." });
                 }
 
-                pt.CommitTransaction();
+                if (request.UserId <= 0)
+                {
+                    request.UserId = HttpContext.Session.GetInt32("UserID") ?? 0;
+                }
 
-                return Json(new { code = 0, msg = "Check In was successfully!" });
+                // UI modal hiện đang dùng:
+                // 1 = Clean Rooms Only
+                // 2 = Clean Non-checked Rooms Only
+                // 3 = All Rooms
+                // 4 = Clean Non-checked or Clean Rooms
+                //
+                // GroupCheckInService dùng:
+                // 1 = InspectedOnly
+                // 2 = CleanOnly
+                // 3 = CleanOrInspected
+                // 4 = All
+                if (request.FilterType == 3)
+                {
+                    request.FilterType = 4;
+                }
+                else if (request.FilterType == 4)
+                {
+                    request.FilterType = 3;
+                }
 
+                CheckInGroupDTO.CheckInResult result = _iGroupCheckInService.CheckIn(request);
+
+                return Json(new
+                {
+                    code = result.Success ? 0 : 1,
+                    msg = result.Message,
+                    result
+                });
             }
             catch (Exception ex)
             {
-                pt.RollBack();
-
                 return Json(new { code = 1, msg = ex.Message });
-            }
-            finally
-            {
-                pt.CloseConnection();
-
             }
         }
 

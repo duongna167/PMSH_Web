@@ -1,6 +1,8 @@
+using System.Collections;
 using System.Data;
+using System.Linq;
+using BaseBusiness.Model;
 using BaseBusiness.util;
-using DevExpress.DataAccess.Wizard.Model;
 using Microsoft.Data.SqlClient;
 using Reservation.Services.Interfaces;
 using static Reservation.Dto.CheckInGroupDTO;
@@ -8,108 +10,229 @@ using static Reservation.Dto.CheckInGroupDTO;
 namespace Reservation.Services.Implements
 {
     /// <summary>
-    /// Service xử lý toàn bộ nghiệp vụ check-in nhóm.
-    ///
-    /// Logic được chuyển từ mã WinForms:
-    /// - mode == 0: check-in theo ProfileGroupID
-    /// - mode == 1: check-in theo ConfirmationNo
-    /// - kiểm tra RoomID phải có
-    /// - lọc theo HKStatusId (Clean / Inspected / All)
-    /// - kiểm tra alert khu vực Check-In
-    /// - nếu main guest bị chặn thì sharer cùng ShareRoom cũng bị chặn
-    /// - gọi hàm tạo check-in thực tế
+    /// Service xử lý nghiệp vụ check-in nhóm.
+    /// Logic bám theo code gốc:
+    /// - ProfileGroupId: lọc danh sách theo group rồi gọi CreateCheckIn cho từng item
+    /// - ConfirmationNo: xử lý theo danh sách chọn, check alert Check-In và block sharer nếu main guest bị bỏ qua do alert
+    /// - Luôn gọi engine check-in với mode = 1 như flow group cũ
     /// </summary>
-    public class GroupCheckInService(IReservationService reservation)
+    public class GroupCheckInService(IReservationService reservation) : IGroupCheckInService
     {
         private readonly IReservationService _reservationService = reservation;
 
-        /// Check-in theo ProfileGroupId.
-        // public CheckInResult CheckInByProfileGroup(CheckInRequest request)
-        // {
-        //     // Validate dữ liệu đầu vào
-        //     if (request == null)
-        //     {
-        //         return BuildErrorResult("Request is null.");
-        //     }
+        #region Public API
 
-        //     if (!request.ProfileGroupId.HasValue || request.ProfileGroupId.Value <= 0)
-        //     {
-        //         return BuildErrorResult("ProfileGroupId is invalid.");
-        //     }
-
-        //     // Lấy danh sách res của group
-
-        // }
-        private CheckInItemResult ProcessSingleItem(
-               ReservationCheckInDto item,
-               CheckInRequest request,
-               ref int blockedShareRoom)
+        public CheckInResult CheckIn(CheckInRequest request)
         {
-            // 1) Bắt buộc phải có phòng
+            if (request == null)
+            {
+                return BuildErrorResult("Request is null.");
+            }
+
+            if (request.ProfileGroupId.HasValue && request.ProfileGroupId.Value > 0)
+            {
+                return CheckInByProfileGroup(request);
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.ConfirmationNo))
+            {
+                return CheckInByConfirmation(request);
+            }
+
+            return BuildErrorResult("ProfileGroupId or ConfirmationNo is required.");
+        }
+
+        public CheckInResult CheckInByProfileGroup(CheckInRequest request)
+        {
+            if (request == null)
+            {
+                return BuildErrorResult("Request is null.");
+            }
+
+            if (!request.ProfileGroupId.HasValue || request.ProfileGroupId.Value <= 0)
+            {
+                return BuildErrorResult("ProfileGroupId is invalid.");
+            }
+
+            if (!IsValidFilterType(request.FilterType))
+            {
+                return BuildErrorResult("FilterType is invalid.");
+            }
+
+            try
+            {
+                List<ReservationCheckInDto> items = GetReservationsByProfileGroup(request.ProfileGroupId.Value);
+                return ProcessItems(items, request, applyAlertRule: false);
+            }
+            catch (Exception ex)
+            {
+                return BuildErrorResult("Group chek in not complete.", ex.Message);
+            }
+        }
+
+        public CheckInResult CheckInByConfirmation(CheckInRequest request)
+        {
+            if (request == null)
+            {
+                return BuildErrorResult("Request is null.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ConfirmationNo))
+            {
+                return BuildErrorResult("ConfirmationNo is invalid.");
+            }
+
+            if (!int.TryParse(request.ConfirmationNo, out _))
+            {
+                return BuildErrorResult("ConfirmationNo must be numeric.");
+            }
+
+            if (!IsValidFilterType(request.FilterType))
+            {
+                return BuildErrorResult("FilterType is invalid.");
+            }
+
+            try
+            {
+                List<ReservationCheckInDto> items = GetReservationsByConfirmation(request.ConfirmationNo, request.SelectedReservationIds);
+                return ProcessItems(items, request, applyAlertRule: true);
+            }
+            catch (Exception ex)
+            {
+                return BuildErrorResult("Group chek in not complete.", ex.Message);
+            }
+        }
+
+        #endregion
+
+        #region Processing
+
+        private CheckInResult ProcessItems(
+            List<ReservationCheckInDto> items,
+            CheckInRequest request,
+            bool applyAlertRule)
+        {
+            if (items == null || items.Count == 0)
+            {
+                return BuildNoAvailableResult();
+            }
+
+            CheckInResult result = new()
+            {
+                Success = false,
+                TotalRequested = items.Count,
+                TotalCheckedIn = 0
+            };
+
+            int blockedShareRoom = 0;
+
+            foreach (ReservationCheckInDto item in items)
+            {
+                CheckInItemResult itemResult = ProcessSingleItem(item, request, ref blockedShareRoom, applyAlertRule);
+                result.Items.Add(itemResult);
+                result.Messages.Add(itemResult.Message ?? string.Empty);
+
+                if (itemResult.Success)
+                {
+                    result.TotalCheckedIn++;
+                }
+            }
+
+            result.Success = result.TotalCheckedIn > 0;
+            result.Message = result.Success
+                ? "Group chek in completed successfully."
+                : "Room is not available for your requests.";
+
+            return result;
+        }
+
+        private CheckInItemResult ProcessSingleItem(
+            ReservationCheckInDto item,
+            CheckInRequest request,
+            ref int blockedShareRoom,
+            bool applyAlertRule)
+        {
             if (!HasRoom(item))
             {
                 return BuildFail(item, "Reservation has no room assigned.");
             }
 
-            // 2) Phòng phải đạt điều kiện housekeeping theo filter
             if (!MatchRoomStatus(item.HKStatusId, request.FilterType))
             {
                 return BuildFail(item, "Room status is not valid for selected filter.");
             }
 
-            // 3) Nếu main guest trước đó bị chặn thì sharer tương ứng cũng bị chặn
-            if (IsBlockedByMainGuest(item, blockedShareRoom))
+            if (applyAlertRule &&
+                !request.IgnoreAlert &&
+                TryGetFirstCheckInAlertMessage(item.ReservationId, out string alertMessage))
             {
-                return BuildFail(item, "Main guest was not checked in, sharer is blocked.");
-            }
-
-            // 4) Kiểm tra alert khu vực Check-In
-            var alerts = ReservationUtil.GetReservationAlerts(item.ReservationId);
-            var hasAlert = alerts != null && alerts.Count > 0;
-
-            if (hasAlert && !request.IgnoreAlert)
-            {
-                // Nếu item hiện tại là main guest và bị chặn vì alert
-                // thì lưu ShareRoom để chặn các sharer sau đó
                 if (item.IsMainGuest)
                 {
                     blockedShareRoom = item.ShareRoom;
                 }
 
-                // Trả thông báo rõ hơn
-                var firstAlertMessage = alerts.FirstOrDefault()?.Message;
                 return BuildFail(
                     item,
-                    string.IsNullOrWhiteSpace(firstAlertMessage)
+                    string.IsNullOrWhiteSpace(alertMessage)
                         ? "Reservation has check-in alert."
-                        : "Reservation has check-in alert: " + firstAlertMessage);
+                        : "Reservation has check-in alert: " + alertMessage);
             }
 
-            // 5) Thực hiện check-in thật
-            CheckInService.CreateCheckIn(item, request.UserId);
+            if (applyAlertRule && IsBlockedByMainGuest(item, blockedShareRoom))
+            {
+                return BuildFail(item, "Main guest was not checked in, sharer is blocked.");
+            }
 
-            return BuildSuccess(item, "Checked In. Room: " + item.RoomNo + ".");
+            CheckInService.CheckInRequest createCheckInRequest = new()
+            {
+                ReservationId = item.ReservationId,
+                RoomId = item.RoomId,
+                SelectedRoomId = item.RoomId,
+                NoOfRoom = item.NoOfRoom,
+                UserId = request.UserId,
+                Mode = 1,
+                CheckInSharers = false,
+                IgnoreSharerAlerts = false,
+                PaymentMethod = string.Empty,
+                CreditCardNo = string.Empty,
+                ExpireDate = null
+            };
+
+            CheckInService.CheckInResponse response = CheckInService.CreateCheckIn(createCheckInRequest);
+            if (!response.Success)
+            {
+                return BuildFail(item, CombineResponseMessage(response));
+            }
+
+            string successMessage = string.IsNullOrWhiteSpace(response.Message)
+                ? "Checked In.Room:" + item.RoomNo + "."
+                : response.Message;
+
+            return BuildSuccess(item, successMessage);
         }
 
         private static bool HasRoom(ReservationCheckInDto item)
         {
             return item != null && item.RoomId > 0;
         }
+
         private static bool MatchRoomStatus(int hkStatusId, int filterType)
         {
             return filterType switch
             {
-                // InspectedOnly
                 1 => hkStatusId == 4,
-                // CleanOnly
                 2 => hkStatusId == 1,
-                // CleanOrInspected
                 3 => hkStatusId == 1 || hkStatusId == 4,
-                // All
                 4 => true,
-                _ => false,
+                _ => false
             };
         }
+
+        private static bool IsValidFilterType(int filterType)
+        {
+            return filterType is >= 1 and <= 4;
+        }
+
         private static bool IsBlockedByMainGuest(ReservationCheckInDto item, int blockedShareRoom)
         {
             if (item == null)
@@ -117,22 +240,48 @@ namespace Reservation.Services.Implements
                 return false;
             }
 
-            // Chỉ chặn các guest không phải main guest
-            // và có cùng ShareRoom với group bị block
             return !item.IsMainGuest
                    && blockedShareRoom > 0
                    && item.ShareRoom == blockedShareRoom;
         }
+
+        #endregion
+
+        #region Data Query
+
+        private static bool TryGetFirstCheckInAlertMessage(int reservationId, out string message)
+        {
+            message = string.Empty;
+            ArrayList alerts = ReservationUtil.GetReservationAlerts(reservationId);
+
+            if (alerts == null || alerts.Count == 0)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < alerts.Count; i++)
+            {
+                if (alerts[i] is ReservationAlertsModel alert && alert.Area == "Check-In")
+                {
+                    message = alert.Description ?? string.Empty;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private List<ReservationCheckInDto> GetReservationsByProfileGroup(int profileGroupId)
         {
             SqlParameter[] param =
-                [
-                    new SqlParameter("@Status", "5"),
-                    new SqlParameter("@ProfileGroupID", profileGroupId)
-                ];
-            var result = new List<ReservationCheckInDto>();
+            [
+                new SqlParameter("@Status", "5"),
+                new SqlParameter("@ProfileGroupID", profileGroupId)
+            ];
 
-            var dt = DataTableHelper.getTableData("spGroupReservationToDelete", param);
+            DataTable dt = DataTableHelper.getTableData("spGroupReservationToDelete", param);
+            List<ReservationCheckInDto> result = [];
+
             foreach (DataRow row in dt.Rows)
             {
                 result.Add(new ReservationCheckInDto
@@ -142,30 +291,24 @@ namespace Reservation.Services.Implements
                     NoOfRoom = row["Rms"] == DBNull.Value ? 0 : Convert.ToInt32(row["Rms"]),
                     RoomNo = row["Room"] == DBNull.Value ? string.Empty : row["Room"].ToString() ?? string.Empty,
                     HKStatusId = row["HKStatusID"] == DBNull.Value ? 0 : Convert.ToInt32(row["HKStatusID"]),
-
-                    // Nếu store hiện tại không trả 2 cột này,
-                    // bạn có thể sửa store hoặc query bổ sung
-                    IsMainGuest = row.Table.Columns.Contains("IsMainGuest") && row["IsMainGuest"] != DBNull.Value && Convert.ToBoolean(row["IsMainGuest"]),
-
+                    IsMainGuest = row.Table.Columns.Contains("IsMainGuest")
+                        && row["IsMainGuest"] != DBNull.Value
+                        && Convert.ToBoolean(row["IsMainGuest"]),
                     ShareRoom = row.Table.Columns.Contains("ShareRoom") && row["ShareRoom"] != DBNull.Value
                         ? Convert.ToInt32(row["ShareRoom"])
                         : 0
                 });
-
             }
+
             return result;
         }
 
-
-        /// <summary>
-        /// Lấy danh sách reservation theo ConfirmationNo.
-        /// </summary>
         private List<ReservationCheckInDto> GetReservationsByConfirmation(
             string confirmationNo,
             List<int> selectedReservationIds)
         {
-            var dt = _reservationService.ResConfNoList(Convert.ToInt32(confirmationNo));
-            var result = new List<ReservationCheckInDto>();
+            DataTable dt = _reservationService.ResConfNoList(Convert.ToInt32(confirmationNo));
+            List<ReservationCheckInDto> result = [];
 
             foreach (DataRow row in dt.Rows)
             {
@@ -181,47 +324,77 @@ namespace Reservation.Services.Implements
                 });
             }
 
-            if (selectedReservationIds != null && selectedReservationIds.Count > 0)
+            if (selectedReservationIds == null || selectedReservationIds.Count == 0)
             {
-                result = [.. result.Where(x => selectedReservationIds.Contains(x.ReservationId))];
+                return result;
             }
 
-            return result;
+            Dictionary<int, ReservationCheckInDto> itemByReservationId = result
+                .GroupBy(x => x.ReservationId)
+                .ToDictionary(x => x.Key, x => x.First());
+
+            List<ReservationCheckInDto> orderedResult = [];
+
+            foreach (int reservationId in selectedReservationIds)
+            {
+                if (itemByReservationId.TryGetValue(reservationId, out ReservationCheckInDto? item) && item != null)
+                {
+                    orderedResult.Add(item);
+                }
+            }
+
+            return orderedResult;
         }
 
-        /// <summary>
-        /// Tạo kết quả fail cho 1 item 
-        /// </summary>
+        #endregion
+
+        #region Result Builder
+
+        private static string CombineResponseMessage(CheckInService.CheckInResponse response)
+        {
+            if (response == null)
+            {
+                return "Group chek in not complete.";
+            }
+
+            if (string.IsNullOrWhiteSpace(response.Detail))
+            {
+                return response.Message ?? "Group chek in not complete.";
+            }
+
+            if (string.IsNullOrWhiteSpace(response.Message))
+            {
+                return response.Detail;
+            }
+
+            return response.Message + " " + response.Detail;
+        }
+
         private static CheckInItemResult BuildFail(ReservationCheckInDto item, string message)
         {
             return new CheckInItemResult
             {
-                ReservationId = item == null ? 0 : item.ReservationId,
-                RoomNo = item == null ? string.Empty : item.RoomNo,
+                ReservationId = item?.ReservationId ?? 0,
+                RoomNo = item?.RoomNo ?? string.Empty,
                 Success = false,
                 Message = message
             };
         }
 
-        /// <summary>
-        /// Tạo kết quả success cho một item.
-        /// </summary>
         private static CheckInItemResult BuildSuccess(ReservationCheckInDto item, string message)
         {
             return new CheckInItemResult
             {
-                ReservationId = item == null ? 0 : item.ReservationId,
-                RoomNo = item == null ? string.Empty : item.RoomNo,
+                ReservationId = item?.ReservationId ?? 0,
+                RoomNo = item?.RoomNo ?? string.Empty,
                 Success = true,
                 Message = message
             };
         }
-        /// <summary>
-        /// Tạo kết quả lỗi tổng.
-        /// </summary>
-        private static CheckInResult BuildErrorResult(string message, string detail = null)
+
+        private static CheckInResult BuildErrorResult(string message, string? detail = null)
         {
-            var result = new CheckInResult
+            CheckInResult result = new()
             {
                 Success = false,
                 TotalRequested = 0,
@@ -238,24 +411,21 @@ namespace Reservation.Services.Implements
 
             return result;
         }
-    }
 
-    /// Extension hỗ trợ kiểm tra DataReader có cột hay không.
-    /// Dùng để tránh lỗi nếu store hiện tại chưa trả đủ cột.
-    /// </summary>
-    internal static class DataReaderExtensions
-    {
-        public static bool HasColumn(this IDataRecord reader, string columnName)
+        private static CheckInResult BuildNoAvailableResult()
         {
-            for (int i = 0; i < reader.FieldCount; i++)
+            CheckInResult result = new()
             {
-                if (reader.GetName(i).Equals(columnName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
+                Success = false,
+                TotalRequested = 0,
+                TotalCheckedIn = 0,
+                Message = "Room is not available for your requests."
+            };
 
-            return false;
+            result.Messages.Add(result.Message);
+            return result;
         }
+
+        #endregion
     }
 }
