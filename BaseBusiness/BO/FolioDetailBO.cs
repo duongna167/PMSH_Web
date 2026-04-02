@@ -1,4 +1,4 @@
-﻿using BaseBusiness.bc;
+using BaseBusiness.bc;
 using BaseBusiness.Facade;
 using BaseBusiness.Model;
 using System;
@@ -47,7 +47,12 @@ namespace BaseBusiness.BO
         }
         public static decimal CalculateBalance(int reservationID)
         {
-            string query = $"select isnull(sum(AmountMaster),0) as Amount from FolioDetail where ReservationID = {reservationID} and RowState = 1 AND Status = 0";
+            string query = $@"
+                SELECT ISNULL(SUM(fd.AmountMaster), 0) AS Amount 
+                FROM FolioDetail fd WITH (NOLOCK)
+                INNER JOIN Reservation r WITH (NOLOCK) ON fd.ReservationID = r.ID
+                WHERE r.ConfirmationNo = (SELECT ConfirmationNo FROM Reservation WITH (NOLOCK) WHERE ID = {reservationID}) 
+                AND fd.RowState = 1 AND fd.Status = 0";
             return instance.GetFirst<decimal>(query);
         }
 

@@ -41,5 +41,6 @@ namespace BaseBusiness.BO
             string query = $"select * from Folio where ReservationID = {reservationID} and FolioNo = {folioNo}";
             return instance.GetList<FolioModel>(query);
         }
+
     }
 }

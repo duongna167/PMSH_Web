@@ -155,6 +155,11 @@
      * MAIN ACTION
      * ========================= */
     var isSplitting = false;
+    function finishSplitRequest() {
+        isSplitting = false;
+        $('#btnSplitTransaction').prop('disabled', false);
+    }
+
     function SplitTransaction() {
         if (isSplitting) return;
         isSplitting = true;
@@ -168,6 +173,7 @@
         const inputNumber = parseNumberWithComma(inputVal);
 
         if (!inputVal || inputNumber <= 0) {
+            finishSplitRequest();
             showToast('Error', 'Please enter a value greater than zero', false);
             return;
         }
@@ -179,6 +185,7 @@
             discountAmount = inputNumber;
 
             if (discountAmount >= amountTotal) {
+                finishSplitRequest();
                 showToast('Error', 'Split amount must be less than transaction amount', false);
                 return;
             }
@@ -186,6 +193,7 @@
             discountPercent = inputNumber;
 
             if (discountPercent > 100 || discountPercent <= 0) {
+                finishSplitRequest();
                 showToast('Error', 'Percentage must be between 1 and 100', false);
                 return;
             }
@@ -202,29 +210,36 @@
             contentType: 'application/json',
             dataType: 'json',
             data: JSON.stringify({
-                FolioDetailID: folioDetailID,
-                DiscountAmount: discountAmount,
-                DiscountPercent: discountPercent,
-                Amount: amountTotal,
-                UserName: userName,
-                UserID: userID,
-                ShiftID: shiftID,
-                ShiftName: shiftName
+                FolioDetailID: parseInt(folioDetailID) || 0,
+                DiscountAmount: parseFloat(discountAmount) || 0,
+                DiscountPercent: parseFloat(discountPercent) || 0,
+                Amount: parseFloat(amountTotal) || 0,
+                UserName: userName || "",
+                UserID: userID || "",
+                ShiftID: parseInt(shiftID) || 0,
+                ShiftName: shiftName || ""
             }),
-            headers: {
-                "X-CSRF-TOKEN-HEADERNAME":
-                    jQuery("input[name='__RequestVerificationToken']").val()
-            },
             success: function (result) {
-                closeModalSplitTransaction();
-                clearSelectedRowsBilling();
-                getFolioNo();
-                showToast('Success', result.msg, true);
+                if (result && result.code === 0) {
+                    closeModalSplitTransaction();
+                    clearSelectedRowsBilling();
+                    getFolioNo();
+                    showToast('Success', result.msg, true);
+                    return;
+                }
+
+                const errorMessage = result && result.msg ? result.msg : 'Split transaction failed';
+                showToast('Error', errorMessage, false);
             },
             error: function (xhr) {
                 if (xhr.status == 401) {
                     sessionTimeout();
+                    return;
                 }
+                showToast('Error', 'System Error: Could not split transaction', false);
+            },
+            complete: function () {
+                finishSplitRequest();
             }
         });
     }
