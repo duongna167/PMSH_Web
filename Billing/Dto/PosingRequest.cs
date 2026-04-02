@@ -1,6 +1,6 @@
 ﻿using BaseBusiness.Model;
 
-namespace Billing.Controllers
+namespace Billing.Dto
 {
     public class PostingRequest
     {
