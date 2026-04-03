@@ -103,32 +103,20 @@ namespace Billing.Services.Implements
         /// <summary>
         /// Phuc Hàm tính từ Giá Net ra Giá ++ (Gross)
         /// </summary>
-        public decimal CalculatePricePlusPlus(string transactionCode, decimal netPrice)
+        public decimal CalculatePricePlusPlus(string transactionCode, decimal netPrice, string currency = "VND")
         {
             try
             {
-                decimal svcPercent = 0;
-                decimal vatPercent = 0;
+                var (svcPercent, vatPercent) = GetTaxConfig(transactionCode);
 
-                var transactionConfigs = PropertyUtils.ConvertToList<GenerateTransactionModel>(GenerateTransactionBO.Instance.FindAll())
-                                        .Where(x => x.TransactionCode == transactionCode).ToList();
+                decimal svc = netPrice * svcPercent / 100m;
+                decimal vat = (netPrice + svc) * vatPercent / 100m;
 
-                if (transactionConfigs.Count > 0)
-                {
-                    foreach (var item in transactionConfigs)
-                    {
-                        if (item.SubgroupCode == "SVC") svcPercent = item.Percentage;
-                        if (item.SubgroupCode == "Tax") vatPercent = item.Percentage;
-                    }
-                }
+                decimal gross = netPrice + svc + vat;
 
-                decimal amountSVC = netPrice * (svcPercent / 100m);
-
-                decimal amountVAT = (netPrice + amountSVC) * (vatPercent / 100m);
-
-                decimal grossPrice = netPrice + amountSVC + amountVAT;
-
-                return Math.Round(grossPrice, 2); //làm tròn 2 số thập phân
+                return currency == "VND"
+                    ? Math.Round(gross, 0)
+                    : Math.Round(gross, 2);
             }
             catch (Exception ex)
             {
@@ -139,37 +127,47 @@ namespace Billing.Services.Implements
         /// <summary>
         /// Phuc Hàm tính từ Giá ++ (Gross) về Giá Net
         /// </summary>
-        public decimal CalculatePriceNet(string transactionCode, decimal grossPrice)
+        public decimal CalculatePriceNet(string transactionCode, decimal grossPrice, string currency = "VND")
         {
             try
             {
-                decimal svcPercent = 0;
-                decimal vatPercent = 0;
+                var (svcPercent, vatPercent) = GetTaxConfig(transactionCode);
 
-                var transactionConfigs = PropertyUtils.ConvertToList<GenerateTransactionModel>(GenerateTransactionBO.Instance.FindAll())
-                                        .Where(x => x.TransactionCode == transactionCode).ToList();
+                decimal divisor = (1 + svcPercent / 100m) * (1 + vatPercent / 100m);
 
-                if (transactionConfigs.Count > 0)
-                {
-                    foreach (var item in transactionConfigs)
-                    {
-                        if (item.SubgroupCode == "SVC") svcPercent = item.Percentage;
-                        if (item.SubgroupCode == "Tax") vatPercent = item.Percentage;
-                    }
-                }
+                decimal net = grossPrice / divisor;
 
-                // (Net + SVC) = Gross / (1 + VAT%)
-                decimal priceWithoutVAT = grossPrice / (1 + (vatPercent / 100m));
-
-                // Net = (Net + SVC) / (1 + SVC%)
-                decimal netPrice = priceWithoutVAT / (1 + (svcPercent / 100m));
-
-                return Math.Round(netPrice, 2);
+                return currency == "VND"
+                    ? Math.Round(net, 0)
+                    : Math.Round(net, 2);
             }
             catch (Exception ex)
             {
-                throw new Exception($"Error CalculateNet: {ex.Message}", ex);
+                throw new Exception($"Error CalculatePriceNet: {ex.Message}", ex);
             }
+        }
+
+        private (decimal svcPercent, decimal vatPercent) GetTaxConfig(string transactionCode)
+        {
+            decimal svcPercent = 0;
+            decimal vatPercent = 0;
+
+            var configs = PropertyUtils.ConvertToList<GenerateTransactionModel>(
+                GenerateTransactionBO.Instance.FindByAttribute("TransactionCode", transactionCode)
+            );
+
+            foreach (var item in configs)
+            {
+                var sub = (item.SubgroupCode ?? "").ToUpper().Trim();
+
+                if (sub.Contains("SVC") || sub.Contains("SV") || sub.Contains("SC"))
+                    svcPercent = item.Percentage;
+
+                if (sub.Contains("VAT") || sub.Contains("TAX"))
+                    vatPercent = item.Percentage;
+            }
+
+            return (svcPercent, vatPercent);
         }
 
         public DataTable TransactionDetail(int invoiceNo)
