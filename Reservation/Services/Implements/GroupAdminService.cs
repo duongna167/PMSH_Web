@@ -1,8 +1,6 @@
 ﻿using BaseBusiness.BO;
 using BaseBusiness.util;
 using DevExpress.XtraGauges.Core.Base;
-using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
-using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.Data.SqlClient;
 using Reservation.Services.Interfaces;
 using System;
