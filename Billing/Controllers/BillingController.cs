@@ -2589,25 +2589,13 @@ namespace Billing.Controllers
                 return Json(new { error = ex.Message });
             }
         }
-        [HttpGet]
-        public IActionResult CalculatePricePlusPlus(string transactionCode, decimal netPrice)
-        {
-            try
-            {
-                decimal gross = _iPostService.CalculatePriceNet(transactionCode, netPrice);
-                return Json(gross);
-            }
-            catch (Exception ex)
-            {
-                return Json(ex.Message);
-            }
-        }
+
         [HttpGet]
         public IActionResult CalculatePriceNet(string transactionCode, decimal grossPrice)
         {
             try
             {
-                decimal net = _iPostService.CalculatePricePlusPlus(transactionCode, grossPrice);
+                decimal net = _iPostService.CalculatePriceNet(transactionCode, grossPrice);
                 return Json(net);
             }
             catch (Exception ex)
@@ -2615,32 +2603,17 @@ namespace Billing.Controllers
                 return Json(ex.Message);
             }
         }
-
-        private sealed class InvoicePostingMetadata
+        [HttpGet] 
+        public IActionResult CalculatePricePlusPlus(string transactionCode, decimal netPrice)
         {
-            public string MasterTransactionCode { get; set; }
-            public string InvoiceDescription { get; set; }
-            public string InvoiceReference { get; set; }
-            public string InvoiceSupplement { get; set; }
-        }
-
-        private static InvoicePostingMetadata ParseInvoicePostingMetadata(string rawValue)
-        {
-            if (string.IsNullOrWhiteSpace(rawValue))
-            {
-                return new InvoicePostingMetadata();
-            }
-
             try
             {
-                return JsonSerializer.Deserialize<InvoicePostingMetadata>(rawValue) ?? new InvoicePostingMetadata();
+                decimal gross = _iPostService.CalculatePricePlusPlus(transactionCode, netPrice);
+                return Json(gross);
             }
-            catch
+            catch (Exception ex)
             {
-                return new InvoicePostingMetadata
-                {
-                    MasterTransactionCode = rawValue.Trim()
-                };
+                return Json(ex.Message);
             }
         }
 
@@ -2707,6 +2680,8 @@ namespace Billing.Controllers
                             throw new Exception("Master Transaction Code not found: " + request.MasterCode);
 
                         var mT_Group = (TransactionsModel)masterTransList[0];
+                        var subGroup = (TransactionSubGroupModel)TransactionSubGroupBO.Instance.FindByPrimaryKey(mT_Group.TransactionSubGroupID);
+
                         decimal totalAmount = request.Details.Sum(m => m.Amount);
                         decimal totalAmountBeforeTax = request.Details.Sum(m => m.AmountBeforeTax);
 
@@ -2716,8 +2691,6 @@ namespace Billing.Controllers
                         decimal totalAmountMaster = TextUtils.ExchangeCurrency(businessDate, firstItem.CurrencyID, currencyLocal, totalAmount);
                         // Tính tỷ giá thực tế để áp cho các dòng detail phía sau 
                         if (totalAmount != 0) exchangeRate = totalAmountMaster / totalAmount;
-
-                        var invoiceMeta = ParseInvoicePostingMetadata(firstItem.Property);
 
                         FolioDetailModel masterLine = new FolioDetailModel
                         {
@@ -2737,13 +2710,14 @@ namespace Billing.Controllers
                             TransactionDate = businessDate,
                             CreateDate = sysDate,
                             UpdateDate = sysDate,
+
                             TransactionCode = mT_Group.Code,
-                            Description = !string.IsNullOrEmpty(invoiceMeta.InvoiceDescription) ? invoiceMeta.InvoiceDescription : mT_Group.Description,
                             TransactionGroupID = mT_Group.TransactionGroupID,
                             GroupCode = mT_Group.GroupCode,
                             TransactionSubgroupID = mT_Group.TransactionSubGroupID,
                             SubgroupCode = mT_Group.SubgroupCode,
                             GroupType = mT_Group.GroupType,
+                            ProfitCenterCode = "0",
 
                             Quantity = 1,
                             Price = totalAmount,
@@ -2758,10 +2732,22 @@ namespace Billing.Controllers
                             : currencyLocal,
                             CurrencyMaster = currencyLocal,
 
-                            Reference = !string.IsNullOrEmpty(invoiceMeta.InvoiceReference) ? invoiceMeta.InvoiceReference : firstItem.Reference,
-                            Supplement = !string.IsNullOrEmpty(invoiceMeta.InvoiceSupplement) ? invoiceMeta.InvoiceSupplement : firstItem.Supplement,
-                            CheckNo = firstItem.CheckNo,
-                            
+                            Description = !string.IsNullOrEmpty(request.MasterDescription)
+                              ? request.MasterDescription
+                              : (subGroup != null ? subGroup.Description : mT_Group.Description),
+                                    
+                            Reference = !string.IsNullOrEmpty(request.MasterReference)
+                            ? request.MasterReference
+                            : firstItem.Reference,
+                                    
+                            Supplement = !string.IsNullOrEmpty(request.MasterSupplement)
+                             ? request.MasterSupplement
+                             : firstItem.Supplement,
+                                    
+                            CheckNo = !string.IsNullOrEmpty(request.MasterCheckNo)
+                              ? request.MasterCheckNo
+                              : firstItem.CheckNo,
+
                             RowState = 1,
                             PostType = 3,
                             IsSplit = true,
@@ -2814,6 +2800,7 @@ namespace Billing.Controllers
                                 : currencyLocal; // fallback luôn VND
                         }
                         item.FolioID = dbFolioID;
+                        item.OriginFolioID = dbFolioID;
                         item.ShiftID = firstItem.ShiftID;
                         item.CashierNo = firstItem.CashierNo;
 
@@ -2823,6 +2810,7 @@ namespace Billing.Controllers
                         item.CreateDate = sysDate;
                         item.UpdateDate = sysDate;
                         item.RowState = isInvoicePosting ? 2 : 1;
+                        item.PostType = isInvoicePosting ? 3 : 2;
                         item.RoomID = item.RoomID > 0 ? item.RoomID : firstItem.RoomID;
 
                         if (item.AmountGross == 0)
@@ -2836,6 +2824,9 @@ namespace Billing.Controllers
                         item.UserInsertID = item.UserInsertID;
                         item.UserUpdateID = item.UserUpdateID;
 
+                        item.ProfitCenterID = 2;
+                        item.ProfitCenterCode = "0";
+                        
                         List<GenerateTransactionModel> genConfigs = PropertyUtils.ConvertToList<GenerateTransactionModel>(
                             GenerateTransactionBO.Instance.FindByAttribute("TransactionCode", item.TransactionCode));
 
@@ -2945,7 +2936,8 @@ namespace Billing.Controllers
                                     CurrencyMaster = currencyLocal,    
 
                                     RowState = 3,
-                                    PostType = 3,
+                                    PostType = isInvoicePosting ? 3 : 2,
+                                    IsSplit = false,
                                     Status = false,
                                     ProfitCenterID = 2, 
 

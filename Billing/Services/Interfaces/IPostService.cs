@@ -27,8 +27,8 @@ namespace Billing.Services.Interfaces
         /// <returns>Giá trị net</returns>
         decimal CalculatePrice(string transactionCode, decimal price);
 
-        decimal CalculatePriceNet(string transactionCode, decimal grossPrice);
-        decimal CalculatePricePlusPlus(string transactionCode, decimal netPrice);
+        decimal CalculatePriceNet(string transactionCode, decimal grossPrice, string currency = "VND");
+        decimal CalculatePricePlusPlus(string transactionCode, decimal netPrice, string currency = "VND");
 
         DataTable TransactionDetail(int invoiceNo);
 

@@ -98,7 +98,7 @@
                                                     <div class="row g-1 mb-1">
                                                         <div class="col-12 col-sm-2"><label class="form-label">Currency</label></div>
                                                         <div class="col-12 col-sm-3">
-                                                            <select name="currencyID" class="form-select form-select-sm currency-select"><option value="">-- Loading... --</option></select>
+                                                            <select name="currencyID" class="form-select form-select-sm currency-select" disabled><option value="">-- Loading... --</option></select>
                                                         </div>
                                                         <div class="col-12 col-sm-3 text-sm-end pe-2"><label class="form-label fw-bold">Win.No</label></div>
                                                         <div class="col-12 col-sm-4">
@@ -237,7 +237,7 @@
                                                     <div class="row g-1 mb-1">
                                                         <div class="col-12 col-sm-2"><label class="form-label">Currency</label></div>
                                                         <div class="col-12 col-sm-3">
-                                                            <select name="currencyID" class="form-select form-select-sm currency-select"><option value="">-- Loading... --</option></select>
+                                                            <select name="currencyID" class="form-select form-select-sm currency-select" disabled><option value="">-- Loading... --</option></select>
                                                         </div>
                                                         <div class="col-12 col-sm-3 text-sm-end pe-2"><label class="form-label fw-bold">Win.No</label></div>
                                                         <div class="col-12 col-sm-4">
@@ -368,13 +368,16 @@
             maximumFractionDigits: 2
         });
     }
-
+    
     function parseNumberWithComma(str) {
-        if (str === null || str === undefined || str === '') return 0;
-        if (typeof str === 'number') return str;
-        let cleanStr = str.toString().replace(/\./g, '').replace(/,/g, '.');
-        let result = parseFloat(cleanStr);
-        return isNaN(result) ? 0 : result;
+        if (!str) return 0;
+
+        return Number(
+            str
+                .replace(/\s/g, '')
+                .replace(/\./g, '')
+                .replace(',', '.')
+        ) || 0;
     }
 
     // --- HELPER: Lấy element trong Tab đang active ---
@@ -399,23 +402,27 @@
     // --- API CALCULATIONS  ---
     // Nhập Net -> Ra Gross (amount++)
     function apiCalcPlusFromNet() {
-        if (isReset) return;
+        if (isReset || isSilentUpdate) return;
+
         let tCode = getActiveEl('.js-trans-code').val();
         let $netInput = getActiveEl('.js-input-price-net');
         let netVal = parseNumberWithComma($netInput.val());
 
-        if (!tCode) return;
+        if (!tCode || netVal <= 0) return;
 
         $.ajax({
             url: '/Billing/CalculatePricePlusPlus',
             type: 'GET',
             data: { transactionCode: tCode, netPrice: netVal },
             success: function (res) {
-                if (!isNaN(res)) {
-                    let fmtGross = formatNumberWithComma(res);
-                    getActiveEl('.js-input-price').val(fmtGross);
+                if (typeof res === "number" && !isNaN(res)) {
 
-                    $netInput.val(formatNumberWithComma(netVal));
+                    isSilentUpdate = true;
+
+                    getActiveEl('.js-input-price').val(formatNumberWithComma(res));
+
+                    isSilentUpdate = false;
+
                     calculateLineTotal();
                 }
             }
@@ -424,25 +431,28 @@
 
     // Nhập Gross(price++) -> Ra Net
     function apiCalcNetFromPlus() {
-        if (isReset) return;
+        if (isReset || isSilentUpdate) return;
+
         let tCode = getActiveEl('.js-trans-code').val();
         let $grossInput = getActiveEl('.js-input-price');
         let grossVal = parseNumberWithComma($grossInput.val());
 
-        if (!tCode) return;
+        if (!tCode || grossVal <= 0) return;
 
         $.ajax({
             url: '/Billing/CalculatePriceNet',
             type: 'GET',
             data: { transactionCode: tCode, grossPrice: grossVal },
             success: function (res) {
-                if (!isNaN(res)) {
-                    let fmtNet = formatNumberWithComma(res);
-                    getActiveEl('.js-input-price-net').val(fmtNet);
+                if (typeof res === "number" && !isNaN(res)) {
 
-                    // Format lại ô Gross
-                    $grossInput.val(formatNumberWithComma(grossVal));
-                    calculateLineTotal();
+                    isSilentUpdate = true;
+
+                    getActiveEl('.js-input-price-net').val(formatNumberWithComma(res));
+
+                    isSilentUpdate = false;
+
+                    setTimeout(calculateLineTotal, 0);
                 }
             }
         });
@@ -462,6 +472,7 @@
     }
 
     var isComposing = false;
+    var isSilentUpdate = false;
 
     // --- EVENTS ---
     $(document).ready(function() {
@@ -476,7 +487,30 @@
             $('.js-search-box[data-target="#list-group-container"]').focus();
             renderFolioOptions('#selectFolioDetail');
             renderFolioOptions('#selectFolioInvoice');
-            syncToolbarLogic();
+        });
+
+        $(document).on('change', '#selectFolioDetail, #selectFolioInvoice', function() {
+            var val = $(this).val();
+            $('#selectFolioDetail, #selectFolioInvoice').val(val);
+        });
+
+        // Bắt sự kiện click vào các nút Tab 
+        $(document).on('click', '#detail-tab, #invoice-tab', function (e) {
+            resetFormPosting();
+            const keyToTrigger = (this.id === 'invoice-tab') ? 'F3' : 'F2'; 
+
+            // Tạo và bắn sự kiện keydown giả lập
+            const event = new KeyboardEvent('keydown', {
+                key: keyToTrigger,
+                keyCode: (keyToTrigger === 'F3') ? 114 : 113, // F3=114, F2=113
+                which: (keyToTrigger === 'F3') ? 114 : 113,
+                bubbles: true,
+                cancelable: true
+            });
+
+            document.dispatchEvent(event); 
+
+            syncToolbarLogic(this.id); 
         });
 
         $('#modalPosting').on('hidden.bs.modal', function () {
@@ -484,7 +518,6 @@
         });
 
         // --- SỰ KIỆN NHẬP LIỆU TIỀN TỆ TỨC THÌ ---
-
         $(document).on('compositionstart', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function () {
             isComposing = true;
         });
@@ -494,32 +527,6 @@
 
             // Sau khi gõ xong mới format
             formatCurrencyLive(this);
-        });
-
-        $(document).on('input', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function () {
-            if (isComposing) return; // ❗ bỏ qua khi đang gõ Telex
-
-            formatCurrencyLive(this);
-        });
-
-        //  Chặn ký tự lạ ngay khi nhấn phím (Chỉ cho phép số và một dấu trừ ở đầu)
-        $(document).on('keypress', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function(e) {
-            var charCode = (e.which) ? e.which : e.keyCode;
-            var value = $(this).val();
-
-            // Phím trừ (-)
-            if (charCode === 45) {
-                // Chỉ cho phép dấu trừ nếu chưa có và phải ở vị trí đầu tiên
-                if (value.indexOf('-') !== -1 || e.target.selectionStart !== 0) {
-                    e.preventDefault();
-                }
-                return;
-            }
-
-            // Các phím không phải số (48-57)
-            if (charCode < 48 || charCode > 57) {
-                e.preventDefault();
-            }
         });
 
         // Format dấu chấm phân cách ngay khi đang gõ (Live Format)
@@ -590,13 +597,16 @@
 
             var pastedData = (e.originalEvent || e).clipboardData.getData('text/plain');
 
-            var cleanData = pastedData.replace(/[^0-9.,]/g, '');
+            var cleanData = pastedData
+            .replace(/\s/g, '')
+            .replace(/[^\d.,]/g, '');
 
-            document.execCommand("insertText", false, cleanData);
+            $(this).val(cleanData);
+            $(this).trigger('input');
         });
 
         //  Kiểm tra input để đảm bảo không âm khi blur
-        $(document).on('blur', '.js-input-qty, .js-input-price, .js-input-price-net', function() {
+        $(document).on('blur', '.js-input-qty', function() {
             if (isSilentReset) return;
             var valStr = $(this).val();
             // Chuyển dấu phẩy thành chấm để parse
@@ -611,19 +621,21 @@
         });
 
         //  INPUT PRICE ++
-        $(document).on('blur keypress', '.js-input-price', function(e) {
+        $(document).on('keypress', '.js-input-price', function(e) {
             if (isSilentReset) return;
-            if (e.type === 'keypress' && e.which !== 13) return;
-            if (e.type === 'keypress') { e.preventDefault(); $(this).blur(); return; }
-            apiCalcNetFromPlus();
+            if (e.which !== 13) return;
+
+            e.preventDefault();
+            $(this).blur();
         });
 
         //  INPUT PRICE NET
-        $(document).on('blur keypress', '.js-input-price-net', function(e) {
+        $(document).on('keypress', '.js-input-price-net', function(e) {
             if (isSilentReset) return;
-            if (e.type === 'keypress' && e.which !== 13) return;
-            if (e.type === 'keypress') { e.preventDefault(); $(this).blur(); return; }
-            apiCalcPlusFromNet();
+            if (e.which !== 13) return;
+
+            e.preventDefault();
+            $(this).blur();
         });
 
         //  QUANTITY
@@ -633,7 +645,7 @@
              if (e.type === 'keypress') { e.preventDefault(); $(this).blur(); return; }
              calculateLineTotal();
         });
-
+        
         //  FOCUS EFFECT
         $(document).on('focus click', '.js-input-price', function() {
             $(this).addClass('active-user-input');
@@ -726,6 +738,25 @@
 
     });
 
+    function syncToolbarLogic(forceTabId) {
+        const btnAdd = document.getElementById("btn-add");
+        if (!btnAdd) return;
+
+        // Nếu không có forceTabId (trường hợp click chuột), lấy ID của tab đang có class active
+        let activeTabId = forceTabId;
+        if (!activeTabId) {
+            const activeTab = document.querySelector('.nav-tabs .nav-link.active');
+            activeTabId = activeTab ? activeTab.id : "";
+        }
+
+        if (activeTabId === "invoice-tab") {
+            btnAdd.style.setProperty("display", "flex", "important");
+            if (typeof refreshInvoiceGrid === 'function') refreshInvoiceGrid();
+        } else {
+            btnAdd.style.setProperty("display", "none", "important");
+        }
+    }
+
     // --- DATA LOADING & FORM FILLING ---
     function fillToForm(tCode, tDesc, aCode, aDesc, price, element) {
         if (element) highlightItem(element, '#list-article-container');
@@ -771,8 +802,8 @@
         isSilentReset = true;
 
         $pane.find('input')
-            .not('.js-invoice-desc, .js-invoice-ref, .js-invoice-supp, .js-invoice-checkNo')
-            .val('');
+        .not('.js-invoice-desc, .js-invoice-ref, .js-invoice-supp, .js-invoice-checkNo, .js-trans-code, .js-trans-desc')
+        .val('');
 
         $pane.find('.js-input-qty').val('1');
         $pane.find('.js-input-price, .js-input-price-net').val('0,00');
@@ -894,21 +925,6 @@
         }
 
     });
-
-    function syncToolbarLogic() {
-        const btnAdd = document.getElementById("btn-add");
-        if (!btnAdd) return;
-
-        // Tìm tab đang active thực tế trên giao diện
-        const activeTab = document.querySelector('.nav-tabs .nav-link.active');
-        const activeTabId = activeTab ? activeTab.id : "";
-
-        if (activeTabId === "invoice-tab") {
-            btnAdd.style.setProperty("display", "flex", "important");
-        } else {
-            btnAdd.style.setProperty("display", "none", "important");
-        }
-    }
 
     // Load Data INTO CBO
     function loadCurrencies() {
@@ -1073,6 +1089,8 @@
 
     // nut add and post
     var invoiceList = [];
+    var invoiceMasterCode = "";     // ← Master Code 
+    var invoiceMasterDesc = "";     // ← Description của Master 
 
         // --- NÚT ADD RENDER DATA VÀO INVOICE LIST ---
         $(document).off('click', '#btn-add').on('click', '#btn-add', function() {
@@ -1083,6 +1101,16 @@
                 showToast("Warning","Please select a transaction first!",true);
                 return;
             }
+
+            // ==================== LẤY MASTER CODE (CHỈ LẦN ĐẦU) ====================
+            if (invoiceList.length === 0) {
+                invoiceMasterCode = transCode;
+                invoiceMasterDesc = $activePane.find('.js-trans-desc').val();
+
+                // Optional: Khóa T/A Code sau khi đã có Master 
+                $activePane.find('.js-trans-code, .js-trans-desc').prop('readonly', true);
+            }
+            // =====================================================================
 
             var qty = parseFloat($activePane.find('.js-input-qty').val()) || 0;
             var price = parseNumberWithComma($activePane.find('.js-input-price-net').val());
@@ -1109,7 +1137,7 @@
                 code: transCode,
                 articleCode: $activePane.find('.js-art-code').val() || "",
                 description: $activePane.find('.js-art-desc').val() || $activePane.find('.js-trans-desc').val(),
-                amountBeforeTax: parseNumberWithComma($activePane.find('.js-amount-gross').val()),
+                amountBeforeTax: parseNumberWithComma($activePane.find('.js-amount-net').val()),
                 quantity: qty,
                 price: price,
                 serviceType: serviceType,
@@ -1136,17 +1164,25 @@
     // ---. HÀM RESET FORM NHƯNG GIỮ INPUT FIELD INVOICE DESC (CHO NÚT ADD) ---
     function resetFormKeepInvoiceInfo() {
         var $activePane = $('#invoice-pane');
-        var currentDesc = $activePane.find('.js-invoice-desc').val();
 
-        resetFormPosting();
+        var currentInvoiceDesc = $activePane.find('.js-invoice-desc').val();
 
-        $activePane.find('.js-invoice-desc').val(currentDesc);
+        resetFormPosting();   
+
+        // Giữ lại thông tin Invoice Description
+        $activePane.find('.js-invoice-desc').val(currentInvoiceDesc);
+
+        // ===  Set lại T/A Code về MASTER ===
+        if (invoiceMasterCode) {
+            $activePane.find('.js-trans-code').val(invoiceMasterCode);
+            $activePane.find('.js-trans-desc').val(invoiceMasterDesc);
+        }
 
         $activePane.find('.js-trans-code').focus();
     }
 
         // ---  HÀM POSTING SERVICE  ---
-            function PostingService() {
+        function PostingService() {
             const loginUser = parseInt(localStorage.getItem("userID")) || 0;
             const loginName = (localStorage.getItem("Loginname") || "").trim().replace(/^"(.*)"$/, '$1');
             const shiftID = parseInt(localStorage.getItem("shiftID")) || 0;
@@ -1166,7 +1202,11 @@
             var payload = {
                 folioNo: selectedFolioNo,
                 currentFolioID: folioNoID,
-                masterCode: "", 
+                masterCode: (activeTabId === 'invoice-pane') ? $activePane.find('.js-trans-code').val() : "",
+                masterDescription: (activeTabId === 'invoice-pane') ? $activePane.find('.js-invoice-desc').val() : "",
+                masterReference: (activeTabId === 'invoice-pane') ? $activePane.find('.js-invoice-ref').val() : "",
+                masterSupplement: (activeTabId === 'invoice-pane') ? $activePane.find('.js-invoice-supp').val() : "",
+                masterCheckNo: (activeTabId === 'invoice-pane') ? $activePane.find('.js-invoice-checkNo').val() : "",
                 details: []
             };
 
@@ -1176,20 +1216,24 @@
                 if (!tCode) { showToast("Warning", "No transaction selected!", true); return; }
 
                 var qty = parseFloat($activePane.find('.js-input-qty').val()) || 0;
-                var price = parseNumberWithComma($activePane.find('.js-input-price-net').val());
-                var amount = parseNumberWithComma($activePane.find('.js-amount-net').val());
-
-                payload.details.push({
+                var priceNet = parseNumberWithComma($activePane.find('.js-input-price-net').val());
+                var amountNet = parseNumberWithComma($activePane.find('.js-amount-net').val());
+                var amountGross = parseNumberWithComma($activePane.find('.js-amount-gross').val());
+                    payload.details.push({
                     UserID: loginUser, UserName: loginName, ShiftID: shiftID,
                     CashierNo: loginName,
                     ReservationID: parseInt(idReservation),
                     OriginReservationID: parseInt(idReservation),
+
                     RoomType: roomType, RoomID: parseInt(roomID),
+
                     TransactionCode: tCode,
                     Description: $activePane.find('.js-trans-desc').val(),
                     ArticleCode: $activePane.find('.js-art-code').val(),
-                    Quantity: qty, Price: price, Amount: amount,
-                    AmountBeforeTax: parseNumberWithComma($activePane.find('.js-amount-gross').val()),
+
+                    Quantity: qty, Price: priceNet, Amount: amountGross,
+                    AmountGross: amountGross,
+                    AmountBeforeTax: amountNet,
                     CurrencyID: $activePane.find('.currency-select').val(),
                     Reference: $activePane.find('.js-ref-main').val(),
                     Supplement: $activePane.find('.js-sup-folio').val(),
@@ -1205,36 +1249,30 @@
                     return;
                 }
 
-                // Lấy mã MasterCode từ ô T/A Code của Form Invoice (Chuẩn Winform)
-                var mCode = $activePane.find('.js-trans-code').val();
-                if (!mCode) {
-                    showToast('Error', "Please select a Master Transaction Code (e.g. Room Package)!", false);
+                // LẤY MASTER CODE TỪ BIẾN RIÊNG
+                if (!invoiceMasterCode) {
+                    showToast('Error', "Master Transaction Code is missing!", false);
                     return;
                 }
-                payload.masterCode = mCode;
-
-                // Metadata cho Invoice (Description, Ref, Supp của cả bộ Invoice)
-                var invoiceMeta = JSON.stringify({
-                    MasterTransactionCode: mCode,
-                    InvoiceDescription: $activePane.find('.js-invoice-desc').val(),
-                    InvoiceReference: $activePane.find('.js-invoice-ref').val(),
-                    InvoiceSupplement: $activePane.find('.js-invoice-supp').val()
-                });
+                payload.masterCode = invoiceMasterCode;
+                payload.masterDescription = $activePane.find('.js-invoice-desc').val() || invoiceMasterDesc;
 
                 invoiceList.forEach(function(item) {
                     payload.details.push({
                         UserID: loginUser, UserName: loginName, ShiftID: shiftID,
                         CashierNo: loginName,
                         ReservationID: idReservation, RoomType: roomType, RoomID: roomID,
+
                         TransactionCode: item.code,
                         Description: item.description,
                         ArticleCode: item.articleCode,
                         Quantity: item.quantity, Price: item.price, Amount: item.amount,
+                        AmountGross: item.amount,
                         AmountBeforeTax: item.amountBeforeTax,
                         CurrencyID: $activePane.find('.currency-select').val(),
                         Reference: item.reference,
                         CheckNo: item.checkNo,
-                        Property: invoiceMeta, // Gửi kèm meta để BE parse
+                        Supplement: $activePane.find('.js-invoice-supp').val(), 
                         PostType: 3, // Post Invoice
                         UserInsertID: loginUser,
                         UserUpdateID: loginUser
@@ -1369,7 +1407,13 @@
 
         function clearInvoiceList() {
             invoiceList = [];
+            invoiceMasterCode = "";
+            invoiceMasterDesc = "";
+
             refreshInvoiceGrid();
+
+            // Mở khóa lại T/A Code cho lần Invoice mới
+            $('#invoice-pane .js-trans-code, #invoice-pane .js-trans-desc').prop('readonly', false);
         }
 
         function updateFooterTotal() {
@@ -1410,29 +1454,27 @@
         }
 
         function formatCurrencyLive(input) {
-            let selectionStart = input.selectionStart;
-            let originalLength = input.value.length;
+            if (isComposing) return;
 
             let value = input.value;
-            let isNegative = value.startsWith('-');
-            let cleanValue = value.replace(/[^\d]/g, "");
 
-            if (cleanValue === "") {
-                input.value = isNegative ? "-" : "";
+            // Giữ dấu phẩy cuối (decimal)
+            let parts = value.split(',');
+            let integerPart = parts[0].replace(/\D/g, '');
+            let decimalPart = parts[1] || '';
+
+            if (integerPart === '') {
+                input.value = '';
                 return;
             }
 
-            let formattedValue = new Intl.NumberFormat('vi-VN').format(parseInt(cleanValue, 10));
-            if (isNegative) formattedValue = "-" + formattedValue;
+            let formatted = new Intl.NumberFormat('vi-VN').format(parseInt(integerPart));
 
-            if (input.value !== formattedValue) {
-                input.value = formattedValue;
-
-                // Tính toán lại vị trí con trỏ chuột
-                let newLength = input.value.length;
-                selectionStart = selectionStart + (newLength - originalLength);
-                input.setSelectionRange(selectionStart, selectionStart);
+            if (decimalPart !== '') {
+                formatted += ',' + decimalPart;
             }
+
+            input.value = formatted;
         }
        
         function toggleServiceLock(serviceType, isChecked) {
