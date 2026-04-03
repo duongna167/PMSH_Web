@@ -4085,6 +4085,70 @@ namespace BaseBusiness.util
         //     }
         // }
         #endregion
+
+        //Ham XO Post tien online sang IPTV
+        public static void IF_XO(string _RoomNo, string _date, string _time, string _Amount, string _Total, string _Curr,
+                            string _refe, string _descrip, string _RsvID, string _GuestID)
+        {
+            try
+            {
+                #region 1.Khai báo biến
+                string _transCode = "";
+                int _FolioID = 0;
+                //string _datetime = "";
+                string _des = "";
+                #endregion
+
+                #region 2.Process
+                DataTable _dtC = TextUtils.Select("SELECT Desciption FROM ConfigSystem WHERE KeyName ='IF_IN' ");
+                DataTable _dtF = TextUtils.Select("SELECT ID FROM Folio WHERE ReservationID = '" + _RsvID + "' AND FolioNo = 1 ");
+                //Not Exits
+                if (_dtC.Rows.Count > 0 && _dtF.Rows.Count > 0)
+                {
+                    _transCode = _dtC.Rows[0][0].ToString();
+                    _FolioID = TextUtils.ToInt(_dtF.Rows[0][0].ToString());
+                    //if (_transCode == "" || _FolioID == 0)
+                    //    WriteLog(PathName + "\\Log_err.txt", " -- : PS - Ro.No " + _RoomNo + "- Connot find Transaction Code on table Configsystem or FolioID not exits");
+                }
+
+                //XO|RN2781|G#12345|F#88746|TC2524|BI350|BDBeach Comber Lunch|BA13850|DA110327|TI124753|
+                string Currency = "";
+                if (_Curr == "USD")
+                    Currency = "USD&0VND";
+                else
+                    Currency = "VND&0USD";
+                _des = "XO|RN" + _RoomNo
+                           + "|G#" + _GuestID
+                           + "|T#" + _FolioID
+                           + "|TC" + _transCode
+                           + "|BI" + _Amount
+                           + "|CU" + _Curr
+                           + "|BD" + _descrip
+                           + "|BA" + _Total.ToString() + Currency
+                           + "|DA" + Convert.ToDateTime(_date).ToString("yyMMdd")
+                           + "|TI" + Convert.ToDateTime(_time).ToString("HH:mm:ss");
+                _des = _des + "|";
+                _des = _des.Replace("\r\n", " ");
+
+                //WriteLog(PathName + "\\Log_Data.txt", _des);
+
+                //Insert into Interface
+                InterfaceModel model = new InterfaceModel();
+                model.KeyValue = "XO";
+                model.Description = _des;
+                model.CreateDate = DateTime.Now;
+                InterfaceBO.Instance.Insert(model);
+                #endregion
+
+            }
+            catch (Exception ex)
+            {
+                //WriteLog(PathName + "\\Log_err.txt", " - PS: Ro.No - " + _RoomNo + ", RsvID - " + _RsvID + " - Err :" + ex.Message);
+                //Anwer
+                //IF_PA(_RoomNo, false, _date, _time, _refe);
+            }
+        }
+
     }
 
 }

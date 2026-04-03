@@ -18,6 +18,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
@@ -32,7 +33,7 @@ using static System.Runtime.CompilerServices.RuntimeHelpers;
 
 namespace Billing.Controllers
 {
-    public class BillingController : Controller
+    public partial class BillingController : Controller
     {
         private const string SplitTransactionProcedureName = "spSplitTransactionByDev";
         private readonly IConfiguration _configuration;
@@ -43,8 +44,9 @@ namespace Billing.Controllers
         private readonly ICrashierService _iCrashierService;
         private readonly IInvoicingService _invoicingService;
         private readonly IAdjustTransactionService _iAdjustTransactionService;
+        private readonly IPostingInvoiceService _iPostingInvoiceService;
         public BillingController(ILogger<BillingController> logger,
-                IMemoryCache cache, IConfiguration configuration, IPostService iPostService, ITransferTransactionService transferTransactionService, ICrashierService iCrashierService, IInvoicingService invoicingService, IAdjustTransactionService adjustTransaction)
+                IMemoryCache cache, IConfiguration configuration, IPostService iPostService, ITransferTransactionService transferTransactionService, ICrashierService iCrashierService, IInvoicingService invoicingService, IAdjustTransactionService adjustTransaction, IPostingInvoiceService postingInvoiceService)
         {
             _cache = cache;
             _logger = logger;
@@ -54,6 +56,7 @@ namespace Billing.Controllers
             _iCrashierService = iCrashierService;
             _invoicingService = invoicingService;
             _iAdjustTransactionService = adjustTransaction;
+            _iPostingInvoiceService = postingInvoiceService;
         }
 
 
@@ -2587,7 +2590,7 @@ namespace Billing.Controllers
             try
             {
                 string sql = string.Format(@"
-            select Code, Description, DefaultPrice 
+            select Code, Description, DefaultPrice, TaxInclude
             from Transactions 
             where TransactionGroupID={0} 
               and TransactionSubGroupID={1} 
@@ -2604,7 +2607,8 @@ namespace Billing.Controllers
                               {
                                   Code = !string.IsNullOrEmpty(r["Code"].ToString()) ? r["Code"] : "",
                                   Description = !string.IsNullOrEmpty(r["Description"].ToString()) ? r["Description"] : "",
-                                  DefaultPrice = dt.Columns.Contains("DefaultPrice") && r["DefaultPrice"] != DBNull.Value ? r["DefaultPrice"] : 0
+                                  DefaultPrice = dt.Columns.Contains("DefaultPrice") && r["DefaultPrice"] != DBNull.Value ? r["DefaultPrice"] : 0,
+                                  TaxInclude = dt.Columns.Contains("TaxInclude") && r["TaxInclude"] != DBNull.Value && Convert.ToBoolean(r["TaxInclude"])
                               }).ToList();
 
                 return Json(result);
@@ -2614,6 +2618,93 @@ namespace Billing.Controllers
                 return Json(new { error = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Trả về danh sách invoice code (GroupType = 2) để FE F3 chọn riêng như WinForm.
+        /// </summary>
+        [HttpGet]
+        public IActionResult GetInvoiceTransactions()
+        {
+            try
+            {
+                string sql = @"
+                    select Code, Description
+                    from Transactions
+                    where GroupType = 2
+                      and IsActive = 1
+                    order by Code";
+
+                DataTable dt = TextUtils.Select(sql);
+
+                var result = (from r in dt.AsEnumerable()
+                              select new
+                              {
+                                  Code = !string.IsNullOrEmpty(r["Code"].ToString()) ? r["Code"] : "",
+                                  Description = !string.IsNullOrEmpty(r["Description"].ToString()) ? r["Description"] : ""
+                              }).ToList();
+
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Trả về invoice code mặc định từ ConfigSystem.CODE_INVOICE để F3 dùng ngầm như WinForm.
+        /// </summary>
+        [HttpGet]
+        public IActionResult GetDefaultInvoiceTransaction()
+        {
+            try
+            {
+                string sql = @"
+                    select top 1
+                        cs.KeyValue as Code,
+                        t.Description
+                    from ConfigSystem cs
+                    left join Transactions t on t.Code = cs.KeyValue
+                    where cs.KeyName = 'CODE_INVOICE'";
+
+                DataTable dt = TextUtils.Select(sql);
+                if (dt.Rows.Count == 0)
+                {
+                    return Json(new { error = "Config CODE_INVOICE not found." });
+                }
+
+                string code = dt.Rows[0]["Code"]?.ToString() ?? string.Empty;
+                string description = dt.Rows[0]["Description"]?.ToString() ?? string.Empty;
+
+                if (string.IsNullOrWhiteSpace(code))
+                {
+                    return Json(new { error = "Config CODE_INVOICE is empty." });
+                }
+
+                Expression exp = new Expression("GroupType", 2, "=");
+                exp = exp.And(new Expression("IsActive", 1, "="));
+                exp = exp.And(new Expression("Code", code, "="));
+                ArrayList arrTrans = TransactionsBO.Instance.FindByExpression(exp);
+
+                if (arrTrans == null || arrTrans.Count == 0)
+                {
+                    return Json(new { error = "Default invoice code is invalid or inactive." });
+                }
+
+                TransactionsModel invoiceTransaction = (TransactionsModel)arrTrans[0];
+
+                return Json(new
+                {
+                    Code = invoiceTransaction.Code,
+                    Description = invoiceTransaction.Description ?? description
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
         [HttpGet]
         public IActionResult GetArticles(string transactionCode)
         {
@@ -2700,373 +2791,373 @@ namespace Billing.Controllers
             }
         }
 
-        [HttpPost]
-        public IActionResult PostingSave([FromBody] PostingRequest request)
-        {
-            ProcessTransactions pt = new ProcessTransactions();
-            try
-            {
-                if (request.Details == null || request.Details.Count == 0)
-                    return BadRequest("No data received.");
+        // [HttpPost]
+        // public IActionResult PostingSave([FromBody] PostingRequest request)
+        // {
+        //     ProcessTransactions pt = new ProcessTransactions();
+        //     try
+        //     {
+        //         if (request.Details == null || request.Details.Count == 0)
+        //             return BadRequest("No data received.");
 
-                pt.OpenConnection();
-                pt.BeginTransaction();
+        //         pt.OpenConnection();
+        //         pt.BeginTransaction();
 
-                var firstItem = request.Details.First();
-                int reservationID = firstItem.ReservationID;
-                DateTime businessDate = TextUtils.GetBusinessDate();
-                DateTime sysDate = DateTime.Now;
-                string currencyLocal = "VND";
+        //         var firstItem = request.Details.First();
+        //         int reservationID = firstItem.ReservationID;
+        //         DateTime businessDate = TextUtils.GetBusinessDate();
+        //         DateTime sysDate = DateTime.Now;
+        //         string currencyLocal = "VND";
 
-                int nextTransNo = FolioDetailBO.GetTopTransactioNo();
-                int count = 0;
-                bool isInvoicePosting = request.Details.Any(m => m.PostType == 3);
-                decimal exchangeRate = 1;
+        //         int nextTransNo = FolioDetailBO.GetTopTransactioNo();
+        //         int count = 0;
+        //         bool isInvoicePosting = request.Details.Any(m => m.PostType == 3);
+        //         decimal exchangeRate = 1;
 
-                int nextInvoiceNo = FolioDetailBO.GetTopInvoiceNo() + 1;
-                string batchInvoiceNo = nextInvoiceNo.ToString();
+        //         int nextInvoiceNo = FolioDetailBO.GetTopInvoiceNo() + 1;
+        //         string batchInvoiceNo = nextInvoiceNo.ToString();
 
-                int dbFolioID;
+        //         int dbFolioID;
 
-                if (request.CurrentFolioID > 0)
-                {
-                    // kiểm tra có đổi window không
-                    var currentFolio = (FolioModel)FolioBO.Instance.FindByPrimaryKey(request.CurrentFolioID);
+        //         if (request.CurrentFolioID > 0)
+        //         {
+        //             // kiểm tra có đổi window không
+        //             var currentFolio = (FolioModel)FolioBO.Instance.FindByPrimaryKey(request.CurrentFolioID);
 
-                    int currentFolioNo = currentFolio.IsMasterFolio
-                        ? -currentFolio.FolioNo
-                        : currentFolio.FolioNo;
+        //             int currentFolioNo = currentFolio.IsMasterFolio
+        //                 ? -currentFolio.FolioNo
+        //                 : currentFolio.FolioNo;
 
-                    if (currentFolioNo == request.FolioNo)
-                    {
-                        dbFolioID = request.CurrentFolioID;
-                    }
-                    else
-                    {
-                        // user đổi window → check / create
-                        dbFolioID = EnsureFolio(reservationID, request.FolioNo, pt);
-                    }
-                }
-                else
-                {
-                    dbFolioID = EnsureFolio(reservationID, request.FolioNo, pt);
-                }
+        //             if (currentFolioNo == request.FolioNo)
+        //             {
+        //                 dbFolioID = request.CurrentFolioID;
+        //             }
+        //             else
+        //             {
+        //                 // user đổi window → check / create
+        //                 dbFolioID = EnsureFolio(reservationID, request.FolioNo, pt);
+        //             }
+        //         }
+        //         else
+        //         {
+        //             dbFolioID = EnsureFolio(reservationID, request.FolioNo, pt);
+        //         }
 
-                // 2. NẾU LÀ POST INVOICE (F3) -> TẠO DÒNG MASTER (RowState = 1)
-                if (isInvoicePosting)
-                {
-                    if (string.IsNullOrEmpty(request.MasterCode))
-                        throw new Exception("Master Transaction Code is required for Invoice Posting.");
+        //         // 2. NẾU LÀ POST INVOICE (F3) -> TẠO DÒNG MASTER (RowState = 1)
+        //         if (isInvoicePosting)
+        //         {
+        //             if (string.IsNullOrEmpty(request.MasterCode))
+        //                 throw new Exception("Master Transaction Code is required for Invoice Posting.");
 
-                    var masterTransList = TransactionsBO.Instance.FindByAttribute("Code", request.MasterCode);
-                    if (masterTransList == null || masterTransList.Count == 0)
-                        throw new Exception("Master Transaction Code not found: " + request.MasterCode);
+        //             var masterTransList = TransactionsBO.Instance.FindByAttribute("Code", request.MasterCode);
+        //             if (masterTransList == null || masterTransList.Count == 0)
+        //                 throw new Exception("Master Transaction Code not found: " + request.MasterCode);
 
-                    var mT_Group = (TransactionsModel)masterTransList[0];
-                    decimal totalAmount = request.Details.Sum(m => m.Amount);
-                    decimal totalAmountBeforeTax = request.Details.Sum(m => m.AmountBeforeTax);
+        //             var mT_Group = (TransactionsModel)masterTransList[0];
+        //             decimal totalAmount = request.Details.Sum(m => m.Amount);
+        //             decimal totalAmountBeforeTax = request.Details.Sum(m => m.AmountBeforeTax);
 
-                    decimal totalGross = request.Details.Sum(m => m.AmountGross);
+        //             decimal totalGross = request.Details.Sum(m => m.AmountGross);
 
-                    // Tính AmountMaster cho dòng tổng
-                    decimal totalAmountMaster = TextUtils.ExchangeCurrency(businessDate, firstItem.CurrencyID, currencyLocal, totalAmount);
-                    // Tính tỷ giá thực tế để áp cho các dòng detail phía sau 
-                    if (totalAmount != 0) exchangeRate = totalAmountMaster / totalAmount;
+        //             // Tính AmountMaster cho dòng tổng
+        //             decimal totalAmountMaster = TextUtils.ExchangeCurrency(businessDate, firstItem.CurrencyID, currencyLocal, totalAmount);
+        //             // Tính tỷ giá thực tế để áp cho các dòng detail phía sau 
+        //             if (totalAmount != 0) exchangeRate = totalAmountMaster / totalAmount;
 
-                    var invoiceMeta = ParseInvoicePostingMetadata(firstItem.Property);
+        //             var invoiceMeta = ParseInvoicePostingMetadata(firstItem.Property);
 
-                    FolioDetailModel masterLine = new FolioDetailModel
-                    {
-                        UserID = firstItem.UserID,
-                        UserName = firstItem.UserName,
-                        ShiftID = firstItem.ShiftID,
+        //             FolioDetailModel masterLine = new FolioDetailModel
+        //             {
+        //                 UserID = firstItem.UserID,
+        //                 UserName = firstItem.UserName,
+        //                 ShiftID = firstItem.ShiftID,
 
-                        InvoiceNo = batchInvoiceNo,
-                        CashierNo = firstItem.CashierNo,
-                        FolioID = dbFolioID,
-                        OriginFolioID = dbFolioID,
-                        ReservationID = reservationID,
-                        OriginReservationID = reservationID,
-                        RoomID = firstItem.RoomID,
-                        RoomType = firstItem.RoomType,
-                        RoomTypeID = firstItem.RoomTypeID,
-                        TransactionDate = businessDate,
-                        CreateDate = sysDate,
-                        UpdateDate = sysDate,
-                        TransactionCode = mT_Group.Code,
-                        Description = !string.IsNullOrEmpty(invoiceMeta.InvoiceDescription) ? invoiceMeta.InvoiceDescription : mT_Group.Description,
-                        TransactionGroupID = mT_Group.TransactionGroupID,
-                        GroupCode = mT_Group.GroupCode,
-                        TransactionSubgroupID = mT_Group.TransactionSubGroupID,
-                        SubgroupCode = mT_Group.SubgroupCode,
-                        GroupType = mT_Group.GroupType,
+        //                 InvoiceNo = batchInvoiceNo,
+        //                 CashierNo = firstItem.CashierNo,
+        //                 FolioID = dbFolioID,
+        //                 OriginFolioID = dbFolioID,
+        //                 ReservationID = reservationID,
+        //                 OriginReservationID = reservationID,
+        //                 RoomID = firstItem.RoomID,
+        //                 RoomType = firstItem.RoomType,
+        //                 RoomTypeID = firstItem.RoomTypeID,
+        //                 TransactionDate = businessDate,
+        //                 CreateDate = sysDate,
+        //                 UpdateDate = sysDate,
+        //                 TransactionCode = mT_Group.Code,
+        //                 Description = !string.IsNullOrEmpty(invoiceMeta.InvoiceDescription) ? invoiceMeta.InvoiceDescription : mT_Group.Description,
+        //                 TransactionGroupID = mT_Group.TransactionGroupID,
+        //                 GroupCode = mT_Group.GroupCode,
+        //                 TransactionSubgroupID = mT_Group.TransactionSubGroupID,
+        //                 SubgroupCode = mT_Group.SubgroupCode,
+        //                 GroupType = mT_Group.GroupType,
 
-                        Quantity = 1,
-                        Price = totalAmount,
-                        Amount = totalAmount,
-                        AmountMaster = totalAmountMaster,
-                        AmountGross = totalGross,
-                        AmountMasterGross = totalGross * exchangeRate,
-                        AmountBeforeTax = totalAmountBeforeTax,
-                        AmountMasterBeforeTax = totalAmountBeforeTax * exchangeRate,
-                        CurrencyID = !string.IsNullOrEmpty(firstItem.CurrencyID)
-                        ? firstItem.CurrencyID
-                        : currencyLocal,
-                        CurrencyMaster = currencyLocal,
+        //                 Quantity = 1,
+        //                 Price = totalAmount,
+        //                 Amount = totalAmount,
+        //                 AmountMaster = totalAmountMaster,
+        //                 AmountGross = totalGross,
+        //                 AmountMasterGross = totalGross * exchangeRate,
+        //                 AmountBeforeTax = totalAmountBeforeTax,
+        //                 AmountMasterBeforeTax = totalAmountBeforeTax * exchangeRate,
+        //                 CurrencyID = !string.IsNullOrEmpty(firstItem.CurrencyID)
+        //                 ? firstItem.CurrencyID
+        //                 : currencyLocal,
+        //                 CurrencyMaster = currencyLocal,
 
-                        Reference = !string.IsNullOrEmpty(invoiceMeta.InvoiceReference) ? invoiceMeta.InvoiceReference : firstItem.Reference,
-                        Supplement = !string.IsNullOrEmpty(invoiceMeta.InvoiceSupplement) ? invoiceMeta.InvoiceSupplement : firstItem.Supplement,
-                        CheckNo = firstItem.CheckNo,
+        //                 Reference = !string.IsNullOrEmpty(invoiceMeta.InvoiceReference) ? invoiceMeta.InvoiceReference : firstItem.Reference,
+        //                 Supplement = !string.IsNullOrEmpty(invoiceMeta.InvoiceSupplement) ? invoiceMeta.InvoiceSupplement : firstItem.Supplement,
+        //                 CheckNo = firstItem.CheckNo,
 
-                        RowState = 1,
-                        PostType = 3,
-                        IsSplit = true,
-                        Status = false,
-                        ProfitCenterID = 2,
-                        IsTransfer = false,
-                        IsPostedAR = false,
-                        Property = "",
-                        OriginARNo = "",
-                        UserInsertID = firstItem.UserInsertID,
-                        UserUpdateID = firstItem.UserUpdateID
-                    };
+        //                 RowState = 1,
+        //                 PostType = 3,
+        //                 IsSplit = true,
+        //                 Status = false,
+        //                 ProfitCenterID = 2,
+        //                 IsTransfer = false,
+        //                 IsPostedAR = false,
+        //                 Property = "",
+        //                 OriginARNo = "",
+        //                 UserInsertID = firstItem.UserInsertID,
+        //                 UserUpdateID = firstItem.UserUpdateID
+        //             };
 
-                    int masterLineID = (int)pt.Insert(masterLine);
-                    batchInvoiceNo = masterLineID.ToString();
+        //             int masterLineID = (int)pt.Insert(masterLine);
+        //             batchInvoiceNo = masterLineID.ToString();
 
 
-                    // Cập nhật InvoiceNo đồng bộ
-                    string sqlUpdMaster = string.Format("UPDATE FolioDetail SET InvoiceNo = '{0}', TransactionNo = '{0}' WHERE ID = {1}", batchInvoiceNo, masterLineID);
-                    pt.UpdateCommand(sqlUpdMaster);
+        //             // Cập nhật InvoiceNo đồng bộ
+        //             string sqlUpdMaster = string.Format("UPDATE FolioDetail SET InvoiceNo = '{0}', TransactionNo = '{0}' WHERE ID = {1}", batchInvoiceNo, masterLineID);
+        //             pt.UpdateCommand(sqlUpdMaster);
 
-                    // History cho Master Line
-                    PostingHistoryModel phMaster = new PostingHistoryModel
-                    {
-                        ActionType = 0,
-                        ActionText = $"[POST_INV_MASTER] - {masterLine.TransactionCode} - {masterLine.Description}",
-                        ActionDate = DateTime.Now,
-                        ActionUser = masterLine.UserName,
-                        Amount = masterLine.Amount,
-                        InvoiceNo = batchInvoiceNo,
-                        Code = masterLine.TransactionCode,
-                        Description = masterLine.Description,
-                        TransactionDate = masterLine.TransactionDate,
-                        Machine = Environment.MachineName,
-                        Action_FolioID = masterLine.FolioID,
-                        AfterAction_FolioID = masterLine.FolioID,
-                        Property = "PMS"
-                    };
-                    PostingHistoryBO.Instance.Insert(phMaster);
-                    count++;
-                }
+        //             // History cho Master Line
+        //             PostingHistoryModel phMaster = new PostingHistoryModel
+        //             {
+        //                 ActionType = 0,
+        //                 ActionText = $"[POST_INV_MASTER] - {masterLine.TransactionCode} - {masterLine.Description}",
+        //                 ActionDate = DateTime.Now,
+        //                 ActionUser = masterLine.UserName,
+        //                 Amount = masterLine.Amount,
+        //                 InvoiceNo = batchInvoiceNo,
+        //                 Code = masterLine.TransactionCode,
+        //                 Description = masterLine.Description,
+        //                 TransactionDate = masterLine.TransactionDate,
+        //                 Machine = Environment.MachineName,
+        //                 Action_FolioID = masterLine.FolioID,
+        //                 AfterAction_FolioID = masterLine.FolioID,
+        //                 Property = "PMS"
+        //             };
+        //             PostingHistoryBO.Instance.Insert(phMaster);
+        //             count++;
+        //         }
 
-                // CÁC DÒNG DETAIL (RowState = 2)
-                foreach (var item in request.Details)
-                {
-                    if (string.IsNullOrEmpty(item.CurrencyID))
-                    {
-                        item.CurrencyID = !string.IsNullOrEmpty(firstItem.CurrencyID)
-                            ? firstItem.CurrencyID
-                            : currencyLocal; // fallback luôn VND
-                    }
-                    item.FolioID = dbFolioID;
-                    item.ShiftID = firstItem.ShiftID;
-                    item.CashierNo = firstItem.CashierNo;
+        //         // CÁC DÒNG DETAIL (RowState = 2)
+        //         foreach (var item in request.Details)
+        //         {
+        //             if (string.IsNullOrEmpty(item.CurrencyID))
+        //             {
+        //                 item.CurrencyID = !string.IsNullOrEmpty(firstItem.CurrencyID)
+        //                     ? firstItem.CurrencyID
+        //                     : currencyLocal; // fallback luôn VND
+        //             }
+        //             item.FolioID = dbFolioID;
+        //             item.ShiftID = firstItem.ShiftID;
+        //             item.CashierNo = firstItem.CashierNo;
 
-                    item.InvoiceNo = batchInvoiceNo;
-                    item.TransactionNo = (nextTransNo + count).ToString();
-                    item.TransactionDate = businessDate;
-                    item.CreateDate = sysDate;
-                    item.UpdateDate = sysDate;
-                    item.RowState = isInvoicePosting ? 2 : 1;
-                    item.RoomID = item.RoomID > 0 ? item.RoomID : firstItem.RoomID;
+        //             item.InvoiceNo = batchInvoiceNo;
+        //             item.TransactionNo = (nextTransNo + count).ToString();
+        //             item.TransactionDate = businessDate;
+        //             item.CreateDate = sysDate;
+        //             item.UpdateDate = sysDate;
+        //             item.RowState = isInvoicePosting ? 2 : 1;
+        //             item.RoomID = item.RoomID > 0 ? item.RoomID : firstItem.RoomID;
 
-                    if (item.AmountGross == 0)
-                    {
-                        item.AmountGross = item.Amount;
-                    }
-                    item.AmountMaster = item.Amount * exchangeRate;
-                    item.AmountMasterGross = item.AmountGross * exchangeRate;
-                    item.AmountMasterBeforeTax = item.AmountBeforeTax * exchangeRate;
-                    item.CurrencyMaster = currencyLocal;
-                    item.UserInsertID = item.UserInsertID;
-                    item.UserUpdateID = item.UserUpdateID;
+        //             if (item.AmountGross == 0)
+        //             {
+        //                 item.AmountGross = item.Amount;
+        //             }
+        //             item.AmountMaster = item.Amount * exchangeRate;
+        //             item.AmountMasterGross = item.AmountGross * exchangeRate;
+        //             item.AmountMasterBeforeTax = item.AmountBeforeTax * exchangeRate;
+        //             item.CurrencyMaster = currencyLocal;
+        //             item.UserInsertID = item.UserInsertID;
+        //             item.UserUpdateID = item.UserUpdateID;
 
-                    List<GenerateTransactionModel> genConfigs = PropertyUtils.ConvertToList<GenerateTransactionModel>(
-                        GenerateTransactionBO.Instance.FindByAttribute("TransactionCode", item.TransactionCode));
+        //             List<GenerateTransactionModel> genConfigs = PropertyUtils.ConvertToList<GenerateTransactionModel>(
+        //                 GenerateTransactionBO.Instance.FindByAttribute("TransactionCode", item.TransactionCode));
 
-                    item.IsSplit = genConfigs.Count > 0;
+        //             item.IsSplit = genConfigs.Count > 0;
 
-                    var transListDetail = TransactionsBO.Instance.FindByAttribute("Code", item.TransactionCode);
+        //             var transListDetail = TransactionsBO.Instance.FindByAttribute("Code", item.TransactionCode);
 
-                    if (transListDetail != null && transListDetail.Count > 0)
-                    {
-                        var tInfo = (TransactionsModel)transListDetail[0];
-                        item.TransactionGroupID = tInfo.TransactionGroupID;
-                        item.GroupCode = tInfo.GroupCode;
-                        item.TransactionSubgroupID = tInfo.TransactionSubGroupID;
-                        item.SubgroupCode = tInfo.SubgroupCode;
-                    }
-                    else
-                    {
-                        throw new Exception("Transaction not found: " + item.TransactionCode);
-                    }
+        //             if (transListDetail != null && transListDetail.Count > 0)
+        //             {
+        //                 var tInfo = (TransactionsModel)transListDetail[0];
+        //                 item.TransactionGroupID = tInfo.TransactionGroupID;
+        //                 item.GroupCode = tInfo.GroupCode;
+        //                 item.TransactionSubgroupID = tInfo.TransactionSubGroupID;
+        //                 item.SubgroupCode = tInfo.SubgroupCode;
+        //             }
+        //             else
+        //             {
+        //                 throw new Exception("Transaction not found: " + item.TransactionCode);
+        //             }
 
-                    var roomTypeList = RoomTypeBO.Instance.FindByAttribute("Code", item.RoomType);
-                    if (roomTypeList != null && roomTypeList.Count > 0)
-                    {
-                        var roomTypeInfo = (RoomTypeModel)roomTypeList[0];
-                        item.RoomTypeID = roomTypeInfo.ID;
-                    }
+        //             var roomTypeList = RoomTypeBO.Instance.FindByAttribute("Code", item.RoomType);
+        //             if (roomTypeList != null && roomTypeList.Count > 0)
+        //             {
+        //                 var roomTypeInfo = (RoomTypeModel)roomTypeList[0];
+        //                 item.RoomTypeID = roomTypeInfo.ID;
+        //             }
 
-                    pt.Insert(item);
+        //             pt.Insert(item);
 
-                    PostingHistoryModel postingHistory = new PostingHistoryModel
-                    {
-                        ActionType = 0,
-                        ActionText = $"[POST_GEN] - {item.TransactionCode} - {item.Description}",
-                        ActionDate = DateTime.Now,
-                        ActionUser = item.UserName,
-                        Amount = item.Amount,
-                        InvoiceNo = item.InvoiceNo,
-                        Code = item.TransactionCode,
-                        Description = item.Description,
-                        TransactionDate = item.TransactionDate,
-                        Machine = Environment.MachineName,
-                        Action_FolioID = item.FolioID,
-                        AfterAction_FolioID = item.FolioID,
-                        Property = "PMS"
-                    };
-                    PostingHistoryBO.Instance.Insert(postingHistory);
+        //             PostingHistoryModel postingHistory = new PostingHistoryModel
+        //             {
+        //                 ActionType = 0,
+        //                 ActionText = $"[POST_GEN] - {item.TransactionCode} - {item.Description}",
+        //                 ActionDate = DateTime.Now,
+        //                 ActionUser = item.UserName,
+        //                 Amount = item.Amount,
+        //                 InvoiceNo = item.InvoiceNo,
+        //                 Code = item.TransactionCode,
+        //                 Description = item.Description,
+        //                 TransactionDate = item.TransactionDate,
+        //                 Machine = Environment.MachineName,
+        //                 Action_FolioID = item.FolioID,
+        //                 AfterAction_FolioID = item.FolioID,
+        //                 Property = "PMS"
+        //             };
+        //             PostingHistoryBO.Instance.Insert(postingHistory);
 
-                    count++;
+        //             count++;
 
-                    // 4. TÁCH THUẾ/PHÍ SVC (RowState = 3)
-                    if (genConfigs.Count > 0)
-                    {
-                        decimal baseNet = item.AmountBeforeTax > 0 ? item.AmountBeforeTax : item.Amount;
-                        foreach (var genItem in genConfigs)
-                        {
-                            decimal calcAmount = Math.Round((baseNet * genItem.Percentage) / 100m, 0);
+        //             // 4. TÁCH THUẾ/PHÍ SVC (RowState = 3)
+        //             if (genConfigs.Count > 0)
+        //             {
+        //                 decimal baseNet = item.AmountBeforeTax > 0 ? item.AmountBeforeTax : item.Amount;
+        //                 foreach (var genItem in genConfigs)
+        //                 {
+        //                     decimal calcAmount = Math.Round((baseNet * genItem.Percentage) / 100m, 0);
 
-                            // Lấy Group/Subgroup thông tin
-                            var transList = TransactionsBO.Instance.FindByAttribute("Code", genItem.TransactionCodeDetail);
+        //                     // Lấy Group/Subgroup thông tin
+        //                     var transList = TransactionsBO.Instance.FindByAttribute("Code", genItem.TransactionCodeDetail);
 
-                            int groupID = 0;
-                            string groupCode = "";
-                            int subGroupID = 0;
-                            string subGroupCode = "";
+        //                     int groupID = 0;
+        //                     string groupCode = "";
+        //                     int subGroupID = 0;
+        //                     string subGroupCode = "";
 
-                            if (transList != null && transList.Count > 0)
-                            {
-                                var tInfo = (TransactionsModel)transList[0];
-                                groupID = tInfo.TransactionGroupID;
-                                groupCode = tInfo.GroupCode;
-                                subGroupID = tInfo.TransactionSubGroupID;
-                                subGroupCode = tInfo.SubgroupCode;
-                            }
+        //                     if (transList != null && transList.Count > 0)
+        //                     {
+        //                         var tInfo = (TransactionsModel)transList[0];
+        //                         groupID = tInfo.TransactionGroupID;
+        //                         groupCode = tInfo.GroupCode;
+        //                         subGroupID = tInfo.TransactionSubGroupID;
+        //                         subGroupCode = tInfo.SubgroupCode;
+        //                     }
 
-                            FolioDetailModel taxLine = new FolioDetailModel
-                            {
-                                UserID = item.UserID,
-                                UserName = item.UserName,
-                                FolioID = dbFolioID,
-                                ShiftID = item.ShiftID,
-                                CashierNo = item.CashierNo,
+        //                     FolioDetailModel taxLine = new FolioDetailModel
+        //                     {
+        //                         UserID = item.UserID,
+        //                         UserName = item.UserName,
+        //                         FolioID = dbFolioID,
+        //                         ShiftID = item.ShiftID,
+        //                         CashierNo = item.CashierNo,
 
-                                OriginFolioID = dbFolioID,
-                                ReservationID = reservationID,
-                                OriginReservationID = reservationID,
-                                InvoiceNo = batchInvoiceNo,
-                                TransactionNo = (nextTransNo + count).ToString(),
-                                TransactionDate = businessDate,
-                                RoomID = item.RoomID,
-                                TransactionCode = genItem.TransactionCodeDetail,
-                                Description = genItem.Description,
+        //                         OriginFolioID = dbFolioID,
+        //                         ReservationID = reservationID,
+        //                         OriginReservationID = reservationID,
+        //                         InvoiceNo = batchInvoiceNo,
+        //                         TransactionNo = (nextTransNo + count).ToString(),
+        //                         TransactionDate = businessDate,
+        //                         RoomID = item.RoomID,
+        //                         TransactionCode = genItem.TransactionCodeDetail,
+        //                         Description = genItem.Description,
 
-                                TransactionGroupID = groupID,
-                                GroupCode = groupCode,
-                                TransactionSubgroupID = subGroupID,
-                                SubgroupCode = subGroupCode,
+        //                         TransactionGroupID = groupID,
+        //                         GroupCode = groupCode,
+        //                         TransactionSubgroupID = subGroupID,
+        //                         SubgroupCode = subGroupCode,
 
-                                Quantity = 1,
-                                Price = calcAmount,
-                                Amount = calcAmount,
-                                AmountMaster = calcAmount * exchangeRate,
-                                AmountGross = calcAmount,
-                                AmountBeforeTax = calcAmount,
-                                AmountMasterBeforeTax = calcAmount * exchangeRate,
+        //                         Quantity = 1,
+        //                         Price = calcAmount,
+        //                         Amount = calcAmount,
+        //                         AmountMaster = calcAmount * exchangeRate,
+        //                         AmountGross = calcAmount,
+        //                         AmountBeforeTax = calcAmount,
+        //                         AmountMasterBeforeTax = calcAmount * exchangeRate,
 
-                                CurrencyID = item.CurrencyID,
-                                CurrencyMaster = currencyLocal,
+        //                         CurrencyID = item.CurrencyID,
+        //                         CurrencyMaster = currencyLocal,
 
-                                RowState = 3,
-                                PostType = 3,
-                                Status = false,
-                                ProfitCenterID = 2,
+        //                         RowState = 3,
+        //                         PostType = 3,
+        //                         Status = false,
+        //                         ProfitCenterID = 2,
 
-                                CreateDate = sysDate,
-                                UpdateDate = sysDate,
-                                UserInsertID = item.UserInsertID,
-                                UserUpdateID = item.UserUpdateID
-                            };
-                            count++;
-                            pt.Insert(taxLine);
+        //                         CreateDate = sysDate,
+        //                         UpdateDate = sysDate,
+        //                         UserInsertID = item.UserInsertID,
+        //                         UserUpdateID = item.UserUpdateID
+        //                     };
+        //                     count++;
+        //                     pt.Insert(taxLine);
 
-                            PostingHistoryBO.Instance.Insert(new PostingHistoryModel
-                            {
-                                ActionType = 0,
-                                ActionText = $"[POST_TAX] - {taxLine.TransactionCode} - {taxLine.Description}",
-                                ActionDate = DateTime.Now,
-                                ActionUser = taxLine.UserName,
-                                Amount = taxLine.Amount,
-                                InvoiceNo = taxLine.InvoiceNo,
-                                Code = taxLine.TransactionCode,
-                                Description = taxLine.Description,
-                                TransactionDate = taxLine.TransactionDate,
-                                Machine = Environment.MachineName,
-                                Action_FolioID = taxLine.FolioID,
-                                AfterAction_FolioID = taxLine.FolioID,
-                                Property = "PMS"
-                            });
-                        }
-                    }
-                }
+        //                     PostingHistoryBO.Instance.Insert(new PostingHistoryModel
+        //                     {
+        //                         ActionType = 0,
+        //                         ActionText = $"[POST_TAX] - {taxLine.TransactionCode} - {taxLine.Description}",
+        //                         ActionDate = DateTime.Now,
+        //                         ActionUser = taxLine.UserName,
+        //                         Amount = taxLine.Amount,
+        //                         InvoiceNo = taxLine.InvoiceNo,
+        //                         Code = taxLine.TransactionCode,
+        //                         Description = taxLine.Description,
+        //                         TransactionDate = taxLine.TransactionDate,
+        //                         Machine = Environment.MachineName,
+        //                         Action_FolioID = taxLine.FolioID,
+        //                         AfterAction_FolioID = taxLine.FolioID,
+        //                         Property = "PMS"
+        //                     });
+        //                 }
+        //             }
+        //         }
 
-                // 4. CẬP NHẬT BALANCE (SỐ DƯ)
-                // A. Tính Balance riêng cho Folio hiện tại 
-                string sqlCalcFolio = string.Format("SELECT SUM(Amount) FROM FolioDetail WITH (NOLOCK) WHERE FolioID = {0}", dbFolioID);
-                DataTable dtFolio = TextUtils.Select(sqlCalcFolio);
-                decimal folioBalance = (dtFolio.Rows.Count > 0 && dtFolio.Rows[0][0] != DBNull.Value)
-                                       ? Convert.ToDecimal(dtFolio.Rows[0][0]) : 0;
+        //         // 4. CẬP NHẬT BALANCE (SỐ DƯ)
+        //         // A. Tính Balance riêng cho Folio hiện tại 
+        //         string sqlCalcFolio = string.Format("SELECT SUM(Amount) FROM FolioDetail WITH (NOLOCK) WHERE FolioID = {0}", dbFolioID);
+        //         DataTable dtFolio = TextUtils.Select(sqlCalcFolio);
+        //         decimal folioBalance = (dtFolio.Rows.Count > 0 && dtFolio.Rows[0][0] != DBNull.Value)
+        //                                ? Convert.ToDecimal(dtFolio.Rows[0][0]) : 0;
 
-                // B. Tính Balance tổng cho cả Reservation (để hiện tổng nợ của khách trên toàn bộ các folio)
-                decimal resBalance = FolioDetailBO.CalculateBalance(reservationID);
+        //         // B. Tính Balance tổng cho cả Reservation (để hiện tổng nợ của khách trên toàn bộ các folio)
+        //         decimal resBalance = FolioDetailBO.CalculateBalance(reservationID);
 
-                // C. Cập nhật vào DB dùng pt.UpdateCommand để bảo đảm Transaction
-                string sqlUpdFolio = string.Format(
-                    "UPDATE Folio SET BalanceVND = {0} WHERE ID = {1}",
-                    folioBalance.ToString(System.Globalization.CultureInfo.InvariantCulture), dbFolioID);
-                pt.UpdateCommand(sqlUpdFolio);
+        //         // C. Cập nhật vào DB dùng pt.UpdateCommand để bảo đảm Transaction
+        //         string sqlUpdFolio = string.Format(
+        //             "UPDATE Folio SET BalanceVND = {0} WHERE ID = {1}",
+        //             folioBalance.ToString(System.Globalization.CultureInfo.InvariantCulture), dbFolioID);
+        //         pt.UpdateCommand(sqlUpdFolio);
 
-                string sqlUpdRes = string.Format(
-                    "UPDATE Reservation SET BalanceVND = {0} WHERE ID = {1}",
-                    resBalance.ToString(System.Globalization.CultureInfo.InvariantCulture), reservationID);
-                pt.UpdateCommand(sqlUpdRes);
+        //         string sqlUpdRes = string.Format(
+        //             "UPDATE Reservation SET BalanceVND = {0} WHERE ID = {1}",
+        //             resBalance.ToString(System.Globalization.CultureInfo.InvariantCulture), reservationID);
+        //         pt.UpdateCommand(sqlUpdRes);
 
-                pt.CommitTransaction();
-                return Ok(new { success = true, message = "Posted successfully!", invoiceNo = batchInvoiceNo });
-            }
-            catch (Exception ex)
-            {
-                if (pt.Transaction != null && pt.Transaction.Connection != null)
-                {
-                    pt.RollBack();
-                }
-                return StatusCode(500, new { success = false, message = ex.Message });
-            }
-            finally { pt.CloseConnection(); }
-        }
+        //         pt.CommitTransaction();
+        //         return Ok(new { success = true, message = "Posted successfully!", invoiceNo = batchInvoiceNo });
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         if (pt.Transaction != null && pt.Transaction.Connection != null)
+        //         {
+        //             pt.RollBack();
+        //         }
+        //         return StatusCode(500, new { success = false, message = ex.Message });
+        //     }
+        //     finally { pt.CloseConnection(); }
+        // }
 
         private int EnsureFolio(int reservationId, int folioNo, ProcessTransactions pt)
         {
