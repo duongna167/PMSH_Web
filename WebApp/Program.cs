@@ -166,6 +166,7 @@ builder.Services.AddSingleton<IRoutingService, RoutingService>();
 builder.Services.AddSingleton<IFrontDeskService, FrontDeskService>();
 builder.Services.AddSingleton<ICashieringService, CashieringService>();
 builder.Services.AddSingleton<IPostService, PostService>();
+builder.Services.AddSingleton<IPostingInvoiceService, PostingService>();
 builder.Services.AddSingleton<ICrashierService, CrashierService>();
 builder.Services.AddSingleton<IInvoicingService, InvoicingService>();
 builder.Services.AddSingleton<ITransferTransactionService, TransferTransactionService>();

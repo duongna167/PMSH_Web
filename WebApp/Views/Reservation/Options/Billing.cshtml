@@ -127,7 +127,7 @@
 
                                         <div class="overlay-menu" id="functionMenu" style="display: none;">
                                             <a href="#" onclick="openModalNewWindow();">New Window</a>
-                                            <a href="#" onclick="openModalDeleteWindow();">Delete Window</a>
+                            <a href="#" onclick="deleteFolioNo();">Delete Window</a>
 
                                             <div class="dropdown">
                                                 <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">Lock Folio</a>
@@ -220,7 +220,7 @@
 
                         <img id="logoSource" src="/images/logo-parner.png" hidden>
 
-                        @await Html.PartialAsync("Billing/Posting")
+                        @await Html.PartialAsync("Billing/PostingNew")
                         @await Html.PartialAsync("Billing/Payment")
                         @await Html.PartialAsync("Billing/NewFolio")
                         @await Html.PartialAsync("Billing/PostingHistory")
@@ -293,18 +293,26 @@
                             var invoiceNoPosting = 0;
                             var listFolioNoID = [];
                             var folioNoID = 0;
+                            var billingDetailXhr = null;
+                            var billingDetailRequestSeq = 0;
+                            var folioListXhr = null;
 
                             function openBilling0() { searchFolioDetail(0); }
                             function openBilling1() { searchFolioDetail(1); }
                             function openBilling2() { searchFolioDetail(2); }
                             function searchFolioDetail(type) {
                                 var $gridElement = $("#gridContainerBilling");
+                                var requestSeq = ++billingDetailRequestSeq;
 
                                 if ($gridElement.length > 0 && $gridElement.data("dxDataGrid")) {
                                     // Chỉ clear data khi Grid ĐÃ tồn tại
                                     $gridElement.dxDataGrid("instance").option("dataSource", []);
                                 }
-                                $.ajax({
+                                if (billingDetailXhr && billingDetailXhr.readyState !== 4) {
+                                    billingDetailXhr.abort();
+                                }
+
+                                billingDetailXhr = $.ajax({
                                     url: '/Reservation/GetFolioDetailByFolioID',
                                     loadingGrid: "#gridContainerBilling",
                                     type: 'get',
@@ -316,9 +324,11 @@
                                     crossDomain: false,
                                     headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
                                     success: function (result) {
+                                        if (requestSeq !== billingDetailRequestSeq) return;
                                         initializeDataGridBilling(result);
                                     },
                                     error: function (xhr, statusText, err) {
+                                        if (statusText === 'abort') return;
                                         if (xhr.status == 401) sessionTimeout();
                                     }
                                 });
@@ -327,7 +337,11 @@
                             invoiceNoPosting = 0;
 
                             function getFolioNo() {
-                                $.ajax({
+                                if (folioListXhr && folioListXhr.readyState !== 4) {
+                                    folioListXhr.abort();
+                                }
+
+                                folioListXhr = $.ajax({
                                     url: '/Billing/GetFolioNo',
                                     type: 'get',
                                     data: { reservationID: idReservation },
@@ -381,6 +395,10 @@
                                         if (result.length > 0) {
                                             filterByFolioNo(folioNoID, 0);
                                         }
+                                    },
+                                    error: function (xhr, statusText) {
+                                        if (statusText === 'abort') return;
+                                        if (xhr.status == 401) sessionTimeout();
                                     }
                                 });
                             }
@@ -436,6 +454,12 @@
 
                                 totalAmountBilling = data.reduce((total, item) => total + (parseFloat(item.amount) || 0), 0);
                                 $('#balanceBillingMaster').text(totalAmountBilling.toLocaleString('vi-VN'));
+
+                                var existingGrid = $("#gridContainerBilling").data("dxDataGrid");
+                                if (existingGrid) {
+                                    existingGrid.option("dataSource", data);
+                                    return;
+                                }
 
                                 $("#gridContainerBilling").dxDataGrid({
                                     dataSource: data,

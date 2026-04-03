@@ -1,71 +1,72 @@
-﻿using Billing.Dto;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using BaseBusiness.Model;
 
-namespace Billing.Controllers
+namespace Billing.Dto
 {
-    public class PostingRequest 
+    public class PostingRequest
     {
-        public int UserID { get; set; }
-        public string UserName { get; set; }
-        public int ShiftID { get; set; }
-        public string CashierNo { get; set; }
+        public int FolioNo { get; set; }
+        public int CurrentFolioID { get; set; }
+        public string ConfirmNo { get; set; } = string.Empty;
+        public int ProfileID { get; set; }
+        public string AccountName { get; set; } = string.Empty;
+        public string RoomNo { get; set; } = string.Empty;
+        public string MasterCode { get; set; }
+        public List<FolioDetailModel> Details { get; set; }
+        public bool ChkExpressService { get; set; }
+    }
 
-        public int ReservationID { get; set; }
-        public int FolioID { get; set; }
+    public class PostingSaveRequestDto : PostingRequest
+    {
+        public string Mode { get; set; } = string.Empty;
+        public PostingInvoiceRequestDto? InvoiceRequest { get; set; }
+    }
+
+    public class PostingInvoiceRequestDto
+    {
+        public bool AutoPosting { get; set; }
+        public DateTime SysDate { get; set; }
+        public DateTime BusinessDate { get; set; }
+        public int ProID { get; set; }
+        public string ProCode { get; set; } = string.Empty;
+        public string ConfirmNo { get; set; } = string.Empty;
+        public int RsvID { get; set; }
         public int RoomID { get; set; }
+        // Bắt buộc thêm để giữ đúng logic cũ của IPTV:
+        // WinForms cũ dùng mR.RoomNo, không phải RoomID
+        public string RoomNo { get; set; } = string.Empty;
 
-        public string Description { get; set; }
-        public string CurrencyID { get; set; }
+        public int ProfileID { get; set; }
+        public string AccountName { get; set; } = string.Empty;
+        public int Win { get; set; }
+        public string InvoiceCode { get; set; } = string.Empty;
+        public string InvoiceDesc { get; set; } = string.Empty;
+        public string InvoiceRef { get; set; } = string.Empty;
+        public string InvoiceSupp { get; set; } = string.Empty;
+        public string InvoiceNo { get; set; } = string.Empty;
+        public string CurrencyLocal { get; set; } = string.Empty;
+        public int UserID { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public int ShiftID { get; set; }
 
-        public int PostType { get; set; }
-        public string RoomType { get; set; }
+        public List<PostingInvoiceItemDto> Items { get; set; } = new List<PostingInvoiceItemDto>();
+    }
 
-        public string Reference { get; set; }
-        public string Supplement { get; set; }
-        public decimal AmountBeforeTax { get; set; }
-        public decimal AmountGross { get; set; }
+    public class PostingInvoiceItemDto
+    {
+        public string TransCode { get; set; } = string.Empty;
+        public string Desc { get; set; } = string.Empty;
+        public string ArCode { get; set; } = string.Empty;
         public decimal Amount { get; set; }
-        public int OriginFolioID { get; set; }
-        public string InvoiceNo { get; set; }
-        public string TransactionNo { get; set; }
-        public string ReceiptNo { get; set; }
-        public DateTime TransactionDate { get; set; }
-        public int ProfitCenterID { get; set; }
-        public string ProfitCenterCode { get; set; }
-        public int TransactionGroupID { get; set; }
-        public int TransactionSubgroupID { get; set; }
-        public string GroupCode { get; set; }
-        public string SubgroupCode { get; set; }
-        public int GroupType { get; set; }
-        public string TransactionCode { get; set; }
-        public string ArticleCode { get; set; }
-        public bool Status { get; set; }
-        public int RowState { get; set; }
-        public int IsSplit { get; set; }
-        public int Quantity { get; set; }
-        public decimal Price { get; set; }
-        public decimal AmountMaster { get; set; }
-        public string CurrencyMaster { get; set; }
-        public int PackageID { get; set; }
-        public decimal AmountMasterBeforeTax { get; set; }
-        public decimal AmountMasterGross { get; set; }
+        public bool TaxInclude { get; set; }
+        public int Quan { get; set; }
+        public string CurrencyID { get; set; } = string.Empty;
         public int RoomTypeID { get; set; }
-        public int UserInsertID { get; set; }
-        public DateTime CreateDate { get; set; }
-        public int UserUpdateID { get; set; }
-        public DateTime UpdateDate { get; set; }
-        public int OriginReservationID { get; set; }
-        public string Property { get; set; }
-        public string CheckNo { get; set; }
-        public string OriginARNo { get; set; }
-        public bool IsPostedAR { get; set; }
-        public int ARTransID { get; set; }
-        public int IsPrintVAT { get; set; }
-        public bool IsTransfer { get; set; }
-        public string POS_Unclose { get; set; }
+        public string RoomType { get; set; } = string.Empty;
+        public string Ref { get; set; } = string.Empty;
+        public string Supp { get; set; } = string.Empty;
+
+        // Phục vụ phần post IPTV / tổng hợp sau khi post
+        public decimal AmountNetForIptv { get; set; }
+        public string ArticleDesc { get; set; } = string.Empty;
     }
 }
