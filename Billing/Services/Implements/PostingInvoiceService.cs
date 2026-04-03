@@ -133,6 +133,10 @@ namespace Billing.Services.Implements
                 message = ex.Message;
                 return false;
             }
+            finally
+            {
+                pt.CloseConnection();
+            }
         }
 
         private static void OpenAndBegin(ProcessTransactions pt)

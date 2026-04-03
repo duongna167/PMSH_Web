@@ -352,6 +352,13 @@
                         </div>
                     </div>
                 </div>
+                <div id="posting_loadingSpinnerRateCode" 
+                    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+                        z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+                        height: 100%;display: flex;align-items: center;justify-content: center;">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -1058,6 +1065,7 @@
 
     var xhrGroup = null;
     function loadGroups() {
+        $("#posting_loadingSpinnerRateCode").show();
         if (xhrGroup) xhrGroup.abort();
         $('#list-group-container').html('<div class="p-2">Loading...</div>');
         xhrGroup = $.ajax({
@@ -1073,6 +1081,9 @@
                 if (data.length > 0) {
                     $('#list-group-container .list-group-item:first-child').click();
                 }
+            },
+            complete: function(){
+                $("#posting_loadingSpinnerRateCode").hide();
             }
         });
     }
@@ -1305,7 +1316,7 @@
     }
 
         // ---  HÀM POSTING SERVICE  ---
-            function PostingService() {
+    function PostingServiceLegacy() {
             const loginUser = parseInt(localStorage.getItem("userID")) || 0;
             const loginName = (localStorage.getItem("Loginname") || "").trim().replace(/^"(.*)"$/, '$1');
             const shiftID = parseInt(localStorage.getItem("shiftID")) || 0;
@@ -1401,11 +1412,11 @@
                 });
             }
 
-            submitToDB(payload);
+            submitToDBLegacy(payload);
         }
 
         // Hàm confirm post (api)
-        function submitToDB(payload) {
+        function submitToDBLegacy(payload) {
 
             $.ajax({
                 url: '/Billing/PostingSave',
@@ -1555,6 +1566,7 @@
 
         // Gọi API PostingSave và refresh lại Billing sau khi post thành công.
         function submitToDB(payload) {
+            $("#posting_loadingSpinnerRateCode").show();
             $.ajax({
                 url: '/Billing/PostingSave',
                 type: 'POST',
@@ -1588,6 +1600,9 @@
                         : "Network error or Internal Server Error";
 
                     showToast('Error', "System Error: " + msg, false);
+                },
+                complete: function(){
+                    $("#posting_loadingSpinnerRateCode").hide();
                 }
             });
         }

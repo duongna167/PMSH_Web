@@ -292,7 +292,7 @@ namespace Billing.Controllers
                 pt.Update(detailLine);
 
                 EnsurePostingBalance(reservationIdReturn, folioId, pt);
-                InsertPostingHistory(detailLine, "[POST_GEN]");
+                InsertPostingHistory(pt,detailLine, "[POST_GEN]");
                 PostDetailToIptv(context, folioId, amountNet, currencyId, detailLine.Reference, detailLine.Description);
 
                 return detailLine.InvoiceNo;
@@ -476,7 +476,7 @@ namespace Billing.Controllers
             pt.Update(masterLine);
 
             EnsurePostingBalance(reservationIdReturn, folioId, pt);
-            InsertPostingHistory(masterLine, "[POST_GEN]");
+            InsertPostingHistory(pt,masterLine, "[POST_GEN]");
             PostDetailToIptv(context, folioId, amountNet, currencyId, masterLine.Reference, masterLine.Description);
 
             return masterLine.InvoiceNo;
@@ -669,9 +669,9 @@ namespace Billing.Controllers
         /// <summary>
         /// Ghi posting history cho dòng vừa post để giữ log vận hành như flow cũ.
         /// </summary>
-        private void InsertPostingHistory(FolioDetailModel model, string actionPrefix)
+        private static void InsertPostingHistory(ProcessTransactions pt,FolioDetailModel model, string actionPrefix)
         {
-            PostingHistoryBO.Instance.Insert(new PostingHistoryModel
+            pt.Insert(new PostingHistoryModel
             {
                 ActionType = 0,
                 ActionText = $"{actionPrefix} - {model.TransactionCode} - {model.Description}",
