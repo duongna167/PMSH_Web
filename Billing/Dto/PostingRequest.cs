@@ -6,6 +6,7 @@ namespace Billing.Dto
     {
         public int FolioNo { get; set; }
         public int CurrentFolioID { get; set; }
+        public int TargetFolioID { get; set; }
         public string MasterCode { get; set; }
         public string MasterDescription { get; set; }
         public string MasterReference { get; set; }

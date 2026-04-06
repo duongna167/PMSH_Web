@@ -85,13 +85,13 @@
                                                     </div>
                                                     <div class="row g-1 mb-1">
                                                         <div class="col-12 col-sm-2"><label class="form-label">Price ++</label></div>
-                                                        <div class="col-12 col-sm-3"><input type="text" class="form-control form-control-sm amount-display js-input-price" inputmode="decimal" value="0.00" /></div>
+                                                        <div class="col-12 col-sm-3"><input type="text" class="form-control form-control-sm amount-display js-input-price" inputmode="decimal" value="0,00" /></div>
                                                         <div class="col-12 col-sm-3 text-sm-end pe-2"><label class="form-label fw-bold">Amount ++</label></div>
-                                                        <div class="col-12 col-sm-4"><input type="text" class="form-control form-control-sm amount-display bg-white js-amount-gross" value="0.00" readonly /></div>
+                                                        <div class="col-12 col-sm-4"><input type="text" class="form-control form-control-sm amount-display bg-white js-amount-gross" value="0,00" readonly /></div>
                                                     </div>
                                                     <div class="row g-1 mb-1">
                                                         <div class="col-12 col-sm-2"><label class="form-label">Price.Net</label></div>
-                                                        <div class="col-12 col-sm-3"><input type="text" class="form-control form-control-sm text-end text-muted js-input-price-net" inputmode="decimal" value="0.00" /></div>
+                                                        <div class="col-12 col-sm-3"><input type="text" class="form-control form-control-sm text-end text-muted js-input-price-net" inputmode="decimal" value="0,00" /></div>
                                                         <div class="col-12 col-sm-3 text-sm-end pe-2"><label class="form-label fw-bold">Amount.Net</label></div>
                                                         <div class="col-12 col-sm-4"><input type="text" class="form-control form-control-sm text-end text-muted bg-white js-amount-net" value="0,00" readonly /></div>
                                                     </div>
@@ -224,13 +224,13 @@
                                                     </div>
                                                     <div class="row g-1 mb-1">
                                                         <div class="col-12 col-sm-2"><label class="form-label">Price ++</label></div>
-                                                        <div class="col-12 col-sm-3"><input type="text" class="form-control form-control-sm amount-display js-input-price" value="0.00" /></div>
+                                                        <div class="col-12 col-sm-3"><input type="text" class="form-control form-control-sm amount-display js-input-price" value="0,00" /></div>
                                                         <div class="col-12 col-sm-3 text-sm-end pe-2"><label class="form-label fw-bold">Amount ++</label></div>
-                                                        <div class="col-12 col-sm-4"><input type="text" class="form-control form-control-sm amount-display bg-white js-amount-gross" value="0.00" readonly /></div>
+                                                        <div class="col-12 col-sm-4"><input type="text" class="form-control form-control-sm amount-display bg-white js-amount-gross" value="0,00" readonly /></div>
                                                     </div>
                                                     <div class="row g-1 mb-1">
                                                         <div class="col-12 col-sm-2"><label class="form-label">Price.Net</label></div>
-                                                        <div class="col-12 col-sm-3"><input type="text" class="form-control form-control-sm text-end text-muted js-input-price-net" value="0.00" /></div>
+                                                        <div class="col-12 col-sm-3"><input type="text" class="form-control form-control-sm text-end text-muted js-input-price-net" value="0,00" /></div>
                                                         <div class="col-12 col-sm-3 text-sm-end pe-2"><label class="form-label fw-bold">Amount.Net</label></div>
                                                         <div class="col-12 col-sm-4"><input type="text" class="form-control form-control-sm text-end text-muted bg-white js-amount-net" value="0,00" readonly /></div>
                                                     </div>
@@ -385,21 +385,62 @@
         return $('.tab-pane.active').find(selector);
     }
 
-    function renderFolioOptions(selector) {
+    function getPostingFolioValue(folio) {
+        if (!folio) return 0;
+        return folio.isMasterFolio ? -Math.abs(folio.folioNo) : Math.abs(folio.folioNo);
+    }
+
+    function renderFolioOptions(selectedValue) {
+        const currentValue = selectedValue ?? $('#selectFolioDetail').val() ?? $('#selectFolioInvoice').val();
+        const existingMap = {};
         let html = '';
 
-        for (let i = 1; i <= 8; i++) {
-            html += `<option value="${i}">${i}</option>`;
+        if (Array.isArray(listFolioData)) {
+            listFolioData.forEach(function (folio) {
+                existingMap[getPostingFolioValue(folio)] = folio;
+            });
         }
 
         for (let i = 1; i <= 8; i++) {
-            html += `<option value="-${i}">M${i}</option>`;
+            const folio = existingMap[i];
+            html += `<option value="${i}" data-folio-id="${folio ? folio.id : 0}">${i}</option>`;
         }
 
-        $(selector).html(html);
+        for (let i = 1; i <= 8; i++) {
+            const folioValue = -i;
+            const folio = existingMap[folioValue];
+            html += `<option value="${folioValue}" data-folio-id="${folio ? folio.id : 0}">M${i}</option>`;
+        }
+
+        $('#selectFolioDetail, #selectFolioInvoice').html(html);
+
+        if (currentValue !== null && currentValue !== undefined && currentValue !== '') {
+            $('#selectFolioDetail, #selectFolioInvoice').val(String(currentValue));
+        }
+    }
+
+    function syncPostingFolioSelectionFromBilling(selectedFolioId) {
+        let selectedFolio = null;
+
+        if (Array.isArray(listFolioData) && listFolioData.length > 0) {
+            selectedFolio = listFolioData.find(f => f.id === selectedFolioId)
+                || listFolioData.find(f => f.id === folioNoID)
+                || listFolioData[0];
+        }
+
+        renderFolioOptions(selectedFolio ? getPostingFolioValue(selectedFolio) : null);
+    }
+
+    function getSelectedPostingFolioId(selector) {
+        return parseInt($(selector).find('option:selected').attr('data-folio-id')) || 0;
     }
 
     // --- API CALCULATIONS  ---
+    function resetActivePriceFields() {
+        const $pane = $('.tab-pane.active');
+        $pane.find('.js-input-price, .js-input-price-net, .js-amount-gross, .js-amount-net').val('0,00');
+    }
+
     // Nhập Net -> Ra Gross (amount++)
     function apiCalcPlusFromNet() {
         if (isReset || isSilentUpdate) return;
@@ -408,7 +449,12 @@
         let $netInput = getActiveEl('.js-input-price-net');
         let netVal = parseNumberWithComma($netInput.val());
 
-        if (!tCode || netVal <= 0) return;
+        if (netVal <= 0) {
+            resetActivePriceFields();
+            return;
+        }
+
+        if (!tCode) return;
 
         $.ajax({
             url: '/Billing/CalculatePricePlusPlus',
@@ -437,7 +483,12 @@
         let $grossInput = getActiveEl('.js-input-price');
         let grossVal = parseNumberWithComma($grossInput.val());
 
-        if (!tCode || grossVal <= 0) return;
+        if (grossVal <= 0) {
+            resetActivePriceFields();
+            return;
+        }
+
+        if (!tCode) return;
 
         $.ajax({
             url: '/Billing/CalculatePriceNet',
@@ -464,6 +515,12 @@
         let priceGross = parseNumberWithComma(getActiveEl('.js-input-price').val());
         let priceNet   = parseNumberWithComma(getActiveEl('.js-input-price-net').val());
 
+        if (priceGross <= 0 || priceNet <= 0) {
+            getActiveEl('.js-amount-gross').val('0,00');
+            getActiveEl('.js-amount-net').val('0,00');
+            return;
+        }
+
         let totalGross = qty * priceGross;
         let totalNet   = qty * priceNet;
 
@@ -485,8 +542,7 @@
             loadCurrencies();
             console.log("idReservation:", idReservation);
             $('.js-search-box[data-target="#list-group-container"]').focus();
-            renderFolioOptions('#selectFolioDetail');
-            renderFolioOptions('#selectFolioInvoice');
+            syncPostingFolioSelectionFromBilling(folioNoID);
         });
 
         $(document).on('change', '#selectFolioDetail, #selectFolioInvoice', function() {
@@ -547,13 +603,14 @@
             if (isSilentReset) return;
 
             let val = $(this).val();
-            if (val === "" || val === "-") {
-                $(this).val("0,00");
-            } else {
-                // Format chuẩn kế toán x.xxx,xx
-                let num = parseNumberWithComma(val);
-                $(this).val(formatNumberWithComma(num));
+            let num = parseNumberWithComma(val);
+
+            if (val === "" || val === "-" || num <= 0) {
+                resetActivePriceFields();
+                return;
             }
+
+            $(this).val(formatNumberWithComma(num));
 
             // Gọi API tính toán logic Net/Gross
             if ($(this).hasClass('js-input-price')) {
@@ -843,20 +900,9 @@
         if(crashierLogin == "NotYet"){
             openModalShilftLogin();
         } else {
-            $('#modalPosting').modal('show');
-
-            // lấy folio đang chọn ở Billing
-            let currentFolio = listFolioData.find(f => f.id === folioNoID);
-
-            if (!currentFolio) return;
-
-            // set vào dropdown Posting
-            let folioValue = currentFolio.isMasterFolio
-                ? -Math.abs(currentFolio.folioNo)
-                : currentFolio.folioNo;
-
-            $('#selectFolioDetail').val(folioValue);
-            $('#selectFolioInvoice').val(folioValue);
+            syncDefaultInvoiceMasterConfig(true);
+            $("#modalPosting").modal("show");
+            syncPostingFolioSelectionFromBilling(folioNoID);
         }
     }
 
@@ -1079,6 +1125,7 @@
     $(document).on('shown.bs.tab', 'button[data-bs-toggle="tab"]', function (e) {
         syncToolbarLogic();
         invoiceList = [];
+        syncDefaultInvoiceMasterConfig(true);
         resetFormPosting();
 
         if (typeof refreshInvoiceGrid === 'function') {
@@ -1089,8 +1136,18 @@
 
     // nut add and post
     var invoiceList = [];
-    var invoiceMasterCode = "";     // ← Master Code 
-    var invoiceMasterDesc = "";     // ← Description của Master 
+    var invoiceMasterCode = "";
+    var invoiceMasterDesc = "";
+
+    function syncDefaultInvoiceMasterConfig(forceReset) {
+        if (forceReset === true || !invoiceMasterCode) {
+            invoiceMasterCode = (typeof defaultInvoiceCode !== 'undefined' ? defaultInvoiceCode : "") || "";
+        }
+
+        if (forceReset === true || !invoiceMasterDesc) {
+            invoiceMasterDesc = (typeof defaultInvoiceDesc !== 'undefined' ? defaultInvoiceDesc : "") || "";
+        }
+    }
 
         // --- NÚT ADD RENDER DATA VÀO INVOICE LIST ---
         $(document).off('click', '#btn-add').on('click', '#btn-add', function() {
@@ -1101,16 +1158,6 @@
                 showToast("Warning","Please select a transaction first!",true);
                 return;
             }
-
-            // ==================== LẤY MASTER CODE (CHỈ LẦN ĐẦU) ====================
-            if (invoiceList.length === 0) {
-                invoiceMasterCode = transCode;
-                invoiceMasterDesc = $activePane.find('.js-trans-desc').val();
-
-                // Optional: Khóa T/A Code sau khi đã có Master 
-                $activePane.find('.js-trans-code, .js-trans-desc').prop('readonly', true);
-            }
-            // =====================================================================
 
             var qty = parseFloat($activePane.find('.js-input-qty').val()) || 0;
             var price = parseNumberWithComma($activePane.find('.js-input-price-net').val());
@@ -1172,12 +1219,6 @@
         // Giữ lại thông tin Invoice Description
         $activePane.find('.js-invoice-desc').val(currentInvoiceDesc);
 
-        // ===  Set lại T/A Code về MASTER ===
-        if (invoiceMasterCode) {
-            $activePane.find('.js-trans-code').val(invoiceMasterCode);
-            $activePane.find('.js-trans-desc').val(invoiceMasterDesc);
-        }
-
         $activePane.find('.js-trans-code').focus();
     }
 
@@ -1202,7 +1243,8 @@
             var payload = {
                 folioNo: selectedFolioNo,
                 currentFolioID: folioNoID,
-                masterCode: (activeTabId === 'invoice-pane') ? $activePane.find('.js-trans-code').val() : "",
+                targetFolioID: getSelectedPostingFolioId(folioNoElement),
+                masterCode: (activeTabId === 'invoice-pane') ? invoiceMasterCode : "",
                 masterDescription: (activeTabId === 'invoice-pane') ? $activePane.find('.js-invoice-desc').val() : "",
                 masterReference: (activeTabId === 'invoice-pane') ? $activePane.find('.js-invoice-ref').val() : "",
                 masterSupplement: (activeTabId === 'invoice-pane') ? $activePane.find('.js-invoice-supp').val() : "",
@@ -1249,11 +1291,12 @@
                     return;
                 }
 
-                // LẤY MASTER CODE TỪ BIẾN RIÊNG
+                syncDefaultInvoiceMasterConfig();
                 if (!invoiceMasterCode) {
-                    showToast('Error', "Master Transaction Code is missing!", false);
+                    showToast('Error', "Default invoice code is not configured!", false);
                     return;
                 }
+
                 payload.masterCode = invoiceMasterCode;
                 payload.masterDescription = $activePane.find('.js-invoice-desc').val() || invoiceMasterDesc;
 
@@ -1261,7 +1304,7 @@
                     payload.details.push({
                         UserID: loginUser, UserName: loginName, ShiftID: shiftID,
                         CashierNo: loginName,
-                        ReservationID: idReservation, RoomType: roomType, RoomID: roomID,
+                        ReservationID: parseInt(idReservation), RoomType: roomType, RoomID: parseInt(roomID),
 
                         TransactionCode: item.code,
                         Description: item.description,
@@ -1298,13 +1341,20 @@
 
                         // Reset dữ liệu
                         invoiceList = [];
+                        syncDefaultInvoiceMasterConfig(true);
                         resetFormPosting();
                         $('#modalPosting').modal('hide');
+                        if (res.folioId) {
+                            folioNoID = res.folioId;
+                        }
+                        if (typeof GetBalanceVND === 'function') {
+                            GetBalanceVND(idReservation);
+                        }
 
                         // Reload lại dữ liệu Billing theo Folio vừa post
                         if (typeof filterByFolioNo === 'function') {
                             // Nếu là master (số âm) thì truyền realFolioNo, còn không truyền chính nó
-                            filterByFolioNo(Math.abs(payload.folioNo));
+                            getFolioNo();
                         } else {
                             searchFolioDetail(0);
                         }
@@ -1407,13 +1457,9 @@
 
         function clearInvoiceList() {
             invoiceList = [];
-            invoiceMasterCode = "";
-            invoiceMasterDesc = "";
+            syncDefaultInvoiceMasterConfig(true);
 
             refreshInvoiceGrid();
-
-            // Mở khóa lại T/A Code cho lần Invoice mới
-            $('#invoice-pane .js-trans-code, #invoice-pane .js-trans-desc').prop('readonly', false);
         }
 
         function updateFooterTotal() {
@@ -1441,6 +1487,7 @@
             $('.list-group-item').removeClass('active-item-custom');
 
             if (typeof invoiceList !== 'undefined') invoiceList = [];
+            syncDefaultInvoiceMasterConfig(true);
 
             var gridFooter = $("#gridInvoiceFooter").data("dxDataGrid");
             if (gridFooter) gridFooter.option("dataSource", []);
@@ -1456,22 +1503,36 @@
         function formatCurrencyLive(input) {
             if (isComposing) return;
 
-            let value = input.value;
-
-            // Giữ dấu phẩy cuối (decimal)
-            let parts = value.split(',');
-            let integerPart = parts[0].replace(/\D/g, '');
-            let decimalPart = parts[1] || '';
-
-            if (integerPart === '') {
+            let value = (input.value || '').replace(/\s/g, '').replace(/[^\d.,]/g, '');
+            if (!value) {
                 input.value = '';
                 return;
             }
 
-            let formatted = new Intl.NumberFormat('vi-VN').format(parseInt(integerPart));
+            const lastComma = value.lastIndexOf(',');
+            const lastDot = value.lastIndexOf('.');
+            const separatorIndex = Math.max(lastComma, lastDot);
+            const hasTrailingSeparator = separatorIndex === value.length - 1;
 
-            if (decimalPart !== '') {
-                formatted += ',' + decimalPart;
+            let integerRaw = separatorIndex >= 0 ? value.substring(0, separatorIndex) : value;
+            let decimalRaw = separatorIndex >= 0 ? value.substring(separatorIndex + 1) : '';
+
+            integerRaw = integerRaw.replace(/[^\d]/g, '');
+            decimalRaw = decimalRaw.replace(/[^\d]/g, '').slice(0, 2);
+
+            if (!integerRaw) {
+                integerRaw = '0';
+            }
+
+            let formatted = new Intl.NumberFormat('vi-VN').format(parseInt(integerRaw, 10));
+
+            if (separatorIndex >= 0) {
+                formatted += ',';
+                if (decimalRaw !== '') {
+                    formatted += decimalRaw;
+                } else if (!hasTrailingSeparator) {
+                    formatted = formatted.slice(0, -1);
+                }
             }
 
             input.value = formatted;
