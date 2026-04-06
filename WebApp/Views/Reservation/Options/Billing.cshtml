@@ -52,49 +52,49 @@
 
                 <div class="mui-card">
                     <div class="row g-2">
-                        <div class="billing-col">
+                        <div class="billing-col billing-col-status">
                             <div class="info-group">
                                 <label>RSV Status:</label>
                                 <span id="rsvStatusBilling"></span>
                             </div>
                         </div>
-                        <div class="billing-col">
+                        <div class="billing-col billing-col-short">
                             <div class="info-group">
                                 <label>Conf.No:</label>
                                 <span id="conNoBilling"></span>
                             </div>
                         </div>
-                        <div class="billing-col">
+                        <div class="billing-col billing-col-short">
                             <div class="info-group">
                                 <label>Arrival:</label>
                                 <span id="arivalBilling"></span>
                             </div>
                         </div>
-                        <div class="billing-col">
+                        <div class="billing-col billing-col-short">
                             <div class="info-group">
                                 <label>Departure:</label>
                                 <span id="departureBilling"></span>
                             </div>
                         </div>
-                        <div class="billing-col">
+                        <div class="billing-col billing-col-wide">
                             <div class="info-group">
                                 <label>Group:</label>
                                 <span id="groupBilling"></span>
                             </div>
                         </div>
-                        <div class="billing-col">
+                        <div class="billing-col billing-col-wide">
                             <div class="info-group">
                                 <label>Company:</label>
                                 <span id="companyBilling"></span>
                             </div>
                         </div>
-                        <div class="billing-col">
+                        <div class="billing-col billing-col-money">
                             <div class="info-group">
                                 <label>Balance:</label>
                                 <span id="balanceBilling" class="fw-bold"></span>
                             </div>
                         </div>
-                        <div class="billing-col">
+                        <div class="billing-col billing-col-money">
                             <div class="info-group">
                                 <label>Total:</label>
                                 <span id="totalBilling" class="fw-bold"></span>
@@ -232,7 +232,7 @@
 
 <img id="logoSource" src="/images/logo-parner.png" hidden>
 
-@await Html.PartialAsync("Billing/Posting")
+@await Html.PartialAsync("Billing/PostingNew")
 @await Html.PartialAsync("Billing/Payment")
 @await Html.PartialAsync("Billing/NewFolio")
 @await Html.PartialAsync("Billing/PostingHistory")
@@ -244,6 +244,43 @@
 @await Html.PartialAsync("Billing/SelectOption")
 
 <script>
+    function showBillingFunctionMenu(pageX, pageY) {
+        const $menu = $("#functionMenu");
+        const $wrapper = $(".grid-wrapper").first();
+
+        if ($menu.length === 0 || $wrapper.length === 0) {
+            return;
+        }
+
+        const wrapperOffset = $wrapper.offset();
+        const wrapperWidth = $wrapper.outerWidth();
+        const wrapperHeight = $wrapper.outerHeight();
+
+        $menu.css({
+            display: "block",
+            position: "absolute",
+            left: 0,
+            top: 0,
+            zIndex: 10000
+        });
+
+        const menuWidth = $menu.outerWidth();
+        const menuHeight = $menu.outerHeight();
+        const maxLeft = Math.max(0, wrapperWidth - menuWidth - 8);
+        const maxTop = Math.max(0, wrapperHeight - menuHeight - 8);
+
+        let left = pageX - wrapperOffset.left;
+        let top = pageY - wrapperOffset.top;
+
+        left = Math.min(Math.max(8, left), maxLeft);
+        top = Math.min(Math.max(8, top), maxTop);
+
+        $menu.css({
+            left: left + "px",
+            top: top + "px"
+        });
+    }
+
     $(document).ready(function () {
 
         $(document).on("mousedown", function (e) {
@@ -281,13 +318,7 @@
 
             }
 
-            $("#functionMenu").css({
-                display: "block",
-                position: "fixed",
-                left: e.pageX + "px",
-                top: e.pageY + "px",
-                zIndex: 9999
-            });
+            showBillingFunctionMenu(e.pageX, e.pageY);
         });
 
         // Ẩn menu khi click chuột trái ra ngoài
@@ -304,10 +335,55 @@
     var totalAmountBilling = 0;
     var invoiceNoPosting = 0;
     var listFolioNoID = [];
+    var listFolioData = [];
     var folioNoID = 0;
     var billingDetailXhr = null;
     var billingDetailRequestSeq = 0;
     var folioListXhr = null;
+
+    function formatBillingSummaryNumber(value) {
+        const parsed = Number(value || 0);
+        if (isNaN(parsed)) return '0';
+        return parsed.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    function normalizeBillingHeaderText(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+
+        const text = value.toString().trim();
+        if (!text || text.toLowerCase() === 'undefined' || text.toLowerCase() === 'null') {
+            return '';
+        }
+
+        return text;
+    }
+
+    function refreshBillingReservationSummary() {
+        $.ajax({
+            url: '/Reservation/GetReservationByID',
+            type: 'get',
+            dataType: 'json',
+            data: { ID: idReservation },
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+                const masterFolio = (listFolioData || []).find(f => f.isMasterFolio);
+                const companyName = normalizeBillingHeaderText(
+                    masterFolio && masterFolio.accountName
+                        ? masterFolio.accountName
+                        : (result?.companyName || '')
+                );
+                const groupName = normalizeBillingHeaderText(result?.groupName || result?.groupCode || '');
+
+                $('#groupBilling').text(groupName);
+                $('#companyBilling').text(companyName);
+            }
+        });
+
+        GetBalanceVND(idReservation);
+    }
 
     function openBilling0() { searchFolioDetail(0); }
     function openBilling1() { searchFolioDetail(1); }
@@ -367,6 +443,7 @@
                     });
                 }
                 listFolioData = result;
+                refreshBillingReservationSummary();
 
                 listFolioNoID = [];
                 $('#listFolioNo').empty();
@@ -406,6 +483,8 @@
 
                 if (result.length > 0) {
                     filterByFolioNo(folioNoID, 0);
+                } else if (typeof renderFolioOptions === 'function') {
+                    renderFolioOptions();
                 }
             },
             error: function (xhr, statusText) {
@@ -435,6 +514,11 @@
 
         folioNoID = folioNo;
         folioPosting = index + 1;
+
+        if (typeof syncPostingFolioSelectionFromBilling === 'function') {
+            syncPostingFolioSelectionFromBilling(folioNo);
+        }
+
         searchFolioDetail(0);
     }
 
@@ -586,7 +670,7 @@
 
                         let h = d.getHours();
                         const m = d.getMinutes().toString().padStart(2, '0');
-                        const ampm = h >= 12 ? 'AM' : 'PM';
+                        const ampm = h >= 12 ? 'PM' : 'AM';
 
                         h = h % 12;
                         h = h ? h : 12;
@@ -616,13 +700,7 @@
                     invoiceNoPosting = rowData.invoiceNo;
 
                     // Hiển thị Menu tại vị trí chuột
-                    $("#functionMenu").css({
-                        display: "block",
-                        position: "fixed",
-                        left: e.event.pageX + "px",
-                        top: e.event.pageY + "px",
-                        zIndex: 9999
-                    });
+                    showBillingFunctionMenu(e.event.pageX, e.event.pageY);
 
                     e.event.preventDefault();
                 }
@@ -764,6 +842,8 @@
     var groupTransactionSelectOption = [];
     var subGroupTransactionSelectOption = [];
     var transactionListSelectOption = [];
+    var defaultInvoiceCode = "";
+    var defaultInvoiceDesc = "";
 
     function getInforServices() {
         $.ajax({
@@ -779,7 +859,13 @@
                 groupTransactionSelectOption = result.groupTransaction;
                 subGroupTransactionSelectOption = result.groupSubTransaction;
                 transactionListSelectOption = result.transactions;
-                articleList = result.articles
+                articleList = result.articles;
+                defaultInvoiceCode = result.defaultInvoiceCode || "";
+                defaultInvoiceDesc = result.defaultInvoiceDesc || "";
+
+                if (typeof syncDefaultInvoiceMasterConfig === 'function') {
+                    syncDefaultInvoiceMasterConfig(true);
+                }
 
             },
             error: function (xhr, statusText, err) {

@@ -59,7 +59,6 @@ namespace Billing.Controllers
             _iPostingInvoiceService = postingInvoiceService;
         }
 
-
         #region DatVP __ Billing: Print
         [HttpPost]
         public ActionResult PrintBilling(string arrivalDate, string departureDate, string folioNo, string confirmationNo, string roomNo, List<DataBillingRecord> dataBilling, string customerName)
@@ -99,7 +98,6 @@ namespace Billing.Controllers
                     report.ExportToPdf(msPdf);
                     string base64Pdf = Convert.ToBase64String(msPdf.ToArray());
                     url = $"data:application/pdf;base64,{base64Pdf}";
-
                 }
                 pt.CommitTransaction();
                 return Json(url);
@@ -112,7 +110,6 @@ namespace Billing.Controllers
             finally
             {
                 pt.CloseConnection();
-
             }
         }
         #endregion
@@ -123,7 +120,6 @@ namespace Billing.Controllers
         {
             try
             {
-
                 var groupTransaction = TransactionGroupBO.GetList();
                 var groupSubTransaction = TransactionSubGroupBO.GetList();
                 var transactions = TransactionsBO.GetList();
@@ -213,7 +209,6 @@ namespace Billing.Controllers
                 {
                     pt.RollBack();
                     return Json(new { code = 1, msg = "Could not find Transaction!" });
-
                 }
 
                 // tìm invoice lớn nhất 
@@ -472,7 +467,6 @@ namespace Billing.Controllers
                                 folioSub.IsTransfer = false;
                                 FolioDetailBO.Instance.Insert(folioSub);
                             }
-
                             else
                             {
                                 decimal priceVat = 0;
@@ -679,7 +673,6 @@ namespace Billing.Controllers
                 {
                     pt.RollBack();
                     return Json(new { code = 1, msg = "Could not find!" });
-
                 }
                 string transCode = "";
                 for (int i = 0; i < trans.Count; i++)
@@ -760,8 +753,8 @@ namespace Billing.Controllers
                             folio.Amount = folio.AmountMaster = folio.AmountGross = folio.AmountMasterGross = folio.AmountBeforeTax = folio.AmountMasterBeforeTax = priceMain;
                         }
                     }
-
-                    FolioDetailBO.Instance.Update(folio);
+                   
+                        FolioDetailBO.Instance.Update(folio);
                 }
 
                 pt.CommitTransaction();
@@ -813,7 +806,6 @@ namespace Billing.Controllers
                 {
                     pt.RollBack();
                     return Json(new { code = 0, msg = "Could not find payment code" });
-
                 }
                 List<FolioModel> folio = PropertyUtils.ConvertToList<FolioModel>(FolioBO.Instance.FindByAttribute("ReservationID", reservationID)).Where(x => x.ID == int.Parse(Request.Form["folioNoID"].ToString())).ToList();
                 if (folio.Count < 1)
@@ -903,7 +895,6 @@ namespace Billing.Controllers
             finally
             {
                 pt.CloseConnection();
-
             }
         }
         [HttpGet]
@@ -1025,7 +1016,6 @@ namespace Billing.Controllers
                 FolioBO.Instance.Delete(folioNo);
                 pt.CommitTransaction();
                 return Json(new { code = 0, msg = "Delete folio was created successfully" });
-
             }
             catch (Exception ex)
             {
@@ -1035,7 +1025,6 @@ namespace Billing.Controllers
             finally
             {
                 pt.CloseConnection();
-
             }
         }
         #endregion
@@ -1796,11 +1785,7 @@ namespace Billing.Controllers
                                   Name = d["Name"].ToString(),
                                   Balance = d["Balance"].ToString(),
                                   MainGuest = d["MainGuest"].ToString(),
-
-
                               }).ToList();
-
-
                 return Json(result);
             }
             catch (Exception ex)
@@ -1892,7 +1877,6 @@ namespace Billing.Controllers
                                 PostingHistoryBO.Instance.Insert(postingHistory);
                                 #endregion
                             }
-
                         }
 
                         #region update lại balance VND của folio và reservation
@@ -1901,7 +1885,6 @@ namespace Billing.Controllers
                         FolioModel folioMaster = (FolioModel)FolioBO.Instance.FindByPrimaryKey(folioMasterID);
                         folioMaster.BalanceVND = balance;
                         FolioBO.Instance.Update(folioMaster);
-
 
                         FolioModel folio = (FolioModel)FolioBO.Instance.FindByPrimaryKey(folioID);
                         folio.BalanceVND = balance;
@@ -2024,7 +2007,7 @@ namespace Billing.Controllers
                     price = folioAdjust.AmountBeforeTax * (percentage / 100);
                     priceNet = folioAdjust.AmountGross * (percentage / 100);
                 }
-
+                
                 // Adjustments decrease balance, so we make sure amount is negative
                 price = -Math.Abs(price);
                 priceNet = -Math.Abs(priceNet);
