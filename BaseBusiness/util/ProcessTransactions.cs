@@ -372,10 +372,12 @@ namespace BaseBusiness.util
                         if (expression.op.ToString().Contains("IN"))
                         {
                             //Passing the List of Object into Parameters
-                            cmd.AddArrayParameters($"{expression.exp1}", expression.exp2.ToString().Trim('(', ')', ' ')
-                                    .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                                    .Select(s => s.Trim())
-                                    .ToArray());
+                            string[] values = expression.exp2.ToString().Trim('(', ')', ' ')
+                                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                .Select(s => s.Trim())
+                                .ToArray();
+
+                            cmd.AddArrayParameters($"{expression.exp1}", values);
                         }
                         else
                         {

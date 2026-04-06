@@ -86,10 +86,31 @@ namespace BaseBusiness.util
         {
             try
             {
-                _pt.UpdateCommand("Update Folio set BalanceVND=dbo.getBalanceOfFolio(" + _FolioID + ",'" + _CURRENCY_1 + "')," +
-                                "BalanceUSD=dbo.getBalanceOfFolio(" + _FolioID + ",'" + _CURRENCY_2 + "') Where ID=" + _FolioID);
-                _pt.UpdateCommand("Update Reservation set BalanceVND=dbo.getBalanceOfGih(" + _ReservationID + ",'" + _CURRENCY_1 + "')," +
-                                "BalanceUSD=dbo.getBalanceOfGih(" + _ReservationID + ",'" + _CURRENCY_2 + "') Where ID=" + _ReservationID);
+                string updateFolioSql =
+                    "Update Folio set BalanceVND=dbo.getBalanceOfFolio(" + _FolioID + ",'" + _CURRENCY_1 + "')," +
+                    "BalanceUSD=dbo.getBalanceOfFolio(" + _FolioID + ",'" + _CURRENCY_2 + "') Where ID=" + _FolioID;
+
+                string updateReservationSql =
+                    "Update Reservation set BalanceVND=dbo.getBalanceOfGih(" + _ReservationID + ",'" + _CURRENCY_1 + "')," +
+                    "BalanceUSD=dbo.getBalanceOfGih(" + _ReservationID + ",'" + _CURRENCY_2 + "') Where ID=" + _ReservationID;
+
+                try
+                {
+                    _pt.UpdateCommand(updateFolioSql);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"UpdateBalance[UpdateFolio] failed. Sql={updateFolioSql}. Error={ex.Message}", ex);
+                }
+
+                try
+                {
+                    _pt.UpdateCommand(updateReservationSql);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"UpdateBalance[UpdateReservation] failed. Sql={updateReservationSql}. Error={ex.Message}", ex);
+                }
                 return true;
             }
             catch (Exception ex)
@@ -4088,25 +4109,33 @@ namespace BaseBusiness.util
 
         //Ham XO Post tien online sang IPTV
         public static void IF_XO(string _RoomNo, string _date, string _time, string _Amount, string _Total, string _Curr,
-                            string _refe, string _descrip, string _RsvID, string _GuestID)
+                            string _refe, string _descrip, string _RsvID, string _GuestID, int _folioId = 0)
         {
             try
             {
                 #region 1.Khai báo biến
                 string _transCode = "";
-                int _FolioID = 0;
+                int _FolioID = _folioId;
                 //string _datetime = "";
                 string _des = "";
                 #endregion
 
                 #region 2.Process
                 DataTable _dtC = TextUtils.Select("SELECT Desciption FROM ConfigSystem WHERE KeyName ='IF_IN' ");
-                DataTable _dtF = TextUtils.Select("SELECT ID FROM Folio WHERE ReservationID = '" + _RsvID + "' AND FolioNo = 1 ");
+
+                DataTable _dtF = null;
+                if (_FolioID <= 0)
+                {
+                    _dtF = TextUtils.Select("SELECT ID FROM Folio WITH (NOLOCK) WHERE ReservationID = '" + _RsvID + "' AND FolioNo = 1 ");
+                }
                 //Not Exits
-                if (_dtC.Rows.Count > 0 && _dtF.Rows.Count > 0)
+                if (_dtC.Rows.Count > 0)
                 {
                     _transCode = _dtC.Rows[0][0].ToString();
-                    _FolioID = TextUtils.ToInt(_dtF.Rows[0][0].ToString());
+                    if (_FolioID <= 0 && _dtF != null && _dtF.Rows.Count > 0)
+                    {
+                        _FolioID = TextUtils.ToInt(_dtF.Rows[0][0].ToString());
+                    }
                     //if (_transCode == "" || _FolioID == 0)
                     //    WriteLog(PathName + "\\Log_err.txt", " -- : PS - Ro.No " + _RoomNo + "- Connot find Transaction Code on table Configsystem or FolioID not exits");
                 }
@@ -4126,7 +4155,7 @@ namespace BaseBusiness.util
                            + "|BD" + _descrip
                            + "|BA" + _Total.ToString() + Currency
                            + "|DA" + Convert.ToDateTime(_date).ToString("yyMMdd")
-                           + "|TI" + Convert.ToDateTime(_time).ToString("HH:mm:ss");
+                             + "|TI" + Convert.ToDateTime(_time).ToString("HH:mm:ss");
                 _des = _des + "|";
                 _des = _des.Replace("\r\n", " ");
 
