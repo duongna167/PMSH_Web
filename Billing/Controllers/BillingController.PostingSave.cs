@@ -11,6 +11,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Diagnostics;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 
 namespace Billing.Controllers
 {
@@ -102,6 +105,7 @@ namespace Billing.Controllers
         private IActionResult PostingSaveDetail(PostingRequest request)
         {
             ProcessTransactions pt = new ProcessTransactions();
+            string traceId = Guid.NewGuid().ToString("N");
 
             try
             {
@@ -124,22 +128,75 @@ namespace Billing.Controllers
                 DateTime sysDate = TextUtils.GetSystemDate();
                 DateTime businessDate = TextUtils.GetBusinessDateTime();
                 string lastInvoiceNo = string.Empty;
+                _logger.LogInformation(
+                    "PostingSaveDetail started. TraceId={TraceId}, ReservationID={ReservationID}, FolioNo={FolioNo}, DetailCount={DetailCount}, ConfirmNo={ConfirmNo}",
+                    traceId,
+                    context.ReservationID,
+                    context.FolioNo,
+                    request.Details.Count,
+                    context.ConfirmNo);
 
-                pt.OpenConnection();
-                pt.BeginTransaction();
+                ExecutePostingStep(
+                    traceId,
+                    "OpenConnection",
+                    new { context.ReservationID, context.FolioNo },
+                    () => pt.OpenConnection());
 
-                foreach (FolioDetailModel item in request.Details)
+                ExecutePostingStep(
+                    traceId,
+                    "BeginTransaction",
+                    new { context.ReservationID, context.FolioNo },
+                    () => pt.BeginTransaction());
+
+                for (int index = 0; index < request.Details.Count; index++)
                 {
-                    lastInvoiceNo = PostDetailItem(context, item, request.ChkExpressService, pt, sysDate, businessDate);
+                    FolioDetailModel item = request.Details[index];
+                    _logger.LogInformation(
+                        "PostingSaveDetail item started. TraceId={TraceId}, ItemIndex={ItemIndex}, TransactionCode={TransactionCode}, Amount={Amount}, Quantity={Quantity}, RoomID={RoomID}",
+                        traceId,
+                        index,
+                        item.TransactionCode,
+                        item.Amount,
+                        item.Quantity,
+                        item.RoomID);
+
+                    lastInvoiceNo = PostDetailItem(context, item, request.ChkExpressService, pt, sysDate, businessDate, traceId, index);
                 }
 
-                pt.CommitTransaction();
+                ExecutePostingStep(
+                    traceId,
+                    "CommitTransaction",
+                    new { context.ReservationID, context.FolioNo, lastInvoiceNo },
+                    () => pt.CommitTransaction());
+
+                _logger.LogInformation(
+                    "PostingSaveDetail completed. TraceId={TraceId}, ReservationID={ReservationID}, FolioNo={FolioNo}, InvoiceNo={InvoiceNo}",
+                    traceId,
+                    context.ReservationID,
+                    context.FolioNo,
+                    lastInvoiceNo);
 
                 return Ok(new
                 {
                     success = true,
                     message = "Posted successfully!",
                     invoiceNo = lastInvoiceNo
+                });
+            }
+            catch (SqlException ex) when (IsSqlTimeout(ex))
+            {
+                if (pt.Transaction != null && pt.Transaction.Connection != null)
+                {
+                    pt.RollBack();
+                }
+
+                _logger.LogError(ex, "PostingSaveDetail timed out. TraceId={TraceId}", traceId);
+
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "PostingSaveDetail timed out. Check server logs for TraceId: " + traceId,
+                    traceId
                 });
             }
             catch (Exception ex)
@@ -149,10 +206,13 @@ namespace Billing.Controllers
                     pt.RollBack();
                 }
 
+                _logger.LogError(ex, "PostingSaveDetail failed. TraceId={TraceId}", traceId);
+
                 return StatusCode(StatusCodes.Status500InternalServerError, new
                 {
                     success = false,
-                    message = ex.Message
+                    message = ex.Message,
+                    traceId
                 });
             }
             finally
@@ -170,7 +230,9 @@ namespace Billing.Controllers
             bool hasExpressService,
             ProcessTransactions pt,
             DateTime sysDate,
-            DateTime businessDate)
+            DateTime businessDate,
+            string traceId,
+            int itemIndex)
         {
             if (string.IsNullOrWhiteSpace(sourceItem.TransactionCode))
             {
@@ -193,12 +255,22 @@ namespace Billing.Controllers
             }
 
             string message = string.Empty;
-            TransactionsModel transaction = GetPostingTransaction(sourceItem.TransactionCode);
+            TransactionsModel transaction = ExecutePostingStep(
+                traceId,
+                "GetPostingTransaction",
+                new { ItemIndex = itemIndex, sourceItem.TransactionCode },
+                () => GetPostingTransaction(sourceItem.TransactionCode));
+
             bool taxInclude = transaction.TaxInclude || hasExpressService;
 
             if (!string.IsNullOrWhiteSpace(sourceItem.RoomType) && sourceItem.RoomTypeID <= 0)
             {
-                var roomTypeList = RoomTypeBO.Instance.FindByAttribute("Code", sourceItem.RoomType);
+                var roomTypeList = ExecutePostingStep(
+                    traceId,
+                    "FindRoomType",
+                    new { ItemIndex = itemIndex, sourceItem.RoomType, sourceItem.RoomTypeID },
+                    () => RoomTypeBO.Instance.FindByAttribute("Code", sourceItem.RoomType));
+
                 if (roomTypeList != null && roomTypeList.Count > 0)
                 {
                     RoomTypeModel roomTypeInfo = (RoomTypeModel)roomTypeList[0];
@@ -208,14 +280,18 @@ namespace Billing.Controllers
 
             int roomId = ResolvePostingRoomId(context.Reservation, sourceItem);
             int reservationIdReturn = 0;
-            int folioId = GetOrCreatePostingFolioId(
-                sysDate,
-                businessDate,
-                context,
-                userId,
-                pt,
-                ref reservationIdReturn,
-                ref message);
+            int folioId = ExecutePostingStep(
+                traceId,
+                "GetOrCreatePostingFolioId",
+                new { ItemIndex = itemIndex, context.ReservationID, context.FolioNo, sourceItem.TransactionCode },
+                () => GetOrCreatePostingFolioId(
+                    sysDate,
+                    businessDate,
+                    context,
+                    userId,
+                    pt,
+                    ref reservationIdReturn,
+                    ref message));
 
             if (folioId <= 0)
             {
@@ -246,7 +322,12 @@ namespace Billing.Controllers
                 throw new Exception("Amount must be greater than zero.");
             }
 
-            List<BaseModel> generateConfigs = pt.FindByAttribute("GenerateTransaction", "TransactionCode", sourceItem.TransactionCode);
+            List<BaseModel> generateConfigs = ExecutePostingStep(
+                traceId,
+                "FindGenerateTransaction",
+                new { ItemIndex = itemIndex, sourceItem.TransactionCode },
+                () => pt.FindByAttribute("GenerateTransaction", "TransactionCode", sourceItem.TransactionCode));
+
             if (generateConfigs == null || generateConfigs.Count == 0)
             {
                 FolioDetailModel detailLine = CreatePostingDetailBaseModel(
@@ -286,14 +367,38 @@ namespace Billing.Controllers
                 detailLine.PostType = 1;
                 detailLine.RowState = 1;
 
-                detailLine.ID = (int)pt.Insert(detailLine);
+                detailLine.ID = ExecutePostingStep(
+                    traceId,
+                    "InsertDetailLine",
+                    new { ItemIndex = itemIndex, sourceItem.TransactionCode, folioId, reservationIdReturn },
+                    () => (int)pt.Insert(detailLine));
+
                 detailLine.InvoiceNo = detailLine.ID.ToString();
                 detailLine.TransactionNo = detailLine.ID.ToString();
-                pt.Update(detailLine);
 
-                EnsurePostingBalance(reservationIdReturn, folioId, pt);
-                InsertPostingHistory(pt,detailLine, "[POST_GEN]");
-                PostDetailToIptv(context, folioId, amountNet, currencyId, detailLine.Reference, detailLine.Description);
+                ExecutePostingStep(
+                    traceId,
+                    "UpdateDetailLineInvoice",
+                    new { ItemIndex = itemIndex, detailLine.ID, detailLine.InvoiceNo },
+                    () => pt.Update(detailLine));
+
+                ExecutePostingStep(
+                    traceId,
+                    "EnsurePostingBalance",
+                    new { ItemIndex = itemIndex, reservationIdReturn, folioId },
+                    () => EnsurePostingBalance(reservationIdReturn, folioId, pt));
+
+                ExecutePostingStep(
+                    traceId,
+                    "InsertPostingHistory",
+                    new { ItemIndex = itemIndex, detailLine.ID, detailLine.TransactionCode },
+                    () => InsertPostingHistory(pt, detailLine, "[POST_GEN]"));
+
+                ExecutePostingStep(
+                    traceId,
+                    "PostDetailToIptv",
+                    new { ItemIndex = itemIndex, folioId, context.RoomNo, detailLine.TransactionCode },
+                    () => PostDetailToIptv(context, folioId, amountNet, currencyId, detailLine.Reference, detailLine.Description));
 
                 return detailLine.InvoiceNo;
             }
@@ -344,7 +449,12 @@ namespace Billing.Controllers
             masterLine.PostType = 2;
             masterLine.RowState = 1;
 
-            masterLine.ID = (int)pt.Insert(masterLine);
+            masterLine.ID = ExecutePostingStep(
+                traceId,
+                "InsertMasterLine",
+                new { ItemIndex = itemIndex, sourceItem.TransactionCode, folioId, reservationIdReturn },
+                () => (int)pt.Insert(masterLine));
+
             masterLine.InvoiceNo = masterLine.ID.ToString();
             masterLine.TransactionNo = masterLine.ID.ToString();
 
@@ -457,7 +567,11 @@ namespace Billing.Controllers
                 splitLine.AmountMasterGross = splitLine.AmountMaster;
                 splitLine.InvoiceNo = masterLine.InvoiceNo;
                 splitLine.TransactionNo = masterLine.TransactionNo;
-                splitLine.ID = (int)pt.Insert(splitLine);
+                splitLine.ID = ExecutePostingStep(
+                    traceId,
+                    "InsertSplitLine",
+                    new { ItemIndex = itemIndex, SplitIndex = index, splitLine.TransactionCode, masterLine.InvoiceNo },
+                    () => (int)pt.Insert(splitLine));
 
                 masterLine.AmountMaster += splitLine.AmountMaster;
                 masterLine.Amount += splitLine.Amount;
@@ -473,13 +587,72 @@ namespace Billing.Controllers
             }
 
             masterLine.Price = masterLine.Amount / masterLine.Quantity;
-            pt.Update(masterLine);
+            ExecutePostingStep(
+                traceId,
+                "UpdateMasterLine",
+                new { ItemIndex = itemIndex, masterLine.ID, masterLine.InvoiceNo },
+                () => pt.Update(masterLine));
 
-            EnsurePostingBalance(reservationIdReturn, folioId, pt);
-            InsertPostingHistory(pt,masterLine, "[POST_GEN]");
-            PostDetailToIptv(context, folioId, amountNet, currencyId, masterLine.Reference, masterLine.Description);
+            ExecutePostingStep(
+                traceId,
+                "EnsurePostingBalance",
+                new { ItemIndex = itemIndex, reservationIdReturn, folioId },
+                () => EnsurePostingBalance(reservationIdReturn, folioId, pt));
+
+            ExecutePostingStep(
+                traceId,
+                "InsertPostingHistory",
+                new { ItemIndex = itemIndex, masterLine.ID, masterLine.TransactionCode },
+                () => InsertPostingHistory(pt, masterLine, "[POST_GEN]"));
+
+            ExecutePostingStep(
+                traceId,
+                "PostDetailToIptv",
+                new { ItemIndex = itemIndex, folioId, context.RoomNo, masterLine.TransactionCode },
+                () => PostDetailToIptv(context, folioId, amountNet, currencyId, masterLine.Reference, masterLine.Description));
 
             return masterLine.InvoiceNo;
+        }
+
+        private T ExecutePostingStep<T>(string traceId, string stepName, object state, Func<T> action)
+        {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            try
+            {
+                T result = action();
+                _logger.LogInformation(
+                    "PostingSaveDetail step succeeded. TraceId={TraceId}, Step={Step}, ElapsedMs={ElapsedMs}, State={State}",
+                    traceId,
+                    stepName,
+                    stopwatch.ElapsedMilliseconds,
+                    state);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "PostingSaveDetail step failed. TraceId={TraceId}, Step={Step}, ElapsedMs={ElapsedMs}, State={State}",
+                    traceId,
+                    stepName,
+                    stopwatch.ElapsedMilliseconds,
+                    state);
+                throw;
+            }
+        }
+
+        private void ExecutePostingStep(string traceId, string stepName, object state, Action action)
+        {
+            ExecutePostingStep<object>(traceId, stepName, state, () =>
+            {
+                action();
+                return null;
+            });
+        }
+
+        private static bool IsSqlTimeout(SqlException ex)
+        {
+            return ex.Number == -2;
         }
 
         /// <summary>
@@ -724,7 +897,8 @@ namespace Billing.Controllers
                 reference ?? string.Empty,
                 description ?? string.Empty,
                 context.ReservationID.ToString(),
-                context.ProfileID.ToString());
+                context.ProfileID.ToString(),
+                folioId);
         }
 
         /// <summary>
@@ -753,7 +927,32 @@ namespace Billing.Controllers
                     expression = expression.And(new Expression("FolioNo", context.FolioNo, "="));
                 }
 
-                ArrayList existingFolios = pt.FindByExpression("Folio", expression);
+                string existingFolioSql;
+                if (context.FolioNo < 0)
+                {
+                    existingFolioSql = string.Format(
+                        "SELECT * FROM Folio WITH (NOLOCK) WHERE ConfirmationNo = N'{0}' AND FolioNo = {1}",
+                        EscapeSqlLiteral(context.ConfirmNo),
+                        context.FolioNo);
+                }
+                else
+                {
+                    existingFolioSql = string.Format(
+                        "SELECT * FROM Folio WITH (NOLOCK) WHERE ReservationID = {0} AND FolioNo = {1}",
+                        context.ReservationID,
+                        context.FolioNo);
+                }
+
+                DataTable existingFolioTable = pt.Select(existingFolioSql);
+                ArrayList existingFolios = new ArrayList();
+                if (existingFolioTable != null)
+                {
+                    foreach (DataRow row in existingFolioTable.Rows)
+                    {
+                        existingFolios.Add(ProcessTransactions.PopulateModel(row, "FolioModel"));
+                    }
+                }
+
                 if (existingFolios != null && existingFolios.Count > 0)
                 {
                     FolioModel folio = (FolioModel)existingFolios[0];

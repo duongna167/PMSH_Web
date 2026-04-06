@@ -205,11 +205,13 @@ namespace Billing.Controllers
 
                 if (string.IsNullOrEmpty(listItemJson))
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Could not find Transaction!" });
                 }
                 var itemList = JsonSerializer.Deserialize<List<ItemPost>>(listItemJson);
                 if (itemList.Count < 1)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Could not find Transaction!" });
 
                 }
@@ -225,12 +227,14 @@ namespace Billing.Controllers
                     string tranCode = itemTrans.transCode;
                     if (string.IsNullOrEmpty(tranCode))
                     {
+                        pt.RollBack();
                         return Json(new { code = 1, msg = "Please choose Transaction/Article!" });
 
                     }
                     List<TransactionsModel> trans = PropertyUtils.ConvertToList<TransactionsModel>(TransactionsBO.Instance.FindByAttribute("Code", tranCode));
                     if (trans.Count < 1)
                     {
+                        pt.RollBack();
                         return Json(new { code = 1, msg = "Could not find Transaction!" });
 
                     }
@@ -241,12 +245,14 @@ namespace Billing.Controllers
                         .Where(x => x.FolioNo == int.Parse(Request.Form["window"].ToString())).ToList();
                     if (folio.Count < 1)
                     {
+                        pt.RollBack();
                         return Json(new { code = 1, msg = $"Could not find Folio. Please check Folio" });
 
                     }
 
                     if (folio[0].Status == true)
                     {
+                        pt.RollBack();
                         return Json(new { code = 1, msg = $"Can not post. Folio has been being locked" });
 
                     }
@@ -671,6 +677,7 @@ namespace Billing.Controllers
                 List<FolioDetailModel> trans = PropertyUtils.ConvertToList<FolioDetailModel>(FolioDetailBO.Instance.FindByAttribute("TransactionNo", Request.Form["transactionNo"].ToString()));
                 if (trans.Count < 1)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Could not find!" });
 
                 }
@@ -804,12 +811,14 @@ namespace Billing.Controllers
 
                 if (transID == 0)
                 {
+                    pt.RollBack();
                     return Json(new { code = 0, msg = "Could not find payment code" });
 
                 }
                 List<FolioModel> folio = PropertyUtils.ConvertToList<FolioModel>(FolioBO.Instance.FindByAttribute("ReservationID", reservationID)).Where(x => x.ID == int.Parse(Request.Form["folioNoID"].ToString())).ToList();
                 if (folio.Count < 1)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = $"Could not find Folio. Please check Folio" });
 
                 }
@@ -966,6 +975,7 @@ namespace Billing.Controllers
 
                 if (usedFolioNos.Contains(model.FolioNo))
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = $"Window {model.FolioNo} is already in use. Please select another window!" });
                 }
 
@@ -1009,6 +1019,7 @@ namespace Billing.Controllers
                 List<FolioDetailModel> folioDetail = PropertyUtils.ConvertToList<FolioDetailModel>(FolioDetailBO.Instance.FindByAttribute("FolioID", folioNo));
                 if (folioDetail.Count > 0)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Can not delete this folio" });
                 }
                 FolioBO.Instance.Delete(folioNo);
@@ -1043,6 +1054,7 @@ namespace Billing.Controllers
 
                 if (folioModel == null || folioModel.ID == 0)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Could not find folio" });
                 }
                 folioModel.Status = true;
@@ -1077,6 +1089,7 @@ namespace Billing.Controllers
                 // Kiểm tra dữ liệu
                 if (string.IsNullOrEmpty(folioNo))
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Could not find folio" });
                 }
 
@@ -1090,12 +1103,14 @@ namespace Billing.Controllers
                 }
                 catch (FormatException)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Could not find folio" });
                 }
 
                 // Kiểm tra danh sách
                 if (folioIds.Count == 0)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Coud not find folio" });
                 }
                 foreach (var item in folioIds)
@@ -1104,6 +1119,7 @@ namespace Billing.Controllers
 
                     if (folioModel == null || folioModel.ID == 0)
                     {
+                        pt.RollBack();
                         return Json(new { code = 1, msg = "Could not find folio" });
                     }
                     folioModel.Status = true;
@@ -1140,6 +1156,7 @@ namespace Billing.Controllers
 
                 if (folioModel == null || folioModel.ID == 0)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Could not find folio" });
                 }
                 folioModel.Status = false;
@@ -1174,6 +1191,7 @@ namespace Billing.Controllers
                 // Kiểm tra dữ liệu
                 if (string.IsNullOrEmpty(folioNo))
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Could not find folio" });
                 }
 
@@ -1187,12 +1205,14 @@ namespace Billing.Controllers
                 }
                 catch (FormatException)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Could not find folio" });
                 }
 
                 // Kiểm tra danh sách
                 if (folioIds.Count == 0)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Coud not find folio" });
                 }
                 foreach (var item in folioIds)
@@ -1201,6 +1221,7 @@ namespace Billing.Controllers
 
                     if (folioModel == null || folioModel.ID == 0)
                     {
+                        pt.RollBack();
                         return Json(new { code = 1, msg = "Could not find folio" });
                     }
                     folioModel.Status = false;
@@ -1431,6 +1452,7 @@ namespace Billing.Controllers
                 FolioDetailModel folioDetail = (FolioDetailModel)FolioDetailBO.Instance.FindByPrimaryKey(request.FolioDetailID);
                 if (folioDetail == null || folioDetail.ID == 0)
                 {
+                    pt.RollBack();
                     return Json(new { code = 0, msg = "Could not find transaction to split " });
 
                 }
@@ -1797,11 +1819,13 @@ namespace Billing.Controllers
                 FolioModel folioMasterCheck = (FolioModel)FolioBO.Instance.FindByPrimaryKey(folioMasterID);
                 if (folioMasterCheck == null || folioMasterCheck.ID == 0)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Could not find folio transfer " });
 
                 }
                 if (folioMasterCheck.Status == true)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Folio transfer was locked " });
 
                 }
@@ -1809,11 +1833,13 @@ namespace Billing.Controllers
 
                 if (folioTransferedCheck == null || folioTransferedCheck.ID == 0)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Could not find folio transfered " });
 
                 }
                 if (folioTransferedCheck.Status == true)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Folio transfered was locked " });
 
                 }
@@ -2017,6 +2043,7 @@ namespace Billing.Controllers
                 FolioDetailModel folioAdjust = (FolioDetailModel)FolioDetailBO.Instance.FindByPrimaryKey(folioDetailAdjustID);
                 if (folioAdjust == null || folioAdjust.ID == 0)
                 {
+                    pt.RollBack();
                     return Json(new { code = 0, msg = "Could not find transaction" });
 
                 }
@@ -2044,6 +2071,7 @@ namespace Billing.Controllers
                 string tranCode = Request.Form["transCode"].ToString();
                 if (string.IsNullOrEmpty(tranCode))
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Please choose Transaction/Article!" });
 
                 }
@@ -2052,6 +2080,7 @@ namespace Billing.Controllers
 
                 if (trans.Count < 1)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Could not find Transaction!" });
 
                 }
@@ -2062,12 +2091,14 @@ namespace Billing.Controllers
                 FolioModel folio = (FolioModel)FolioBO.Instance.FindByPrimaryKey(folioID);
                 if (folio == null || folio.ID == 0)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = $"Could not find Folio. Please check Folio" });
 
                 }
 
                 if (folio.Status == true)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = $"Can not post. Folio has been being locked" });
 
                 }
