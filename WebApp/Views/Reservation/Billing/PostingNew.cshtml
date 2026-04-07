@@ -386,6 +386,15 @@
         return isNaN(result) ? 0 : result;
     }
 
+    function parsePercentValue(str) {
+        if (str === null || str === undefined || str === '') return 0;
+        if (typeof str === 'number') return str;
+
+        var normalized = str.toString().trim().replace(',', '.');
+        var result = parseFloat(normalized);
+        return isNaN(result) ? 0 : result;
+    }
+
     // --- HELPER: Lấy element trong Tab đang active ---
     function getActiveEl(selector) {
         return $('.tab-pane.active').find(selector);
@@ -412,10 +421,10 @@
 
         if ($pane.find('.js-chk-express').is(':checked')) {
             serviceType = 'EXP';
-            percent = parseFloat($pane.find('.js-input-express-pct').val()) || 0;
+            percent = parsePercentValue($pane.find('.js-input-express-pct').val()) || 0;
         } else if ($pane.find('.js-chk-discount').is(':checked')) {
             serviceType = 'DIS';
-            percent = parseFloat($pane.find('.js-input-discount-pct').val()) || 0;
+            percent = parsePercentValue($pane.find('.js-input-discount-pct').val()) || 0;
         }
 
         return {
@@ -526,6 +535,73 @@
         var amounts = getPostingAmounts($('.tab-pane.active'));
         getActiveEl('.js-amount-gross').val(formatNumberWithComma(amounts.amountBeforeTax));
         getActiveEl('.js-amount-net').val(formatNumberWithComma(amounts.amountNet));
+    }
+
+    function ensurePostingAmountsReady($pane) {
+        var deferred = $.Deferred();
+        var transactionCode = ($pane.find('.js-trans-code').val() || '').trim();
+
+        if (!transactionCode) {
+            deferred.resolve(getPostingAmounts($pane));
+            return deferred.promise();
+        }
+
+        var grossValue = parseNumberWithComma($pane.find('.js-input-price').val());
+        var netValue = parseNumberWithComma($pane.find('.js-input-price-net').val());
+        var taxInclude = !!$pane.data('tax-include');
+
+        if (taxInclude && netValue <= 0 && grossValue > 0) {
+            $.ajax({
+                url: '/Billing/CalculatePriceNet',
+                type: 'GET',
+                data: { transactionCode: transactionCode, grossPrice: grossValue }
+            }).done(function(res) {
+                if (!isNaN(res) && parseFloat(res) > 0) {
+                    $pane.find('.js-input-price-net').val(formatNumberWithComma(res));
+                    $pane.find('.js-input-price').val(formatNumberWithComma(grossValue));
+                }
+                calculateLineTotal();
+                deferred.resolve(getPostingAmounts($pane));
+            }).fail(function() {
+                deferred.resolve(getPostingAmounts($pane));
+            });
+
+            return deferred.promise();
+        }
+
+        if (!taxInclude && grossValue <= 0 && netValue > 0) {
+            $.ajax({
+                url: '/Billing/CalculatePricePlusPlus',
+                type: 'GET',
+                data: { transactionCode: transactionCode, netPrice: netValue }
+            }).done(function(res) {
+                if (!isNaN(res) && parseFloat(res) > 0) {
+                    $pane.find('.js-input-price').val(formatNumberWithComma(res));
+                    $pane.find('.js-input-price-net').val(formatNumberWithComma(netValue));
+                }
+                calculateLineTotal();
+                deferred.resolve(getPostingAmounts($pane));
+            }).fail(function() {
+                deferred.resolve(getPostingAmounts($pane));
+            });
+
+            return deferred.promise();
+        }
+
+        deferred.resolve(getPostingAmounts($pane));
+        return deferred.promise();
+    }
+
+    function resetServiceSection($pane) {
+        $pane.find('.js-chk-express, .js-chk-discount').prop('checked', false).prop('disabled', false);
+        $pane.find('.js-input-express-pct').val('50.00').prop('disabled', true);
+        $pane.find('.js-input-discount-pct').val('10.00').prop('disabled', true);
+
+        $pane.find('input[name="express_group"]').prop('disabled', true).prop('checked', false);
+        $pane.find('input[name="express_group"][value="50"]').prop('checked', true);
+
+        $pane.find('input[name="discount_group"]').prop('disabled', true).prop('checked', false);
+        $pane.find('input[name="discount_group"][value="10"]').prop('checked', true);
     }
 
     var isComposing = false;
@@ -717,14 +793,14 @@
         // --- EXPRESS/DISCOUNT SERVICE ---
         //  Sự kiện Radio & Input Express và Discount
         $(document).on('change', '.js-radio-opt', function() {
-            var val = parseFloat($(this).val()).toFixed(2);
+            var val = parsePercentValue($(this).val()).toFixed(2);
             $(this).closest('.express-input-group').find('input[type="text"]').val(val);
             calculateLineTotal();
             updateReferenceText();
         });
 
         $(document).on('input blur propertychange', '.js-input-express-pct, .js-input-discount-pct', function() {
-            var valNum = parseFloat($(this).val());
+            var valNum = parsePercentValue($(this).val());
             var $container = $(this).closest('.express-box');
 
             $container.find('input[type="radio"]').prop('checked', false);
@@ -851,7 +927,7 @@
         isSilentReset = true;
 
         $pane.find('input')
-            .not('.js-invoice-code, .js-invoice-desc, .js-invoice-ref, .js-invoice-supp, .js-invoice-checkNo')
+            .not('.js-invoice-code, .js-invoice-desc, .js-invoice-ref, .js-invoice-supp, .js-invoice-checkNo, .js-input-express-pct, .js-input-discount-pct, .js-radio-opt, .js-chk-express, .js-chk-discount')
             .val('');
 
         $pane.find('.js-input-qty').val('1');
@@ -871,6 +947,7 @@
             // Đảm bảo checkbox luôn luôn được phép nhấn
             $(this).find('.js-chk-express, .js-chk-discount').prop('disabled', false);
         });
+        resetServiceSection($pane);
         $pane.find('.js-input-price, .js-input-price-net')
             .removeClass('active-user-input');
         $pane.removeData('tax-include');
@@ -1478,38 +1555,45 @@
                     return;
                 }
 
-                var qty = parseFloat($activePane.find('.js-input-qty').val()) || 0;
-                var price = parseNumberWithComma($activePane.find('.js-input-price-net').val());
-                var amount = parseNumberWithComma($activePane.find('.js-amount-net').val());
+                ensurePostingAmountsReady($activePane).done(function(lineAmounts) {
+                    var qty = parseFloat($activePane.find('.js-input-qty').val()) || 0;
+                    var price = qty > 0 ? (lineAmounts.finalAmount / qty) : 0;
+                    var amount = lineAmounts.finalAmount;
 
-                submitToDB({
-                    mode: "detail",
-                    folioNo: selectedFolioNo,
-                    currentFolioID: folioNoID,
-                    confirmNo: (typeof confirmationNo !== 'undefined' && confirmationNo) ? confirmationNo : "",
-                    profileID: parseInt(profileID) || 0,
-                    accountName: getAccountNameByFolioNo(selectedFolioNo),
-                    roomNo: (typeof roomNo !== 'undefined' && roomNo) ? roomNo : "",
-                    masterCode: "",
-                    chkExpressService: $activePane.find('.js-chk-express').is(':checked'),
-                    details: [{
-                        UserID: loginUser, UserName: loginName, ShiftID: shiftID,
-                        CashierNo: loginName,
-                        ReservationID: parseInt(idReservation),
-                        OriginReservationID: parseInt(idReservation),
-                        RoomType: roomType, RoomID: parseInt(roomID),
-                        TransactionCode: tCode,
-                        Description: $activePane.find('.js-trans-desc').val(),
-                        ArticleCode: $activePane.find('.js-art-code').val(),
-                        Quantity: qty, Price: price, Amount: amount,
-                        AmountBeforeTax: parseNumberWithComma($activePane.find('.js-amount-gross').val()),
-                        CurrencyID: $activePane.find('.currency-select').val(),
-                        Reference: $activePane.find('.js-ref-main').val(),
-                        Supplement: $activePane.find('.js-sup-folio').val(),
-                        PostType: 2,
-                        UserInsertID: loginUser,
-                        UserUpdateID: loginUser
-                    }]
+                    if (amount <= 0 || lineAmounts.amountBeforeTax <= 0) {
+                        showToast("Warning", "Amount is not ready yet. Please check price/quantity and try again.", true);
+                        return;
+                    }
+
+                    submitToDB({
+                        mode: "detail",
+                        folioNo: selectedFolioNo,
+                        currentFolioID: folioNoID,
+                        confirmNo: (typeof confirmationNo !== 'undefined' && confirmationNo) ? confirmationNo : "",
+                        profileID: parseInt(profileID) || 0,
+                        accountName: getAccountNameByFolioNo(selectedFolioNo),
+                        roomNo: (typeof roomNo !== 'undefined' && roomNo) ? roomNo : "",
+                        masterCode: "",
+                        chkExpressService: $activePane.find('.js-chk-express').is(':checked'),
+                        details: [{
+                            UserID: loginUser, UserName: loginName, ShiftID: shiftID,
+                            CashierNo: loginName,
+                            ReservationID: parseInt(idReservation),
+                            OriginReservationID: parseInt(idReservation),
+                            RoomType: roomType, RoomID: parseInt(roomID),
+                            TransactionCode: tCode,
+                            Description: $activePane.find('.js-trans-desc').val(),
+                            ArticleCode: $activePane.find('.js-art-code').val(),
+                            Quantity: qty, Price: price, Amount: amount,
+                            AmountBeforeTax: lineAmounts.amountBeforeTax,
+                            CurrencyID: $activePane.find('.currency-select').val(),
+                            Reference: $activePane.find('.js-ref-main').val(),
+                            Supplement: $activePane.find('.js-sup-folio').val(),
+                            PostType: 2,
+                            UserInsertID: loginUser,
+                            UserUpdateID: loginUser
+                        }]
+                    });
                 });
                 return;
             }
@@ -1704,13 +1788,15 @@
             isReset = true;
             isSilentReset = true;
 
-            $('#modalPosting').find('input').val('');
+            $('#modalPosting').find('input')
+                .not('.js-input-express-pct, .js-input-discount-pct, .js-radio-opt, .js-chk-express, .js-chk-discount')
+                .val('');
             $('#modalPosting').find('.js-input-qty').val('1');
             $('#modalPosting').find('.js-input-price, .js-input-price-net, .js-amount-gross, .js-amount-net').val('0,00');
 
-            $('.js-chk-express, .js-chk-discount').prop('checked', false);
-            $('.js-chk-express, .js-chk-discount').prop('disabled', false);
-            $('.express-box input[type="text"], .express-box input[type="radio"]').prop('disabled', true);
+            $('#modalPosting .tab-pane').each(function() {
+                resetServiceSection($(this));
+            });
 
             $('#list-group-container').empty().html('<div class="p-2 text-muted">Loading...</div>');
             $('#list-subgroup-container').empty();
