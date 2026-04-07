@@ -7,7 +7,8 @@
  * TOMSELECT HELPER - Hướng dẫn sử dụng:
  * 1. Dùng với Class: initTomSelect('.tomselect-custom');
  * 2. Dùng với ID:    initTomSelect('#mySelect');
- * 3. Dùng với API:   initTomSelect('#mySelect', { valueField: 'ID', labelField: 'Name' }, '/api/url');
+ * 3. Dùng với API:   <select id="com_txtCity" class="tomselect-custom" data-api="/Profile/GetAllCity"></select>;
+ *                    initTomSelect('.tomselect-custom');  
  * 4. Dùng ViewBag:   Chỉ cần render <option> trong HTML rồi gọi initTomSelect('#id');
  */
 
@@ -138,20 +139,11 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
                 }
 
                 // LOAD DỮ LIỆU TỪ API
-                if (apiUrl) {
-                    fetch(apiUrl)
-                        .then((res) => res.json())
-                        .then((data) => {
-                            const vField = tsOptions.valueField || 'value';
-                            const lField = tsOptions.labelField || 'text';
-                            const formattedData = data.map((i) => ({
-                                value: i[vField],
-                                text: i[lField],
-                            }));
-                            ts.addOptions(formattedData);
-                            ts.refreshOptions(false);
-                        });
+                const api = el.dataset.api;
+                if (api) {
+                    loadDataToTomSelect(el, api);
                 }
+
             } catch (e) {
                 console.error('Lỗi TomSelect:', e);
             }
@@ -287,61 +279,115 @@ function destroyTomSelect(selectors) {
 
 
  */
-async function loadDataToTomSelect(selector, source, mapFn = null) {
+
+function loadDataToTomSelect(selector, source, mapFn = null, callback = null) {
     const el = document.querySelector(selector);
     if (!el || !el.tomselect) {
-        console.warn(`[TomSelect] Element ${selector} chưa được khởi tạo TomSelect.`);
+        console.warn(`[TomSelect] ${selector} chưa init.`);
         return;
     }
 
     const ts = el.tomselect;
 
+    const requestId = Date.now();
+    ts._lastLoadId = requestId;
+
     try {
+        ts.clear(true);          // silent clear
         ts.clearOptions();
 
-        let rawData = [];
+        const handleData = (rawData) => {
+            if (ts._lastLoadId !== requestId) return;
 
-        // Kiểm tra nguồn dữ liệu
-        if (Array.isArray(source)) {
-            // NẾU LÀ MẢNG: Gán trực tiếp
-            rawData = source;
-        } else if (typeof source === 'string') {
-            // NẾU LÀ CHUỖI: Hiểu là API URL và fetch
-            const response = await fetch(source);
-            rawData = await response.json();
-        } else {
-            console.error(`[TomSelect] Source không hợp lệ cho ${selector}. Phải là URL hoặc Array.`);
-            return;
-        }
+            if (!Array.isArray(rawData) || rawData.length === 0) {
+                ts.refreshOptions(false);
 
-        if (!rawData || !Array.isArray(rawData)) {
-            console.warn(`[TomSelect] Dữ liệu nạp cho ${selector} rỗng hoặc không đúng định dạng mảng.`);
-            return;
-        }
-
-        const formattedData = rawData.map((item) => {
-            // Nếu người dùng có truyền hàm map tự định nghĩa
-            if (typeof mapFn === 'function') {
-                return mapFn(item);
+                callback?.({
+                    ts,
+                    data: [],
+                    success: true,
+                    empty: true
+                });
+                return;
             }
 
-            // Mặc định: Gom hết vào data, ưu tiên lấy ID/Code làm value, Name làm text
-            return {
-                value: item.id || item.ID || item.Code || (typeof item === 'string' ? item : ''),
-                text: item.name || item.Name || item.Description || (typeof item === 'string' ? item : ''),
-                data: typeof item === 'object' ? item : { value: item },
-            };
+            const formattedData = rawData.map(item => {
+                if (typeof mapFn === 'function') return mapFn(item);
+
+                const value = item?.id ?? item?.ID ?? item?.Code ?? '';
+                const text = item?.name ?? item?.Name ?? item?.Description ?? value;
+
+                return {
+                    value,
+                    text,
+                    data: item ?? {}
+                };
+            });
+
+            ts.addOptions(formattedData);
+            ts.refreshOptions(false);
+
+            callback?.({
+                ts,
+                data: formattedData,
+                success: true,
+                empty: false
+            });
+        };
+
+        // ===== LOCAL =====
+        if (Array.isArray(source)) {
+            handleData(source);
+            return;
+        }
+
+        // ===== API =====
+        if (typeof source === 'string') {
+            fetch(source)
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
+                .then(data => handleData(data))
+                .catch(err => {
+                    if (ts._lastLoadId !== requestId) return;
+
+                    console.error(`[TomSelect] Load error (${selector})`, err);
+
+                    callback?.({
+                        ts,
+                        data: [],
+                        success: false,
+                        error: err
+                    });
+                });
+
+            return;
+        }
+
+        // ===== INVALID SOURCE =====
+        console.warn(`[TomSelect] Source không hợp lệ (${selector})`);
+
+        callback?.({
+            ts,
+            data: [],
+            success: false,
+            error: 'Invalid source'
         });
 
-        ts.addOptions(formattedData);
-        ts.refreshOptions(false);
-
-        //console.log(`[TomSelect] Loaded ${formattedData.length} items to ${selector} from ${Array.isArray(source) ? 'Local Array' : 'API'}`);
     } catch (error) {
+        if (ts._lastLoadId !== requestId) return;
+
         console.error(`[TomSelect] Load Data Error (${selector}):`, error);
+
+        callback?.({
+            ts,
+            data: [],
+            success: false,
+            error: error
+        });
     }
 }
-
 /**
  * Hàm thần thánh mod được full dữ liệu tomselect (Chat GPT)
  *  VD:
