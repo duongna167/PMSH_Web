@@ -19,7 +19,7 @@
                     <div class="card-header py-1 fw-bold small">Adjust information</div>
                     <div class="card-body p-3">
                         <div class="mb-3">
-                            <input type="text" id="transCodeAdjust" class="form-control form-control-sm bg-white" readonly>
+                            <select id="transCodeAdjust" class="form-select form-select-sm bg-white"></select>
                         </div>
 
                         <div class="row align-items-center mb-2">
@@ -125,50 +125,16 @@
         return negativeNum;
     }
 
-    // Nhập Net -> Tính ra Gross (Amount ++)
-    function adjustCalcGrossFromNet() {
-        let tCodeFull = $('#transCodeAdjust').val();
-        if (!tCodeFull) return;
-
-        let tCode = tCodeFull.split('-')[0].trim();
-        let netVal = parseNumberAdjust($('#amountAdjustNet').val());
-
-        $.ajax({
-            url: '/Billing/CalculatePricePlusPlus',
-            type: 'GET',
-            data: { transactionCode: tCode, netPrice: netVal },
-            success: function (res) {
-                if (!isNaN(res)) {
-                    $('#amountAdjust').val(formatNumberAdjust(res));
-                    $('#amountAdjustNet').val(formatNumberAdjust(netVal));
-                }
-            }
-        });
-    }
-    
-    // Nhập Gross (Amount ++) -> Tính ra Net
-    function adjustCalcNetFromGross() {
-        let tCodeFull = $('#transCodeAdjust').val();
-        if (!tCodeFull) return;
-
-        let tCode = tCodeFull.split('-')[0].trim();
-        let grossVal = parseNumberAdjust($('#amountAdjust').val());
-
-        $.ajax({
-            url: '/Billing/CalculatePriceNet',
-            type: 'GET',
-            data: { transactionCode: tCode, grossPrice: grossVal },
-            success: function (res) {
-                if (!isNaN(res)) {
-                    $('#amountAdjustNet').val(formatNumberAdjust(res));
-                    $('#amountAdjust').val(formatNumberAdjust(grossVal));
-                }
-            }
-        });
-    }   
-
     $(document).ready(function() {
-        clearMultipleTomSelect(["#reasonAdjustTS"]);
+
+        $('#modalAdjustTransaction').on('shown.bs.modal', function () {
+            initTomSelect('#reasonAdjustTS');
+            clearMultipleTomSelect(["#reasonAdjustTS"]);
+
+            $('#memoAdjust').val('');
+
+            GetReasonAdjustmentTransaction();
+        });
 
         $(document).on('blur keypress', '#amountAdjust', function(e) {
             if (e.type === 'keypress' && e.which !== 13) return;
@@ -178,7 +144,8 @@
             let grossVal = forceNegativeValue(this);
             if (grossVal === 0) return;
 
-            let tCode = $('#transCodeAdjust').val().split('-')[0].trim();
+            let $opt = $('#transCodeAdjust').find('option:selected');
+            let tCode = $opt.length > 0 ? $opt.data('code') : "";
             isSilentUpdate = true;
 
             $.ajax({
@@ -209,7 +176,8 @@
                $(this).val(formatNumberAdjust(netVal));
             }
 
-            let tCode = $('#transCodeAdjust').val().split('-')[0].trim();
+            let $opt = $('#transCodeAdjust').find('option:selected');
+            let tCode = $opt.length > 0 ? $opt.data('code') : "";
             isSilentUpdate = true;
 
             $.ajax({
@@ -235,7 +203,6 @@
             }
         });
 
-
         $(document).on('keypress', '#amountAdjust, #amountAdjustNet, #percentageAdjust', function(e) {
             var charCode = (e.which) ? e.which : e.keyCode;
             // Chỉ cho phép: 48-57 (Số), 44 (Phẩy), 46 (Chấm)
@@ -244,9 +211,64 @@
             }
             return false;
         });
+
+        // REBIND values when user changes dropdown selection
+        $('#transCodeAdjust').on('change', function () {
+            let selectedId = $(this).val();
+            folioDetailAdjustID = selectedId;
+            let $opt = $(this).find('option:selected');
+            let amt = parseFloat($opt.data('amount')) || 0;
+            let tCode = $opt.data('code');
+            let tState = $opt.data('rowstate');
+            initAmountInputs(amt, tCode, tState);
+        });
     });
 
-    function openModalAdjustTransaction(netAmount) {
+    function initAmountInputs(amount, tCode, rowState) {
+        let parsedAmount = Math.abs(amount) * -1;
+        
+        $('#percentageAdjust').val('-100'); 
+        
+        let rawState = parseInt(rowState) || 1;
+
+        if (rawState === 1) {
+            // Master row -> Amount is GROSS
+            maxAdjustNet = parsedAmount; // Temporarily use gross as max just in case
+            $('#amountAdjust').val(formatNumberAdjust(parsedAmount)).css('color', 'blue');
+            $('#amountAdjustNet').val('Loading...').css('color', 'blue');
+            
+            $.ajax({
+                url: '/Billing/CalculatePriceNet',
+                type: 'GET',
+                data: { transactionCode: tCode, grossPrice: parsedAmount },
+                success: function (res) {
+                    $('#amountAdjustNet').val(formatNumberAdjust(res));
+                    maxAdjustNet = res; // Set real Net limit
+                    $('#amountAdjust, #amountAdjustNet').css('color', 'red');
+                }
+            });
+        } else {
+            // Detail row -> Amount is NET (or tax component)
+            maxAdjustNet = parsedAmount; 
+
+            $('#amountAdjustNet').val(formatNumberAdjust(parsedAmount)).css('color', 'blue');
+            $('#amountAdjust').val('Loading...').css('color', 'blue');
+            
+            $.ajax({
+                url: '/Billing/CalculatePricePlusPlus',
+                type: 'GET',
+                data: { transactionCode: tCode, netPrice: parsedAmount },
+                success: function (res) {
+                    $('#amountAdjust').val(formatNumberAdjust(res));
+                    $('#amountAdjust, #amountAdjustNet').css('color', 'red');
+                }
+            });
+        }
+
+        toggleInputs();
+    }
+
+    function openModalAdjustTransaction() {
         localStorage.setItem("currentFromID", "modalAdjustTransaction");
         const crashierLogin = localStorage.getItem("crashierLogin");
 
@@ -254,30 +276,7 @@
             openModalShilftLogin();
             return;
         }
-
-        let initialNet = Math.abs(netAmount) * -1;
-        maxAdjustNet = initialNet; 
-
-        $('#amountAdjustNet').val(formatNumberAdjust(initialNet)).css('color', 'blue');
-        $('#amountAdjust').val('Loading...').css('color', 'blue');
-        $('#percentageAdjust').val('-100'); 
-        $('#memoAdjust').val('');
-
-        let tCode = $('#transCodeAdjust').val().split('-')[0].trim();
-
-        $.ajax({
-            url: '/Billing/CalculatePricePlusPlus',
-            type: 'GET',
-            data: { transactionCode: tCode, netPrice: initialNet },
-            success: function (res) {
-                $('#amountAdjust').val(formatNumberAdjust(res));
-                $('#amountAdjust, #amountAdjustNet').css('color', 'red');
-            }
-        });
-
-        GetReasonAdjustmentTransaction();
-        $('#modalAdjustTransaction').modal('show');
-        toggleInputs();
+        $('#modalAdjustTransaction').modal('show');
     }
 
     function toggleInputs() {
@@ -287,10 +286,8 @@
 
         if (isAmount) {
             $('.percentage-input').val('0');
-            $('#amountAdjust').focus();
         } else {
             $('.amount-input').val('0');
-            $('#percentageAdjust').focus();
         }
     }
 
@@ -309,14 +306,75 @@
             if (result.code == 1) {
                 showToast('Error', result.msg || "This code cannot be adjusted", false);
             } else {
-                $('#transCodeAdjust').val(`${data.code} - ${data.description}`);
-                $('#rtChargeAdjust').val(roomType || "N/A");
+                var $select = $('#transCodeAdjust');
+                $select.empty();
 
-                folioDetailAdjustID = data.id;
+                if (data.invoiceNo) {
+                    $.ajax({
+                        url: '/Billing/GetTransactionDetailBreakdown',
+                        type: 'GET',
+                        data: { invoiceNo: data.invoiceNo },
+                        success: function (res) {
+                            if (!res.error && res.length > 0) {
+                                // Filter out Master rows (RowState = 1) and Taxes (GroupCode = Tax)
+                                var validSubRows = res.filter(r => 
+                                    String(r.rowState) !== '1' && 
+                                    (r.groupCode || '').toUpperCase() !== 'TAX'
+                                );
+                                
+                                var invoiceRows = validSubRows.length > 0 ? validSubRows : res.filter(r => (r.groupCode || '').toUpperCase() !== 'TAX');
+                                if (invoiceRows.length === 0) invoiceRows = res; // Ultimate fallback
+                                
+                                invoiceRows.forEach(r => {
+                                    let rawCode = String(r.code || '');
+                                    let cleanCode = rawCode.replace(/^[+-]/, '').trim();
 
-                let originalAmount = parseFloat(data.amount) || 0;
+                                    if(invoiceRows === res && (rawCode.startsWith('+') || rawCode.startsWith('-')) && res.some(x => x.code === cleanCode)) {
+                                        return; 
+                                    }
 
-                openModalAdjustTransaction(originalAmount);
+                                    $select.append(`<option value="${r.id}" data-amount="${parseFloat(r.amount) || 0}" data-code="${cleanCode}" data-rowstate="${r.rowState}">${cleanCode} - ${r.description}</option>`);
+                                });
+
+                                let targetData = invoiceRows.find(x => x.id == data.id) || invoiceRows[0];
+                                
+                                // Default selection
+                                $select.val(targetData.id);
+                                folioDetailAdjustID = targetData.id;
+
+                                $('#rtChargeAdjust').val(roomType || "N/A");
+
+                                let originalAmount = parseFloat(targetData.amount) || 0;
+                                let initialCode = String(targetData.code || '').replace(/^[+-]/, '').trim();
+                                initAmountInputs(originalAmount, initialCode, targetData.rowState);
+                                
+                                openModalAdjustTransaction();
+                            } else {
+                                fallbackAdjustInit(data);
+                            }
+                        },
+                        error: function() {
+                            fallbackAdjustInit(data);
+                        }
+                    });
+                } else {
+                    fallbackAdjustInit(data);
+                }
+
+                function fallbackAdjustInit(rowData) {
+                    let rawCode = String(rowData.code || '');
+                    let cleanCode = rawCode.replace(/^[+-]/, '').trim();
+                    $select.append(`<option value="${rowData.id}" data-amount="${parseFloat(rowData.amount) || 0}" data-code="${cleanCode}" data-rowstate="${rowData.rowState || 1}">${cleanCode} - ${rowData.description}</option>`);
+                    $select.val(rowData.id);
+                    folioDetailAdjustID = rowData.id;
+
+                    $('#rtChargeAdjust').val(roomType || "N/A");
+
+                    let originalAmount = parseFloat(rowData.amount) || 0;
+                    initAmountInputs(originalAmount, cleanCode, rowData.rowState || 1);
+                    
+                    openModalAdjustTransaction();
+                }
             }
         });
     }
@@ -326,7 +384,22 @@
             value: item.code,                           
             text: item.code + ' - ' + item.description, 
             data: item                                 
-        }));
+        })).then(() => {
+            let ts = document.querySelector('#reasonAdjustTS').tomselect;
+            if (ts) {
+                ts.off('change');
+                ts.on('change', function(value) {
+                    if(value) {
+                        let optData = ts.options[value];
+                        if(optData && optData.data) {
+                            $('#memoAdjust').val(optData.data.description);
+                        }
+                    } else {
+                        $('#memoAdjust').val('');
+                    }
+                });
+            }
+        });
     }
         
     function closeModalAdjustTransaction() {
@@ -372,7 +445,11 @@
         formData.append('folioDetailAdjustID', folioDetailAdjustID); // ID của dòng giao dịch gốc
 
         formData.append('postType', type);
-        formData.append('transCode', $('#transCodeAdjust').val().split('-')[0].trim());
+        let selectedTransCode = $('#transCodeAdjust').find('option:selected').data('code');
+        if (!selectedTransCode) {
+             selectedTransCode = $('#transCodeAdjust').val().split('-')[0].trim(); // Fallback just in case
+        }
+        formData.append('transCode', selectedTransCode);
         formData.append('adjustAmount', adjAmount);
         formData.append('adjustNet', adjNet);
         formData.append('percentage', adjPercent);

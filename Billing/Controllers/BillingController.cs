@@ -2287,10 +2287,7 @@ namespace Billing.Controllers
                 {
                     return Json(new { code = 1, msg = "Could not find transactions" });
                 }
-                if (trans[0].AdjustmentCode == "" || string.IsNullOrEmpty(trans[0].AdjustmentCode))
-                {
-                    return Json(new { code = 1, msg = "Adjustment Code could not find" });
-                }
+                // No longer strict-failing on AdjustmentCode; fallback to itself.
                 return Json(new { code = 0, msg = "" });
             }
             catch (Exception ex)
@@ -2366,9 +2363,20 @@ namespace Billing.Controllers
                 List<TransactionsModel> transMain = PropertyUtils.ConvertToList<TransactionsModel>(
                     TransactionsBO.Instance.FindByAttribute("Code", tranCode)
                 );
+                
+                string targetAdjCode = transMain[0].AdjustmentCode;
+                if (string.IsNullOrEmpty(targetAdjCode))
+                {
+                    targetAdjCode = tranCode;
+                }
+
                 List<TransactionsModel> trans = PropertyUtils.ConvertToList<TransactionsModel>(
-                    TransactionsBO.Instance.FindByAttribute("Code", transMain[0].AdjustmentCode)
+                    TransactionsBO.Instance.FindByAttribute("Code", targetAdjCode)
                 );
+                if (trans.Count == 0)
+                {
+                    return Json(new { code = 1, msg = "Target Adjustment Code could not find" });
+                }
 
                 if (trans.Count < 1)
                 {
@@ -3331,12 +3339,20 @@ namespace Billing.Controllers
                     item.ProfitCenterCode = "0";
 
                     string itemTransactionCode = item.TransactionCode?.Trim() ?? "";
-                    List<GenerateTransactionModel> genConfigs = genDict.ContainsKey(
-                        itemTransactionCode
-                    )
+                    List<GenerateTransactionModel> genConfigs = genDict.ContainsKey(itemTransactionCode)
                         ? genDict[itemTransactionCode]
                         : new List<GenerateTransactionModel>();
-                    item.IsSplit = genConfigs.Count > 0;
+                    
+                    var taxConfigs = genConfigs
+                        .Where(g => !string.IsNullOrEmpty(g.SubgroupCode) &&
+                                    (g.SubgroupCode.ToUpper().Contains("SVC") ||
+                                     g.SubgroupCode.ToUpper().Contains("SV") ||
+                                     g.SubgroupCode.ToUpper().Contains("SC") ||
+                                     g.SubgroupCode.ToUpper().Contains("VAT") ||
+                                     g.SubgroupCode.ToUpper().Contains("TAX")))
+                        .ToList();
+
+                    item.IsSplit = taxConfigs.Count > 0;
 
                     if (!transList.TryGetValue(itemTransactionCode, out var tInfo))
                     {
@@ -3354,12 +3370,23 @@ namespace Billing.Controllers
                         item.RoomTypeID = roomTypeInfo.ID;
                     }
 
-                    decimal baseNetAmount =
-                        item.AmountBeforeTax > 0 ? item.AmountBeforeTax : item.Amount;
+                    decimal baseNetAmount = item.AmountBeforeTax > 0 ? item.AmountBeforeTax : item.Amount;
                     decimal grossAmount = item.AmountGross > 0 ? item.AmountGross : item.Amount;
                     string detailTransactionNo;
 
-                    if (isInvoicePosting && genConfigs.Count > 0)
+                    if (taxConfigs.Count > 0)
+                    {
+                        if (Math.Abs(grossAmount - baseNetAmount) < 1m)
+                        {
+                            decimal svcPercent = taxConfigs.Where(g => g.SubgroupCode.ToUpper().Contains("SVC") || g.SubgroupCode.ToUpper().Contains("SV") || g.SubgroupCode.ToUpper().Contains("SC")).Sum(g => g.Percentage);
+                            decimal vatPercent = taxConfigs.Where(g => g.SubgroupCode.ToUpper().Contains("VAT") || g.SubgroupCode.ToUpper().Contains("TAX")).Sum(g => g.Percentage);
+                            
+                            decimal divisor = (1m + svcPercent / 100m) * (1m + vatPercent / 100m);
+                            baseNetAmount = Math.Round(grossAmount / divisor, 2);
+                        }
+                    }
+
+                    if (isInvoicePosting && taxConfigs.Count > 0)
                     {
                         FolioDetailModel subgroupLine = new FolioDetailModel
                         {
@@ -3371,7 +3398,7 @@ namespace Billing.Controllers
                             OriginFolioID = dbFolioID,
                             ReservationID = reservationID,
                             OriginReservationID = reservationID,
-                            InvoiceNo = batchInvoiceNo,
+                            InvoiceNo = batchInvoiceNo,     
                             TransactionNo = (nextTransNo + count).ToString(),
                             TransactionDate = businessDate,
                             RoomID = item.RoomID,
@@ -3416,25 +3443,31 @@ namespace Billing.Controllers
                             $"UPDATE FolioDetail SET TransactionNo = '{detailTransactionNo}' WHERE ID = {subgroupLineId}"
                         );
 
+                        // MAPPING ITEM THÀNH DÒNG NET CHO INVOICE POSTING
                         item.TransactionNo = detailTransactionNo;
                         item.RowState = 3;
                         item.IsSplit = false;
-                        item.Price = item.Quantity > 0 ? baseNetAmount / item.Quantity : baseNetAmount;
-                        item.Amount = baseNetAmount;
-                        item.AmountBeforeTax = baseNetAmount;
-                        item.AmountGross = baseNetAmount;
-                        item.AmountMaster = baseNetAmount * exchangeRate;
-                        item.AmountMasterBeforeTax = baseNetAmount * exchangeRate;
-                        item.AmountMasterGross = baseNetAmount * exchangeRate;
                     }
                     else
                     {
                         detailTransactionNo = (nextTransNo + count).ToString();
                         item.TransactionNo = detailTransactionNo;
+                        item.RowState = isInvoicePosting ? 2 : 1;
+                        item.IsSplit = taxConfigs.Count > 0;
                     }
 
+                    // For ALL postings (Invoice or Standard), the 'item' MUST hold the Net values when there's tax.
+                    // Because for Standard Posting, Winform dynamically sums the Net 'item' and its taxes to show the Gross group header!
+                    item.Price = item.Quantity > 0 ? baseNetAmount / item.Quantity : baseNetAmount;
+                    item.Amount = baseNetAmount;
+                    item.AmountBeforeTax = baseNetAmount;
+                    item.AmountGross = grossAmount; // Keep AmountGross as the actual gross for reference
+                    item.AmountMaster = baseNetAmount * exchangeRate;
+                    item.AmountMasterBeforeTax = baseNetAmount * exchangeRate;
+                    item.AmountMasterGross = grossAmount * exchangeRate;
+
                     int detailRowId = (int)pt.Insert(item);
-                    if (!(isInvoicePosting && genConfigs.Count > 0))
+                    if (!(isInvoicePosting && taxConfigs.Count > 0))
                     {
                         detailTransactionNo = detailRowId.ToString();
                         item.TransactionNo = detailTransactionNo;
@@ -3462,17 +3495,29 @@ namespace Billing.Controllers
                     PostingHistoryBO.Instance.Insert(postingHistory);
                     count++;
 
-                    // 4. TÁCH THUẾ/PHÍ SVC (RowState = 3)
-                    if (genConfigs.Count > 0)
+                    // 4. TÁCH THUẾ/PHÍ SVC (RowState = 3 hoặc 2 tùy Posting Type)
+                    if (taxConfigs.Count > 0)
                     {
-                        decimal baseNet =
-                            item.AmountBeforeTax > 0 ? item.AmountBeforeTax : item.Amount;
-                        foreach (var genItem in genConfigs)
+                        decimal baseNet = baseNetAmount;
+                        decimal totalTaxComputed = 0;
+                        decimal grossAmt = grossAmount;
+
+                        for (int i = 0; i < taxConfigs.Count; i++)
                         {
-                            decimal calcAmount = Math.Round(
-                                (baseNet * genItem.Percentage) / 100m,
-                                0
-                            );
+                            var genItem = taxConfigs[i];
+                            decimal calcAmount = 0;
+
+                            if (i == taxConfigs.Count - 1)
+                            {
+                                // Loại thuế cuối cùng sẽ là phần bù thừa thiếu để tổng chính xác bằng Gross
+                                calcAmount = grossAmt - baseNet - totalTaxComputed;
+                            }
+                            else
+                            {
+                                calcAmount = Math.Round((baseNet * genItem.Percentage) / 100m, 2);
+                            }
+                            totalTaxComputed += calcAmount;
+
                             // Lấy Group/Subgroup thông tin
                             var generatedTransList = TransactionsBO.Instance.FindByAttribute(
                                 "Code",
@@ -3521,7 +3566,7 @@ namespace Billing.Controllers
                                 AmountMasterBeforeTax = calcAmount * exchangeRate,
                                 CurrencyID = item.CurrencyID,
                                 CurrencyMaster = currencyLocal,
-                                RowState = 3,
+                                RowState = isInvoicePosting ? 3 : 2,
                                 PostType = isInvoicePosting ? 3 : 2,
                                 IsSplit = false,
                                 Status = false,

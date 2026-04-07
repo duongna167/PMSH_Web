@@ -1,6 +1,5 @@
 <style>
 
-
     #modalCompany .note-textarea {
         height: 160px;
     }
@@ -523,9 +522,7 @@
             });
         },
 
-        initTomSelects: function () {
-            const self = this;
-
+        initTomSelects: async function (dataToFill = null) {
             initTomSelect('.tomselect-custom');
 
             const mapCode = (item) => ({
@@ -534,28 +531,25 @@
                 data: item
             });
 
-            const loadTasks = [
-                loadDataToTomSelect("#com_txtCity", "/Profile/GetAllCity", mapCode),
-                loadDataToTomSelect("#com_txtCountry", "/Profile/GetAllCountry", mapCode),
-                loadDataToTomSelect("#com_txtOwner", "/Profile/GetAllOwner", mapCode),
-                loadDataToTomSelect("#com_txtTerritory", "/Profile/GetAllTerritory", mapCode),
+            const loadPromises = [
+                new Promise(resolve => loadDataToTomSelect("#com_txtCity", "/Profile/GetAllCity", mapCode, resolve)),
+                new Promise(resolve => loadDataToTomSelect("#com_txtCountry", "/Profile/GetAllCountry", mapCode, resolve)),
+                new Promise(resolve => loadDataToTomSelect("#com_txtOwner", "/Profile/GetAllOwner", mapCode, resolve)),
+                new Promise(resolve => loadDataToTomSelect("#com_txtTerritory", "/Profile/GetAllTerritory", mapCode, resolve)),
+                new Promise(resolve => loadDataToTomSelect("#com_txtCompanyType", "/Profile/GetAllCompanyType", mapCode, resolve)),
+                new Promise(resolve => loadDataToTomSelect("#com_txtSaleInCharge", "/Profile/GetAllOwner", mapCode, resolve)),
 
-                loadDataToTomSelect("#com_txtCurrency", "/Profile/GetAllCurrency",(item) => {
+                new Promise(resolve => loadDataToTomSelect("#com_txtCurrency", "/Profile/GetAllCurrency", (item) => {
                     const id = item.id || item.ID || "";
-
                     const desc = item.description || item.Description || "";
-
                     return {
-                        value: item.id || item.ID,
+                        value: id,
                         text: (id && desc) ? `${id} - ${desc}` : (id || desc || "Unknown"),
                         data: item
                     };
-                }),
+                }, resolve)),
 
-                loadDataToTomSelect("#com_txtCompanyType", "/Profile/GetAllCompanyType",mapCode),
-
-                loadDataToTomSelect("#com_txtSaleInCharge", "/Profile/GetAllOwner", mapCode),
-                loadDataToTomSelect("#com_txtMarket", "/Profile/GetAllMarket", (item) => {
+                new Promise(resolve => loadDataToTomSelect("#com_txtMarket", "/Profile/GetAllMarket", (item) => {
                     const code = item.code || item.Code || "";
                     const name = item.name || item.Name || "";
                     return {
@@ -563,9 +557,9 @@
                         text: (code && name) ? `${code} - ${name}` : (code || name || "Unknown"),
                         data: item
                     };
-                }),
+                }, resolve)),
 
-                loadDataToTomSelect("#com_txtState", "/Profile/GetAllState", (item) => {
+                new Promise(resolve => loadDataToTomSelect("#com_txtState", "/Profile/GetAllState", (item) => {
                     const zip = item.zipCode || item.ZipCode || "";
                     const name = item.stateName || item.StateName || "";
                     return {
@@ -573,10 +567,19 @@
                         text: (zip && name) ? `${zip} - ${name}` : (zip || name || "Unknown"),
                         data: item
                     };
-                })
+                }, resolve))
             ];
 
-            Promise.all(loadTasks);
+            try {
+                await Promise.all(loadPromises);
+
+                if (dataToFill) {
+                    this.fillForm(dataToFill);
+                }
+            } catch (error) {
+                console.error("Lỗi khi tải dữ liệu TomSelect:", error);
+            }
+
         },
 
         fillForm: function (data) {
@@ -636,21 +639,20 @@
 
         loadProfileByID: function (id) {
             const self = this;
-            LoadingGlobal.show();
+            
             $.ajax({
                 url: '/Profile/GetProfileByID/',
                 type: 'GET',
                 data: { id: id },
-                success: function (res) {
-                    LoadingGlobal.hide();
+                success: async function (res) {
                     if (res.code === 0) {
+                        await self.initTomSelects();
                         self.fillForm(res.profile);
                     } else {
                         showToast("Error", res.msg, false);
                     }
                 },
                 error: function () {
-                    LoadingGlobal.hide();
                     showToast("Error", "Cannot load profile", false);
                 }
             });
