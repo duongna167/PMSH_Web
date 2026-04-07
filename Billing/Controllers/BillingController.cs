@@ -2705,17 +2705,17 @@ namespace Billing.Controllers
             }
         }
 
-       
+
 
         private int ResolvePostingFolioId(
-            PostingRequest request,
+            PostingSaveRequestDto request,
             int reservationId,
             ProcessTransactions pt
         )
         {
-            if (request.TargetFolioID > 0)
+            if (request.FolioNo > 0)
             {
-                var targetFolio = FolioBO.Instance.FindByPrimaryKey(request.TargetFolioID)
+                var targetFolio = FolioBO.Instance.FindByPrimaryKey(request.FolioNo)
                     as FolioModel;
                 if (targetFolio == null)
                 {
@@ -2805,9 +2805,9 @@ namespace Billing.Controllers
 
             return (TransactionsModel)transList[0];
         }
-
+        
         private string ResolveInvoiceMasterDescription(
-            PostingRequest request,
+            PostingSaveRequestDto request,
             TransactionsModel masterTransaction,
             TransactionsModel firstDetailTransaction,
             TransactionSubGroupModel masterSubGroup
