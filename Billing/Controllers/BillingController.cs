@@ -2705,210 +2705,210 @@ namespace Billing.Controllers
             }
         }
 
+       
 
+        //private int ResolvePostingFolioId(
+        //    PostingRequest request,
+        //    int reservationId,
+        //    ProcessTransactions pt
+        //)
+        //{
+        //    if (request.TargetFolioID > 0)
+        //    {
+        //        var targetFolio = FolioBO.Instance.FindByPrimaryKey(request.TargetFolioID)
+        //            as FolioModel;
+        //        if (targetFolio == null)
+        //        {
+        //            throw new Exception("Selected folio not found.");
+        //        }
 
-        private int ResolvePostingFolioId(
-            PostingSaveRequestDto request,
-            int reservationId,
-            ProcessTransactions pt
-        )
-        {
-            if (request.FolioNo > 0)
-            {
-                var targetFolio = FolioBO.Instance.FindByPrimaryKey(request.FolioNo)
-                    as FolioModel;
-                if (targetFolio == null)
-                {
-                    throw new Exception("Selected folio not found.");
-                }
+        //        if (ToSignedFolioNo(targetFolio) != request.FolioNo)
+        //        {
+        //            throw new Exception("Selected folio does not match requested window.");
+        //        }
 
-                if (ToSignedFolioNo(targetFolio) != request.FolioNo)
-                {
-                    throw new Exception("Selected folio does not match requested window.");
-                }
+        //        if (targetFolio.Status)
+        //        {
+        //            throw new Exception("Can not post. Folio has been being locked");
+        //        }
 
-                if (targetFolio.Status)
-                {
-                    throw new Exception("Can not post. Folio has been being locked");
-                }
+        //        return targetFolio.ID;
+        //    }
 
-                return targetFolio.ID;
-            }
+        //    if (request.CurrentFolioID > 0)
+        //    {
+        //        var currentFolio = FolioBO.Instance.FindByPrimaryKey(request.CurrentFolioID)
+        //            as FolioModel;
+        //        if (currentFolio != null && ToSignedFolioNo(currentFolio) == request.FolioNo)
+        //        {
+        //            if (currentFolio.Status)
+        //            {
+        //                throw new Exception("Can not post. Folio has been being locked");
+        //            }
 
-            if (request.CurrentFolioID > 0)
-            {
-                var currentFolio = FolioBO.Instance.FindByPrimaryKey(request.CurrentFolioID)
-                    as FolioModel;
-                if (currentFolio != null && ToSignedFolioNo(currentFolio) == request.FolioNo)
-                {
-                    if (currentFolio.Status)
-                    {
-                        throw new Exception("Can not post. Folio has been being locked");
-                    }
+        //            return currentFolio.ID;
+        //        }
+        //    }
 
-                    return currentFolio.ID;
-                }
-            }
+        //    return EnsureFolio(reservationId, request.FolioNo, pt);
+        //}
 
-            return EnsureFolio(reservationId, request.FolioNo, pt);
-        }
+        //private TransactionsModel ResolveInvoiceMasterTransaction(string requestedMasterCode)
+        //{
+        //    string masterCode = string.IsNullOrWhiteSpace(requestedMasterCode)
+        //        ? GetDefaultInvoiceCode()
+        //        : requestedMasterCode.Trim();
 
-        private TransactionsModel ResolveInvoiceMasterTransaction(string requestedMasterCode)
-        {
-            string masterCode = string.IsNullOrWhiteSpace(requestedMasterCode)
-                ? GetDefaultInvoiceCode()
-                : requestedMasterCode.Trim();
+        //    if (string.IsNullOrWhiteSpace(masterCode))
+        //    {
+        //        throw new Exception("Default invoice code is not configured in ConfigSystem.");
+        //    }
 
-            if (string.IsNullOrWhiteSpace(masterCode))
-            {
-                throw new Exception("Default invoice code is not configured in ConfigSystem.");
-            }
+        //    var masterTransList = TransactionsBO.Instance.FindByAttribute("Code", masterCode);
+        //    if (masterTransList == null || masterTransList.Count == 0)
+        //    {
+        //        throw new Exception("Master Transaction Code not found: " + masterCode);
+        //    }
 
-            var masterTransList = TransactionsBO.Instance.FindByAttribute("Code", masterCode);
-            if (masterTransList == null || masterTransList.Count == 0)
-            {
-                throw new Exception("Master Transaction Code not found: " + masterCode);
-            }
+        //    var masterTransaction = (TransactionsModel)masterTransList[0];
+        //    if (!masterTransaction.IsActive)
+        //    {
+        //        throw new Exception(
+        //            "Invoice master transaction is inactive: " + masterTransaction.Code
+        //        );
+        //    }
 
-            var masterTransaction = (TransactionsModel)masterTransList[0];
-            if (!masterTransaction.IsActive)
-            {
-                throw new Exception(
-                    "Invoice master transaction is inactive: " + masterTransaction.Code
-                );
-            }
+        //    if (masterTransaction.GroupType != 2)
+        //    {
+        //        throw new Exception(
+        //            "Invoice master transaction must have GroupType = 2: "
+        //                + masterTransaction.Code
+        //        );
+        //    }
 
-            if (masterTransaction.GroupType != 2)
-            {
-                throw new Exception(
-                    "Invoice master transaction must have GroupType = 2: "
-                        + masterTransaction.Code
-                );
-            }
+        //    return masterTransaction;
+        //}
 
-            return masterTransaction;
-        }
+        //private TransactionsModel ResolveTransactionByCode(string transactionCode)
+        //{
+        //    string normalizedCode = transactionCode?.Trim() ?? "";
+        //    if (string.IsNullOrWhiteSpace(normalizedCode))
+        //    {
+        //        throw new Exception("Transaction Code is required.");
+        //    }
 
-        private TransactionsModel ResolveTransactionByCode(string transactionCode)
-        {
-            string normalizedCode = transactionCode?.Trim() ?? "";
-            if (string.IsNullOrWhiteSpace(normalizedCode))
-            {
-                throw new Exception("Transaction Code is required.");
-            }
+        //    var transList = TransactionsBO.Instance.FindByAttribute("Code", normalizedCode);
+        //    if (transList == null || transList.Count == 0)
+        //    {
+        //        throw new Exception("Transaction not found: " + normalizedCode);
+        //    }
 
-            var transList = TransactionsBO.Instance.FindByAttribute("Code", normalizedCode);
-            if (transList == null || transList.Count == 0)
-            {
-                throw new Exception("Transaction not found: " + normalizedCode);
-            }
+        //    return (TransactionsModel)transList[0];
+        //}
 
-            return (TransactionsModel)transList[0];
-        }
-        
-        private string ResolveInvoiceMasterDescription(
-            PostingSaveRequestDto request,
-            TransactionsModel masterTransaction,
-            TransactionsModel firstDetailTransaction,
-            TransactionSubGroupModel masterSubGroup
-        )
-        {
-            if (firstDetailTransaction != null)
-            {
-                var firstDetailSubGroup = (TransactionSubGroupModel)
-                    TransactionSubGroupBO.Instance.FindByPrimaryKey(
-                        firstDetailTransaction.TransactionSubGroupID
-                    );
+        //private string ResolveInvoiceMasterDescription(
+        //    PostingRequest request,
+        //    TransactionsModel masterTransaction,
+        //    TransactionsModel firstDetailTransaction,
+        //    TransactionSubGroupModel masterSubGroup
+        //)
+        //{
+        //    if (firstDetailTransaction != null)
+        //    {
+        //        var firstDetailSubGroup = (TransactionSubGroupModel)
+        //            TransactionSubGroupBO.Instance.FindByPrimaryKey(
+        //                firstDetailTransaction.TransactionSubGroupID
+        //            );
 
-                if (!string.IsNullOrWhiteSpace(firstDetailSubGroup?.Description))
-                {
-                    return firstDetailSubGroup.Description.Trim();
-                }
-            }
+        //        if (!string.IsNullOrWhiteSpace(firstDetailSubGroup?.Description))
+        //        {
+        //            return firstDetailSubGroup.Description.Trim();
+        //        }
+        //    }
 
-            if (!string.IsNullOrWhiteSpace(request.MasterDescription))
-            {
-                return request.MasterDescription.Trim();
-            }
+        //    if (!string.IsNullOrWhiteSpace(request.MasterDescription))
+        //    {
+        //        return request.MasterDescription.Trim();
+        //    }
 
-            if (!string.IsNullOrWhiteSpace(masterSubGroup?.Description))
-            {
-                return masterSubGroup.Description.Trim();
-            }
+        //    if (!string.IsNullOrWhiteSpace(masterSubGroup?.Description))
+        //    {
+        //        return masterSubGroup.Description.Trim();
+        //    }
 
-            return masterTransaction.Description ?? "";
-        }
+        //    return masterTransaction.Description ?? "";
+        //}
 
-        private TransactionsModel TryGetDefaultInvoiceMasterTransaction()
-        {
-            try
-            {
-                return ResolveInvoiceMasterTransaction(null);
-            }
-            catch
-            {
-                return null;
-            }
-        }
+        //private TransactionsModel TryGetDefaultInvoiceMasterTransaction()
+        //{
+        //    try
+        //    {
+        //        return ResolveInvoiceMasterTransaction(null);
+        //    }
+        //    catch
+        //    {
+        //        return null;
+        //    }
+        //}
 
-        private string GetDefaultInvoiceCode()
-        {
-            DataTable dt = TextUtils.Select(
-                "SELECT TOP 1 KeyValue FROM ConfigSystem WITH (NOLOCK) WHERE KeyName = 'CODE_INVOICE'"
-            );
+        //private string GetDefaultInvoiceCode()
+        //{
+        //    DataTable dt = TextUtils.Select(
+        //        "SELECT TOP 1 KeyValue FROM ConfigSystem WITH (NOLOCK) WHERE KeyName = 'CODE_INVOICE'"
+        //    );
 
-            if (dt == null || dt.Rows.Count == 0 || dt.Rows[0][0] == DBNull.Value)
-            {
-                return "";
-            }
+        //    if (dt == null || dt.Rows.Count == 0 || dt.Rows[0][0] == DBNull.Value)
+        //    {
+        //        return "";
+        //    }
 
-            return dt.Rows[0][0].ToString().Trim();
-        }
+        //    return dt.Rows[0][0].ToString().Trim();
+        //}
 
-        private static int ToSignedFolioNo(FolioModel folio)
-        {
-            return folio.IsMasterFolio
-                ? -Math.Abs(folio.FolioNo)
-                : Math.Abs(folio.FolioNo);
-        }
+        //private static int ToSignedFolioNo(FolioModel folio)
+        //{
+        //    return folio.IsMasterFolio
+        //        ? -Math.Abs(folio.FolioNo)
+        //        : Math.Abs(folio.FolioNo);
+        //}
 
-        private int EnsureFolio(int reservationId, int folioNo, ProcessTransactions pt)
-        {
-            bool isMaster = folioNo < 0;
-            int realFolioNo = Math.Abs(folioNo);
+        //private int EnsureFolio(int reservationId, int folioNo, ProcessTransactions pt)
+        //{
+        //    bool isMaster = folioNo < 0;
+        //    int realFolioNo = Math.Abs(folioNo);
 
-            string sql = string.Format(
-                @"SELECT TOP 1 ID, ISNULL(Status, 0) AS Status FROM Folio WITH (NOLOCK) WHERE ReservationID = {0} AND FolioNo = {1} AND IsMasterFolio = {2}",
-                reservationId,
-                realFolioNo,
-                isMaster ? 1 : 0
-            );
+        //    string sql = string.Format(
+        //        @"SELECT TOP 1 ID, ISNULL(Status, 0) AS Status FROM Folio WITH (NOLOCK) WHERE ReservationID = {0} AND FolioNo = {1} AND IsMasterFolio = {2}",
+        //        reservationId,
+        //        realFolioNo,
+        //        isMaster ? 1 : 0
+        //    );
 
-            DataTable dt = TextUtils.Select(sql);
-            if (dt != null && dt.Rows.Count > 0)
-            {
-                if (Convert.ToBoolean(dt.Rows[0]["Status"]))
-                {
-                    throw new Exception("Can not post. Folio has been being locked");
-                }
+        //    DataTable dt = TextUtils.Select(sql);
+        //    if (dt != null && dt.Rows.Count > 0)
+        //    {
+        //        if (Convert.ToBoolean(dt.Rows[0]["Status"]))
+        //        {
+        //            throw new Exception("Can not post. Folio has been being locked");
+        //        }
 
-                return Convert.ToInt32(dt.Rows[0]["ID"]);
-            }
+        //        return Convert.ToInt32(dt.Rows[0]["ID"]);
+        //    }
 
-            FolioModel newFolio = new FolioModel
-            {
-                ReservationID = reservationId,
-                FolioNo = realFolioNo,
-                IsMasterFolio = isMaster,
-                Status = false,
-                FolioDate = TextUtils.GetBusinessDate(),
-                BalanceVND = 0,
-                CreateDate = DateTime.Now,
-                UpdateDate = DateTime.Now,
-            };
+        //    FolioModel newFolio = new FolioModel
+        //    {
+        //        ReservationID = reservationId,
+        //        FolioNo = realFolioNo,
+        //        IsMasterFolio = isMaster,
+        //        Status = false,
+        //        FolioDate = TextUtils.GetBusinessDate(),
+        //        BalanceVND = 0,
+        //        CreateDate = DateTime.Now,
+        //        UpdateDate = DateTime.Now,
+        //    };
 
-            return (int)pt.Insert(newFolio);
-        }
+        //    return (int)pt.Insert(newFolio);
+        //}
 
         #endregion
 
