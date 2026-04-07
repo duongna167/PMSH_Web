@@ -410,7 +410,7 @@ namespace Reservation.Commons.Helpers
                 List<CurrencyModel> list = PropertyUtils.ConvertToList<CurrencyModel>(CurrencyBO.Instance.FindByAttribute("Inactive", 0));
                 if (list.Count > 0)
                 {
-                    items = list.Select(p => new SelectListItem { Value = p.ID.ToString(), Text = p.Description, Selected = false }).ToList();
+                    items = list.Select(p => new SelectListItem { Value = p.ID.ToString(), Text = p.ID, Selected = false }).ToList();
                 }
                 if (defaultValue)
                     items.Insert(0, new SelectListItem { Text = textDefault, Value = "0", Selected = true });

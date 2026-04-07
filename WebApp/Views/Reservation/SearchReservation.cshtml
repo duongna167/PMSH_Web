@@ -959,8 +959,7 @@
                 $('#conNoBilling').text(e.data.ConfirmationNo);
                 $('#arivalBilling').text(e.data.Arrival ? e.data.Arrival.split(' ')[0] : '');
                 $('#departureBilling').text(e.data.Departure ? e.data.Departure.split(' ')[0] : '');
-                $('#balanceBilling').text(formatNumberBilling(e.data.BalanceVND));
-                $('#totalBilling').text(formatNumberBilling(e.data.BalanceVND));
+                loadBillingHeaderByReservationId(e.data.ID, e.data);
 
                 // Xử lý nút assign/unassign
                 const isSingleRoom = e.data.NoOfRoom == '1';
@@ -1075,7 +1074,107 @@
         return "#" + hex.substring(2).toUpperCase();
     }
     function formatNumberBilling(number) {
-        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        const parsed = Number(number || 0);
+        if (isNaN(parsed)) {
+            return '0';
+        }
+
+        return parsed.toLocaleString('vi-VN', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
+    }
+    function getReservationHeaderValue(source, fields) {
+        if (!source) return '';
+
+        for (const field of fields) {
+            const value = source[field];
+            if (value !== null && value !== undefined) {
+                const text = value.toString().trim();
+                if (text !== '' && text.toLowerCase() !== 'undefined' && text.toLowerCase() !== 'null') {
+                    return text;
+                }
+            }
+        }
+
+        return '';
+    }
+    function parseReservationHeaderAmount(value) {
+        if (value === null || value === undefined || value === '') {
+            return null;
+        }
+
+        if (typeof value === 'number' && !isNaN(value)) {
+            return value;
+        }
+
+        const raw = value.toString().trim();
+        if (!raw) {
+            return null;
+        }
+
+        if (/^-?\d+(\.\d+)?$/.test(raw)) {
+            const parsed = Number(raw);
+            return isNaN(parsed) ? null : parsed;
+        }
+
+        const localized = Number(raw.replace(/\./g, '').replace(',', '.'));
+        return isNaN(localized) ? null : localized;
+    }
+    function getReservationHeaderAmount(source, fields) {
+        if (!source) return null;
+
+        for (const field of fields) {
+            const amount = parseReservationHeaderAmount(source[field]);
+            if (amount !== null) {
+                return amount;
+            }
+        }
+
+        return null;
+    }
+    function setBillingHeaderInfo(source) {
+        const groupValue = getReservationHeaderValue(source, ['GroupName', 'GroupCode', 'Group', 'GroupNo']);
+        const companyValue = getReservationHeaderValue(source, ['CompanyName', 'Company', 'CompanyCode']);
+        const balanceValue = getReservationHeaderAmount(source, ['BalanceVND', 'Balance', 'BalanceAmount', 'FolioBalance']);
+        const totalValue = getReservationHeaderAmount(source, ['TotalVND', 'TotalAmount', 'Total', 'GrossAmount']);
+
+        $('#groupBilling').text(groupValue);
+        $('#companyBilling').text(companyValue);
+        $('#balanceBilling').text(balanceValue !== null ? formatNumberBilling(balanceValue) : '0');
+        $('#totalBilling').text(totalValue !== null ? formatNumberBilling(totalValue) : '0');
+    }
+    function loadBillingHeaderByReservationId(reservationId, fallbackData) {
+        if (!reservationId || reservationId <= 0) {
+            setBillingHeaderInfo(fallbackData);
+            return;
+        }
+
+        $.ajax({
+            url: '/Reservation/GetReservationByID',
+            type: 'get',
+            dataType: 'json',
+            data: { ID: reservationId },
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+                if (result && typeof result === 'object' && !Array.isArray(result)) {
+                    setBillingHeaderInfo({
+                        ...fallbackData,
+                        GroupName: result.groupName,
+                        GroupCode: result.groupCode,
+                        CompanyName: result.companyName,
+                        BalanceVND: result.balanceVND,
+                        TotalAmount: result.totalAmount
+                    });
+                } else {
+                    setBillingHeaderInfo(fallbackData);
+                }
+            },
+            error: function () {
+                setBillingHeaderInfo(fallbackData);
+            }
+        });
     }
     function formatDate(date) {
         const year = date.getFullYear();
@@ -1349,8 +1448,14 @@
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                $('#balanceBilling').text(formatNumberBilling(result[0].balanceVND));
-                $('#totalBilling').text(formatNumberBilling(result[0].balanceVND));
+                if (result && result.length > 0) {
+                    const balanceAmount = getReservationHeaderAmount(result[0], ['balanceVND', 'BalanceVND', 'balance', 'Balance']);
+                    const totalAmount = getReservationHeaderAmount(result[0], ['totalAmount', 'TotalAmount', 'total', 'Total', 'TotalVND', 'GrossAmount']);
+                    const formattedBalance = balanceAmount !== null ? formatNumberBilling(balanceAmount) : '0';
+                    const formattedTotal = totalAmount !== null ? formatNumberBilling(totalAmount) : '0';
+                    $('#balanceBilling').text(formattedBalance);
+                    $('#totalBilling').text(formattedTotal);
+                }
             },
             error: function (xhr, statusText, err) {
                 if (xhr.status == 401) {
@@ -1397,6 +1502,8 @@
         totalAmountBilling = 0;
 
         $('#infoBillingName').html('<i class="fas fa-spinner fa-spin"></i> Loading...');
+        $('#groupBilling').text('');
+        $('#companyBilling').text('');
         $('#balanceBilling').text('0');
         $('#totalBilling').text('0');
         $('#balanceBillingMaster').text('0');
