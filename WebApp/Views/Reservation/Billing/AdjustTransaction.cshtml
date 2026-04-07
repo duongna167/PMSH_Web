@@ -127,13 +127,13 @@
 
     $(document).ready(function() {
 
-        $('#modalAdjustTransaction').on('shown.bs.modal', function () {
+        $('#modalAdjustTransaction').on('shown.bs.modal',async function () {
             initTomSelect('#reasonAdjustTS');
             clearMultipleTomSelect(["#reasonAdjustTS"]);
 
             $('#memoAdjust').val('');
 
-            GetReasonAdjustmentTransaction();
+            await GetReasonAdjustmentTransaction();
         });
 
         $(document).on('blur keypress', '#amountAdjust', function(e) {
@@ -380,25 +380,30 @@
     }
 
     function GetReasonAdjustmentTransaction() {
-        loadDataToTomSelect('#reasonAdjustTS', '/Billing/GetReasonAdjustmentTransaction', (item) => ({
-            value: item.code,                           
-            text: item.code + ' - ' + item.description, 
-            data: item                                 
-        })).then(() => {
-            let ts = document.querySelector('#reasonAdjustTS').tomselect;
-            if (ts) {
-                ts.off('change');
-                ts.on('change', function(value) {
-                    if(value) {
-                        let optData = ts.options[value];
-                        if(optData && optData.data) {
-                            $('#memoAdjust').val(optData.data.description);
+        return new Promise((resolve) => {
+            loadDataToTomSelect('#reasonAdjustTS', '/Billing/GetReasonAdjustmentTransaction', (item) => ({
+                value: item.code,
+                text: item.code + ' - ' + item.description,
+                data: item
+            }), function() {
+                // Đây là callback sau khi dữ liệu đã đổ vào TomSelect xong
+                let el = document.querySelector('#reasonAdjustTS');
+                if (el && el.tomselect) {
+                    let ts = el.tomselect;
+                    ts.off('change');
+                    ts.on('change', function(value) {
+                        if(value) {
+                            let optData = ts.options[value];
+                            if(optData && optData.data) {
+                                $('#memoAdjust').val(optData.data.description);
+                            }
+                        } else {
+                            $('#memoAdjust').val('');
                         }
-                    } else {
-                        $('#memoAdjust').val('');
-                    }
-                });
-            }
+                    });
+                }
+                resolve();
+            });
         });
     }
         
