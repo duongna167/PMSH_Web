@@ -56,6 +56,18 @@ namespace BaseBusiness.BO
             return instance.GetFirst<decimal>(query);
         }
 
+        public static decimal CalculateTotal(int reservationID)
+        {
+            // Calculate Total Revenue/Charge (sum of positive posting amounts like room charge, F&B, etc)
+            string query = $@"
+                SELECT ISNULL(SUM(fd.AmountMaster), 0) AS Amount 
+                FROM FolioDetail fd WITH (NOLOCK)
+                INNER JOIN Reservation r WITH (NOLOCK) ON fd.ReservationID = r.ID
+                WHERE r.ConfirmationNo = (SELECT ConfirmationNo FROM Reservation WITH (NOLOCK) WHERE ID = {reservationID}) 
+                AND fd.RowState = 1 AND fd.Status = 0 AND fd.AmountMaster > 0";
+            return instance.GetFirst<decimal>(query);
+        }
+
         public static List<string> GetTransactionCodeBySelectOption(DateTime fromDate, DateTime toDate, int groupID, int subGroup, string transCode, string cashierNo, string checkNo, int rsvID, List<int> userIDs)
         {
             string userIDsString = string.Join(",", userIDs);
