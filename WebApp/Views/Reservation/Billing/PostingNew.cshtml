@@ -357,11 +357,11 @@
                         z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
                         height: 100%;display: flex;align-items: center;justify-content: center;">
                     <div class="spinner-border text-primary"></div>
-                </div>
-
             </div>
+
         </div>
     </div>
+</div>
 </div>
 
 <script>
@@ -377,16 +377,19 @@
             maximumFractionDigits: 2
         });
     }
-
+    
     function parseNumberWithComma(str) {
-        if (str === null || str === undefined || str === '') return 0;
-        if (typeof str === 'number') return str;
-        let cleanStr = str.toString().replace(/\./g, '').replace(/,/g, '.');
-        let result = parseFloat(cleanStr);
-        return isNaN(result) ? 0 : result;
+        if (!str) return 0;
+
+        return Number(
+            str
+                .replace(/\s/g, '')
+                .replace(/\./g, '')
+                .replace(',', '.')
+        ) || 0;
     }
 
-    function parsePercentValue(str) {
+     function parsePercentValue(str) {
         if (str === null || str === undefined || str === '') return 0;
         if (typeof str === 'number') return str;
 
@@ -400,21 +403,57 @@
         return $('.tab-pane.active').find(selector);
     }
 
-    function renderFolioOptions(selector) {
-        let html = '';
-
-        for (let i = 1; i <= 8; i++) {
-            html += `<option value="${i}">${i}</option>`;
-        }
-
-        for (let i = 1; i <= 8; i++) {
-            html += `<option value="-${i}">M${i}</option>`;
-        }
-
-        $(selector).html(html);
+    function getPostingFolioValue(folio) {
+        if (!folio) return 0;
+        return folio.isMasterFolio ? -Math.abs(folio.folioNo) : Math.abs(folio.folioNo);
     }
 
-    // Lấy trạng thái express/discount hiện tại của tab đang thao tác.
+    function renderFolioOptions(selectedValue) {
+        const currentValue = selectedValue ?? $('#selectFolioDetail').val() ?? $('#selectFolioInvoice').val();
+        const existingMap = {};
+        let html = '';
+
+        if (Array.isArray(listFolioData)) {
+            listFolioData.forEach(function (folio) {
+                existingMap[getPostingFolioValue(folio)] = folio;
+            });
+        }
+
+        for (let i = 1; i <= 8; i++) {
+            const folio = existingMap[i];
+            html += `<option value="${i}" data-folio-id="${folio ? folio.id : 0}">${i}</option>`;
+        }
+
+        for (let i = 1; i <= 8; i++) {
+            const folioValue = -i;
+            const folio = existingMap[folioValue];
+            html += `<option value="${folioValue}" data-folio-id="${folio ? folio.id : 0}">M${i}</option>`;
+        }
+
+        $('#selectFolioDetail, #selectFolioInvoice').html(html);
+
+        if (currentValue !== null && currentValue !== undefined && currentValue !== '') {
+            $('#selectFolioDetail, #selectFolioInvoice').val(String(currentValue));
+        }
+    }
+
+    function syncPostingFolioSelectionFromBilling(selectedFolioId) {
+        let selectedFolio = null;
+
+        if (Array.isArray(listFolioData) && listFolioData.length > 0) {
+            selectedFolio = listFolioData.find(f => f.id === selectedFolioId)
+                || listFolioData.find(f => f.id === folioNoID)
+                || listFolioData[0];
+        }
+
+        renderFolioOptions(selectedFolio ? getPostingFolioValue(selectedFolio) : null);
+    }
+
+    function getSelectedPostingFolioId(selector) {
+        return parseInt($(selector).find('option:selected').attr('data-folio-id')) || 0;
+    }
+
+     // Lấy trạng thái express/discount hiện tại của tab đang thao tác.
     function getServiceState($pane) {
         var serviceType = '';
         var percent = 0;
@@ -479,12 +518,23 @@
     }
 
     // --- API CALCULATIONS  ---
+    function resetActivePriceFields() {
+        const $pane = $('.tab-pane.active');
+        $pane.find('.js-input-price, .js-input-price-net, .js-amount-gross, .js-amount-net').val('0,00');
+    }
+
     // Nhập Net -> Ra Gross (amount++)
     function apiCalcPlusFromNet() {
-        if (isReset) return;
+        if (isReset || isSilentUpdate) return;
+
         let tCode = getActiveEl('.js-trans-code').val();
         let $netInput = getActiveEl('.js-input-price-net');
         let netVal = parseNumberWithComma($netInput.val());
+
+        if (netVal <= 0) {
+            resetActivePriceFields();
+            return;
+        }
 
         if (!tCode) return;
 
@@ -493,11 +543,14 @@
             type: 'GET',
             data: { transactionCode: tCode, netPrice: netVal },
             success: function (res) {
-                if (!isNaN(res)) {
-                    let fmtGross = formatNumberWithComma(res);
-                    getActiveEl('.js-input-price').val(fmtGross);
+                if (typeof res === "number" && !isNaN(res)) {
 
-                    $netInput.val(formatNumberWithComma(netVal));
+                    isSilentUpdate = true;
+
+                    getActiveEl('.js-input-price').val(formatNumberWithComma(res));
+
+                    isSilentUpdate = false;
+
                     calculateLineTotal();
                 }
             }
@@ -506,10 +559,16 @@
 
     // Nhập Gross(price++) -> Ra Net
     function apiCalcNetFromPlus() {
-        if (isReset) return;
+        if (isReset || isSilentUpdate) return;
+
         let tCode = getActiveEl('.js-trans-code').val();
         let $grossInput = getActiveEl('.js-input-price');
         let grossVal = parseNumberWithComma($grossInput.val());
+
+        if (grossVal <= 0) {
+            resetActivePriceFields();
+            return;
+        }
 
         if (!tCode) return;
 
@@ -518,13 +577,15 @@
             type: 'GET',
             data: { transactionCode: tCode, grossPrice: grossVal },
             success: function (res) {
-                if (!isNaN(res)) {
-                    let fmtNet = formatNumberWithComma(res);
-                    getActiveEl('.js-input-price-net').val(fmtNet);
+                if (typeof res === "number" && !isNaN(res)) {
 
-                    // Format lại ô Gross
-                    $grossInput.val(formatNumberWithComma(grossVal));
-                    calculateLineTotal();
+                    isSilentUpdate = true;
+
+                    getActiveEl('.js-input-price-net').val(formatNumberWithComma(res));
+
+                    isSilentUpdate = false;
+
+                    setTimeout(calculateLineTotal, 0);
                 }
             }
         });
@@ -532,9 +593,21 @@
 
     // Tính tổng tiền
     function calculateLineTotal() {
-        var amounts = getPostingAmounts($('.tab-pane.active'));
-        getActiveEl('.js-amount-gross').val(formatNumberWithComma(amounts.amountBeforeTax));
-        getActiveEl('.js-amount-net').val(formatNumberWithComma(amounts.amountNet));
+        let qty = parseFloat(getActiveEl('.js-input-qty').val()) || 0;
+        let priceGross = parseNumberWithComma(getActiveEl('.js-input-price').val());
+        let priceNet   = parseNumberWithComma(getActiveEl('.js-input-price-net').val());
+
+        if (priceGross <= 0 || priceNet <= 0) {
+            getActiveEl('.js-amount-gross').val('0,00');
+            getActiveEl('.js-amount-net').val('0,00');
+            return;
+        }
+
+        let totalGross = qty * priceGross;
+        let totalNet   = qty * priceNet;
+
+        getActiveEl('.js-amount-gross').val(formatNumberWithComma(totalGross));
+        getActiveEl('.js-amount-net').val(formatNumberWithComma(totalNet));
     }
 
     function ensurePostingAmountsReady($pane) {
@@ -605,6 +678,7 @@
     }
 
     var isComposing = false;
+    var isSilentUpdate = false;
 
     // --- EVENTS ---
     $(document).ready(function() {
@@ -614,14 +688,34 @@
 
         $('#modalPosting').on('shown.bs.modal', function () {
             loadGroups();
-            loadDefaultInvoiceTransaction();
             loadCurrencies();
-            $('#modalPosting .js-chk-express, #modalPosting .js-chk-discount, #modalPosting .js-radio-opt').prop('disabled', false);
             console.log("idReservation:", idReservation);
             $('.js-search-box[data-target="#list-group-container"]').focus();
-            renderFolioOptions('#selectFolioDetail');
-            renderFolioOptions('#selectFolioInvoice');
-            syncToolbarLogic();
+            syncPostingFolioSelectionFromBilling(folioNoID);
+        });
+
+        $(document).on('change', '#selectFolioDetail, #selectFolioInvoice', function() {
+            var val = $(this).val();
+            $('#selectFolioDetail, #selectFolioInvoice').val(val);
+        });
+
+        // Bắt sự kiện click vào các nút Tab 
+        $(document).on('click', '#detail-tab, #invoice-tab', function (e) {
+            resetFormPosting();
+            const keyToTrigger = (this.id === 'invoice-tab') ? 'F3' : 'F2'; 
+
+            // Tạo và bắn sự kiện keydown giả lập
+            const event = new KeyboardEvent('keydown', {
+                key: keyToTrigger,
+                keyCode: (keyToTrigger === 'F3') ? 114 : 113, // F3=114, F2=113
+                which: (keyToTrigger === 'F3') ? 114 : 113,
+                bubbles: true,
+                cancelable: true
+            });
+
+            document.dispatchEvent(event); 
+
+            syncToolbarLogic(this.id); 
         });
 
         $('#modalPosting').on('hidden.bs.modal', function () {
@@ -629,7 +723,6 @@
         });
 
         // --- SỰ KIỆN NHẬP LIỆU TIỀN TỆ TỨC THÌ ---
-
         $(document).on('compositionstart', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function () {
             isComposing = true;
         });
@@ -639,32 +732,6 @@
 
             // Sau khi gõ xong mới format
             formatCurrencyLive(this);
-        });
-
-        $(document).on('input', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function () {
-            if (isComposing) return; // ❗ bỏ qua khi đang gõ Telex
-
-            formatCurrencyLive(this);
-        });
-
-        //  Chặn ký tự lạ ngay khi nhấn phím (Chỉ cho phép số và một dấu trừ ở đầu)
-        $(document).on('keypress', '.js-input-price, .js-input-price-net, #amountAdjust, #amountAdjustNet', function(e) {
-            var charCode = (e.which) ? e.which : e.keyCode;
-            var value = $(this).val();
-
-            // Phím trừ (-)
-            if (charCode === 45) {
-                // Chỉ cho phép dấu trừ nếu chưa có và phải ở vị trí đầu tiên
-                if (value.indexOf('-') !== -1 || e.target.selectionStart !== 0) {
-                    e.preventDefault();
-                }
-                return;
-            }
-
-            // Các phím không phải số (48-57)
-            if (charCode < 48 || charCode > 57) {
-                e.preventDefault();
-            }
         });
 
         // Format dấu chấm phân cách ngay khi đang gõ (Live Format)
@@ -685,12 +752,11 @@
             if (isSilentReset) return;
 
             let val = $(this).val();
-            if (val === "" || val === "-") {
-                $(this).val("0,00");
-            } else {
-                // Format chuẩn kế toán x.xxx,xx
-                let num = parseNumberWithComma(val);
-                $(this).val(formatNumberWithComma(num));
+            let num = parseNumberWithComma(val);
+
+            if (val === "" || val === "-" || num <= 0) {
+                resetActivePriceFields();
+                return;
             }
 
             // Gọi API tính toán logic Net/Gross
@@ -735,13 +801,16 @@
 
             var pastedData = (e.originalEvent || e).clipboardData.getData('text/plain');
 
-            var cleanData = pastedData.replace(/[^0-9.,]/g, '');
+            var cleanData = pastedData
+            .replace(/\s/g, '')
+            .replace(/[^\d.,]/g, '');
 
-            document.execCommand("insertText", false, cleanData);
+            $(this).val(cleanData);
+            $(this).trigger('input');
         });
 
         //  Kiểm tra input để đảm bảo không âm khi blur
-        $(document).on('blur', '.js-input-qty, .js-input-price, .js-input-price-net', function() {
+        $(document).on('blur', '.js-input-qty', function() {
             if (isSilentReset) return;
             var valStr = $(this).val();
             // Chuyển dấu phẩy thành chấm để parse
@@ -756,19 +825,21 @@
         });
 
         //  INPUT PRICE ++
-        $(document).on('blur keypress', '.js-input-price', function(e) {
+        $(document).on('keypress', '.js-input-price', function(e) {
             if (isSilentReset) return;
-            if (e.type === 'keypress' && e.which !== 13) return;
-            if (e.type === 'keypress') { e.preventDefault(); $(this).blur(); return; }
-            apiCalcNetFromPlus();
+            if (e.which !== 13) return;
+
+            e.preventDefault();
+            $(this).blur();
         });
 
         //  INPUT PRICE NET
-        $(document).on('blur keypress', '.js-input-price-net', function(e) {
+        $(document).on('keypress', '.js-input-price-net', function(e) {
             if (isSilentReset) return;
-            if (e.type === 'keypress' && e.which !== 13) return;
-            if (e.type === 'keypress') { e.preventDefault(); $(this).blur(); return; }
-            apiCalcPlusFromNet();
+            if (e.which !== 13) return;
+
+            e.preventDefault();
+            $(this).blur();
         });
 
         //  QUANTITY
@@ -778,7 +849,7 @@
              if (e.type === 'keypress') { e.preventDefault(); $(this).blur(); return; }
              calculateLineTotal();
         });
-
+        
         //  FOCUS EFFECT
         $(document).on('focus click', '.js-input-price', function() {
             $(this).addClass('active-user-input');
@@ -879,6 +950,25 @@
 
     });
 
+    function syncToolbarLogic(forceTabId) {
+        const btnAdd = document.getElementById("btn-add");
+        if (!btnAdd) return;
+
+        // Nếu không có forceTabId (trường hợp click chuột), lấy ID của tab đang có class active
+        let activeTabId = forceTabId;
+        if (!activeTabId) {
+            const activeTab = document.querySelector('.nav-tabs .nav-link.active');
+            activeTabId = activeTab ? activeTab.id : "";
+        }
+
+        if (activeTabId === "invoice-tab") {
+            btnAdd.style.setProperty("display", "flex", "important");
+            if (typeof refreshInvoiceGrid === 'function') refreshInvoiceGrid();
+        } else {
+            btnAdd.style.setProperty("display", "none", "important");
+        }
+    }
+
     // --- DATA LOADING & FORM FILLING ---
     // Đổ transaction/article đang chọn vào form và giữ lại metadata để post đúng logic WinForm.
     function fillToForm(tCode, tDesc, aCode, aDesc, price, taxInclude, element) {
@@ -928,7 +1018,7 @@
 
         $pane.find('input')
             .not('.js-invoice-code, .js-invoice-desc, .js-invoice-ref, .js-invoice-supp, .js-invoice-checkNo, .js-input-express-pct, .js-input-discount-pct, .js-radio-opt, .js-chk-express, .js-chk-discount')
-            .val('');
+        .val('');
 
         $pane.find('.js-input-qty').val('1');
         $pane.find('.js-input-price, .js-input-price-net').val('0,00');
@@ -972,20 +1062,9 @@
         if(crashierLogin == "NotYet"){
             openModalShilftLogin();
         } else {
-            $('#modalPosting').modal('show');
-
-            // lấy folio đang chọn ở Billing
-            let currentFolio = listFolioData.find(f => f.id === folioNoID);
-
-            if (!currentFolio) return;
-
-            // set vào dropdown Posting
-            let folioValue = currentFolio.isMasterFolio
-                ? -Math.abs(currentFolio.folioNo)
-                : currentFolio.folioNo;
-
-            $('#selectFolioDetail').val(folioValue);
-            $('#selectFolioInvoice').val(folioValue);
+            syncDefaultInvoiceMasterConfig(true);
+            $("#modalPosting").modal("show");
+            syncPostingFolioSelectionFromBilling(folioNoID);
         }
     }
 
@@ -1054,21 +1133,6 @@
         }
 
     });
-
-    function syncToolbarLogic() {
-        const btnAdd = document.getElementById("btn-add");
-        if (!btnAdd) return;
-
-        // Tìm tab đang active thực tế trên giao diện
-        const activeTab = document.querySelector('.nav-tabs .nav-link.active');
-        const activeTabId = activeTab ? activeTab.id : "";
-
-        if (activeTabId === "invoice-tab") {
-            btnAdd.style.setProperty("display", "flex", "important");
-        } else {
-            btnAdd.style.setProperty("display", "none", "important");
-        }
-    }
 
     // Load Data INTO CBO
     function loadCurrencies() {
@@ -1283,6 +1347,7 @@
     $(document).on('shown.bs.tab', 'button[data-bs-toggle="tab"]', function (e) {
         syncToolbarLogic();
         invoiceList = [];
+        syncDefaultInvoiceMasterConfig(true);
         resetFormPosting();
 
         if (typeof refreshInvoiceGrid === 'function') {
@@ -1299,6 +1364,16 @@
     // nut add and post
     // Lưu các dòng sẽ được post invoice sau khi người dùng bấm Add.
     var invoiceList = [];
+
+    function syncDefaultInvoiceMasterConfig(forceReset) {
+        if (forceReset === true || !invoiceMasterCode) {
+            invoiceMasterCode = (typeof defaultInvoiceCode !== 'undefined' ? defaultInvoiceCode : "") || "";
+        }
+
+        if (forceReset === true || !invoiceMasterDesc) {
+            invoiceMasterDesc = (typeof defaultInvoiceDesc !== 'undefined' ? defaultInvoiceDesc : "") || "";
+        }
+    }
 
         // --- NÚT ADD RENDER DATA VÀO INVOICE LIST ---
         $(document).off('click', '#btn-add').on('click', '#btn-add', function() {
@@ -1361,7 +1436,7 @@
         var $activePane = $('#invoice-pane');
         var currentDesc = $activePane.find('.js-invoice-desc').val();
 
-        resetFormPosting();
+        resetFormPosting();   
 
         $activePane.find('.js-invoice-desc').val(currentDesc);
 
@@ -1426,7 +1501,7 @@
                 var price = parseNumberWithComma($activePane.find('.js-input-price-net').val());
                 var amount = parseNumberWithComma($activePane.find('.js-amount-net').val());
 
-                payload.details.push({
+                    payload.details.push({
                     UserID: loginUser, UserName: loginName, ShiftID: shiftID,
                     CashierNo: loginName,
                     ReservationID: parseInt(idReservation),
@@ -1775,6 +1850,8 @@
 
         function clearInvoiceList() {
             invoiceList = [];
+            syncDefaultInvoiceMasterConfig(true);
+
             refreshInvoiceGrid();
         }
 
@@ -1806,6 +1883,7 @@
             $('.list-group-item').removeClass('active-item-custom');
 
             if (typeof invoiceList !== 'undefined') invoiceList = [];
+            syncDefaultInvoiceMasterConfig(true);
 
             var gridFooter = $("#gridInvoiceFooter").data("dxDataGrid");
             if (gridFooter) gridFooter.option("dataSource", []);
@@ -1819,29 +1897,41 @@
         }
 
         function formatCurrencyLive(input) {
-            let selectionStart = input.selectionStart;
-            let originalLength = input.value.length;
+            if (isComposing) return;
 
-            let value = input.value;
-            let isNegative = value.startsWith('-');
-            let cleanValue = value.replace(/[^\d]/g, "");
-
-            if (cleanValue === "") {
-                input.value = isNegative ? "-" : "";
+            let value = (input.value || '').replace(/\s/g, '').replace(/[^\d.,]/g, '');
+            if (!value) {
+                input.value = '';
                 return;
             }
 
-            let formattedValue = new Intl.NumberFormat('vi-VN').format(parseInt(cleanValue, 10));
-            if (isNegative) formattedValue = "-" + formattedValue;
+            const lastComma = value.lastIndexOf(',');
+            const lastDot = value.lastIndexOf('.');
+            const separatorIndex = Math.max(lastComma, lastDot);
+            const hasTrailingSeparator = separatorIndex === value.length - 1;
 
-            if (input.value !== formattedValue) {
-                input.value = formattedValue;
+            let integerRaw = separatorIndex >= 0 ? value.substring(0, separatorIndex) : value;
+            let decimalRaw = separatorIndex >= 0 ? value.substring(separatorIndex + 1) : '';
 
-                // Tính toán lại vị trí con trỏ chuột
-                let newLength = input.value.length;
-                selectionStart = selectionStart + (newLength - originalLength);
-                input.setSelectionRange(selectionStart, selectionStart);
+            integerRaw = integerRaw.replace(/[^\d]/g, '');
+            decimalRaw = decimalRaw.replace(/[^\d]/g, '').slice(0, 2);
+
+            if (!integerRaw) {
+                integerRaw = '0';
             }
+
+            let formatted = new Intl.NumberFormat('vi-VN').format(parseInt(integerRaw, 10));
+
+            if (separatorIndex >= 0) {
+                formatted += ',';
+                if (decimalRaw !== '') {
+                    formatted += decimalRaw;
+                } else if (!hasTrailingSeparator) {
+                    formatted = formatted.slice(0, -1);
+                }
+            }
+
+            input.value = formatted;
         }
        
         function toggleServiceLock(serviceType, isChecked) {
