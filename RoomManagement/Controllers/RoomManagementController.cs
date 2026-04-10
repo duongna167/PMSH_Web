@@ -83,7 +83,6 @@ namespace RoomManagement.Controllers
 
         #endregion
 
-
         [HttpPost("UpdateHKFOStatus")]
         public IActionResult UpdateHKFOStatus([FromBody] List<RoomUpdateDTO> dto)
         {
@@ -167,8 +166,6 @@ namespace RoomManagement.Controllers
         {
             try
             {
-
-
                 DataTable dataTable = _iRoomManagementService.ItemDailyInventory(
                 groupId,
                 firstDate,

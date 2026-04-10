@@ -36,6 +36,42 @@ window.businessDateReady = (async () => {
     await initDateInputs();
 })();
 
+/**
+ * Chuẩn hóa chuỗi giờ cho <input type="time"> (HTML5 yêu cầu HH:mm).
+ * Giá trị config/DB dạng "6:00", "06:00:00", có khoảng trắng… nếu không chuẩn trình duyệt có thể để trống lần render đầu.
+ * @param {string|null|undefined} raw
+ * @returns {string|null} "HH:mm" hoặc null
+ */
+window.normalizeHtmlTimeInput = function (raw) {
+    if (raw == null || raw === '') return null;
+    const s = String(raw).trim();
+    const m = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?/);
+    if (!m) return null;
+    const h = parseInt(m[1], 10);
+    const min = parseInt(m[2], 10);
+    if (isNaN(h) || isNaN(min) || h < 0 || h > 23 || min < 0 || min > 59) return null;
+    return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+};
+
+/**
+ * Gán lại ETA/ETD sau khi inject partial (jQuery .html() không chạy &lt;script&gt; trong form).
+ * @param {ParentNode|JQuery|HTMLElement} [root] - ưu tiên tìm trong container (modal body) nếu có
+ */
+window.applyNormalizedTimeInputs = function (root) {
+    const scope = root && root.jquery ? root[0] : root;
+    const find = function (id) {
+        if (scope && scope.querySelector) return scope.querySelector('#' + id);
+        return document.getElementById(id);
+    };
+    ['txtETA', 'txtETD'].forEach(function (id) {
+        const el = find(id);
+        if (!el || el.type !== 'time') return;
+        const attr = el.getAttribute('value');
+        const norm = window.normalizeHtmlTimeInput(attr);
+        if (norm) el.value = norm;
+    });
+};
+
 function formatDate(date, format = 'DD/MM/YYYY') {
     if (!date) return '';
 

@@ -8,7 +8,10 @@ using DevExpress.XtraPrinting.Preview;
 using DevExpress.XtraReports.UI;
 using DevExpress.XtraRichEdit.Import.Doc;
 using DevExpress.XtraRichEdit.Import.Html;
+using DocumentFormat.OpenXml.EMMA;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -105,6 +108,21 @@ namespace Reservation.Controllers
             }
         }
 
+        /// <summary>
+        /// Chuẩn hóa giờ cho thuộc tính value của &lt;input type="time"&gt; (HH:mm). Giá trị DB thường không đúng định dạng HTML5.
+        /// </summary>
+        private static string NormalizeTimeForHtmlInput(string? raw, string fallback)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return fallback;
+            raw = raw.Trim();
+            var parts = raw.Split(':');
+            if (parts.Length < 2) return fallback;
+            if (!int.TryParse(parts[0], out var h) || !int.TryParse(parts[1], out var m))
+                return fallback;
+            if (h < 0 || h > 23 || m < 0 || m > 59) return fallback;
+            return $"{h:D2}:{m:D2}";
+        }
+
         public IActionResult NewReservation(string key)
         {
             int? id = null;
@@ -147,8 +165,8 @@ namespace Reservation.Controllers
             ViewBag.cboTransportType = ListItemHelper.GetTransportTypeProvider();
             ViewBag.businesDate = businessDateModel[0].BusinessDate;
             ViewBag.cboItem = ListItemHelper.GetItemInventoryProvider();
-            ViewBag.configETA = _iReservationService.GetConfigETA();
-            ViewBag.configETD = _iReservationService.GetConfigETD();
+            ViewBag.configETA = NormalizeTimeForHtmlInput(_iReservationService.GetConfigETA(), "06:00");
+            ViewBag.configETD = NormalizeTimeForHtmlInput(_iReservationService.GetConfigETD(), "12:00");
 
             ReservationModel reservation = new ReservationModel();
             if (id.HasValue)
