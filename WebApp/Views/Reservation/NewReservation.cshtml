@@ -238,18 +238,14 @@
                                                         <div class="col-md-7">
                                                             <div class="d-flex align-items-center">
                                                                 <input type="text" id="txtName"
-                                                                       class="form-control me-1" />
+                                                                       class="form-control me-1"
+                                                                       autocomplete="off"
+                                                                       data-tooltip="Name format: Last name, First name (optional middle). Example: Smith, John Paul"
+                                                                       aria-invalid="false" />
                                                                 <button type="button" onclick="openModalSearchProfile()"
                                                                         class="btn-search-icon">
                                                                     <i class="fa-solid fa-arrow-down"></i>
                                                                 </button>
-                                                            </div>
-                                                            <div id="errorMessage" class="text-danger small mt-1"
-                                                                 style="display: none;">
-                                                                <strong>
-                                                                    Typing format is not correct. Please type as below:
-                                                                    FirstName Middle, LastName
-                                                                </strong>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -2727,8 +2723,7 @@
     function closeForm() {
         resetForm();
         $('#newReservationModal').modal('hide');
-        $('#errorMessage').hide();
-        $('#txtName').removeClass('is-invalid is-valid');
+        $('#txtName').removeClass('is-invalid is-valid').attr('aria-invalid', 'false');
     }
 
     function resetForm() {
@@ -2847,8 +2842,7 @@
         $("#lblUpdateOn").text('');
         $("#lblOriginalArrival").text('');
         $("#lblOriginalDeparture").text('');
-        $('#errorMessage').hide();
-        $('#txtName').removeClass('is-valid is-invalid');
+        $('#txtName').removeClass('is-valid is-invalid').attr('aria-invalid', 'false');
 
 
         getBusinessDate();
@@ -2864,12 +2858,14 @@
         ];
 
         for (const id of ids) {
-            if ($(id).length) {
-                new TomSelect(id, {
-                    allowEmptyOption: true,
-                    create: true
-                });
-            }
+            const el = document.querySelector(id);
+            if (!el || el.tomselect) continue;
+            const tag = (el.tagName || "").toUpperCase();
+            if (tag !== "SELECT" && tag !== "INPUT") continue;
+            new TomSelect(el, {
+                allowEmptyOption: true,
+                create: true
+            });
         }
     }
     $('#txtName').on('blur', function () {
@@ -2878,30 +2874,35 @@
             return;
         }
         var input = $(this).val().trim();
-        // Regex hỗ trợ tiếng Việt, định dạng: "LastName, FirstName MiddleName"
+        // Regex: "LastName [, parts], FirstName [middle...]" — khớp thông báo lỗi phía dưới ô
         var regex = /^[a-zA-ZÀ-ỹ]+(?:\s[a-zA-ZÀ-ỹ]+)*,\s*[a-zA-ZÀ-ỹ]+(?:\s[a-zA-ZÀ-ỹ]+)*$/i;
 
-        if (regex.test(input)) {
-            $('#errorMessage').hide();
-            $(this).removeClass('is-invalid').addClass('is-valid');
+        if (input === '') {
+            $(this).removeClass('is-valid is-invalid').attr('aria-invalid', 'false');
+            return;
+        }
 
-            // Tách chuỗi theo định dạng "LastName, FirstName MiddleName"
+        if (regex.test(input)) {
+            $(this).removeClass('is-invalid').addClass('is-valid').attr('aria-invalid', 'false');
+
             var parts = input.split(',');
-            var lastName = parts[0].trim();          // "Nguyễn Văn"
-            var firstMiddlePart = parts[1].trim();   // "Tuấn Anh"
-            var nameTokens = firstMiddlePart.split(/\s+/); // ["Tuấn", "Anh"]
+            var lastName = parts[0].trim();
+            var firstMiddlePart = parts[1].trim();
+            var nameTokens = firstMiddlePart.split(/\s+/);
 
             var firstName = nameTokens[0];
-            var middleName = nameTokens.slice(1).join(' '); // Có thể là rỗng
+            var middleName = nameTokens.slice(1).join(' ');
 
             $('#txtFirstName').val(firstName);
             CreateProfile(input, lastName, firstName, middleName);
 
         } else {
-            $('#errorMessage').show();
-            $(this).removeClass('is-valid').addClass('is-invalid');
-
+            $(this).removeClass('is-valid').addClass('is-invalid').attr('aria-invalid', 'true');
             $('#txtFirstName').val('');
+            var msg = 'Name format: Last name, First name (optional middle). Example: Smith, John Paul or Nguyễn Văn, Tuấn Anh';
+            if (typeof showToast === 'function') {
+                showToast('Warning', msg, false);
+            }
         }
     });
     function CreateProfile(account, lastName, firstName, middleName) {

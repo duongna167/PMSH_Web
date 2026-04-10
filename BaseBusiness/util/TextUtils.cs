@@ -10,6 +10,7 @@ using System.Data;
 //using System.Data.SqlClient;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using SqlCommand = Microsoft.Data.SqlClient.SqlCommand;
@@ -901,6 +902,44 @@ namespace BaseBusiness.util
 			{
 				log.Description = "No significant changes detected.";
 			}
+		}
+
+		/// <summary>
+		/// Danh sách từng thuộc tính thay đổi (dùng ghi ActivityLog: Change = tên field, OldValue / NewValue tương ứng).
+		/// </summary>
+		public static List<(string PropertyName, string OldValue, string NewValue)> GetModelPropertyChanges<T>(T oldModel, T newModel)
+		{
+			var rows = new List<(string, string, string)>();
+			PropertyInfo[] properties = typeof(T).GetProperties();
+
+			string[] ignoreProps = { "ID", "UserUpdateID", "UpdateDate", "CreateDate", "UpdatedDate",
+				"CreatedDate", "UserInsertID", "CreateBy", "UpdateBy", "CreatedBy", "UpdatedBy", "ImagePath" };
+
+			foreach (var prop in properties)
+			{
+				if (ignoreProps.Contains(prop.Name)) continue;
+
+				object oldVal = oldModel != null ? prop.GetValue(oldModel) : null;
+				object newVal = newModel != null ? prop.GetValue(newModel) : null;
+
+				string oldStr = oldVal?.ToString()?.Trim() ?? "";
+				string newStr = newVal?.ToString()?.Trim() ?? "";
+
+				if (oldStr == newStr) continue;
+
+				if (oldModel == null)
+				{
+					if (string.IsNullOrEmpty(newStr) || newStr == "0" || newStr == "0,00" || newStr.ToLower() == "false")
+						continue;
+				}
+
+				rows.Add((
+					prop.Name,
+					string.IsNullOrEmpty(oldStr) ? "(null)" : oldStr,
+					string.IsNullOrEmpty(newStr) ? "(null)" : newStr));
+			}
+
+			return rows;
 		}
 
 		public static string GetSplitString(string Name)

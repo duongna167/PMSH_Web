@@ -424,7 +424,10 @@
 
     invoiceNoPosting = 0;
 
-    function getFolioNo() {
+    /**
+     * {number} [preferredFolioId] - ID folio (PK) cần chọn sau khi reload (vd. vừa post ở Posting).
+     */
+    function getFolioNo(preferredFolioId) {
         if (folioListXhr && folioListXhr.readyState !== 4) {
             folioListXhr.abort();
         }
@@ -434,6 +437,12 @@
             type: 'get',
             data: { reservationID: idReservation },
             success: function (result) {
+                if (preferredFolioId > 0 && result && result.length > 0) {
+                    const exists = result.some(function (f) { return f.id === preferredFolioId; });
+                    if (exists) {
+                        folioNoID = preferredFolioId;
+                    }
+                }
                 if (result && result.length > 0) {
                     result.sort((a, b) => {
                         if (a.isMasterFolio === b.isMasterFolio) {

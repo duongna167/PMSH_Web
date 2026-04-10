@@ -1487,7 +1487,7 @@
 
             var payload = {
                 folioNo: selectedFolioNo,
-                currentFolioID: folioNoID,
+                currentFolioID: getSelectedPostingFolioId(folioNoElement),
                 masterCode: "", 
                 details: []
             };
@@ -1569,6 +1569,11 @@
 
         // Hàm confirm post (api)
         function submitToDBLegacy(payload) {
+            var postedFolioDbId = 0;
+            if (typeof listFolioData !== 'undefined' && listFolioData && listFolioData.length) {
+                var matched = listFolioData.find(function (x) { return getPostingFolioValue(x) === payload.folioNo; });
+                if (matched) postedFolioDbId = matched.id;
+            }
 
             $.ajax({
                 url: '/Billing/PostingSave',
@@ -1585,10 +1590,11 @@
                         resetFormPosting();
                         $('#modalPosting').modal('hide');
 
-                        // Reload lại dữ liệu Billing theo Folio vừa post
-                        if (typeof filterByFolioNo === 'function') {
-                            // Nếu là master (số âm) thì truyền realFolioNo, còn không truyền chính nó
-                            filterByFolioNo(Math.abs(payload.folioNo));
+                        if (typeof getFolioNo === 'function') {
+                            getFolioNo(postedFolioDbId);
+                        } else if (typeof filterByFolioNo === 'function' && postedFolioDbId > 0) {
+                            var idx = (listFolioData || []).findIndex(function (f) { return f.id === postedFolioDbId; });
+                            filterByFolioNo(postedFolioDbId, idx >= 0 ? idx : 0);
                         } else {
                             searchFolioDetail(0);
                         }
@@ -1643,7 +1649,7 @@
                     submitToDB({
                         mode: "detail",
                         folioNo: selectedFolioNo,
-                        currentFolioID: folioNoID,
+                        currentFolioID: getSelectedPostingFolioId('#selectFolioDetail'),
                         confirmNo: (typeof confirmationNo !== 'undefined' && confirmationNo) ? confirmationNo : "",
                         profileID: parseInt(profileID) || 0,
                         accountName: getAccountNameByFolioNo(selectedFolioNo),
@@ -1725,6 +1731,18 @@
 
         // Gọi API PostingSave và refresh lại Billing sau khi post thành công.
         function submitToDB(payload) {
+            var postedFolioDbId = 0;
+            if (payload && payload.mode === 'invoice' && payload.invoiceRequest) {
+                postedFolioDbId = parseInt($('#selectFolioInvoice option:selected').attr('data-folio-id'), 10) || 0;
+            } else {
+                postedFolioDbId = parseInt($('#selectFolioDetail option:selected').attr('data-folio-id'), 10) || 0;
+            }
+            if (!postedFolioDbId && typeof listFolioData !== 'undefined' && listFolioData && listFolioData.length) {
+                var win = payload && payload.invoiceRequest ? payload.invoiceRequest.win : (payload ? payload.folioNo : 0);
+                var matched = listFolioData.find(function (x) { return getPostingFolioValue(x) === win; });
+                if (matched) postedFolioDbId = matched.id;
+            }
+
             $("#posting_loadingSpinnerRateCode").show();
             $.ajax({
                 url: '/Billing/PostingSave',
@@ -1745,7 +1763,7 @@
                         $('#modalPosting').modal('hide');
 
                         if (typeof getFolioNo === 'function') {
-                            getFolioNo();
+                            getFolioNo(postedFolioDbId);
                         } else {
                             searchFolioDetail(0);
                         }

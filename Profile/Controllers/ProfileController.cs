@@ -1840,16 +1840,23 @@ namespace Profile.Controllers
                     model.UpdateDate = DateTime.Now;
                     ProfileBO.Instance.Update(model);
                     #region Insert log activity for update profile
-                    ActivityLogModel activityLog = new ActivityLogModel();
-                    activityLog.TableName = "Profile";
-                    activityLog.ObjectID = model.ID;
-                    activityLog.UserID = model.UserUpdateID;
-                    activityLog.UserName = user.LoginName;
-                    activityLog.ChangeDate = DateTime.Now;
-                    activityLog.Change = "Update";
-                    TextUtils.FillValues(activityLog, oldData, model);
-                    activityLog.Description = $"Update Profile for name: {model.Account}";
-                    ActivityLogBO.Instance.Insert(activityLog);
+                    var propertyChanges = TextUtils.GetModelPropertyChanges(oldData, model);
+                    foreach (var (propName, oldVal, newVal) in propertyChanges)
+                    {
+                        var rowLog = new ActivityLogModel
+                        {
+                            TableName = "Profile",
+                            ObjectID = model.ID,
+                            UserID = model.UserUpdateID,
+                            UserName = user.LoginName,
+                            ChangeDate = DateTime.Now,
+                            Change = propName,
+                            OldValue = oldVal,
+                            NewValue = newVal,
+                            Description = $"Update Profile: {model.Account}"
+                        };
+                        ActivityLogBO.Instance.Insert(rowLog);
+                    }
                     #endregion
                 }
                 else
@@ -1863,16 +1870,23 @@ namespace Profile.Controllers
                     model.ID = newID;
 
                     #region Insert log activity for insert profile
-                    ActivityLogModel activityLog = new ActivityLogModel();
-                    activityLog.TableName = "Profile";
-                    activityLog.ObjectID = model.ID;
-                    activityLog.UserID = model.UserInsertID;
-                    activityLog.UserName = user.LoginName;
-                    activityLog.ChangeDate = DateTime.Now;
-                    activityLog.Change = "Insert";
-                    TextUtils.FillValues(activityLog, (ProfileModel)null, model);
-                    activityLog.Description = $"Create New Profile: {model.Account}";
-                    ActivityLogBO.Instance.Insert(activityLog);
+                    var insertChanges = TextUtils.GetModelPropertyChanges((ProfileModel)null, model);
+                    foreach (var (propName, oldVal, newVal) in insertChanges)
+                    {
+                        var rowLog = new ActivityLogModel
+                        {
+                            TableName = "Profile",
+                            ObjectID = model.ID,
+                            UserID = model.UserInsertID,
+                            UserName = user.LoginName,
+                            ChangeDate = DateTime.Now,
+                            Change = propName,
+                            OldValue = oldVal,
+                            NewValue = newVal,
+                            Description = $"Create New Profile: {model.Account}"
+                        };
+                        ActivityLogBO.Instance.Insert(rowLog);
+                    }
                     #endregion
                 }
 
