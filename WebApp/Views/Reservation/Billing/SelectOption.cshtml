@@ -51,7 +51,10 @@
                 Posting Users
                 <div class="form-group-new-reservation">
                     <label for="reference" class="form-label">Users</label>
-                    <select   id="userSelectOption" multiple></select>
+                    <select class="tomselect-custom"
+                            id="userSelectOption"
+                            multiple>
+                    </select>
                 </div>
 
                 <hr class="hr">
@@ -74,6 +77,7 @@
 
 <script>
     function openModalSelectOption(){
+        initTomSelect(".tomselect-custom");
         GetallUsers();
         setGroupTransactionSelectOption();
         setSubGroupTransactionSelectOption($('#groupTransactionSelectOption').val());
@@ -156,43 +160,27 @@
         getTransactionSelectOption($('#groupTransactionSelectOption').val(),selectedValue);
     });
 
-    
     function GetallUsers(){
-        $.ajax({
-            url: '/Billing/GetAllUser',
-            type: 'get',
-            dataType: 'json',
-                crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                if (result.length > 0) {
-                    let select = $('#userSelectOption')[0].tomselect; // Lấy instance của TomSelect
-                    // select.clear(); // Xóa giá trị hiện tại
-                    select.clearOptions(); // Xóa tất cả option cũ
+        loadDataToTomSelect(
+        "#userSelectOption",
+        "/Billing/GetAllUser",
+        (item) => ({
+            value: item.id,
+            text: item.loginName,
+            data: item
+        }),
+        ({ ts, empty, success }) => {
+            if (!success) return;
 
-                    select.addOption({ value: '0', text: '' });
-                    result.forEach(item => {
-                        select.addOption({ value: item.id, text: `${item.lastName}` });
-                    });
-
-
-                }
-                else{
-                    let select = $('#userSelectOption')[0].tomselect; // Lấy instance của TomSelect
-                    select.clear(); // Xóa giá trị hiện tại
-                    select.clearOptions(); // Xóa tất cả option cũ
-                    select.addOption({ value: '0', text: '' });
-                    select.setValue('0');
-
-                }
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                } else {
-                }
+            if (empty) {
+                ts.addOption({ value: '0', text: '' });
+                ts.setValue('0');
+            } else {
+                // reset selection khi reload
+                ts.setValue([]);
             }
-        });
+        }
+    );
     }
     // Biến toàn cục để lưu danh sách TransactionCode từ result
      selectedCodesFromResult = [];
