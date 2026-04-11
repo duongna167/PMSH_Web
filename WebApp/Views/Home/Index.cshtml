@@ -1,4 +1,4 @@
-﻿﻿@{
+﻿@{
     ViewData["Title"] = "Home Page";
 }
 <div class="layout-wrapper">
@@ -338,76 +338,39 @@
     }
 
 
-    // Hàm hiển thị biểu đồ tròn (Pie Chart) bằng Highcharts
-    function renderHighchartPie(data) {
-        const totalObj = data.find(x => x.label === 'Total');
-        const total = totalObj ? parseInt(totalObj.value) : 0;
+       function renderHighchartPie(data) {
 
-        // Tính phần trăm thực tế chưa làm tròn
-        let items = data
-            .filter(x => x.label !== 'Total')
-            .map(x => {
-                const y = parseInt(x.value);
-                const rawPercent = total > 0 ? (y / total) * 100 : 0;
-                return {
-                    label: x.label,
-                    y: y,
-                    rawPercent: rawPercent
-                };
-            });
+        // ❌ bỏ hoàn toàn Total từ API
+        const chartItems = data.filter(x => x.label !== 'Total');
 
-        // Làm tròn phần trăm
-        let roundedPercents = items.map(x => Math.round(x.rawPercent * 10) / 10);
-        let sumPercent = roundedPercents.reduce((a, b) => a + b, 0);
+        // ✅ tính lại total từ chính các phần tử
+        const total = chartItems.reduce((sum, x) => {
+            return sum + parseFloat(x.value || 0);
+        }, 0);
 
-        // Tính chênh lệch do làm tròn
-        let diff = +(100.0 - sumPercent).toFixed(1);
+        // ✅ build data cho chart
+        const chartData = chartItems.map(x => {
+            const y = parseFloat(x.value || 0);
+            const percent = total > 0 ? (y / total) * 100 : 0;
 
-        // Nếu có chênh lệch thì điều chỉnh mục có giá trị lớn nhất
-        if (Math.abs(diff) > 0.0) {
-            let maxIndex = items.reduce((maxIdx, item, idx, arr) => {
-                return arr[idx].y > arr[maxIdx].y ? idx : maxIdx;
-            }, 0);
-
-            roundedPercents[maxIndex] = +(roundedPercents[maxIndex] + diff).toFixed(1);
-        }
-
-        // Tạo dữ liệu cho Highcharts
-        const chartData = items.map((x, i) => {
             return {
-                name: `${x.label} (${roundedPercents[i]}%)`,
-                y: x.y
+                name: x.label,
+                y: y,
+                customPercent: percent.toFixed(1)
             };
         });
 
         Highcharts.chart('highchartPie', {
-            chart: {
-                type: 'pie'
-            },
-            title: {
-                text: ''
-            },
+            chart: { type: 'pie' },
+            title: { text: '' },
             tooltip: {
-                pointFormat: '{series.name}: <b>{point.y}</b>'
-            },
-            accessibility: {
-                point: {
-                    valueSuffix: '%'
-                }
-            },
-            legend: {
-                enabled: true,
-                align: 'center',
-                verticalAlign: 'bottom',
-                layout: 'horizontal'
+                pointFormat: '<b>{point.y}</b> ({point.customPercent}%)'
             },
             plotOptions: {
                 pie: {
-                    allowPointSelect: true,
-                    cursor: 'pointer',
                     dataLabels: {
                         enabled: true,
-                        format: '{point.name}: {point.y}'
+                        format: '{point.name}: {point.y} ({point.customPercent}%)'
                     },
                     showInLegend: true
                 }
@@ -417,14 +380,9 @@
                 colorByPoint: true,
                 data: chartData
             }],
-            credits: {
-                enabled: false
-            }
+            credits: { enabled: false }
         });
     }
-
-
-
 
     // Chart toggle logic
     $('input[name="chartType"]').on('change', function () {
