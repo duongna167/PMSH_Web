@@ -907,11 +907,14 @@ namespace Billing.Controllers
                 {
                     var groupReservations = ReservationBO.Instance.FindByAttribute("ConfirmationNo", posting[0].ConfirmationNo).Cast<ReservationModel>().ToList();
                     decimal totalGrpBalance = 0;
+                    decimal totalGrpAmount = 0;
                     foreach (var r in groupReservations)
                     {
                         // Dynamically calculate actual live balance for each room
                         decimal roomLiveBalance = FolioDetailBO.CalculateBalance(r.ID);
+                        decimal roomTotalAmount = FolioDetailBO.CalculateTotal(r.ID);
                         totalGrpBalance += roomLiveBalance;
+                        totalGrpAmount += roomTotalAmount;
 
                         // Sync it back to the database as a safety net
                         if (r.BalanceVND != roomLiveBalance)
@@ -921,6 +924,7 @@ namespace Billing.Controllers
                         }
                     }
                     posting[0].BalanceVND = totalGrpBalance;
+                    posting[0].TotalAmount = totalGrpAmount;
                 }
                 return Json(posting);
             }
