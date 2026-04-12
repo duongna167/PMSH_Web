@@ -1006,8 +1006,15 @@ namespace Billing.Controllers
             {
                 pt.OpenConnection();
                 pt.BeginTransaction();
-                int folioNo = int.Parse(Request.Form["folioNo"].ToString());
-                List<FolioDetailModel> folioDetail = PropertyUtils.ConvertToList<FolioDetailModel>(FolioDetailBO.Instance.FindByAttribute("FolioID", folioNo));
+                string folioNoRaw = Request.Form["folioNo"];
+                if (!int.TryParse(folioNoRaw, out int folioNo))
+                {
+                    return Json(new { code = 1, msg = "Invalid folio number." });
+                }
+
+                List<FolioDetailModel> folioDetail = PropertyUtils.ConvertToList<FolioDetailModel>(
+                    FolioDetailBO.Instance.FindByAttribute("FolioID", folioNo)
+                );
                 if (folioDetail.Count > 0)
                 {
                     pt.RollBack();
