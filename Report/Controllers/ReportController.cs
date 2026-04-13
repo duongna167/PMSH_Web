@@ -3898,18 +3898,15 @@ namespace Report.Controllers
                     }
 
 
-                    // Tính avail
-                    avail = totalRoom - oooInt+ booked;
+                    // Available = Total - OOO - OCC (OOS uses same data as OOO, remove to avoid double-count)
+                    avail = totalRoom - oooInt - booked;
 
                     totaldate1 = groupedData
                  .Sum(row => Convert.ToInt32(row["Date1"]));
 
-                    //booked = totaldate1+ booked;
-
                     chartStatus.Add(new { Label = "OCC", Value = booked });
                     chartStatus.Add(new { Label = "Available", Value = avail });
                     chartStatus.Add(new { Label = "OOO", Value = oooInt });
-                    chartStatus.Add(new { Label = "OOS", Value = oooInt });
                     chartStatus.Add(new { Label = "Total", Value = totalRoom });
                 }
 
