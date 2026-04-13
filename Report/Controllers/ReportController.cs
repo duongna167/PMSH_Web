@@ -3883,30 +3883,47 @@ namespace Report.Controllers
                     totalRoom = groupedData
                         .Sum(row => Convert.ToInt32(row["TotalRooms"]));
 
-                    // Lấy OOO từ dòng cuối, cột "Date1", ép sang int
-                    object OOO = roomavl.AsEnumerable().Last()["Date1"];
-                    if (OOO != null && int.TryParse(OOO.ToString(), out int parsedValue))
+                    // Lấy OOO từ row DisplaySequence = "99999"
+                    var row99999 = roomavl.AsEnumerable()
+                        .FirstOrDefault(row => row["DisplaySequence"]?.ToString() == "99999");
+                    if (row99999 == null)
+                    {
+                        // fallback: dùng dòng cuối nếu không tìm thấy "99999"
+                        row99999 = roomavl.AsEnumerable().Last();
+                    }
+                    if (row99999 != null && int.TryParse(row99999["Date1"]?.ToString(), out int parsedValue))
                     {
                         oooInt = parsedValue;
                     }
-                    var row333 = roomavl.AsEnumerable()
-                  .FirstOrDefault(row => row["DisplaySequence"]?.ToString() == "333");
 
+                    // Lấy OCC (booked) từ row DisplaySequence = "333"
+                    var row333 = roomavl.AsEnumerable()
+                        .FirstOrDefault(row => row["DisplaySequence"]?.ToString() == "333");
                     if (row333 != null && int.TryParse(row333["Date1"]?.ToString(), out int val))
                     {
                         booked = val;
                     }
 
+                    // Lấy OOS từ row DisplaySequence = "666" (lần xuất hiện cuối)
+                    int oosInt = 0;
+                    var row666 = roomavl.AsEnumerable()
+                        .Where(row => row["DisplaySequence"]?.ToString() == "666")
+                        .LastOrDefault();
+                    if (row666 != null && int.TryParse(row666["Date1"]?.ToString(), out int oosVal))
+                    {
+                        oosInt = oosVal;
+                    }
 
-                    // Available = Total - OOO - OCC (OOS uses same data as OOO, remove to avoid double-count)
-                    avail = totalRoom - oooInt - booked;
+                    // Available = Total - OOO - OOS - OCC
+                    avail = totalRoom - oooInt - oosInt - booked;
 
                     totaldate1 = groupedData
-                 .Sum(row => Convert.ToInt32(row["Date1"]));
+                        .Sum(row => Convert.ToInt32(row["Date1"]));
 
                     chartStatus.Add(new { Label = "OCC", Value = booked });
                     chartStatus.Add(new { Label = "Available", Value = avail });
                     chartStatus.Add(new { Label = "OOO", Value = oooInt });
+                    chartStatus.Add(new { Label = "OOS", Value = oosInt });
                     chartStatus.Add(new { Label = "Total", Value = totalRoom });
                 }
 
