@@ -128,6 +128,10 @@
     $(document).ready(function() {
 
         $('#modalAdjustTransaction').on('shown.bs.modal', async function () {
+            // Reset về mặc định By Amount mỗi lần mở modal
+            $('#amountRadio').prop('checked', true);
+            toggleInputs();
+
             initTomSelect('#reasonAdjustTS');
             clearMultipleTomSelect(["#reasonAdjustTS"]);
 
@@ -282,12 +286,12 @@
 
     function toggleInputs() {
         const isAmount = $('#amountRadio').is(':checked');
-        $('.amount-input').prop('disabled', !isAmount);
-        $('.percentage-input').prop('disabled', isAmount);
 
         if (isAmount) {
-            $('.percentage-input').val('0');
-            // Reload giá từ option đang chọn
+            // Chuyển sang By Amount: enable inputs, xóa percent, reload giá từ option đang chọn
+            $('.amount-input').prop('disabled', false);
+            $('.percentage-input').prop('disabled', true).val('0');
+
             const $opt = $('#transCodeAdjust').find('option:selected');
             if ($opt.length && $opt.val()) {
                 const amt = parseFloat($opt.data('amount')) || 0;
@@ -296,7 +300,9 @@
                 initAmountInputs(amt, tCode, tState);
             }
         } else {
-            $('.amount-input').val('0,00').css('color', '');
+            // Chuyển sang By Percentage: chỉ disable 2 ô amount, KHÔNG xóa giá trị
+            $('.amount-input').prop('disabled', true);
+            $('.percentage-input').prop('disabled', false);
         }
     }
 

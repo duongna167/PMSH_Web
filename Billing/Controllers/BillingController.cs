@@ -905,26 +905,20 @@ namespace Billing.Controllers
                 List<ReservationModel> posting = ReservationBO.GetBalanceVND(rsvID);
                 if (posting != null && posting.Count > 0)
                 {
-                    var groupReservations = ReservationBO.Instance.FindByAttribute("ConfirmationNo", posting[0].ConfirmationNo).Cast<ReservationModel>().ToList();
-                    decimal totalGrpBalance = 0;
-                    decimal totalGrpAmount = 0;
-                    foreach (var r in groupReservations)
-                    {
-                        // Dynamically calculate actual live balance for each room
-                        decimal roomLiveBalance = FolioDetailBO.CalculateBalance(r.ID);
-                        decimal roomTotalAmount = FolioDetailBO.CalculateTotal(r.ID);
-                        totalGrpBalance += roomLiveBalance;
-                        totalGrpAmount += roomTotalAmount;
+                    // CalculateBalance/CalculateTotal already aggregate by ConfirmationNo
+                    // so calling them once with rsvID is correct and avoids double-counting in groups
+                    decimal liveBalance = FolioDetailBO.CalculateBalance(rsvID);
+                    decimal liveTotal = FolioDetailBO.CalculateTotal(rsvID);
 
-                        // Sync it back to the database as a safety net
-                        if (r.BalanceVND != roomLiveBalance)
-                        {
-                            r.BalanceVND = roomLiveBalance;
-                            ReservationBO.Instance.Update(r);
-                        }
+                    if (posting[0].BalanceVND != liveBalance || posting[0].TotalAmount != liveTotal)
+                    {
+                        posting[0].BalanceVND = liveBalance;
+                        posting[0].TotalAmount = liveTotal;
+                        ReservationBO.Instance.Update(posting[0]);
                     }
-                    posting[0].BalanceVND = totalGrpBalance;
-                    posting[0].TotalAmount = totalGrpAmount;
+
+                    posting[0].BalanceVND = liveBalance;
+                    posting[0].TotalAmount = liveTotal;
                 }
                 return Json(posting);
             }
