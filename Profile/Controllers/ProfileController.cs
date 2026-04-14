@@ -1062,7 +1062,7 @@ namespace Profile.Controllers
         }
         #endregion
 
-        #region DatVP __ Profile Export
+        #region Profile Export
         public IActionResult ProfileExport()
         {
             return PartialView();
@@ -1126,7 +1126,7 @@ namespace Profile.Controllers
 
         #endregion
 
-        #region DatVP __ Profile History
+        #region Profile History
         [HttpGet]
         public async Task<IActionResult> SearchProfileHistory(string profileID, int type, string confirmationNo)
         {
@@ -1149,7 +1149,7 @@ namespace Profile.Controllers
         }
         #endregion
 
-        #region DatVP __ Profile Membership
+        #region Profile Membership
         public IActionResult Membership()
         {
             return PartialView("~/Views/Profile/Options/Membership.cshtml");
@@ -1778,8 +1778,8 @@ namespace Profile.Controllers
                 switch (model.Type)
                 {
                     case 0: // Individual 
-                        bool isInvalidIndividual = string.IsNullOrEmpty(model.Code) || model.Code.Length < 13;
-                        checks.Add(Check(isInvalidIndividual, "ind_txtCode", "Invalid code (minimum 13 characters)"));
+                        bool isInvalidIndividual = string.IsNullOrEmpty(model.Code) || model.Code.Length > 13;
+                        checks.Add(Check(isInvalidIndividual, "ind_txtCode", "Invalid code (maximum 13 characters)"));
                         checks.Add(Check(model.Account, "ind_txtFullName", "Full name not blank"));
                         checks.Add(Check(model.Firstname, "ind_txtFirstName", "First name not blank"));
                         checks.Add(Check(model.LastName, "ind_txtLastName", "Last name not blank"));
@@ -1791,22 +1791,22 @@ namespace Profile.Controllers
                     case 1: // Travel Agent 
                     case 2: // Company  
                     case 3: // SourceDeleteProfile
-                        bool isInvalidTax = string.IsNullOrEmpty(model.Code) || model.Code.Length < 13;
-                        checks.Add(Check(isInvalidTax, "com_txtCode", "Invalid code (minimum 13 characters)"));
+                        bool isInvalidTax = string.IsNullOrEmpty(model.Code) || model.Code.Length > 13;
+                        checks.Add(Check(isInvalidTax, "com_txtCode", "Invalid code (maximum 13 characters)"));
                         checks.Add(Check(model.Account, "com_txtAccount", "Account not blank"));
                         checks.Add(CheckDuplicate(isDuplicate, "com_txtCode", $"This code already exists: [{model.Code}]"));
 
                         break;
                     case 4: // Group
-                        bool isInvalidGroupCode = string.IsNullOrEmpty(model.Code) || model.Code.Length < 13;
-                        checks.Add(Check(isInvalidGroupCode, "gro_txtCode", "Invalid code (minimum 13 characters)"));
+                        bool isInvalidGroupCode = string.IsNullOrEmpty(model.Code) || model.Code.Length > 13;
+                        checks.Add(Check(isInvalidGroupCode, "gro_txtCode", "Invalid code (maximum 13 characters)"));
                         checks.Add(Check(model.Account, "gro_txtGroupName", "Group Name be blank"));
                         checks.Add(CheckDuplicate(isDuplicate, "gro_txtCode", $"This code already exists: [{model.Code}]"));
 
                         break;
                     case 5: // Contact
-                        bool isInvalidContactCode = string.IsNullOrEmpty(model.Code) || model.Code.Length < 13;
-                        checks.Add(Check(isInvalidContactCode, "con_txtCode", "Invalid code (minimum 13 characters)"));
+                        bool isInvalidContactCode = string.IsNullOrEmpty(model.Code) || model.Code.Length > 13;
+                        checks.Add(Check(isInvalidContactCode, "con_txtCode", "Invalid code (maximum 13 characters)"));
                         checks.Add(Check(model.Account, "con_txtFullName", "Full name not blank"));
                         checks.Add(Check(model.Firstname, "con_txtFirstName", "First name not blank"));
                         checks.Add(Check(model.LastName, "con_txtLastName", "Last name not blank"));
