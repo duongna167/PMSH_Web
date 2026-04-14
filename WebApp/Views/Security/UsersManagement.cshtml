@@ -420,6 +420,11 @@
                 .on("click.ousm", "#ousm_btnEditUsermana", function () {
                     self.editSelected();
                 });
+                     $(document)
+                        .off("click.ousm", "#ousm_btnDeleteUsermana")
+                        .on("click.ousm", "#ousm_btnDeleteUsermana", function () {
+                        self.deleteSelected();
+                    });
 
             $(document)
                 .off("click.ousm", "#ousm_btnNewUsermana")
@@ -482,7 +487,7 @@
             const self = this;
 
             if (!self.selectedRowData) {
-                showToast("Warning", "Vui lòng chọn một dòng trước khi chỉnh sửa.", false);
+                 showToast("Warning", "Please select a row before editing.", false);
                 return;
             }
 
@@ -509,7 +514,37 @@
                 }
             });
         },
+            deleteSelected: function () {
+                const self = this;
 
+                if (!self.selectedRowData) {
+                        showToast("Warning", "Please select a row before editing.", false);
+                    return;
+                }
+
+                $("#ousm_loadingSpinner").show();
+
+                $.ajax({
+                    url: "/Security/UsersManagementDelete",
+                    type: "POST",
+                    data: {
+                        id: self.selectedRowData.id
+                    },
+                    traditional: true,
+                    headers: {
+                        "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
+                    },
+                    success: function (res) {
+                             showToast("Success", res.message, true);
+                        $("#ousm_loadingSpinner").hide();
+                                 self.usersManagementData();
+                    },
+                    error: function () {
+                                       showToast("Error", "Không thể lưu dữ liệu.", false);
+                        $("#ousm_loadingSpinner").hide();
+                    }
+                });
+            },
         saveForm: function () {
             const self = this;
 
