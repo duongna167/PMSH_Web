@@ -126,7 +126,7 @@
 
                     <div class="mb-2">
                         <label class="form-label mb-1">Expire Date</label>
-                        <input type="text" class="form-control" placeholder="mm/yyyy"/>
+                        <div data-month-year-input data-name="op_membership_expireDateAdd"></div>
                     </div>
 
                     <div class="mb-2">
@@ -176,6 +176,11 @@
             this.initDOMEvents();
             this.loadData();
             this.initTomSelects();
+
+            // Init month-year input inside #modalNewMembership (not covered by ModalManager's initDateInputs scope)
+            if (typeof window.initMonthYearInputs === 'function') {
+                window.initMonthYearInputs(document.getElementById('modalNewMembership'));
+            }
         },
 
         initDOMEvents: function () {
@@ -253,18 +258,25 @@
                     useNative: false                
                 },
                 columns: [
-                    { dataField: "id", caption: "ID", visible: false },
-                    { dataField: "sequence", caption: "Seq" },
-                    { dataField: "memberType", caption: "Type" },
-                    { dataField: "memberNo", caption: "Card Number" },
-                    { dataField: "expiry", caption: "Expiration Date" },
-                    { dataField: "memberTypeName", caption: "Card on Name" },
-                    { dataField: "description", caption: "Description" },
-                    { dataField: "inactive", caption: "Inactive" },
-                    { dataField: "createdBy", caption: "Created By" },
-                    { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy" },
-                    { dataField: "updatedBy", caption: "Updated By" },
-                    { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "ID", caption: "ID", visible: false },
+                    { dataField: "Sequence", caption: "Seq" },
+                    { dataField: "MemberType", caption: "Type" },
+                    { dataField: "MemberNo", caption: "Card Number" },
+                    {
+                        dataField: "Expiry", caption: "Expiration Date",
+                        customizeText: function (e) {
+                            if (!e.value) return '';
+                            const d = new Date(e.value);
+                            return String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+                        }
+                    },
+                    { dataField: "MemberTypeName", caption: "Card on Name" },
+                    { dataField: "Description", caption: "Description" },
+                    { dataField: "Inactive", caption: "Inactive" },
+                    { dataField: "CreatedBy", caption: "Created By" },
+                    { dataField: "CreatedDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "UpdatedBy", caption: "Updated By" },
+                    { dataField: "UpdatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy" },
                 ],
                 paging: { pageSize: 15 },
                 pager: {
@@ -303,7 +315,7 @@
                     return;
                 }
 
-                self.membershipID = selectedRowsData[0].ID;
+                self.membershipID = selectedRowsData[0].id || selectedRowsData[0].ID;
                 self.resetForm();
                 self.loadMembershipByID(self.membershipID);
                 $('#modalNewMembership').modal('show');
@@ -315,8 +327,8 @@
             $('#op_membership_memberTypeAdd').val(0);
             $('#op_membership_nameOnCardAdd').val('');
             $('#op_membership_cardNumberAdd').val('');
-            const today = new Date().toISOString().split('T')[0];
-            $('#op_membership_expireDateAdd').val(today);
+            const myInput = $('[data-month-year-input][data-name="op_membership_expireDateAdd"]').data('monthYearInput');
+            if (myInput) myInput.reset();
             $('#op_membership_sequenceAdd').val('');
             $('#op_membership_descriptionAdd').val('');
             $('#op_membership_inactiveAdd').prop('checked', false);
@@ -334,7 +346,8 @@
                     $('#op_membership_cardNumberAdd').val(data.memberNo);
                     $("#op_membership_sequenceAdd").val(data.sequence);
                     if (data.expiry) {
-                        $("#op_membership_expireDateAdd").val(data.expiry.split('T')[0]);
+                        const myInput = $('[data-month-year-input][data-name="op_membership_expireDateAdd"]').data('monthYearInput');
+                        if (myInput) myInput.set(data.expiry);
                     }
                     $("#op_membership_descriptionAdd").val(data.description);
                     $('#op_membership_inactiveAdd').prop('checked', data.inActive == 1);
@@ -370,6 +383,7 @@
             }
 
             var mId = selectedRowsData[0].ID;
+
             if (!confirm("Are you sure you want to delete this member card?")) return;
 
             $.ajax({
@@ -385,7 +399,7 @@
                     }
                 },
                 error: function () {
-                    alert('Error deleting membership data.');
+                    showToast('Error', 'Error deleting membership data.', false);
                 }
             });
         },

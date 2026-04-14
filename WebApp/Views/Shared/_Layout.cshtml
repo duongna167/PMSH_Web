@@ -1308,23 +1308,37 @@
                   if (window.ValidationAdapter) window.ValidationAdapter.clearField(this);
               });
 
+              // Set z-index at show START (before animation) so modals never appear behind each other during fade-in
+              $(document).on("show.bs.modal", ".modal", function () {
+
+                  // CSS filter:blur() on a parent creates a new containing block for position:fixed children.
+                  // Move any modal that is not a direct child of <body> to <body> so it is never
+                  // affected by a blurred ancestor (e.g. a sub-modal inside #newReservationModal).
+                  if (this.parentElement && this.parentElement !== document.body) {
+                      document.body.appendChild(this);
+                  }
+
+                  const $currentlyShown = $('.modal.show'); // already visible modals
+
+                  $currentlyShown.each(function (index) {
+                      $(this).css('z-index', 1050 + (10 * index));
+                  });
+                  // This modal (not yet in .show) gets the highest z-index
+                  $(this).css('z-index', 1050 + (10 * $currentlyShown.length));
+
+                  // Backdrop is created by Bootstrap just after this event; update in next tick
+                  const zBase = 1049 + (10 * $currentlyShown.length);
+                  setTimeout(function () {
+                      $('.modal-backdrop').last().css('z-index', zBase);
+                  }, 0);
+
+              });
+
+              // Blur effect + re-verify z-index after animation completes (managed modals only for blur)
               $(document).on("shown.bs.modal", ".modal.managed-modal", function () {
 
                   $('.modal.show .modal-content').removeClass('modal-blur');
                   $('.modal.show').not(this).find('.modal-content').addClass('modal-blur');
-
-                  // Assign z-index by show order: other modals first, then the newly shown modal gets the highest
-                  const $otherModals = $('.modal.show').not(this);
-                  $otherModals.each(function (index) {
-                      const zIndex = 1050 + (10 * index);
-                      $(this).css('z-index', zIndex);
-                  });
-                  $(this).css('z-index', 1050 + (10 * $otherModals.length));
-
-                  $('.modal-backdrop').each(function (index) {
-                      const zIndex = 1049 + (10 * index);
-                      $(this).css('z-index', zIndex);
-                  });
 
               });
 

@@ -191,3 +191,167 @@ const ToastUI = (function () {
 function showToast(title, message, isSuccess) {
     ToastUI.show(title, message, isSuccess);
 }
+
+// ========== Custom Confirm Dialog ==========
+// Override window.confirm với dialog đẹp hơn.
+//
+// Hoạt động theo cơ chế RE-TRIGGER — không cần sửa code cũ dùng if(!confirm()) return;
+//   1. Lần gọi đầu: hiển thị dialog, trả về false → hàm hiện tại thoát sớm
+//   2. User click OK → re-trigger click vào phần tử vừa được click (gốc)
+//   3. Lần gọi lại: trả về true → action thực thi
+// Hỗ trợ chuỗi confirm (A? rồi B?) tự động qua bộ đếm.
+//
+// Dùng: if (!confirm("msg")) return;   ← KHÔNG cần thay đổi gì
+//        confirm("msg") cũng hoạt động nếu cần gọi độc lập (sẽ trả false lần 1)
+(function () {
+    function injectStyle() {
+        if (document.getElementById('cc-style')) return;
+        const style = document.createElement('style');
+        style.id = 'cc-style';
+        style.innerHTML = `
+            .cc-overlay {
+                position: fixed; inset: 0;
+                background: rgba(0,0,0,0.35);
+                z-index: 99999;
+                display: flex; align-items: center; justify-content: center;
+                animation: cc-fade-in 0.15s ease;
+            }
+            @keyframes cc-fade-in { from { opacity:0; } to { opacity:1; } }
+
+            .cc-box {
+                background: #fff;
+                border-radius: 10px;
+                box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+                width: 340px;
+                overflow: hidden;
+                border-top: 4px solid #f59e0b;
+                animation: cc-slide-in 0.18s ease;
+            }
+            @keyframes cc-slide-in {
+                from { opacity:0; transform: scale(0.93) translateY(8px); }
+                to   { opacity:1; transform: scale(1) translateY(0); }
+            }
+
+            .cc-body { padding: 20px 20px 8px; }
+
+            .cc-title {
+                font-weight: 700; font-size: 14px; color: #f59e0b;
+                display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+            }
+            .cc-title svg { flex-shrink: 0; }
+
+            .cc-message { font-size: 13px; color: #4b5563; line-height: 1.6; }
+
+            .cc-footer {
+                display: flex; gap: 8px;
+                padding: 14px 20px 18px; justify-content: flex-end;
+            }
+            .cc-btn {
+                padding: 7px 20px; border-radius: 6px;
+                border: none; font-size: 13px; font-weight: 600;
+                cursor: pointer; transition: background 0.15s, transform 0.1s;
+            }
+            .cc-btn:active { transform: scale(0.97); }
+            .cc-btn-cancel { background: #f3f4f6; color: #374151; }
+            .cc-btn-cancel:hover { background: #e5e7eb; }
+            .cc-btn-ok { background: #ef4444; color: #fff; }
+            .cc-btn-ok:hover { background: #dc2626; }
+        `;
+        document.head.appendChild(style);
+    }
+
+    function showDialog(message, title) {
+        injectStyle();
+        return new Promise(function (resolve) {
+            var el = document.createElement('div');
+            el.className = 'cc-overlay';
+            el.innerHTML =
+                '<div class="cc-box">' +
+                  '<div class="cc-body">' +
+                    '<div class="cc-title">' +
+                      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+                        '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>' +
+                        '<line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>' +
+                      '</svg>' +
+                      (title || 'Confirm') +
+                    '</div>' +
+                    '<div class="cc-message">' + message + '</div>' +
+                  '</div>' +
+                  '<div class="cc-footer">' +
+                    '<button class="cc-btn cc-btn-cancel">Cancel</button>' +
+                    '<button class="cc-btn cc-btn-ok">OK</button>' +
+                  '</div>' +
+                '</div>';
+            document.body.appendChild(el);
+
+            var done = function (result) {
+                el.style.animation = 'cc-fade-in 0.12s ease reverse forwards';
+                setTimeout(function () { el.remove(); }, 120);
+                resolve(result);
+            };
+
+            el.querySelector('.cc-btn-ok').addEventListener('click', function () { done(true); });
+            el.querySelector('.cc-btn-cancel').addEventListener('click', function () { done(false); });
+            el.addEventListener('click', function (e) { if (e.target === el) done(false); });
+
+            var onKey = function (e) {
+                if (e.key === 'Escape') { document.removeEventListener('keydown', onKey); done(false); }
+                if (e.key === 'Enter')  { document.removeEventListener('keydown', onKey); done(true); }
+            };
+            document.addEventListener('keydown', onKey);
+        });
+    }
+
+    // --- Re-trigger state ---
+    var _lastClickTarget = null;   // element that was clicked by user
+    var _isRetriggering  = false;  // true while we re-fire the click programmatically
+    var _approvedUntil   = 0;      // how many confirms to auto-approve on next run
+    var _confirmIndex    = 0;      // position counter within current execution
+
+    // Capture every real user click so we know which element to re-trigger
+    document.addEventListener('click', function (e) {
+        if (!_isRetriggering) {
+            _lastClickTarget = e.target;
+            _approvedUntil   = 0;
+            _confirmIndex    = 0;
+        }
+    }, true); // capture phase — runs before any handler
+
+    window.confirm = function (message, title) {
+        var myIndex = _confirmIndex++;
+
+        // This confirm was already approved in a previous pass — skip it
+        if (myIndex < _approvedUntil) {
+            return true;
+        }
+
+        // This is the confirm that needs user input
+        var approvedSoFar = myIndex;
+        _confirmIndex = 0; // reset so next re-trigger starts from 0
+
+        var target = _lastClickTarget;
+
+        showDialog(message, title).then(function (result) {
+            if (result && target) {
+                _approvedUntil  = approvedSoFar + 1; // approve one more next time
+                _confirmIndex   = 0;
+                _isRetriggering = true;
+                try {
+                    // Re-fire the original click — triggers jQuery handlers AND onclick attrs
+                    if (typeof jQuery !== 'undefined') {
+                        jQuery(target).trigger('click');
+                    } else {
+                        target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                    }
+                } catch (ex) { /* ignore errors during retrigger */ }
+                _isRetriggering = false;
+            } else {
+                // User cancelled — reset everything
+                _approvedUntil = 0;
+                _confirmIndex  = 0;
+            }
+        });
+
+        return false; // block current execution
+    };
+})();

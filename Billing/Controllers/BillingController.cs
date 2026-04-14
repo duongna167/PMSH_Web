@@ -2009,8 +2009,10 @@ namespace Billing.Controllers
                 else
                 {
                     if (!decimal.TryParse(Request.Form["percentage"].ToString(), out decimal percentage)) percentage = 0;
-                    price = folioAdjust.AmountBeforeTax * (percentage / 100);
-                    priceNet = folioAdjust.AmountGross * (percentage / 100);
+                    // Adjust transaction phải bám theo số tiền giao dịch thực tế đang hiển thị trên Billing grid.
+                    // AmountBeforeTax/AmountGross có thể khác semantics theo từng loại row, nên lấy trực tiếp Amount.
+                    price = folioAdjust.Amount * (percentage / 100);
+                    priceNet = folioAdjust.Amount * (percentage / 100);
                 }
                 
                 // Adjustments decrease balance, so we make sure amount is negative
@@ -2828,7 +2830,7 @@ namespace Billing.Controllers
                                   Code = !string.IsNullOrEmpty(d["Code"].ToString()) ? d["Code"] : "",
                                   Description = !string.IsNullOrEmpty(d["Description"].ToString()) ? d["Description"] : "",
                                   VirtualCode = !string.IsNullOrEmpty(d["VirtualCode"].ToString()) ? d["VirtualCode"] : "",
-                                  Amount = !string.IsNullOrEmpty(d["Amount"].ToString()) ? d["Amount"] : "",
+                                  Amount = d["Amount"] != DBNull.Value ? Convert.ToDecimal(d["Amount"]) : (decimal)0,
                                   Currency = !string.IsNullOrEmpty(d["Currency"].ToString()) ? d["Currency"] : "",
                                   Supplement = !string.IsNullOrEmpty(d["Supplement"].ToString()) ? d["Supplement"] : "",
                                   Reference = !string.IsNullOrEmpty(d["Reference"].ToString()) ? d["Reference"] : "",

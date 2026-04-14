@@ -553,6 +553,112 @@ $(document).ready(async function () {
     });
 });
 
+// ========== Month-Year Input ==========
+// Usage: <div data-month-year-input data-name="fieldName"></div>
+// Supports typing mm/yyyy directly AND auto-formats as user types
+(function () {
+    class MonthYearInput {
+        constructor(root) {
+            this.$root = $(root);
+            this.name = this.$root.data('name');
+            this.$root.css({ display: 'flex', alignItems: 'center', gap: '4px' });
+
+            // Text input — user can type mm/yyyy directly
+            this.$input = $('<input type="text">')
+                .addClass('form-control form-control-sm')
+                .attr('placeholder', 'mm/yyyy')
+                .attr('maxlength', '7')
+                .css({ maxWidth: '100px' })
+                .appendTo(this.$root);
+
+            // Hidden input stores yyyy-MM-01 for server DateTime.Parse compatibility
+            this.$hidden = $('<input type="hidden">')
+                .attr('name', this.name)
+                .attr('id', this.name)
+                .appendTo(this.$root);
+
+            this._bindEvents();
+        }
+
+        _bindEvents() {
+            const self = this;
+
+            // Auto-insert "/" after typing 2 digits for month
+            this.$input.on('input', function () {
+                let raw = this.value.replace(/[^0-9\/]/g, '');
+                const digits = raw.replace(/\//g, '');
+
+                if (digits.length >= 2) {
+                    const mm = digits.slice(0, 2);
+                    const yyyy = digits.slice(2, 6);
+                    this.value = mm + (digits.length > 2 ? '/' + yyyy : '/');
+                } else {
+                    this.value = raw;
+                }
+            });
+
+            // Validate and commit on blur
+            this.$input.on('blur', function () {
+                const parsed = self._parse($(this).val().trim());
+                if (!$(this).val().trim()) {
+                    $(this).removeClass('is-invalid');
+                    self.$hidden.val('').trigger('change');
+                    return;
+                }
+                if (parsed) {
+                    $(this).val(parsed.display).removeClass('is-invalid');
+                    self.$hidden.val(parsed.iso).trigger('change');
+                } else {
+                    $(this).addClass('is-invalid');
+                    self.$hidden.val('').trigger('change');
+                }
+            });
+        }
+
+        _parse(val) {
+            const m = val.match(/^(\d{1,2})\/(\d{4})$/);
+            if (!m) return null;
+            const month = parseInt(m[1], 10);
+            const year  = parseInt(m[2], 10);
+            if (month < 1 || month > 12 || year < 1900 || year > 2100) return null;
+            return {
+                display: String(month).padStart(2, '0') + '/' + year,
+                iso:     year + '-' + String(month).padStart(2, '0') + '-01'
+            };
+        }
+
+        // Accept "yyyy-MM-DDT..." or "yyyy-MM" from server
+        set(isoStr) {
+            if (!isoStr) { this.reset(); return; }
+            const monthStr = String(isoStr).slice(0, 7); // "yyyy-MM"
+            if (/^\d{4}-\d{2}$/.test(monthStr)) {
+                const [y, m] = monthStr.split('-');
+                this.$input.val(m + '/' + y).removeClass('is-invalid');
+                this.$hidden.val(monthStr + '-01').trigger('change');
+            }
+        }
+
+        reset() {
+            this.$input.val('').removeClass('is-invalid');
+            this.$hidden.val('').trigger('change');
+        }
+
+        getValue()     { return this.$hidden.val(); } // "yyyy-MM-01"
+        getMonthYear() { return this.$input.val();  } // "mm/yyyy"
+    }
+
+    window.initMonthYearInputs = function (root) {
+        const $root = root ? $(root) : $(document);
+        $root.find('[data-month-year-input]').each(function () {
+            if ($(this).data('month-year-initialized')) return;
+            const instance = new MonthYearInput(this);
+            this.monthYearInput = instance;
+            $(this).data('monthYearInput', instance);
+            $(this).data('month-year-initialized', true);
+        });
+    };
+})();
+
 // Func cho phép bật tắt button nhanh
 UI.toggleButtons = function (ids, disabled) {
     ids.forEach((id) => {

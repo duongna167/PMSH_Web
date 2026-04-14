@@ -1732,7 +1732,12 @@ namespace Reservation.Controllers
                     reservationModel.DropOffDescription = Request.Form["dropOffDescription"].ToString();
                     reservationModel.PackageId = int.Parse(Request.Form["packageID"].ToString());
                     reservationModel.Packages = Request.Form["packages"].ToString();
-                    reservationModel.Status = DateTime.Parse(Request.Form["arrival"].ToString()) == businessDate[0].BusinessDate ? 5 : 0;
+                    // Chỉ tính lại Status cho các trạng thái DueIn (0/5).
+                    // Nếu đã CheckIn, CheckOut, Cancel... thì giữ nguyên trạng thái hiện tại.
+                    if (reservationModel.Status == 0 || reservationModel.Status == 5)
+                    {
+                        reservationModel.Status = DateTime.Parse(Request.Form["arrival"].ToString()) == businessDate[0].BusinessDate ? 5 : 0;
+                    }
                     reservationModel.PostingMaster = false;
                     //reservationModel.MainGuest = true;
                     if (string.IsNullOrEmpty(Request.Form["rateCode"].ToString()))
@@ -3141,7 +3146,7 @@ namespace Reservation.Controllers
                                   Code = d["Code"].ToString(),
                                   Description = d["Description"].ToString(),
 
-                                  Amount = d["Amount"].ToString(),
+                                  Amount = d["Amount"] != DBNull.Value ? Convert.ToDecimal(d["Amount"]) : (decimal)0,
                                   Currency = d["Currency"].ToString(),
                                   Supplement = d["Supplement"].ToString(),
                                   Reference = d["Reference"].ToString(),

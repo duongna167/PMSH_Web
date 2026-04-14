@@ -128,7 +128,7 @@
                             </div>
 
                             <div style="flex: 0 0 12.5%; padding: 0 5px;">
-                                <span class="me-2 text-muted" style="font-size:0.8rem; font-weight:600;">Total:</span>
+                                <span id="totalBillingMasterLabel" class="me-2 text-muted" style="font-size:0.8rem; font-weight:600;">Total:</span>
                                 <label id="totalBillingMaster" class="fw-bold">0</label>
                             </div>
                         </div>
@@ -337,6 +337,7 @@
     var listFolioNoID = [];
     var listFolioData = [];
     var folioNoID = 0;
+    var currentFolioData = []; // full dataset for current folio (used in selection handler)
     var billingDetailXhr = null;
     var billingDetailRequestSeq = 0;
     var folioListXhr = null;
@@ -545,27 +546,22 @@
     var folioDetailID = 0;
     var transCodeBilling = "";
 
-    //TÍNH TOÁN BALANCE & TOTAL ---
-    function updateBillingHeaderStats(data) {
-        let totalBalance = 0;
-
-        if (data && data.length > 0) {
-            data.forEach(item => {
-                let val = parseFloat(item.amount) || 0;
-
-                totalBalance += val;
-            });
-        }
-        const formattedVal = totalBalance.toLocaleString('vi-VN');
-
-        $('#balanceBillingMaster').text(formattedVal);
+    // Folio Bal = net balance (charges positive, payments negative)
+    // Total = selected rows sum (updated on selection, reset to 0 when nothing selected)
+    function updateFolioBal(data) {
+        let balance = 0;
+        (data || []).forEach(function (item) {
+            balance += parseFloat(item.amount) || 0;
+        });
+        totalAmountBilling = balance;
+        $('#balanceBillingMaster').text(balance.toLocaleString('vi-VN'));
+        $('#totalBillingMaster').text('0');
+        $('#totalBillingMasterLabel').text('Total:');
     }
 
     function initializeDataGridBilling(data) {
-        updateBillingHeaderStats(data);
-
-        totalAmountBilling = data.reduce((total, item) => total + (parseFloat(item.amount) || 0), 0);
-        $('#balanceBillingMaster').text(totalAmountBilling.toLocaleString('vi-VN'));
+        currentFolioData = data || [];
+        updateFolioBal(data);
 
         var existingGrid = $("#gridContainerBilling").data("dxDataGrid");
         if (existingGrid) {
@@ -740,21 +736,20 @@
                 }
             },
 
-            // 3. THAY ĐỔI LỰA CHỌN (NƠI DUY NHẤT TÍNH TỔNG TIỀN)
+            // 3. THAY ĐỔI LỰA CHỌN — Total hiển thị tổng các dòng đang chọn
             onSelectionChanged: function (e) {
                 const selectedRows = e.selectedRowsData;
-                let totalSelected = 0;
+                let selTotal = 0;
 
                 if (selectedRows.length > 0) {
-                    selectedRows.forEach(item => {
-                        totalSelected += (parseFloat(item.amount) || 0);
-                    });
+                    selectedRows.forEach(item => { selTotal += (parseFloat(item.amount) || 0); });
+                    $('#totalBillingMasterLabel').text('Sel:');
                 } else {
+                    $('#totalBillingMasterLabel').text('Total:');
                     $("#functionMenu").hide();
                 }
 
-                // Cập nhật text hiển thị tổng tiền được chọn
-                $('#totalBillingMaster').text(totalSelected.toLocaleString('vi-VN'));
+                $('#totalBillingMaster').text(selTotal.toLocaleString('vi-VN'));
             },
 
             // 4. KHI DỮ LIỆU LOAD XONG (CHỌN SẴN DÒNG NẾU CÓ)

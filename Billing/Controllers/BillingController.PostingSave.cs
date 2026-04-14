@@ -687,9 +687,10 @@ namespace Billing.Controllers
                 RoomNo = FirstNotEmpty(
                     request.RoomNo,
                     reservation?.RoomNo),
-                CurrencyLocal = string.IsNullOrWhiteSpace(TextUtils.GetMasterCurrency())
-                    ? "VND"
-                    : TextUtils.GetMasterCurrency(),
+                // Billing/GetBalanceVND và toàn bộ flow legacy đang đọc AmountMaster như số tiền VND.
+                // Vì vậy PostingSave mới phải lưu CurrencyMaster theo VND để không làm Balance/Total bị
+                // quy đổi sang master currency khác của hệ thống (ví dụ 11,340 -> 0.54).
+                CurrencyLocal = "VND",
                 Reservation = reservation
             };
         }
@@ -1087,15 +1088,8 @@ namespace Billing.Controllers
             request.AccountName ??= string.Empty;
             request.Items ??= new List<PostingInvoiceItemDto>();
 
-            if (string.IsNullOrWhiteSpace(request.CurrencyLocal) && request.Items.Count > 0)
-            {
-                request.CurrencyLocal = request.Items[0].CurrencyID;
-            }
-
-            if (string.IsNullOrWhiteSpace(request.CurrencyLocal))
-            {
-                request.CurrencyLocal = TextUtils.GetMasterCurrency();
-            }
+            // Giữ tương thích flow Billing cũ: AmountMaster/CurrencyMaster được lưu theo VND.
+            request.CurrencyLocal = "VND";
 
             foreach (PostingInvoiceItemDto item in request.Items)
             {

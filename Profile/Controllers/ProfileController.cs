@@ -1258,7 +1258,8 @@ namespace Profile.Controllers
                 membership.MemberNo = Request.Form["memberNo"].ToString();
                 membership.MemberTypeID = int.Parse(Request.Form["memberTypeID"].ToString());
                 membership.Description = Request.Form["description"].ToString();
-                membership.Expiry = DateTime.Parse(Request.Form["expiry"].ToString());
+                string expiryStr = Request.Form["expiry"].ToString();
+                membership.Expiry = !string.IsNullOrEmpty(expiryStr) ? DateTime.Parse(expiryStr) : DateTime.MinValue;
                 membership.Status = 1;
                 membership.InActive = int.Parse(Request.Form["inactive"].ToString()) == 1 ? true : false;
                 membership.IsDeleted = false;

@@ -658,6 +658,51 @@
     var profileID = 0;
     var folioNoID = 0;
     var reservationStatus = 0;
+    function parseBillingAmount(value) {
+        if (value === null || value === undefined || value === '') {
+            return null;
+        }
+
+        if (typeof value === 'number') {
+            return isNaN(value) ? null : value;
+        }
+
+        const raw = value.toString().trim();
+        if (!raw || raw.toLowerCase() === 'null' || raw.toLowerCase() === 'undefined') {
+            return null;
+        }
+
+        const normalized = raw.replace(/\s/g, '');
+
+        if (normalized.includes('.') && normalized.includes(',')) {
+            const localized = Number(normalized.replace(/\./g, '').replace(',', '.'));
+            return isNaN(localized) ? null : localized;
+        }
+
+        if (normalized.includes(',')) {
+            const localized = Number(normalized.replace(',', '.'));
+            return isNaN(localized) ? null : localized;
+        }
+
+        if (/^-?\d{1,3}(\.\d{3})+$/.test(normalized)) {
+            const thousands = Number(normalized.replace(/\./g, ''));
+            return isNaN(thousands) ? null : thousands;
+        }
+
+        const parsed = Number(normalized);
+        return isNaN(parsed) ? null : parsed;
+    }
+    function formatBillingAmount(value) {
+        const parsed = parseBillingAmount(value);
+        if (parsed === null) {
+            return '0';
+        }
+
+        return parsed.toLocaleString('vi-VN', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
+    }
     function initializeDataGridSearch(data) {
         // 1. LOCALE CHÂU ÂU: dấu chấm nghìn, dấu phẩy thập phân (dù không dùng thập phân)
         DevExpress.localization.locale('de-DE');
@@ -665,8 +710,8 @@
         // 2. CHUYỂN DỮ LIỆU: "85.123,00" → 85123 (number)
         const processedData = data.map(item => {
             const cleanNumber = (str) => {
-                if (typeof str !== 'string' || !str.trim()) return 0;
-                return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+                const parsed = parseBillingAmount(str);
+                return parsed === null ? 0 : parsed;
             };
             return {
                 ...item,
@@ -831,14 +876,6 @@
             { dataField: 'VIP', caption: 'VIP', visible: false },
             { dataField: 'VoucherNo', caption: 'Voucher No', visible: false }
         ];
-
-        // 5. HÀM FORMAT CHO PHẦN BILLING – KHÔNG CÓ PHẦN THẬP PHÂN
-        function formatNumberBilling(value) {
-            if (value == null || value === '') return '0';
-            const num = parseFloat(value);
-            if (isNaN(num)) return '0';
-            return num.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-        }
 
         // 6. CẬP NHẬT OFFCANVAS
         function updateColumnList() {
@@ -1074,15 +1111,7 @@
         return "#" + hex.substring(2).toUpperCase();
     }
     function formatNumberBilling(number) {
-        const parsed = Number(number || 0);
-        if (isNaN(parsed)) {
-            return '0';
-        }
-
-        return parsed.toLocaleString('vi-VN', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        });
+        return formatBillingAmount(number);
     }
     function getReservationHeaderValue(source, fields) {
         if (!source) return '';
@@ -1100,26 +1129,7 @@
         return '';
     }
     function parseReservationHeaderAmount(value) {
-        if (value === null || value === undefined || value === '') {
-            return null;
-        }
-
-        if (typeof value === 'number' && !isNaN(value)) {
-            return value;
-        }
-
-        const raw = value.toString().trim();
-        if (!raw) {
-            return null;
-        }
-
-        if (/^-?\d+(\.\d+)?$/.test(raw)) {
-            const parsed = Number(raw);
-            return isNaN(parsed) ? null : parsed;
-        }
-
-        const localized = Number(raw.replace(/\./g, '').replace(',', '.'));
-        return isNaN(localized) ? null : localized;
+        return parseBillingAmount(value);
     }
     function getReservationHeaderAmount(source, fields) {
         if (!source) return null;

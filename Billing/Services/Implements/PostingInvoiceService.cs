@@ -840,9 +840,9 @@ namespace Billing.Services.Implements
                 if (validate.Success == false)
                     return validate;
 
-                // Giữ logic cũ: nếu có item thì currency local lấy theo item đầu tiên
-                if (request.Items != null && request.Items.Count > 0)
-                    request.CurrencyLocal = request.Items[0].CurrencyID;
+                // Flow Billing cũ luôn lưu AmountMaster/CurrencyMaster theo VND.
+                // Nếu lấy theo item đầu tiên hoặc master currency hệ thống thì BalanceVND sẽ sai.
+                request.CurrencyLocal = "VND";
 
                 bool result = PostingInvoice(request, ref message);
                 if (result == false)
@@ -1036,7 +1036,7 @@ namespace Billing.Services.Implements
             }
 
             if (request.Items.Count > 0)
-                request.CurrencyLocal = request.Items[0].CurrencyID;
+                request.CurrencyLocal = "VND";
 
             return request;
         }
