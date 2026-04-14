@@ -335,12 +335,17 @@
                         data: { invoiceNo: data.invoiceNo },
                         success: function (res) {
                             if (!res.error && res.length > 0) {
-                                // Filter out Master rows (RowState = 1) and Taxes (GroupCode = Tax)
-                                var validSubRows = res.filter(r => 
-                                    String(r.rowState) !== '1' && 
-                                    (r.groupCode || '').toUpperCase() !== 'TAX'
+                                const selectedPostType = String(data.postType || '');
+                                const isPostDetail = selectedPostType === '1';
+
+                                // Logic cũ cho postInvoice: loại rowState = 1 và loại TAX.
+                                // Bổ sung cho postDetail: vẫn loại TAX nhưng cho phép lấy rowState = 1
+                                // vì dòng detail gốc nằm ở rowState = 1.
+                                var validSubRows = res.filter(r =>
+                                    (r.groupCode || '').toUpperCase() !== 'TAX' &&
+                                    (isPostDetail || String(r.rowState) !== '1')
                                 );
-                                
+
                                 var invoiceRows = validSubRows.length > 0 ? validSubRows : res.filter(r => (r.groupCode || '').toUpperCase() !== 'TAX');
                                 if (invoiceRows.length === 0) invoiceRows = res; // Ultimate fallback
                                 
