@@ -589,9 +589,18 @@ namespace Security.Controllers
                     DBUtils.initVector,
                     DBUtils.keySize
                 );
-
+              
                 if (modelRoom.ID == 0)
                 {
+                    ArrayList arr = UsersBO.Instance.FindByAttribute("LoginName", modelRoom.LoginName);
+                    if (arr != null && arr.Count > 0)
+                    {
+                        return Json(new
+                        {
+                            success = false,
+                            message = "This account already exists."
+                        });
+                    }
                     // Insert
                     int pID = (int)UsersBO.Instance.Insert(modelRoom);
                     modelRoom.ID = pID;
@@ -634,6 +643,31 @@ namespace Security.Controllers
             catch (Exception ex)
             {
                 return Json(new { success = false, message = ex.Message });
+            }
+        }
+        [HttpPost]
+        public IActionResult UsersManagementDelete(int id)
+        {
+            try
+            {
+                // ArrayList arr = UserGroupBO.Instance.FindByAttribute("RateClassID", id);
+                // if (arr.Count > 0)
+                // {
+                //     return Json(new { success = false, message = "Rate Class is being referenced to in other modules.\nDelete failed.!" });
+                // }
+                var checkID = UsersBO.Instance.FindByPrimaryKey(id);
+                if (checkID == null)
+                {
+                    return Json(new { success = false, message = "User  not found.!" });
+                }
+
+                UsersBO.Instance.Delete(id);
+
+                return Json(new { success = true, message = $"Record was removed successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
             }
         }
         #endregion
