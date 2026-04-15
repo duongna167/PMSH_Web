@@ -362,26 +362,19 @@
     }
 
     function refreshBillingReservationSummary() {
-        $.ajax({
-            url: '/Reservation/GetReservationByID',
-            type: 'get',
-            dataType: 'json',
-            data: { ID: idReservation },
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                const masterFolio = (listFolioData || []).find(f => f.isMasterFolio);
-                const companyName = normalizeBillingHeaderText(
-                    masterFolio && masterFolio.accountName
-                        ? masterFolio.accountName
-                        : (result?.companyName || '')
-                );
-                const groupName = normalizeBillingHeaderText(result?.groupName || result?.groupCode || '');
-
-                $('#groupBilling').text(groupName);
-                $('#companyBilling').text(companyName);
-            }
-        });
+        // Dùng dữ liệu đã cache từ grid - không cần gọi API GetReservationByID lại
+        const cached = typeof _currentReservationData !== 'undefined' ? _currentReservationData : null;
+        const masterFolio = (listFolioData || []).find(f => f.isMasterFolio);
+        const companyName = normalizeBillingHeaderText(
+            masterFolio && masterFolio.accountName
+                ? masterFolio.accountName
+                : (cached?.CompanyName || cached?.companyName || '')
+        );
+        const groupName = normalizeBillingHeaderText(
+            cached?.GroupName || cached?.GroupCode || cached?.groupName || cached?.groupCode || ''
+        );
+        $('#groupBilling').text(groupName);
+        $('#companyBilling').text(companyName);
 
         GetBalanceVND(idReservation);
     }
@@ -743,7 +736,7 @@
 
                 if (selectedRows.length > 0) {
                     selectedRows.forEach(item => { selTotal += (parseFloat(item.amount) || 0); });
-                    $('#totalBillingMasterLabel').text('Sel:');
+                    $('#totalBillingMasterLabel').text('Total:');
                 } else {
                     $('#totalBillingMasterLabel').text('Total:');
                     $("#functionMenu").hide();
@@ -855,8 +848,16 @@
     var transactionListSelectOption = [];
     var defaultInvoiceCode = "";
     var defaultInvoiceDesc = "";
+    var _inforServicesLoaded = false;
 
-    function getInforServices() {
+    function getInforServices(forceReload) {
+        // Cache kết quả - chỉ gọi API một lần trừ khi forceReload = true
+        if (_inforServicesLoaded && !forceReload) {
+            if (typeof syncDefaultInvoiceMasterConfig === 'function') {
+                syncDefaultInvoiceMasterConfig(true);
+            }
+            return;
+        }
         $.ajax({
             url: '/Billing/GetInforService',
             type: 'get',
@@ -864,6 +865,7 @@
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
+                _inforServicesLoaded = true;
                 groupTransaction = result.groupTransaction;
                 subGroupTransaction = result.groupSubTransaction;
                 transactionList = result.transactions;

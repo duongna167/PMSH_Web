@@ -120,7 +120,7 @@
     }
 
     #txtAddress {
-        max-width: 100%;
+        max-width: 95%;
     }
 
     .reservation-audit {
@@ -1378,23 +1378,24 @@
 @await Html.PartialAsync("Options/CheckOut")
 @await Html.PartialAsync("Options/WakeUpCall")
 <script>
-    var profileIndividualID = 0;
-    var idReservation = 0;
-    var status = '';
-    var roomStatus = '';
-    var roomNo = '';
-    var roomNowuk = '';
-    var roomID = 0;
-    var arivalDate = '';
-    var departureDate = '';
-    var confirmationNo = '';
-    var night = 0;
-    var rateAmount = 0;
-    var lastname = '';
-    var listData = [];
-    var roomType = '';
-    var profileID = 0;
-    var folioNoID = 0;
+    // Khai báo có guard để tránh reset biến toàn cục của SearchReservation khi form được load vào modal qua AJAX
+    if (typeof profileIndividualID === 'undefined') var profileIndividualID = 0;
+    if (typeof idReservation === 'undefined') var idReservation = 0;
+    if (typeof status === 'undefined') var status = '';
+    if (typeof roomStatus === 'undefined') var roomStatus = '';
+    if (typeof roomNo === 'undefined') var roomNo = '';
+    if (typeof roomNowuk === 'undefined') var roomNowuk = '';
+    if (typeof roomID === 'undefined') var roomID = 0;
+    if (typeof arivalDate === 'undefined') var arivalDate = '';
+    if (typeof departureDate === 'undefined') var departureDate = '';
+    if (typeof confirmationNo === 'undefined') var confirmationNo = '';
+    if (typeof night === 'undefined') var night = 0;
+    if (typeof rateAmount === 'undefined') var rateAmount = 0;
+    if (typeof lastname === 'undefined') var lastname = '';
+    if (typeof listData === 'undefined') var listData = [];
+    if (typeof roomType === 'undefined') var roomType = '';
+    if (typeof profileID === 'undefined') var profileID = 0;
+    if (typeof folioNoID === 'undefined') var folioNoID = 0;
 
     function focusNewReservationFirstField() {
         window.setTimeout(function () {
@@ -2735,21 +2736,32 @@
     function resetForm() {
         checkEdit = false;
         profileIndividualID = 0;
-        idReservation = 0;
-        folioNoID = 0;
-        reservationStatus = 0;
-        roomID = 0;
-        roomNo = '';
-        roomNowuk = '';
-        roomType = '';
-        status = '';
-        roomStatus = '';
-        arivalDate = '';
-        departureDate = '';
-        confirmationNo = '';
-        night = 0;
-        rateAmount = 0;
-        lastname = '';
+        // Trong modal context (SearchReservation), không reset các biến toàn cục dùng chung
+        // để SearchReservation vẫn hoạt động được sau khi đóng modal edit
+        var _inModalContext = typeof syncReservationSelectionFromGrid === 'function';
+        if (!_inModalContext) {
+            idReservation = 0;
+            folioNoID = 0;
+            if (typeof reservationStatus !== 'undefined') reservationStatus = 0;
+            roomID = 0;
+            roomNo = '';
+            roomNowuk = '';
+            roomType = '';
+            status = '';
+            roomStatus = '';
+            arivalDate = '';
+            departureDate = '';
+            confirmationNo = '';
+            night = 0;
+            rateAmount = 0;
+            lastname = '';
+        } else {
+            // Trong modal: chỉ reset idReservation về 0 cho lần tạo mới tiếp theo
+            // nhưng khôi phục lại state của SearchReservation từ grid
+            idReservation = 0;
+            folioNoID = 0;
+            syncReservationSelectionFromGrid();
+        }
         clearSearch();
         $('#txtAgent').val('');
         $('#txtAgentID').val('0');

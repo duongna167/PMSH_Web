@@ -241,8 +241,8 @@
                 </div>
             </div>
             <div class="content-right">
-                <div class="mui-card px-2">
-                    <div class="row px-2">
+                <div class="mui-card px-3">
+                    <div class="row">
                         <div class="col-md-8">
 
 
@@ -640,9 +640,10 @@
 
     window.searchReservation = searchReservation;
     var idReservation = 0;
-    var listFolioData = [];     
+    var listFolioData = [];
     var status = '';
     var statusID = 0;
+    var _currentReservationData = null;
     var roomStatus = '';
     var roomNo = '';
     var roomID = 0;
@@ -996,7 +997,9 @@
                 $('#conNoBilling').text(e.data.ConfirmationNo);
                 $('#arivalBilling').text(e.data.Arrival ? e.data.Arrival.split(' ')[0] : '');
                 $('#departureBilling').text(e.data.Departure ? e.data.Departure.split(' ')[0] : '');
-                loadBillingHeaderByReservationId(e.data.ID, e.data);
+                // Dùng trực tiếp dữ liệu từ grid - không cần gọi API GetReservationByID
+                setBillingHeaderInfo(e.data);
+                _currentReservationData = e.data;
 
                 // Xử lý nút assign/unassign
                 const isSingleRoom = e.data.NoOfRoom == '1';
@@ -1017,7 +1020,9 @@
 
                 // Gán biến toàn cục
                 reservationStatus = e.data.ReservationStatus;
-                getFolioNo();
+                // Chỉ gọi GetBalanceVND để cập nhật số dư thực tế - không gọi getFolioNo() ở đây
+                // (getFolioNo sẽ được gọi khi mở Billing modal)
+                GetBalanceVND(e.data.ID);
                 listReservationByConfirmationNo = listData.filter(item => item.ConfirmationNo === e.data.ConfirmationNo);
                 rateAmount = e.data.PriceNet;                
                 night = e.data.NoOfNight;
@@ -1308,6 +1313,7 @@
         profileID = selectedRow.ProfileIndividualID;
         rateAmount = selectedRow.PriceNet;
         night = selectedRow.NoOfNight;
+        _currentReservationData = selectedRow;
 
         return idReservation > 0;
     }

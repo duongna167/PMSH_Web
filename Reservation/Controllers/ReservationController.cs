@@ -1013,7 +1013,7 @@ namespace Reservation.Controllers
             {
                 pt.OpenConnection();
                 pt.BeginTransaction();
-                List<BusinessDateModel> businessDate = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
+                DateTime businessDate = TextUtils.GetBusinessDate();
 
                 ConfigSystemModel configSystems = PropertyUtils.ConvertToList<ConfigSystemModel>(ConfigSystemBO.Instance.FindByAttribute("KeyName", "RoomChargeVND")).FirstOrDefault();
 
@@ -1085,7 +1085,7 @@ namespace Reservation.Controllers
                     #region lưu reservation
                     reservationModel.ConfirmationNo = (ReservationBO.GetTopConfirmationNo() + 1).ToString();
                     reservationModel.ReservationNo = (ReservationBO.GetTopID() + 1).ToString();
-                    reservationModel.ReservationDate = businessDate[0].BusinessDate;
+                    reservationModel.ReservationDate = businessDate;
                     reservationModel.ProfileAgentId = string.IsNullOrEmpty(Request.Form["profileAgentID"].ToString()) ? 0 : int.Parse(Request.Form["profileAgentID"].ToString());
                     reservationModel.AgentName = Request.Form["agentName"].ToString();
                     reservationModel.ProfileCompanyId = string.IsNullOrEmpty(Request.Form["profileCompanyID"].ToString()) ? 0 : int.Parse(Request.Form["profileCompanyID"].ToString());
@@ -1283,7 +1283,7 @@ namespace Reservation.Controllers
                     reservationModel.PackageId = int.Parse(Request.Form["packageID"].ToString());
                     reservationModel.Packages = Request.Form["packages"].ToString();
                     reservationModel.Relationship = ReservationBO.GetTopID() + 1;
-                    reservationModel.Status = DateTime.Parse(Request.Form["arrival"].ToString()) == businessDate[0].BusinessDate ? 5 : 0;
+                    reservationModel.Status = DateTime.Parse(Request.Form["arrival"].ToString()) == businessDate ? 5 : 0;
                     reservationModel.PostingMaster = false;
                     reservationModel.MainGuest = true;
                     if (string.IsNullOrEmpty(Request.Form["rateCode"].ToString()))
@@ -1368,8 +1368,7 @@ namespace Reservation.Controllers
                     #region lưu reservation master
                     if (!string.IsNullOrEmpty(Request.Form["profileAgentID"].ToString()) || !string.IsNullOrEmpty(Request.Form["profileCompanyID"].ToString()))
                     {
-                        ReservationModel reservationMaster = new ReservationModel();
-                        reservationMaster = reservationModel;
+                        ReservationModel reservationMaster = (ReservationModel)reservationModel.Clone();
                         reservationMaster.ReservationNo = "0";
                         reservationMaster.ProfileIndividualId = 0;
                         reservationMaster.LastName = "* " + reservationMaster.AgentName + ", Master *";
@@ -1385,7 +1384,7 @@ namespace Reservation.Controllers
                         reservationMaster.PostingMaster = true;
                         reservationMaster.MainGuest = false;
                         reservationMaster.ShareRoom = reservationModel.ShareRoom + 1;
-                        reservationMaster.Status = DateTime.Parse(Request.Form["arrival"].ToString()) == businessDate[0].BusinessDate ? 5 : 0;
+                        reservationMaster.Status = DateTime.Parse(Request.Form["arrival"].ToString()) == businessDate ? 5 : 0;
                         ReservationBO.Instance.Insert(reservationMaster);
                     }
                     #endregion
@@ -1426,11 +1425,20 @@ namespace Reservation.Controllers
                     folioModel.FolioNo = 1;
                     folioModel.ReservationID = (int)reservationID;
                     folioModel.ProfileID = reservationModel.ProfileIndividualId;
-                    folioModel.AccountName = reservationModel.LastName;
+                    // AccountName: dùng tên agent/company/contact nếu có, ngược lại dùng tên individual
+                    if (reservationModel.ProfileAgentId > 0 && !string.IsNullOrEmpty(reservationModel.AgentName))
+                        folioModel.AccountName = reservationModel.AgentName;
+                    else if (reservationModel.ProfileCompanyId > 0 && !string.IsNullOrEmpty(reservationModel.CompanyName))
+                        folioModel.AccountName = reservationModel.CompanyName;
+                    else if (reservationModel.ProfileContactId > 0 && !string.IsNullOrEmpty(reservationModel.ContactName))
+                        folioModel.AccountName = reservationModel.ContactName;
+                    else
+                        folioModel.AccountName = reservationModel.LastName;
                     folioModel.Status = reservationModel.NoPost == true ? true : false;
 
                     folioModel.ConfirmationNo = reservationModel.ConfirmationNo;
-                    folioModel.BalanceUSD = folioModel.BalanceVND = reservationModel.RateAfterTax;
+                    folioModel.BalanceUSD = 0;
+                    folioModel.BalanceVND = 0;
                     folioModel.CreateDate = folioModel.UpdateDate = DateTime.Now;
                     folioModel.UserInsertID = folioModel.UserUpdateID = reservationModel.UserInsertId;
                     FolioBO.Instance.Insert(folioModel);
@@ -1489,7 +1497,7 @@ namespace Reservation.Controllers
                     ReservationRateModel reservationRate = new ReservationRateModel();
                     reservationRate.ReservationID = (int)reservationID;
                     reservationRate.RateCodeID = reservationModel.RateCodeId;
-                    reservationRate.RateDate = businessDate[0].BusinessDate;
+                    reservationRate.RateDate = businessDate;
                     reservationRate.Rate = reservationModel.Rate;
                     reservationRate.FixedRate = false;
                     reservationRate.CurrencyID = "VND";
@@ -1531,7 +1539,7 @@ namespace Reservation.Controllers
                     ReservationModel reservationModel = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(int.Parse(Request.Form["reservationID"].ToString()));
                     if (reservationModel == null || reservationModel.ID == 0)
                     {
-                        return Json(new { code = 1, msg = "Could not fint reservation" });
+                        return Json(new { code = 1, msg = "Could not find reservation" });
 
                     }
                     ReservationModel oldReservationData = (ReservationModel)reservationModel.Clone();
@@ -1736,7 +1744,7 @@ namespace Reservation.Controllers
                     // Nếu đã CheckIn, CheckOut, Cancel... thì giữ nguyên trạng thái hiện tại.
                     if (reservationModel.Status == 0 || reservationModel.Status == 5)
                     {
-                        reservationModel.Status = DateTime.Parse(Request.Form["arrival"].ToString()) == businessDate[0].BusinessDate ? 5 : 0;
+                        reservationModel.Status = DateTime.Parse(Request.Form["arrival"].ToString()) == businessDate ? 5 : 0;
                     }
                     reservationModel.PostingMaster = false;
                     //reservationModel.MainGuest = true;
@@ -1827,7 +1835,7 @@ namespace Reservation.Controllers
                     if (reservationRate != null)
                     {
                         reservationRate.RateCodeID = reservationModel.RateCodeId;
-                        reservationRate.RateDate = businessDate[0].BusinessDate;
+                        reservationRate.RateDate = businessDate;
                         reservationRate.Rate = reservationModel.Rate;
                         reservationRate.RoomID = reservationModel.RoomId;
                         reservationRate.RoomNo = reservationModel.RoomNo;
@@ -3617,7 +3625,7 @@ namespace Reservation.Controllers
 
                 XtraReport report = new Templates.DepositReceipt.Report1();
                 report.Parameters["Date"].Value = deposit.TransactionDate.ToString("dd/MM/yyyy");
-                report.Parameters["GuestName"].Value = reservation.ArrivalDate.ToString().Split(" ")[0];
+                report.Parameters["GuestName"].Value = $"{reservation.LastName} {reservation.FirstName}".Trim();
                 report.Parameters["PaymentMethod"].Value = deposit.Description.ToString();
                 report.Parameters["ReceiptNo"].Value = deposit.ReceiptNo.ToString();
                 report.Parameters["ReceiptReason"].Value = $"Deposit Res.No {deposit.ReservationID}";
@@ -3707,7 +3715,7 @@ namespace Reservation.Controllers
                 pt.OpenConnection();
                 pt.BeginTransaction();
                 List<BusinessDateModel> businessDate = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
-                if (int.Parse(Request.Form["transactionCodes"].ToString()) == 0)
+                if (string.IsNullOrEmpty(Request.Form["transactionCodes"].ToString()) || Request.Form["transactionCodes"].ToString() == "0")
                 {
                     return Json(new { code = 1, msg = "Please choose transaction" });
                 }
@@ -3721,7 +3729,7 @@ namespace Reservation.Controllers
                 routing.ProfileID = res.ProfileIndividualId;
                 routing.AccountName = res.LastName;
                 routing.TransactionCodes = Request.Form["transactionCodes"].ToString() + ",";
-                routing.Limit = decimal.Parse(Request.Form["transactionCodes"].ToString());
+                routing.Limit = decimal.TryParse(Request.Form["limit"].ToString(), out decimal parsedLimit) ? parsedLimit : 0;
                 routing.Percents = 0;
                 routing.FromDate = DateTime.Parse(Request.Form["fromDate"].ToString());
                 routing.ToDate = DateTime.Parse(Request.Form["toDate"].ToString());
