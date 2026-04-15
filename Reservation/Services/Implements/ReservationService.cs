@@ -2771,23 +2771,24 @@ namespace Reservation.Services.Implements
                 SqlParameter[] param =
                 [
                     new SqlParameter("@sqlCommand",
-                    $@"  SELECT ID,
-                            ConfirmationNo AS [ConfNo],
-                            CASE WHEN MainGuest = 1 then 'X' ELSE '' END AS [MG],
-                            NoOfRoom as [Nbr],
-                            Country AS [Nat], 
-                            LastName AS [Name], 
-                            RoomNo AS [RoNo], 
-                            RoomID As [RoomID],
-                            RoomType as [RoType],  
-                            ArrivalDate as [Arrival], 
-                            DepartureDate as [Departure], 
-                            NoOfAdult as [A], NoOfChild as [C], 
-                            NoOfChild1 as [C1], NoOfChild2 as [C2], 
-                            ShareRoom as [SR], dbo.fnGetRsvStatus(Status) 
-                            AS Status,  Status as [HKStatusID]
-                        FROM Reservation WITH (NOLOCK)
-                        WHERE ConfirmationNo = '{confirmationNo}' AND ReservationNo > 0 AND MainGuest = 1 AND (Status = 0 OR Status = 5 OR Status = 1 OR Status = 6) ORDER BY Arrival, [RoNo], [RoType], ID ASC, Nbr DESC")
+                    $@"  SELECT rsv.ID,
+                            rsv.ConfirmationNo AS [ConfNo],
+                            CASE WHEN rsv.MainGuest = 1 then 'X' ELSE '' END AS [MG],
+                            rsv.NoOfRoom as [Nbr],
+                            rsv.Country AS [Nat], 
+                            rsv.LastName AS [Name], 
+                            rsv.RoomNo AS [RoNo], 
+                            rsv.RoomID As [RoomID],
+                            rsv.RoomType as [RoType],  
+                            rsv.ArrivalDate as [Arrival], 
+                            rsv.DepartureDate as [Departure], 
+                            rsv.NoOfAdult as [A], rsv.NoOfChild as [C], 
+                            rsv.NoOfChild1 as [C1], rsv.NoOfChild2 as [C2], 
+                            rsv.ShareRoom as [SR], dbo.fnGetRsvStatus(rsv.Status) AS Status,
+                            ISNULL(rm.HKStatusID, 0) as [HKStatusID]
+                        FROM Reservation rsv WITH (NOLOCK)
+                        LEFT JOIN Room rm WITH (NOLOCK) ON rsv.RoomID = rm.ID
+                        WHERE rsv.ConfirmationNo = '{confirmationNo}' AND rsv.ReservationNo > 0 AND rsv.MainGuest = 1 AND (rsv.Status = 0 OR rsv.Status = 5 OR rsv.Status = 1 OR rsv.Status = 6) ORDER BY rsv.ArrivalDate, [RoNo], [RoType], rsv.ID ASC, rsv.NoOfRoom DESC")
                         ];
                 DataTable dataTable = DataTableHelper.getTableData("spSearchAllForTrans", param);
                 return dataTable;

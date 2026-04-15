@@ -1053,6 +1053,42 @@ namespace Reservation.Controllers
                 {
                     return Json(new { code = 1, msg = "Nationality cannot be blank" });
                 }
+
+                #region kiểm tra phòng khả dụng
+                {
+                    int.TryParse(Request.Form["roomID"].ToString(), out int roomIdCheck);
+                    string roomNoCheck = Request.Form["roomNo"].ToString();
+                    int.TryParse(Request.Form["reservationID"].ToString(), out int rsvIdCheck);
+                    DateTime arrivalCheck = DateTime.Parse(Request.Form["arrival"].ToString());
+                    DateTime departureCheck = DateTime.Parse(Request.Form["departure"].ToString());
+
+                    if (roomIdCheck > 0)
+                    {
+                        // Kiểm tra xem phòng có bị đặt bởi reservation khác trong khoảng thời gian này không
+                        DataTable dtRoomConflict = TextUtils.Select(
+                            $"SELECT COUNT(*) AS cnt FROM Reservation WITH (NOLOCK) " +
+                            $"WHERE RoomID = {roomIdCheck} " +
+                            $"  AND ID <> {rsvIdCheck} " +
+                            $"  AND Status NOT IN (2, 3, 7) " +
+                            $"  AND CAST(ArrivalDate AS DATE) < '{departureCheck:yyyy-MM-dd}' " +
+                            $"  AND CAST(DepartureDate AS DATE) > '{arrivalCheck:yyyy-MM-dd}'");
+
+                        int conflict = dtRoomConflict.Rows.Count > 0
+                            ? Convert.ToInt32(dtRoomConflict.Rows[0]["cnt"])
+                            : 0;
+
+                        if (conflict > 0)
+                        {
+                            return Json(new
+                            {
+                                code = 1,
+                                msg = $"Phòng {roomNoCheck} không khả dụng từ {arrivalCheck:dd/MM/yyyy} đến {departureCheck:dd/MM/yyyy}. Vui lòng chọn phòng khác."
+                            });
+                        }
+                    }
+                }
+                #endregion
+
                 string itemInventoryString = Request.Form["itemInventory"].ToString();
                 List<int> itemInventory = itemInventoryString
                 .Split(',')
@@ -1815,6 +1851,43 @@ namespace Reservation.Controllers
                     reservationModel.FixedMeal = false;
                     reservationModel.VoucherId = "";
                     ReservationBO.Instance.Update(reservationModel);
+                    #endregion
+
+                    #region cập nhật AccountName + ProfileID trong folio khi thay đổi profile/tên khách
+                    bool profileOrNameChanged =
+                        oldReservationData.ProfileIndividualId != reservationModel.ProfileIndividualId ||
+                        oldReservationData.LastName != reservationModel.LastName ||
+                        oldReservationData.FirstName != reservationModel.FirstName ||
+                        oldReservationData.ProfileAgentId != reservationModel.ProfileAgentId ||
+                        oldReservationData.ProfileCompanyId != reservationModel.ProfileCompanyId ||
+                        oldReservationData.ProfileContactId != reservationModel.ProfileContactId;
+
+                    if (profileOrNameChanged)
+                    {
+                        string newFolioAccountName;
+                        if (reservationModel.ProfileAgentId > 0 && !string.IsNullOrEmpty(reservationModel.AgentName))
+                            newFolioAccountName = reservationModel.AgentName;
+                        else if (reservationModel.ProfileCompanyId > 0 && !string.IsNullOrEmpty(reservationModel.CompanyName))
+                            newFolioAccountName = reservationModel.CompanyName;
+                        else if (reservationModel.ProfileContactId > 0 && !string.IsNullOrEmpty(reservationModel.ContactName))
+                            newFolioAccountName = reservationModel.ContactName;
+                        else
+                            newFolioAccountName = reservationModel.LastName;
+
+                        List<FolioModel> foliosToSync = PropertyUtils.ConvertToList<FolioModel>(
+                            FolioBO.Instance.FindByAttribute("ReservationID", reservationModel.ID));
+
+                        foreach (FolioModel fol in foliosToSync)
+                        {
+                            // Chỉ cập nhật guest folio (không cập nhật master folio)
+                            if (!fol.IsMasterFolio)
+                            {
+                                fol.ProfileID = reservationModel.ProfileIndividualId;
+                                fol.AccountName = newFolioAccountName;
+                                FolioBO.Instance.Update(fol);
+                            }
+                        }
+                    }
                     #endregion
 
                     #region lưu log activity update reservation

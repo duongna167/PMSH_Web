@@ -117,6 +117,15 @@ namespace Reservation.Services.Implements
                 return BuildNoAvailableResult();
             }
 
+            // Validate: nếu toàn bộ reservation chưa được assign phòng thì báo lỗi sớm
+            bool allHaveNoRoom = items.All(i => !HasRoom(i));
+            if (allHaveNoRoom)
+            {
+                return BuildErrorResult(
+                    "No rooms have been assigned. Please assign rooms to reservations before checking in.",
+                    $"{items.Count} reservation(s) have no room assigned.");
+            }
+
             CheckInResult result = new()
             {
                 Success = false,
@@ -139,9 +148,21 @@ namespace Reservation.Services.Implements
             }
 
             result.Success = result.TotalCheckedIn > 0;
-            result.Message = result.Success
-                ? "Group chek in completed successfully."
-                : "Room is not available for your requests.";
+
+            if (!result.Success)
+            {
+                // Kiểm tra xem lý do thất bại chủ yếu là do chưa có phòng không
+                int noRoomCount = result.Items.Count(i => !i.Success && i.Message != null && i.Message.Contains("no room"));
+                result.Message = noRoomCount == result.Items.Count
+                    ? $"Check-in failed: {noRoomCount} reservation(s) have no room assigned. Please assign rooms first."
+                    : "Group check-in completed with errors. See details for each reservation.";
+            }
+            else
+            {
+                result.Message = result.TotalCheckedIn == result.TotalRequested
+                    ? "Group check-in completed successfully."
+                    : $"Group check-in partially completed: {result.TotalCheckedIn}/{result.TotalRequested} reservation(s) checked in.";
+            }
 
             return result;
         }

@@ -8,7 +8,7 @@
                 <h5 class="modal-title" id="staticBackdropLabel">Group check in</h5>
             </div>
             <div class="modal-body">
-                <div class="mb-2">
+                <div class="py-2">
                     <button class="mui-button mui-button-search" onclick="GroupCheckIn();">Check In</button>
                     <button class="mui-button mui-button-search" onclick="closeModalGroupCheckIn();">Close</button>
                 </div>
@@ -78,14 +78,32 @@
             }
         });
     }
-    function initializeDataGridSearchGroupCheckInRoom(data) {
-        let columns = columnAdG;
+    // Các cột mặc định cho grid Group Check-In khi chưa có dữ liệu
+    const columnGroupCheckIn = [
+        { dataField: 'ID', caption: 'ID', visible: false },
+        { dataField: 'GuestName', caption: 'Guest Name', width: 180 },
+        { dataField: 'RoomNo', caption: 'Room No', width: 90 },
+        { dataField: 'RoomType', caption: 'Room Type', width: 100 },
+        { dataField: 'RoomStatus', caption: 'HK Status', width: 110 },
+        { dataField: 'Status', caption: 'Status', width: 100 },
+        { dataField: 'Arrival', caption: 'Arrival', dataType: 'date', format: 'dd/MM/yyyy', width: 110 },
+        { dataField: 'Departure', caption: 'Departure', dataType: 'date', format: 'dd/MM/yyyy', width: 110 },
+    ];
 
-        if (data.length > 0) {
+    function initializeDataGridSearchGroupCheckInRoom(data) {
+        const $grid = $("#gridContainerSearchGroupCheckInRoom");
+
+        // Hủy instance cũ nếu đã tồn tại để tránh lỗi DevExtreme khi gọi lại
+        const existingInstance = $grid.data("dxDataGrid");
+        if (existingInstance) {
+            existingInstance.dispose();
+        }
+
+        let columns = columnGroupCheckIn;
+
+        if (data && data.length > 0) {
             columns = Object.keys(data[0]).map(key => {
                 const sampleValue = data[0][key];
-
-                // Detect kiểu ngày (ISO string hoặc Date)
                 const isDate =
                     sampleValue &&
                     (sampleValue instanceof Date ||
@@ -100,12 +118,9 @@
             });
         }
 
-        // Cột checkbox
-
-        $("#gridContainerSearchGroupCheckInRoom").dxDataGrid({
-            dataSource: data,
+        $grid.dxDataGrid({
+            dataSource: data || [],
             columns: columns,
-
             columnMinWidth: 90,
             paging: { pageSize: 15 },
             scrolling: {
@@ -125,9 +140,9 @@
                 applyFilter: "auto"
             },
             selection: {
-                mode: "multiple", // Cho phép chọn nhiều
-                showCheckBoxesMode: "always", // Luôn hiện checkbox ở cột đầu tiên
-                selectAllMode: "page" // Chọn tất cả trên trang hiện tại hoặc "allPages"
+                mode: "multiple",
+                showCheckBoxesMode: "always",
+                selectAllMode: "page"
             },
         });
     }
@@ -135,18 +150,33 @@
 
     function GroupCheckIn() {
         const dataGrid = $("#gridContainerSearchGroupCheckInRoom").dxDataGrid("instance");
+        if (!dataGrid) {
+            showToast('Error', 'Grid is not initialized. Please search rooms first.', false);
+            return;
+        }
+        // Kiểm tra grid có dữ liệu không (phòng chưa được assign)
+        const allRows = dataGrid.getDataSource() ? dataGrid.getDataSource().items() : [];
+        if (!allRows || allRows.length === 0) {
+            showToast('Error', 'No rooms have been assigned. Please assign rooms to reservations before checking in.', false);
+            return;
+        }
+
         const selectedItems = dataGrid.getSelectedRowsData();
-        const selectedIds = selectedItems.map(item => item.ID);
+        // SP có thể trả về cột tên 'ID' hoặc 'ReservationID' - xử lý cả hai trường hợp
+        const selectedIds = selectedItems
+            .map(item => item.ID || item.ReservationID || item.Id || 0)
+            .filter(id => id > 0);
+
         const userID = JSON.parse(localStorage.getItem("userID")) || 0;
         const selectedType = parseInt($('input[name="grouupCheckInType"]:checked').val() || "3");
 
         if (selectedIds.length === 0) {
-            showToast('Error', 'Please select at least one reservation.', false);
+            showToast('Error', 'Please select at least one reservation from the list.', false);
             return;
         }
 
         const request = {
-            confirmationNo: confirmationNo,
+            confirmationNo: String(confirmationNo),
             userId: userID,
             filterType: selectedType,
             ignoreAlert: false,
