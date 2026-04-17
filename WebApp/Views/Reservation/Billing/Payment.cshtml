@@ -7,7 +7,7 @@
 
             <div class="modal-body">
                 <div class="py-2 d-flex gap-2">
-                    <button type="button" class="mui-button mui-button-search" onclick="PostingPayment();">Post</button>
+                    <button type="button" id="btnPaymentBillingPost" class="mui-button mui-button-search" onclick="PostingPayment();">Post</button>
                     <button type="button" class="mui-button mui-button-clear" data-bs-dismiss="modal">Close</button>
                 </div>
 
@@ -116,11 +116,19 @@
         return Number(value).toLocaleString('vi-VN');
     }
 
+    var paymentBillingSubmitInFlight = false;
+
+    function resetPaymentBillingSubmitState() {
+        paymentBillingSubmitInFlight = false;
+        $("#btnPaymentBillingPost").prop("disabled", false);
+    }
+
     function openModalPaymentBilling(){
          localStorage.setItem("currentFromID", "modalPaymentBilling");
          const crashierLogin = localStorage.getItem("crashierLogin");
          getPaymentFO();
          clearPaymentBilling();
+        resetPaymentBillingSubmitState();
         $('#amountPaymentBilling').val(totalAmountBilling.toLocaleString('vi-VN'));
         if (crashierLogin == "NotYet") {
             openModalShilftLogin();
@@ -142,14 +150,43 @@
     }
 
     function PostingPayment() {
-        const userName = JSON.parse(localStorage.getItem("Loginname"));
-        const userID = JSON.parse(localStorage.getItem("userID"));
+        if (paymentBillingSubmitInFlight) {
+            return;
+        }
+
+        const transIdSel = $('#paymentCodePaymentBilling').val();
+        if (!transIdSel || transIdSel === '0') {
+            showToast('Error', 'Please select payment code.', false);
+            return;
+        }
+
+        const amtStr = $('#amountPaymentBilling').val();
+        const amountNum = parseFloat(String(amtStr || '').replace(/\./g, '').replace(/,/g, ''));
+        if (isNaN(amountNum) || amountNum <= 0) {
+            showToast('Error', 'Please enter a valid amount.', false);
+            return;
+        }
+
+        paymentBillingSubmitInFlight = true;
+        $("#btnPaymentBillingPost").prop("disabled", true);
+
+        let userName;
+        let userID;
+        try {
+            userName = JSON.parse(localStorage.getItem("Loginname"));
+            userID = JSON.parse(localStorage.getItem("userID"));
+        } catch (e) {
+            resetPaymentBillingSubmitState();
+            showToast('Error', 'Session invalid. Please sign in again.', false);
+            return;
+        }
+
         const shiftID = localStorage.getItem("shiftID");
         const shiftName = localStorage.getItem("shiftName");
         var formData = new FormData();
         formData.append('rsvID', idReservation);
-        formData.append('transID', $('#paymentCodePaymentBilling').val());
-        formData.append('amount', parseFloat($('#amountPaymentBilling').val().replace(/\./g, '')));
+        formData.append('transID', transIdSel);
+        formData.append('amount', amountNum);
         formData.append('supplement', $('#supplementPaymentBilling').val());
         formData.append('creditCardNo', $('#referencePaymentBilling').val());
         formData.append('transDate', $('#transDatePaymentBilling').val());
@@ -159,6 +196,7 @@
         formData.append('folioNoID', folioNoID);
         formData.append('shiftID', shiftID);
         formData.append('shiftName', shiftName);
+
         $.ajax({
             url: '/Billing/PostPayment',
             type: 'POST',
@@ -176,9 +214,16 @@
                     showToast('Error', data.msg, false);
                 }
             },
-            error: function (xhr, statusText, err) { }
+            error: function (xhr, statusText, err) { },
+            complete: function () {
+                resetPaymentBillingSubmitState();
+            }
         });
     }
+
+    $(document).on("hidden.bs.modal", "#modalPaymentBilling", function () {
+        resetPaymentBillingSubmitState();
+    });
    
 
 </script>

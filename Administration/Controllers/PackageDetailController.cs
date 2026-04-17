@@ -83,18 +83,18 @@ namespace Administration.Controllers
                 }
 
                 var errors = new List<object>();
-                //Basic Validation
-                if (dto.CalculationRuleID < 0 || dto.CalculationRuleID == null)
+                // Basic validation (0 = placeholder "-- Calculation Rule --" trên UI)
+                if (!dto.CalculationRuleID.HasValue || dto.CalculationRuleID.Value <= 0)
                 {
                     errors.Add(new { field = "calculationRuleID", message = "Calculation is required." });
                 }
-                if (dto.RhythmPostingID < 0)
+                if (dto.RhythmPostingID <= 0)
                 {
-                    errors.Add(new { field = "rhythmPostingID", message = "RhythmPosting is required." });
+                    errors.Add(new { field = "rhythmPostingID", message = "Rhythm Posting is required." });
                 }
-                if (dto.SeasonID < 0)
+                if (dto.SeasonID.HasValue && dto.SeasonID.Value < 0)
                 {
-                    errors.Add(new { field = "seasonID", message = "Season is required." });
+                    errors.Add(new { field = "seasonID", message = "Season is invalid." });
                 }
                 if (dto.Price < 0)
                     errors.Add(new { field = "price", message = "Price must be greater than or equal to 0." });
@@ -140,10 +140,9 @@ namespace Administration.Controllers
                     }
                 }
 
-                //RhythmPosting Validation
-                var RhythmPostingList = RhythmPostingBO.Instance.FindByPrimaryKey(dto.RhythmPostingID);
-                if (RhythmPostingList == null)
-                    errors.Add(new { field = "rhythmPostingID", message = "Business date not available. Contact system administrator." });
+                // RhythmPosting exists
+                if (dto.RhythmPostingID > 0 && RhythmPostingBO.Instance.FindByPrimaryKey(dto.RhythmPostingID) == null)
+                    errors.Add(new { field = "rhythmPostingID", message = "Invalid Rhythm Posting." });
 
                 // Transaction Code
                 if (!string.IsNullOrWhiteSpace(dto.TransCode))
@@ -156,7 +155,7 @@ namespace Administration.Controllers
                 {
                     var currencyList = CurrencyBO.Instance.FindByAttribute("ID", dto.CurrencyID);
                     if (currencyList == null || currencyList.Count == 0)
-                        errors.Add(new { field = "currencyID", message = "Invalid Transaction Code." });
+                        errors.Add(new { field = "currencyID", message = "Invalid Currency." });
                 }
                 // ===== RETURN IF ERROR =====
                 if (errors.Count != 0)

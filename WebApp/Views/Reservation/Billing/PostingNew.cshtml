@@ -971,6 +971,23 @@
     }
 
     // --- DATA LOADING & FORM FILLING ---
+    /** Khi chọn transaction khác: xóa giá/amount (và T/A, article) để không còn dữ liệu transaction trước; fillToForm sẽ điền lại + DefaultPrice nếu có. */
+    function clearPostingFormForTransactionChange() {
+        const activeForm = $('#postingTabsContent .tab-pane.active');
+        if (!activeForm.length) return;
+
+        isSilentReset = true;
+        activeForm.find('.js-trans-code').val('');
+        activeForm.find('.js-trans-desc').val('');
+        activeForm.find('.js-art-code').val('');
+        activeForm.find('.js-art-desc').val('');
+        activeForm.find('.js-input-qty').val('1');
+        activeForm.find('.js-input-price, .js-input-price-net').val('0,00').removeClass('active-user-input');
+        activeForm.find('.js-amount-gross, .js-amount-net').val('0,00');
+        activeForm.removeData('tax-include');
+        setTimeout(function () { isSilentReset = false; }, 120);
+    }
+
     // Đổ transaction/article đang chọn vào form và giữ lại metadata để post đúng logic WinForm.
     function fillToForm(tCode, tDesc, aCode, aDesc, price, taxInclude, element) {
         if (element) highlightItem(element, '#list-article-container');
@@ -994,14 +1011,18 @@
 
         activeForm.find('.js-input-qty').val('1');
 
-        let formattedPrice = formatNumberWithComma(price);
+        const numPrice = parseFloat(price) || 0;
+        let formattedPrice = formatNumberWithComma(numPrice);
         // Sửa lại selector ID thành Class
         activeForm.find('.js-input-price').val(formattedPrice);
         activeForm.find('.js-input-price').addClass('active-user-input');
         activeForm.find('.js-input-price-net').removeClass('active-user-input');
 
-        if (price > 0) {
+        if (numPrice > 0) {
             apiCalcNetFromPlus();
+        } else {
+            activeForm.find('.js-input-price-net').val(formattedPrice);
+            setTimeout(function () { calculateLineTotal(); }, 0);
         }
 
         if (window.innerWidth < 768) switchView('form');
@@ -1277,6 +1298,7 @@
 
     function checkAndLoadArticles(transCode, transName, transPrice, taxInclude, element) {
         highlightItem(element, '#list-transaction-container');
+        clearPostingFormForTransactionChange();
         $('#list-article-container').html('<div class="p-2 text-muted">Loading...</div>');
 
         $.ajax({

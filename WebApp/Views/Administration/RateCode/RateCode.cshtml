@@ -13,7 +13,7 @@
                 <h5 class="modal-title" id="rtCode_modalTitle">Rate Code</h5>
             </div>
 
-            <div class="modal-body">
+            <div class="modal-body position-relative">
 
                 <div class="search-filter">
                     <!-- ACTIONS -->
@@ -82,11 +82,10 @@
                     <div id="rtCode_gridContainer" class="gridContainer" style="height: 520px;"></div>
                 </div>
 
-                <!-- LOADING -->
+                <!-- LOADING (hidden until reload/save; no backdrop-filter to avoid stuck blur look) -->
                 <div id="rtCode_loadingSpinner"
-                    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
-                    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
-                    height: 100%;display: flex;align-items: center;justify-content: center;">
+                    style="display:none;position:absolute;inset:0;z-index:999;background:rgba(255,255,255,0.55);
+                    align-items:center;justify-content:center;">
                     <div class="spinner-border text-primary"></div>
                 </div>
 
@@ -361,7 +360,7 @@
         }
 
         function showLoading(on) {
-            if (on) $(sel.loading).show(); else $(sel.loading).hide();
+            if (on) $(sel.loading).css("display", "flex"); else $(sel.loading).hide();
         }
 
         function getFilterPayload() {
@@ -379,16 +378,22 @@
                 type: 'GET',
                 data: getFilterPayload(),
                 success: function (result) {
-                    const rows = result?.data || [];
-                    renderGrid(rows);
-
-                    if (!rows.length) showToast("Warning", "No records.", false);
-                    showLoading(false);
+                    try {
+                        const rows = result?.data || [];
+                        renderGrid(rows);
+                        if (!rows.length) showToast("Warning", "No records.", false);
+                    } catch (e) {
+                        console.error(e);
+                        showToast("Error", "Cannot render grid.", false);
+                        destroyGrid();
+                    }
                 },
                 error: function () {
                     showToast("Error", "Cannot load data.", false);
-                    showLoading(false);
                     destroyGrid();
+                },
+                complete: function () {
+                    showLoading(false);
                 }
             });
         }
@@ -566,7 +571,7 @@
                 return;
             }
 
-            if (!confirm(`Delete RateCode ID: ${id}?`)) return;
+            if (!confirm(`Delete RateCode?`)) return;
 
             $.ajax({
                 url: `/Administration/RateCode/RateCodeDelete?id=${encodeURIComponent(id)}`, // vì action nhận int id (querystring)

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Data;
 using System.Linq;
+using Administration.DTO;
 using Administration.Services;
 using Administration.Services.Interfaces;
 using BaseBusiness.BO;
@@ -159,6 +160,175 @@ namespace Administration.Controllers
             {
                 return BadRequest(new { success = false, message = ex.Message });
             }
+        }
+
+        [HttpGet("GetRateCodeDetailById")]
+        public IActionResult GetRateCodeDetailById(int id)
+        {
+            try
+            {
+                if (id <= 0)
+                {
+                    return Json(new { success = false, message = "Invalid ID." });
+                }
+
+                var m = RateCodeDetailBO.Instance.FindByPrimaryKey(id) as RateCodeDetailModel;
+                if (m == null || m.ID == 0)
+                {
+                    return Json(new { success = false, message = "Record not found." });
+                }
+
+                var rc = RateCodeBO.Instance.FindByPrimaryKey(m.RateCodeID) as RateCodeModel;
+                var rateCodeStr = rc?.RateCode ?? "";
+
+                return Json(new { success = true, data = m, rateCode = rateCodeStr });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("SaveRateCodeDetail")]
+        public IActionResult SaveRateCodeDetail([FromBody] RateCodeDetailSaveRequest? req)
+        {
+            try
+            {
+                if (req == null)
+                {
+                    return BadRequest(new { success = false, message = "Invalid payload." });
+                }
+
+                if (req.RateCodeId <= 0)
+                {
+                    return BadRequest(new { success = false, message = "Rate Code is required." });
+                }
+
+                if (req.RoomTypeId <= 0)
+                {
+                    return BadRequest(new { success = false, message = "Room Type is required." });
+                }
+
+                var fd = req.FromDate ?? DateTime.Today;
+                var td = req.ToDate ?? req.FromDate ?? DateTime.Today;
+
+                if (req.Id > 0)
+                {
+                    if (RateCodeDetailBO.Instance.FindByPrimaryKey(req.Id) is not RateCodeDetailModel existing || existing.ID == 0)
+                    {
+                        return BadRequest(new { success = false, message = $"Rate Code Detail ID {req.Id} not found." });
+                    }
+
+                    ApplySaveRequest(existing, req, fd, td);
+                    existing.UserUpdateID = req.UserId;
+                    existing.UpdateDate = DateTime.Now;
+                    RateCodeDetailBO.Instance.Update(existing);
+                    return Json(new { success = true, message = "Changes saved successfully.", data = new { id = existing.ID } });
+                }
+
+                var insert = new RateCodeDetailModel();
+                ApplySaveRequest(insert, req, fd, td);
+                insert.UserInsertID = req.UserId;
+                insert.UserUpdateID = req.UserId;
+                insert.CreateDate = DateTime.Now;
+                insert.UpdateDate = DateTime.Now;
+
+                var newId = RateCodeDetailBO.Instance.Insert(insert);
+                return Json(new { success = true, message = "Record has been created successfully.", data = new { id = (int)newId } });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("DeleteRateCodeDetail")]
+        public IActionResult DeleteRateCodeDetail(int id)
+        {
+            try
+            {
+                if (id <= 0)
+                {
+                    return BadRequest(new { success = false, message = "Invalid ID." });
+                }
+
+                if (RateCodeDetailBO.Instance.FindByPrimaryKey(id) is not RateCodeDetailModel existing || existing.ID == 0)
+                {
+                    return BadRequest(new { success = false, message = "Record not found." });
+                }
+
+                RateCodeDetailBO.Instance.Delete(id);
+                return Json(new { success = true, message = "Record removed successfully." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        private static void ApplySaveRequest(RateCodeDetailModel m, RateCodeDetailSaveRequest r, DateTime fd, DateTime td)
+        {
+            m.RateCodeID = r.RateCodeId;
+            m.RoomTypeID = r.RoomTypeId;
+            m.PackageID = r.PackageId;
+            m.SeasonID = r.SeasonId;
+
+            m.RateDate = fd;
+            m.FromDate = fd;
+            m.ToDate = td;
+
+            m.MinLOS = r.MinLos;
+            m.MaxLOS = r.MaxLos;
+            m.MinNoOfRoom = r.MinNoOfRoom;
+            m.MaxNoOfRoom = r.MaxNoOfRoom;
+
+            m.TransactionCode = r.TransactionCode?.Trim() ?? string.Empty;
+            m.CurrencyID = r.CurrencyId?.Trim() ?? string.Empty;
+
+            m.PrintRate = r.PrintRate;
+            m.Discount = r.Discount;
+
+            m.A1 = r.A1;
+            m.A2 = r.A2;
+            m.A3 = r.A3;
+            m.A4 = r.A4;
+            m.A5 = r.A5;
+            m.A6 = r.A6;
+            m.A7 = r.A7;
+            m.A8 = r.A8;
+            m.A9 = r.A9;
+            m.A10 = r.A10;
+            m.A11 = r.A11;
+            m.A12 = r.A12;
+            m.A13 = r.A13;
+            m.A14 = r.A14;
+            m.A15 = r.A15;
+
+            m.A1AfterTax = r.A1AfterTax;
+            m.A2AfterTax = r.A2AfterTax;
+            m.A3AfterTax = r.A3AfterTax;
+            m.A4AfterTax = r.A4AfterTax;
+            m.A5AfterTax = r.A5AfterTax;
+            m.A6AfterTax = r.A6AfterTax;
+            m.A7AfterTax = r.A7AfterTax;
+            m.A8AfterTax = r.A8AfterTax;
+            m.A9AfterTax = r.A9AfterTax;
+            m.A10AfterTax = r.A10AfterTax;
+            m.A11AfterTax = r.A11AfterTax;
+            m.A12AfterTax = r.A12AfterTax;
+            m.A13AfterTax = r.A13AfterTax;
+            m.A14AfterTax = r.A14AfterTax;
+            m.A15AfterTax = r.A15AfterTax;
+
+            m.C1 = r.C1;
+            m.C2 = r.C2;
+            m.C3 = r.C3;
+            m.C1AfterTax = r.C1AfterTax;
+            m.C2AfterTax = r.C2AfterTax;
+            m.C3AfterTax = r.C3AfterTax;
+
+            m.AdultExtra = r.AdultExtra;
+            m.AdultExtraTax = r.AdultExtraTax;
         }
     }
 }

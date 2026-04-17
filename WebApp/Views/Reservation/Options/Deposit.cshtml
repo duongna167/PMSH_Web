@@ -145,7 +145,7 @@
 
             <div class="modal-body">
                 <div class="d-flex gap-2 search-filter">
-                    <button type="button" class="mui-button mui-button-search" onclick="SaveDepositPayment();">
+                    <button type="button" id="btnDepositPaymentOk" class="mui-button mui-button-search" onclick="SaveDepositPayment();">
                         OK
                     </button>
                     <button type="button" class="mui-button mui-button-clear" onclick="closeModalDepositPayment();">
@@ -561,6 +561,7 @@
 
     }
     function openModalDepositPayment() {
+        resetDepositPaymentSubmitState();
         $('#referenceDepositPayment').val(`DEPOSIT - Conf.No: ${confirmationNo}`);
         getTransactionPayment();
         let formattedDate = arivalDate.split(" ")[0].split("/").reverse().join("-"); // Chuyển thành 2024-08-30
@@ -616,16 +617,45 @@
     }
 
 
+    var depositPaymentSubmitInFlight = false;
+
+    function resetDepositPaymentSubmitState() {
+        depositPaymentSubmitInFlight = false;
+        $("#btnDepositPaymentOk").prop("disabled", false);
+    }
+
     function SaveDepositPayment() {
-        const userID = JSON.parse(localStorage.getItem("userID"));
-        const userName = JSON.parse(localStorage.getItem("userName"));
+        if (depositPaymentSubmitInFlight) {
+            return;
+        }
+
+        const transCode = $('#transactionDepositPayment').val();
+        if (!transCode || transCode === '0') {
+            showToast('Error', 'Please select transaction type.', false);
+            return;
+        }
+
+        depositPaymentSubmitInFlight = true;
+        $("#btnDepositPaymentOk").prop("disabled", true);
+
+        let userID;
+        let userName;
+        try {
+            userID = JSON.parse(localStorage.getItem("userID"));
+            userName = JSON.parse(localStorage.getItem("userName"));
+        } catch (e) {
+            resetDepositPaymentSubmitState();
+            showToast('Error', 'Session invalid. Please sign in again.', false);
+            return;
+        }
+
         const shiftID = localStorage.getItem("shiftID");
 
         var formData = new FormData();
 
         formData.append('rsvID', idReservation);
         formData.append('dueDate', $('#dateDepositPayment').val());
-        formData.append('transCode', $('#transactionDepositPayment').val());
+        formData.append('transCode', transCode);
         formData.append('reference', $('#referenceDepositPayment').val());
         formData.append('supplement', $('#supplementDepositPayment').val());
         formData.append('creditCard', $('#creditCardNoDepositPayment').val());
@@ -657,10 +687,17 @@
             },
             error: function (xhr, statusText, err) {
 
+            },
+            complete: function () {
+                resetDepositPaymentSubmitState();
             }
         });
 
     }
+
+    $(document).on("hidden.bs.modal", "#modalDepositPayment", function () {
+        resetDepositPaymentSubmitState();
+    });
     function PrinReceipt() {
 
         if (!depoistPaymentID || depoistPaymentID === 0) {

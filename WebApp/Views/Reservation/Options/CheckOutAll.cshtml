@@ -134,9 +134,30 @@
             ]
         });
     }
+    /** Chỉ cho phép C/O đơn khi DUE OUT (6); đã checkout (2) thì khóa nút (gọi từ grid / sau C/O thành công). */
+    function updateSingleCheckoutButtonState(status) {
+        const s = status === undefined || status === null ? NaN : Number(status);
+        const canSingleCheckout = s === 6;
+        $('.js-checkout-single').each(function () {
+            const $el = $(this);
+            if (canSingleCheckout) {
+                $el.removeClass('checkout-disabled').removeAttr('aria-disabled')
+                    .css({ opacity: '', pointerEvents: '', cursor: '' });
+            } else {
+                $el.addClass('checkout-disabled').attr('aria-disabled', 'true')
+                    .css({ opacity: '0.5', pointerEvents: 'none', cursor: 'not-allowed' });
+            }
+        });
+    }
+    window.updateSingleCheckoutButtonState = updateSingleCheckoutButtonState;
+
     function openModalCheckOut(){
         if(idReservation == 0){
             showToast('Error', "Please choose booking", false);
+            return;
+        }
+        if (Number(reservationStatus) === 2) {
+            showToast('Warning', 'This booking has already been checked out.', false);
             return;
         }
         if(reservationStatus != 6){
@@ -157,6 +178,11 @@
             },
             success: function (data) {
                 if (data.code == 0) {
+                    reservationStatus = 2;
+                    statusID = 2;
+                    if (typeof window.updateSingleCheckoutButtonState === 'function') {
+                        window.updateSingleCheckoutButtonState(2);
+                    }
                     // $('#searchType').val(1);
                     searchReservation();
                     showToast('Success', data.msg, true);

@@ -35,7 +35,7 @@
                 <h5 class="modal-title">Package</h5>
             </div>
 
-            <div class="modal-body">
+            <div class="modal-body position-relative">
 
                 <!-- ACTION BAR -->
                 <div class="search-filter">
@@ -406,9 +406,8 @@
 
                 <!-- LOADING -->
                 <div id="pak_loadingSpinner"
-                    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
-                    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
-                    height: 100%;display: flex;align-items: center;justify-content: center;">
+                    style="display:none;position:absolute;inset:0;z-index:999;background:rgba(255,255,255,0.55);
+                    align-items:center;justify-content:center;">
                     <div class="spinner-border text-primary"></div>
                 </div>
 
@@ -521,8 +520,10 @@
             // detail fields
             packageDetailID: "#pak_packageDetailID",
             seasonCode: "#pak_seasonCode",
-            startDateUi: "#pak_startDate",
-            endDateUi: "#pak_endDate",
+            startDateHidden: "#pak_startDate",
+            endDateHidden: "#pak_endDate",
+            startDateUi: "#pak_startDateUi",
+            endDateUi: "#pak_endDateUi",
             transactionCodeDT: "#pak_transactionCodeDT",
             currencyID: "#pak_currencyID",
             price: "#pak_price",
@@ -589,7 +590,7 @@
         }
 
         function showLoading(on) {
-            if (on) $(sel.loading).show(); else $(sel.loading).hide();
+            if (on) $(sel.loading).css("display", "flex"); else $(sel.loading).hide();
         }
 
         async function ensureDateInputs() {
@@ -620,6 +621,8 @@
             $(`${sel.tabForms}[data-tab="${index}"]`).addClass("pak_visible").show();
 
             if (index === 1) {
+                pakClearPackageHeaderFieldErrorIfResolved();
+
                 $(sel.btnNew).hide();
                 $(sel.btnSaveHeader).hide();
                 $(sel.btnDeleteHeader).hide();
@@ -640,13 +643,12 @@
 
         // ---------- Readonly ----------
         function setFormsReadOnly(readOnly) {
-            // Header + detail: disable everything except explicit noReadOnly controls and Type
+            // Không disable hidden (pak_ID, pak_packageID, …) — tránh mất/khó đọc PackageID khi Save Detail
             $(sel.modalMain)
-                .find("input, textarea, select")
+                .find("input:not([type='hidden']), textarea, select")
                 .not(`${sel.type}, .pak_noReadOnly`)
                 .prop("disabled", readOnly);
 
-            // include checkboxes/radio
             $(sel.modalMain)
                 .find('input[type="checkbox"], input[type="radio"]')
                 .prop("disabled", readOnly);
@@ -690,7 +692,11 @@
             $(sel.priceAfterTax).val("");
             $(sel.allowanceAmount).val("");
             $(sel.rhythmPostingID).val($(sel.rhythmPostingID + " option:first").val() || "0");
-            $(sel.calculationRuleID).val("0");
+            if (typeof setTomSelectValue === "function") {
+                setTomSelectValue(sel.calculationRuleID, "1");
+            } else {
+                $(sel.calculationRuleID).val("1");
+            }
 
             selectedDetailRow = null;
             initDetailGrid([]);
@@ -780,15 +786,18 @@
             $(sel.price).val("");
             $(sel.priceAfterTax).val("");
             $(sel.allowanceAmount).val("");
-            $(sel.calculationRuleID).val("0");
             selectedDetailRow = null;
             clearMultipleTomSelect([
-                '#pak_seasonCode',
-                '#pak_currencyID',
-                '#pak_transactionCodeDT',
-                '#pak_rhythmPostingID',
-                '#pak_calculationRuleID'
+                "#pak_seasonCode",
+                "#pak_currencyID",
+                "#pak_transactionCodeDT",
+                "#pak_rhythmPostingID"
             ], true);
+            if (typeof setTomSelectValue === "function") {
+                setTomSelectValue(sel.calculationRuleID, "1");
+            } else {
+                $(sel.calculationRuleID).val("1");
+            }
             reloadBusinessDate();
 
         }
@@ -898,6 +907,8 @@
 
                 setFormsReadOnly(true);
 
+                pakClearPackageHeaderFieldErrorIfResolved();
+
                 const resDetail = await $.ajax({
                     url: "/Administration/RateCode/GetPackageDetailByIDPackage",
                     method: "GET",
@@ -918,6 +929,59 @@
             } finally {
                 showLoading(false);
             }
+        }
+
+        // Tom Select không sync vào jQuery .val() — phải đọc qua tomselect.getValue()
+        function pakTsRaw(selector) {
+            const el = typeof selector === "string" ? document.querySelector(selector) : null;
+            if (!el) return "";
+            if (el.tomselect) {
+                const v = el.tomselect.getValue();
+                if (v === null || v === undefined) return "";
+                return Array.isArray(v) ? (v[0] ?? "") : v;
+            }
+            const jv = $(selector).val();
+            return jv === null || jv === undefined ? "" : jv;
+        }
+
+        function pakParseIntOrNull(selector) {
+            const raw = String(pakTsRaw(selector)).trim();
+            if (raw === "") return null;
+            const n = parseInt(raw, 10);
+            return Number.isNaN(n) ? null : n;
+        }
+
+        function pakResolvePackageId() {
+            const pkgEl = document.getElementById("pak_packageID");
+            const idEl = document.getElementById("pak_ID");
+            let pid = NaN;
+            if (pkgEl && pkgEl.value) pid = parseInt(String(pkgEl.value).trim(), 10);
+            if (Number.isNaN(pid) || pid <= 0) {
+                if (idEl && idEl.value) pid = parseInt(String(idEl.value).trim(), 10);
+            }
+            if (!Number.isNaN(pid) && pid > 0 && pkgEl) {
+                pkgEl.value = String(pid);
+            }
+            if (Number.isNaN(pid) || pid <= 0) return null;
+            return pid;
+        }
+
+        /** Xóa viền đỏ ô Header (name=packageID) khi đã có Package ID — lỗi client không tự hết sau Save Header / Search */
+        function pakClearPackageHeaderFieldErrorIfResolved() {
+            if (!pakResolvePackageId()) return;
+            const $field = $("#pak_detailForm [name='packageID']");
+            if (!$field.length) return;
+            $field.removeClass("is-invalid");
+            $field.siblings(".invalid-feedback").text("").hide();
+        }
+
+        /** Placeholder Tom Select = 0 / rỗng → mặc định Per Person (1) trước khi lưu */
+        function pakEnsureCalculationRuleOrDefault() {
+            const raw = String(pakTsRaw(sel.calculationRuleID) || "").trim();
+            const n = raw === "" ? NaN : parseInt(raw, 10);
+            if (!Number.isNaN(n) && n > 0) return;
+            setTomSelectValue(sel.calculationRuleID, "1");
+            $(sel.calculationRuleID).val("1");
         }
 
         // ---------- Payload builders ----------
@@ -941,21 +1005,40 @@
         }
 
         function getDetailPayload() {
+            const startIso = $(sel.startDateHidden).val() || null;
+            const endIso = $(sel.endDateHidden).val() || null;
+            const trans = (pakTsRaw(sel.transactionCodeDT) || "").trim();
+            const cur = (pakTsRaw(sel.currencyID) || "").trim();
+            const crRaw = pakTsRaw(sel.calculationRuleID);
+            const crParsed = crRaw === "" ? NaN : parseInt(crRaw, 10);
+            let calculationRuleID = Number.isNaN(crParsed) ? null : crParsed;
+            if (calculationRuleID === null || calculationRuleID <= 0) calculationRuleID = 1;
+
+            let rhythm = parseInt(String(pakTsRaw(sel.rhythmPostingID)).trim(), 10);
+            if (Number.isNaN(rhythm)) rhythm = 0;
+
+            const priceStr = $(sel.price).val();
+            const priceNetStr = $(sel.priceAfterTax).val();
+            const allowanceStr = $(sel.allowanceAmount).val();
+            const price = priceStr === "" || priceStr === null ? null : parseFloat(priceStr);
+            const priceAfterTax = priceNetStr === "" || priceNetStr === null ? null : parseFloat(priceNetStr);
+            const allowanceAmount = allowanceStr === "" || allowanceStr === null ? null : parseFloat(allowanceStr);
+
             return {
-                ID: parseInt($(sel.packageDetailID).val()) || 0,
-                PackageID: parseInt($(sel.packageID).val()) || null,
-                SeasonID: parseInt($(sel.seasonCode).val()) || null,
-                StartDate: $(sel.startDateUi).val() || null,
-                EndDate: $(sel.endDateUi).val() || null,
-                TransCode: $(sel.transactionCodeDT).val() || null,
-                Price: parseFloat($(sel.price).val()) || null,
-                PriceAfterTax: parseFloat($(sel.priceAfterTax).val()) || null,
-                CurrencyID: $(sel.currencyID).val() || null,
-                AllowanceAmount: parseFloat($(sel.allowanceAmount).val()) || null,
-                RhythmPostingID: parseInt($(sel.rhythmPostingID).val()) || 0,
-                CalculationRuleID: parseInt($(sel.calculationRuleID).val()) || null,
-                UserInsertID: parseInt(localStorage.getItem("userID")) || 0,
-                UserUpdateID: parseInt(localStorage.getItem("userID")) || 0
+                ID: parseInt($(sel.packageDetailID).val(), 10) || 0,
+                PackageID: pakResolvePackageId(),
+                SeasonID: pakParseIntOrNull(sel.seasonCode),
+                StartDate: startIso || $(sel.startDateUi).val() || null,
+                EndDate: endIso || $(sel.endDateUi).val() || null,
+                TransCode: trans || null,
+                Price: Number.isNaN(price) ? null : price,
+                PriceAfterTax: Number.isNaN(priceAfterTax) ? null : priceAfterTax,
+                CurrencyID: cur || null,
+                AllowanceAmount: Number.isNaN(allowanceAmount) ? null : allowanceAmount,
+                RhythmPostingID: rhythm,
+                CalculationRuleID: calculationRuleID,
+                UserInsertID: parseInt(localStorage.getItem("userID"), 10) || 0,
+                UserUpdateID: parseInt(localStorage.getItem("userID"), 10) || 0
             };
         }
 
@@ -974,19 +1057,21 @@
                     if (res?.success) {
                         showToast("Success", res.message, true);
                         const id = res.data?.id;
-                        if (id) selectPackage(id);
+                        if (id) {
+                            selectPackage(id).catch(function () { }).finally(function () { showLoading(false); });
+                            return;
+                        }
                     } else {
                         if (typeof window.applyValidationErrors === "function") applyValidationErrors(res?.errors || [], "#pak_headerForm");
                         showToast("Error", res?.message || "Save failed.", false);
                     }
+                    showLoading(false);
                 },
                 error: function (xhr) {
+                    showLoading(false);
                     const errs = xhr.responseJSON?.errors;
                     if (Array.isArray(errs)) errs.forEach((m, i) => setTimeout(() => showToast("Error", m, false), i * 700));
                     else showToast("Error", xhr.responseJSON?.message || "Save failed.", false);
-                },
-                complete: function () {
-                    showLoading(false);
                 }
             });
         }
@@ -1005,6 +1090,7 @@
                 contentType: "application/json",
                 data: JSON.stringify({ ID: id }),
                 success: function (res) {
+                    showLoading(false);
                     if (res?.success) {
                         showToast("Success", res.message, true);
                         clearAll();
@@ -1013,17 +1099,30 @@
                     }
                 },
                 error: function (xhr) {
+                    showLoading(false);
                     const errs = xhr.responseJSON?.errors;
                     if (Array.isArray(errs)) errs.forEach((m, i) => setTimeout(() => showToast("Error", m, false), i * 700));
                     else showToast("Error", xhr.responseJSON?.message || "Delete failed.", false);
-                },
-                complete: function () {
-                    showLoading(false);
                 }
             });
         }
 
         function saveDetail() {
+            pakResolvePackageId();
+            const pid = pakResolvePackageId();
+            if (!pid) {
+                showToast("Warning", "Chưa gán Package: sang tab Package Header, nhập đủ và bấm Save; hoặc Search để mở package đã có.", false);
+                if (typeof window.applyValidationErrors === "function") {
+                    applyValidationErrors([{ field: "packageID", message: "Cần Package ID — lưu Header hoặc chọn package." }], "#pak_detailForm");
+                }
+                return;
+            }
+
+            pakEnsureCalculationRuleOrDefault();
+            if (typeof window.applyValidationErrors === "function") {
+                applyValidationErrors([], "#pak_detailForm");
+            }
+
             showLoading(true);
 
             const payload = getDetailPayload();
@@ -1037,20 +1136,22 @@
                     if (res?.success) {
                         showToast("Success", res.message, true);
                         applyValidationErrors(res?.errors || [], "#pak_detailForm");
-                        const id = res.data?.id;
-                        if (id) selectPackage(id);
+                        const pkgId = parseInt($(sel.packageID).val(), 10) || 0;
+                        if (pkgId) {
+                            selectPackage(pkgId).catch(function () { }).finally(function () { showLoading(false); });
+                            return;
+                        }
                     } else {
                         if (typeof window.applyValidationErrors === "function") applyValidationErrors(res?.errors || [], "#pak_detailForm");
                         showToast("Error", res?.message || "Save failed.", false);
                     }
+                    showLoading(false);
                 },
                 error: function (xhr) {
+                    showLoading(false);
                     const errs = xhr.responseJSON?.errors;
                     if (Array.isArray(errs)) errs.forEach((m, i) => setTimeout(() => showToast("Error", m, false), i * 700));
                     else showToast("Error", xhr.responseJSON?.message || "Save failed.", false);
-                },
-                complete: function () {
-                    showLoading(false);
                 }
             });
         }
@@ -1073,20 +1174,21 @@
                     if (res?.success) {
                         showToast("Success", res.message, true);
                         clearDetailOnly();
-                        // reload selected package details if possible
-                        const pkgId = parseInt($(sel.packageID).val()) || 0;
-                        if (pkgId) selectPackage(pkgId);
+                        const pkgId = parseInt($(sel.packageID).val(), 10) || 0;
+                        if (pkgId) {
+                            selectPackage(pkgId).catch(function () { }).finally(function () { showLoading(false); });
+                            return;
+                        }
                     } else {
                         showToast("Error", res?.message || "Delete failed.", false);
                     }
+                    showLoading(false);
                 },
                 error: function (xhr) {
+                    showLoading(false);
                     const errs = xhr.responseJSON?.errors;
                     if (Array.isArray(errs)) errs.forEach((m, i) => setTimeout(() => showToast("Error", m, false), i * 700));
                     else showToast("Error", xhr.responseJSON?.message || "Delete failed.", false);
-                },
-                complete: function () {
-                    showLoading(false);
                 }
             });
         }

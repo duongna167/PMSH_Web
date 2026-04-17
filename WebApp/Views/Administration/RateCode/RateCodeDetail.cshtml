@@ -38,7 +38,7 @@
                 <h5 class="modal-title fw-bold text-primary" id="rtCD_modalTitle">Rate Code Detail</h5>
             </div>
 
-            <div class="modal-body">
+            <div class="modal-body position-relative">
 
                 <div class="search-filter">
                     <!-- ACTION BAR -->
@@ -170,9 +170,8 @@
 
                 <!-- LOADING -->
                 <div id="rtCD_loadingSpinner"
-                    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
-                    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
-                    height: 100%;display: flex;align-items: center;justify-content: center;">
+                    style="display:none;position:absolute;inset:0;z-index:999;background:rgba(255,255,255,0.55);
+                    align-items:center;justify-content:center;">
                     <div class="spinner-border text-primary"></div>
                 </div>
 
@@ -247,7 +246,7 @@
                                                                 {
                                                                     foreach (dynamic u in rtCD_listSeason)
                                                                     {
-                                                                        <option value="@u.Code">@u.Code</option>
+                                                                        <option value="@u.ID">@u.Code</option>
                                                                     }
                                                                 } 
                                                             </select>
@@ -267,7 +266,7 @@
                                                                 {
                                                                     foreach (dynamic u in rtCD_listPackage)
                                                                     {
-                                                                        <option value="@u.Code">@u.Code</option>
+                                                                        <option value="@u.ID">@u.Code</option>
                                                                     }
                                                                 } 
                                                             </select>
@@ -294,7 +293,7 @@
                                                                 {
                                                                     foreach (dynamic u in rtCD_listRoomType)
                                                                     {
-                                                                        <option value="@u.Code">@u.Code - @u.Name</option>
+                                                                        <option value="@u.ID">@u.Code - @u.Name</option>
                                                                     }
                                                                 } 
                                                             </select>
@@ -308,9 +307,9 @@
                                                             From Date
                                                         </label>
                                                         <div class="col-8">
-                                                            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="rtCD_fromDate">
+                                                            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="rtCD_modalFromDate">
                                                                 <input type="text"
-                                                                    id="rtCD_fromDateUi"
+                                                                    id="rtCD_modalFromDateUi"
                                                                     class="date-ui form-control form-control-sm"
                                                                     placeholder="dd/mm/yyyy"
                                                                     autocomplete="off" />
@@ -325,9 +324,9 @@
                                                             To Date
                                                         </label>
                                                         <div class="col-8">
-                                                            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="rtCD_toDate">
+                                                            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="rtCD_modalToDate">
                                                                 <input type="text"
-                                                                    id="rtCD_toDateUi"
+                                                                    id="rtCD_modalToDateUi"
                                                                     class="date-ui form-control form-control-sm"
                                                                     placeholder="dd/mm/yyyy"
                                                                     autocomplete="off" />
@@ -856,7 +855,6 @@
                                         <button id="rtCD_editDelete" class="mui-button mui-button-new">
                                             Delete
                                         </button>
-                                        </button>
                                         <button id="rtCD_editChanges" class="mui-button mui-button-new">
                                             Changes
                                         </button>
@@ -895,6 +893,7 @@
         let selectedRateCodesRow = null;   // from left grid
         let selectedGroupedRow = null;     // from grouped grid
         let selectedDetailId = null;       // from bottom grid selection
+        let suppressLeftGridCascade = false;
 
         const sel = {
             modalMain: "#rtCD_modalMain",
@@ -933,19 +932,39 @@
             btnSaveClose: "#rtCD_btnSaveClose",
 
             modalDetailId: "#rtCD_modalDetailId",
-            txtRateCode: "#rtCD_txtRateCode",
-            selRoomType: "#rtCD_selRoomType",
-            txtBeginDate: "#rtCD_txtBeginDate",
-            txtEndDate: "#rtCD_txtEndDate",
-            selTransaction: "#rtCD_selTransaction",
-            selPackage: "#rtCD_selPackage",
-            txtCurrency: "#rtCD_txtCurrency",
-            txtMinLOS: "#rtCD_txtMinLOS",
-            txtMaxLOS: "#rtCD_txtMaxLOS",
-            txtAmount: "#rtCD_txtAmount",
-            txtPercentage: "#rtCD_txtPercentage",
-            txtDescription: "#rtCD_txtDescription",
-            chkActive: "#rtCD_chkActive"
+            rateCode: "#rtCD_rateCode",
+            season: "#rtCD_season",
+            package: "#rtCD_package",
+            roomType: "#rtCD_roomType",
+            modalFromDateUi: "#rtCD_modalFromDateUi",
+            modalToDateUi: "#rtCD_modalToDateUi",
+            transCode: "#rtCD_transCode",
+            currency: "#rtCD_currency",
+            minLos: "#rtCD_minLos",
+            maxLos: "#rtCD_maxLos",
+            minNoOfRoom: "#rtCD_minNoOfRoom",
+            maxNoOfRoom: "#rtCD_maxNoOfRoom",
+            printRate: "#rtCD_printRate",
+            discount: "#rtCD_discount",
+            amt1: "#rtCD_amt1", amt1Net: "#rtCD_amt1Net",
+            amt2: "#rtCD_amt2", amt2Net: "#rtCD_amt2Net",
+            amt3: "#rtCD_amt3", amt3Net: "#rtCD_amt3Net",
+            amt4: "#rtCD_amt4", amt4Net: "#rtCD_amt4Net",
+            amt5: "#rtCD_amt5", amt5Net: "#rtCD_amt5Net",
+            amt6: "#rtCD_amt6", amt6Net: "#rtCD_amt6Net",
+            amt7: "#rtCD_amt7", amt7Net: "#rtCD_amt7Net",
+            amt8: "#rtCD_amt8", amt8Net: "#rtCD_amt8Net",
+            amt9: "#rtCD_amt9", amt9Net: "#rtCD_amt9Net",
+            amt10: "#rtCD_amt10", amt10Net: "#rtCD_amt10Net",
+            amt11: "#rtCD_amt11", amt11Net: "#rtCD_amt11Net",
+            amt12: "#rtCD_amt12", amt12Net: "#rtCD_amt12Net",
+            amt13: "#rtCD_amt13", amt13Net: "#rtCD_amt13Net",
+            amt14: "#rtCD_amt14", amt14Net: "#rtCD_amt14Net",
+            amt15: "#rtCD_amt15", amt15Net: "#rtCD_amt15Net",
+            child1: "#rtCD_child1", child1Net: "#rtCD_child1Net",
+            child2: "#rtCD_child2", child2Net: "#rtCD_child2Net",
+            child3: "#rtCD_child3", child3Net: "#rtCD_child3Net",
+            extraAdult: "#rtCD_extraAdult", extraAdultNet: "#rtCD_extraAdultNet"
         };
 
         function init() {
@@ -959,7 +978,7 @@
                 try { if (typeof window.initTomSelect === "function") window.initTomSelect(".tomselect-custom"); } catch { }
                 try { if (typeof window.initDateInputs === "function") await window.initDateInputs(); } catch { }
 
-                await reloadAll(isInitial = true);
+                await reloadAll(true);
             });
 
             $(sel.modalMain).off("hidden.bs.modal.rtCD").on("hidden.bs.modal.rtCD", function () {
@@ -989,10 +1008,6 @@
                 openEdit();
             });
 
-            $(document).off("click.rtCD", sel.btnEditFull).on("click.rtCD", sel.btnEditFull, function () {
-                openEdit();
-            });
-
             $(document).off("click.rtCD", sel.btnDelete).on("click.rtCD", sel.btnDelete, function () {
                 doDelete();
             });
@@ -1012,6 +1027,22 @@
             $(document).off("click.rtCD", sel.btnSaveClose).on("click.rtCD", sel.btnSaveClose, function () {
                 save(true);
             });
+
+            $(document).off("click.rtCD", sel.btnEditFull).on("click.rtCD", sel.btnEditFull, function () {
+                openEditFull();
+            });
+
+            $(document).off("click.rtCD", sel.btnEditNew).on("click.rtCD", sel.btnEditNew, function () {
+                openNew();
+            });
+
+            $(document).off("click.rtCD", sel.btnEditUpdate).on("click.rtCD", sel.btnEditUpdate, function () {
+                save(false);
+            });
+
+            $(document).off("click.rtCD", sel.btnEditDelete).on("click.rtCD", sel.btnEditDelete, function () {
+                deleteDetailRow();
+            });
         }
 
         function cleanup() {
@@ -1024,11 +1055,10 @@
             selectedRateCodesRow = null;
             selectedGroupedRow = null;
             selectedDetailId = null;
-            selectedNewDetailId = null;
         }
 
         function showLoading(on) {
-            if (on) $(sel.loading).show(); else $(sel.loading).hide();
+            if (on) $(sel.loading).css("display", "flex"); else $(sel.loading).hide();
         }
 
         // --------- API ---------
@@ -1058,17 +1088,18 @@
         }
 
         async function apiGetDetails(groupRow) {
+            const pid = groupRow.packageID != null && groupRow.packageID !== "" ? groupRow.packageID : 0;
             return $.ajax({
                 url: "/Administration/RateCode/GetDetails",
                 type: "GET",
                 data: {
-                    RateCodeID: groupRow.rateCodeID,
+                    RateCodeID: groupRow.rateCodeID ?? groupRow.RateCodeID,
                     BeginDate: groupRow.beginDate,
                     EndDate: groupRow.endDate,
                     RoomType: groupRow.roomType,
                     TransCode: groupRow.transaction,
                     CurrencyID: groupRow.curr,
-                    PackageID: groupRow.packageID,
+                    PackageID: pid,
                     A1: groupRow.a1,
                     A2: groupRow.a2,
                     A3: groupRow.a3,
@@ -1090,16 +1121,61 @@
         }
 
         // --------- LOAD ---------
-        async function reloadAll(isInitial = false) {
+        function pickAnchorGroupedRow(grouped, anchor) {
+            if (!anchor || !Array.isArray(grouped) || !grouped.length) return grouped?.[0] ?? null;
+            const tx = String(anchor.transaction ?? "");
+            const rt = String(anchor.roomType ?? "");
+            const found = grouped.find(g =>
+                String(g.roomType ?? "") === rt &&
+                String(g.transaction ?? "") === tx
+            );
+            return found || grouped[0];
+        }
+
+        function mapDetailModelToGridRow(m, rateCodeText) {
+            if (!m) return null;
+            return {
+                id: m.id ?? m.ID,
+                roomTypeID: m.roomTypeID ?? m.RoomTypeID,
+                rateCode: rateCodeText || "",
+                roomType: m.roomType ?? "",
+                rateDate: m.rateDate,
+                transactionCode: m.transactionCode ?? "",
+                currencyID: m.currencyID ?? "",
+                a1: m.a1, a1AfterTax: m.a1AfterTax,
+                a2: m.a2, a2AfterTax: m.a2AfterTax,
+                a3: m.a3, a3AfterTax: m.a3AfterTax,
+                a4: m.a4, a4AfterTax: m.a4AfterTax,
+                a5: m.a5, a5AfterTax: m.a5AfterTax,
+                a6: m.a6, a6AfterTax: m.a6AfterTax,
+                c1AfterTax: m.c1AfterTax,
+                c2AfterTax: m.c2AfterTax,
+                c3AfterTax: m.c3AfterTax,
+                adultExtraTax: m.adultExtraTax
+            };
+        }
+
+        async function mergeHighlightDetail(details, highlightId) {
+            const hid = parseInt(highlightId, 10);
+            if (!hid || !Array.isArray(details)) return details || [];
+            if (details.some(d => parseInt(d.id, 10) === hid)) return details;
+            try {
+                const gr = await $.getJSON("/Administration/RateCode/GetRateCodeDetailById", { id: hid });
+                if (gr?.success && gr.data) {
+                    const row = mapDetailModelToGridRow(gr.data, gr.rateCode);
+                    if (row) return [row, ...details];
+                }
+            } catch (e) { console.error(e); }
+            return details;
+        }
+
+        async function reloadAll(isInitial = false, opts) {
             try {
                 showLoading(true);
 
-                // Optional: wait for business date if your DateInput sets hidden ISO fields
-                // If you want strict ISO, you can adapt to your `waitForBusinessDate` helpers.
                 if (isInitial) {
                     try {
                         if (typeof window.waitForBusinessDate === "function") {
-                            // if your date inputs are named rtCD_fromDate/rtCD_toDate
                             await waitForBusinessDate("rtCD_fromDate", 10000);
                             await waitForBusinessDate("rtCD_toDate", 10000);
                         }
@@ -1114,14 +1190,36 @@
                     return;
                 }
 
-                // default pick first row's idRateCode (kept behavior)
-                const firstRateCodeID = rateCodes[0].idRateCode;
-                const grouped = await apiRateCodeGroupDataByID(firstRateCodeID);
+                const pref = opts && opts.preferredRateCodeId ? parseInt(opts.preferredRateCodeId, 10) : 0;
+                const targetRateCodeId = pref > 0 && rateCodes.some(r => r.idRateCode === pref)
+                    ? pref
+                    : rateCodes[0].idRateCode;
 
-                const firstGroupRow = Array.isArray(grouped) && grouped.length ? grouped[0] : null;
-                const details = firstGroupRow ? await apiGetDetails(firstGroupRow) : [];
+                let grouped = await apiRateCodeGroupDataByID(targetRateCodeId);
+                grouped = Array.isArray(grouped) ? grouped : [];
 
-                renderAllGrids(rateCodes, grouped || [], details || []);
+                const anchor = opts && opts.anchorGroup ? opts.anchorGroup : null;
+                const groupRow = pickAnchorGroupedRow(grouped, anchor);
+
+                let details = groupRow ? await apiGetDetails(groupRow) : [];
+                details = Array.isArray(details) ? details : [];
+
+                if (opts && opts.highlightDetailId) {
+                    details = await mergeHighlightDetail(details, opts.highlightDetailId);
+                }
+
+                renderAllGrids(rateCodes, grouped, details);
+
+                if (gridRateCodes && targetRateCodeId) {
+                    suppressLeftGridCascade = true;
+                    try {
+                        gridRateCodes.selectRows([targetRateCodeId], false);
+                    } catch (e) {
+                        console.error(e);
+                    } finally {
+                        suppressLeftGridCascade = false;
+                    }
+                }
 
             } catch (err) {
                 console.error(err);
@@ -1151,6 +1249,7 @@
 
             gridRateCodes = $(sel.gridRateCodes).dxDataGrid({
                 dataSource: data,
+                keyExpr: "idRateCode",
                 showBorders: true,
                 width: "100%",
                 height: "100%",
@@ -1165,7 +1264,7 @@
                 },
                 filterRow: { visible: true, applyFilter: "auto" },
                 columns: [
-                    { dataField: "id", visible: false },
+                    { dataField: "idRateCode", visible: false },
                     { dataField: "rateCode", caption: "Rate Code", minWidth: 120,cssClass: "col-description" },
                     { dataField: "rateCategory", caption: "Rate Category", width: 140 },
                     { dataField: "beginDate", caption: "Begin Date", dataType: "date", format: "dd/MM/yyyy", width: 80 },
@@ -1176,6 +1275,8 @@
                     selectedRateCodesRow = row;
 
                     if (!row?.idRateCode) return;
+
+                    if (suppressLeftGridCascade) return;
 
                     try {
                         showLoading(true);
@@ -1293,7 +1394,7 @@
         function renderNewDetails(data) {
             destroyGrid(sel.gridNewDetails, gridNewDetails);
 
-            gridDetails = $(sel.gridNewDetails).dxDataGrid({
+            gridNewDetails = $(sel.gridNewDetails).dxDataGrid({
                 dataSource: data,
                 showBorders: true,
                 width: "100%",
@@ -1335,130 +1436,208 @@
         }
 
         // --------- UPSERT ---------
-        function clearForm() {
-            $(sel.modalDetailId).val(0);
-            $(sel.txtRateCode).val("").prop("disabled", false);
-            $(sel.selRoomType).val("");
-            $(sel.txtBeginDate).val("");
-            $(sel.txtEndDate).val("");
-            $(sel.selTransaction).val("");
-            $(sel.selPackage).val("");
-            $(sel.txtCurrency).val("VND");
-            $(sel.txtMinLOS).val("");
-            $(sel.txtMaxLOS).val("");
-            $(sel.txtAmount).val("");
-            $(sel.txtPercentage).val("");
-            $(sel.txtDescription).val("");
-            $(sel.chkActive).prop("checked", false);
+        function parseDec(el) {
+            const v = parseFloat($(el).val());
+            return isNaN(v) ? 0 : v;
         }
 
-        function openNew() {
-            clearForm();
-            renderNewDetails();
-            if (typeof window.applyValidationErrors === "function") applyValidationErrors([], sel.form);
-            $(sel.upsertTitle).text("New Rate Code Detail");
-            upsertModal.show();
+        function resolveRateCodeId() {
+            const code = $(sel.rateCode).val();
+            const ds = gridRateCodes ? gridRateCodes.option("dataSource") : [];
+            const row = Array.isArray(ds) ? ds.find(r => r.rateCode === code) : null;
+            const fromGrid = row?.idRateCode;
+            return parseInt(fromGrid, 10) || parseInt(selectedRateCodesRow?.idRateCode, 10) || 0;
         }
 
-        function openEdit() {
-            if (!selectedGroupedRow) {
-                showToast("Warning", "Please select 1 row in 'Rate Details Grouped' to edit.", false);
-                return;
-            }
-
-            $(sel.btnEditUpdate).hide();
-            $(sel.btnEditNew).show();
-            $(sel.btnEditChanges).show();
-            $(sel.btnEditRepeat).show();
-
-            const id = selectedGroupedRow.id;
-            if (!id) {
-                showToast("Warning", "Selected row has no id.", false);
-                return;
-            }
-
-        }
-
-        function openEditFull() {
-            if (!selectedGroupedRow) {
-                showToast("Warning", "Please select 1 row in 'Rate Details Grouped' to edit.", false);
-                return;
-            }
-
-            $(sel.btnEditUpdate).show();
-            $(sel.btnEditNew).hide();
-            $(sel.btnEditChanges).hide();
-            $(sel.btnEditRepeat).hide();
-
-            const id = selectedGroupedRow.id;
-            if (!id) {
-                showToast("Warning", "Selected row has no id.", false);
-                return;
-            }
-
-        }
-
-        function validatePayload(p) {
-            if (!p.rateCode) return "Rate Code is required";
-            if (!p.beginDate) return "Begin Date is required";
-            if (!p.endDate) return "End Date is required";
+        function modalDateIso(prefix) {
+            const hid = $("#" + prefix).val();
+            if (hid) return hid;
             return null;
         }
 
-        function buildPayload() {
-            return {
-                id: parseInt($(sel.modalDetailId).val()) || 0,
-                rateCode: $(sel.txtRateCode).val(),
-                roomTypeID: parseInt($(sel.selRoomType).val()) || 0,
-                beginDate: $(sel.txtBeginDate).val(),
-                endDate: $(sel.txtEndDate).val(),
-                transactionID: parseInt($(sel.selTransaction).val()) || 0,
-                packageID: parseInt($(sel.selPackage).val()) || 0,
-                currency: $(sel.txtCurrency).val(),
-                minLOS: parseInt($(sel.txtMinLOS).val()) || 0,
-                maxLOS: parseInt($(sel.txtMaxLOS).val()) || 0,
-                amount: parseFloat($(sel.txtAmount).val()) || 0,
-                percentage: parseFloat($(sel.txtPercentage).val()) || 0,
-                description: $(sel.txtDescription).val(),
-                active: $(sel.chkActive).is(":checked"),
-                userID: parseInt(localStorage.getItem("userID")) || 0
-            };
+        function clearForm() {
+            $(sel.modalDetailId).val(0);
+            if (typeof setTomSelectValue === "function") {
+                setTomSelectValue(sel.rateCode, "");
+                setTomSelectValue(sel.roomType, "");
+                setTomSelectValue(sel.package, "");
+                setTomSelectValue(sel.season, "");
+                setTomSelectValue(sel.transCode, "");
+            } else {
+                $(sel.rateCode).val("");
+                $(sel.roomType).val("");
+                $(sel.package).val("");
+                $(sel.season).val("");
+                $(sel.transCode).val("");
+            }
+            $(sel.modalFromDateUi).val("");
+            $(sel.modalToDateUi).val("");
+            $(sel.currency).val("");
+            $(sel.minLos).val("");
+            $(sel.maxLos).val("");
+            $(sel.minNoOfRoom).val("");
+            $(sel.maxNoOfRoom).val("");
+            $(sel.printRate).prop("checked", false);
+            $(sel.discount).prop("checked", false);
+
+            const amt = [
+                sel.amt1, sel.amt1Net, sel.amt2, sel.amt2Net, sel.amt3, sel.amt3Net,
+                sel.amt4, sel.amt4Net, sel.amt5, sel.amt5Net, sel.amt6, sel.amt6Net,
+                sel.amt7, sel.amt7Net, sel.amt8, sel.amt8Net, sel.amt9, sel.amt9Net,
+                sel.amt10, sel.amt10Net, sel.amt11, sel.amt11Net, sel.amt12, sel.amt12Net,
+                sel.amt13, sel.amt13Net, sel.amt14, sel.amt14Net, sel.amt15, sel.amt15Net,
+                sel.child1, sel.child1Net, sel.child2, sel.child2Net, sel.child3, sel.child3Net,
+                sel.extraAdult, sel.extraAdultNet
+            ];
+            amt.forEach(s => $(s).val(""));
         }
 
-        function save(closeAfter) {
-            showToast("Error", "Chức năng đang hoàn thiện :14/3/2026", false);
-            return;
-            const payload = buildPayload();
-            const err = validatePayload(payload);
+        function populateForm(res) {
+            const d = res.data || {};
+            const rc = res.rateCode || "";
 
-            if (err) {
-                showToast("Error", err, false);
+            $(sel.modalDetailId).val(d.id || d.ID || 0);
+
+            if (typeof setTomSelectValue === "function") {
+                setTomSelectValue(sel.rateCode, rc);
+                setTomSelectValue(sel.roomType, String(d.roomTypeID ?? d.roomTypeId ?? ""));
+                setTomSelectValue(sel.package, String(d.packageID ?? d.packageId ?? ""));
+                setTomSelectValue(sel.season, String(d.seasonID ?? d.seasonId ?? ""));
+                setTomSelectValue(sel.transCode, d.transactionCode || "");
+            } else {
+                $(sel.rateCode).val(rc);
+                $(sel.roomType).val(String(d.roomTypeID ?? ""));
+                $(sel.package).val(String(d.packageID ?? ""));
+                $(sel.season).val(String(d.seasonID ?? ""));
+                $(sel.transCode).val(d.transactionCode || "");
+            }
+
+            $(sel.currency).val(d.currencyID || d.currencyId || "");
+
+            const fd = d.fromDate || d.FromDate;
+            const td = d.toDate || d.ToDate;
+            if (fd) {
+                try {
+                    const t = new Date(fd);
+                    if (!isNaN(t)) $(sel.modalFromDateUi).val(t.toLocaleDateString("en-GB"));
+                } catch { }
+            }
+            if (td) {
+                try {
+                    const t = new Date(td);
+                    if (!isNaN(t)) $(sel.modalToDateUi).val(t.toLocaleDateString("en-GB"));
+                } catch { }
+            }
+
+            $(sel.minLos).val(d.minLOS ?? d.minLos ?? "");
+            $(sel.maxLos).val(d.maxLOS ?? d.maxLos ?? "");
+            $(sel.minNoOfRoom).val(d.minNoOfRoom ?? "");
+            $(sel.maxNoOfRoom).val(d.maxNoOfRoom ?? "");
+            $(sel.printRate).prop("checked", !!d.printRate);
+            $(sel.discount).prop("checked", !!d.discount);
+
+            const setPair = (gEl, nEl, gKey, nKey) => {
+                const g = d[gKey];
+                const n = d[nKey];
+                $(gEl).val(g != null && g !== "" ? g : "");
+                $(nEl).val(n != null && n !== "" ? n : "");
+            };
+            setPair(sel.amt1, sel.amt1Net, "a1", "a1AfterTax");
+            setPair(sel.amt2, sel.amt2Net, "a2", "a2AfterTax");
+            setPair(sel.amt3, sel.amt3Net, "a3", "a3AfterTax");
+            setPair(sel.amt4, sel.amt4Net, "a4", "a4AfterTax");
+            setPair(sel.amt5, sel.amt5Net, "a5", "a5AfterTax");
+            setPair(sel.amt6, sel.amt6Net, "a6", "a6AfterTax");
+            setPair(sel.amt7, sel.amt7Net, "a7", "a7AfterTax");
+            setPair(sel.amt8, sel.amt8Net, "a8", "a8AfterTax");
+            setPair(sel.amt9, sel.amt9Net, "a9", "a9AfterTax");
+            setPair(sel.amt10, sel.amt10Net, "a10", "a10AfterTax");
+            setPair(sel.amt11, sel.amt11Net, "a11", "a11AfterTax");
+            setPair(sel.amt12, sel.amt12Net, "a12", "a12AfterTax");
+            setPair(sel.amt13, sel.amt13Net, "a13", "a13AfterTax");
+            setPair(sel.amt14, sel.amt14Net, "a14", "a14AfterTax");
+            setPair(sel.amt15, sel.amt15Net, "a15", "a15AfterTax");
+            setPair(sel.child1, sel.child1Net, "c1", "c1AfterTax");
+            setPair(sel.child2, sel.child2Net, "c2", "c2AfterTax");
+            setPair(sel.child3, sel.child3Net, "c3", "c3AfterTax");
+            setPair(sel.extraAdult, sel.extraAdultNet, "adultExtra", "adultExtraTax");
+        }
+
+        async function openNew() {
+            clearForm();
+            renderNewDetails([]);
+            if (typeof window.applyValidationErrors === "function") applyValidationErrors([], sel.form);
+
+            if (selectedRateCodesRow?.rateCode && typeof setTomSelectValue === "function") {
+                setTomSelectValue(sel.rateCode, selectedRateCodesRow.rateCode);
+            }
+            if (selectedGroupedRow) {
+                if (typeof setTomSelectValue === "function") {
+                    setTomSelectValue(sel.roomType, String(selectedGroupedRow.roomTypeID ?? ""));
+                    setTomSelectValue(sel.transCode, selectedGroupedRow.transaction || "");
+                    const pid = selectedGroupedRow.packageID != null ? String(selectedGroupedRow.packageID) : "";
+                    if (pid) setTomSelectValue(sel.package, pid);
+                }
+                if (selectedGroupedRow.beginDate) {
+                    const t = new Date(selectedGroupedRow.beginDate);
+                    if (!isNaN(t)) $(sel.modalFromDateUi).val(t.toLocaleDateString("en-GB"));
+                }
+                if (selectedGroupedRow.endDate) {
+                    const t = new Date(selectedGroupedRow.endDate);
+                    if (!isNaN(t)) $(sel.modalToDateUi).val(t.toLocaleDateString("en-GB"));
+                }
+                $(sel.minLos).val(selectedGroupedRow.minLOS ?? "");
+                $(sel.maxLos).val(selectedGroupedRow.maxLOS ?? "");
+                $(sel.minNoOfRoom).val(selectedGroupedRow.minNoOfRoom ?? "");
+                $(sel.maxNoOfRoom).val(selectedGroupedRow.maxNoOfRoom ?? "");
+                $(sel.currency).val(selectedGroupedRow.curr || "");
+            }
+
+            try { if (typeof window.initDateInputs === "function") await window.initDateInputs(); } catch { }
+
+            $(sel.upsertTitle).text("New Rate Code Detail");
+            $(sel.btnEditUpdate).show();
+            $(sel.btnEditNew).show();
+            $(sel.btnEditChanges).show();
+            $(sel.btnEditRepeat).show();
+            upsertModal.show();
+        }
+
+        function fetchDetailAndOpen(title, fullToolbar) {
+            const grid = gridDetails;
+            const row = grid?.getSelectedRowsData()?.[0];
+            if (!row?.id) {
+                showToast("Warning", "Please select one row in the Details grid.", false);
                 return;
             }
 
             showLoading(true);
-
             $.ajax({
-                url: "/Administration/RateCode/SaveRateCodeDetail",
-                type: "POST",
-                contentType: "application/x-www-form-urlencoded; charset=UTF-8",
-                data: $.param(payload),
+                url: "/Administration/RateCode/GetRateCodeDetailById",
+                type: "GET",
+                data: { id: row.id },
                 success: function (res) {
-                    if (res?.success) {
-                        showToast("Success", res.message || "Saved successfully", true);
-                        if (closeAfter) upsertModal.hide();
-                        reloadAll(false);
-                    } else {
-                        showToast("Error", res?.message || "Validation failed", false);
+                    if (!res?.success) {
+                        showToast("Error", res?.message || "Cannot load record.", false);
+                        return;
                     }
+                    populateForm(res);
+                    $(sel.upsertTitle).text(title);
+                    if (fullToolbar) {
+                        $(sel.btnEditUpdate).show();
+                        $(sel.btnEditNew).hide();
+                        $(sel.btnEditChanges).hide();
+                        $(sel.btnEditRepeat).hide();
+                    } else {
+                        $(sel.btnEditUpdate).hide();
+                        $(sel.btnEditNew).show();
+                        $(sel.btnEditChanges).show();
+                        $(sel.btnEditRepeat).show();
+                    }
+                    upsertModal.show();
                 },
-                error: function (xhr) {
-                    const errs = xhr.responseJSON?.errors;
-                    if (Array.isArray(errs) && errs.length) {
-                        errs.forEach((m, i) => setTimeout(() => showToast("Error", m, false), i * 600));
-                    } else {
-                        showToast("Error", xhr.responseJSON?.message || "An error occurred while saving", false);
-                    }
+                error: function () {
+                    showToast("Error", "Cannot load record.", false);
                 },
                 complete: function () {
                     showLoading(false);
@@ -1466,38 +1645,133 @@
             });
         }
 
-        // --------- DELETE / EXPORT ---------
-        function doDelete() {
-            showToast("Error", "Chức năng đang hoàn thiện :14/3/2026", false);
-            return;
-            if (!selectedGroupedRow?.id) {
-                showToast("Error", "Please select a row in 'Rate Details Grouped' to delete.", false);
+        function openEdit() {
+            fetchDetailAndOpen("Edit Rate Code Detail", false);
+        }
+
+        function openEditFull() {
+            fetchDetailAndOpen("Edit Rate Code Detail (full)", true);
+        }
+
+        function validatePayload(p) {
+            if (!p.rateCodeId || p.rateCodeId <= 0) return "Rate Code is required (select a row on the left grid or pick Rate Code).";
+            if (!p.roomTypeId || p.roomTypeId <= 0) return "Room Type is required.";
+            return null;
+        }
+
+        function buildPayload() {
+            const uid = parseInt(localStorage.getItem("userID"), 10) || 0;
+            return {
+                id: parseInt($(sel.modalDetailId).val(), 10) || 0,
+                userId: uid,
+                rateCodeId: resolveRateCodeId(),
+                roomTypeId: parseInt($(sel.roomType).val(), 10) || 0,
+                packageId: parseInt($(sel.package).val(), 10) || 0,
+                seasonId: parseInt($(sel.season).val(), 10) || 0,
+                fromDate: modalDateIso("rtCD_modalFromDate"),
+                toDate: modalDateIso("rtCD_modalToDate"),
+                transactionCode: $(sel.transCode).val() || "",
+                currencyId: ($(sel.currency).val() || "").trim(),
+                minLos: parseInt($(sel.minLos).val(), 10) || 0,
+                maxLos: parseInt($(sel.maxLos).val(), 10) || 0,
+                minNoOfRoom: parseInt($(sel.minNoOfRoom).val(), 10) || 0,
+                maxNoOfRoom: parseInt($(sel.maxNoOfRoom).val(), 10) || 0,
+                printRate: $(sel.printRate).is(":checked"),
+                discount: $(sel.discount).is(":checked"),
+                a1: parseDec(sel.amt1), a1AfterTax: parseDec(sel.amt1Net),
+                a2: parseDec(sel.amt2), a2AfterTax: parseDec(sel.amt2Net),
+                a3: parseDec(sel.amt3), a3AfterTax: parseDec(sel.amt3Net),
+                a4: parseDec(sel.amt4), a4AfterTax: parseDec(sel.amt4Net),
+                a5: parseDec(sel.amt5), a5AfterTax: parseDec(sel.amt5Net),
+                a6: parseDec(sel.amt6), a6AfterTax: parseDec(sel.amt6Net),
+                a7: parseDec(sel.amt7), a7AfterTax: parseDec(sel.amt7Net),
+                a8: parseDec(sel.amt8), a8AfterTax: parseDec(sel.amt8Net),
+                a9: parseDec(sel.amt9), a9AfterTax: parseDec(sel.amt9Net),
+                a10: parseDec(sel.amt10), a10AfterTax: parseDec(sel.amt10Net),
+                a11: parseDec(sel.amt11), a11AfterTax: parseDec(sel.amt11Net),
+                a12: parseDec(sel.amt12), a12AfterTax: parseDec(sel.amt12Net),
+                a13: parseDec(sel.amt13), a13AfterTax: parseDec(sel.amt13Net),
+                a14: parseDec(sel.amt14), a14AfterTax: parseDec(sel.amt14Net),
+                a15: parseDec(sel.amt15), a15AfterTax: parseDec(sel.amt15Net),
+                c1: parseDec(sel.child1), c1AfterTax: parseDec(sel.child1Net),
+                c2: parseDec(sel.child2), c2AfterTax: parseDec(sel.child2Net),
+                c3: parseDec(sel.child3), c3AfterTax: parseDec(sel.child3Net),
+                adultExtra: parseDec(sel.extraAdult), adultExtraTax: parseDec(sel.extraAdultNet)
+            };
+        }
+
+        function save(closeAfter) {
+            const payload = buildPayload();
+            const err = validatePayload(payload);
+            if (err) {
+                showToast("Error", err, false);
                 return;
             }
-            if (!confirm("Are you sure you want to delete this record?")) return;
+
+            const anchorSnapshot = selectedGroupedRow;
 
             showLoading(true);
 
             $.ajax({
-                url: "/Administration/RateCode/DeleteRateCodeDetail",
+                url: "/Administration/RateCode/SaveRateCodeDetail",
                 type: "POST",
-                data: { id: selectedGroupedRow.id },
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify(payload),
+                success: function (res) {
+                    showLoading(false);
+                    if (res?.success) {
+                        showToast("Success", res.message || "Saved successfully", true);
+                        if (closeAfter) upsertModal.hide();
+                        const newId = res.data?.id ?? res.data?.Id;
+                        reloadAll(false, {
+                            preferredRateCodeId: payload.rateCodeId,
+                            anchorGroup: anchorSnapshot,
+                            highlightDetailId: newId
+                        });
+                    } else {
+                        showToast("Error", res?.message || "Validation failed", false);
+                    }
+                },
+                error: function (xhr) {
+                    showLoading(false);
+                    showToast("Error", xhr.responseJSON?.message || "An error occurred while saving", false);
+                }
+            });
+        }
+
+        // --------- DELETE / EXPORT ---------
+        function doDelete() {
+            deleteDetailRow();
+        }
+
+        function deleteDetailRow() {
+            const grid = gridDetails;
+            const row = grid?.getSelectedRowsData()?.[0];
+            const id = parseInt(row?.id, 10) || 0;
+            if (id <= 0) {
+                showToast("Warning", "Please select one row in the Details grid to delete.", false);
+                return;
+            }
+            if (!confirm("Delete this Rate Code Detail record?")) return;
+
+            showLoading(true);
+            $.ajax({
+                url: "/Administration/RateCode/DeleteRateCodeDetail?id=" + encodeURIComponent(id),
+                type: "POST",
                 traditional: true,
-                crossDomain: false,
                 headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() },
                 success: function (result) {
+                    showLoading(false);
                     if (result?.success) {
                         showToast("Success", result.message || "Deleted successfully", true);
-                        reloadAll(false);
+                        reloadAll(false, { preferredRateCodeId: selectedRateCodesRow?.idRateCode });
                     } else {
                         showToast("Error", result?.message || "Delete failed", false);
                     }
                 },
-                error: function () {
-                    showToast("Error", "Unable to delete record", false);
-                },
-                complete: function () {
+                error: function (xhr) {
                     showLoading(false);
+                    showToast("Error", xhr.responseJSON?.message || "Unable to delete record", false);
                 }
             });
         }

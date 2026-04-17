@@ -1299,7 +1299,7 @@
                        id="assignRoom">C/O All</a>
                     <a href="#" class="font-semibold col-md-4  " onclick="openModalCheckOutAll(2);"
                        id="unAssignRoom">C/O Zero</a>
-                    <a href="#" class="font-semibold col-md-4  " onclick="openModalCheckOut();"
+                    <a href="#" class="font-semibold col-md-4 js-checkout-single" onclick="openModalCheckOut();"
                        id="unAssignRoom">C/O</a>
                     <a href="#" class="font-semibold col-md-4 " onclick="openRoomAssignment();"
                        id="assignRoom">Assignment</a>
@@ -1555,6 +1555,9 @@
             }
              showButton();
             await setUpReservation(result);
+            if (typeof window.updateSingleCheckoutButtonState === 'function') {
+                window.updateSingleCheckoutButtonState(reservationStatus);
+            }
             $('#btnOption').show();
             $('#btnClear').hide();
         } else {
@@ -2632,9 +2635,20 @@
             cancel: "cancelButton"
         };
 
+        if (!result || typeof result !== "object") {
+            hideAllButtons();
+            return;
+        }
+
         Object.entries(map).forEach(([key, id]) => {
             $("#" + id).toggle(!!result[key]);
         });
+
+        // Đã checkout (2) vẫn cần vào Billing — ghi đè nếu cờ DB tắt nhầm
+        const status = typeof reservationStatus !== "undefined" ? Number(reservationStatus) : NaN;
+        if (status === 2) {
+            $("#billingButton").show();
+        }
     }
    function OkReservation(type) {
 

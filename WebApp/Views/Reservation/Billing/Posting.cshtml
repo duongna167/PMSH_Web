@@ -815,6 +815,21 @@
     }
 
     // --- DATA LOADING & FORM FILLING ---
+    function clearPostingFormForTransactionChange() {
+        const activeForm = $('.tab-pane.active');
+        if (!activeForm.length) return;
+
+        isSilentReset = true;
+        activeForm.find('.js-trans-code').val('');
+        activeForm.find('.js-trans-desc').val('');
+        activeForm.find('.js-art-code').val('');
+        activeForm.find('.js-art-desc').val('');
+        activeForm.find('.js-input-qty').val('1');
+        activeForm.find('.js-input-price, .js-input-price-net').val('0,00').removeClass('active-user-input');
+        activeForm.find('.js-amount-gross, .js-amount-net').val('0,00');
+        setTimeout(function () { isSilentReset = false; }, 120);
+    }
+
     function fillToForm(tCode, tDesc, aCode, aDesc, price, element) {
         if (element) highlightItem(element, '#list-article-container');
 
@@ -835,14 +850,18 @@
 
         activeForm.find('.js-input-qty').val('1');
 
-        let formattedPrice = formatNumberWithComma(price);
+        const numPrice = parseFloat(price) || 0;
+        let formattedPrice = formatNumberWithComma(numPrice);
         // Sửa lại selector ID thành Class
         activeForm.find('.js-input-price').val(formattedPrice);
         activeForm.find('.js-input-price').addClass('active-user-input');
         activeForm.find('.js-input-price-net').removeClass('active-user-input');
 
-        if (price > 0) {
+        if (numPrice > 0) {
             apiCalcNetFromPlus();
+        } else {
+            activeForm.find('.js-input-price-net').val(formattedPrice);
+            setTimeout(function () { calculateLineTotal(); }, 0);
         }
 
         if (window.innerWidth < 768) switchView('form');
@@ -1064,6 +1083,7 @@
 
     function checkAndLoadArticles(transCode, transName, transPrice, element) {
         highlightItem(element, '#list-transaction-container');
+        clearPostingFormForTransactionChange();
         $('#list-article-container').html('<div class="p-2 text-muted">Loading...</div>');
 
         $.ajax({

@@ -19,6 +19,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
@@ -35,6 +36,9 @@ namespace Billing.Controllers
 {
     public partial class BillingController : Controller
     {
+        /// <summary>Serialize PostPayment per reservation to avoid duplicate folio lines from double-submit / parallel requests.</summary>
+        private static readonly ConcurrentDictionary<int, object> _postPaymentLocks = new();
+
         private const string SplitTransactionProcedureName = "spSplitTransactionByDev";
         private readonly IConfiguration _configuration;
         private readonly ILogger<BillingController> _logger;
@@ -791,6 +795,25 @@ namespace Billing.Controllers
 
         [HttpPost]
         public ActionResult PostPayment()
+        {
+            int reservationID;
+            try
+            {
+                reservationID = int.Parse(Request.Form["rsvID"].ToString());
+            }
+            catch
+            {
+                return Json(new { code = 1, msg = "Invalid reservation." });
+            }
+
+            var gate = _postPaymentLocks.GetOrAdd(reservationID, _ => new object());
+            lock (gate)
+            {
+                return PostPaymentCore();
+            }
+        }
+
+        private ActionResult PostPaymentCore()
         {
             ProcessTransactions pt = new ProcessTransactions();
             try

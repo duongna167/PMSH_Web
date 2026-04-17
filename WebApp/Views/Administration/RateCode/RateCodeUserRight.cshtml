@@ -14,7 +14,7 @@
                 <h5 class="modal-title fw-bold text-primary" id="rtCUD_modalTitle">Rate Code User Right</h5>
             </div>
 
-            <div class="modal-body">
+            <div class="modal-body position-relative">
                 <div class="search-filter">
                     <!-- ACTION BAR -->
                     <div>
@@ -80,9 +80,8 @@
 
                 <!-- LOADING -->
                 <div id="rtCUD_loadingSpinner"
-                    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
-                    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
-                    height: 100%;display: flex;align-items: center;justify-content: center;">
+                    style="display:none;position:absolute;inset:0;z-index:999;background:rgba(255,255,255,0.55);
+                    align-items:center;justify-content:center;">
                     <div class="spinner-border text-primary"></div>
                 </div>
 
@@ -216,6 +215,7 @@
             });
 
             $(sel.modalUpsert).off("hidden.bs.modal.rtCUD").on("hidden.bs.modal.rtCUD", function () {
+                clearMainModalBlur();
                 clearForm();
                 if (typeof window.applyValidationErrors === "function") applyValidationErrors([], sel.form);
             });
@@ -247,7 +247,7 @@
             });
 
             $(document).off("click.rtCUD", sel.btnClosemodalUpsert).on("click.rtCUD", sel.btnClosemodalUpsert, function () {
-                $('#rtCUD_modalMain .modal-content').removeClass('modal-blur');
+                clearMainModalBlur();
                 upsertModal.hide();
             });
 
@@ -274,7 +274,11 @@
         }
 
         function showLoading(on) {
-            if (on) $(sel.loading).show(); else $(sel.loading).hide();
+            if (on) $(sel.loading).css("display", "flex"); else $(sel.loading).hide();
+        }
+
+        function clearMainModalBlur() {
+            $("#rtCUD_modalMain .modal-content").removeClass("modal-blur");
         }
 
         // Allow external modal pickers to push selection back into this module
@@ -311,12 +315,18 @@
                     rateCode: $(sel.codeFilter).val() || ""
                 },
                 success: function (data) {
-                    if (!Array.isArray(data) || data.length === 0) {
+                    try {
+                        if (!Array.isArray(data) || data.length === 0) {
+                            renderGrid([]);
+                            showToast("Warning", "No records found.", false);
+                            return;
+                        }
+                        renderGrid(data);
+                    } catch (e) {
+                        console.error(e);
+                        showToast("Error", "Cannot render grid.", false);
                         renderGrid([]);
-                        showToast("Warning", "No records found.", false);
-                        return;
                     }
-                    renderGrid(data);
                 },
                 error: function () {
                     showToast("Error", "Cannot load data.", false);
@@ -359,6 +369,7 @@
 
                 filterRow: { visible: true, applyFilter: "auto" },
 
+                keyExpr: "id",
                 columns: [
                     { dataField: "id", visible: false },
                     { dataField: "rateCodeID", visible: false },
@@ -391,7 +402,7 @@
             clearForm();
             if (typeof window.applyValidationErrors === "function") applyValidationErrors([], sel.form);
             $(sel.upsertTitle).text("New Rate Code User Right");
-            $('#rtCUD_modalMain .modal-content').addClass('modal-blur');
+            $("#rtCUD_modalMain .modal-content").addClass("modal-blur");
             upsertModal.show();
         }
 
@@ -410,7 +421,7 @@
             $(sel.rateCode).val(selectedRowData.rateCode || "");
 
             $(sel.upsertTitle).text("Edit Rate Code User Right");
-            $('#rtCUD_modalMain .modal-content').addClass('modal-blur');
+            $("#rtCUD_modalMain .modal-content").addClass("modal-blur");
             upsertModal.show();
         }
 
@@ -447,7 +458,9 @@
                 contentType: "application/json",
                 data: JSON.stringify(payload),
                 success: function (res) {
+                    showLoading(false);
                     if (res?.success) {
+                        clearMainModalBlur();
                         showToast("Success", res.message, true);
                         upsertModal.hide();
                         reloadGrid();
@@ -460,15 +473,13 @@
                     }
                 },
                 error: function (xhr) {
+                    showLoading(false);
                     const errs = xhr.responseJSON?.errors;
                     if (Array.isArray(errs) && errs.length) {
                         errs.forEach((m, i) => setTimeout(() => showToast("Error", m, false), i * 700));
                     } else {
                         showToast("Error", xhr.responseJSON?.message || "Save failed.", false);
                     }
-                },
-                complete: function () {
-                    showLoading(false);
                 }
             });
         }
