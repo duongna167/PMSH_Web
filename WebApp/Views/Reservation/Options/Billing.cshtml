@@ -431,6 +431,7 @@
             type: 'get',
             data: { reservationID: idReservation },
             success: function (result) {
+                result = result || [];
                 if (preferredFolioId > 0 && result && result.length > 0) {
                     const exists = result.some(function (f) { return f.id === preferredFolioId; });
                     if (exists) {
@@ -493,13 +494,21 @@
                         }
                     }
                     filterByFolioNo(folioNoID, defaultIndex);
-                } else if (typeof renderFolioOptions === 'function') {
-                    renderFolioOptions();
+                } else {
+                    $('#infoBillingName').text('No folio found for this reservation.');
+                    initializeDataGridBilling([]);
+                    if (typeof renderFolioOptions === 'function') {
+                        renderFolioOptions();
+                    }
                 }
             },
             error: function (xhr, statusText) {
                 if (statusText === 'abort') return;
                 if (xhr.status == 401) sessionTimeout();
+                else {
+                    $('#infoBillingName').text('Unable to load folio list.');
+                    initializeDataGridBilling([]);
+                }
             }
         });
     }

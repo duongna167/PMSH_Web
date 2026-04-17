@@ -177,6 +177,10 @@ namespace Reservation.Controllers
 
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
             {
+                // NewReservation được nhúng vào modal trên SearchReservation — trang đó đã include
+                // Options/* (Billing, Deposit, …). Không render lại để tránh trùng id DOM (modal Billing
+                // bị bind nhầm vào bản ẩn, lần đầu mở Billing chỉ thấy Loading).
+                ViewBag.SuppressDuplicateReservationOptionPartials = true;
                 return PartialView(); // hoặc PartialView("_NewReservationPartial")
             }
             return View();
