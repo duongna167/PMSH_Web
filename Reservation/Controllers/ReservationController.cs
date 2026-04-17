@@ -5099,7 +5099,7 @@ namespace Reservation.Controllers
                 string @Inspected = "", @Clean = "", @AllRooms = "", @CleanAndInspected = "";
                 if (confirmationNo == null || string.IsNullOrEmpty(confirmationNo))
                 {
-                    return Json(0);
+                    return Json(new List<object>());
                 }
                 if (type == 1)
                 {
@@ -5141,7 +5141,7 @@ namespace Reservation.Controllers
             }
             catch (Exception ex)
             {
-                return Json(ex.Message);
+                return Json(new { error = ex.Message });
             }
         }
 

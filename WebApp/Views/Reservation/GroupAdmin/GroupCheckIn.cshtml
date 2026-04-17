@@ -56,6 +56,11 @@
 
     });
     function searchGroupCheckInRoom(type) {
+        if (!confirmationNo) {
+            initializeDataGridSearchGroupCheckInRoom([]);
+            showToast('Warning', 'No confirmation number selected.', false);
+            return;
+        }
         $.ajax({
             url: '/Reservation/SearchGroupCheckInRoom',
             type: 'get',
@@ -67,9 +72,14 @@
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                console.log(result);
-                initializeDataGridSearchGroupCheckInRoom(result);
+                console.log('SearchGroupCheckInRoom result:', result);
+                // Backend trả Json(0) khi confirmationNo rỗng hoặc lỗi trả string
+                var safeResult = Array.isArray(result) ? result : [];
+                initializeDataGridSearchGroupCheckInRoom(safeResult);
 
+                if (safeResult.length === 0) {
+                    showToast('Warning', 'No rooms available. Please assign rooms to reservations first.', false);
+                }
             },
             error: function (xhr, statusText, err) {
                 if (xhr.status == 401) {
