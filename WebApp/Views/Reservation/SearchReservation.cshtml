@@ -455,8 +455,6 @@
         offcanvas.show();
     }
     $(document).ready(async function () {
-        initTomSelect(".tomselect-custom");
-
         await getBusinessDate();
         setupDefaultCaret();
         const urlParams = new URLSearchParams(window.location.search);
@@ -487,7 +485,6 @@
             $("#searchType").val(typeMapping[type]).trigger("change");
         }
         await searchReservation(isInitial = true);
-        await setTomSelect();
         $('#listFunction').hide();
         $('#searchType, #name, #firstName, #resvHolder, #confirmationNo, #crsNo, #roomNo, #roomType, #package, #zone, #arrivalForm, #departureForm, #roomShare, #owner').on('keypress', async function (e) {
             if (e.which === 13) {
@@ -1271,22 +1268,6 @@
             }
         });
     }
-    async function setTomSelect() {
-        const ids = [
-            "#txtName", "#txtItemInventory", "#transactionRouting", "#userSelectOption"
-        ];
-        for (const id of ids) {
-            const el = document.querySelector(id);
-            if (!el || el.tomselect) continue;
-            const tag = (el.tagName || "").toUpperCase();
-            if (tag !== "SELECT" && tag !== "INPUT") continue;
-            new TomSelect(el, {
-                allowEmptyOption: true,
-                create: true
-            });
-        }
-    }
-
     function syncReservationSelectionFromGrid() {
         const grid = $("#gridContainer").dxDataGrid("instance");
         if (!grid) {
@@ -1355,7 +1336,9 @@
                         cache: false,
                         success: function (html) {
                             modal.find('.modal-body').html(html);
-
+                            if (typeof window.focusNewReservationFirstField === 'function') {
+                                window.focusNewReservationFirstField();
+                            }
                         },
                         error: function () {
                             modal.find('.modal-body').html(`

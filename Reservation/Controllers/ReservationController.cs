@@ -4448,51 +4448,44 @@ namespace Reservation.Controllers
             {
                 pt.OpenConnection();
                 pt.BeginTransaction();
-                ReservationModel reservation = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(int.Parse(Request.Form["reservationID"].ToString()));
+                int reservationId = int.Parse(Request.Form["reservationID"].ToString());
+                ReservationModel reservation = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(reservationId);
                 if (reservation == null || reservation.ID == 0)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Can not find reservation" });
+                }
 
-                }
-                string status = Request.Form["status"].ToString();
-                int statusCode = 0;
-                switch (status)
+                // Dùng trạng thái trong DB (int), không phụ thuộc chuỗi Status từ grid — tránh lệch định dạng vẫn báo thành công.
+                // 1 = Checked In, 2 = Checked Out, 3 = Cancel (khớp RESV_STATUS trên SearchReservation).
+                int dbStatus = reservation.Status;
+                if (dbStatus != 1 && dbStatus != 2 && dbStatus != 3)
                 {
-                    case "RESVED":
-                        statusCode = 0;
-                        break;
-                    case "CHECKED IN":
-                        statusCode = 1;
-                        break;
-                    case "CHECKED OUT":
-                        statusCode = 2;
-                        break;
-                    case "CANCEL":
-                        statusCode = 3;
-                        break;
-                    default:
-                        statusCode = 0;
-                        break;
+                    pt.RollBack();
+                    return Json(new { code = 1, msg = "Reinstate is not allowed for the current reservation status." });
                 }
+
+                string userName = Request.Form["userName"].ToString();
+                int userId = int.Parse(Request.Form["userID"].ToString());
 
                 #region Reinstate booking với đang ở trạng thái cancel -> booking trở về trạng thái reservation và clear room
-                if (statusCode == 3)
+                if (dbStatus == 3)
                 {
                     #region update reservation
                     reservation.Status = 0;
                     reservation.RoomId = 0;
                     reservation.RoomNo = "";
-                    reservation.UpdateBy = Request.Form["userName"].ToString();
+                    reservation.UpdateBy = userName;
                     reservation.UpdateDate = DateTime.Now;
-                    reservation.UserUpdateId = int.Parse(Request.Form["userID"].ToString());
+                    reservation.UserUpdateId = userId;
                     ReservationBO.Instance.Update(reservation);
                     #endregion
                     #region insert log actitvity
                     ActivityLogModel activityLogModel = new ActivityLogModel();
                     activityLogModel.TableName = "Reservation";
                     activityLogModel.ObjectID = reservation.ID;
-                    activityLogModel.UserID = int.Parse(Request.Form["userID"].ToString());
-                    activityLogModel.UserName = Request.Form["userName"].ToString();
+                    activityLogModel.UserID = userId;
+                    activityLogModel.UserName = userName;
                     activityLogModel.ChangeDate = DateTime.Now;
                     activityLogModel.Change = "Status";
                     activityLogModel.OldValue = "3";
@@ -4505,21 +4498,21 @@ namespace Reservation.Controllers
 
 
                 #region Reinstate booking với đang ở trạng thái check out -> booking trở về trạng thái due out
-                if (statusCode == 2)
+                else if (dbStatus == 2)
                 {
                     #region update reservation
                     reservation.Status = 6;
-                    reservation.UpdateBy = Request.Form["userName"].ToString();
+                    reservation.UpdateBy = userName;
                     reservation.UpdateDate = DateTime.Now;
-                    reservation.UserUpdateId = int.Parse(Request.Form["userID"].ToString());
+                    reservation.UserUpdateId = userId;
                     ReservationBO.Instance.Update(reservation);
                     #endregion
                     #region insert log actitvity
                     ActivityLogModel activityLogModel = new ActivityLogModel();
                     activityLogModel.TableName = "Reservation";
                     activityLogModel.ObjectID = reservation.ID;
-                    activityLogModel.UserID = int.Parse(Request.Form["userID"].ToString());
-                    activityLogModel.UserName = Request.Form["userName"].ToString();
+                    activityLogModel.UserID = userId;
+                    activityLogModel.UserName = userName;
                     activityLogModel.ChangeDate = DateTime.Now;
                     activityLogModel.Change = "Status";
                     activityLogModel.OldValue = "2";
@@ -4531,30 +4524,30 @@ namespace Reservation.Controllers
                 #endregion
 
                 #region booking đang ở trạng thái check in -> booking trở về trạng thái due in
-                if (statusCode == 1)
+                else if (dbStatus == 1)
                 {
                     #region check xem đã có trong folio detail hay chưa, nếu có dịch vụ rồi thì không cho reinstate
                     List<FolioDetailModel> folioDetails = PropertyUtils.ConvertToList<FolioDetailModel>(FolioDetailBO.Instance.FindByAttribute("ReservationID", reservation.ID));
                     if (folioDetails.Count > 0)
                     {
+                        pt.RollBack();
                         return Json(new { code = 1, msg = "Can not reinstate" });
-
                     }
                     #endregion
 
                     #region update reservation
                     reservation.Status = 5;
-                    reservation.UpdateBy = Request.Form["userName"].ToString();
+                    reservation.UpdateBy = userName;
                     reservation.UpdateDate = DateTime.Now;
-                    reservation.UserUpdateId = int.Parse(Request.Form["userID"].ToString());
+                    reservation.UserUpdateId = userId;
                     ReservationBO.Instance.Update(reservation);
                     #endregion
                     #region insert log actitvity
                     ActivityLogModel activityLogModel = new ActivityLogModel();
                     activityLogModel.TableName = "Reservation";
                     activityLogModel.ObjectID = reservation.ID;
-                    activityLogModel.UserID = int.Parse(Request.Form["userID"].ToString());
-                    activityLogModel.UserName = Request.Form["userName"].ToString();
+                    activityLogModel.UserID = userId;
+                    activityLogModel.UserName = userName;
                     activityLogModel.ChangeDate = DateTime.Now;
                     activityLogModel.Change = "Status";
                     activityLogModel.OldValue = "1";
@@ -4564,6 +4557,7 @@ namespace Reservation.Controllers
                     #endregion
                 }
                 #endregion
+
                 pt.CommitTransaction();
 
                 return Json(new { code = 0, msg = "Reinstate was successfully!" });

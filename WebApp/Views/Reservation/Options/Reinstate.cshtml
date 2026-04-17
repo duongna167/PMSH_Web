@@ -82,7 +82,20 @@
             showToast('Error', 'Please choose booking', false);
             return;
         }
-        if(status == 'RESVED' || status == 'DUE IN' || status == 'DUE OUT'|| status == 'WAIT LIST'|| status == 'NO SHOW'|| status == 'DAY USE'){
+        // Khớp RESV_STATUS / reservation.Status trong DB: chỉ Cancel(3), CheckedOut(2), CheckedIn(1) mới reinstate được.
+        var rs = NaN;
+        if (typeof reservationStatus !== 'undefined' && reservationStatus !== null && reservationStatus !== '') {
+            rs = parseInt(reservationStatus, 10);
+        }
+        if (isNaN(rs) && typeof statusID !== 'undefined') {
+            rs = parseInt(statusID, 10);
+        }
+        var allowed = !isNaN(rs) && (rs === 1 || rs === 2 || rs === 3);
+        if (!allowed && typeof status === 'string' && status) {
+            var t = status.toUpperCase().replace(/\s+/g, ' ').trim();
+            allowed = (t === 'CHECKED IN' || t === 'CHECKED OUT' || t === 'CANCEL' || t === 'CANCELLED');
+        }
+        if (!allowed) {
             showToast('Warning', 'This action is not allowed for the current status.', false);
             return;
         }
@@ -98,8 +111,20 @@
          ReinstateReservation();
     }
     function ReinstateReservation() {
-        const userName = JSON.parse(localStorage.getItem("Loginname"));
-        const userID = JSON.parse(localStorage.getItem("userID"));
+        var rawLogin = localStorage.getItem("Loginname");
+        var userName = "";
+        if (rawLogin) {
+            try { userName = String(JSON.parse(rawLogin)); } catch (e) { userName = rawLogin.trim().replace(/^"(.*)"$/, "$1"); }
+        }
+        var rawUserId = localStorage.getItem("userID");
+        var userID = 0;
+        if (rawUserId) {
+            try { userID = parseInt(JSON.parse(rawUserId), 10) || 0; } catch (e2) { userID = parseInt(String(rawUserId).replace(/"/g, ""), 10) || 0; }
+        }
+        if (!userID) {
+            showToast('Error', 'Session user is missing. Please sign in again.', false);
+            return;
+        }
         var formData = new FormData();
         formData.append('reservationID',idReservation);
         formData.append('userName',userName);
@@ -111,11 +136,11 @@
             type: 'POST',
             processData: false,
             contentType: false,
-            // headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             data: formData,
             success: function (data) {
                 if (data.code == 0) {
-                        searchReservation();          
+                        if (typeof searchReservation === 'function') searchReservation();
                         showToast('Success', data.msg, true);
                 } else {
                         showToast('Error', data.msg, false);

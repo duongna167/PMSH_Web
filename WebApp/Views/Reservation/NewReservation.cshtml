@@ -1386,6 +1386,8 @@
     if (typeof profileIndividualID === 'undefined') var profileIndividualID = 0;
     if (typeof idReservation === 'undefined') var idReservation = 0;
     if (typeof status === 'undefined') var status = '';
+    if (typeof reservationStatus === 'undefined') var reservationStatus = 0;
+    if (typeof statusID === 'undefined') var statusID = 0;
     if (typeof roomStatus === 'undefined') var roomStatus = '';
     if (typeof roomNo === 'undefined') var roomNo = '';
     if (typeof roomNowuk === 'undefined') var roomNowuk = '';
@@ -1402,13 +1404,38 @@
     if (typeof folioNoID === 'undefined') var folioNoID = 0;
 
     function focusNewReservationFirstField() {
-        window.setTimeout(function () {
-            const $firstInput = $('#txtName');
-            if ($firstInput.length && $firstInput.is(':visible')) {
-                $firstInput.trigger('focus').trigger('select');
+        function getRoot() {
+            var modalBody = document.getElementById('newReservationModalBody');
+            if (modalBody) return $(modalBody);
+            var layout = document.querySelector('.container-new-reservation');
+            if (layout) return $(layout);
+            return $('body');
+        }
+        function attempt() {
+            var $root = getRoot();
+            var $target = $root.find('#txtName').filter(':visible').first();
+            if (!$target.length) {
+                $target = $root.find('input:not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"])')
+                    .filter(':visible:not([disabled])').first();
             }
-        }, 50);
+            if (!$target.length) {
+                $target = $root.find('select:visible:not([disabled]), textarea:visible:not([disabled])').first();
+            }
+            if (!$target.length) return false;
+            var el = $target[0];
+            if (el) {
+                el.focus();
+                if (el.tagName === 'INPUT' && (!el.type || el.type === 'text' || el.type === 'search')) {
+                    try { el.select(); } catch (e) { }
+                }
+            }
+            return true;
+        }
+        [0, 80, 220].forEach(function (delay) {
+            window.setTimeout(attempt, delay);
+        });
     }
+    window.focusNewReservationFirstField = focusNewReservationFirstField;
 
     function setReservationNameInputMode(isEditMode) {
         const $nameInput = $('#txtName');
@@ -1522,10 +1549,20 @@
             console.log('đang mode edit');
             checkEdit = true;
             idReservation = result.id;
+            if (result.status !== undefined && result.status !== null) {
+                reservationStatus = result.status;
+                statusID = result.status;
+            }
              showButton();
             await setUpReservation(result);
             $('#btnOption').show();
             $('#btnClear').hide();
+        } else {
+            // Booking mới: luôn ép idReservation = 0 (không dùng biến global còn sót từ grid / lần trước).
+            idReservation = 0;
+            checkEdit = false;
+            if (typeof reservationStatus !== 'undefined') reservationStatus = 0;
+            if (typeof statusID !== 'undefined') statusID = 0;
         }
 
         setReservationNameInputMode(checkEdit);
@@ -2760,11 +2797,10 @@
             rateAmount = 0;
             lastname = '';
         } else {
-            // Trong modal: chỉ reset idReservation về 0 cho lần tạo mới tiếp theo
-            // nhưng khôi phục lại state của SearchReservation từ grid
             idReservation = 0;
             folioNoID = 0;
-            syncReservationSelectionFromGrid();
+            // Không gọi syncReservationSelectionFromGrid(): sẽ gán lại id từ dòng đang chọn trên lưới
+            // và khiến lần lưu tiếp theo gửi reservationID > 0 → server coi là UPDATE, ghi đè booking.
         }
         clearSearch();
         $('#txtAgent').val('');
@@ -2867,6 +2903,9 @@
         $('#txtName').removeClass('is-valid is-invalid').attr('aria-invalid', 'false');
         setReservationNameInputMode(false);
 
+        hideAllButtons();
+        $('#btnClear').show();
+        $('#btnOption').hide();
 
         getBusinessDate();
         getDataMarket();
