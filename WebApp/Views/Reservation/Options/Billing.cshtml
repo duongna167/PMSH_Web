@@ -12,7 +12,7 @@
                 <div class="functions-pane">
                     <div class="function-menu flex-grow-1">
                         <div class="dropdown d-inline-block">
-                            <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown"> View</a>
+                            <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false"> View</a>
                             <div class="dropdown-menu dropdown-menu-custom-rsv">
                                 <a class="dropdown-item" href="#" onclick="openBilling0();">By Total</a>
                                 <a class="dropdown-item" href="#" onclick="openBilling1();">By Detail : Include Tax</a>
@@ -27,7 +27,7 @@
                         <a href="#" onclick="openModalEditPosting();"> Edit</a>
 
                         <div class="dropdown d-inline-block">
-                            <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown"> Print</a>
+                            <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false"> Print</a>
                             <div class="dropdown-menu dropdown-menu-custom-rsv">
                                 <a class="dropdown-item" href="#" onclick="PrintAndPreview(1);">
                                     Style: Billing
@@ -138,21 +138,21 @@
                             <a href="#" onclick="deleteFolioNo();">Delete Window</a>
 
                             <div class="dropdown">
-                                <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">Lock Folio</a>
+                                <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">Lock Folio</a>
                                 <div class="dropdown-menu">
                                     <a class="dropdown-item" href="#" onclick="LockFolioOnly(folioNoID);">Only One</a>
                                     <a class="dropdown-item" href="#" onclick="LockFolio();">All Folio</a>
                                 </div>
                             </div>
                             <div class="dropdown">
-                                <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">Unlock Folio</a>
+                                <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">Unlock Folio</a>
                                 <div class="dropdown-menu">
                                     <a class="dropdown-item" href="#" onclick="UnLockFolioOnly(folioNoID);">Only One</a>
                                     <a class="dropdown-item" href="#" onclick="UnLockFolio();">All Folio</a>
                                 </div>
                             </div>
                             <div class="dropdown">
-                                <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">Posting History</a>
+                                <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">Posting History</a>
                                 <div class="dropdown-menu">
                                     <a class="dropdown-item" href="#" onclick="PostingHistory(1);">By Folio</a>
                                     <a class="dropdown-item" href="#" onclick="PostingHistory(2);">By Invoice</a>
@@ -167,7 +167,7 @@
                             <a href="#" onclick="ExportExcelBilling();">Export to Excel</a>
 
                             <div class="dropdown">
-                                <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">Transfer to Window</a>
+                                <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">Transfer to Window</a>
                                 <div class="dropdown-menu" id="listTransferToWindow"></div>
                             </div>
                             <a href="#" onclick="openModalTransactionDetail();">View Transaction Detail</a>
@@ -431,6 +431,7 @@
             type: 'get',
             data: { reservationID: idReservation },
             success: function (result) {
+                result = result || [];
                 if (preferredFolioId > 0 && result && result.length > 0) {
                     const exists = result.some(function (f) { return f.id === preferredFolioId; });
                     if (exists) {
@@ -493,13 +494,21 @@
                         }
                     }
                     filterByFolioNo(folioNoID, defaultIndex);
-                } else if (typeof renderFolioOptions === 'function') {
-                    renderFolioOptions();
+                } else {
+                    $('#infoBillingName').text('No folio found for this reservation.');
+                    initializeDataGridBilling([]);
+                    if (typeof renderFolioOptions === 'function') {
+                        renderFolioOptions();
+                    }
                 }
             },
             error: function (xhr, statusText) {
                 if (statusText === 'abort') return;
                 if (xhr.status == 401) sessionTimeout();
+                else {
+                    $('#infoBillingName').text('Unable to load folio list.');
+                    initializeDataGridBilling([]);
+                }
             }
         });
     }
