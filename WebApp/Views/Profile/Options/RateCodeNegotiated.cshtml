@@ -164,23 +164,50 @@
             });
         },
 
+        negRateMapItem: function (item) {
+            const zip = item.rateCode || item.RateCode || "";
+            const name = item.descripton || item.Descripton || item.description || item.Description || "";
+            return {
+                value: item.id || item.ID,
+                text: (zip && name) ? `${zip} - ${name}` : (zip || name || "Unknown"),
+                data: item
+            };
+        },
+
         openModalNew: function() {
             const self = this;
 
-            initDateInputs();
-            initTomSelect('select.tomselect-custom');
-            clearMultipleTomSelect(["#rate_neg_rateCodeID"]);
+            $("#neg_rate_id").val("0");
+            $("#rate_neg_account").val(self.profileName);
 
-            loadDataToTomSelect("#rate_neg_rateCodeID", "/Profile/GetRateCodes", (item) => {
-                const zip = item.rateCode || item.RateCode || "";
-                const name = item.descripton || item.Descripton || "";
-                return {
-                    value: item.id || item.ID,
-                    text: (zip && name) ? `${zip} - ${name}` : (zip || name || "Unknown"),
-                    data: item
-                };
-            }).then(() => {
-                $("#modalNegRateSetup").modal('show');
+            var setupEl = document.getElementById("modalNegRateSetup");
+            if (setupEl && typeof initDateInputs === "function") {
+                initDateInputs(setupEl);
+            } else if (typeof initDateInputs === "function") {
+                initDateInputs();
+            }
+
+            if (typeof initTomSelect === "function") {
+                initTomSelect("#rate_neg_rateCodeID");
+            }
+            if (typeof clearMultipleTomSelect === "function") {
+                clearMultipleTomSelect(["#rate_neg_rateCodeID"]);
+            }
+
+            if (typeof dateSystem !== "undefined" && window.UI && typeof UI.setHiddenDate === "function") {
+                UI.setHiddenDate("rate_neg_startDate", dateSystem);
+                UI.setHiddenDate("rate_neg_endDate", dateSystem);
+            }
+
+            // loadDataToTomSelect KHÔNG trả về Promise — dùng callback (tham số 4), không dùng .then()
+            loadDataToTomSelect("#rate_neg_rateCodeID", "/Profile/GetRateCodes", function (item) {
+                return self.negRateMapItem(item);
+            }, function (result) {
+                if (!result || result.success === false) {
+                    showToast("Warning", "Could not load rate codes list.", false);
+                    return;
+                }
+                $("#modalNegRateSetup").modal("show");
             });
         },
 
@@ -192,40 +219,52 @@
                 return;
             }
 
-            initDateInputs();
-            initTomSelect('select.tomselect-custom');
+            var setupEl = document.getElementById("modalNegRateSetup");
+            if (setupEl && typeof initDateInputs === "function") {
+                initDateInputs(setupEl);
+            } else if (typeof initDateInputs === "function") {
+                initDateInputs();
+            }
 
-            loadDataToTomSelect("#rate_neg_rateCodeID", "/Profile/GetRateCodes", (item) => {
-                const zip = item.rateCode || item.RateCode || "";
-                const name = item.descripton || item.Descripton || "";
-                return {
-                    value: item.id || item.ID,
-                    text: (zip && name) ? `${zip} - ${name}` : (zip || name || "Unknown"),
-                    data: item
-                };
-            }).then(() => {
+            if (typeof initTomSelect === "function") {
+                initTomSelect("#rate_neg_rateCodeID");
+            }
+
+            loadDataToTomSelect("#rate_neg_rateCodeID", "/Profile/GetRateCodes", function (item) {
+                return self.negRateMapItem(item);
+            }, function (result) {
+                if (!result || result.success === false) {
+                    showToast("Warning", "Could not load rate codes list.", false);
+                    return;
+                }
                 self.fillForm(self.selectedRowData);
-                $("#modalNegRateSetup").modal('show');
+                $("#modalNegRateSetup").modal("show");
             });
         },
 
         getFormData: function () {
 
-            const getTS = (id) => {
-                const ts = getTomSelect(id);
+            const getTS = (sel) => {
+                if (typeof getTomSelect !== "function") return 0;
+                const ts = getTomSelect(sel);
                 return ts ? ts.getValue() : 0;
             };
             const loginName = (localStorage.getItem("Loginname") || "")
             .trim()
             .replace(/^"(.*)"$/, '$1');
-            const loginUser = parseInt(localStorage.getItem("userID")) || 0;
+
+            // Hidden date lưu YYYY-MM-DD (DateInput đặt id=name=data-name)
+            var startIso = $('#rate_neg_startDate').val();
+            var endIso = $('#rate_neg_endDate').val();
+            if (!startIso && typeof dateSystem !== "undefined") startIso = dateSystem;
+            if (!endIso && typeof dateSystem !== "undefined") endIso = dateSystem;
 
             const data = {
-                ID: parseInt($("#neg_rate_id").val()) || 0,
+                ID: parseInt($("#neg_rate_id").val(), 10) || 0,
                 ProfileID: this.profileID,
-                RateCodeID: parseInt(getTS("#rate_neg_rateCodeID")) || 0,
-                BeginSellDate: $('#rate_neg_startDate').val() || dateSystem,
-                EndSellDate: $('#rate_neg_endDate').val() || dateSystem,
+                RateCodeID: parseInt(getTS("#rate_neg_rateCodeID"), 10) || 0,
+                BeginSellDate: startIso,
+                EndSellDate: endIso,
                 UpdatedBy: loginName,
                 CreatedBy: loginName
             };
@@ -273,10 +312,15 @@
             $("#neg_rate_id").val(data.id || data.ID || 0);
             $("#rate_neg_account").val(this.profileName);
 
-            setTomSelectValue("#rate_neg_rateCodeID", data.rateCodeID || data.RateCodeID);
+            var rcid = data.rateCodeID != null ? data.rateCodeID : data.RateCodeID;
+            if (rcid != null && rcid !== "" && typeof setTomSelectValue === "function") {
+                setTomSelectValue("#rate_neg_rateCodeID", String(rcid));
+            }
 
-            UI.setHiddenDate("rate_neg_startDate", data.beginSellDate || data.BeginSellDate);
-            UI.setHiddenDate("rate_neg_endDate", data.endSellDate || data.EndSellDate);
+            if (window.UI && typeof UI.setHiddenDate === "function") {
+                UI.setHiddenDate("rate_neg_startDate", data.beginSellDate || data.BeginSellDate);
+                UI.setHiddenDate("rate_neg_endDate", data.endSellDate || data.EndSellDate);
+            }
         },
 
         loadData: function () {
@@ -300,7 +344,15 @@
         
         renderGrid: function (data) {
             const self = this;
-            $("#rate_neg_gridRateNeg").dxDataGrid({
+            var $host = $("#rate_neg_gridRateNeg");
+            try {
+                var inst = $host.dxDataGrid("instance");
+                if (inst && typeof inst.dispose === "function") {
+                    inst.dispose();
+                }
+            } catch (ex) { /* lần đầu chưa có grid */ }
+
+            $host.dxDataGrid({
                 dataSource: data,
                 height: "100%",
                 width: "100%",
@@ -356,10 +408,11 @@
 
             if (!confirm("Are you sure you want to delete this Negotiated Rate?")) return;
 
+            var delId = self.selectedRowData.id != null ? self.selectedRowData.id : self.selectedRowData.ID;
             $.ajax({
-                url: '/Profile/DeleteRateCodeNegotiated', 
-                type: 'POST', 
-                data: { id: self.selectedRowData.id || self.selectedRowData.ID },
+                url: '/Profile/DeleteRateCodeNegotiated',
+                type: 'POST',
+                data: { id: delId },
                 success: function (res) {
                     if (res.success) {
                         showToast('Success', res.message || 'Deleted successfully', true);

@@ -161,6 +161,77 @@
 </div>
 
 <script>
+    /** Expiry từ API là chuỗi .NET (vd. 18/04/2026 …) — new Date() không parse DD/MM/yyyy → NaN/NaN trên lưới. */
+    function formatMembershipExpiryForGrid(value) {
+        function pad2(n) { return String(n).padStart(2, '0'); }
+        if (value == null || value === '') return '';
+        if (value instanceof Date && !isNaN(value.getTime())) {
+            if (value.getFullYear() <= 1) return '';
+            return pad2(value.getMonth() + 1) + '/' + value.getFullYear();
+        }
+        var s = String(value).trim();
+        if (!s) return '';
+        var d = new Date(s);
+        if (!isNaN(d.getTime())) {
+            if (d.getFullYear() <= 1) return '';
+            return pad2(d.getMonth() + 1) + '/' + d.getFullYear();
+        }
+        var vn = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (vn) {
+            var month = parseInt(vn[2], 10);
+            var year = parseInt(vn[3], 10);
+            if (year <= 1) return '';
+            return pad2(month) + '/' + year;
+        }
+        var iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (iso) {
+            var y = parseInt(iso[1], 10);
+            if (y <= 1) return '';
+            return iso[2] + '/' + y;
+        }
+        return s;
+    }
+
+    function pad2Membership(n) { return String(n).padStart(2, '0'); }
+
+    /** CreatedDate / UpdatedDate từ API là chuỗi có giờ — chỉ hiển thị dd/MM/yyyy trên lưới. */
+    function formatMembershipDateOnlyForGrid(value) {
+        if (value == null || value === '') return '';
+        if (value instanceof Date && !isNaN(value.getTime())) {
+            if (value.getFullYear() <= 1) return '';
+            return pad2Membership(value.getDate()) + '/' + pad2Membership(value.getMonth() + 1) + '/' + value.getFullYear();
+        }
+        var s = String(value).trim();
+        if (!s) return '';
+        var vn = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (vn) {
+            var day = parseInt(vn[1], 10);
+            var month = parseInt(vn[2], 10);
+            var year = parseInt(vn[3], 10);
+            if (year <= 1) return '';
+            return pad2Membership(day) + '/' + pad2Membership(month) + '/' + year;
+        }
+        var iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (iso) {
+            var y = parseInt(iso[1], 10);
+            if (y <= 1) return '';
+            return pad2Membership(parseInt(iso[3], 10)) + '/' + pad2Membership(parseInt(iso[2], 10)) + '/' + iso[1];
+        }
+        var d = new Date(s);
+        if (!isNaN(d.getTime()) && d.getFullYear() > 1) {
+            return pad2Membership(d.getDate()) + '/' + pad2Membership(d.getMonth() + 1) + '/' + d.getFullYear();
+        }
+        return s;
+    }
+
+    function op_membership_memberTypeMap(item) {
+        return {
+            value: item.id || item.ID,
+            text: (item.code || item.Code) + " - " + (item.name || item.Name),
+            data: item
+        };
+    }
+
     var op_membership_Module = {
         profileID: 0,
         profileName: "",
@@ -195,30 +266,40 @@
 
             $('#op_membership_showActive').off('change').on('change', () => self.loadData());
 
-            $('#op_membership_memberTypeAdd').off('change').on('change', function () {
-                let typeId = $(this).val();
-                if (typeId && typeId != 0) {
-                    self.loadMemberTypeByID(typeId);
-                }
-            });
-
             $('#modalNewMembership').off('hidden.bs.modal').on('hidden.bs.modal', function () {
                 self.membershipID = "";
             });
 
         },
 
+        /** Tom Select không luôn bubble change jQuery — đồng bộ qua API getValue (tomselect.js). */
+        onMemberTypeChange: function () {
+            var el = document.querySelector('#op_membership_memberTypeAdd');
+            var raw = '';
+            if (el && el.tomselect && typeof el.tomselect.getValue === 'function') {
+                raw = el.tomselect.getValue();
+            } else {
+                raw = $('#op_membership_memberTypeAdd').val();
+            }
+            if (raw && raw !== '0' && raw !== 0) {
+                this.loadMemberTypeByID(raw);
+            }
+        },
+
         initTomSelects: function () {
             const self = this;
 
             initTomSelect('.tomselect-custom');
-             const mapCode = (item) => ({
-                value: item.id || item.ID,
-                text: (item.code || item.Code) + " - " + (item.name || item.Name),
-                data: item
-            });
 
-            loadDataToTomSelect("#op_membership_memberTypeAdd", "/Profile/GetMemberType", mapCode);
+            loadDataToTomSelect("#op_membership_memberTypeAdd", "/Profile/GetMemberType", op_membership_memberTypeMap, function () {
+                var el = document.querySelector('#op_membership_memberTypeAdd');
+                if (el && el.tomselect && typeof el.tomselect.on === 'function') {
+                    el.tomselect.off('change');
+                    el.tomselect.on('change', function () {
+                        self.onMemberTypeChange();
+                    });
+                }
+            });
         },
 
         loadData: function () {
@@ -265,18 +346,22 @@
                     {
                         dataField: "Expiry", caption: "Expiration Date",
                         customizeText: function (e) {
-                            if (!e.value) return '';
-                            const d = new Date(e.value);
-                            return String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+                            return formatMembershipExpiryForGrid(e.value);
                         }
                     },
                     { dataField: "MemberTypeName", caption: "Card on Name" },
                     { dataField: "Description", caption: "Description" },
                     { dataField: "Inactive", caption: "Inactive" },
                     { dataField: "CreatedBy", caption: "Created By" },
-                    { dataField: "CreatedDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy" },
+                    {
+                        dataField: "CreatedDate", caption: "Created Date",
+                        customizeText: function (e) { return formatMembershipDateOnlyForGrid(e.value); }
+                    },
                     { dataField: "UpdatedBy", caption: "Updated By" },
-                    { dataField: "UpdatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy" },
+                    {
+                        dataField: "UpdatedDate", caption: "Updated Date",
+                        customizeText: function (e) { return formatMembershipDateOnlyForGrid(e.value); }
+                    },
                 ],
                 paging: { pageSize: 15 },
                 pager: {
@@ -324,7 +409,12 @@
 
         resetForm: function () {
             $('#op_membership_memberNameAdd').val(this.profileName);
-            $('#op_membership_memberTypeAdd').val(0);
+            var sel = document.querySelector('#op_membership_memberTypeAdd');
+            if (sel && sel.tomselect) {
+                sel.tomselect.clear(true);
+            } else {
+                $('#op_membership_memberTypeAdd').val('');
+            }
             $('#op_membership_nameOnCardAdd').val('');
             $('#op_membership_cardNumberAdd').val('');
             const myInput = $('[data-month-year-input][data-name="op_membership_expireDateAdd"]').data('monthYearInput');
@@ -341,16 +431,32 @@
                 type: 'GET',
                 data: { id: id },
                 success: function (data) {
-                    $('#op_membership_memberTypeAdd').val(data.memberTypeID);
-                    self.loadMemberTypeByID(data.memberTypeID);
-                    $('#op_membership_cardNumberAdd').val(data.memberNo);
-                    $("#op_membership_sequenceAdd").val(data.sequence);
-                    if (data.expiry) {
-                        const myInput = $('[data-month-year-input][data-name="op_membership_expireDateAdd"]').data('monthYearInput');
-                        if (myInput) myInput.set(data.expiry);
+                    var mtId = data.memberTypeID != null ? String(data.memberTypeID) : '';
+
+                    function fillRest() {
+                        $('#op_membership_cardNumberAdd').val(data.memberNo || '');
+                        $("#op_membership_sequenceAdd").val(data.sequence != null && data.sequence !== '' ? data.sequence : '');
+                        if (data.expiry) {
+                            const myInput = $('[data-month-year-input][data-name="op_membership_expireDateAdd"]').data('monthYearInput');
+                            if (myInput) myInput.set(data.expiry);
+                        }
+                        $("#op_membership_descriptionAdd").val(data.description || '');
+                        $('#op_membership_inactiveAdd').prop('checked', data.inActive === true || data.inActive === 1);
+                        self.loadMemberTypeByID(data.memberTypeID);
                     }
-                    $("#op_membership_descriptionAdd").val(data.description);
-                    $('#op_membership_inactiveAdd').prop('checked', data.inActive == 1);
+
+                    var el = document.querySelector('#op_membership_memberTypeAdd');
+                    if (el && el.tomselect && typeof loadDataToTomSelect === 'function') {
+                        loadDataToTomSelect('#op_membership_memberTypeAdd', '/Profile/GetMemberType', op_membership_memberTypeMap, function () {
+                            if (mtId) {
+                                setTomSelectValue('#op_membership_memberTypeAdd', mtId);
+                            }
+                            fillRest();
+                        });
+                    } else {
+                        $('#op_membership_memberTypeAdd').val(mtId);
+                        fillRest();
+                    }
                 },
                 error: function () {
                     alert('Error retrieving membership data.');
@@ -382,7 +488,7 @@
                 return;
             }
 
-            var mId = selectedRowsData[0].ID;
+            var mId = selectedRowsData[0].id || selectedRowsData[0].ID;
 
             if (!confirm("Are you sure you want to delete this member card?")) return;
 
