@@ -518,12 +518,40 @@
 
         }
         if (!$('#departureForm').val()) {
-            const departureIso = UI.addDaysIso(dateSystem, 7);
+            var fromForTo = $('#arrivalForm').val() || dateSystem;
+            const departureIso = UI.addDaysIso(fromForTo, 7);
             console.log('departureIso', departureIso);
 
             UI.setHiddenDate("departureForm", departureIso);
         }
     }
+
+    /** Arr.To mặc định = Arr.From + 7 ngày (ISO yyyy-MM-dd). */
+    function normalizeSearchArrivalRange() {
+        var fromIso = ($('#arrivalForm').val() || '').split('T')[0] || (typeof window.dateSystem !== 'undefined' ? window.dateSystem : '');
+        var toIso = ($('#departureForm').val() || '').split('T')[0] || '';
+        if (typeof UI !== 'undefined' && UI.addDaysIso) {
+            if (!fromIso && window.dateSystem) {
+                fromIso = window.dateSystem;
+                UI.setHiddenDate('arrivalForm', fromIso);
+            }
+            if (!toIso && fromIso) {
+                toIso = UI.addDaysIso(fromIso, 7);
+                UI.setHiddenDate('departureForm', toIso);
+            } else if (fromIso && toIso && fromIso === toIso) {
+                toIso = UI.addDaysIso(fromIso, 7);
+                UI.setHiddenDate('departureForm', toIso);
+            }
+        }
+        return { fromIso: fromIso, toIso: toIso || fromIso };
+    }
+
+    $(document).on('change', 'input[name="arrivalForm"]', function () {
+        var v = ($(this).val() || '').split('T')[0];
+        if (!v || typeof UI === 'undefined' || !UI.addDaysIso || !UI.setHiddenDate) return;
+        var next = UI.addDaysIso(v, 7);
+        if (next) UI.setHiddenDate('departureForm', next);
+    });
 
 
     async function searchReservation(isInitial = false) {
@@ -533,9 +561,16 @@
 
         const checkboxValue = $('#roomShare').is(':checked') ? $('#roomShare').val() : '';
 
-        // Kiểm tra xem các trường ngày có giá trị hợp lệ hay không
+        normalizeSearchArrivalRange();
+
+        // Kiểm tra xem các trường ngày có giá trị hợp lệ hay không (Arr.To = Arr.From + 7 khi thiếu/trùng)
         let arrivalDate = $('#arrivalForm').val() || window.dateSystem;
-        let departureDate = $('#departureForm').val() || window.dateSystem;
+        let departureDate = $('#departureForm').val();
+        if (!departureDate && typeof UI !== 'undefined' && UI.addDaysIso) {
+            departureDate = UI.addDaysIso(arrivalDate, 7);
+            if (departureDate) UI.setHiddenDate('departureForm', departureDate);
+        }
+        departureDate = departureDate || (typeof UI !== 'undefined' && UI.addDaysIso ? UI.addDaysIso(arrivalDate, 7) : window.dateSystem);
         // Nếu vẫn rỗng sau khi chờ → báo lỗi hoặc fallback (tùy yêu cầu)
         if (!arrivalDate || !departureDate) {
             console.log("Không tải được ngày mặc định. Vui lòng chọn From Date thủ công.");
@@ -589,6 +624,7 @@
         } else {
             // Gọi getBusinessDate nếu ngày không hợp lệ hoặc trống
             getBusinessDate().then(function () {
+                normalizeSearchArrivalRange();
                 $.ajax({
                     url: '/Reservation/SearchReservation2',
                     type: 'get',
@@ -979,7 +1015,7 @@
             onRowClick: function (e) {
                 $('#functionAndOptionTable').show();
                 $('#listFunction').show();
-                idReservation = e.data.ID;
+                idReservation = parseInt(e.data.ID || e.data.id, 10) || 0;
                 statusID = e.data.ReservationStatus;
                 console.log('e.data', e.data);
 
@@ -1283,7 +1319,7 @@
             return false;
         }
 
-        idReservation = selectedRow.ID || 0;
+        idReservation = parseInt(selectedRow.ID || selectedRow.id, 10) || 0;
         statusID = selectedRow.ReservationStatus;
         reservationStatus = selectedRow.ReservationStatus;
         roomID = selectedRow.RoomID;
@@ -1310,6 +1346,12 @@
             showToast("Warning", "Please select a row again to edit.", false);
             return
         }
+        var rid = parseInt(idReservation, 10) || 0;
+        if (rid <= 0) {
+            showToast("Warning", "Please select a row again to edit.", false);
+            return;
+        }
+        idReservation = rid;
         // // Vô hiệu hóa tất cả các phần tử tương tác trên trang
         // $('body').css('pointer-events', 'none');
         var modal = $('#newReservationModal');

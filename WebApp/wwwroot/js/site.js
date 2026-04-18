@@ -535,10 +535,21 @@ UI.setHiddenDate = function (name, value) {
  * - Dùng cho tính toán ngày Night
  * */
 UI.addDaysIso = function (isoDate, days) {
-    const [y, m, d] = isoDate.split('-').map(Number);
-    const date = new Date(y, m - 1, d + 1);
-    date.setDate(date.getDate() + days);
-    return date.toISOString().split('T')[0];
+    if (isoDate == null || isoDate === '') return '';
+    const raw = String(isoDate).split('T')[0].trim();
+    const parts = raw.split('-');
+    if (parts.length !== 3) return raw;
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const d = parseInt(parts[2], 10);
+    if (isNaN(y) || isNaN(m) || isNaN(d)) return raw;
+    const date = new Date(y, m - 1, d);
+    if (isNaN(date.getTime())) return raw;
+    date.setDate(date.getDate() + Number(days || 0));
+    const yy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yy}-${mm}-${dd}`;
 };
 
 // Hàm nào cần hãy gọi để luôn sẵn sàng

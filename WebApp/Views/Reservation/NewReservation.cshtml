@@ -2651,7 +2651,38 @@
             $("#billingButton").show();
         }
     }
+    /** Khớp rule tối thiểu với SaveReservation (backend). */
+    function validateReservationBeforeSave() {
+        var pid = ($("#txtID").val() || "").toString().trim();
+        if (!pid || pid === "0") {
+            showToast('Error', 'Profile cannot be blank', false);
+            return false;
+        }
+        var rt = ($("#txtRoomType").val() || "").toString().trim();
+        if (!rt || rt === "0") {
+            showToast('Error', 'Room Type cannot be blank', false);
+            return false;
+        }
+        var marketId = ($("#txtMarketID").val() || "").toString().trim();
+        if (!marketId || marketId === "0") {
+            showToast('Error', 'Market cannot be blank', false);
+            return false;
+        }
+        var nat = ($("#txtNationality").val() || "").toString().trim();
+        if (!nat || nat === "0") {
+            showToast('Error', 'Nationality cannot be blank', false);
+            return false;
+        }
+        var resTypeText = ($('#txtResType').find('option:selected').text() || "").trim();
+        if (!resTypeText) {
+            showToast('Error', 'Reservation Type cannot be blank', false);
+            return false;
+        }
+        return true;
+    }
+
    function OkReservation(type) {
+        if (!validateReservationBeforeSave()) return;
 
         let WalkIn = "0";
         if (type == 1) {
@@ -2932,10 +2963,15 @@
 
     window.resetForm = resetForm;
 
-    /** Cùng luồng Allotment: dùng Search Profile chung (Layout) thay cho modal cũ. */
+    /** Search Profile: khi đang trong New Reservation, dùng modal nhúng (tránh chồng ModalManager / z-index với #newReservationModal). */
     function openProSearchForNewReservation() {
+        var nr = document.getElementById('newReservationModal');
+        if (nr && nr.classList.contains('show')) {
+            openModalSearchProfile(0);
+            return;
+        }
         if (typeof openProSearch !== 'function') {
-            openModalSearchProfile();
+            openModalSearchProfile(0);
             return;
         }
         openProSearch(function (selectedData) {
