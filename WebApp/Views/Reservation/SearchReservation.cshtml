@@ -173,12 +173,12 @@
                             <a href="#" onclick="openConfirmRoomUnAssign();" id="unAssignRoom">UnAssign</a>
                         </div>
                     </div> *@
-                    <a href="#" class="font-semibold col-md-4 mb-1  text-start" onclick="openModalCheckOutAll(1);"
-                        id="assignRoom">C/O All</a>
-                    <a href="#" class="font-semibold col-md-4 mb-1  text-start" onclick="openModalCheckOutAll(2);"
-                        id="unAssignRoom">C/O Zero</a>
+                    <a href="#" class="font-semibold col-md-4 mb-1 text-start js-checkout-bulk" onclick="openModalCheckOutAll(1);"
+                        id="btnSearchResCheckoutAll">C/O All</a>
+                    <a href="#" class="font-semibold col-md-4 mb-1 text-start js-checkout-bulk" onclick="openModalCheckOutAll(2);"
+                        id="btnSearchResCheckoutZero">C/O Zero</a>
                     <a href="#" class="font-semibold col-md-4 mb-1 text-start js-checkout-single" onclick="openModalCheckOut();"
-                        id="unAssignRoom">C/O</a>
+                        id="btnSearchResCheckoutSingle">C/O</a>
                     <a href="#" class="font-semibold col-md-4 mb-1 text-start" onclick="openRoomAssignment();"
                         id="assign">Assignment</a>
                     <a href="#" class="font-semibold col-md-4 mb-1 text-start" onclick="openConfirmRoomUnAssign();"
@@ -264,7 +264,7 @@
                                     onclick="openGroupAdmin();" 
                                     style="border-radius: 4px !important;background-color:white;color:black;border: 1px solid #009444;">Gr.Admin</a>
                                 <a href="#" class="font-semibold col-md-2 mb-2" onclick="openModalSearchRoom();"
-                                    id="assignRoom"
+                                    id="resv_assignRoom"
                                     style="border-radius: 4px !important;background-color:white;color:black;border: 1px solid #009444;">Assign</a>
                                 <a href="#" onclick="openModalSplit();" class="font-semibold col-md-2 mb-2" id="resv_btnSplit"
                                     style="border-radius: 4px !important;background-color:white;color:black;border: 1px solid #009444;">Split</a>
@@ -272,7 +272,7 @@
                                     style="border-radius: 4px !important;background-color:white;color:black;border: 1px solid #009444;">Check
                                     In</a>
                                 <a href="#" class="font-semibold col-md-2 mb-2 js-checkout-single" onclick="openModalCheckOut();"
-                                    id="unAssignRoom"
+                                    id="resv_checkoutSingle"
                                     style="border-radius: 4px !important;background-color:white;color:black;border: 1px solid #009444;">C/O</a>
 
 
@@ -573,7 +573,7 @@
         departureDate = departureDate || (typeof UI !== 'undefined' && UI.addDaysIso ? UI.addDaysIso(arrivalDate, 7) : window.dateSystem);
         // Nếu vẫn rỗng sau khi chờ → báo lỗi hoặc fallback (tùy yêu cầu)
         if (!arrivalDate || !departureDate) {
-            console.log("Không tải được ngày mặc định. Vui lòng chọn From Date thủ công.");
+            console.log("Could not load default dates. Please select From Date manually.");
             $("#loadingSpinnerRateCode").hide();
             return;
         }
@@ -1038,13 +1038,16 @@
                 setBillingHeaderInfo(e.data);
                 _currentReservationData = e.data;
 
-                // Xử lý nút assign/unassign
+                // Assign / UnAssign phòng (không dùng id trùng với C/O All — trước đây nhầm assignRoom → C/O All)
                 const isSingleRoom = e.data.NoOfRoom == '1';
                 const hasRoomID = e.data.RoomID != 0;
-                ['assignRoom', 'unAssignRoom'].forEach(id => {
+                [
+                    { id: 'assign', canClick: isSingleRoom },
+                    { id: 'unAssign', canClick: isSingleRoom && hasRoomID },
+                    { id: 'resv_assignRoom', canClick: isSingleRoom }
+                ].forEach(({ id, canClick }) => {
                     const el = document.getElementById(id);
                     if (el) {
-                        const canClick = (id === 'assignRoom' && isSingleRoom) || (id === 'unAssignRoom' && isSingleRoom && hasRoomID);
                         el.style.pointerEvents = canClick ? 'auto' : 'none';
                         el.style.color = canClick ? '' : 'gray';
                         el.style.cursor = canClick ? 'pointer' : 'not-allowed';
@@ -1076,7 +1079,7 @@
 
                 // Khi có nhiều phòng hoặc chưa assign
                 if (e.data.NoOfRoom != '1') {
-                    ['assignRoom', 'unAssignRoom'].forEach(id => {
+                    ['assign', 'unAssign', 'resv_assignRoom'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) {
                             el.style.pointerEvents = 'none';
@@ -1086,7 +1089,7 @@
                     });
                 }
                 if (e.data.RoomID == 0) {
-                    const el = document.getElementById('unAssignRoom');
+                    const el = document.getElementById('unAssign');
                     if (el) {
                         el.style.pointerEvents = 'none';
                         el.style.color = 'gray';
@@ -1240,7 +1243,7 @@
 
 
         const workbook = new ExcelJS.Workbook();
-        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+        const companyName = localStorage.getItem("CompanyName") || "Company name not set";
         const worksheet = workbook.addWorksheet("Sheet 1");
 
         // === Tạo header công ty (dòng 1) ===
@@ -1251,7 +1254,7 @@
 
         // === Dòng 2: Thời gian xuất (phải) ===
         const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
+        const exportDate = now.toLocaleString("en-US");
         worksheet.addRow(['', '', '', '', ' ' + exportDate]);
         worksheet.mergeCells('E2:H2');
         worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
@@ -1300,11 +1303,11 @@
                     var roomNoSearch = $('#roomNo').val() ?? '';
                     window.location.href = '/Reservation/GroupAdmin?key=' + encodeURIComponent(response.encryptedId) + '&displayType=' + reservationStatus + '&name=' + nameSearch + '&roomNo=' + roomNoSearch;
                 } else {
-                    alert('Lỗi khi mã hóa ID');
+                    alert('Failed to encrypt ID.');
                 }
             },
             error: function () {
-                alert('Lỗi khi gọi API mã hóa');
+                alert('Encryption API request failed.');
             }
         });
     }
@@ -1389,21 +1392,21 @@
                         error: function () {
                             modal.find('.modal-body').html(`
                                 <div class="alert alert-danger m-4">
-                                    <strong>Lỗi!</strong> Không thể tải thông tin đặt chỗ.
+                                    <strong>Error</strong> Unable to load reservation details.
                                 </div>
                             `);
                         }
                     });
                 } else {
                     // Nếu mã hóa thất bại, hiển thị thông báo và xóa lớp phủ
-                    alert('Lỗi khi mã hóa ID');
+                    alert('Failed to encrypt ID.');
                     $('#overlay').hide();
                     $('body').css('pointer-events', 'auto');
                 }
             },
             error: function () {
                 // Nếu API thất bại, hiển thị thông báo và xóa lớp phủ
-                alert('Lỗi khi gọi API mã hóa');
+                alert('Encryption API request failed.');
                 $('#overlay').hide();
                 $('body').css('pointer-events', 'auto');
             }
@@ -1422,7 +1425,7 @@
 
     function LoadConfirmationLetter() {
         if (!idReservation || idReservation <= 0) {
-            console.error('ID không hợp lệ.');
+            console.error('Invalid reservation ID.');
             return;
         }
 
@@ -1449,10 +1452,10 @@
                         throw new Error('Unauthorized');
                     }
                     if (response.status === 404) {
-                        throw new Error('Không tìm thấy tài liệu');
+                        throw new Error('Document not found.');
                     }
                     if (response.status === 500) {
-                        throw new Error('Lỗi máy chủ');
+                        throw new Error('Server error.');
                     }
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
@@ -1484,7 +1487,7 @@
             })
             .then(({ blob, filename }) => {
                 if (!blob || blob.size === 0) {
-                    throw new Error('File rỗng hoặc không tải được');
+                    throw new Error('The file is empty or could not be downloaded.');
                 }
 
                 // Tạo link tải
@@ -1503,9 +1506,9 @@
                 }, 100);
             })
             .catch(err => {
-                console.error('Lỗi khi tải tài liệu:', err);
+                console.error('Error loading document:', err);
                 if (err.message !== 'Unauthorized') {
-                    alert(err.message || 'Không thể tải tài liệu. Vui lòng thử lại sau.');
+                    alert(err.message || 'Unable to download the document. Please try again later.');
                 }
             })
             .finally(() => {

@@ -233,6 +233,27 @@
    var marK_Module = (function () {
         let selectedRowData = null;
 
+        function marK_rowId(row) {
+            if (!row) return 0;
+            const raw = row.id != null ? row.id : row.ID;
+            const n = parseInt(raw, 10);
+            return isNaN(n) ? 0 : n;
+        }
+
+        function marK_parseIntSelect(selector) {
+            const el = document.querySelector(selector);
+            let raw = '';
+            if (el && el.tomselect) {
+                raw = el.tomselect.getValue();
+            } else {
+                raw = $(selector).val();
+            }
+            if (raw === null || raw === undefined) return 0;
+            const s = Array.isArray(raw) ? raw[0] : raw;
+            const n = parseInt(String(s), 10);
+            return isNaN(n) ? 0 : n;
+        }
+
         const selectors = {
             mainModal: "#marK_mainModal",
             itemModal: "#marK_itemModal",
@@ -312,15 +333,16 @@
             $(selectors.itemModalLabel).text("Update Market");
             $(selectors.itemModal).modal("show");
 
-            loadDetailById(selectedRowData.id);
+            loadDetailById(marK_rowId(selectedRowData));
         }
 
         function fillBaseForm(data) {
-            $(selectors.id).val(data.id || 0);
-            $(selectors.code).val(data.code ?? "");
-            $(selectors.name).val(data.name ?? "");
-            $(selectors.description).val(data.description ?? "");
-            $(selectors.inactive).prop("checked", !!data.inactive);
+            $(selectors.id).val(marK_rowId(data) || 0);
+            $(selectors.code).val(data.code ?? data.Code ?? "");
+            $(selectors.name).val(data.name ?? data.Name ?? "");
+            $(selectors.description).val(data.description ?? data.Description ?? "");
+            const inactiveVal = data.inactive != null ? data.inactive : data.Inactive;
+            $(selectors.inactive).prop("checked", inactiveVal == 1 || inactiveVal === true);
         }
 
         function loadDetailById(id) {
@@ -366,7 +388,11 @@
                     "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
                 },
                 success: function (data) {
-                    renderGrid(data || []);
+                    const rows = (data || []).map(function (r) {
+                        const id = marK_rowId(r);
+                        return Object.assign({}, r, { id: id });
+                    });
+                    renderGrid(rows);
                 },
                 error: function () {
                     showToast("Error", "Unable to load data", false);
@@ -437,8 +463,8 @@
                 Regional: $(selectors.regional).val().trim(),
                 Description: $(selectors.description).val().trim(),
                 Inactive: $(selectors.inactive).prop("checked"),
-                MarketTypeID: $(selectors.marketTypeID).val(),
-                GroupType: $(selectors.groupType).val(),
+                MarketTypeID: marK_parseIntSelect(selectors.marketTypeID),
+                GroupType: marK_parseIntSelect(selectors.groupType),
                 CreatedBy: loginName,
                 UpdatedBy: loginName,
                 UserInsertID: loginUser,
@@ -483,7 +509,8 @@
         }
 
         function deleteRecord() {
-            if (!selectedRowData || selectedRowData.id === 0) {
+            const delId = marK_rowId(selectedRowData);
+            if (!selectedRowData || delId === 0) {
                 showToast("Warning", "Please select 1 row to delete.", false);
                 return;
             }
@@ -493,7 +520,7 @@
             }
 
             $.ajax({
-                url: endpoints.delete + selectedRowData.id,
+                url: endpoints.delete + delId,
                 type: "POST",
                 traditional: true,
                 crossDomain: false,
@@ -523,7 +550,7 @@
             }
 
             const workbook = new ExcelJS.Workbook();
-            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+            const companyName = localStorage.getItem("CompanyName") || "Company name not set";
             const worksheet = workbook.addWorksheet("Sheet 1");
 
             worksheet.addRow([companyName]);
@@ -532,7 +559,7 @@
             worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "left" };
 
             const now = new Date();
-            const exportDate = now.toLocaleString("vi-VN");
+            const exportDate = now.toLocaleString("en-US");
             worksheet.addRow(["", "", "", exportDate]);
             worksheet.getRow(2).alignment = { vertical: "middle", horizontal: "right" };
 
