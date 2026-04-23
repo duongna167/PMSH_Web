@@ -1,3 +1,5 @@
+<!-- Dock để có thể tạm gắn #modalProfile lên document.body khi mở trên #newReservationModal (tránh bị overflow: hidden cắt modal). -->
+<div id="modalProfileDock">
 <!-- Modal search profile-->
 <div class="modal fade modal-xl" id="modalProfile" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
      aria-labelledby="staticBackdropLabel" aria-hidden="true">
@@ -142,6 +144,7 @@
         </div>
     </div>
 </div>
+</div>
 <script>
     /* =========================
      *  MODAL
@@ -156,10 +159,25 @@
     }
 
     function openProfileModal(mode, type) {
-        $('#viewByProfileSearch').val(type);
+        if (type !== undefined && type !== null) {
+            $('#viewByProfileSearch').val(type);
+        }
         initProfileGrid(mode);
+        var el = document.getElementById('modalProfile');
+        var nr = document.getElementById('newReservationModal');
+        if (el && nr && nr.classList.contains('show') && el.parentElement !== document.body) {
+            document.body.appendChild(el);
+        }
         $('#modalProfile').modal('show');
     }
+
+    $(document).on('hidden.bs.modal', '#modalProfile', function () {
+        var el = document.getElementById('modalProfile');
+        var dock = document.getElementById('modalProfileDock');
+        if (el && dock && el.parentElement === document.body) {
+            dock.appendChild(el);
+        }
+    });
 
     function closeModalSearchProfle() {
         clearSearch();

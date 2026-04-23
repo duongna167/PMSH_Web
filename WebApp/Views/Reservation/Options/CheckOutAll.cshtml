@@ -21,10 +21,10 @@
 </div>
 <script>
     function openModalCheckOutAll(type) {
-        // if (reservationStatus != 1 && reservationStatus != 6) {
-        //     showToast('Error', "Please just choose booking has status CHECKED IN or DUE OUT", false);
-        //     return;
-        // }
+        if (Number(reservationStatus) === 2) {
+            showToast('Warning', 'This booking has already been checked out.', false);
+            return;
+        }
 
         var grid = $("#gridContainer").dxDataGrid("instance");
         var dataSource = grid.getDataSource();
@@ -134,20 +134,24 @@
             ]
         });
     }
-    /** Chỉ cho phép C/O đơn khi DUE OUT (6); đã checkout (2) thì khóa nút (gọi từ grid / sau C/O thành công). */
+    /** Single C/O and C/O All / Zero: enabled only for DUE OUT (6); disabled when checked out (2) or other statuses (from grid / after successful C/O). */
     function updateSingleCheckoutButtonState(status) {
         const s = status === undefined || status === null ? NaN : Number(status);
-        const canSingleCheckout = s === 6;
-        $('.js-checkout-single').each(function () {
-            const $el = $(this);
-            if (canSingleCheckout) {
-                $el.removeClass('checkout-disabled').removeAttr('aria-disabled')
-                    .css({ opacity: '', pointerEvents: '', cursor: '' });
-            } else {
-                $el.addClass('checkout-disabled').attr('aria-disabled', 'true')
-                    .css({ opacity: '0.5', pointerEvents: 'none', cursor: 'not-allowed' });
-            }
-        });
+        const canCheckout = s === 6;
+        const apply = function (selector) {
+            $(selector).each(function () {
+                const $el = $(this);
+                if (canCheckout) {
+                    $el.removeClass('checkout-disabled').removeAttr('aria-disabled')
+                        .css({ opacity: '', pointerEvents: '', cursor: '' });
+                } else {
+                    $el.addClass('checkout-disabled').attr('aria-disabled', 'true')
+                        .css({ opacity: '0.5', pointerEvents: 'none', cursor: 'not-allowed' });
+                }
+            });
+        };
+        apply('.js-checkout-single');
+        apply('.js-checkout-bulk');
     }
     window.updateSingleCheckoutButtonState = updateSingleCheckoutButtonState;
 

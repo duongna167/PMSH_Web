@@ -1008,7 +1008,7 @@ namespace Reservation.Controllers
         }
         #endregion
 
-        #region DatVP __ save reservation
+        #region Tạo booking __ Save reservation
         [HttpPost]
         public ActionResult SaveReservation([FromForm] SaveReservationRequest req)
         {
@@ -1037,19 +1037,23 @@ namespace Reservation.Controllers
                 }
                 if (roomTypeID == 0)
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Room Type cannot be blank" });
 
                 }
                 if (string.IsNullOrEmpty(F(req.ProfileIndividualId)))
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Profile cannot be blank" });
                 }
                 if (string.IsNullOrEmpty(F(req.ReservationTypeCode)))
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Reservation Type cannot be blank" });
                 }
                 if (string.IsNullOrEmpty(F(req.MarketId)))
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Market cannot be blank" });
 
                 }
@@ -1057,6 +1061,7 @@ namespace Reservation.Controllers
 
                 if (string.IsNullOrWhiteSpace(nationalitycheck) || nationalitycheck == "0")
                 {
+                    pt.RollBack();
                     return Json(new { code = 1, msg = "Nationality cannot be blank" });
                 }
 
@@ -1085,6 +1090,7 @@ namespace Reservation.Controllers
 
                         if (conflict > 0)
                         {
+                            pt.RollBack();
                             return Json(new
                             {
                                 code = 1,
@@ -1508,21 +1514,7 @@ namespace Reservation.Controllers
                         pt.RollBack();
                         return Json(new { code = 1, msg = "Could not find profile" });
                     }
-                    //string Title = _form["Title"].ToString();
-                    //string Phone = _form["Phone"].ToString();
-                    //string Passport = _form["Passport"].ToString();
-                    //string IdentityCard = _form["IdentityCard"].ToString();
-                    //string Email = _form["Email"].ToString();
-                    //string Address = _form["Address"].ToString();
-                    //string DateOfBirth = _form["DateOfBirth"].ToString();
-                    //string Nationality = _form["Nationality"].ToString();
-                    //string City = _form["City"].ToString();
-                    //string VIP = _form["VIP"].ToString();
-                    //string MemberType = _form["MemberType"].ToString();
-                    //string CardNo = _form["CardNo"].ToString();
-                    //string GroupCode = _form["GroupCode"].ToString();
-                    //string ContactPhone = _form["ContactPhone"].ToString();
-                    //string PrefRoom = _form["PrefRoom"].ToString();
+                    ProfileModel oldProfileDataForInsertLog = (ProfileModel)profile.Clone();
                     profile.TitleID = !string.IsNullOrEmpty(F(req.Title)) ? int.Parse(F(req.Title)) : 0;
                     profile.HandPhone = !string.IsNullOrEmpty(F(req.Phone)) ? F(req.Phone) : "";
                     profile.Email = !string.IsNullOrEmpty(F(req.Email)) ? F(req.Email) : "";
@@ -1535,6 +1527,24 @@ namespace Reservation.Controllers
                     profile.VIPID = !string.IsNullOrEmpty(F(req.VipId)) ? int.Parse(F(req.VipId)) : 0;
                     profile.CreditCard = !string.IsNullOrEmpty(F(req.MemberNo)) ? F(req.MemberNo) : "";
                     ProfileBO.Instance.Update(profile);
+                    #endregion
+
+                    #region Viết log Profile khi tạo booking (đồng bộ với nhánh Update: chỉ ghi khi có thay đổi thực sự)
+                    ActivityLogModel profileLogInsert = new ActivityLogModel
+                    {
+                        TableName = "Profile",
+                        ObjectID = profile.ID,
+                        UserID = int.Parse(F(req.UserId)),
+                        UserName = F(req.UserName),
+                        ChangeDate = DateTime.Now,
+                        Change = "Update",
+                        Description = $"Update Profile Info from new Reservation: {reservationModel.ConfirmationNo}"
+                    };
+                    TextUtils.FillValues(profileLogInsert, oldProfileDataForInsertLog, profile);
+                    if (!string.IsNullOrEmpty(profileLogInsert.NewValue))
+                    {
+                        ActivityLogBO.Instance.Insert(profileLogInsert);
+                    }
                     #endregion
 
                     #region lưu reservation rate
@@ -1583,6 +1593,7 @@ namespace Reservation.Controllers
                     ReservationModel reservationModel = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(int.Parse(F(req.ReservationId)));
                     if (reservationModel == null || reservationModel.ID == 0)
                     {
+                        pt.RollBack();
                         return Json(new { code = 1, msg = "Could not find reservation" });
 
                     }
@@ -1650,7 +1661,7 @@ namespace Reservation.Controllers
                     reservationModel.City = F(req.City);
                     reservationModel.Zip = "";
                     reservationModel.State = "";
-                    if (F(req.Nationality) != "null")
+                    if (!string.IsNullOrWhiteSpace(F(req.Nationality)) && F(req.Nationality) != "0" && F(req.Nationality) != "null")
                     {
                         NationalityModel nationality = (NationalityModel)NationalityBO.Instance.FindByPrimaryKey(int.Parse(F(req.Nationality)));
                         reservationModel.Country = nationality.Code;
@@ -1698,7 +1709,7 @@ namespace Reservation.Controllers
                     reservationModel.Eta = !string.IsNullOrEmpty(F(req.Eta)) ? F(req.Eta) : "";
                     reservationModel.CheckInDate = DateTime.Parse(F(req.Arrival));
                     reservationModel.Etd = !string.IsNullOrEmpty(F(req.Etd)) ? F(req.Etd) : "";
-                    reservationModel.CheckOutDate = DateTime.Parse(F(req.Arrival));
+                    reservationModel.CheckOutDate = DateTime.Parse(F(req.Departure));
                     reservationModel.ReservationTypeId = int.Parse(F(req.ReservationType));
                     reservationModel.ReservationTypeCode = F(req.ReservationTypeCode);
                     if (string.IsNullOrEmpty(F(req.MarketId)))
@@ -1831,11 +1842,8 @@ namespace Reservation.Controllers
                     reservationModel.RoutingToProfile = F(req.FirstName);
                     reservationModel.FixedCharge = "";
                     reservationModel.CommentGroup = "";
-                    reservationModel.UserInsertId = int.Parse(F(req.UserId));
-                    reservationModel.CreateDate = DateTime.Now;
                     reservationModel.UserUpdateId = int.Parse(F(req.UserId));
                     reservationModel.UpdateDate = DateTime.Now;
-                    reservationModel.CreateBy = F(req.UserName);
                     reservationModel.UpdateBy = F(req.UserName);
                     reservationModel.SpecialUpdateBy = F(req.UserName);
                     reservationModel.SpecialUpdateDate = DateTime.Now;
@@ -1858,6 +1866,9 @@ namespace Reservation.Controllers
                     reservationModel.Lunch = false;
                     reservationModel.FixedMeal = false;
                     reservationModel.VoucherId = "";
+                    reservationModel.UserInsertId = oldReservationData.UserInsertId;
+                    reservationModel.CreateDate = oldReservationData.CreateDate;
+                    reservationModel.CreateBy = oldReservationData.CreateBy;
                     ReservationBO.Instance.Update(reservationModel);
                     #endregion
 
@@ -1951,21 +1962,6 @@ namespace Reservation.Controllers
                         pt.RollBack();
                         return Json(new { code = 1, msg = "Could not find profile" });
                     }
-                    //string Title = _form["Title"].ToString();
-                    //string Phone = _form["Phone"].ToString();
-                    //string Passport = _form["Passport"].ToString();
-                    //string IdentityCard = _form["IdentityCard"].ToString();
-                    //string Email = _form["Email"].ToString();
-                    //string Address = _form["Address"].ToString();
-                    //string DateOfBirth = _form["DateOfBirth"].ToString();
-                    //string Nationality = _form["Nationality"].ToString();
-                    //string City = _form["City"].ToString();
-                    //string VIP = _form["VIP"].ToString();
-                    //string MemberType = _form["MemberType"].ToString();
-                    //string CardNo = _form["CardNo"].ToString();
-                    //string GroupCode = _form["GroupCode"].ToString();
-                    //string ContactPhone = _form["ContactPhone"].ToString();
-                    //string PrefRoom = _form["PrefRoom"].ToString();
                     profile.TitleID = !string.IsNullOrEmpty(F(req.Title)) ? int.Parse(F(req.Title)) : 0;
                     profile.RoomNights = int.Parse(F(req.RoomNight));
                     profile.HandPhone = !string.IsNullOrEmpty(F(req.Phone)) ? F(req.Phone) : "";
