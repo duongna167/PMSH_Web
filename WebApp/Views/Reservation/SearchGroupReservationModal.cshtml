@@ -25,6 +25,7 @@
                     <div class="py-2">
                         <button class="mui-button mui-button-new" onclick="searchGroupReservation()">View</button>
                         <button class="mui-button mui-button-new" id="btnExportExcel">Excel</button>
+                        <button class="mui-button mui-button-new" id="btnPrintgr">Print</button>
                         <button class="mui-button mui-button-new"
                                 onclick="clearModalSearchGroupReservation()">Refesh</button>
                         <button class="mui-button mui-button-new"
@@ -392,5 +393,117 @@
                 saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
             });
         });
+    });
+
+         $("#btnPrintgr").on("click", function () {
+        var container = document.getElementById("gridGroupVerContainer");
+        // Clone toàn bộ container để tránh ảnh hưởng đến trang gốc
+        var clone = container.cloneNode(true);
+
+        // BƯỚC QUAN TRỌNG: Mở rộng chiều cao để hiển thị toàn bộ nội dung (bỏ scroll)
+        clone.style.height = "auto !important";
+        clone.style.maxHeight = "none !important";
+        clone.style.overflow = "visible !important";
+
+        // Nếu bảng hoặc div con có height cố định, cũng mở rộng
+        var tables = clone.querySelectorAll("table");
+        tables.forEach(function(table) {
+            table.style.height = "auto !important";
+            table.style.maxHeight = "none !important";
+        });
+
+        var scrollableDivs = clone.querySelectorAll("div[style*='overflow'], div.scrollable, div.k-grid-content");
+        scrollableDivs.forEach(function(div) {
+            div.style.height = "auto !important";
+            div.style.maxHeight = "none !important";
+            div.style.overflow = "visible !important";
+        });
+
+        var gridHtml = clone.outerHTML;
+
+        var printWindow = window.open("", "", "width=1200,height=800");
+        var doc = printWindow.document;
+        doc.open();
+
+        var html = doc.createElement("html");
+        var head = doc.createElement("head");
+        var title = doc.createElement("title");
+        title.innerText = "Group Reservation";
+        head.appendChild(title);
+
+        // Copy tất cả <link rel="stylesheet">
+        var links = document.querySelectorAll("link[rel='stylesheet']");
+        links.forEach(function(link) {
+            if (link.href) {
+                var newLink = doc.createElement("link");
+                newLink.rel = "stylesheet";
+                newLink.href = link.href;
+                head.appendChild(newLink);
+            }
+        });
+
+        // Copy tất cả <style>
+        var styles = document.querySelectorAll("style");
+        var allStyles = "";
+        styles.forEach(function(s) {
+            allStyles += s.innerHTML + "\n";
+        });
+
+        // CSS bắt buộc để in đầy đủ + đẹp
+        allStyles += `
+            <style type="text/css">
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 15mm;
+                    print-color-adjust: exact;
+                    -webkit-print-color-adjust: exact;
+                }
+                #logGridReportContainer,
+                table, div, .k-grid, .k-grid-content {
+                    height: auto !important;
+                    max-height: none !important;
+                    overflow: visible !important;
+                }
+                table {
+                    width: 100% !important;
+                    border-collapse: collapse;
+                    page-break-inside: auto;
+                }
+                tr {
+                    page-break-inside: avoid;
+                    page-break-after: auto;
+                }
+                th, td {
+                    border: 1px solid #000 !important;
+                    padding: 6px !important;
+                    font-size: 12px !important;
+                    text-align: left;
+                }
+                @@media print {
+                    body { margin: 10mm; }
+                    .no-print { display: none !important; }
+                    @@page { margin: 10mm; }
+                }
+            </style>
+        `;
+
+        var styleTag = doc.createElement("style");
+        styleTag.innerHTML = allStyles;
+        head.appendChild(styleTag);
+
+        html.appendChild(head);
+
+        var body = doc.createElement("body");
+        body.innerHTML = gridHtml;
+        html.appendChild(body);
+
+        doc.write(html.outerHTML);
+        doc.close();
+
+        printWindow.onload = function () {
+            printWindow.focus();
+            printWindow.print();
+            // printWindow.close();
+        };
     });
 </script>
