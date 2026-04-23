@@ -130,6 +130,9 @@ namespace Reservation.Services.Interfaces
 
         List<ReservationPackageSummary> GetReservationPackagePhase2(int reservationId, int packageId, DateTime beginDate, DateTime endDate, int rateCodeId);
 
+        /// <summary>All package lines for a reservation (fallback when spReservationPackage / phase2 filters return nothing).</summary>
+        List<ReservationPackageSummary> GetReservationPackagesByReservationId(int reservationId);
+
         public DataTable GetSetUpPackage(string searchKey = "");
 
         // Split 

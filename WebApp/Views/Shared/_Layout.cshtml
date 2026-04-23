@@ -137,21 +137,6 @@
                 <img src="/images/logo-parner.png" class="banner-icon-right" alt="Logo parner">
             </div>
         </div>
-            @* <div class="banner">
-                <div class="banner-left">
-                    <img src="/images/logo-company.svg" class="logo-svg" alt="Company Logo">
-                </div>
-
-                <div class="banner-center">
-                    <div class="banner-text">
-                        PROPERTY MANAGEMENT SYSTEM FOR HOTEL AND RESORT
-                    </div>
-                </div>
-
-                <div class="banner-right">
-                    <img src="/images/logo-partner.svg" class="logo-svg" alt="Partner Logo">
-                </div>
-            </div> *@
 
         <!-- Contact and User Info Section -->
         <div class="contact-user-section">
@@ -1391,14 +1376,22 @@
 
                       if (typeof initDateInputs === "function") initDateInputs(modalEl);
 
+                      const invokeModalCallback = function () {
+                          if (typeof callback === "string") {
+                              waitForFunction(callback, () => {
+                                  window[callback]();
+                              });
+                          } else if (typeof callback === "function") {
+                              callback();
+                          }
+                      };
+
                       if (showModal) {
 
                           const modal = new bootstrap.Modal(modalEl,{
                               backdrop:'static',
                               keyboard:true
                           });
-
-                          modal.show();
 
                           $(modalEl).one("hidden.bs.modal", () => {
 
@@ -1409,15 +1402,15 @@
                                   $('body').addClass('modal-open');
 
                           });
-                      }
 
-                      if (typeof callback === "string") {
-                          waitForFunction(callback, () => {
-                              window[callback]();
+                          // Register before show() so shown.bs.modal is never missed (partial init / grid load).
+                          $(modalEl).one("shown.bs.modal", function () {
+                              invokeModalCallback();
                           });
-                      }
-                      else if (typeof callback === "function") {
-                          callback();
+
+                          modal.show();
+                      } else {
+                          invokeModalCallback();
                       }
 
                   }

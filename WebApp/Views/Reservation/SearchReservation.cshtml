@@ -190,8 +190,8 @@
                     <a href="#" onclick="openConfirmReinstate();"
                         class="font-semibold col-md-4 mb-1 text-start" id="btnSearchResReinstate">Reinstate</a>
                     <a href="#" onclick="checkIn();" class="font-semibold col-md-4 mb-1 text-start">Check In</a>
-                    <a href="#" onclick="openModalViewProfile();"
-                        class="font-semibold col-md-4 mb-1 text-start">Profile</a>
+                    <a href="#" onclick="openIndividualFromSearchReservation();"
+                        class="font-semibold col-md-4 mb-1 text-start">Individual</a>
                     <a href="#" id="groupAdmin" class="font-semibold col-md-4 mb-1 text-start"
                         onclick="openGroupAdmin();">Grp Admin</a>
                     <a href="#" onclick="openModalSplit();" class="font-semibold col-md-4 mb-1 text-start">Split</a>
@@ -263,7 +263,7 @@
                                 <a href="#" id="groupAdmin" class="font-semibold col-md-2 mb-2"
                                     onclick="openGroupAdmin();" 
                                     style="border-radius: 4px !important;background-color:white;color:black;border: 1px solid #009444;">Gr.Admin</a>
-                                <a href="#" class="font-semibold col-md-2 mb-2" onclick="openModalSearchRoom();"
+                                <a href="#" class="font-semibold col-md-2 mb-2" onclick="openRoomAssignment();"
                                     id="resv_assignRoom"
                                     style="border-radius: 4px !important;background-color:white;color:black;border: 1px solid #009444;">Assign</a>
                                 <a href="#" onclick="openModalSplit();" class="font-semibold col-md-2 mb-2" id="resv_btnSplit"
@@ -609,7 +609,7 @@
                 crossDomain: false,
                 headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
                 success: function (result) {
-                    listData = result;
+                    listData = normalizeSearchReservationRows(result) || [];
                     initializeDataGridSearch(result);
                 },
                 error: function (xhr, statusText, err) {
@@ -650,7 +650,7 @@
                     crossDomain: false,
                     headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
                     success: function (result) {
-                        listData = result;
+                        listData = normalizeSearchReservationRows(result) || [];
                         initializeDataGridSearch(result);
                     },
                     error: function (xhr, statusText, err) {
@@ -692,6 +692,34 @@
     var profileID = 0;
     var folioNoID = 0;
     var reservationStatus = 0;
+
+    /** New Profile → Individual modal (/Profile/Individual); load guest from selected booking when profileID is set. */
+    function openIndividualFromSearchReservation() {
+        var pid = parseInt(profileID, 10) || 0;
+        if (!pid) {
+            if (typeof openModalIndividual === 'function') {
+                openModalIndividual();
+            } else {
+                showToast('Warning', 'Individual profile form is not available.', false);
+            }
+            return;
+        }
+        if (typeof ModalManager === 'undefined' || typeof waitForFunction === 'undefined') {
+            showToast('Warning', 'Please open this page from the main layout.', false);
+            return;
+        }
+        ModalManager.load('/Profile/Individual', 'modalIndividual', function () {
+            waitForFunction('pro_ind_Module', function () {
+                window.pro_ind_Module.init();
+                if (typeof window.pro_ind_Module.loadProfileByID === 'function') {
+                    setTimeout(function () {
+                        window.pro_ind_Module.loadProfileByID(pid);
+                    }, 300);
+                }
+            });
+        });
+    }
+
     function parseBillingAmount(value) {
         if (value === null || value === undefined || value === '') {
             return null;
@@ -737,12 +765,32 @@
             maximumFractionDigits: 2
         });
     }
+    function normalizeSearchReservationRows(data) {
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.data)) return data.data;
+        if (data && Array.isArray(data.items)) return data.items;
+        return null;
+    }
+
     function initializeDataGridSearch(data) {
+        const rows = normalizeSearchReservationRows(data);
+        if (!rows) {
+            if (typeof data === 'string') {
+                showToast('Error', data, false);
+            } else if (data && data.message) {
+                showToast('Error', data.message, false);
+            } else {
+                console.warn('Search reservation: response is not a row array', data);
+                showToast('Warning', 'Search returned an unexpected response. Check console.', false);
+            }
+            return;
+        }
+
         // 1. LOCALE CHÂU ÂU: dấu chấm nghìn, dấu phẩy thập phân (dù không dùng thập phân)
         DevExpress.localization.locale('de-DE');
 
         // 2. CHUYỂN DỮ LIỆU: "85.123,00" → 85123 (number)
-        const processedData = data.map(item => {
+        const processedData = rows.map(item => {
             const cleanNumber = (str) => {
                 const parsed = parseBillingAmount(str);
                 return parsed === null ? 0 : parsed;
@@ -1040,11 +1088,12 @@
 
                 // Assign / UnAssign phòng (không dùng id trùng với C/O All — trước đây nhầm assignRoom → C/O All)
                 const isSingleRoom = e.data.NoOfRoom == '1';
-                const hasRoomID = e.data.RoomID != 0;
+                const hasRoomID = (parseInt(e.data.RoomID, 10) || 0) !== 0;
+                const canOpenAssign = isSingleRoom && !hasRoomID;
                 [
-                    { id: 'assign', canClick: isSingleRoom },
+                    { id: 'assign', canClick: canOpenAssign },
                     { id: 'unAssign', canClick: isSingleRoom && hasRoomID },
-                    { id: 'resv_assignRoom', canClick: isSingleRoom }
+                    { id: 'resv_assignRoom', canClick: canOpenAssign }
                 ].forEach(({ id, canClick }) => {
                     const el = document.getElementById(id);
                     if (el) {
@@ -1097,12 +1146,13 @@
                     }
                 }
 
-                const canAssign = status === "DUE IN" || status === "RESVED";
+                const canAssign = (status === "DUE IN" || status === "RESVED") && !hasRoomID;
                 const canUnassign = status === "DUE IN";
 
                 [
                     { id: "assign", enabled: canAssign },
-                    { id: "unAssign", enabled: canUnassign }
+                    { id: "unAssign", enabled: canUnassign },
+                    { id: "resv_assignRoom", enabled: canAssign }
                 ].forEach(({ id, enabled }) => {
                     const el = document.getElementById(id);
 

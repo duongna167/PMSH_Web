@@ -80,7 +80,7 @@
                 <div id="marK_loadingSpinner" 
                     style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
                     z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
-                    height: 100%;display: flex;align-items: center;justify-content: center;">
+                    height: 100%;display: none;align-items: center;justify-content: center;">
                     <div class="spinner-border text-primary"></div>
                 </div>
             </div>
@@ -296,6 +296,47 @@
             loadGrid();
         }
 
+        /** Item modal selects may not have Tom Select yet if main modal init raced; ensure before setValue. */
+        function ensureMarKTomSelects() {
+            [selectors.marketTypeID, selectors.groupType].forEach(function (sel) {
+                var el = document.querySelector(sel);
+                if (el && !el.tomselect) {
+                    initTomSelect([sel]);
+                }
+            });
+        }
+
+        function marK_coerceTomSelectString(raw) {
+            if (raw === null || raw === undefined || raw === "") {
+                return "";
+            }
+            return String(raw);
+        }
+
+        function marK_applyMarketDetail(res) {
+            if (!res || typeof res !== "object") {
+                return;
+            }
+            var mt = res.marketTypeID;
+            if (mt === undefined || mt === null) {
+                mt = res.MarketTypeID;
+            }
+            var gt = res.groupType;
+            if (gt === undefined || gt === null) {
+                gt = res.GroupType;
+            }
+            var reg = res.regional;
+            if (reg === undefined || reg === null) {
+                reg = res.Regional;
+            }
+            ensureMarKTomSelects();
+            setTomSelectValue(selectors.marketTypeID, marK_coerceTomSelectString(mt));
+            setTomSelectValue(selectors.groupType, marK_coerceTomSelectString(gt));
+            $(selectors.regional).val(reg ?? "");
+            $(selectors.marketTypeID).val(marK_coerceTomSelectString(mt));
+            $(selectors.groupType).val(marK_coerceTomSelectString(gt));
+        }
+
         function bindEvents() {
             initTomSelect([selectors.marketTypeID,selectors.groupType]);
             $(selectors.btnView).off("click").on("click", loadGrid);
@@ -316,6 +357,7 @@
         }
 
         function openAddModal() {
+            ensureMarKTomSelects();
             resetForm();
             $(selectors.id).val("0");
             $(selectors.itemModalLabel).text("Add Market");
@@ -328,12 +370,15 @@
                 return;
             }
 
+            var editId = marK_rowId(selectedRowData);
+            ensureMarKTomSelects();
             resetForm();
             fillBaseForm(selectedRowData);
             $(selectors.itemModalLabel).text("Update Market");
+            $(selectors.itemModal).one("shown.bs.modal", function () {
+                loadDetailById(editId);
+            });
             $(selectors.itemModal).modal("show");
-
-            loadDetailById(marK_rowId(selectedRowData));
         }
 
         function fillBaseForm(data) {
@@ -349,11 +394,16 @@
             $.ajax({
                 url: endpoints.getById,
                 type: "GET",
+                dataType: "json",
                 data: { id: id },
                 success: function (res) {
-                    setTomSelectValue(selectors.marketTypeID,res?.marketTypeID ? res.marketTypeID.toString() : "");
-                    setTomSelectValue(selectors.groupType,res?.groupType ?? "");
-                    $(selectors.regional).val(res?.regional ?? "");
+                    marK_applyMarketDetail(res);
+                    requestAnimationFrame(function () {
+                        marK_applyMarketDetail(res);
+                    });
+                    setTimeout(function () {
+                        marK_applyMarketDetail(res);
+                    }, 80);
                 },
                 error: function () {
                     showToast("Error", "Unable to load market detail.", false);
@@ -371,7 +421,7 @@
         }
 
         function loadGrid() {
-            $(selectors.loading).show();
+            $(selectors.loading).css("display", "flex").show();
 
             $.ajax({
                 url: endpoints.getList,
@@ -388,10 +438,15 @@
                     "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
                 },
                 success: function (data) {
-                    const rows = (data || []).map(function (r) {
-                        const id = marK_rowId(r);
-                        return Object.assign({}, r, { id: id });
-                    });
+                    var rows = [];
+                    if (Array.isArray(data)) {
+                        rows = data.map(function (r) {
+                            const id = marK_rowId(r);
+                            return Object.assign({}, r, { id: id });
+                        });
+                    } else if (data != null && typeof data === "object") {
+                        showToast("Error", "Unexpected response loading Market list.", false);
+                    }
                     renderGrid(rows);
                 },
                 error: function () {
@@ -615,12 +670,8 @@
     })();
 
     window.openModalMarket = function () {
-        const modalEl = document.querySelector("#marK_mainModal");
-        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-
-        $(modalEl).one("shown.bs.modal", function () {
+        if (typeof marK_Module !== "undefined" && marK_Module.init) {
             marK_Module.init();
-        });
-        modal.show();
+        }
     };
 </script>

@@ -450,11 +450,28 @@
     </div>
 </div>
 <script>
+    /** Profile type for Save (0 = Individual); required on pages that only include this partial. */
+    var profileTypeValue = 0;
 
     function closeModalViewProfile() {
         $('#modalViewProfile').modal('hide');
     }
     async function openModalViewProfile() {
+        profileTypeValue = 0;
+        let pid = 0;
+        if (typeof profileID !== 'undefined' && profileID !== null && profileID !== '') {
+            pid = parseInt(profileID, 10) || 0;
+        }
+        if (!pid && $('#txtID').length) {
+            pid = parseInt($('#txtID').val(), 10) || 0;
+        }
+        if (!pid) {
+            showToast('Warning', 'Please select a guest profile first.', false);
+            return;
+        }
+        if (typeof profileID !== 'undefined') {
+            profileID = pid;
+        }
         $('#modalViewProfile').modal('show');
         $('#changeTypeIN').hide();
         // Đợi setSelect2 hoàn thành
@@ -1013,8 +1030,8 @@
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                // $('#txtID').val(result.id);
-                console.log(result);
+                const pid = result.id ?? result.ID ?? profileID;
+                $("#idIndividual").val(pid != null ? pid : '');
                 $("#txtCodeIndividual").val(result.code);
                 $("#txtFullNameIndividual").val(result.account);
                 $("#txtFirstNameIndividual").val(result.firstname);
@@ -1355,8 +1372,9 @@
         $("#txtEmailContact").val("");
         $("#txtWebsiteContact").val("");
         $("#txtHandPhoneContact").val("");
+    }
 
-        async function saveProfile() {
+    async function saveProfile() {
             var formData = new FormData();
             formData.append('Type', profileTypeValue);
 
@@ -1535,9 +1553,9 @@
                     }
                 }
             });
-        }
+    }
 
-        function checkFullName(options) {
+    function checkFullName(options) {
             return new Promise(function (resolve, reject) {
                 const { fullNameSelector, firstNameSelector, middleNameSelector, lastNameSelector, salutationSelector, titleSelector, idForm } = options;
                 const $fullName = $(fullNameSelector);
@@ -1571,20 +1589,19 @@
                     error: function () { reject(false); }
                 });
             });
-        }
-
-        // Bind blurs
-        $('#txtFullNameIndividual').on('blur', function () {
-            checkFullName({
-                fullNameSelector: '#txtFullNameIndividual',
-                firstNameSelector: '#txtFirstNameIndividual',
-                middleNameSelector: '#txtMiddleNameIndividual',
-                lastNameSelector: '#txtLastNameIndividual',
-                salutationSelector: '#txtSalutationIndividual',
-                titleSelector: '#txtTitleIndividual',
-                idForm: "#profile_individual"
-            });
-        });
     }
+
+    // Bind blurs
+    $('#txtFullNameIndividual').on('blur', function () {
+        checkFullName({
+            fullNameSelector: '#txtFullNameIndividual',
+            firstNameSelector: '#txtFirstNameIndividual',
+            middleNameSelector: '#txtMiddleNameIndividual',
+            lastNameSelector: '#txtLastNameIndividual',
+            salutationSelector: '#txtSalutationIndividual',
+            titleSelector: '#txtTitleIndividual',
+            idForm: "#profile_individual"
+        });
+    });
 
 </script>

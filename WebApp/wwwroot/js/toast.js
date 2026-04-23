@@ -127,12 +127,15 @@ const ToastUI = (function () {
         // ----------------------------------------------
 
         const toastId = 'toast_' + Date.now();
-        const typeClass = title === "Warning" ? "toast-warning" : (isSuccess ? "toast-success" : "toast-danger");
+        const rawTitle = String(title ?? "").trim();
+        const isWarningToast = /^warning$/i.test(rawTitle);
+        const typeClass = isWarningToast ? "toast-warning" : (isSuccess ? "toast-success" : "toast-danger");
+        const headerTitle = isWarningToast ? "Warning" : rawTitle;
 
         const toastHtml = `
             <div id="${toastId}" class="toast minimal-toast ${typeClass}" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
                 <div class="toast-header">
-                    <span class="title-text">${title}</span>
+                    <span class="title-text">${headerTitle}</span>
                     <span class="btn-close-custom" data-bs-dismiss="toast">&times;</span>
                 </div>
                 <div class="toast-body">${message}</div>

@@ -24,21 +24,51 @@
     overflow-y: auto;
 }
 
+    /* Full-height detail grid inside 4:3 modal (same flex pattern as ItemCategory forms + modal-ratio .mui-card) */
+    #pak_modalMain .pak_modalFill {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    #pak_modalMain .pak_tabForm[data-tab="0"] {
+        flex: 0 1 auto;
+    }
+    #pak_modalMain .pak_tabForm[data-tab="1"] {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+    #pak_modalMain #pak_packageDetailForm .pak_detailSplit {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+    #pak_modalMain #pak_packageDetailGridHost {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    #pak_modalMain #pak_packageDetailGridHost .gridContainer {
+        flex: 1 1 auto;
+        min-height: 0;
+        margin: 0;
+    }
+
 </style>
 
 <!-- MAIN MODAL (XL) -->
 <div class="modal fade" id="pak_modalMain" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg-4by3 modal-dialog-centered">
+    <div class="modal-dialog modal-lg-4by3 modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
 
             <div class="modal-header">
                 <h5 class="modal-title">Package</h5>
             </div>
 
-            <div class="modal-body position-relative">
+            <div class="modal-body position-relative d-flex flex-column">
 
                 <!-- ACTION BAR -->
-                <div class="search-filter">
+                <div class="search-filter flex-shrink-0">
                     <button id="pak_btnSearch" type="button" class="mui-button mui-button-search">Search</button>
                     <button id="pak_btnNew" type="button" class="mui-button mui-button-new">New</button>
                     <button id="pak_btnEdit" type="button" class="mui-button mui-button-edit">Edit</button>
@@ -53,13 +83,14 @@
                     <button id="pak_btnClose" type="button" class="mui-button mui-button-new ms-auto">Close</button>
                 </div>
 
+                <div class="pak_modalFill">
                 <!-- TABS (DevExtreme) -->
-                <div class="bg-white border-bottom mt-1">
+                <div class="bg-white border-bottom mt-1 flex-shrink-0">
                     <div class="pak_tabsHost" id="pak_tabs"></div>
                 </div>
 
                 <!-- TAB 0: PACKAGE HEADER -->
-                <div class="pak_tabForm pak_visible flex-grow-1" data-tab="0" id="pak_packageForm">
+                <div class="pak_tabForm pak_visible" data-tab="0" id="pak_packageForm">
                     <div class="pak_tabsContainer border p-3 mt-3 mx-auto">
 
                         <form id="pak_headerForm" novalidate>
@@ -206,12 +237,12 @@
                 </div>
 
                 <!-- TAB 1: PACKAGE DETAIL -->
-                <div class="pak_tabForm flex-grow-1" data-tab="1" id="pak_packageDetailForm">
-                    <div class="row g-2 mt-2 ">
+                <div class="pak_tabForm d-none" data-tab="1" id="pak_packageDetailForm">
+                    <div class="row g-2 mt-2 align-items-stretch pak_detailSplit">
 
                         <!-- LEFT FORM -->
-                        <div class="col-12 col-lg-4">
-                            <div class="border p-2">
+                        <div class="col-12 col-lg-4 d-flex flex-column">
+                            <div class="border p-2 flex-grow-1">
                                 <form id="pak_detailForm" novalidate>
                                     <input type="hidden" id="pak_packageID" name="pak_packageID" />
                                     <input type="hidden" id="pak_packageDetailID" name="pak_packageDetailID" />
@@ -395,13 +426,15 @@
                         </div>
 
                         <!-- RIGHT GRID -->
-                        <div class="col-12 col-lg-8 mui-card">
-                            <div class="mui-card">
-                                <div id="pak_packageDetailGrid" class="gridContainer"></div>
+                        <div class="col-12 col-lg-8 d-flex flex-column" style="min-height:0">
+                            <div class="mui-card flex-grow-1 d-flex flex-column" id="pak_packageDetailGridHost" style="min-height:0">
+                                <div id="pak_packageDetailGrid" class="gridContainer flex-grow-1" style="min-height:0"></div>
                             </div>
                         </div>
 
                     </div>
+                </div>
+
                 </div>
 
                 <!-- LOADING -->
@@ -416,17 +449,17 @@
     </div>
 </div>
 
-<!-- SEARCH MODAL (XL as requested) -->
+<!-- SEARCH MODAL -->
 <div class="modal fade" id="pak_modalSearch" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-md-4by3 modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
 
             <div class="modal-header">
                 <h6 class="modal-title">Search Package</h6>
             </div>
 
-            <div class="modal-body">
-                <div class="search-filter">
+            <div class="modal-body d-flex flex-column">
+                <div class="search-filter flex-shrink-0">
                     <div>
                         <button class="mui-button mui-button-new" data-bs-dismiss="modal" aria-label="Close">Close</button>
                     </div>
@@ -445,7 +478,8 @@
                     </div>
                 </div>
 
-                <div class="table-responsive gridContainer" style="height: 520px;">
+                <div class="mui-card mt-1 flex-grow-1 d-flex flex-column" style="min-height:0">
+                <div class="table-responsive gridContainer flex-grow-1" style="min-height:0">
                     <table class="table table-bordered table-hover table-sm mb-0">
                         <thead class="table-light sticky-top">
                             <tr>
@@ -463,6 +497,7 @@
                             }
                         </tbody>
                     </table>
+                </div>
                 </div>
 
             </div>
@@ -617,8 +652,12 @@
         }
 
         function applyTabMode(index) {
-            $(sel.tabForms).removeClass("pak_visible").hide();
-            $(`${sel.tabForms}[data-tab="${index}"]`).addClass("pak_visible").show();
+            $(sel.tabForms).removeClass("pak_visible d-flex flex-column").addClass("d-none");
+            const $panel = $(`${sel.tabForms}[data-tab="${index}"]`);
+            $panel.removeClass("d-none").addClass("pak_visible");
+            if (index === 1) {
+                $panel.addClass("d-flex flex-column");
+            }
 
             if (index === 1) {
                 pakClearPackageHeaderFieldErrorIfResolved();
@@ -630,6 +669,10 @@
                 $(sel.btnRefreshDetail).show();
                 $(sel.btnSaveDetail).show();
                 $(sel.btnDeleteDetail).show();
+
+                setTimeout(function () {
+                    try { if (detailGridInstance) detailGridInstance.updateDimensions(); } catch (e) { }
+                }, 0);
             } else {
                 $(sel.btnNew).show();
                 $(sel.btnSaveHeader).show();
@@ -921,6 +964,9 @@
                 }
 
                 initDetailGrid(resDetail.data || []);
+                setTimeout(function () {
+                    try { if (detailGridInstance) detailGridInstance.updateDimensions(); } catch (e) { }
+                }, 0);
 
                 searchModal.hide();
             } catch (err) {
@@ -1079,7 +1125,7 @@
         function deleteHeader() {
             const id = parseInt($(sel.ID).val()) || 0;
             if (!id) {
-                showToast("Error", "No package selected.", false);
+                showToast("Warning", "No package selected.", false);
                 return;
             }
             showLoading(true);
@@ -1159,7 +1205,7 @@
         function deleteDetail() {
             const id = parseInt($(sel.packageDetailID).val()) || 0;
             if (!id) {
-                showToast("Error", "Please select a detail row to delete.", false);
+                showToast("Warning", "Please select a detail row to delete.", false);
                 return;
             }
 

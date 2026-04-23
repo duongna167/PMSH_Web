@@ -1,4 +1,5 @@
-﻿using Administration.Services.Interfaces;
+﻿using Administration.Helpers;
+using Administration.Services.Interfaces;
 using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
@@ -8,6 +9,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 using System.Data;
 using System.Text;
 using static BaseBusiness.util.ValidationUtils;
@@ -30,7 +32,8 @@ namespace Administration.Controllers
             _httpContextAccessor = httpContextAccessor;
 
         }
-        DateTime businessDate = TextUtils.GetBusinessDate();
+        /// <summary>Wall-clock time for Created/Updated audit fields on master data (not hotel business date).</summary>
+        DateTime auditDateTime = DateTime.Now;
 
         #region MemberList
         [HttpGet]
@@ -198,6 +201,9 @@ namespace Administration.Controllers
                     return Json(new { code = 1, msg = "Can not find Lost And Found" });
 
                 }
+                var delMemberTypeMsg = AdministrationDeleteGuards.GetDeleteMemberTypeBlockReason(memberModel.ID);
+                if (delMemberTypeMsg != null)
+                    return Json(new { code = 1, msg = delMemberTypeMsg });
                 MemberTypeBO.Instance.Delete(int.Parse(Request.Form["id"].ToString()));
                 return Json(new { code = 0, msg = "Delete Lost And Found was successfully" });
 
@@ -358,6 +364,9 @@ namespace Administration.Controllers
                     return Json(new { code = 1, msg = "Can not find Lost And Found" });
 
                 }
+                var delMemberCatMsg = AdministrationDeleteGuards.GetDeleteMemberCategoryBlockReason(memberModel.ID);
+                if (delMemberCatMsg != null)
+                    return Json(new { code = 1, msg = delMemberCatMsg });
                 MemberCategoryBO.Instance.Delete(int.Parse(Request.Form["id"].ToString()));
                 return Json(new { code = 0, msg = "Delete Lost And Found was successfully" });
 
@@ -886,9 +895,9 @@ namespace Administration.Controllers
                 {
 
                     member.UserInsertID = loginName;
-                    member.CreateDate = businessDate;
+                    member.CreateDate = auditDateTime;
                     member.UserUpdateID = loginName;
-                    member.UpdateDate = businessDate;
+                    member.UpdateDate = auditDateTime;
 
                     HKPStatusColorBO.Instance.Insert(member);
                 }
@@ -905,7 +914,7 @@ namespace Administration.Controllers
                     }
 
                     member.UserUpdateID = loginName;
-                    member.UpdateDate = businessDate;
+                    member.UpdateDate = auditDateTime;
 
                     HKPStatusColorBO.Instance.Update(member);
                 }
@@ -1287,10 +1296,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     PersonInChargeGroupBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -1307,8 +1316,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     PersonInChargeGroupBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -1328,6 +1337,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgPicg = AdministrationDeleteGuards.GetDeletePersonInChargeGroupBlockReason(id);
+                if (msgPicg != null)
+                    return Json(new { success = false, message = msgPicg });
                 PersonInChargeGroupBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -1434,6 +1446,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgPicz = AdministrationDeleteGuards.GetDeletePersonInChargeZoneBlockReason(id);
+                if (msgPicz != null)
+                    return Json(new { success = false, message = msgPicz });
                 PersonInChargeZoneBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -1662,6 +1677,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgDr = AdministrationDeleteGuards.GetDeleteDepositRuleBlockReason(id);
+                if (msgDr != null)
+                    return Json(new { success = false, message = msgDr });
                 DepositRuleBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -1789,6 +1807,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgCr = AdministrationDeleteGuards.GetDeleteCancellationRuleBlockReason(id);
+                if (msgCr != null)
+                    return Json(new { success = false, message = msgCr });
                 CancellationRuleBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -1856,10 +1877,10 @@ namespace Administration.Controllers
 
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     CityBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -1876,8 +1897,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     CityBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -1897,6 +1918,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgCity = AdministrationDeleteGuards.GetDeleteCityBlockReason(id);
+                if (msgCity != null)
+                    return Json(new { success = false, message = msgCity });
                 CityBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -1959,10 +1983,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     CountryBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -1979,8 +2003,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     CountryBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2000,6 +2024,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgCtry = AdministrationDeleteGuards.GetDeleteCountryBlockReason(id);
+                if (msgCtry != null)
+                    return Json(new { success = false, message = msgCtry });
                 CountryBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -2062,10 +2089,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     LanguageBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2082,8 +2109,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     LanguageBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2103,7 +2130,10 @@ namespace Administration.Controllers
         {
             try
             {
-                CountryBO.Instance.Delete(id);
+                var msgLang = AdministrationDeleteGuards.GetDeleteLanguageBlockReason(id);
+                if (msgLang != null)
+                    return Json(new { success = false, message = msgLang });
+                LanguageBO.Instance.Delete(id);
             }
             catch (Exception ex)
             {
@@ -2167,10 +2197,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     NationalityBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2187,8 +2217,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     NationalityBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2208,6 +2238,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgNat = AdministrationDeleteGuards.GetDeleteNationalityBlockReason(id);
+                if (msgNat != null)
+                    return Json(new { success = false, message = msgNat });
                 NationalityBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -2270,10 +2303,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     TitleBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2290,8 +2323,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     TitleBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2311,6 +2344,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgTitle = AdministrationDeleteGuards.GetDeleteTitleBlockReason(id);
+                if (msgTitle != null)
+                    return Json(new { success = false, message = msgTitle });
                 TitleBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -2373,10 +2409,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     TerritoryBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2393,8 +2429,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     TerritoryBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2414,6 +2450,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgTerr = AdministrationDeleteGuards.GetDeleteTerritoryBlockReason(id);
+                if (msgTerr != null)
+                    return Json(new { success = false, message = msgTerr });
                 TerritoryBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -2479,10 +2518,10 @@ namespace Administration.Controllers
 
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     StateBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2499,8 +2538,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     StateBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2520,6 +2559,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgSt = AdministrationDeleteGuards.GetDeleteStateBlockReason(id);
+                if (msgSt != null)
+                    return Json(new { success = false, message = msgSt });
                 StateBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -2582,10 +2624,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     VIPBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2602,8 +2644,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     VIPBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2623,6 +2665,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgVip = AdministrationDeleteGuards.GetDeleteVipBlockReason(id);
+                if (msgVip != null)
+                    return Json(new { success = false, message = msgVip });
                 VIPBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -2669,10 +2714,21 @@ namespace Administration.Controllers
 
             if (data == null)
             {
-                return Json(new { regional = "", groupType = 0, marketTypeID = 0 });
+                return Json(new Dictionary<string, object>
+                {
+                    ["regional"] = "",
+                    ["groupType"] = 0,
+                    ["marketTypeID"] = 0
+                });
             }
 
-            return Json(new { regional = data.Regional, groupType = data.GroupType, marketTypeID = data.MarketTypeID });
+            // Dictionary keys stay stable for all JSON serializers (camelCase / PascalCase issues in some clients).
+            return Json(new Dictionary<string, object>
+            {
+                ["regional"] = data.Regional ?? "",
+                ["groupType"] = data.GroupType,
+                ["marketTypeID"] = data.MarketTypeID
+            });
         }
         public IActionResult Market()
         {
@@ -2700,10 +2756,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     MarketBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2720,8 +2776,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     MarketBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2741,6 +2797,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgMkt = AdministrationDeleteGuards.GetDeleteMarketBlockReason(id);
+                if (msgMkt != null)
+                    return Json(new { success = false, message = msgMkt });
                 MarketBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -2803,10 +2862,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     MarketTypeBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2823,8 +2882,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     MarketTypeBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2844,6 +2903,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgMt = AdministrationDeleteGuards.GetDeleteMarketTypeBlockReason(id);
+                if (msgMt != null)
+                    return Json(new { success = false, message = msgMt });
                 MarketTypeBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -2907,10 +2969,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     PickupDropPlaceBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -2927,8 +2989,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     PickupDropPlaceBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -2948,6 +3010,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgPdp = AdministrationDeleteGuards.GetDeletePickupDropPlaceBlockReason(id);
+                if (msgPdp != null)
+                    return Json(new { success = false, message = msgPdp });
                 PickupDropPlaceBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -3010,10 +3075,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     TransportTypeBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3030,8 +3095,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     TransportTypeBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3051,6 +3116,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgTt = AdministrationDeleteGuards.GetDeleteTransportTypeBlockReason(id);
+                if (msgTt != null)
+                    return Json(new { success = false, message = msgTt });
                 TransportTypeBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -3115,8 +3183,8 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.UpdateDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
 
                     ReservationTypeBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3131,7 +3199,7 @@ namespace Administration.Controllers
                         model.CreateDate = oldData.CreateDate;
                     }
 
-                    model.UpdateDate = businessDate;
+                    model.UpdateDate = auditDateTime;
 
                     ReservationTypeBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3151,6 +3219,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgRt = AdministrationDeleteGuards.GetDeleteReservationTypeBlockReason(id);
+                if (msgRt != null)
+                    return Json(new { success = false, message = msgRt });
                 ReservationTypeBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -3213,10 +3284,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     ReasonBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3233,8 +3304,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     ReasonBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3254,6 +3325,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgRsn = AdministrationDeleteGuards.GetDeleteReasonBlockReason(id);
+                if (msgRsn != null)
+                    return Json(new { success = false, message = msgRsn });
                 ReasonBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -3316,10 +3390,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     OriginBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3336,8 +3410,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     OriginBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3357,6 +3431,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgOrg = AdministrationDeleteGuards.GetDeleteOriginBlockReason(id);
+                if (msgOrg != null)
+                    return Json(new { success = false, message = msgOrg });
                 OriginBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -3422,10 +3499,10 @@ namespace Administration.Controllers
 
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     SourceBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3442,8 +3519,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     SourceBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3463,6 +3540,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgSrc = AdministrationDeleteGuards.GetDeleteSourceBlockReason(id);
+                if (msgSrc != null)
+                    return Json(new { success = false, message = msgSrc });
                 SourceBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -3526,10 +3606,10 @@ namespace Administration.Controllers
 
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     AlertsSetupBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3546,8 +3626,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     AlertsSetupBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3567,6 +3647,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgAl = AdministrationDeleteGuards.GetDeleteAlertsSetupBlockReason(id);
+                if (msgAl != null)
+                    return Json(new { success = false, message = msgAl });
                 AlertsSetupBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -3632,10 +3715,10 @@ namespace Administration.Controllers
 
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     CommentBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3652,8 +3735,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     CommentBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3736,10 +3819,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     CommentTypeBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3756,8 +3839,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     CommentTypeBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3777,6 +3860,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgCt = AdministrationDeleteGuards.GetDeleteCommentTypeBlockReason(id);
+                if (msgCt != null)
+                    return Json(new { success = false, message = msgCt });
                 CommentTypeBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -3839,10 +3925,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     SeasonBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3859,8 +3945,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     SeasonBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3880,6 +3966,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgSeas = AdministrationDeleteGuards.GetDeleteSeasonBlockReason(id);
+                if (msgSeas != null)
+                    return Json(new { success = false, message = msgSeas });
                 SeasonBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -3943,10 +4032,10 @@ namespace Administration.Controllers
 
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     ZoneBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -3963,8 +4052,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     ZoneBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -3984,6 +4073,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgZn = AdministrationDeleteGuards.GetDeleteZoneBlockReason(id);
+                if (msgZn != null)
+                    return Json(new { success = false, message = msgZn });
                 ZoneBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -4046,10 +4138,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     DepartmentBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -4066,8 +4158,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     DepartmentBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -4087,6 +4179,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgDep = AdministrationDeleteGuards.GetDeleteDepartmentBlockReason(id);
+                if (msgDep != null)
+                    return Json(new { success = false, message = msgDep });
                 DepartmentBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -4154,8 +4249,8 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.UpdateDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
                     OccupancyBO.Instance.Insert(model);
                     message = "Insert successfully.";
                 }
@@ -4167,7 +4262,7 @@ namespace Administration.Controllers
                         model.CreateBy = oldData.CreateBy;
                         model.CreateDate = oldData.CreateDate;
                     }
-                    model.UpdateDate = businessDate;
+                    model.UpdateDate = auditDateTime;
                     OccupancyBO.Instance.Update(model);
                     message = "Update successfully.";
                 }
@@ -4184,6 +4279,9 @@ namespace Administration.Controllers
 
             try
             {
+                var msgOcc = AdministrationDeleteGuards.GetDeleteOccupancyBlockReason(id);
+                if (msgOcc != null)
+                    return Json(new { success = false, message = msgOcc });
                 OccupancyBO.Instance.Delete(id);
                 return Json(new { success = true, message = "Delete successfully." });
             }
@@ -4470,6 +4568,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgOwn = AdministrationDeleteGuards.GetDeleteOwnerBlockReason(id);
+                if (msgOwn != null)
+                    return Json(new { success = false, message = msgOwn });
                 OwnerBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -4532,8 +4633,8 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreatedDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
                     PropertyTypeBO.Instance.Insert(model);
                     message = "Insert successfully.";
                 }
@@ -4545,7 +4646,7 @@ namespace Administration.Controllers
                         model.CreatedBy = oldData.CreatedBy;
                         model.CreatedDate = oldData.CreatedDate;
                     }
-                    model.UpdatedDate = businessDate;
+                    model.UpdatedDate = auditDateTime;
                     PropertyTypeBO.Instance.Update(model);
                     message = "Update successfully.";
                 }
@@ -4561,6 +4662,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgPt = AdministrationDeleteGuards.GetDeletePropertyTypeBlockReason(id);
+                if (msgPt != null)
+                    return Json(new { success = false, message = msgPt });
                 PropertyTypeBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -4667,6 +4771,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgProp = AdministrationDeleteGuards.GetDeletePropertyBlockReason(id);
+                if (msgProp != null)
+                    return Json(new { success = false, message = msgProp });
                 PropertyBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -4888,10 +4995,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     PackageForecastGroupBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -4908,8 +5015,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     PackageForecastGroupBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -4929,6 +5036,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgPfg = AdministrationDeleteGuards.GetDeletePackageForecastGroupBlockReason(id);
+                if (msgPfg != null)
+                    return Json(new { success = false, message = msgPfg });
                 PackageForecastGroupBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -4991,10 +5101,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     PreferenceGroupBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -5011,8 +5121,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     PreferenceGroupBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -5032,6 +5142,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgPg = AdministrationDeleteGuards.GetDeletePreferenceGroupBlockReason(id);
+                if (msgPg != null)
+                    return Json(new { success = false, message = msgPg });
                 PreferenceGroupBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -5144,6 +5257,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgGo = AdministrationDeleteGuards.GetDeleteGroupOwnerBlockReason(id);
+                if (msgGo != null)
+                    return Json(new { success = false, message = msgGo });
                 GroupOwnerBO.Instance.Delete(id);
                 return Json(new { success = true, message = "Delete successfully." });
             }
@@ -5416,6 +5532,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgRop = AdministrationDeleteGuards.GetDeleteRoomOwnerProfileBlockReason(id);
+                if (msgRop != null)
+                    return Json(new { success = false, message = msgRop });
                 RoomOwnerProfileBO.Instance.Delete(id);
                 return Json(new { success = true, message = "Delete successfully." });
             }
@@ -5477,10 +5596,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     PriorityBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -5497,8 +5616,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     PriorityBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -5518,6 +5637,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgPr = AdministrationDeleteGuards.GetDeletePriorityBlockReason(id);
+                if (msgPr != null)
+                    return Json(new { success = false, message = msgPr });
                 PriorityBO.Instance.Delete(id);
             }
             catch (Exception ex)
@@ -5580,10 +5702,10 @@ namespace Administration.Controllers
             {
                 if (model.ID == 0)
                 {
-                    model.CreateDate = businessDate;
-                    model.CreatedDate = businessDate;
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.CreateDate = auditDateTime;
+                    model.CreatedDate = auditDateTime;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     PromotionBO.Instance.Insert(model);
                     message = "Insert successfully!";
@@ -5600,8 +5722,8 @@ namespace Administration.Controllers
                         model.CreatedDate = oldData.CreatedDate;
                     }
 
-                    model.UpdateDate = businessDate;
-                    model.UpdatedDate = businessDate;
+                    model.UpdateDate = auditDateTime;
+                    model.UpdatedDate = auditDateTime;
 
                     PromotionBO.Instance.Update(model);
                     message = "Update successfully!";
@@ -5621,6 +5743,9 @@ namespace Administration.Controllers
         {
             try
             {
+                var msgProm = AdministrationDeleteGuards.GetDeletePromotionBlockReason(id);
+                if (msgProm != null)
+                    return Json(new { success = false, message = msgProm });
                 PromotionBO.Instance.Delete(id);
             }
             catch (Exception ex)
