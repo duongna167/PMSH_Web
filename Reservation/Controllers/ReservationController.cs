@@ -1098,8 +1098,8 @@ namespace Reservation.Controllers
                             return Json(new
                             {
                                 code = 1,
-                                msg = $"Phòng {roomNoCheck} không khả dụng từ {arrivalCheck:dd/MM/yyyy} đến {departureCheck:dd/MM/yyyy}. Vui lòng chọn phòng khác."
-                            });
+                               msg = $"Room {roomNoCheck} is not available from {arrivalCheck:MM/dd/yyyy} to {departureCheck:MM/dd/yyyy}. Please choose another room."
+                            } );
                         }
                     }
                 }
