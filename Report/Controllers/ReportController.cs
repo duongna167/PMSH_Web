@@ -3792,7 +3792,7 @@ namespace Report.Controllers
                     }
                 }
 
-                DataTable dtGuestInHouse = _iReportService.ReservationSearchRSVDate(businessDate, 1);
+                DataTable dtGuestInHouse = _iReportService.ReservationSearchRSVDate(new DateTime(1900, 1, 1), 1);
                 guestInHouseCount = dtGuestInHouse.Rows.Count;
 
                 DataTable dtdueoutCount = _iReportService.ReservationSearchRSVDate(businessDate,5);
