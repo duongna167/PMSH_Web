@@ -1,14 +1,50 @@
-﻿<div class="modal fade modal-xl" id="modalPackage" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+﻿<style>
+    /* Package modal (Reservation): fill viewport height; grids stretch inside flex chain */
+    #modalPackage .modal-dialog.modal-package-fill {
+        height: calc(100vh - 3.5rem);
+        max-height: 90vh;
+        margin: 1.75rem auto;
+    }
+    #modalPackage .modal-package-fill .modal-content {
+        height: 100%;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+    }
+    #modalPackage .modal-package-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    #modalPackage .modal-package-gridHost {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    #modalPackage #gridContainerPackage,
+    #modalPackage #gridContainerPackageDeitail {
+        flex: 1 1 auto;
+        min-height: 0;
+        margin: 0 !important;
+    }
+    #modalPackage #gridContainerPackageDeitail.d-none {
+        display: none !important;
+    }
+</style>
+<div class="modal fade modal-xl" id="modalPackage" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
     aria-labelledby="staticBackdropLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-package-fill">
         <div class="modal-content">
 
-            <div class="modal-header">
+            <div class="modal-header flex-shrink-0">
                 <h5 class="modal-title" id="staticBackdropLabel">Package </h5>
                 @*  <button type="button" class="btn-close" onclick="closeModalPackage()"></button> *@
             </div>
-            <div class="modal-body">
-                <div>
+            <div class="modal-body modal-package-body">
+                <div class="py-2 flex-shrink-0">
                     <button class="mui-button mui-button-search" onclick="openModalNewPackage();">New</button>
                     <button class="mui-button mui-button-search" onclick="openModalEditPackage();"
                         id="btnEditPackage">Edit</button>
@@ -16,10 +52,10 @@
                         id="btnDeletePackage">Delete</button>
                     <button class="mui-button mui-button-search" onclick="closeModalPackage()">Close</button>
                 </div>
-                <div class="mui-divider"></div>
-                <div class="mui-card mt-2">
-                    <div id="gridContainerPackage" class="mt-2 gridContainer"></div>
-                    <div id="gridContainerPackageDeitail" class="mt-2 gridContainer"></div>
+                <div class="mui-divider flex-shrink-0"></div>
+                <div class="mui-card mt-2 flex-grow-1 modal-package-gridHost border">
+                    <div id="gridContainerPackage" class="gridContainer"></div>
+                    <div id="gridContainerPackageDeitail" class="gridContainer d-none"></div>
                 </div>
             </div>
         </div>
@@ -161,7 +197,7 @@
 <script>
     function openModalPackage() {
         if (idReservation == 0) {
-            showToast("Error", "Please choose booking", false);
+            showToast("Warning", "Please choose booking", false);
             return;
         }
         @* GetPackageetUp(); *@
@@ -188,6 +224,13 @@
         $('#btnDeletePackage').show();
     }
 
+    function asPackageArray(v) {
+        if (v == null) return [];
+        if (Array.isArray(v)) return v;
+        if (typeof v === 'object') return [v];
+        return [];
+    }
+
     function GetPackageByReservationID() {
 
         $.ajax({
@@ -201,25 +244,26 @@
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                if (result.success == false) {
-                    showToast("Error", result.message, false)
+                var ok = result.success !== false && result.Success !== false;
+                var msg = result.message || result.Message || "";
+                var summary = asPackageArray(result.summary || result.Summary);
+                var details = asPackageArray(result.details || result.Details);
+                if (!ok) {
+                    showToast("Error", msg || "Request failed", false);
                     return;
                 }
-                if (result.success === true && (!result.summary || result.summary.length === 0)) {
-                    showToast("Warning", result.message || "No packages found for this reservation.", false);
+                if ((!summary || summary.length === 0) && (!details || details.length === 0)) {
+                    showToast("Warning", msg || "No packages found for this reservation.", false);
                     return;
                 }
-                else {
-                    if (result.summary.length == 0) {
-                        showToast("Warning", "No packages found for this reservation.", false)
-                        return;
-                    }
-                    else {
-                        initializeDataGridPackage(result.details);
-                        setHideButtonPackage();
-                        $('#modalPackage').modal('show');
-                    }
+                if ((!details || details.length === 0) && summary.length > 0) {
+                    initializeDataGridPackage(summary);
+                } else {
+                    initializeDataGridPackage(details);
                 }
+                setHideButtonPackage();
+                $('#modalPackage').modal('show');
+                $('#modalPackage').off('shown.bs.modal.rsvPkg').one('shown.bs.modal.rsvPkg', modalPackageResizeGrids);
             },
             error: function (xhr, statusText, err) {
                 if (xhr.status == 401) {
@@ -243,21 +287,21 @@
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                if (result.success == false) {
-                    showToast("Error", result.message, false)
+                var ok = result.success !== false && result.Success !== false;
+                var msg = result.message || result.Message || "";
+                var detailsPackage = asPackageArray(result.detailsPackage || result.DetailsPackage);
+                if (!ok) {
+                    showToast("Error", msg || "Request failed", false);
                     return;
                 }
-                if (result.success === true && (!result.detailsPackage || result.detailsPackage.length === 0)) {
-                    showToast("Warning", result.message || "No packages found for this reservation.", false);
+                if (!detailsPackage || detailsPackage.length === 0) {
+                    showToast("Warning", msg || "No packages found for this reservation.", false);
                     return;
                 }
-                else {
-
-                    initializeDataGridPackageDetail(result.detailsPackage);
-                    setHideButtonPackage();
-                    $('#modalPackage').modal('show');
-
-                }
+                initializeDataGridPackageDetail(detailsPackage);
+                setHideButtonPackage();
+                $('#modalPackage').modal('show');
+                $('#modalPackage').off('shown.bs.modal.rsvPkg').one('shown.bs.modal.rsvPkg', modalPackageResizeGrids);
             },
             error: function (xhr, statusText, err) {
                 if (xhr.status == 401) {
@@ -269,7 +313,16 @@
 
     let selecteReservationPackage = null; // Lưu trữ dữ liệu dòng đang chọn
     function initializeDataGridPackage(details) {
-        $("#gridContainerPackage").dxDataGrid({
+        var $p = $("#gridContainerPackage");
+        var $pd = $("#gridContainerPackageDeitail");
+        if ($pd.data("dxDataGrid")) {
+            try { $pd.dxDataGrid("dispose"); } catch (e) { }
+        }
+        $pd.addClass("d-none").empty();
+        if ($p.data("dxDataGrid")) {
+            $p.dxDataGrid("dispose");
+        }
+        $p.dxDataGrid({
 
             dataSource: details, allowColumnResizing: true,
             columns: [
@@ -287,9 +340,13 @@
             ],
             paging: { pageSize: 15 },
             scrolling: {
-                rowRenderingMode: 'virtual',
+                mode: "standard",
+                rowRenderingMode: "virtual",
+                useNative: true,
+                scrollByContent: true,
+                showScrollbar: "always",
             },
-            height: "250px",
+            height: "100%",
             pager: {
                 visible: true,
                 allowedPageSizes: [15, 20, 'all'],
@@ -314,10 +371,16 @@
                 GetPackageByReservationDetail(selecteReservationPackage);
             }
         });
+        modalPackageResizeGrids();
     }
 
     function initializeDataGridPackageDetail(details) {
-        $("#gridContainerPackageDeitail").dxDataGrid({
+        var $pd = $("#gridContainerPackageDeitail");
+        if ($pd.data("dxDataGrid")) {
+            $pd.dxDataGrid("dispose");
+        }
+        $pd.removeClass("d-none");
+        $pd.dxDataGrid({
 
             dataSource: details, allowColumnResizing: true,
             columns: [
@@ -334,9 +397,13 @@
             ],
             paging: { pageSize: 15 },
             scrolling: {
-                rowRenderingMode: 'virtual',
+                mode: "standard",
+                rowRenderingMode: "virtual",
+                useNative: true,
+                scrollByContent: true,
+                showScrollbar: "always",
             },
-            height: "250px",
+            height: "100%",
             pager: {
                 visible: true,
                 allowedPageSizes: [15, 20, 'all'],
@@ -355,6 +422,20 @@
                 setShowButtonPackage();
             }
         });
+        modalPackageResizeGrids();
+    }
+
+    function modalPackageResizeGrids() {
+        setTimeout(function () {
+            try {
+                var g = $("#gridContainerPackage").dxDataGrid("instance");
+                if (g) g.updateDimensions();
+            } catch (e) { }
+            try {
+                var gd = $("#gridContainerPackageDeitail").dxDataGrid("instance");
+                if (gd) gd.updateDimensions();
+            } catch (e) { }
+        }, 0);
     }
 
     function SavePackage() {

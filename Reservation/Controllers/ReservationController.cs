@@ -1070,8 +1070,12 @@ namespace Reservation.Controllers
                     int.TryParse(F(req.RoomId), out int roomIdCheck);
                     string roomNoCheck = F(req.RoomNo);
                     int.TryParse(F(req.ReservationId), out int rsvIdCheck);
-                    DateTime arrivalCheck = DateTime.Parse(F(req.Arrival));
-                    DateTime departureCheck = DateTime.Parse(F(req.Departure));
+                    if (!DateTime.TryParse(F(req.Arrival), out DateTime arrivalCheck) ||
+                        !DateTime.TryParse(F(req.Departure), out DateTime departureCheck))
+                    {
+                        pt.RollBack();
+                        return Json(new { code = 1, msg = "Invalid arrival or departure date." });
+                    }
 
                     if (roomIdCheck > 0)
                     {
@@ -1102,10 +1106,9 @@ namespace Reservation.Controllers
                 #endregion
 
                 string itemInventoryString = F(req.ItemInventory);
-                List<int> itemInventory = itemInventoryString
-                .Split(',')
-                .Where(x => !string.IsNullOrWhiteSpace(x))   // khác "" và " "
-                .Select(int.Parse)
+                var itemInventory = itemInventoryString
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => int.TryParse(s, out var id) ? id : 0)
                 .Where(x => x != 0)
                 .ToList();
 
@@ -1150,10 +1153,10 @@ namespace Reservation.Controllers
                     reservationModel.ProfileIndividualId = int.Parse(F(req.ProfileIndividualId));
                     reservationModel.LastName = F(req.LastName);
                     reservationModel.FirstName = F(req.FirstName);
-                    if (F(req.Title) != "0")
+                    if (F(req.Title) != "0" && int.TryParse(F(req.Title), out int titleId) && titleId > 0)
                     {
-                        TitleModel title = (TitleModel)TitleBO.Instance.FindByPrimaryKey(int.Parse(F(req.Title)));
-                        reservationModel.Title = title.Code;
+                        TitleModel title = (TitleModel)TitleBO.Instance.FindByPrimaryKey(titleId);
+                        reservationModel.Title = title?.Code ?? "";
                     }
                     else
                     {
@@ -1615,10 +1618,10 @@ namespace Reservation.Controllers
                     reservationModel.ProfileIndividualId = int.Parse(F(req.ProfileIndividualId));
                     reservationModel.LastName = F(req.LastName);
                     reservationModel.FirstName = F(req.FirstName);
-                    if (F(req.Title) != "0")
+                    if (F(req.Title) != "0" && int.TryParse(F(req.Title), out int titleId) && titleId > 0)
                     {
-                        TitleModel title = (TitleModel)TitleBO.Instance.FindByPrimaryKey(int.Parse(F(req.Title)));
-                        reservationModel.Title = title.Code;
+                        TitleModel title = (TitleModel)TitleBO.Instance.FindByPrimaryKey(titleId);
+                        reservationModel.Title = title?.Code ?? "";
                     }
                     else
                     {
@@ -2047,7 +2050,7 @@ namespace Reservation.Controllers
             }
             catch (Exception ex)
             {
-                return Json(ex.Message);
+                return Json(new { success = false, message = ex.Message, data = Array.Empty<object>() });
             }
         }
         [HttpGet]
@@ -6606,13 +6609,13 @@ namespace Reservation.Controllers
             try
             {
                 if (reservationID <= 0)
-                    return Json(new { Success = false, message = "ReservationID is required" });
+                    return Json(new { success = false, message = "ReservationID is required" });
 
                 var businessDates = PropertyUtils
                     .ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
 
                 if (businessDates == null || businessDates.Count == 0)
-                    return Json(new { Success = false, message = "Business date not available" });
+                    return Json(new { success = false, message = "Business date not available" });
 
                 var businessDate = businessDates[0].BusinessDate;
                 beginDate ??= businessDate;
@@ -6623,7 +6626,7 @@ namespace Reservation.Controllers
                 {
                     var phase0 = _iReservationService.SearchReservationPackages(reservationID, packageID, type, beginDate.Value, endDate.Value, rateCodeID);
                     if (phase0 == null || phase0.Rows.Count == 0)
-                        return Json(new { Success = true, message = "No packages detail found for this reservation package." });
+                        return Json(new { success = true, message = "No packages detail found for this reservation package." });
 
                     var phaseResult = phase0.AsEnumerable()
                         .Select(r => phase0.Columns.Cast<DataColumn>()
@@ -6634,8 +6637,8 @@ namespace Reservation.Controllers
                         .ToList();
                     return Json(new
                     {
-                        Success = true,
-                        DetailsPackage = phaseResult
+                        success = true,
+                        detailsPackage = phaseResult
                     });
 
                 }
@@ -6651,7 +6654,19 @@ namespace Reservation.Controllers
                 );
 
                 if (phase1 == null || phase1.Rows.Count == 0)
-                    return Json(new { Success = true, message = "No packages found for this reservation." });
+                {
+                    var direct = _iReservationService.GetReservationPackagesByReservationId(reservationID);
+                    if (direct != null && direct.Count > 0)
+                    {
+                        return Json(new
+                        {
+                            success = true,
+                            summary = new List<Dictionary<string, object?>>(),
+                            details = direct
+                        });
+                    }
+                    return Json(new { success = true, message = "No packages found for this reservation." });
+                }
 
                 var phase1Result = phase1.AsEnumerable()
                     .Select(r => phase1.Columns.Cast<DataColumn>()
@@ -6667,38 +6682,63 @@ namespace Reservation.Controllers
 
                 foreach (DataRow row in phase1.Rows)
                 {
-                    var packageId = row["ID"] != DBNull.Value
-                        ? Convert.ToInt32(row["ID"])
-                        : 0;
+                    int packageId = 0;
+                    if (row.Table.Columns.Contains("ID") && row["ID"] != DBNull.Value)
+                        packageId = Convert.ToInt32(row["ID"]);
+                    else if (row.Table.Columns.Contains("PackageID") && row["PackageID"] != DBNull.Value)
+                        packageId = Convert.ToInt32(row["PackageID"]);
 
                     if (packageId <= 0)
                         continue;
 
-                    var rowBeginDate = row["Begin Date"] != DBNull.Value
-                        ? Convert.ToDateTime(row["Begin Date"])
-                        : beginDate.Value;
+                    DateTime rowBeginDate = beginDate.Value;
+                    if (row.Table.Columns.Contains("Begin Date") && row["Begin Date"] != DBNull.Value)
+                        rowBeginDate = Convert.ToDateTime(row["Begin Date"]);
+                    else if (row.Table.Columns.Contains("BeginDate") && row["BeginDate"] != DBNull.Value)
+                        rowBeginDate = Convert.ToDateTime(row["BeginDate"]);
 
-                    var rowEndDate = row["End Date"] != DBNull.Value
-                        ? Convert.ToDateTime(row["End Date"])
-                        : endDate.Value;
+                    DateTime rowEndDate = endDate.Value;
+                    if (row.Table.Columns.Contains("End Date") && row["End Date"] != DBNull.Value)
+                        rowEndDate = Convert.ToDateTime(row["End Date"]);
+                    else if (row.Table.Columns.Contains("EndDate") && row["EndDate"] != DBNull.Value)
+                        rowEndDate = Convert.ToDateTime(row["EndDate"]);
 
-                    // ✅ service đã mapping model
+                    // Client thường không gửi rateCodeID → 0 làm phase2 không khớp; lấy từ dòng phase1 nếu có
+                    int effectiveRateCodeId = rateCodeID;
+                    if (effectiveRateCodeId <= 0)
+                    {
+                        foreach (var col in new[] { "RateCodeID", "Rate Code ID", "RateCode Id" })
+                        {
+                            if (row.Table.Columns.Contains(col) && row[col] != DBNull.Value)
+                            {
+                                effectiveRateCodeId = Convert.ToInt32(row[col]);
+                                break;
+                            }
+                        }
+                    }
+
                     var items = _iReservationService.GetReservationPackagePhase2(
                         reservationID,
                         packageId,
                         rowBeginDate,
                         rowEndDate,
-                        rateCodeID
+                        effectiveRateCodeId
                     );
 
                     if (items != null && items.Count > 0)
                         phase2Results.AddRange(items);
                 }
+                if (phase2Results.Count == 0)
+                {
+                    var direct = _iReservationService.GetReservationPackagesByReservationId(reservationID);
+                    if (direct != null && direct.Count > 0)
+                        phase2Results = direct;
+                }
                 return Json(new
                 {
-                    Success = true,
+                    success = true,
                     summary = phase1Result,
-                    Details = phase2Results
+                    details = phase2Results
                 });
             }
             catch (Exception ex)
