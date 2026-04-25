@@ -5945,19 +5945,23 @@ namespace Reservation.Controllers
                             continue;
                         }
                         List<FolioModel> folios = PropertyUtils.ConvertToList<FolioModel>(FolioBO.Instance.FindByAttribute("ReservationID", int.Parse(item.id)));
+                        var foliosOk = true;
                         if (folios.Count > 0)
                         {
                             foreach (var folio in folios)
                             {
-                                if (folio.BalanceVND != 0)
+                                if (folio.BalanceVND != 0m || folio.BalanceUSD != 0m)
                                 {
-
                                     item.coStatus = "Not OK";
-                                    item.message = "Folio Not Balance with currency VND";
+                                    item.message = "Folio not balanced. Balance must be zero before check out.";
+                                    foliosOk = false;
+                                    break;
                                 }
-                                continue;
-
                             }
+                        }
+                        if (!foliosOk)
+                        {
+                            continue;
                         }
                         item.coStatus = "OK";
                         item.message = "Checked Out";
@@ -6016,12 +6020,10 @@ namespace Reservation.Controllers
                 {
                     for (int i = 0; i < folios.Count; i++)
                     {
-                        if (folios[i].BalanceVND < 0 || folios[i].BalanceVND > 5)
+                        if (folios[i].BalanceVND != 0m || folios[i].BalanceUSD != 0m)
                         {
-                            return Json(new { code = 1, msg = "Folio not balanced with currency VND" });
+                            return Json(new { code = 1, msg = "Folio not balanced. Balance must be zero before check out." });
                         }
-
-
                     }
                 }
                 rsv.Status = 2;
