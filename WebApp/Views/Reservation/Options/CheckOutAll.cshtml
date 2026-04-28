@@ -20,38 +20,156 @@
     </div>
 </div>
 <script>
-    function openModalCheckOutAll(type) {
+    /** spReservationSearch thường trả tên cột có khoảng: "Room No", "Reservation Status", "Guest Name"... */
+    function checkoutPickField(item, keys) {
+        if (!item) return undefined;
+        for (var i = 0; i < keys.length; i++) {
+            var k = keys[i];
+            if (Object.prototype.hasOwnProperty.call(item, k) && item[k] !== undefined && item[k] !== null) {
+                return item[k];
+            }
+        }
+        return undefined;
+    }
+
+    /** Mã trạng thái reservation (Due Out = 6). Ưu tiên chữ "DUE OUT" trên cột Status (tránh mã số 1 nhưng UI đã Due Out). */
+    function checkoutAllRowStatusCode(item) {
+        if (!item) return NaN;
+        var label = String(checkoutPickField(item, ['Status', 'status']) || '').trim().toUpperCase();
+        var roomSt = String(checkoutPickField(item, ['RoomStatus', 'roomStatus', 'Room Status']) || '').trim().toUpperCase();
+        if (label.indexOf('DUE OUT') >= 0 || roomSt.indexOf('DUE OUT') >= 0) return 6;
+
+        var raw = checkoutPickField(item, ['ReservationStatus', 'reservationStatus', 'Reservation Status']);
+        if (raw !== undefined && String(raw).trim() !== '') {
+            var n = parseInt(String(raw).trim(), 10);
+            if (!isNaN(n)) return n;
+        }
+        return NaN;
+    }
+
+    function checkoutAllRowBalance(item, field) {
+        var alt = field === 'BalanceVND' ? 'balanceVND' : 'balanceUSD';
+        var v = checkoutPickField(item, [field, alt]);
+        if (typeof parseBillingAmount === 'function') {
+            var p = parseBillingAmount(v);
+            return p === null ? 0 : p;
+        }
+        var n = Number(v);
+        return isNaN(n) ? 0 : n;
+    }
+
+    /** Nguồn dòng search reservation: ưu tiên bản full (listData), sau đó dataSource gốc của grid (không phụ thuộc filter DevExtreme). */
+    function getSearchReservationRowsForCheckout() {
+        var fromWindow = typeof window.listData !== 'undefined' && Array.isArray(window.listData) ? window.listData : null;
+        var fromLocal = typeof listData !== 'undefined' && Array.isArray(listData) ? listData : null;
+        if (fromWindow && fromWindow.length > 0) return fromWindow;
+        if (fromLocal && fromLocal.length > 0) return fromLocal;
+
+        var grid = null;
+        try {
+            grid = $('#gridContainer').dxDataGrid('instance');
+        } catch (e) {
+            grid = null;
+        }
+        if (!grid) return [];
+
+        var raw = grid.option('dataSource');
+        if (Array.isArray(raw) && raw.length > 0) return raw;
+
+        try {
+            var ds = grid.getDataSource();
+            if (ds && typeof ds.items === 'function') {
+                var items = ds.items();
+                if (Array.isArray(items) && items.length > 0) return items;
+            }
+        } catch (e2) { }
+
+        return [];
+    }
+
+    function finishOpenModalCheckOutAll(type, allData) {
+        var filteredData = (allData || []).filter(function(item) {
+            return checkoutAllRowStatusCode(item) === 6;
+        });
+
+        if (Number(type) === 2) {
+            filteredData = filteredData.filter(function(item) {
+                return checkoutAllRowBalance(item, 'BalanceVND') === 0 && checkoutAllRowBalance(item, 'BalanceUSD') === 0;
+            });
+        }
+
+        filteredData = filteredData.map(function(item) {
+            var sid = checkoutPickField(item, ['ID', 'id', 'Id']);
+            var st = checkoutPickField(item, ['ReservationStatus', 'reservationStatus', 'Reservation Status']);
+            var room = checkoutPickField(item, ['RoomNo', 'roomNo', 'Room No', 'Room No.']);
+            var name = checkoutPickField(item, ['GuestName', 'guestName', 'Guest Name']);
+            var mg = checkoutPickField(item, ['MG', 'mg']);
+            return {
+                roomNo: room != null ? String(room) : '',
+                mg: mg != null ? String(mg) : '',
+                id: sid != null ? String(sid) : '',
+                name: name != null ? String(name) : '',
+                reservationStatus: st != null ? String(st) : '',
+                coStatus: '',
+                message: ''
+            };
+        });
+
+        if (filteredData.length === 0) {
+            showToast('Warning', 'No DUE OUT bookings for the current filters and date range. Widen dates or clear room/name filters.', false);
+        }
+
+        initializeDataGridCheckOutAll(filteredData);
+        $('#modalCheckOutAll').modal('show');
+    }
+
+    async function openModalCheckOutAll(type) {
         if (Number(reservationStatus) === 2) {
             showToast('Warning', 'This booking has already been checked out.', false);
             return;
         }
 
-        var grid = $("#gridContainer").dxDataGrid("instance");
-        var dataSource = grid.getDataSource();
-        var allData = dataSource.items();
+        var allData = [];
 
-        // Filter data based on type
-        filteredData = allData.filter(function(item) {
-            return item.ReservationStatus == 6;
-        });
-        
+        // Search Reservation: SP với General (0) không trả Due Out — luôn tải thêm bản Due Out (5) cùng filter để C/O All/Zero có dữ liệu.
+        if (typeof window.buildSearchReservation2AjaxData === 'function') {
+            try {
+                if (window.businessDateReady) {
+                    await window.businessDateReady;
+                }
+            } catch (e) { }
 
-        // Map the filtered data
-        filteredData = filteredData.map(function(item) {
-            return {
-                roomNo: item.RoomNo,
-                mg: item.MG,
-                id: item.ID,
-                name: item.GuestName,
-                reservationStatus: item.ReservationStatus,
-                coStatus: "",
-                message: ""
-            };
-        });
+            var payload = window.buildSearchReservation2AjaxData({ searchType: 5 });
+            if (payload) {
+                allData = await new Promise(function (resolve) {
+                    $.ajax({
+                        url: '/Reservation/SearchReservation2',
+                        type: 'get',
+                        dataType: 'json',
+                        data: payload,
+                        crossDomain: false,
+                        headers: { 'X-CSRF-TOKEN-HEADERNAME': jQuery("input[name='__RequestVerificationToken']").val() },
+                        success: function (result) {
+                            var norm = typeof window.normalizeSearchReservationRows === 'function'
+                                ? window.normalizeSearchReservationRows(result)
+                                : (Array.isArray(result) ? result : (result && result.data) || []);
+                            resolve(norm || []);
+                        },
+                        error: function () {
+                            resolve([]);
+                        }
+                    });
+                });
+            }
+        }
 
-        initializeDataGridCheckOutAll(filteredData);
-        $('#modalCheckOutAll').modal('show');
+        if (!allData.length) {
+            allData = getSearchReservationRowsForCheckout();
+        }
+
+        finishOpenModalCheckOutAll(type, allData);
     }
+    window.openModalCheckOutAll = openModalCheckOutAll;
     function processCheckOutAll(){
         var grid = $("#gridContainerCheckOutAll").dxDataGrid("instance");
         const userName = JSON.parse(localStorage.getItem("Loginname"));
@@ -90,13 +208,16 @@
 
     }
     function initializeDataGridCheckOutAll(data) {
-        // Kiểm tra dữ liệu đầu vào
+        const limitedData = Array.isArray(data) ? data.slice(0, 100) : [];
+        var $host = $('#gridContainerCheckOutAll');
+        // Khởi tạo lặp lại trên cùng DOM: phải dispose instance cũ, nếu không grid giữ datasource rỗng / không vẽ.
+        try {
+            var prev = $host.dxDataGrid('instance');
+            if (prev) prev.dispose();
+        } catch (e) { }
 
-        // Nếu cần giới hạn tổng số bản ghi, ví dụ 100 bản ghi
-        const limitedData = data.slice(0, 100);
-
-        $("#gridContainerCheckOutAll").dxDataGrid({
-            dataSource: limitedData, // Sử dụng dữ liệu đã giới hạn
+        $host.dxDataGrid({
+            dataSource: limitedData,
             allowColumnResizing: true,
             columnAutoWidth: true,
             columnMinWidth: 90,

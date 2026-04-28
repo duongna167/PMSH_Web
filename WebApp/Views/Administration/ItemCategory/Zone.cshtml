@@ -318,7 +318,7 @@
         }
 
         function zone_fillForm(zone_data) {
-            $(zone_selectors.id).val(zone_data.id);
+            $(zone_selectors.id).val(zone_data.id ?? zone_data.ID ?? 0);
             $(zone_selectors.code).val(zone_data.code);
             $(zone_selectors.name).val(zone_data.name);
             $(zone_selectors.description).val(zone_data.description);
@@ -486,7 +486,11 @@
         }
 
         function zone_delete() {
-            if (!zone_selectedRowData || zone_selectedRowData.id === 0) {
+            const zone_row = zone_selectedRowData;
+            const zone_delId = zone_row
+                ? (parseInt(zone_row.id, 10) || parseInt(zone_row.ID, 10) || 0)
+                : 0;
+            if (!zone_row || zone_delId === 0) {
                 showToast("Warning", "Please select 1 row to delete.", false);
                 return;
             }
@@ -496,7 +500,7 @@
             }
 
             $.ajax({
-                url: `/Administration/DeleteZone/` + zone_selectedRowData.id,
+                url: `/Administration/DeleteZone/` + zone_delId,
                 type: "POST",
                 traditional: true,
                 crossDomain: false,
@@ -513,7 +517,7 @@
                     showToast("Error", zone_result.message, false);
                 },
                 error: function () {
-                    console.log("delete " + zone_selectedRowData.id);
+                    console.log("delete " + zone_delId);
                     showToast("Error", "Delete failed!", false);
                     $("#loadingSpinner").hide();
                 }

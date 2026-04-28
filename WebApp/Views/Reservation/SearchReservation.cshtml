@@ -610,6 +610,7 @@
                 headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
                 success: function (result) {
                     listData = normalizeSearchReservationRows(result) || [];
+                    window.listData = listData;
                     initializeDataGridSearch(result);
                 },
                 error: function (xhr, statusText, err) {
@@ -651,6 +652,7 @@
                     headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
                     success: function (result) {
                         listData = normalizeSearchReservationRows(result) || [];
+                        window.listData = listData;
                         initializeDataGridSearch(result);
                     },
                     error: function (xhr, statusText, err) {
@@ -687,6 +689,7 @@
     var rateAmount = 0;
     var lastname = '';
     var listData = [];
+    window.listData = listData;
     var roomType = '';
     var listReservationByConfirmationNo = [];
     var profileID = 0;
@@ -771,6 +774,48 @@
         if (data && Array.isArray(data.items)) return data.items;
         return null;
     }
+    window.normalizeSearchReservationRows = normalizeSearchReservationRows;
+
+    /**
+     * Payload GET SearchReservation2. General (0) không trả Due Out từ SP — C/O All/Zero gọi lại với overrides.searchType = 5.
+     */
+    window.buildSearchReservation2AjaxData = function (overrides) {
+        overrides = overrides || {};
+        if (!$('#searchType').length || !$('#arrivalForm').length) {
+            return null;
+        }
+        const checkboxValue = $('#roomShare').is(':checked') ? $('#roomShare').val() : '';
+        normalizeSearchArrivalRange();
+        let arrivalDate = $('#arrivalForm').val() || window.dateSystem;
+        let departureDate = $('#departureForm').val();
+        if (!departureDate && typeof UI !== 'undefined' && UI.addDaysIso) {
+            departureDate = UI.addDaysIso(arrivalDate, 7);
+            if (departureDate) UI.setHiddenDate('departureForm', departureDate);
+        }
+        departureDate = departureDate || (typeof UI !== 'undefined' && UI.addDaysIso ? UI.addDaysIso(arrivalDate, 7) : window.dateSystem);
+        if (!arrivalDate || !departureDate) {
+            return null;
+        }
+        const base = {
+            searchType: $('#searchType').val(),
+            name: $('#name').val(),
+            firstName: $('#firstName').val(),
+            reservationHolder: $('#resvHolder').val(),
+            confirmationNo: $('#confirmationNo').val(),
+            crsNo: $('#crsNo').val(),
+            roomNo: $('#roomNo').val(),
+            roomType: $('#roomType').find('option:selected').text(),
+            package: $('#package').val(),
+            zone: $('#zone').find('option:selected').text(),
+            arrivalFrom: arrivalDate,
+            chooseFromDate: $('#chooseFromDate').is(':checked') ? 1 : 0,
+            chooseToDate: $('#chooseToDate').is(':checked') ? 1 : 0,
+            arrivalTo: departureDate,
+            roomSharer: checkboxValue,
+            owner: $('#owner').val()
+        };
+        return Object.assign({}, base, overrides);
+    };
 
     function initializeDataGridSearch(data) {
         const rows = normalizeSearchReservationRows(data);

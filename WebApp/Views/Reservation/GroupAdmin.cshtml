@@ -125,10 +125,18 @@
     // Khai báo biến toàn cục
     // Function để MỞ modal (Sửa lại tên gọi cho đồng nhất)
     function openGroupAdmin() {
-        if(confirmationNo <=0){
-            showToast("Warning", "Please select a row again to edit.", false);
-            return
+        // Đồng bộ từ grid (Search Reservation) — không dùng `confirmationNo <= 0` vì null/'' ép kiểu thành 0 và báo nhầm "chưa chọn row".
+        if (typeof syncReservationSelectionFromGrid === 'function') {
+            syncReservationSelectionFromGrid();
         }
+        const confNorm = confirmationNo !== undefined && confirmationNo !== null && confirmationNo !== ''
+            ? String(confirmationNo).trim()
+            : '';
+        if (!confNorm) {
+            showToast("Warning", "Please select a row again to edit.", false);
+            return;
+        }
+        confirmationNo = confNorm;
         $('#groupAdminModal').modal('show');
         loadGroupData();
     }
