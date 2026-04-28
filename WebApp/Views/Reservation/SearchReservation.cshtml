@@ -1023,20 +1023,7 @@
             }
 
             console.log("ReservationStatus:", sID);
-
-            
-                     const $btns = $('#resv_checkoutSingle, #btnSearchResCheckoutAll, #btnSearchResCheckoutZero, #btnSearchResCheckoutSingle');
-
-                    if (sID === 1) {
-                        console.log("ReservationStatus:", sID);
-                        $btns
-                            .addClass('disabled')
-                            .hide();
-                    } else {
-                        $btns
-                            .removeClass('disabled')
-                            .show();  
-                    }
+ 
             
 
             // CheckedOut: vẫn cho mở Billing (xem hóa đơn / công nợ sau checkout)
@@ -1173,12 +1160,29 @@
 
                     if (!el) return;
 
-                    el.style.pointerEvents = enabled ? "auto" : "none";
-                    el.style.color = enabled ? "" : "gray";
-                    el.style.cursor = enabled ? "pointer" : "not-allowed";
-
                 });
+                   function setDisabled($el, disabled) {
+                    $el.each(function () {
+                        const $t = $(this);
 
+                        // disable đúng chuẩn HTML
+                        $t.prop('disabled', disabled);
+
+                        // style UI
+                        $t.css({
+                            'pointer-events': disabled ? 'none' : '',
+                            'opacity': disabled ? '0.5' : '1',
+                            'cursor': disabled ? 'not-allowed' : ''
+                        });
+                    });
+                }
+
+                const $btns = $('#resv_checkoutSingle, #btnSearchResCheckoutAll, #btnSearchResCheckoutZero, #btnSearchResCheckoutSingle');
+
+                const status = Number(reservationStatus);
+
+                // disable nếu reservationStatus = 0,1,2,3,4,5
+                setDisabled($btns, [0, 1, 2, 3, 4, 5].includes(status));
             },
             onRowPrepared: function (e) {
                 if (e.rowType === "data") {
