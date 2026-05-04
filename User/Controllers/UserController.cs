@@ -54,7 +54,7 @@ namespace User.Controllers
                 HttpContext.Session.SetString("LoginName", loginName);
                 HttpContext.Session.SetInt32("CashierNo", CashierNo);
 
-                var businessDate = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
+                var businessDates = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
                 int memberTypeID = 0; int roomTypeID = 0; int vipID = 0;
                 var resultname = (from d in result2.AsEnumerable()
                                   select new
@@ -66,7 +66,11 @@ namespace User.Controllers
 
                 if (result.ID != 0)
                 {
-                    return Json(new { code = 0, msg = "Successfully", data = resultname, namelogin = loginName, userID = UserID, businessDate = businessDate[0].BusinessDate.ToString("dd/MM/yyyy") });
+                    if (businessDates == null || businessDates.Count == 0)
+                    {
+                        return Json(new { code = 2, msg = "Business date is not set in the system. Please configure BusinessDate in the database." });
+                    }
+                    return Json(new { code = 0, msg = "Successfully", data = resultname, namelogin = loginName, userID = UserID, businessDate = businessDates[0].BusinessDate.ToString("dd/MM/yyyy") });
                 }
                 else
                 {

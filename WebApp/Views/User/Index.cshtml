@@ -552,6 +552,7 @@
 
         <!-- BODY -->
         <div class="login-body">
+            <div id="alert"></div>
 
             <div class="form-group">
                 <label>Login Name</label>
@@ -585,12 +586,17 @@
             data: formData,
             success: function (data) {
                 $('#alert').empty();
-                if (data.code == -1) {
+                if (data.code === -1) {
                     $('#alert').append(`<div class="alert alert-danger" role="alert">
                        ${data.msg}
                     </div>`)
                     $('#txtLoginName').val('');
                     $('#txtPassword').val('');
+                }
+                else if (data.code !== 0) {
+                    $('#alert').append(`<div class="alert alert-danger" role="alert">
+                       ${data.msg || 'Login failed. Please try again.'}
+                    </div>`);
                 }
                 else {
                     localStorage.removeItem("PermissionNames");
@@ -605,14 +611,16 @@
                     localStorage.setItem("Loginname", JSON.stringify(data.namelogin));
 
                     localStorage.setItem("userID", JSON.stringify(data.userID));
-                    console.log(JSON.stringify(data.businessDate));
-                    localStorage.setItem("businessDate", JSON.stringify(data.businessDate));
+                    if (data.businessDate != null && data.businessDate !== '') {
+                        localStorage.setItem("businessDate", JSON.stringify(data.businessDate));
+                    }
                     window.location.href = "/Home/Index";
                 }
 
             },
             error: function (xhr, statusText, err) {
-
+                $('#alert').empty();
+                $('#alert').append('<div class="alert alert-danger" role="alert">Unable to reach server. Please try again.</div>');
             }
         });
 
