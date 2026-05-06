@@ -264,8 +264,30 @@
                         encodeHtml: false
                     }
                 ],
+                onContentReady: function (e) {
+                    const grid = e.component;
+                    const keys = grid.getSelectedRowKeys();
+                    if (!keys || keys.length === 0) {
+                        const items = grid.getDataSource()?.items?.() || [];
+                        if (items.length > 0) {
+                            const key = items[0].id;
+                            if (key !== undefined && key !== null) {
+                                grid.selectRows([key], false);
+                                selectedRowData = items[0];
+                            }
+                        }
+                    }
+                },
                 onSelectionChanged: function (e) {
                     selectedRowData = e.selectedRowsData.length > 0 ? e.selectedRowsData[0] : null;
+                },
+                onRowClick: function (e) {
+                    if (!e) return;
+                    // Ensure clicking a row always selects it (avoid "Please select row" after reopen)
+                    if (e.component && e.key !== undefined && e.key !== null) {
+                        e.component.selectRows([e.key], false);
+                    }
+                    selectedRowData = e.data || null;
                 }
             });
         }

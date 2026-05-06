@@ -103,11 +103,9 @@ namespace Administration.Controllers
                     else
                         isUpdate = true;
                 }
-
-                // Get business dates
-                List<BusinessDateModel> businessDates = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
-                if (businessDates == null || businessDates.Count == 0)
-                    return NotFound(new { success = false, message = "Business date not available. Contact system administrator." });
+                
+                // Use system date/time at the moment of the operation (not BusinessDate)
+                var systemNow = TextUtils.GetSystemDate();
 
 
                 // Check for duplicate Code (case-insensitive) for insert/update
@@ -144,7 +142,7 @@ namespace Administration.Controllers
 
                     _Model.ID = parsedId;
                     _Model.UpdatedBy = user;
-                    _Model.UpdatedDate = businessDates![0].BusinessDate;
+                    _Model.UpdatedDate = systemNow;
                     _Model.CreatedBy = existing.CreatedBy;
                     _Model.CreatedDate = existing.CreatedDate;
                     RateClassBO.Instance.Update(_Model);
@@ -159,7 +157,7 @@ namespace Administration.Controllers
                 {
                     _Model.UpdatedBy = user;
                     _Model.CreatedBy = user;
-                    _Model.CreatedDate = businessDates![0].BusinessDate;
+                    _Model.CreatedDate = systemNow;
                     _Model.UpdatedDate = _Model.CreatedDate;
                     RateClassBO.Instance.Insert(_Model);
                     return Json(new { success = true, message = "Record has been created successfully.", data = new { id = _Model.ID } });

@@ -126,11 +126,9 @@ namespace Security.Controllers
                     else
                         isUpdate = true;
                 }
-
-                // Get business dates
-                List<BusinessDateModel> businessDates = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
-                if (businessDates == null || businessDates.Count == 0)
-                    return NotFound(new { success = false, message = "Business date not available. Contact system administrator." });
+                
+                // Use system date/time at the moment of the operation (not BusinessDate)
+                var systemNow = TextUtils.GetSystemDate();
 
 
                 // Check for duplicate Code (case-insensitive) for insert/update
@@ -168,7 +166,7 @@ namespace Security.Controllers
 
                     _Model.ID = parsedId;
                     _Model.UpdatedBy = user;
-                    _Model.UpdatedDate = businessDates![0].BusinessDate;
+                    _Model.UpdatedDate = systemNow;
                     _Model.CreatedBy = existing.CreatedBy;
                     _Model.CreatedDate = existing.CreatedDate;
                     UserGroupBO.Instance.Update(_Model);
@@ -183,7 +181,7 @@ namespace Security.Controllers
                 {
                     _Model.UpdatedBy = user;
                     _Model.CreatedBy = user;
-                    _Model.CreatedDate = businessDates![0].BusinessDate;
+                    _Model.CreatedDate = systemNow;
                     _Model.UpdatedDate = _Model.CreatedDate;
                     UserGroupBO.Instance.Insert(_Model);
                     return Json(new { success = true, message = "Record has been created successfully.", data = new { id = _Model.ID } });
@@ -592,15 +590,20 @@ namespace Security.Controllers
               
                 if (modelRoom.ID == 0)
                 {
-                    ArrayList arr = UsersBO.Instance.FindByAttribute("LoginName", modelRoom.LoginName);
-                    if (arr != null && arr.Count > 0)
-                    {
-                        return Json(new
-                        {
-                            success = false,
-                            message = "This account already exists."
-                        });
-                    }
+                    var newLogin = (modelRoom.LoginName ?? string.Empty).Trim();
+                    modelRoom.LoginName = newLogin;
+
+                    if (string.IsNullOrWhiteSpace(newLogin))
+                        return Json(new { success = false, message = "Login Name is required." });
+
+                    var allUsers = PropertyUtils.ConvertToList<UsersModel>(UsersBO.Instance.FindAll()) ?? [];
+                    bool dupLogin = allUsers.Any(u =>
+                        !string.IsNullOrWhiteSpace(u.LoginName) &&
+                        string.Equals(u.LoginName.Trim(), newLogin, StringComparison.OrdinalIgnoreCase));
+
+                    if (dupLogin)
+                        return Json(new { success = false, message = "Login Name already exists." });
+
                     // Insert
                     int pID = (int)UsersBO.Instance.Insert(modelRoom);
                     modelRoom.ID = pID;

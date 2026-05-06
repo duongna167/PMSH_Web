@@ -173,6 +173,8 @@
     DevExpress.localization.locale("vi");
 
     var cfC_Module = (function () {
+        let initialized = false;
+        let saveInFlight = false;
         const selectors = {
             mainModal: "#cfC_mainModal",
             form: "#cfC_form",
@@ -193,6 +195,11 @@
         };
 
         function init() {
+            if (initialized) {
+                loadConfirmationConfig();
+                return;
+            }
+            initialized = true;
             bindEvents();
             loadConfirmationConfig();
         }
@@ -205,6 +212,9 @@
             });
 
             $(selectors.mainModal).off("hidden.bs.modal").on("hidden.bs.modal", function () {
+                // Ensure UI isn't left blocked if user closes during a request
+                $(selectors.loading).hide();
+                saveInFlight = false;
                 applyValidationErrors([], selectors.form);
             });
         }
@@ -257,6 +267,8 @@
         }
 
         function saveConfirmationConfig() {
+            if (saveInFlight) return;
+            saveInFlight = true;
             const id = parseInt($(selectors.id).val()) || 0;
             const loginName = (localStorage.getItem("Loginname") || "").trim().replace(/^"(.*)"$/, "$1");
 
@@ -306,6 +318,9 @@
                 error: function (xhr) {
                     const errorMessage = xhr?.responseJSON?.message || xhr?.statusText || "Save failed";
                     showToast("Error", errorMessage, false);
+                },
+                complete: function () {
+                    saveInFlight = false;
                 }
             });
         }

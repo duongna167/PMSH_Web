@@ -108,12 +108,9 @@ namespace Administration.Controllers
                     parsedId = dto.Id;
                     isUpdate = true;
                 }
-
-                // ===== BUSINESS DATE =====
-                var businessDates = PropertyUtils.ConvertToList<BusinessDateModel>(
-                    BusinessDateBO.Instance.FindAll());
-                if (businessDates == null || businessDates.Count == 0)
-                    return NotFound(new { success = false, message = "Business date not available. Contact system administrator." });
+                
+                // Use system date/time at the moment of the operation (not BusinessDate)
+                var systemNow = TextUtils.GetSystemDate();
 
                 // ===== DUPLICATE CHECK (User + RateCode) =====
                 var allPermissions =
@@ -167,7 +164,7 @@ namespace Administration.Controllers
                     model.CreatedBy = existing.CreatedBy;
                     model.CreatedDate = existing.CreatedDate;
                     model.UpdatedBy = userLogin;
-                    model.UpdatedDate = businessDates![0].BusinessDate;
+                    model.UpdatedDate = systemNow;
 
                     UserRateCodePermissionBO.Instance.Update(model);
                     return Json(new
@@ -182,7 +179,7 @@ namespace Administration.Controllers
                 else
                 {
                     model.CreatedBy = userLogin;
-                    model.CreatedDate = businessDates![0].BusinessDate;
+                    model.CreatedDate = systemNow;
                     model.UpdatedBy = userLogin;
                     model.UpdatedDate = model.CreatedDate;
 

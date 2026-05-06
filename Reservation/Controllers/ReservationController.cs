@@ -3692,6 +3692,42 @@ namespace Reservation.Controllers
         }
 
         [HttpPost]
+        public ActionResult DeleteDepositRequest(int id)
+        {
+            ProcessTransactions pt = new ProcessTransactions();
+            try
+            {
+                if (id <= 0)
+                    return Json(new { code = 1, msg = "Invalid request id." });
+
+                var existing = DepositRsqBO.Instance.FindByPrimaryKey(id) as DepositRsqModel;
+                if (existing == null || existing.ID == 0)
+                    return Json(new { code = 1, msg = "Deposit request not found." });
+
+                // Prevent deleting a request that already has payment applied
+                if (existing.PaidAmount != 0)
+                    return Json(new { code = 1, msg = "Cannot delete: this request already has paid amount." });
+
+                pt.OpenConnection();
+                pt.BeginTransaction();
+
+                DepositRsqBO.Instance.Delete(id);
+
+                pt.CommitTransaction();
+                return Json(new { code = 0, msg = "Deleted successfully." });
+            }
+            catch (Exception ex)
+            {
+                pt.RollBack();
+                return Json(new { code = 1, msg = ex.Message });
+            }
+            finally
+            {
+                pt.CloseConnection();
+            }
+        }
+
+        [HttpPost]
         public ActionResult PrintReceipt(int id, string userName)
         {
             ProcessTransactions pt = new ProcessTransactions();
@@ -3710,12 +3746,12 @@ namespace Reservation.Controllers
                 report.Parameters["ReceiptNo"].Value = deposit.ReceiptNo.ToString();
                 report.Parameters["ReceiptReason"].Value = $"Deposit Res.No {deposit.ReservationID}";
                 report.Parameters["RoomNo"].Value = reservation.RoomNo.ToString();
-                report.Parameters["Time"].Value = deposit.TransactionDate.ToString("hh:mm");
+                // Not required to print time on receipt
+                report.Parameters["Time"].Value = "";
                 report.Parameters["User"].Value = userName;
                 report.Parameters["TotalAmount"].Value =
           Math.Abs(deposit.AmountMaster)
-              .ToString("#,##0.00", System.Globalization.CultureInfo.InvariantCulture)
-              .Replace(",", ".");
+              .ToString("#,##0.00", new System.Globalization.CultureInfo("vi-VN"));
 
                 report.Parameters["ConfNo"].Value = reservation.ConfirmationNo;
                 report.Parameters["ArrDate"].Value = reservation.ArrivalDate.ToString("dd/MM/yyyy");
