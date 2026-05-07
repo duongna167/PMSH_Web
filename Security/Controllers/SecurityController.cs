@@ -587,23 +587,23 @@ namespace Security.Controllers
                     DBUtils.initVector,
                     DBUtils.keySize
                 );
-              
+                var newLogin = (modelRoom.LoginName ?? string.Empty).Trim();
+                modelRoom.LoginName = newLogin;
+
+                if (string.IsNullOrWhiteSpace(newLogin))
+                    return Json(new { success = false, message = "Login Name is required." });
+
+                var allUsers = PropertyUtils.ConvertToList<UsersModel>(UsersBO.Instance.FindAll()) ?? [];
+                bool dupLogin = allUsers.Any(u =>
+                    u.ID != modelRoom.ID &&
+                    !string.IsNullOrWhiteSpace(u.LoginName) &&
+                    string.Equals(u.LoginName.Trim(), newLogin, StringComparison.OrdinalIgnoreCase));
+
+                if (dupLogin)
+                    return Json(new { success = false, message = "Login Name already exists." });
+
                 if (modelRoom.ID == 0)
                 {
-                    var newLogin = (modelRoom.LoginName ?? string.Empty).Trim();
-                    modelRoom.LoginName = newLogin;
-
-                    if (string.IsNullOrWhiteSpace(newLogin))
-                        return Json(new { success = false, message = "Login Name is required." });
-
-                    var allUsers = PropertyUtils.ConvertToList<UsersModel>(UsersBO.Instance.FindAll()) ?? [];
-                    bool dupLogin = allUsers.Any(u =>
-                        !string.IsNullOrWhiteSpace(u.LoginName) &&
-                        string.Equals(u.LoginName.Trim(), newLogin, StringComparison.OrdinalIgnoreCase));
-
-                    if (dupLogin)
-                        return Json(new { success = false, message = "Login Name already exists." });
-
                     // Insert
                     int pID = (int)UsersBO.Instance.Insert(modelRoom);
                     modelRoom.ID = pID;

@@ -1,6 +1,9 @@
+using System.Collections.Generic;
 using System.Collections;
+using System.Linq;
 using BaseBusiness.BO;
 using BaseBusiness.Model;
+using BaseBusiness.util;
 
 namespace Administration.Helpers
 {
@@ -185,10 +188,26 @@ namespace Administration.Helpers
 
         public static string GetDeleteZoneBlockReason(int id)
         {
-            return BlockRefCheckIfInvalidId(id)
-                ?? Blocked("zone", "Room Type", Count(RoomTypeBO.Instance.FindByAttribute("ZoneID", id)))
-                ?? Blocked("zone", "Room", Count(RoomBO.Instance.FindByAttribute("ZoneID", id)))
-                ?? Blocked("zone", "Lost And Found", Count(lafLostAndFoundBO.Instance.FindByAttribute("ZoneID", id)));
+            var badId = BlockRefCheckIfInvalidId(id);
+            if (badId != null) return badId;
+
+            // IMPORTANT:
+            // Some BO.FindByAttribute implementations behave like string match and can falsely "find" references.
+            // Use exact numeric comparisons on full lists to avoid blocking delete right after create.
+            var roomTypes = PropertyUtils.ConvertToList<RoomTypeModel>(RoomTypeBO.Instance.FindAll()) ?? new List<RoomTypeModel>();
+            var rooms = PropertyUtils.ConvertToList<RoomModel>(RoomBO.Instance.FindAll()) ?? new List<RoomModel>();
+            var lafs = PropertyUtils.ConvertToList<lafLostAndFoundModel>(lafLostAndFoundBO.Instance.FindAll()) ?? new List<lafLostAndFoundModel>();
+
+            var roomTypeCount = roomTypes.Count(x => x.ZoneID == id);
+            if (roomTypeCount > 0) return Blocked("zone", "Room Type", roomTypeCount);
+
+            var roomCount = rooms.Count(x => x.ZoneID == id);
+            if (roomCount > 0) return Blocked("zone", "Room", roomCount);
+
+            var lafCount = lafs.Count(x => x.ZoneID == id);
+            if (lafCount > 0) return Blocked("zone", "Lost And Found", lafCount);
+
+            return null;
         }
 
         public static string GetDeleteDepartmentBlockReason(int id)

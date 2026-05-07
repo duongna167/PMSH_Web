@@ -143,8 +143,11 @@
 <script>
 
     var cfT_Module = (function () {
+        let initialized = false;
         let selectedRowData = null;
         let editorInstance = null;
+        let gridInstance = null;
+        let lastSelectedKey = null;
 
         const selectors = {
             mainModal: "#cfT_mainModal",
@@ -173,6 +176,11 @@
         };
 
         function init() {
+            if (initialized) {
+                loadGrid();
+                return;
+            }
+            initialized = true;
             initEditor();
             bindEvents();
             loadGrid();
@@ -196,16 +204,16 @@
 
         function bindEvents() {
             initTomSelect(".tomselect-custom");
-            $(selectors.btnNew).off("click").on("click", openAddModal);
-            $(selectors.btnEdit).off("click").on("click", openEditModal);
-            $(selectors.btnDelete).off("click").on("click", deleteRecord);
-            $(selectors.btnSave).off("click").on("click", saveRecord);
+            $(document).off("click.cfT", selectors.btnNew).on("click.cfT", selectors.btnNew, openAddModal);
+            $(document).off("click.cfT", selectors.btnEdit).on("click.cfT", selectors.btnEdit, openEditModal);
+            $(document).off("click.cfT", selectors.btnDelete).on("click.cfT", selectors.btnDelete, deleteRecord);
+            $(document).off("click.cfT", selectors.btnSave).on("click.cfT", selectors.btnSave, saveRecord);
 
             $(selectors.form).off("input change", "input, select, textarea").on("input change", "input, select, textarea", function () {
                 clearFieldError(this);
             });
 
-            $(selectors.itemModal).off("hidden.bs.modal").on("hidden.bs.modal", function () {
+            $(selectors.itemModal).off("hidden.bs.modal.cfT").on("hidden.bs.modal.cfT", function () {
                 resetForm();
                 applyValidationErrors([], selectors.form);
             });
@@ -232,7 +240,11 @@
         }
 
         function renderGrid(data) {
-            $(selectors.grid).dxDataGrid({
+            // Dispose old grid to avoid duplicated handlers / stale selection
+            try { gridInstance?.dispose(); } catch (e) { }
+            $(selectors.grid).empty();
+
+            gridInstance = $(selectors.grid).dxDataGrid({
                 dataSource: data,
                 keyExpr: "id",
                 width: "100%",
@@ -240,7 +252,7 @@
                 columnAutoWidth: true,
                 allowColumnResizing: true,
                 columnResizingMode: "widget",
-                selection: { mode: "single" },
+                selection: { mode: "single", showCheckBoxesMode: "none", selectByClick: true },
                 hoverStateEnabled: true,
                 filterRow: { visible: true, applyFilter: "auto" },
                 paging: { pageSize: 20 },
@@ -266,28 +278,24 @@
                 ],
                 onContentReady: function (e) {
                     const grid = e.component;
-                    const keys = grid.getSelectedRowKeys();
-                    if (!keys || keys.length === 0) {
-                        const items = grid.getDataSource()?.items?.() || [];
-                        if (items.length > 0) {
-                            const key = items[0].id;
-                            if (key !== undefined && key !== null) {
-                                grid.selectRows([key], false);
-                                selectedRowData = items[0];
-                            }
-                        }
+                    // Restore selection after reload (prefer lastSelectedKey, otherwise first row)
+                    const dsItems = grid.getDataSource()?.items?.() || [];
+                    const targetKey = (lastSelectedKey != null ? lastSelectedKey : (dsItems[0]?.id ?? null));
+                    if (targetKey != null) {
+                        grid.selectRows([targetKey], false);
+                        const row = dsItems.find(x => x.id === targetKey) || grid.getSelectedRowsData()[0];
+                        selectedRowData = row || null;
+                    } else {
+                        selectedRowData = null;
                     }
                 },
                 onSelectionChanged: function (e) {
                     selectedRowData = e.selectedRowsData.length > 0 ? e.selectedRowsData[0] : null;
+                    lastSelectedKey = selectedRowData?.id ?? null;
                 },
                 onRowClick: function (e) {
-                    if (!e) return;
-                    // Ensure clicking a row always selects it (avoid "Please select row" after reopen)
-                    if (e.component && e.key !== undefined && e.key !== null) {
-                        e.component.selectRows([e.key], false);
-                    }
-                    selectedRowData = e.data || null;
+                    selectedRowData = e?.data || null;
+                    lastSelectedKey = selectedRowData?.id ?? null;
                 }
             });
         }
@@ -300,6 +308,11 @@
         }
 
         function openEditModal() {
+            // Always re-check selection from grid to avoid stale module state
+            const grid = $(selectors.grid).dxDataGrid("instance");
+            const selected = grid ? (grid.getSelectedRowsData() || []) : [];
+            selectedRowData = selected.length > 0 ? selected[0] : selectedRowData;
+
             if (!selectedRowData) {
                 showToast("Warning", "Please select 1 row to edit.", false);
                 return;
@@ -313,8 +326,8 @@
 
         function fillForm(data) {
             $(selectors.id).val(data.id || 0);
-            setTomSelectValue(selectors.rateCodeID,data.rateCodeID || "")
-            setTomSelectValue(selectors.nationality,data.nationality ?? "")
+            setTomSelectValue(selectors.rateCodeID, data.rateCodeID ?? "")
+            setTomSelectValue(selectors.nationality, data.nationality ?? "")
             $(selectors.letterName).val(data.letterName ?? "");
 
             if (editorInstance) {

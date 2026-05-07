@@ -70,7 +70,10 @@
     }
 
     $('#reasonCancel').on('change', function() {
-        $('#descriptionCancel').text($(this).find('option:selected').text().split('-')[1]);
+        const text = ($(this).find('option:selected').text() || '');
+        const parts = text.split('-');
+        const desc = (parts.length > 1 ? parts.slice(1).join('-') : '').trim();
+        $('#descriptionCancel').val(desc);
     });
 
     function reloadGrid(reservationID) {
@@ -82,8 +85,7 @@
                 success: function (result) {
                     const rows = result?.data || [];
                     gridCancel(rows);
-
-                    if (!rows.length) showToast("Warning", "No records.", false);
+                    // Không hiển thị warning khi chưa có lịch sử cancel
                 },
                 error: function () {
                     showToast("Error", "Cannot load data.", false);

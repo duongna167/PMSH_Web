@@ -47,7 +47,17 @@ namespace FrontDesk.Controllers
         public IActionResult TelephoneBook()
         {
             List<TelephoneBookCategoryModel> tlplist = PropertyUtils.ConvertToList<TelephoneBookCategoryModel>(TelephoneBookCategoryBO.Instance.FindAll());
-            var sortedList = tlplist.OrderBy(x => x.Name).ToList();
+            // "-all-" / "--All--" is a UI helper option, always show it first.
+            var sortedList = (tlplist ?? new List<TelephoneBookCategoryModel>())
+                .OrderBy(x =>
+                {
+                    var n = (x?.Name ?? string.Empty).Trim();
+                    return (n.Equals("-all-", StringComparison.OrdinalIgnoreCase) || n.Equals("--All--", StringComparison.OrdinalIgnoreCase))
+                        ? 0
+                        : 1;
+                })
+                .ThenBy(x => (x?.Name ?? string.Empty).Trim())
+                .ToList();
             ViewBag.TelephoneBookCategoryList = sortedList;
             DataTable dataTable = _iFrontDeskService.TelephoneBook("", "", "");
             var result = (from d in dataTable.AsEnumerable()

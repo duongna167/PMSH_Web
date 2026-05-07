@@ -216,7 +216,7 @@
             $(document).off("click", "#tlpB_btnNew").on("click", "#tlpB_btnNew", function () {
                 $("#tlpB_popupForm")[0].reset();
                 $("#tlpB_popupForm").removeData("edit-id");
-                clearTomSelect(".tomselect-custom");
+                clearTomSelect("#tlpB_popupCategory");
                 $("#tlpB_telephonePopup").modal("show");
             });
 
@@ -449,6 +449,17 @@
     window.openModalFDKTlpB = function () {
         tlpB_Module.init();
     };
+
+    // Reset popup state on close so "New" never keeps old category/value
+    $(document).off("hidden.bs.modal.tlpB_popup").on("hidden.bs.modal.tlpB_popup", "#tlpB_telephonePopup", function () {
+        try { $("#tlpB_popupForm")[0]?.reset(); } catch (e) { }
+        $("#tlpB_popupForm").removeData("edit-id");
+        if (typeof clearTomSelect === "function") {
+            clearTomSelect("#tlpB_popupCategory");
+        } else {
+            $("#tlpB_popupCategory").val("");
+        }
+    });
 
     $("#tlpB_modal").on("hidden.bs.modal", function () {
         if (tlpB_Module.selectedParentRow) tlpB_Module.selectedParentRow.destroy();

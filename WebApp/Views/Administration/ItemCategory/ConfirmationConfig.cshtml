@@ -175,6 +175,7 @@
     var cfC_Module = (function () {
         let initialized = false;
         let saveInFlight = false;
+        let lastLoadXhr = null;
         const selectors = {
             mainModal: "#cfC_mainModal",
             form: "#cfC_form",
@@ -205,13 +206,16 @@
         }
 
         function bindEvents() {
-            $(selectors.btnSave).off("click").on("click", saveConfirmationConfig);
+            // Delegated binding helps when this partial is injected multiple times
+            $(document).off("click.cfC", selectors.btnSave).on("click.cfC", selectors.btnSave, saveConfirmationConfig);
 
-            $(selectors.form).off("input change", "input, select, textarea").on("input change", "input, select, textarea", function () {
-                clearFieldError(this);
-            });
+            $(document)
+                .off("input.cfC change.cfC", `${selectors.form} input, ${selectors.form} select, ${selectors.form} textarea`)
+                .on("input.cfC change.cfC", `${selectors.form} input, ${selectors.form} select, ${selectors.form} textarea`, function () {
+                    clearFieldError(this);
+                });
 
-            $(selectors.mainModal).off("hidden.bs.modal").on("hidden.bs.modal", function () {
+            $(document).off("hidden.bs.modal.cfC", selectors.mainModal).on("hidden.bs.modal.cfC", selectors.mainModal, function () {
                 // Ensure UI isn't left blocked if user closes during a request
                 $(selectors.loading).hide();
                 saveInFlight = false;
@@ -221,8 +225,11 @@
 
         function loadConfirmationConfig() {
             $(selectors.loading).show();
+            if (lastLoadXhr && lastLoadXhr.readyState !== 4) {
+                try { lastLoadXhr.abort(); } catch (e) { }
+            }
 
-            $.ajax({
+            lastLoadXhr = $.ajax({
                 url: "/Administration/GetConfirmationConfig",
                 type: "GET",
                 traditional: true,
@@ -269,20 +276,21 @@
         function saveConfirmationConfig() {
             if (saveInFlight) return;
             saveInFlight = true;
+            $(selectors.loading).show();
             const id = parseInt($(selectors.id).val()) || 0;
             const loginName = (localStorage.getItem("Loginname") || "").trim().replace(/^"(.*)"$/, "$1");
 
             const model = {
                 id: id,
-                emailAddress: $(selectors.emailAddress).val().trim(),
-                mailUser: $(selectors.mailUser).val().trim(),
-                mailPassword: $(selectors.mailPassword).val(),
-                serverName: $(selectors.serverName).val().trim(),
+                emailAddress: String($(selectors.emailAddress).val() || "").trim(),
+                mailUser: String($(selectors.mailUser).val() || "").trim(),
+                mailPassword: String($(selectors.mailPassword).val() || ""),
+                serverName: String($(selectors.serverName).val() || "").trim(),
                 serverPort: parseInt($(selectors.serverPort).val()) || 0,
-                mailSubject: $(selectors.mailSubject).val().trim(),
-                mailBody: $(selectors.mailBody).val().trim(),
-                mailSubjectENG: $(selectors.mailSubjectENG).val().trim(),
-                mailBodyENG: $(selectors.mailBodyENG).val().trim(),
+                mailSubject: String($(selectors.mailSubject).val() || "").trim(),
+                mailBody: String($(selectors.mailBody).val() || "").trim(),
+                mailSubjectENG: String($(selectors.mailSubjectENG).val() || "").trim(),
+                mailBodyENG: String($(selectors.mailBodyENG).val() || "").trim(),
                 updatedBy: loginName
             };
 
@@ -320,6 +328,7 @@
                     showToast("Error", errorMessage, false);
                 },
                 complete: function () {
+                    $(selectors.loading).hide();
                     saveInFlight = false;
                 }
             });
