@@ -1,4 +1,4 @@
-﻿using BaseBusiness.BO;
+using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using DevExpress.Data.Filtering.Helpers;
@@ -5980,6 +5980,14 @@ namespace Reservation.Controllers
                             item.message = "Today not equal departure date";
                             continue;
                         }
+                        // Add rsv balance check
+                        if (rsv.BalanceVND != 0m || rsv.BalanceUSD != 0m)
+                        {
+                            item.coStatus = "Not OK";
+                            item.message = "Reservation has outstanding balance. Balance must be zero before check out.";
+                            continue;
+                        }
+
                         List<FolioModel> folios = PropertyUtils.ConvertToList<FolioModel>(FolioBO.Instance.FindByAttribute("ReservationID", int.Parse(item.id)));
                         var foliosOk = true;
                         if (folios.Count > 0)
@@ -6021,7 +6029,18 @@ namespace Reservation.Controllers
                     }
                 }
                 pt.CommitTransaction();
-                return Json(new { code = 0, msg = "Check out all was  successfully", data = listItem });
+
+                int failCount = listItem.Count(x => x.coStatus == "Not OK");
+                if (failCount > 0 && failCount == listItem.Count)
+                {
+                    return Json(new { code = 1, msg = "Check out failed for all selected bookings.", data = listItem });
+                }
+                else if (failCount > 0)
+                {
+                    return Json(new { code = 2, msg = $"Check out completed: {listItem.Count - failCount} successful, {failCount} failed.", data = listItem });
+                }
+
+                return Json(new { code = 0, msg = "Check out all was successfully", data = listItem });
             }
             catch (Exception ex)
             {
@@ -6051,6 +6070,11 @@ namespace Reservation.Controllers
                     return Json(new { code = 1, msg = " Could not find Reservation" });
 
                 }
+                if (rsv.BalanceVND != 0m || rsv.BalanceUSD != 0m)
+                {
+                    return Json(new { code = 1, msg = "Reservation has outstanding balance. Balance must be zero before check out." });
+                }
+
                 List<FolioModel> folios = PropertyUtils.ConvertToList<FolioModel>(FolioBO.Instance.FindByAttribute("ReservationID", rsv.ID));
                 if (folios.Count > 0)
                 {
