@@ -211,12 +211,12 @@ namespace Administration.Controllers
                 if (model.Id > 0)
                 {
                     RateCodeBO.Instance.Update(entity);
-                    return Json(new { success = true, message = $"Changes saved successfully ID: {model.Id}.", data = new { id = model.Id } });
+                    return Json(new { success = true, message = "Update Rate Code successfully.", data = new { id = model.Id } });
                 }
                 else
                 {
                     RateCodeBO.Instance.Insert(entity);
-                    return Json(new { success = true, message = "Record has been created successfully.", data = new { id = entity.ID } });
+                    return Json(new { success = true, message = "Create Rate Code successfully.", data = new { id = entity.ID } });
                 }
             }
             catch (Exception ex)
