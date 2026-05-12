@@ -1455,11 +1455,12 @@ namespace Billing.Controllers
                 return Json(new { code = 1, msg = "Request Data Invalid Or NULL" });
             }
 
-            ActionResult splitProcedureResult = TrySplitTransactionByProcedure(request);
-            if (splitProcedureResult != null)
-            {
-                return splitProcedureResult;
-            }
+            // Bypass SP split — use C# logic below to ensure VTA/SVC rows are split correctly
+            // ActionResult splitProcedureResult = TrySplitTransactionByProcedure(request);
+            // if (splitProcedureResult != null)
+            // {
+            //     return splitProcedureResult;
+            // }
 
             ProcessTransactions pt = new ProcessTransactions();
             try
