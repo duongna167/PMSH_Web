@@ -145,7 +145,7 @@ namespace Administration.Controllers
                     return Json(new
                     {
                         success = true,
-                        message = $"Changes saved successfully ID: {_Model.ID}.",
+                        message = "Update Rate Category successfully.",
                         data = new { id = _Model.ID }
                     });
                 }
@@ -156,7 +156,7 @@ namespace Administration.Controllers
                     _Model.CreatedDate = now;
                     _Model.UpdatedDate = now;
                     RateCategoryBO.Instance.Insert(_Model);
-                    return Json(new { success = true, message = "Record has been created successfully.", data = new { id = _Model.ID } });
+                    return Json(new { success = true, message = "Create Rate Category successfully.", data = new { id = _Model.ID } });
                 }
             }
             catch (Exception ex)

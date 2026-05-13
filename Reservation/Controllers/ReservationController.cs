@@ -1,4 +1,4 @@
-﻿using BaseBusiness.BO;
+using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using DevExpress.Data.Filtering.Helpers;
@@ -3640,19 +3640,18 @@ namespace Reservation.Controllers
                 int i = 0;
                 while (i < listDepositRequest.Count && totalDepositAmountPayment > 0)
                 {
-                    if (totalDepositAmountPayment > listDepositRequest[i].Amount)
+                    decimal remainingDue = listDepositRequest[i].Amount - listDepositRequest[i].PaidAmount;
+                    if (remainingDue <= 0)
                     {
-                        listDepositRequest[i].PaidAmount = listDepositRequest[i].Amount;
-
+                        i++;
+                        continue;
                     }
-                    else
-                    {
-                        listDepositRequest[i].PaidAmount = totalDepositAmountPayment;
 
-                    }
+                    decimal applyAmount = Math.Min(totalDepositAmountPayment, remainingDue);
+                    listDepositRequest[i].PaidAmount += applyAmount;
                     listDepositRequest[i].DueAmount = listDepositRequest[i].Amount - listDepositRequest[i].PaidAmount;
                     DepositRsqBO.Instance.Update(listDepositRequest[i]);
-                    totalDepositAmountPayment = totalDepositAmountPayment - listDepositRequest[i].Amount;
+                    totalDepositAmountPayment -= applyAmount;
                     i++;
                 }
                 #endregion
@@ -5963,6 +5962,11 @@ namespace Reservation.Controllers
         [HttpPost]
         public ActionResult CheckOutAll(List<CheckOutDTO> listItem, int userID, string userName)
         {
+            if (listItem == null || listItem.Count == 0)
+            {
+                return Json(new { code = 1, msg = "No bookings selected for check out.", data = listItem });
+            }
+
             ProcessTransactions pt = new ProcessTransactions();
             try
             {
@@ -5974,12 +5978,19 @@ namespace Reservation.Controllers
                     {
                         ReservationModel rsv = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(int.Parse(item.id));
 
-                        if (int.Parse(item.reservationStatus) == 1)
+                        if (rsv.Status != 6)
                         {
                             item.coStatus = "Not OK";
-                            item.message = "Today not equal departure date";
+                            item.message = rsv.Status == 2 ? "Already checked out" : "Reservation status is not DUE OUT";
                             continue;
                         }
+                        if (rsv.BalanceVND != 0m || rsv.BalanceUSD != 0m)
+                        {
+                            item.coStatus = "Not OK";
+                            item.message = "Reservation has outstanding balance. Balance must be zero before check out.";
+                            continue;
+                        }
+
                         List<FolioModel> folios = PropertyUtils.ConvertToList<FolioModel>(FolioBO.Instance.FindByAttribute("ReservationID", int.Parse(item.id)));
                         var foliosOk = true;
                         if (folios.Count > 0)
@@ -6021,7 +6032,18 @@ namespace Reservation.Controllers
                     }
                 }
                 pt.CommitTransaction();
-                return Json(new { code = 0, msg = "Check out all was  successfully", data = listItem });
+
+                int failCount = listItem.Count(x => x.coStatus == "Not OK");
+                if (failCount > 0 && failCount == listItem.Count)
+                {
+                    return Json(new { code = 1, msg = "Check out failed for all selected bookings.", data = listItem });
+                }
+                else if (failCount > 0)
+                {
+                    return Json(new { code = 2, msg = $"Check out completed: {listItem.Count - failCount} successful, {failCount} failed.", data = listItem });
+                }
+
+                return Json(new { code = 0, msg = "Check out all was successfully", data = listItem });
             }
             catch (Exception ex)
             {
@@ -6048,9 +6070,17 @@ namespace Reservation.Controllers
                 ReservationModel rsv = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(reservationID);
                 if (rsv == null || rsv.ID == 0)
                 {
-                    return Json(new { code = 1, msg = " Could not find Reservation" });
-
+                    return Json(new { code = 1, msg = "Could not find Reservation" });
                 }
+                if (rsv.Status != 6)
+                {
+                    return Json(new { code = 1, msg = rsv.Status == 2 ? "This booking has already been checked out." : "Reservation status is not DUE OUT." });
+                }
+                if (rsv.BalanceVND != 0m || rsv.BalanceUSD != 0m)
+                {
+                    return Json(new { code = 1, msg = "Reservation has outstanding balance. Balance must be zero before check out." });
+                }
+
                 List<FolioModel> folios = PropertyUtils.ConvertToList<FolioModel>(FolioBO.Instance.FindByAttribute("ReservationID", rsv.ID));
                 if (folios.Count > 0)
                 {
