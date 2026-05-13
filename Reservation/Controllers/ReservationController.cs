@@ -5987,7 +5987,7 @@ namespace Reservation.Controllers
                         if (rsv.BalanceVND != 0m || rsv.BalanceUSD != 0m)
                         {
                             item.coStatus = "Not OK";
-                            item.message = "Reservation has outstanding balance. Balance must be zero before check out.";
+                            item.message = "Outstanding balance. Please make payment before checkout.";
                             continue;
                         }
 
@@ -6000,7 +6000,7 @@ namespace Reservation.Controllers
                                 if (folio.BalanceVND != 0m || folio.BalanceUSD != 0m)
                                 {
                                     item.coStatus = "Not OK";
-                                    item.message = "Folio not balanced. Balance must be zero before check out.";
+                                    item.message = "Outstanding balance. Please make payment before checkout.";
                                     foliosOk = false;
                                     break;
                                 }

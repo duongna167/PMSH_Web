@@ -50,12 +50,15 @@
     function checkoutAllRowBalance(item, field) {
         var alt = field === 'BalanceVND' ? 'balanceVND' : 'balanceUSD';
         var v = checkoutPickField(item, [field, alt]);
+        if (v === undefined || v === null || String(v).trim() === '') {
+            return 1; // unknown balance — treat as non-zero to block C/O Zero
+        }
         if (typeof parseBillingAmount === 'function') {
             var p = parseBillingAmount(v);
-            return p === null ? 0 : p;
+            return p === null ? 1 : p;
         }
         var n = Number(v);
-        return isNaN(n) ? 0 : n;
+        return isNaN(n) ? 1 : n;
     }
 
     /** Nguồn dòng search reservation: ưu tiên bản full (listData), sau đó dataSource gốc của grid (không phụ thuộc filter DevExtreme). */

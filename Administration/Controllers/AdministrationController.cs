@@ -4432,7 +4432,7 @@ namespace Administration.Controllers
                     model.CreatedDate = DateTime.Now;
                     model.UpdatedDate = DateTime.Now;
                     ConfirmationTempBO.Instance.Insert(model);
-                    message = "Insert successfully.";
+                    message = $"Insert \"{model.LetterName}\" successfully.";
                 }
                 else
                 {
@@ -4444,9 +4444,9 @@ namespace Administration.Controllers
                     }
                     model.UpdatedDate = DateTime.Now;
                     ConfirmationTempBO.Instance.Update(model);
-                    message = "Update successfully.";
+                    message = $"Update \"{model.LetterName}\" successfully.";
                 }
-                return Json(new { success = true, message = message });
+                return Json(new { success = true, message = message, id = model.ID });
             }
             catch (Exception ex)
             {
