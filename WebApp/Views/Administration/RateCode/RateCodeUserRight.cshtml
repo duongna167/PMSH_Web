@@ -114,36 +114,42 @@
 
                             <div class="col-12">
                                 <div class="row g-1 align-items-center">
-                                    <label for="rtCUD_userID" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    <label for="rtCUD_modalUser" class="col-md-4 col-form-label col-form-label-sm text-md-end">
                                         User Name <span class="text-danger">*</span>
                                     </label>
                                     <div class="col-md-7">
-                                        <div class="input-group input-group-sm">
-                                            <input id="rtCUD_userID" name="rtCUD_userID" type="hidden" />
-                                            <input id="rtCUD_userName" name="user" type="text" class="form-control" readonly />
-                                            <button id="rtCUD_btnPickUser" class="btn-search-icon" type="button">
-                                               <i class="fa-solid fa-arrow-down"></i>
-                                            </button>
-                                            <div class="invalid-feedback"></div>
-                                        </div>
+                                        <select id="rtCUD_modalUser" name="rtCUD_modalUser" class="rtCUD-tomselect">
+                                            <option value="">-- Select User --</option>
+                                            @if (rtCUD_listUser != null)
+                                            {
+                                                foreach (dynamic u in rtCUD_listUser)
+                                                {
+                                                    <option value="@u.LoginName">@u.LoginName \ @u.JobDescription</option>
+                                                }
+                                            }
+                                        </select>
+                                        <div class="invalid-feedback"></div>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="col-12">
                                 <div class="row g-1 align-items-center">
-                                    <label for="rtCUD_rateCodeID" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                    <label for="rtCUD_modalRateCode" class="col-md-4 col-form-label col-form-label-sm text-md-end">
                                         Rate Code <span class="text-danger">*</span>
                                     </label>
                                     <div class="col-md-7">
-                                        <div class="input-group input-group-sm">
-                                            <input id="rtCUD_rateCodeID" name="rtCUD_rateCodeID" type="hidden" />
-                                            <input id="rtCUD_rateCode" name="rateCode" type="text" class="form-control" readonly />
-                                            <button id="rtCUD_btnPickRateCode" class="btn-search-icon" type="button">
-                                                <i class="fa-solid fa-arrow-down"></i>
-                                            </button>
-                                            <div class="invalid-feedback"></div>
-                                        </div>
+                                        <select id="rtCUD_modalRateCode" name="rtCUD_modalRateCode" class="rtCUD-tomselect">
+                                            <option value="">-- Select Rate Code --</option>
+                                            @if (rtCUD_listRateCode != null)
+                                            {
+                                                foreach (dynamic u in rtCUD_listRateCode)
+                                                {
+                                                    <option value="@u.RateCode">@u.RateCode \ @u.Descripton</option>
+                                                }
+                                            }
+                                        </select>
+                                        <div class="invalid-feedback"></div>
                                     </div>
                                 </div>
                             </div>
@@ -192,16 +198,12 @@
             modalItemId: "#rtCUD_modalItemId",
             btnSave: "#rtCUD_btnSave",
 
-            userID: "#rtCUD_userID",
-            userName: "#rtCUD_userName",
-            rateCodeID: "#rtCUD_rateCodeID",
-            rateCode: "#rtCUD_rateCode",
-            btnPickUser: "#rtCUD_btnPickUser",
-            btnPickRateCode: "#rtCUD_btnPickRateCode"
+            modalUser: "#rtCUD_modalUser",
+            modalRateCode: "#rtCUD_modalRateCode"
         };
 
         function init() {
-            initTomSelect(".tomselect-custom");
+            initTomSelect([sel.userFilter, sel.codeFilter, sel.modalUser, sel.modalRateCode]);
             mainModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modalMain), { backdrop: "static" });
             upsertModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modalUpsert), { backdrop: "static" });
 
@@ -255,16 +257,7 @@
                 save();
             });
 
-            // Keep legacy external pickers working; also allow button click without inline onclick
-            $(document).off("click.rtCUD", sel.btnPickUser).on("click.rtCUD", sel.btnPickUser, function () {
-                if (typeof window.openModalSearchUser === "function") window.openModalSearchUser();
-                else showToast("Warning", "openModalSearchUser() not found.", false);
-            });
-
-            $(document).off("click.rtCUD", sel.btnPickRateCode).on("click.rtCUD", sel.btnPickRateCode, function () {
-                if (typeof window.openModalSearchRateCode === "function") window.openModalSearchRateCode();
-                else showToast("Warning", "openModalSearchRateCode() not found.", false);
-            });
+            // TomSelect dropdowns replaced the old picker buttons
         }
 
         function cleanup() {
@@ -281,21 +274,7 @@
             $("#rtCUD_modalMain .modal-content").removeClass("modal-blur");
         }
 
-        // Allow external modal pickers to push selection back into this module
-        // Call these from your search modals when user picks an item.
-        function setPickedUser(userID, userName) {
-            $(sel.userID).val(userID || "");
-            $(sel.userName).val(userName || "");
-        }
-
-        function setPickedRateCode(rateCodeID, rateCode) {
-            $(sel.rateCodeID).val(rateCodeID || "");
-            $(sel.rateCode).val(rateCode || "");
-        }
-
-        // expose setters
-        window.rtCUD_setPickedUser = setPickedUser;
-        window.rtCUD_setPickedRateCode = setPickedRateCode;
+        // Old picker button setters removed – TomSelect dropdowns are used now.
 
         // --------- GRID ---------
         function destroyGrid() {
@@ -392,10 +371,7 @@
         // --------- UPSERT ---------
         function clearForm() {
             $(sel.modalItemId).val(0);
-            $(sel.userID).val("");
-            $(sel.userName).val("");
-            $(sel.rateCodeID).val("");
-            $(sel.rateCode).val("");
+            clearMultipleTomSelect([sel.modalUser, sel.modalRateCode]);
         }
 
         function openNew() {
@@ -415,10 +391,8 @@
             if (typeof window.applyValidationErrors === "function") applyValidationErrors([], sel.form);
 
             $(sel.modalItemId).val(selectedRowData.id || 0);
-            $(sel.userID).val(selectedRowData.userID || "");
-            $(sel.userName).val(selectedRowData.userName || "");
-            $(sel.rateCodeID).val(selectedRowData.rateCodeID || "");
-            $(sel.rateCode).val(selectedRowData.rateCode || "");
+            setTomSelectValue(sel.modalUser, String(selectedRowData.userName ?? ""));
+            setTomSelectValue(sel.modalRateCode, String(selectedRowData.rateCode ?? ""));
 
             $(sel.upsertTitle).text("Edit Rate Code User Right");
             $("#rtCUD_modalMain .modal-content").addClass("modal-blur");
@@ -426,8 +400,8 @@
         }
 
         function validatePayload(p) {
-            if (!p.userID || !p.userName) return "User is required.";
-            if (!p.rateCodeID || !p.rateCode) return "Rate Code is required.";
+            if (!p.userName) return "User is required.";
+            if (!p.rateCode) return "Rate Code is required.";
             return null;
         }
 
@@ -435,20 +409,17 @@
             const payload = {
                 id: parseInt($(sel.modalItemId).val()) || 0,
 
-                rateCodeID: parseInt($(sel.rateCodeID).val()) || 0,
-                rateCode: ($(sel.rateCode).val() || "").trim(),
-
-                userID: parseInt($(sel.userID).val()) || 0,
-                userName: ($(sel.userName).val() || "").trim(),
+                rateCode: ($(sel.modalRateCode).val() || "").trim(),
+                userName: ($(sel.modalUser).val() || "").trim(),
 
                 userLogin: localStorage.getItem("Loginname")
             };
 
-            @* const err = validatePayload(payload);
+            const err = validatePayload(payload);
             if (err) {
                 showToast("Error", err, false);
                 return;
-            } *@
+            }
 
             showLoading(true);
 
