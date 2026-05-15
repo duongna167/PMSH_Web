@@ -280,6 +280,8 @@
 <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/jquery/dist/jquery.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/toast.js"></script>
 <link rel="icon" type="image/png" href="~/images/logo.png" />
 
 <link href="~/css/assets/button.css" rel="stylesheet" />
@@ -573,9 +575,36 @@
 
 <script>
     function login() {
+        var loginName = ($('#txtLoginName').val() || '').trim();
+        var password = $('#txtPassword').val() || '';
+
+        $('#alert').empty();
+
+        if (!loginName && !password) {
+            var msgEmpty = 'Please enter your username and password.';
+            $('#alert').append(`<div class="alert alert-danger" role="alert">${msgEmpty}</div>`);
+            if (typeof showToast === 'function') showToast('Username or password incorrect', msgEmpty, false);
+            $('#txtLoginName').focus();
+            return;
+        }
+        if (!loginName) {
+            var msgUser = 'Please enter your username.';
+            $('#alert').append(`<div class="alert alert-danger" role="alert">${msgUser}</div>`);
+            if (typeof showToast === 'function') showToast('Username or password incorrect', msgUser, false);
+            $('#txtLoginName').focus();
+            return;
+        }
+        if (!password) {
+            var msgPass = 'Please enter your password.';
+            $('#alert').append(`<div class="alert alert-danger" role="alert">${msgPass}</div>`);
+            if (typeof showToast === 'function') showToast('Username or password incorrect', msgPass, false);
+            $('#txtPassword').focus();
+            return;
+        }
+
         var formData = new FormData();
-        formData.append('LoginName', $('#txtLoginName').val());
-        formData.append('Password', $('#txtPassword').val());
+        formData.append('LoginName', loginName);
+        formData.append('Password', password);
 
         $.ajax({
             url: '/User/Login',
@@ -587,16 +616,17 @@
             success: function (data) {
                 $('#alert').empty();
                 if (data.code === -1) {
-                    $('#alert').append(`<div class="alert alert-danger" role="alert">
-                       ${data.msg}
-                    </div>`)
+                    var errMsg = data.msg || 'The username or password is incorrect. Please try again.';
+                    $('#alert').append(`<div class="alert alert-danger" role="alert">${errMsg}</div>`);
+                    if (typeof showToast === 'function') showToast('Username or password incorrect', errMsg, false);
                     $('#txtLoginName').val('');
                     $('#txtPassword').val('');
+                    $('#txtLoginName').focus();
                 }
                 else if (data.code !== 0) {
-                    $('#alert').append(`<div class="alert alert-danger" role="alert">
-                       ${data.msg || 'Login failed. Please try again.'}
-                    </div>`);
+                    var warnMsg = data.msg || 'Login failed. Please try again.';
+                    $('#alert').append(`<div class="alert alert-danger" role="alert">${warnMsg}</div>`);
+                    if (typeof showToast === 'function') showToast('Username or password incorrect', warnMsg, false);
                 }
                 else {
                     localStorage.removeItem("PermissionNames");
@@ -620,7 +650,9 @@
             },
             error: function (xhr, statusText, err) {
                 $('#alert').empty();
-                $('#alert').append('<div class="alert alert-danger" role="alert">Unable to reach server. Please try again.</div>');
+                var netMsg = 'Unable to reach server. Please try again.';
+                $('#alert').append(`<div class="alert alert-danger" role="alert">${netMsg}</div>`);
+                if (typeof showToast === 'function') showToast('Username or password incorrect', netMsg, false);
             }
         });
 
