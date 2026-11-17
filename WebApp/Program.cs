@@ -263,7 +263,7 @@ if (!app.Environment.IsDevelopment())
 
 var env = builder.Environment;
 app.UseStaticFiles();
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() && Directory.Exists(Path.Combine(env.ContentRootPath, "node_modules")))
 {
     app.UseStaticFiles(new StaticFileOptions
     {
