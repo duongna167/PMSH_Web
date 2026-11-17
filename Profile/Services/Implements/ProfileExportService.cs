@@ -78,5 +78,42 @@ namespace Profile.Services.Implements
                 throw new Exception($"ERROR: {ex.Message}", ex);
             }
         }
+
+        public DataTable SearchProfileExportCSV(DateTime fromDate, DateTime toDate)
+        {
+            try
+            {
+                SqlParameter[] param = new SqlParameter[]
+                {
+                    new SqlParameter("@FromDate", fromDate),
+                    new SqlParameter("@ToDate", toDate)
+                };
+
+                return DataTableHelper.getTableData("spProfileExportCSV", param);
+            }
+            catch (SqlException ex)
+            {
+                throw new Exception($"ERROR: {ex.Message}", ex);
+            }
+        }
+
+        public DataTable SearchProfileExportV2(DateTime fromDate, DateTime toDate, bool guestInHouse)
+        {
+            try
+            {
+                SqlParameter[] param = new SqlParameter[]
+                {
+                    new SqlParameter("@FromDate", fromDate),
+                    new SqlParameter("@ToDate", toDate)
+                };
+
+                string spName = guestInHouse ? "spGuestProfileSearchGuest" : "spGuestProfileSearch";
+                return DataTableHelper.getTableData(spName, param);
+            }
+            catch (SqlException ex)
+            {
+                throw new Exception($"ERROR: {ex.Message}", ex);
+            }
+        }
     }
 }

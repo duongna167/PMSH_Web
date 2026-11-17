@@ -263,12 +263,12 @@ if (!app.Environment.IsDevelopment())
 
 var env = builder.Environment;
 app.UseStaticFiles();
-if (app.Environment.IsDevelopment())
+var nodeModulesPath = Path.Combine(env.ContentRootPath, "node_modules");
+if (app.Environment.IsDevelopment() && Directory.Exists(nodeModulesPath))
 {
     app.UseStaticFiles(new StaticFileOptions
     {
-        FileProvider = new PhysicalFileProvider(
-            Path.Combine(env.ContentRootPath, "node_modules")),
+        FileProvider = new PhysicalFileProvider(nodeModulesPath),
         RequestPath = "/node_modules",
     });
 }

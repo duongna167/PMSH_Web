@@ -1,0 +1,211 @@
+@* Export Profile to Excel - port từ WinForm frmProfileExport_V2 (spGuestProfileSearch / spGuestProfileSearchGuest) *@
+
+<div class="modal fade" id="pro_v2_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Profile Export (V2)</h5>
+            </div>
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button class="mui-button mui-button-search" id="pro_v2_search">Search</button>
+                    <button class="mui-button mui-button-export" id="pro_v2_export">Export</button>
+                    <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
+
+                    <div class="d-flex flex-wrap gap-3 align-items-center py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            From date
+                            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="pro_v2_fromDate">
+                                <input type="text" class="date-ui form-control form-control-sm" placeholder="From">
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2">
+                            To date
+                            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="pro_v2_toDate">
+                                <input type="text" class="date-ui form-control form-control-sm" placeholder="To">
+                            </div>
+                        </div>
+
+                        <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" id="pro_v2_guestInHouse">
+                            <label class="form-check-label" for="pro_v2_guestInHouse">Guest In House</label>
+                        </div>
+                    </div>
+
+                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1 position-relative" style="min-height: 0;">
+                        <div id="pro_v2_gridContainer"></div>
+                        <div id="pro_v2_loading" style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+                        z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+                        height: 100%;display: none;align-items: center;justify-content: center;">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var pro_v2_Module = {
+        // Mã khách sạn cố định giống WinForm (cột unbound 'VHAI')
+        PROPERTY_CODE: "VHAI",
+
+        baseGridOptions: {
+            height: "100%",
+            width: "100%",
+            showBorders: true,
+            hoverStateEnabled: true,
+            allowColumnResizing: true,
+            columnResizingMode: "widget",
+            columnAutoWidth: true,
+            selection: { mode: "single" },
+            scrolling: {
+                mode: "standard",
+                showScrollbar: "always",
+                useNative: true
+            },
+            paging: { pageSize: 50 },
+            pager: {
+                visible: true,
+                allowedPageSizes: [20, 50, 100, 500],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            },
+            filterRow: { visible: true, applyFilter: "auto" }
+        },
+
+        init: function () {
+            window.openModalProV2 = () => this.reloadGrid();
+
+            $("#pro_v2_search").on("click", () => this.reloadGrid());
+            $("#pro_v2_export").on("click", () => this.exportToExcel());
+        },
+
+        getFilter: function () {
+            const businessDate = (window.dateTimeSystem || "").split("T")[0];
+            return {
+                fromDate: $("#pro_v2_fromDate").val() || businessDate,
+                toDate: $("#pro_v2_toDate").val() || businessDate,
+                guestInHouse: $("#pro_v2_guestInHouse").is(":checked")
+            };
+        },
+
+        reloadGrid: function () {
+            const filter = this.getFilter();
+            if (!filter.fromDate || !filter.toDate) {
+                showToast("Warning", "Please select From date and To date", false);
+                return;
+            }
+            if (filter.fromDate > filter.toDate) {
+                showToast("Warning", "From date must be before To date", false);
+                return;
+            }
+
+            $("#pro_v2_loading").css("display", "flex");
+            $.ajax({
+                url: '/Profile/SearchProfileExportV2',
+                type: 'GET',
+                data: filter,
+                success: (data) => this.renderGrid(data),
+                error: (xhr) => showToast("Error", xhr.responseText || "Unable to load data", false),
+                complete: () => $("#pro_v2_loading").hide()
+            });
+        },
+
+        // WinForm: Iif([x] = '', 0, Round([x] / [ExChangeRate], 2))
+        toUSD: function (field) {
+            return function (row) {
+                const value = row[field];
+                if (value === null || value === undefined || value === "") return 0;
+                const rate = Number(row.ExChangeRate);
+                if (!rate) return null;
+                return Math.round((Number(value) / rate) * 100) / 100;
+            };
+        },
+
+        renderGrid: function (data) {
+            const money = { type: "fixedPoint", precision: 2 };
+            const date = "dd/MM/yyyy";
+
+            const options = $.extend(true, {}, this.baseGridOptions, {
+                dataSource: data,
+                columns: [
+                    { caption: "PROPERTY_CODE", calculateCellValue: () => this.PROPERTY_CODE },
+                    { dataField: "ID", caption: "GUEST_ID" },
+                    { dataField: "TitleName", caption: "SALUTATION" },
+                    { dataField: "Firstname", caption: "FIRST_NAME" },
+                    { dataField: "LastName", caption: "LAST_NAME" },
+                    { dataField: "Email", caption: "EMAIL" },
+                    { dataField: "CheckInDate", caption: "ARRIVAL_DATE", dataType: "date", format: date },
+                    { dataField: "CheckOutDate", caption: "DEPARTURE_DATE", dataType: "date", format: date },
+                    { dataField: "Language", caption: "LANGUAGE" },
+                    { dataField: "City", caption: "HOME_COUNTRY" },
+                    { dataField: "Nationality", caption: "NATIONALITY" },
+                    { dataField: "VIPReason", caption: "VIP_STATUS" },
+                    { dataField: "GHALEVEL", caption: "GHA_LEVEL" },
+                    { dataField: "CRSNo", caption: "GHA_NUMBER" },
+                    { dataField: "ConfirmationNo", caption: "PMS_CONFIRMATION_NO" },
+                    { dataField: "OriginCode", caption: "ORIGIN_CODE" },
+                    { dataField: "SourceCode", caption: "SOURCE_CODE" },
+                    { dataField: "MarketCode", caption: "MARKET_SEGMENT_CODE" },
+                    { dataField: "FullAccount", caption: "COMPANY_NAME" },
+                    { dataField: "AgentName", caption: "TRAVEL_AGENT_NAME" },
+                    { dataField: "RoomNo", caption: "ROOM_NUMBER" },
+                    { dataField: "RoomType", caption: "ROOM_TYPE" },
+                    { dataField: "NoOfNight", caption: "NO_OF_NIGHTS" },
+                    { dataField: "RateCode", caption: "RATE_CODE" },
+                    { dataField: "Rate", caption: "RATE_AMOUNT_LOCAL", dataType: "number", format: money },
+                    { caption: "RATE_AMOUNT_USD", dataType: "number", format: money, calculateCellValue: this.toUSD("Rate") },
+                    { dataField: "RoomRevenueLocal", caption: "ROOM_REVENUE_LOCAL", dataType: "number", format: money },
+                    { dataField: "FBRevenueLocal", caption: "FB_REVENUE_LOCAL", dataType: "number", format: money },
+                    { dataField: "TotalRevenueLocal", caption: "TOTAL_REVENUE_LOCAL", dataType: "number", format: money },
+                    { caption: "ROOM_REVENUE_USD", dataType: "number", format: money, calculateCellValue: this.toUSD("RoomRevenueLocal") },
+                    { caption: "FB_REVENUE_USD", dataType: "number", format: money, calculateCellValue: this.toUSD("FBRevenueLocal") },
+                    { caption: "TOTAL_REVENUE_USD", dataType: "number", format: money, calculateCellValue: this.toUSD("TotalRevenueLocal") },
+                    { dataField: "CurrencyMaster", caption: "CURRENCY_CODE" },
+                    { dataField: "Phone", caption: "MOBILE_PHONE" }
+                ],
+                summary: {
+                    totalItems: [{ column: "LastName", summaryType: "count", displayFormat: "{0}" }]
+                }
+            });
+            $("#pro_v2_gridContainer").dxDataGrid(options);
+        },
+
+        exportToExcel: function () {
+            const $grid = $("#pro_v2_gridContainer");
+            if (!$grid.data("dxDataGrid")) {
+                showToast("Warning", "No data to export!", false);
+                return;
+            }
+            const grid = $grid.dxDataGrid("instance");
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            // Tên file giống WinForm: ProfileExport_d_M_yyyy
+            const now = new Date();
+            const fileName = `ProfileExport_${now.getDate()}_${now.getMonth() + 1}_${now.getFullYear()}.xlsx`;
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true
+            }).then(function () {
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+                });
+            });
+        }
+    };
+
+    $(document).ready(function () {
+        pro_v2_Module.init();
+    });
+</script>

@@ -560,7 +560,9 @@
                 loadDataToTomSelect("#ind_txtVIP", "/Profile/GetAllVIP", mapCode)
             ];
 
-            Promise.all(loadTasks)
+            // Lưu lại để fillFormData chờ dropdown có dữ liệu rồi mới setValue
+            this.tomSelectsReady = Promise.all(loadTasks);
+            return this.tomSelectsReady;
         },
 
         initStateControls: function () {
@@ -825,13 +827,18 @@
                 if (ts) ts.setValue(value || 0);
             };
 
-            setTS("#ind_txtLanguage", data.languageID);
-            setTS("#ind_txtTitle", data.titleID);
-            setTS("#ind_txtNationality", data.nationalityID);
-            setTS("#ind_txtCountry", data.countryID);
-            setTS("#ind_txtCity", data.city);
-            setTS("#ind_txtState", data.stateID);
-            setTS("#ind_txtVIP", data.vipID);
+            // Ô text hiển thị ngay; dropdown set khi danh sách đã nạp xong (tránh mất giá trị)
+            const loadId = (self._fillSeq = (self._fillSeq || 0) + 1);
+            (self.tomSelectsReady || Promise.resolve()).then(() => {
+                if (loadId !== self._fillSeq) return; // đã có profile khác được nạp sau
+                setTS("#ind_txtLanguage", data.languageID);
+                setTS("#ind_txtTitle", data.titleID);
+                setTS("#ind_txtNationality", data.nationalityID);
+                setTS("#ind_txtCountry", data.countryID);
+                setTS("#ind_txtCity", data.city);
+                setTS("#ind_txtState", data.stateID);
+                setTS("#ind_txtVIP", data.vipID);
+            });
 
             self.initStateControls();
 
@@ -937,16 +944,17 @@
             }
         },
 
-        loadProfileByID: function (id) {
+        // request: (tùy chọn) jqXHR đã gọi sẵn từ trước (vd. Search Profile > Edit) để không phải chờ modal mở xong
+        loadProfileByID: function (id, request) {
 
             const self = this;
 
-            $.ajax({
+            (request || $.ajax({
                 url: '/Profile/GetProfileByID/',
                 type: 'GET',
                 contentType: "application/json",
-                data: {id: id},
-                success: function (res) {
+                data: {id: id}
+            })).then(function (res) {
 
                     if (res.code !== 0) {
                         showToast("Error", res.msg, false);
@@ -961,13 +969,8 @@
 
                     if (modal) modal.hide();
 
-                },
-
-                error: function () {
-                    showToast("Error", "Cannot load profile", false);
-
-                }
-
+            }, function () {
+                showToast("Error", "Cannot load profile", false);
             });
 
         },

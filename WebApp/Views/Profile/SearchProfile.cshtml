@@ -15,6 +15,7 @@
                     <button id="pro_search_btnEdit" class="mui-button mui-button-new">Edit</button>
                     <button id="pro_search_btnClear" class="mui-button mui-button-new">Clear</button>
                     <button id="pro_search_btnOption" class="mui-button mui-button-new">Option</button>
+                    <button id="pro_search_btnExcel" class="mui-button mui-button-new" title="Export to Excel (Ctrl+E)">Excel</button>
                     <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                 </div>
                 <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
@@ -185,6 +186,15 @@
             $("#pro_search_btnSearch").on("click", () => self.getAllProfiles());
             $("#pro_search_btnClear").on("click", () => self.clearSearchForm());
             $("#pro_search_btnOption").on("click", () => self.openModalOption());
+            $("#pro_search_btnExcel").on("click", () => self.exportToExcel());
+
+            // Ctrl+E giống WinForm (chỉ khi đang ở modal Search Profile)
+            $("#pro_search_mainModal").on("keydown", function (e) {
+                if (e.ctrlKey && !e.shiftKey && !e.altKey && (e.key === "e" || e.key === "E")) {
+                    e.preventDefault();
+                    self.exportToExcel();
+                }
+            });
             $("#pro_search_btnHistory").on("click", () => self.getProfileHistory());
             $("#pro_search_btnDelete").on("click", () => self.deleteProfile());
             $("#pro_search_btnChanges").on("click", () => self.openOpChangesModal());
@@ -205,12 +215,21 @@
             // Nút New của modal SearchProfile
             $("#pro_search_btnNew").click(function () {
                 const type = $("#pro_search_txtType").val();
+                const typedName = ($("#pro_search_txtAccount").val() || "").trim();
 
                 switch (type) {
+                    case "":  // View by All -> giống WinForm: tạo Individual
                     case "0": // Individual
-                        if (typeof openModalIndividual === 'function') {
-                            openModalIndividual();
-                        }
+                        ModalManager.load('/Profile/Individual', 'modalIndividual', function () {
+                            waitForFunction("pro_ind_Module", () => {
+                                window.pro_ind_Module.init();
+                                // Giống WinForm: điền sẵn tên đang gõ ở ô Name
+                                if (typedName) {
+                                    $("#ind_txtFullName").val(typedName);
+                                    window.pro_ind_Module.syncPartsFromFullName?.();
+                                }
+                            });
+                        });
                         break;
 
                     case "1": // Travel Agent
@@ -249,16 +268,23 @@
                 const type = String(self.profileType);
 
                 switch (type) {
-                    case "0": // Individual
+                    case "0": { // Individual
+                        // Gọi lấy profile ngay khi bấm, chạy song song với việc tải/mở modal
+                        const profileRequest = $.ajax({
+                            url: '/Profile/GetProfileByID/',
+                            type: 'GET',
+                            data: { id: id }
+                        });
                         ModalManager.load('/Profile/Individual', 'modalIndividual', function() {
                             waitForFunction("pro_ind_Module", () => {
                                 window.pro_ind_Module.init();
                                 if (window.pro_ind_Module.loadProfileByID) {
-                                    setTimeout(() => window.pro_ind_Module.loadProfileByID(id), 300);
+                                    window.pro_ind_Module.loadProfileByID(id, profileRequest);
                                 }
                             });
                         });
                         break;
+                    }
                     case "1": // Travel Agent
                     case "2": // Company
                     case "3": // Source
@@ -318,10 +344,28 @@
         }, 
 
         getAllProfiles: function () {
-            if (this.gridInstance) {
-                this.gridInstance.refresh();
-            } else {
+            const grid = this.gridInstance;
+            const currentType = $("#pro_search_txtType").val() || "";
+            // Chưa có grid, hoặc View By đổi -> dựng lại grid với đúng bộ cột của loại profile
+            if (!grid || this.gridType !== currentType) {
+                if (grid) {
+                    grid.dispose();
+                    $("#pro_search_gridContainer").empty(); // dispose không xóa markup cũ
+                }
+                this.gridInstance = null;
+                this.profileID = 0;
+                this.profileType = 0;
+                this.profileName = "";
                 this.initializeDataGrid();
+                return;
+            }
+            // Điều kiện lọc mới: bỏ dòng đang chọn và quay về trang 1
+            // (tránh đứng ở trang cũ không còn dữ liệu sau khi lọc / clear)
+            grid.clearSelection();
+            if (grid.pageIndex() !== 0) {
+                grid.pageIndex(0); // tự load lại dữ liệu
+            } else {
+                grid.refresh();
             }
         },
 
@@ -366,6 +410,7 @@
 
             var columnWidth = 150;
             var typeValue = $("#pro_search_txtType").val();
+            this.gridType = typeValue || ""; // để getAllProfiles biết khi nào cần dựng lại cột
 
             var taxCodeColumn = {
                 dataField: "taxCode",
@@ -510,6 +555,54 @@
             }).dxDataGrid("instance");
         },
 
+        // Bộ lọc dùng chung cho grid và export
+        getSearchParams: function () {
+            return {
+                code: $('#pro_search_txtCode').val() || "",
+                account: $('#pro_search_txtAccount').val() || "",
+                firstName: $('#pro_search_txtFirstName').val() || "",
+                keyWord: $('#pro_search_txtKeyword').val() || "",
+                city: $('#pro_search_txtCity').val() || "",
+                type: $('#pro_search_txtType').val() || "",
+                showSaleInCharge: $("#pro_search_txtShowSaleInCharge").is(":checked")
+            };
+        },
+
+        // Xuất toàn bộ kết quả theo bộ lọc hiện tại (server tạo file .xlsx)
+        exportToExcel: function () {
+            const self = this;
+            if (self._exporting) return;
+
+            const total = self.gridInstance ? self.gridInstance.totalCount() : -1;
+            if (total === 0) {
+                showToast("Warning", "No data to export!", false);
+                return;
+            }
+
+            const $btn = $("#pro_search_btnExcel");
+            const oldText = $btn.text();
+            self._exporting = true;
+            $btn.prop("disabled", true).text("Exporting...");
+            if (total > 50000) {
+                showToast("Info", `Exporting ${total.toLocaleString()} profiles, please wait...`, true);
+            }
+
+            const query = $.param(self.getSearchParams());
+            fetch(`/Profile/ExportProfileSearchExcel?${query}`)
+                .then(async (res) => {
+                    if (!res.ok) throw new Error(await res.text() || `HTTP ${res.status}`);
+                    const blob = await res.blob();
+                    const disposition = res.headers.get("Content-Disposition") || "";
+                    const match = /filename="?([^";]+)"?/i.exec(disposition);
+                    saveAs(blob, match ? match[1] : "ProfileSearch.xlsx");
+                })
+                .catch((err) => showToast("Error", err.message || "Export failed", false))
+                .finally(() => {
+                    self._exporting = false;
+                    $btn.prop("disabled", false).text(oldText);
+                });
+        },
+
         clearSearchForm: function () {
             $('#pro_search_txtAccount, #pro_search_txtKeyword, #pro_search_txtFirstName, #pro_search_txtCode').val('');
             $('#pro_search_txtType').val('');
@@ -518,9 +611,17 @@
                 $('#pro_search_txtCity')[0].tomselect.clear();
             }
             $("#pro_search_txtShowSaleInCharge").prop("checked", false);
+
+            // Tải lại toàn bộ dữ liệu theo điều kiện mặc định
+            this.getAllProfiles();
         },
 
         openModalOption: function() {
+            // Phải chọn profile trước khi mở Option
+            if (!this.profileID || this.profileID <= 0) {
+                showToast("Warning", "Please select a profile first", false);
+                return;
+            }
             $('#pro_search_modalOption').modal('show');
         },
 

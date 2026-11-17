@@ -210,7 +210,9 @@
                                 </div>
 
                                 <a href="javascript:void(0);" onclick="openProSearch()" data-action="SearchProfile">Search Profile</a>
-                                <a href="javascript:void(0);" onclick="openProfileExport()" data-action="ProfileExport">Export Profile To Excel</a>
+                                <a href="javascript:void(0);" onclick="openProfileExport()" data-action="ProfileExport">Export Profile by date</a>
+                                <a href="javascript:void(0);" onclick="openProfileExportV2()" data-action="ProfileExport">Export Profile to Excel</a>
+                                <a href="javascript:void(0);" onclick="openProfileExportCSV()" data-action="ProfileExport">Export Data to .CSV</a>
                             </div>
                         </li>
                         <li class="nav-item">
@@ -1366,6 +1368,13 @@
 
           load: function (url, modalId, callback, showModal = true) {
 
+              // Dọn modal cũ còn sót (đã bị chuyển ra <body> ở show.bs.modal) để tránh trùng id:
+              // nếu không, getElementById / $("#...") sẽ lấy lại modal + grid cũ (giữ nguyên dòng đã chọn).
+              $('[id="' + modalId + '"]').not('.show').each(function () {
+                  bootstrap.Modal.getInstance(this)?.dispose();
+                  $(this).remove();
+              });
+
               const $container = this.getOrCreateContainer(modalId);
 
               $container.empty();
@@ -1375,6 +1384,8 @@
                   if (status === "error") return;
 
                   const modalEl = document.getElementById(modalId);
+                  // Tất cả modal (kể cả modal con) thuộc lần load này, để xóa khi đóng
+                  const $ownedModals = $container.find('.modal');
 
                   if (modalEl) {
 
@@ -1407,6 +1418,11 @@
                           $(modalEl).one("hidden.bs.modal", () => {
 
                               modal.dispose();
+                              // Modal đã bị chuyển ra <body> nên phải xóa riêng, không chỉ xóa container
+                              $ownedModals.each(function () {
+                                  if (this !== modalEl) bootstrap.Modal.getInstance(this)?.dispose();
+                              });
+                              $ownedModals.remove();
                               $container.remove();
 
                               if ($('.modal.show').length > 0)
@@ -1825,6 +1841,22 @@
               "/Profile/ProfileExport",
               "pro_ex_modal",
               "openModalProEx"
+          );
+      }
+
+      function openProfileExportV2() {
+          ModalManager.load(
+              "/Profile/ProfileExportV2",
+              "pro_v2_modal",
+              "openModalProV2"
+          );
+      }
+
+      function openProfileExportCSV() {
+          ModalManager.load(
+              "/Profile/ProfileExportCSV",
+              "pro_csv_modal",
+              "openModalProCsv"
           );
       }
 
