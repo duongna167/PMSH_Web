@@ -604,7 +604,7 @@ namespace Security.Controllers
 
                 if (modelRoom.ID == 0)
                 {
-                    // Insert
+                    modelRoom.PasswordStatus = false;
                     int pID = (int)UsersBO.Instance.Insert(modelRoom);
                     modelRoom.ID = pID;
 
@@ -617,7 +617,12 @@ namespace Security.Controllers
                 }
                 else
                 {
-                    // Update
+                    var existing = (UsersModel)UsersBO.Instance.FindByPrimaryKey(modelRoom.ID);
+                    if (existing != null && existing.PasswordHash != modelRoom.PasswordHash)
+                        modelRoom.PasswordStatus = false;
+                    else if (existing != null)
+                        modelRoom.PasswordStatus = existing.PasswordStatus;
+
                     UsersBO.Instance.Update(modelRoom);
 
                     return Json(new { success = true, message = "User updated successfully." });
