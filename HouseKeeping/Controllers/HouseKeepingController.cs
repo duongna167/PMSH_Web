@@ -2095,6 +2095,7 @@ namespace HouseKeeping.Controllers
                 .Where(x => x.TaskSheetDate.Date == businessDateModel[0].BusinessDate.Date)
                 .ToList();
             ViewBag.hkpTaskSheetList = listhkpts;
+            ViewBag.ZoneList = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
 
             if (isPopup)
             {
@@ -2105,7 +2106,7 @@ namespace HouseKeeping.Controllers
             return PartialView();
         }
         [HttpGet]
-        public IActionResult RoomAttendentDailyWorksheetData(DateTime fromDate, string attendant, string tasksheet, string roomStatus)
+        public IActionResult RoomAttendentDailyWorksheetData(DateTime fromDate, string attendant, string tasksheet, string roomStatus, string zone)
         {
 
             attendant = attendant ?? "";
@@ -2122,7 +2123,21 @@ namespace HouseKeeping.Controllers
                 string facilityCode = string.Join(",", listhkpcode.Where(x => !string.IsNullOrEmpty(x.Code)).OrderBy(x => x.Code).Select(x => x.Code));
 
                 DataTable dataTable = _iHouseKeepingService.RoomAttendentDailyWorksheetData(fromDate, attendant, tasksheet, roomStatus, facilityCode);
+
+                // Lọc theo Zone (SP không có tham số zone nên lọc theo RoomNo thuộc zone đã chọn)
+                HashSet<string> zoneRooms = null;
+                if (!string.IsNullOrWhiteSpace(zone))
+                {
+                    var zoneIds = zone.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                      .Select(x => int.TryParse(x.Trim(), out var zid) ? zid : -1)
+                                      .ToHashSet();
+                    zoneRooms = PropertyUtils.ConvertToList<RoomModel>(RoomBO.Instance.FindAll())
+                                      .Where(r => zoneIds.Contains(r.ZoneID))
+                                      .Select(r => (r.RoomNo ?? "").Trim())
+                                      .ToHashSet();
+                }
                 var result = (from d in dataTable.AsEnumerable()
+                              where zoneRooms == null || zoneRooms.Contains((d["RoomNo"]?.ToString() ?? "").Trim())
                               select new
                               {
                                   colIndex = d["colIndex"]?.ToString() ?? "",
@@ -2168,6 +2183,7 @@ namespace HouseKeeping.Controllers
 
                 // Map dữ liệu result2 kèm TaskSheetNo theo AttendantID của từng dòng
                 var result2 = (from d in dataTable2.AsEnumerable()
+                               where zoneRooms == null || zoneRooms.Contains((d["RoomNo"]?.ToString() ?? "").Trim())
                                let attendantIdStr = Convert.ToString(d["AttendantID"]) ?? ""
                                let attendantIdInt = int.TryParse(attendantIdStr, out var tempId) ? tempId : 0
                                let taskSheetNo = taskSheetList.FirstOrDefault(ts => ts.AttendantID == attendantIdInt).TaskSheetNo
@@ -2275,6 +2291,22 @@ namespace HouseKeeping.Controllers
 
 
         #endregion
+
+        [HttpGet]
+        public IActionResult TasksheetDetailByRoom(string roomNo)
+        {
+            try
+            {
+                DataTable dt = _iHouseKeepingService.TasksheetDetailSearchByRoom(GetSplitString((roomNo ?? "").Trim()));
+                var rows = dt.AsEnumerable().Select(r => dt.Columns.Cast<DataColumn>()
+                    .ToDictionary(c => c.ColumnName, c => r[c] == DBNull.Value ? null : r[c])).ToList();
+                return Json(rows);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
 
         #region  TaskAssignment
         public IActionResult TaskAssignment()
@@ -2894,31 +2926,37 @@ namespace HouseKeeping.Controllers
             {
                 DataTable dataTable = _iHouseKeepingService.GuestServiceStatusData(servicestatsu, room, roomStatus, zone);
 
+                // Đọc cột an toàn: thiếu cột trong kết quả SP thì trả rỗng thay vì lỗi cả request
+                string Str(DataRow d, string col) =>
+                    dataTable.Columns.Contains(col) && d[col] != DBNull.Value ? d[col].ToString() : "";
+                DateTime? Dt(DataRow d, string col) =>
+                    dataTable.Columns.Contains(col) && d[col] != DBNull.Value ? Convert.ToDateTime(d[col]) : (DateTime?)null;
+
                 var result = (from d in dataTable.AsEnumerable()
                               select new
                               {
-                                  ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"].ToString() : "",
-                                  Check = d["Check"]?.ToString() ?? "",
-                                  RoomNo = d["RoomNo"]?.ToString() ?? "",
-                                  RoomTypeCode = d["RoomTypeCode"]?.ToString() ?? "",
-                                  hkstatus = d["HKStatus"]?.ToString() ?? "",
-                                  fostatus = d["FOStatus"]?.ToString() ?? "",
-                                  GuestServiceStatus = d["GuestServiceStatus"]?.ToString() ?? "",
+                                  ID = Str(d, "ID"),
+                                  Check = Str(d, "Check"),
+                                  RoomNo = Str(d, "RoomNo"),
+                                  RoomTypeCode = Str(d, "RoomTypeCode"),
+                                  hkstatus = Str(d, "HKStatus"),
+                                  fostatus = Str(d, "FOStatus"),
+                                  GuestServiceStatus = Str(d, "GuestServiceStatus"),
 
-                                  Floor = d["Floor"]?.ToString() ?? "",
-                                  ReservationStatus = d["ReservationStatus"]?.ToString() ?? "",
-                                  ResvID = d["ResvID"]?.ToString() ?? "",
-                                  CreatedBy = d["CreatedBy"]?.ToString() ?? "",
-                                  CreatedDate = d["CreatedDate"] != DBNull.Value ? Convert.ToDateTime(d["CreatedDate"]) : (DateTime?)null,
-                                  UpdatedBy = d["UpdatedBy"]?.ToString() ?? "",
-                                  UpdatedDate = d["UpdatedDate"] != DBNull.Value ? Convert.ToDateTime(d["CreatedDate"]) : (DateTime?)null,
+                                  Floor = Str(d, "Floor"),
+                                  ReservationStatus = Str(d, "ReservationStatus"),
+                                  ResvID = Str(d, "ResvID"),
+                                  CreatedBy = Str(d, "CreatedBy"),
+                                  CreatedDate = Dt(d, "CreatedDate"),
+                                  UpdatedBy = Str(d, "UpdatedBy"),
+                                  UpdatedDate = Dt(d, "UpdatedDate"),
                               }).ToList();
 
                 return Json(result);
             }
             catch (Exception ex)
             {
-                return Json(ex.Message);
+                return StatusCode(500, ex.Message);
             }
         }
         [HttpPost]

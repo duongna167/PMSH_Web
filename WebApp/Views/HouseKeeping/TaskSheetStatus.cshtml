@@ -17,8 +17,8 @@
                     <div>
                         <button id="tss_btnView" class="mui-button mui-button-new"
                             onclick="tss_Module.search()">View</button>
-                        <button id="tss_btnRefesh" class="mui-button mui-button-new"
-                            onclick="tss_Module.refresh()">Refesh</button>
+                        @* <button id="tss_btnRefesh" class="mui-button mui-button-new"
+                            onclick="tss_Module.refresh()">Refesh</button> *@
                         <button id="tss_Report" class="mui-button mui-button-new" type="button">Report</button>
                         <button id="tss_btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
                         <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
@@ -207,6 +207,17 @@
             });
         },
 
+        // Time In/Out: nếu là datetime thì chỉ hiện giờ (HH:mm:ss), nếu đã là giờ thì giữ nguyên
+        formatTime: function (cellInfo) {
+            const v = cellInfo.value;
+            if (!v) return "";
+            if (/^\d{1,2}:\d{2}/.test(v)) return v;
+            const d = new Date(v);
+            if (isNaN(d.getTime())) return v;
+            const p = (n) => String(n).padStart(2, "0");
+            return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+        },
+
         initializeTaskSheetStatusGrid: function (data) {
 
             $("#tss_gridContainer").dxDataGrid({
@@ -226,11 +237,13 @@
                 columns: [
                     { dataField: "colIndex", caption: "No", width: 50 },
 
-                    { dataField: "roomNo", caption: "RoomNo" },
+                    { dataField: "roomNo", caption: "Room No" },
+
+                    { dataField: "roomType", caption: "Room Type" },
 
                     { dataField: "hkstatusID", caption: "Room Status" },
 
-                    { dataField: "fostatus", caption: "FOStatus" },
+                    { dataField: "fostatus", caption: "FO Status" },
 
                     {
                         dataField: "attendant",
@@ -244,6 +257,10 @@
                         dataType: "date",
                         format: "dd/MM/yyyy"
                     },
+
+                    { dataField: "timeIn", caption: "Time In", customizeText: tss_Module.formatTime },
+
+                    { dataField: "timeOut", caption: "Time Out", customizeText: tss_Module.formatTime },
 
                     { dataField: "complete", caption: "Status" }
                 ],

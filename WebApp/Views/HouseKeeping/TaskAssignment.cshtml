@@ -151,14 +151,67 @@
         max-width: 75%;
     }
 </style>
+<style>
+    /* Task Assignment: toolbar 1 hàng (không cuộn) + filter dạng lưới như bản WinForms */
+    #taskSheetModal .ta-toolbar {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 4px;
+        padding-bottom: 4px;
+    }
+    #taskSheetModal .ta-toolbar .mui-button {
+        flex: 1 1 0;
+        min-width: 0;
+        white-space: nowrap;
+        margin: 0;
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+    #taskSheetModal .ta-filter {
+        display: grid;
+        grid-template-columns: auto 260px auto 260px;
+        column-gap: 10px;
+        row-gap: 6px;
+        align-items: center;
+        justify-content: start;
+        margin-top: 8px;
+        border-radius: 3px;
+    }
+    #taskSheetModal .ta-filter > label {
+        margin: 0;
+        white-space: nowrap;
+        text-align: right;
+    }
+    #taskSheetModal .ta-filter .ta-check {
+        grid-column: 4;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding-left: 0;
+    }
+    #taskSheetModal .ta-filter .ta-check label {
+        margin: 0;
+    }
+    #taskSheetModal .ta-filter .ts-wrapper {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    #taskSheetModal .ta-filter .ts-control {
+        flex-wrap: nowrap !important;
+        overflow: hidden !important;
+    }
+    #taskSheetModal .ta-filter .ts-control input {
+        flex: 1 1 20px !important;
+        min-width: 20px !important;
+    }
+</style>
 <div class="modal fade" id="taskSheetModal" tabindex="-1">
-    <div class="modal-dialog modal-xxl-custom modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-4by3">
         <div class="modal-content">
 
             <!-- HEADER -->
             <div class="modal-header">
                 <h5 class="modal-title">Task Sheet Management</h5>
-               
             </div>
 
             <!-- BODY -->
@@ -166,139 +219,96 @@
 
                 <div class="search-filter">
 
-                    <!-- ACTION BUTTONS -->
-                    <div class="mb-3">
+                    <!-- ACTION BUTTONS (cùng 1 hàng, thứ tự như bản WinForms) -->
+                    <div class="ta-toolbar">
                         <button id="btnPrint" class="mui-button mui-button-new">View</button>
-                        <button id="btnReport" class="mui-button mui-button-export" type="button">Report</button>
                         <button id="btnExpanded" class="mui-button mui-button-new" type="button">Expanded</button>
-                        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+                        <button id="btnReport" class="mui-button mui-button-export" type="button">Report</button>
                         <button id="btnAddtasksheet" class="mui-button mui-button-new" type="button">New</button>
+                        <button id="btnAutotasksheet" class="mui-button mui-button-option" type="button">Auto</button>
+                        <button id="btnCompletetasksheet" class="mui-button mui-button-reinstate" type="button">Complete</button>
                         <button id="btnDetailtasksheet" class="mui-button mui-button-advance" type="button">Detail</button>
                         <button id="btnAddUsertasksheet" class="mui-button mui-button-profile" type="button">Add User</button>
                         <button id="btnDeletetasksheet" class="mui-button mui-button-delete" type="button">Delete</button>
-                        <button id="btnCompletetasksheet" class="mui-button mui-button-reinstate" type="button">Complete</button>
-                        <button id="btnAutotasksheet" class="mui-button mui-button-option" type="button">Auto</button>
+                        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
                         <button class="mui-button mui-button-option" type="button" onclick="location.href='@Url.Action("Index","Home")'"> Close </button>
                     </div>
 
-                    <!-- FILTER AREA -->
-                    <div class="container-fluid">
+                    <!-- FILTER AREA (lưới: 3 hàng như bản WinForms) -->
+                    <div class="ta-filter">
 
-                        <div class="row g-3">
-
-                            <!-- Task Date -->
-                            <div class="col-md-6">
-                                <div class="row align-items-center">
-                                    <label class="col-md-4 col-form-label text-md-end">
-                                        Task Date:
-                                    </label>
-                                    <div class="col-md-8">
-                                        <div class="clearable"
-                                             data-date-input
-                                             data-format="DD/MM/YYYY"
-                                             data-name="fromDate"
-                                             business-date>
-                                            <input type="text"
-                                                   class="date-ui form-control"
-                                                   autocomplete="off" />
-                                        </div>
-                                    </div>
-                                </div>
+                        <!-- Hàng 1: Task Date | Pending -->
+                        <label>Task Date:</label>
+                        <div style="width:140px;">
+                            <div class="clearable"
+                                 data-date-input
+                                 data-format="DD/MM/YYYY"
+                                 data-name="fromDate"
+                                 business-date>
+                                <input type="text"
+                                       class="date-ui form-control form-control-sm"
+                                       autocomplete="off" />
                             </div>
+                        </div>
+                        <div class="ta-check">
+                            <input type="checkbox" id="pending" value="1" checked>
+                            <label for="pending">Pending</label>
+                        </div>
 
-                            <!-- Task Code -->
-                            <div class="col-md-6">
-                                <div class="row align-items-center">
-                                    <label class="col-md-4 col-form-label text-md-end">
-                                        Task Code:
-                                    </label>
-                                    <div class="col-md-8">
-                                        <select id="taskcode"
-                                                name="taskcode"
-                                                class="tomselect-custom"
-                                                multiple>
-                                            @foreach (var item in listhkpFT)
-                                            {
-                                                <option value="@item.Description">@item.Description</option>
-                                            }
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
+                        <!-- Hàng 2: Task Code | Completed -->
+                        <label>Task Code:</label>
+                        <div>
+                            <select id="taskcode"
+                                    name="taskcode"
+                                    class="tomselect-custom"
+                                    multiple>
+                                @foreach (var item in listhkpFT)
+                                {
+                                    <option value="@item.Description">@item.Description</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="ta-check">
+                            <input type="checkbox" id="completed" value="2" checked>
+                            <label for="completed">Completed</label>
+                        </div>
 
-                            <!-- Task Sheet -->
-                            <div class="col-md-6">
-                                <div class="row align-items-center">
-                                    <label class="col-md-4 col-form-label text-md-end">
-                                        Task Sheet:
-                                    </label>
-                                    <div class="col-md-8">
-                                        <select id="tasksheet"
-                                                name="tasksheet"
-                                                class="tomselect-custom"
-                                                multiple>
-                                            @foreach (var item in listhkpTS)
-                                            {
-                                                <option value="@item.TaskSheetNo">@item.TaskSheetNo</option>
-                                            }
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Zone -->
-                            <div class="col-md-6">
-                                <div class="row align-items-center">
-                                    <label class="col-md-4 col-form-label text-md-end">
-                                        Zone:
-                                    </label>
-                                    <div class="col-md-8">
-                                        <select id="zone"
-                                                name="zone"
-                                                class="tomselect-custom"
-                                                multiple>
-                                            @foreach (var item in listzone)
-                                            {
-                                                <option value="@item.Code">@item.Name</option>
-                                            }
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Status -->
-                            <div class="col-md-6">
-                                <div class="row align-items-center">
-                                    <label class="col-md-4 col-form-label text-md-end">
-                                        Status:
-                                    </label>
-                                    <div class="col-md-8">
-                                        <div class="form-check form-check-inline">
-                                            <input type="checkbox" id="pending" value="1" checked>
-                                            <label for="pending">Pending</label>
-                                        </div>
-
-                                        <div class="form-check form-check-inline">
-                                            <input type="checkbox" id="completed" value="2" checked>
-                                            <label for="completed">Completed</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
+                        <!-- Hàng 3: Task Sheet | Zone -->
+                        <label>Task Sheet:</label>
+                        <div>
+                            <select id="tasksheet"
+                                    name="tasksheet"
+                                    class="tomselect-custom"
+                                    multiple>
+                                @foreach (var item in listhkpTS)
+                                {
+                                    <option value="@item.TaskSheetNo">@item.TaskSheetNo</option>
+                                }
+                            </select>
+                        </div>
+                        <label>Zone:</label>
+                        <div>
+                            <select id="zone"
+                                    name="zone"
+                                    class="tomselect-custom"
+                                    multiple>
+                                @foreach (var item in listzone)
+                                {
+                                    <option value="@item.Code">@item.Name</option>
+                                }
+                            </select>
                         </div>
 
                     </div>
                     <!-- GRID -->
-                    <div class="mt-4">
-                        <div id="gridContainer" class="gridContainer"></div>
+                    <div class="mt-2" style="height:calc(90vh - 230px); min-height:260px;">
+                        <div id="gridContainer" class="gridContainer" style="height:100%;"></div>
                     </div>
 
                 </div>
 
             </div>
 
-           
         </div>
     </div>
 </div>
@@ -3072,7 +3082,7 @@
             dataSource: data,
             allowColumnResizing: true,
             columnAutoWidth: true,
-            height: 380,width: "100%",
+            height: "100%", width: "100%",
             columns: [
                 { dataField: "taskSheetNo", caption: "Sheet" },
                 { dataField: "section", caption: "Section" },

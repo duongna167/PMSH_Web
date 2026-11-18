@@ -80,6 +80,7 @@ namespace HouseKeeping.Services.Interfaces
         DataTable ViewTurnDown(string roomTypead, string sectionAd, string zoneAd, string fromRoom, string toRoom, string HKStatusID, string ReservationStatus, string arrived, string turndownStatus);
         DataTable TasksheetDetailsSearch(int ID);
         DataTable RoomAttendentDailyWorksheetData(DateTime fromDate, string attendant, string tasksheet, string roomStatus, string facilityCode);
+        DataTable TasksheetDetailSearchByRoom(string roomNo);
         DataTable TurndownTasksheet(DateTime fromDate, string attendant, string roomStatus);
         DataTable TasksheetAutomatically(string HK_FO, DateTime taskdateauto, string floorauto, string roomTypeauto, string zonecodeauto, string subzonecodeauto, string includeroomAS, string arrivalOnly, string _ListRoomNotAss);
         DataTable TurndownTasksheetData(DateTime fromDate, string attendant, string IsDueOut, string roomStatus);
