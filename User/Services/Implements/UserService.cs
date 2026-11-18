@@ -83,6 +83,28 @@ namespace User.Services.Implements
             user.Status = 0;
         }
 
+        public void InsertLoginActivityLog(int objectId, string loginName, string change, string oldValue, string newValue, string description)
+        {
+            try
+            {
+                ActivityLogBO.Instance.Insert(new ActivityLogModel
+                {
+                    TableName = "Users",
+                    ObjectID = objectId,
+                    UserID = objectId,
+                    UserName = loginName ?? string.Empty,
+                    ChangeDate = TextUtils.GetSystemDate(),
+                    Change = change,
+                    OldValue = oldValue ?? string.Empty,
+                    NewValue = newValue ?? string.Empty,
+                    Description = description ?? string.Empty
+                });
+            }
+            catch
+            {
+            }
+        }
+
         public bool ChangePassword(int userId, string currentPassword, string newPassword, bool requireCurrent, out string error)
         {
             error = null;

@@ -211,7 +211,10 @@ namespace User.Controllers
             const string invalidMsg = "Invalid Username and/or Password, or Account is not active!";
 
             if (user == null || user.ID == 0)
+            {
+                LogLoginFailed(0, loginName, 0, MaxPasswordFails);
                 return Json(new { code = -1, msg = "The username or password is incorrect. Please try again.", showTries = false });
+            }
 
             if (user.Status == -1)
                 return Json(new { code = 7, msg = "This user account has been terminated. Please contact the system administrator." });
@@ -221,10 +224,18 @@ namespace User.Controllers
 
             var fails = RegisterLoginFail(loginName);
             var remaining = MaxPasswordFails - fails;
+            LogLoginFailed(user.ID, loginName, fails, remaining);
 
             if (fails >= MaxPasswordFails)
             {
                 _iUserService.LockAccount(user);
+                _iUserService.InsertLoginActivityLog(
+                    user.ID,
+                    loginName,
+                    "Status",
+                    "1",
+                    "0",
+                    "Account locked after 5 wrong passwords.");
                 ClearLoginFails(loginName);
                 return Json(new
                 {
@@ -266,6 +277,14 @@ namespace User.Controllers
         private static string LoginFailKey(string loginName)
         {
             return "login-fail:" + (loginName ?? string.Empty).Trim().ToLowerInvariant();
+        }
+
+        private void LogLoginFailed(int userId, string loginName, int attempt, int remaining)
+        {
+            var description = attempt <= 0
+                ? "Login failed: username not found."
+                : "Login failed: wrong password. Attempt " + attempt + "/" + MaxPasswordFails + ", " + remaining + " tries left.";
+            _iUserService.InsertLoginActivityLog(userId, loginName, "LoginFailed", "", "", description);
         }
 
         private void SetPending(UsersModel user, string mode)

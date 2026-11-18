@@ -281,8 +281,8 @@ function showToast(title, message, isSuccess) {
                     '<div class="cc-message">' + message + '</div>' +
                   '</div>' +
                   '<div class="cc-footer">' +
-                    '<button class="cc-btn cc-btn-cancel">Cancel</button>' +
-                    '<button class="cc-btn cc-btn-ok">OK</button>' +
+                    '<button class="cc-btn cc-btn-cancel">No</button>' +
+                    '<button class="cc-btn cc-btn-ok">Yes</button>' +
                   '</div>' +
                 '</div>';
             document.body.appendChild(el);
