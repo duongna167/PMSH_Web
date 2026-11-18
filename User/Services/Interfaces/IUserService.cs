@@ -1,17 +1,15 @@
 ﻿using BaseBusiness.Model;
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace User.Services.Interfaces
 {
     public interface IUserService
     {
-
         UsersModel Login(string LoginName, string Password);
+        UsersModel FindByLoginName(string loginName);
+        bool VerifyPassword(UsersModel user, string password);
+        void LockAccount(UsersModel user);
+        bool ChangePassword(int userId, string currentPassword, string newPassword, bool requireCurrent, out string error);
         DataTable PermissionNames(int UserGroupID, int UserID);
     }
 }

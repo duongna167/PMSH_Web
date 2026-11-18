@@ -539,6 +539,48 @@
     .btn-login:hover {
         background: #a2d3be;
     }
+
+    .pw-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .pw-box {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+        width: 340px;
+        overflow: hidden;
+        border-top: 4px solid #f59e0b;
+    }
+    .pw-body { padding: 20px 20px 8px; }
+    .pw-title {
+        font-weight: 700;
+        font-size: 14px;
+        color: #f59e0b;
+        margin-bottom: 10px;
+    }
+    .pw-message { font-size: 13px; color: #4b5563; line-height: 1.6; white-space: pre-line; }
+    .pw-footer {
+        display: flex;
+        gap: 8px;
+        padding: 14px 20px 18px;
+        justify-content: flex-end;
+    }
+    .pw-btn {
+        padding: 7px 20px;
+        border-radius: 6px;
+        border: none;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .pw-btn-no { background: #f3f4f6; color: #374151; }
+    .pw-btn-yes { background: #63af90; color: #fff; }
 </style>
 <div class="login-wrapper">
     <div class="login-card">
@@ -574,6 +616,55 @@
 
 
 <script>
+    function showFieldAlert(msg) {
+        $('#alert').empty().append('<div class="alert alert-danger" role="alert">' + msg + '</div>');
+    }
+
+    function enterHome(data) {
+        localStorage.removeItem("PermissionNames");
+        localStorage.setItem("PermissionNames", JSON.stringify(data.data));
+        localStorage.setItem("crashierLogin", "NotYet");
+        localStorage.removeItem("Loginname");
+        localStorage.setItem("Loginname", JSON.stringify(data.namelogin));
+        localStorage.setItem("userID", JSON.stringify(data.userID));
+        if (data.businessDate != null && data.businessDate !== '') {
+            localStorage.setItem("businessDate", JSON.stringify(data.businessDate));
+        }
+        window.location.href = "/Home/Index";
+    }
+
+    function showPasswordDialog(message, yesNo, autoCloseMs) {
+        return new Promise(function (resolve) {
+            var el = document.createElement('div');
+            el.className = 'pw-overlay';
+            var buttons = yesNo
+                ? '<button type="button" class="pw-btn pw-btn-no">No</button><button type="button" class="pw-btn pw-btn-yes">Yes</button>'
+                : '<button type="button" class="pw-btn pw-btn-yes">OK</button>';
+            el.innerHTML =
+                '<div class="pw-box">' +
+                  '<div class="pw-body">' +
+                    '<div class="pw-title">Message</div>' +
+                    '<div class="pw-message"></div>' +
+                  '</div>' +
+                  '<div class="pw-footer">' + buttons + '</div>' +
+                '</div>';
+            el.querySelector('.pw-message').textContent = message;
+            document.body.appendChild(el);
+            var done = function (result) {
+                if (!el.parentNode) return;
+                el.remove();
+                resolve(result);
+            };
+            var yesBtn = el.querySelector('.pw-btn-yes');
+            var noBtn = el.querySelector('.pw-btn-no');
+            if (yesBtn) yesBtn.addEventListener('click', function () { done(true); });
+            if (noBtn) noBtn.addEventListener('click', function () { done(false); });
+            if (autoCloseMs > 0) {
+                setTimeout(function () { done(true); }, autoCloseMs);
+            }
+        });
+    }
+
     function login() {
         var loginName = ($('#txtLoginName').val() || '').trim();
         var password = $('#txtPassword').val() || '';
@@ -581,23 +672,17 @@
         $('#alert').empty();
 
         if (!loginName && !password) {
-            var msgEmpty = 'Please enter your username and password.';
-            $('#alert').append(`<div class="alert alert-danger" role="alert">${msgEmpty}</div>`);
-            if (typeof showToast === 'function') showToast('Username or password incorrect', msgEmpty, false);
+            showFieldAlert('Please enter your username and password.');
             $('#txtLoginName').focus();
             return;
         }
         if (!loginName) {
-            var msgUser = 'Please enter your username.';
-            $('#alert').append(`<div class="alert alert-danger" role="alert">${msgUser}</div>`);
-            if (typeof showToast === 'function') showToast('Username or password incorrect', msgUser, false);
+            showFieldAlert('Please enter your username.');
             $('#txtLoginName').focus();
             return;
         }
         if (!password) {
-            var msgPass = 'Please enter your password.';
-            $('#alert').append(`<div class="alert alert-danger" role="alert">${msgPass}</div>`);
-            if (typeof showToast === 'function') showToast('Username or password incorrect', msgPass, false);
+            showFieldAlert('Please enter your password.');
             $('#txtPassword').focus();
             return;
         }
@@ -611,56 +696,61 @@
             type: 'POST',
             processData: false,
             contentType: false,
-            // headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             data: formData,
             success: function (data) {
                 $('#alert').empty();
                 if (data.code === -1) {
-                    var errMsg = data.msg || 'The username or password is incorrect. Please try again.';
-                    $('#alert').append(`<div class="alert alert-danger" role="alert">${errMsg}</div>`);
-                    if (typeof showToast === 'function') showToast('Username or password incorrect', errMsg, false);
+                    if (data.showTries) {
+                        showPasswordDialog(data.msg, false);
+                    } else {
+                        showFieldAlert(data.msg || 'The username or password is incorrect. Please try again.');
+                    }
                     $('#txtLoginName').val('');
                     $('#txtPassword').val('');
                     $('#txtLoginName').focus();
+                    return;
                 }
-                else if (data.code !== 0) {
-                    var warnMsg = data.msg || 'Login failed. Please try again.';
-                    $('#alert').append(`<div class="alert alert-danger" role="alert">${warnMsg}</div>`);
-                    if (typeof showToast === 'function') showToast('Username or password incorrect', warnMsg, false);
+                if (data.code === 8) {
+                    showPasswordDialog(data.msg, false, 1400).then(function () {
+                        showPasswordDialog(data.lockMsg, false);
+                    });
+                    $('#txtLoginName').val('');
+                    $('#txtPassword').val('');
+                    $('#txtLoginName').focus();
+                    return;
                 }
-                else {
-                    localStorage.removeItem("PermissionNames");
-
-                    // Gán dữ liệu mới vào localStorage (dưới dạng chuỗi JSON)
-                    localStorage.setItem("PermissionNames", JSON.stringify(data.data));
-                    localStorage.setItem("crashierLogin", "NotYet");
-
-                    localStorage.removeItem("Loginname");
-
-                    // Gán dữ liệu mới vào localStorage (dưới dạng chuỗi JSON)
-                    localStorage.setItem("Loginname", JSON.stringify(data.namelogin));
-
-                    localStorage.setItem("userID", JSON.stringify(data.userID));
-                    if (data.businessDate != null && data.businessDate !== '') {
-                        localStorage.setItem("businessDate", JSON.stringify(data.businessDate));
-                    }
-                    window.location.href = "/Home/Index";
+                if (data.code === 3) {
+                    window.location.href = '/User/ChangePassword?mode=first';
+                    return;
                 }
-
+                if (data.code === 4) {
+                    showPasswordDialog(data.msg, true).then(function (yes) {
+                        if (yes) {
+                            window.location.href = '/User/ChangePassword?mode=renew';
+                        } else {
+                            enterHome(data);
+                        }
+                    });
+                    return;
+                }
+                if (data.code === 5 || data.code === 6 || data.code === 7) {
+                    showPasswordDialog(data.msg, false);
+                    return;
+                }
+                if (data.code !== 0) {
+                    showFieldAlert(data.msg || 'Login failed. Please try again.');
+                    return;
+                }
+                enterHome(data);
             },
-            error: function (xhr, statusText, err) {
-                $('#alert').empty();
-                var netMsg = 'Unable to reach server. Please try again.';
-                $('#alert').append(`<div class="alert alert-danger" role="alert">${netMsg}</div>`);
-                if (typeof showToast === 'function') showToast('Username or password incorrect', netMsg, false);
+            error: function () {
+                showFieldAlert('Unable to reach server. Please try again.');
             }
         });
-
     }
     $(document).ready(function () {
-
         $('#txtLoginName, #txtPassword').on('keypress', function (e) {
-            if (e.which === 13) { // phím Enter
+            if (e.which === 13) {
                 login();
             }
         });
