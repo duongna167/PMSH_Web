@@ -265,6 +265,15 @@ namespace HouseKeeping.Services.Implements
             return myTable;
         }
 
+        public DataTable TasksheetDetailSearchByRoom(string roomNo)
+        {
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@RoomNo", roomNo)
+            };
+            return DataTableHelper.getTableData("spTasksheetDetailSearch", param);
+        }
+
         public DataTable RoomAttendentDailyWorksheetData(DateTime fromDate, string attendant, string tasksheet, string roomStatus, string facilityCode)
         {
 

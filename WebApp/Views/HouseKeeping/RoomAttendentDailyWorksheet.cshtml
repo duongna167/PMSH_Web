@@ -4,6 +4,7 @@
     ViewBag.Title = ViewBag.ReportHeader;
     var listatt = ViewBag.hkpAttendantList;
     var listhkpTS = ViewBag.hkpTaskSheetList;
+    var zoneList = ViewBag.ZoneList;
 }
 
 <style>
@@ -48,6 +49,44 @@
     .gap-x-3 {
         column-gap: 1rem;
     }
+    /* Hàng filter: bố cục flex, độ rộng ô cố định -> chọn tomselect không làm lệch */
+    .radw-filter-row {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 20px;
+        padding: 2px 0;
+    }
+    .radw-f {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 0 0 auto;
+    }
+    .radw-f > label {
+        flex: 0 0 auto;
+    }
+    .radw-f-ctrl {
+        flex: 0 0 auto;
+        min-width: 0;
+        position: relative;
+    }
+    .radw-filter-row .ts-wrapper {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    .radw-filter-row .ts-control {
+        flex-wrap: nowrap !important;
+        overflow: hidden !important;
+    }
+    .radw-filter-row .ts-control input {
+        flex: 1 1 20px !important;
+        min-width: 20px !important;
+    }
+    .radw-filter-row .ts-control .item {
+        flex: 0 1 auto;
+        min-width: 0;
+    }
 </style>
 
 <!-- =========================
@@ -69,6 +108,7 @@
                     <div class="mb-2">
                         <button id="radw_btnPrint" class="mui-button mui-button-new">View</button>
                         <button id="radw_turnDown" class="mui-button mui-button-new">Turn down</button>
+                        <button id="radw_btnResv" class="mui-button mui-button-new" type="button">Resv</button>
 
                         <button id="radw_btnReport" class="mui-button mui-button-new" type="button">
                             Report
@@ -125,49 +165,56 @@
                         </div>
 
                         <div class="filter-panel mb-1">
-                            <div class="row g-2 align-items-center">
+                            <div class="radw-filter-row">
 
                                 <!-- Attendant ID -->
-                                <div class="col-md-6">
-                                    <div class="row align-items-center">
-                                        <label class="col-md-5 mb-0 text-nowrap">Attendant ID:</label>
-                                        <div class="col-md-7">
-                                            <select id="radw_attendant" name="radw_attendant"
-                                                    class="tomselect-custom" multiple>
-                                                @foreach (var item in listatt)
-                                                {
-                                                    <option value="@item.ID">@item.Name</option>
-                                                }
-                                            </select>
-                                        </div>
+                                <div class="radw-f">
+                                    <label class="mb-0 text-nowrap">Attendant ID:</label>
+                                    <div class="radw-f-ctrl" style="width:220px;">
+                                        <select id="radw_attendant" name="radw_attendant"
+                                                class="tomselect-custom" multiple>
+                                            @foreach (var item in listatt)
+                                            {
+                                                <option value="@item.ID">@item.Name</option>
+                                            }
+                                        </select>
                                     </div>
                                 </div>
 
                                 <!-- Task Sheet -->
-                                <div class="col-md-5">
-                                    <div class="row align-items-center">
-                                        <label class="col-md-6 mb-0 text-nowrap">Task Sheet:</label>
-                                        <div class="col-md-6">
-                                            <select id="radw_tasksheet" name="radw_tasksheet"
-                                                    class="form-select form-select-sm">
-                                                <option value=""></option>
-                                                @foreach (var item in listhkpTS)
-                                                {
-                                                    <option value="@item.TaskSheetNo">@item.TaskSheetNo</option>
-                                                }
-                                            </select>
-                                        </div>
+                                <div class="radw-f">
+                                    <label class="mb-0 text-nowrap">Task Sheet:</label>
+                                    <div class="radw-f-ctrl" style="width:140px;">
+                                        <select id="radw_tasksheet" name="radw_tasksheet"
+                                                class="form-select form-select-sm">
+                                            <option value=""></option>
+                                            @foreach (var item in listhkpTS)
+                                            {
+                                                <option value="@item.TaskSheetNo">@item.TaskSheetNo</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Zone -->
+                                <div class="radw-f">
+                                    <label class="mb-0 text-nowrap">Zone:</label>
+                                    <div class="radw-f-ctrl" style="width:200px;">
+                                        <select id="radw_zone" name="radw_zone" class="tomselect-custom" multiple>
+                                            @foreach (var item in zoneList)
+                                            {
+                                                <option value="@item.ID">@item.Code</option>
+                                            }
+                                        </select>
                                     </div>
                                 </div>
 
                                 <!-- Task Date (hidden) -->
-                                <div class="col-md-1 d-none">
-                                    <div class="row align-items-center">
-                                        <label class="col-md-5 mb-0 text-nowrap">Task Date:</label>
-                                        <div class="col-md-7">
-                                            <input type="date" id="radw_fromDate" name="radw_fromDate"
-                                                   class="form-control form-control-sm">
-                                        </div>
+                                <div class="radw-f d-none">
+                                    <label class="mb-0 text-nowrap">Task Date:</label>
+                                    <div class="radw-f-ctrl" style="width:140px;">
+                                        <input type="date" id="radw_fromDate" name="radw_fromDate"
+                                               class="form-control form-control-sm">
                                     </div>
                                 </div>
 
@@ -233,6 +280,30 @@
                 <div id="radw_logGridContainer" class="gridContainer mt-2" style="height: 600px;"></div>
             </div>
 
+        </div>
+    </div>
+</div>
+
+<!-- =========================
+     RESV (TASKSHEET DETAIL) MODAL
+========================= -->
+<div class="modal fade" id="radw_resvModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Tasksheet Detail</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <label class="mb-0">Room No:</label>
+                    <input type="text" id="radw_resvRoomNo" class="form-control form-control-sm" style="max-width:300px;" />
+                    <button id="radw_resvSearch" class="mui-button mui-button-new" type="button">Search</button>
+                    <button id="radw_resvExcel" class="mui-button mui-button-new" type="button">Excel</button>
+                    <button class="mui-button mui-button-new" data-bs-dismiss="modal" type="button">Close</button>
+                </div>
+                <div id="radw_resvGrid" class="gridContainer" style="height: 450px;"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -318,6 +389,58 @@
             });
         },
 
+        loadResv: function () {
+            const roomNo = ($("#radw_resvRoomNo").val() || "").trim();
+            $.ajax({
+                url: '/HouseKeeping/TasksheetDetailByRoom',
+                type: 'GET',
+                data: { roomNo: roomNo },
+                success: function (data) {
+                    if (data && data.error) { alert(data.error); return; }
+                    $("#radw_resvGrid").dxDataGrid({
+                        dataSource: data || [],
+                        allowColumnResizing: true,
+                        columnAutoWidth: true,
+                        height: 450,
+                        showBorders: true,
+                        filterRow: { visible: true },
+                        noDataText: "No tasksheet found for this room on the current business date",
+                        columns: [
+                            { dataField: "taskDate", caption: "Task Date" },
+                            { dataField: "roomNo", caption: "Room No" },
+                            { dataField: "roomType", caption: "Room Type" },
+                            { dataField: "credits", caption: "Credits" },
+                            { dataField: "facilityTask", caption: "Facility Task" },
+                            { dataField: "tasksheetNo", caption: "Tasksheet No" },
+                            { dataField: "attendant", caption: "Attendant" },
+                            { dataField: "facility", caption: "Facility" },
+                            { dataField: "quantity", caption: "Quantity" },
+                            { dataField: "description", caption: "Description" },
+                            { dataField: "createdBy", caption: "Created By" },
+                            { dataField: "createdDate", caption: "Created Date" },
+                            { dataField: "updatedBy", caption: "Updated By" },
+                            { dataField: "updatedDate", caption: "Updated Date" },
+                            { dataField: "timeIn", caption: "Time In" },
+                            { dataField: "timeOut", caption: "Time Out" }
+                        ],
+                        scrolling: { useNative: true, showScrollbar: "always" },
+                        paging: { pageSize: 25 },
+                        onCellPrepared: function (e) {
+                            // Cột ngày giờ: hiển thị dd/MM/yyyy (HH:mm nếu có giờ)
+                            if (e.rowType === "data" && typeof e.value === "string" && /^\d{4}-\d{2}-\d{2}T/.test(e.value)) {
+                                const d = new Date(e.value);
+                                const p = n => String(n).padStart(2, "0");
+                                let t = p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear();
+                                if (d.getHours() || d.getMinutes()) t += " " + p(d.getHours()) + ":" + p(d.getMinutes());
+                                e.cellElement.text(t);
+                            }
+                        }
+                    });
+                },
+                error: function () { alert("Unable to load data."); }
+            });
+        },
+
         bindEvents: function () {
             const self = this;
 
@@ -346,6 +469,7 @@
                         attendant: $("#radw_attendant").val().join(","),
                         tasksheet: $("#radw_tasksheet").val(),
                         roomStatus: selectedStatuses,
+                        zone: ($("#radw_zone").val() || []).join(","),
                     },
                     traditional: true,
                     crossDomain: false,
@@ -368,6 +492,34 @@
                         alert("Không thể tải báo cáo.");
                         $("#radw_loadingSpinner").hide();
                     }
+                });
+            });
+
+            $("#radw_btnResv").off("click").on("click", function () {
+                const grid = self.gridInstance;
+                let rows = grid ? grid.getSelectedRowsData() : [];
+                if ((!rows || rows.length === 0) && self.selectedRowData) rows = [self.selectedRowData];
+                if (!rows || rows.length === 0) {
+                    if (typeof showToast === "function") showToast("Warning", "Please select room(s) first.", false);
+                    else alert("Please select room(s) first.");
+                    return;
+                }
+                $("#radw_resvRoomNo").val(rows.map(x => x.roomNo).join(","));
+                $("#radw_resvModal").modal("show");
+                self.loadResv();
+            });
+
+            $("#radw_resvSearch").off("click").on("click", function () { self.loadResv(); });
+
+            $("#radw_resvExcel").off("click").on("click", function () {
+                const grid = $("#radw_resvGrid").dxDataGrid("instance");
+                if (!grid) return;
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet("Sheet 1");
+                DevExpress.excelExporter.exportDataGrid({ component: grid, worksheet: worksheet, autoFilterEnabled: true }).then(function () {
+                    workbook.xlsx.writeBuffer().then(function (buffer) {
+                        saveAs(new Blob([buffer], { type: "application/octet-stream" }), "Tasksheet Detail.xlsx");
+                    });
                 });
             });
 
