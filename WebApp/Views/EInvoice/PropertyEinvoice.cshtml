@@ -1,0 +1,459 @@
+@* Property E-Invoice - trang đầy đủ: nguồn dữ liệu (kết nối DB động) và cấu hình nhà cung cấp theo từng Property.
+   Giao diện theo màn PropertyEinvoice của PMSH_Web (tiêu đề, thanh nút, lưới); form thêm/sửa là popup. *@
+@{
+    ViewData["Title"] = "Property E-Invoice";
+}
+
+<div class="text-center" style="font-size: 20px">Property Einvoice</div>
+
+<div class="search-filter mb-1 epr-toolbar">
+    <button id="epr_btnRefresh" type="button" class="mui-button mui-button-new">Refresh</button>
+    <button id="epr_btnNew" type="button" class="mui-button mui-button-new">New</button>
+    <button id="epr_btnEdit" type="button" class="mui-button mui-button-new">Edit</button>
+    <button id="epr_btnDelete" type="button" class="mui-button mui-button-new">Delete</button>
+    <button id="epr_btnTest" type="button" class="mui-button mui-button-new">Test Connection</button>
+    <button id="epr_btnEncrypt" type="button" class="mui-button mui-button-new" title="Encrypt passwords/secrets still stored as plain text">Encrypt Secrets</button>
+</div>
+
+<div class="mui-card">
+    <div id="epr_grid" class="epr-grid"></div>
+</div>
+
+<style>
+    /* Dòng đang được chọn: nền xanh nhạt để người dùng nhận biết */
+    .dx-datagrid-rowsview .dx-row.dx-selection > td,
+    .dx-datagrid-rowsview .dx-row.dx-selection:hover > td,
+    .dx-datagrid-rowsview .dx-row.dx-selection.dx-row-alt > td { background-color: rgba(120, 120, 120, 0.15) !important; color: inherit !important; }
+
+    .mui-card { border: 1px solid #cfcfcf; background: #fff; padding: 6px; }
+    .epr-grid { height: calc(100vh - 330px); min-height: 420px; }
+    .epr-toolbar .mui-button { margin-right: 4px; white-space: nowrap; }
+
+    #epr_editModal .epr-section { border: 1px solid var(--bs-border-color, #ccc); border-radius: 4px; padding: 8px 10px 4px; margin-bottom: 10px; position: relative; }
+    #epr_editModal .epr-section > .epr-legend { position: absolute; top: -11px; left: 10px; background: var(--bs-body-bg, #fff); padding: 0 6px; font-size: 13px; font-weight: 600; }
+    #epr_editModal .epr-group-title { font-weight: 600; font-size: 13px; margin: 4px 0 6px; color: #0b5d51; }
+    #epr_editModal .epr-field label { font-size: 13px; margin-bottom: 2px; }
+    #epr_editModal .epr-hint { font-size: 11px; color: #6c757d; }
+</style>
+
+<!-- ===== EDIT FORM ===== -->
+<div class="modal fade" id="epr_editModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header"><h6 class="modal-title" id="epr_editTitle">Property E-Invoice</h6></div>
+            <div class="modal-body">
+                <div class="search-filter mb-2">
+                    <button type="button" id="epr_btnSave" class="mui-button mui-button-save">Save</button>
+                    <button type="button" id="epr_btnTestForm" class="mui-button mui-button-new">Test Connection</button>
+                    <button type="button" data-bs-dismiss="modal" class="mui-button mui-button-close">Close</button>
+                </div>
+
+                <form id="epr_form" novalidate autocomplete="off">
+                    <input type="hidden" name="id" value="0" />
+
+                    <!-- Nguồn dữ liệu -->
+                    <div class="epr-section">
+                        <span class="epr-legend">Source database</span>
+                        <div class="row g-2 mb-2">
+                            <div class="col-12 col-lg-3 epr-field"><label>Code <span class="text-danger">*</span></label>
+                                <input type="text" name="code" class="form-control form-control-sm" maxlength="50" /><div class="invalid-feedback"></div></div>
+                            <div class="col-12 col-lg-5 epr-field"><label>Name <span class="text-danger">*</span></label>
+                                <input type="text" name="name" class="form-control form-control-sm" maxlength="100" /><div class="invalid-feedback"></div></div>
+                            <div class="col-6 col-lg-2 epr-field"><label>Source Type</label>
+                                <select name="sourceType" class="form-select form-select-sm"><option value="PMS">PMS</option></select><div class="invalid-feedback"></div></div>
+                            <div class="col-6 col-lg-2 epr-field"><label>Tax Code</label>
+                                <input type="text" name="taxCode" class="form-control form-control-sm" maxlength="50" /><div class="invalid-feedback"></div></div>
+                            <div class="col-12 col-lg-10 epr-field"><label>Description</label>
+                                <input type="text" name="description" class="form-control form-control-sm" maxlength="100" /><div class="invalid-feedback"></div></div>
+                            <div class="col-12 col-lg-2 epr-field d-flex align-items-end"><label class="mb-1 text-danger"><input type="checkbox" name="inactive" /> Inactive</label></div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-12 col-lg-3 epr-field"><label>Database IP <span class="text-danger">*</span></label>
+                                <input type="text" name="databaseIP" class="form-control form-control-sm" maxlength="50" /><div class="invalid-feedback"></div></div>
+                            <div class="col-12 col-lg-3 epr-field"><label>Database Name <span class="text-danger">*</span></label>
+                                <input type="text" name="databaseName" class="form-control form-control-sm" maxlength="50" /><div class="invalid-feedback"></div></div>
+                            <div class="col-12 col-lg-3 epr-field"><label>Database User <span class="text-danger">*</span></label>
+                                <input type="text" name="databaseUser" class="form-control form-control-sm" maxlength="50" autocomplete="off" /><div class="invalid-feedback"></div></div>
+                            <div class="col-12 col-lg-3 epr-field"><label>Database Password <span class="text-danger" id="epr_pwdStar">*</span></label>
+                                <input type="password" name="databasePassword" class="form-control form-control-sm" maxlength="100" autocomplete="new-password" /><div class="invalid-feedback"></div></div>
+                            <div class="col-12 col-lg-6 epr-field"><label>Invoice Search SP <span class="text-danger">*</span></label>
+                                <input type="text" name="invoiceSearchSP" class="form-control form-control-sm" maxlength="200" /><div class="invalid-feedback"></div></div>
+                            <div class="col-12 col-lg-6 epr-field"><label>Invoice Detail SP</label>
+                                <input type="text" name="invoiceDetailSP" class="form-control form-control-sm" maxlength="200" /><div class="invalid-feedback"></div></div>
+                        </div>
+                    </div>
+
+                    <!-- Nhà cung cấp -->
+                    <div class="epr-section">
+                        <span class="epr-legend">E-Invoice provider configuration</span>
+                        <div class="row g-2 mb-2">
+                            <div class="col-12 col-lg-4 epr-field"><label>Provider <span class="text-danger">*</span></label>
+                                <select name="providerID" id="epr_provider" class="form-select form-select-sm"></select><div class="invalid-feedback"></div></div>
+                        </div>
+                        <div id="epr_fields"></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var epr_Module = (function () {
+
+        let editModal = null;
+        let grid = null, selRow = null;
+        let providers = [];
+        let cfgFields = [], cfgOptions = [];
+
+        const csrf = () => ({ "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() });
+
+        function initModal(el) {
+            return el ? bootstrap.Modal.getOrCreateInstance(el, { backdrop: "static", keyboard: false }) : null;
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Khởi tạo trang
+        // ---------------------------------------------------------------------------------------
+        function start() {
+            editModal = initModal(document.getElementById("epr_editModal"));
+            bindEvents();
+            loadProviders().always(loadProperties);
+        }
+
+        function bindEvents() {
+            $(document).off(".epr");
+            $(document).on("click.epr", "#epr_btnRefresh", function () { loadProperties(); });
+            $(document).on("click.epr", "#epr_btnNew", function () { openEdit(null); });
+            $(document).on("click.epr", "#epr_btnEdit", function () {
+                if (!selRow) return showToast("Warning", "Please select a property.", false);
+                openEdit(selRow);
+            });
+            $(document).on("click.epr", "#epr_btnDelete", doDelete);
+            $(document).on("click.epr", "#epr_btnTest", function () {
+                if (!selRow) return showToast("Warning", "Please select a property.", false);
+                testConnection({ id: selRow.ID, databaseIP: selRow.Database_IP, databaseName: selRow.Database_Name,
+                    databaseUser: selRow.Database_User, databasePassword: "", invoiceSearchSP: selRow.InvoiceSearchSP, invoiceDetailSP: selRow.InvoiceDetailSP });
+            });
+            $(document).on("click.epr", "#epr_btnSave", save);
+            $(document).on("click.epr", "#epr_btnEncrypt", encryptSecrets);
+            $(document).on("click.epr", "#epr_btnTestForm", function () {
+                const f = readSource();
+                testConnection({ id: f.id, databaseIP: f.databaseIP, databaseName: f.databaseName, databaseUser: f.databaseUser,
+                    databasePassword: f.databasePassword, invoiceSearchSP: f.invoiceSearchSP, invoiceDetailSP: f.invoiceDetailSP });
+            });
+            $(document).on("change.epr", "#epr_provider", function () {
+                loadConfig(Number($("#epr_form [name=id]").val()) || 0, Number(this.value) || 0);
+            });
+            $(document).on("change.epr input.epr", "#epr_fields [data-code]", applyVisibility);
+
+            $("#epr_editModal").off("show.bs.modal.epr").on("show.bs.modal.epr", function () { this.style.zIndex = "1065"; });
+            $("#epr_editModal").off("shown.bs.modal.epr").on("shown.bs.modal.epr", function () {
+                this.style.zIndex = "1070";
+                const backs = document.querySelectorAll(".modal-backdrop");
+                if (backs.length) backs[backs.length - 1].style.zIndex = "1065";
+            });
+            $("#epr_editModal").off("hidden.bs.modal.epr").on("hidden.bs.modal.epr", function () {
+                if ($("#epr_modalMain").hasClass("show")) $("body").addClass("modal-open");
+            });
+        }
+
+        function cleanup() {
+            $(document).off(".epr");
+            try { if (grid) grid.dispose(); } catch { }
+            grid = null;
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Dữ liệu
+        // ---------------------------------------------------------------------------------------
+        function get(url, data) { return $.ajax({ url: url, type: "GET", data: data, headers: csrf() }); }
+
+        function failToast(xhr, fallback) {
+            const m = xhr && xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : fallback;
+            showToast("Error", m, false);
+        }
+
+        function loadProviders() {
+            return get("/EInvoiceProvider/ProviderData").done(function (res) {
+                providers = (res.data || []).filter(p => !p.Inactive);
+            }).fail(function (xhr) { failToast(xhr, "Unable to load providers."); });
+        }
+
+        function loadProperties(keepId) {
+            const wantId = typeof keepId === "number" ? keepId : (selRow ? selRow.ID : 0);
+            get("/EInvoiceProperty/PropertyData").done(function (res) {
+                const rows = res.data || [];
+                if (grid) { try { grid.dispose(); } catch { } }
+                selRow = null;
+                grid = $("#epr_grid").dxDataGrid({
+                    dataSource: rows,
+                    keyExpr: "ID",
+                    showBorders: true,
+                    height: "100%",
+                    width: "100%",
+                    allowColumnResizing: true,
+                    columnAutoWidth: true,
+                    hoverStateEnabled: true,
+                    selection: { mode: "single" },
+                    filterRow: { visible: true, applyFilter: "auto" },
+                    paging: { pageSize: 50 },
+                    scrolling: { showScrollbar: "always" },
+                    columns: [
+                        { dataField: "ID", visible: false },
+                        { dataField: "Code", caption: "Code", width: 130 },
+                        { dataField: "Name", caption: "Name", minWidth: 160 },
+                        { dataField: "SourceType", caption: "Source", width: 70 },
+                        { dataField: "ProviderCode", caption: "Provider", width: 100 },
+                        { dataField: "Database_IP", caption: "Database IP", width: 120 },
+                        { dataField: "Database_Name", caption: "Database Name", width: 170 },
+                        { dataField: "Database_User", caption: "User", width: 110 },
+                        { dataField: "InvoiceSearchSP", caption: "Search SP", width: 190 },
+                        { dataField: "TaxCode", caption: "Tax Code", width: 110 },
+                        { dataField: "Inactive", caption: "Inactive", width: 70, dataType: "boolean", alignment: "center", allowFiltering: false }
+                    ],
+                    onSelectionChanged: function (e) { selRow = e.selectedRowsData.length ? e.selectedRowsData[0] : null; }
+                }).dxDataGrid("instance");
+                if (wantId && rows.some(r => r.ID === wantId)) grid.selectRows([wantId], false);
+            }).fail(function (xhr) { failToast(xhr, "Unable to load properties."); });
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Form
+        // ---------------------------------------------------------------------------------------
+        function openEdit(row) {
+            const f = "#epr_form";
+            applyValidationErrors([], f);
+            const $f = $(f);
+            const set = (n, v) => $f.find("[name='" + n + "']").val(v == null ? "" : v);
+            set("id", row ? row.ID : 0);
+            set("code", row ? row.Code : "");
+            set("name", row ? row.Name : "");
+            set("description", row ? row.Description : "");
+            set("sourceType", "PMS");
+            set("taxCode", row ? row.TaxCode : "");
+            set("databaseIP", row ? row.Database_IP : "");
+            set("databaseName", row ? row.Database_Name : "");
+            set("databaseUser", row ? row.Database_User : "");
+            set("databasePassword", "");
+            set("invoiceSearchSP", row ? row.InvoiceSearchSP : "spVAT_SearchVAT_HDDT");
+            set("invoiceDetailSP", row ? row.InvoiceDetailSP : "");
+            $f.find("[name=inactive]").prop("checked", !!(row && row.Inactive));
+
+            // Mật khẩu DB đã lưu thì để trống = giữ nguyên
+            const hasPwd = !!(row && row.HasDatabasePassword);
+            $f.find("[name=databasePassword]").attr("placeholder", hasPwd ? "Saved - leave blank to keep" : "");
+            $("#epr_pwdStar").toggle(!hasPwd);
+
+            const $p = $("#epr_provider").empty().append('<option value="">--- Select a provider ---</option>');
+            providers.forEach(p => $p.append($("<option>").val(p.ID).text(p.Code + " - " + p.Name)));
+            const pid = row && row.ProviderID ? row.ProviderID : "";
+            $p.val(pid);
+            $("#epr_fields").empty();
+            if (pid) loadConfig(row ? row.ID : 0, pid);
+
+            $("#epr_editTitle").text(row ? "Edit Property E-Invoice - " + row.Code : "New Property E-Invoice");
+            editModal.show();
+        }
+
+        function readSource() {
+            const o = {};
+            $("#epr_form").find("[name]").each(function () {
+                if (this.type === "checkbox") o[this.name] = this.checked;
+                else o[this.name] = this.value;
+            });
+            o.id = Number(o.id) || 0;
+            o.providerID = Number(o.providerID) || 0;
+            return o;
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Field cấu hình của Provider (dựng động theo EInvoiceProviderField)
+        // ---------------------------------------------------------------------------------------
+        function loadConfig(propertyId, providerId) {
+            $("#epr_fields").empty();
+            if (!providerId) { cfgFields = []; cfgOptions = []; return; }
+            get("/EInvoiceProperty/ProviderConfigData", { propertyId: propertyId, providerId: providerId }).done(function (res) {
+                cfgFields = res.fields || [];
+                cfgOptions = res.options || [];
+                renderFields();
+            }).fail(function (xhr) { failToast(xhr, "Unable to load provider configuration."); });
+        }
+
+        function esc(s) {
+            return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        function renderFields() {
+            const $root = $("#epr_fields").empty();
+            const groups = [];
+            cfgFields.forEach(function (f) {
+                const g = f.GroupName || "General";
+                let grp = groups.find(x => x.name === g);
+                if (!grp) { grp = { name: g, items: [] }; groups.push(grp); }
+                grp.items.push(f);
+            });
+
+            groups.forEach(function (grp) {
+                const $title = $('<div class="epr-group-title">').text(grp.name);
+                const $row = $('<div class="row g-2 mb-2">');
+                grp.items.forEach(function (f) {
+                    const w = [4, 6, 12].includes(f.ColumnWidth) ? f.ColumnWidth : 6;
+                    const $col = $('<div class="epr-field">').addClass("col-12 col-lg-" + w).attr("data-wrap", f.FieldCode);
+                    $col.append(buildControl(f));
+                    $row.append($col);
+                });
+                $root.append($title, $row);
+            });
+            applyVisibility();
+        }
+
+        function buildControl(f) {
+            const name = "values_" + f.ProviderFieldID;
+            const saved = f.HasSavedValue && !f.IsEncrypted;
+            const val = saved ? f.SavedValue : (f.HasSavedValue ? "" : (f.DefaultValue || ""));
+            const ro = f.IsReadOnly ? " disabled" : "";
+            const ph = f.IsEncrypted && f.HasSavedValue ? "Saved - leave blank to keep" : (f.Placeholder || "");
+            const maxlen = f.MaxLength ? ' maxlength="' + f.MaxLength + '"' : "";
+            const attr = ' name="' + name + '" data-id="' + f.ProviderFieldID + '" data-code="' + esc(f.FieldCode) + '"' +
+                ' data-encrypted="' + (f.IsEncrypted ? 1 : 0) + '" data-hassaved="' + (f.HasSavedValue ? 1 : 0) + '" data-required="' + (f.IsRequired ? 1 : 0) + '"';
+            const label = '<label>' + esc(f.DisplayName) + (f.IsRequired ? ' <span class="text-danger">*</span>' : '') + '</label>';
+            const hint = f.Description ? '<div class="epr-hint">' + esc(f.Description) + '</div>' : '';
+            let input;
+
+            switch (f.ControlType) {
+                case "Select": {
+                    const opts = cfgOptions.filter(o => o.ProviderFieldID === f.ProviderFieldID);
+                    let cur = val;
+                    if ((cur === "" || cur == null) && !f.HasSavedValue) { const d = opts.find(o => o.IsDefault); if (d) cur = d.OptionValue; }
+                    input = '<select class="form-select form-select-sm"' + attr + ro + '><option value=""></option>' +
+                        opts.map(o => '<option value="' + esc(o.OptionValue) + '"' + (String(o.OptionValue) === String(cur) ? " selected" : "") + '>' + esc(o.OptionText) + '</option>').join("") + '</select>';
+                    break;
+                }
+                case "Checkbox":
+                    input = '<div><input type="checkbox"' + attr + ro + (String(val).toLowerCase() === "true" || val === "1" ? " checked" : "") + ' /></div>';
+                    break;
+                case "Textarea":
+                    input = '<textarea class="form-control form-control-sm" rows="2"' + attr + maxlen + ro + ' placeholder="' + esc(ph) + '">' + esc(val) + '</textarea>';
+                    break;
+                case "Password":
+                    input = '<input type="password" class="form-control form-control-sm" autocomplete="new-password"' + attr + maxlen + ro + ' placeholder="' + esc(ph) + '" />';
+                    break;
+                case "Number":
+                    input = '<input type="number" class="form-control form-control-sm"' + attr + ro + ' value="' + esc(val) + '" placeholder="' + esc(ph) + '" />';
+                    break;
+                case "Date":
+                    input = '<input type="date" class="form-control form-control-sm"' + attr + ro + ' value="' + esc(String(val).substring(0, 10)) + '" />';
+                    break;
+                default:
+                    input = '<input type="text" class="form-control form-control-sm"' + attr + maxlen + ro + ' value="' + esc(val) + '" placeholder="' + esc(ph) + '" />';
+            }
+            return $('<div>').html(label + input + '<div class="invalid-feedback"></div>' + hint).contents();
+        }
+
+        function fieldValue($el) {
+            if ($el.is(":checkbox")) return $el.is(":checked") ? "true" : "false";
+            return ($el.val() || "").trim();
+        }
+
+        // Ẩn/hiện field theo điều kiện VisibleWhen (EQUALS / IN) dựa trên giá trị hiện tại của field điều kiện
+        function applyVisibility() {
+            cfgFields.forEach(function (f) {
+                if (!f.VisibleWhenFieldCode) return;
+                const actual = fieldValue($('#epr_fields [data-code="' + f.VisibleWhenFieldCode + '"]')).toLowerCase();
+                const expected = String(f.VisibleWhenValue || "").toLowerCase();
+                let show = true;
+                if (f.VisibleWhenOperator === "EQUALS") show = actual === expected;
+                else if (f.VisibleWhenOperator === "IN") show = expected.split(",").map(s => s.trim()).includes(actual);
+                $('#epr_fields [data-wrap="' + f.FieldCode + '"]').toggle(show);
+            });
+        }
+
+        function collectValues() {
+            const values = [];
+            $("#epr_fields [data-id]").each(function () {
+                const $el = $(this);
+                const v = fieldValue($el);
+                const keep = $el.data("encrypted") === 1 && $el.data("hassaved") === 1 && v === "";
+                values.push({ providerFieldID: Number($el.data("id")), fieldValue: v, keepExistingValue: keep });
+            });
+            return values;
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Lưu / xóa / kiểm tra kết nối
+        // ---------------------------------------------------------------------------------------
+        function save() {
+            const payload = readSource();
+            payload.values = collectValues();
+
+            // Kiểm tra nhanh phía client: field bắt buộc đang hiển thị mà còn trống (server kiểm tra lại đầy đủ)
+            const errs = [];
+            $("#epr_fields [data-required='1']").each(function () {
+                const $el = $(this);
+                if (!$el.closest("[data-wrap]").is(":visible")) return;
+                const keep = $el.data("encrypted") === 1 && $el.data("hassaved") === 1;
+                if (fieldValue($el) === "" && !keep && !$el.is(":checkbox"))
+                    errs.push({ field: this.name, message: ($el.closest(".epr-field").find("label").first().text().replace("*", "").trim()) + " is required." });
+            });
+            if (errs.length) {
+                applyValidationErrors(errs, "#epr_form");
+                return showToast("Error", errs[0].message, false);
+            }
+
+            $.ajax({ url: "/EInvoiceProperty/PropertySave", type: "POST", contentType: "application/json", data: JSON.stringify(payload), headers: csrf() })
+                .done(function (res) {
+                    if (res.success) {
+                        showToast("Success", res.message, true);
+                        editModal.hide();
+                        loadProperties(res.data ? res.data.id : 0);
+                    } else {
+                        applyValidationErrors(res.errors || [], "#epr_form");
+                        showToast("Error", (res.errors && res.errors.length ? res.errors[0].message : res.message) || "Save failed.", false);
+                    }
+                }).fail(function (xhr) { failToast(xhr, "Save failed."); });
+        }
+
+        function doDelete() {
+            if (!selRow) return showToast("Warning", "Please select a property.", false);
+            const id = selRow.ID;
+            const run = function () {
+                $.ajax({ url: "/EInvoiceProperty/PropertyDelete", type: "POST", data: { id: id }, headers: csrf() })
+                    .done(function (res) {
+                        if (res.success) { showToast("Success", res.message, true); loadProperties(0); }
+                        else showToast("Error", res.message || "Delete failed.", false);
+                    }).fail(function (xhr) { failToast(xhr, "Delete failed."); });
+            };
+            if (window.Swal) {
+                Swal.fire({ title: "Are you sure you want to delete this property?", icon: "question", showCancelButton: true, confirmButtonText: "Yes", cancelButtonText: "No" })
+                    .then(function (r) { if (r.isConfirmed) run(); });
+            } else if (confirm("Are you sure you want to delete this property?")) run();
+        }
+
+        function encryptSecrets() {
+            const run = function () {
+                $.ajax({ url: "/EInvoiceProperty/PropertyEncryptSecrets", type: "POST", headers: csrf() })
+                    .done(function (res) { showToast(res.success ? "Success" : "Error", res.message, !!res.success); })
+                    .fail(function (xhr) { failToast(xhr, "Encrypt failed."); });
+            };
+            if (window.Swal) {
+                Swal.fire({ title: "Encrypt all stored passwords and secrets?", text: "Values still stored as plain text will be encrypted.", icon: "question", showCancelButton: true, confirmButtonText: "Yes", cancelButtonText: "No" })
+                    .then(function (r) { if (r.isConfirmed) run(); });
+            } else if (confirm("Encrypt all stored passwords and secrets?")) run();
+        }
+
+        function testConnection(payload) {
+            $.ajax({ url: "/EInvoiceProperty/PropertyTest", type: "POST", contentType: "application/json", data: JSON.stringify(payload), headers: csrf() })
+                .done(function (res) {
+                    const warn = res.data && res.data.warnings && res.data.warnings.length;
+                    if (res.success && !warn) showToast("Success", res.message, true);
+                    else if (res.success) showToast("Warning", res.message, false);
+                    else showToast("Error", res.message, false);
+                }).fail(function (xhr) { failToast(xhr, "Test failed."); });
+        }
+
+        return { start };
+    })();
+
+    $(function () { epr_Module.start(); });
+</script>
