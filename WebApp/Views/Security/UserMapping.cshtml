@@ -1,0 +1,339 @@
+<style>
+    #usrMap_modal .rights-type-row {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 16px;
+    }
+    #usrMap_modal .rights-type-row label {
+        display: inline-flex !important;
+        flex-direction: row !important;
+        align-items: center;
+        gap: 6px;
+        margin: 0 !important;
+        white-space: nowrap;
+        width: auto !important;
+    }
+    #usrMap_modal .gridContainer .dx-datagrid-headers .dx-header-row > td,
+    #usrMap_modal .gridContainer .dx-treelist-headers .dx-header-row > td {
+        background-color: #f5f5f5 !important;
+        color: #000 !important;
+        font-weight: 700 !important;
+        border-bottom: 1px solid #aaaaaa !important;
+        text-align: left !important;
+        padding: 2px 6px !important;
+        font-size: 14px !important;
+        height: 24px !important;
+        line-height: 20px !important;
+    }
+    #usrMap_modal .gridContainer .dx-datagrid-headers .dx-datagrid-text-content,
+    #usrMap_modal .gridContainer .dx-treelist-headers .dx-treelist-text-content {
+        text-align: left !important;
+        justify-content: flex-start !important;
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        color: #000 !important;
+    }
+    #usrMap_modal .modal-body { overflow: hidden; }
+    #usrMap_modal .usrMap-body-row {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        gap: 8px;
+        padding: 4px 4px 8px;
+    }
+    #usrMap_modal .usrMap-left,
+    #usrMap_modal .usrMap-right {
+        flex: 1 1 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        min-width: 0;
+    }
+    #usrMap_modal .usrMap-left #usrMap_grid,
+    #usrMap_modal .usrMap-right #usrMap_tree {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: 100%;
+    }
+    #usrMap_modal .usrMap-right {
+        border: 1px solid #dee2e6;
+        background: #fff;
+        padding: 0;
+        overflow: hidden;
+    }
+    #usrMap_modal #usrMap_tree .dx-treelist {
+        border: none;
+    }
+    #usrMap_modal #usrMap_tree .dx-treelist-rowsview .dx-data-row,
+    #usrMap_modal #usrMap_tree .dx-treelist-rowsview .dx-data-row > td {
+        height: 22px !important;
+        max-height: 22px !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        line-height: 20px !important;
+        font-size: 14px !important;
+        border-bottom: 1px solid #ddd !important;
+    }
+    #usrMap_modal #usrMap_tree .smc-check-cell {
+        display: flex;
+        align-items: center;
+        height: 22px;
+        gap: 6px;
+        min-width: 0;
+    }
+    #usrMap_modal #usrMap_tree .smc-check {
+        width: 14px !important;
+        height: 14px !important;
+        min-width: 14px !important;
+        min-height: 14px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        flex: 0 0 14px;
+        accent-color: #027C75 !important;
+        vertical-align: middle;
+    }
+    #usrMap_modal #usrMap_tree .smc-check-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        line-height: 22px;
+    }
+    #usrMap_modal #usrMap_tree .smc-parent-node > td {
+        font-weight: 700 !important;
+    }
+</style>
+<div class="modal fade" id="usrMap_modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-4by3 modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header">
+                <h5 class="modal-title">User mapping</h5>
+            </div>
+            <div class="modal-body">
+                <div class="sticky-header bg-white p-2 shadow-sm z-3">
+                    <div class="pb-2">
+                        <button type="button" class="mui-button mui-button-search" id="usrMap_btnOk">OK</button>
+                        <button type="button" class="mui-button mui-button-search" id="usrMap_btnSave">Save</button>
+                        <button type="button" class="mui-button button-report-excel" id="usrMap_btnExcel">Excel</button>
+                        <button type="button" class="mui-button mui-button-new" id="usrMap_btnClose">Close</button>
+                    </div>
+                    <div class="rights-type-row pt-1">
+                        <span class="fw-bold text-nowrap">Type rights</span>
+                        <label for="usrMap_fn">
+                            <input type="radio" name="usrMap_rightsType" id="usrMap_fn" value="0" checked>
+                            Functions rights
+                        </label>
+                        <label for="usrMap_data">
+                            <input type="radio" name="usrMap_rightsType" id="usrMap_data" value="1">
+                            Data rights
+                        </label>
+                    </div>
+                </div>
+                <div class="usrMap-body-row">
+                    <div class="usrMap-left">
+                        <div id="usrMap_grid" class="gridContainer"></div>
+                    </div>
+                    <div class="usrMap-right">
+                        <div id="usrMap_tree" class="gridContainer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function (window, $) {
+    function rowId(row) {
+        if (!row) return 0;
+        const v = row.id != null ? row.id : row.ID;
+        return parseInt(v, 10) || 0;
+    }
+
+    var usrMap_Module = {
+        selectedUserId: 0,
+        catalog: { "0": null, "1": null },
+        rightsTree: null,
+        grantReq: 0,
+        init: function () {
+            const self = this;
+            $("#usrMap_fn").prop("checked", true);
+            $("#usrMap_data").prop("checked", false);
+            if (!self.rightsTree)
+                self.rightsTree = window.SmcRightsTree.bind($("#usrMap_tree"), { caption: "List of functions" });
+            self.bindEvents();
+            self.preloadCatalog();
+            self.loadUsers();
+            if (window.applyPopupRights) {
+                window.applyPopupRights("usr_UserRight", { save: "#usrMap_btnSave", ok: "#usrMap_btnOk" });
+            }
+        },
+        bindEvents: function () {
+            const self = this;
+            $(document).off("click.usrMap", "#usrMap_btnClose").on("click.usrMap", "#usrMap_btnClose", function () {
+                $("#usrMap_modal").modal("hide");
+            });
+            $(document).off("click.usrMap", "#usrMap_btnSave").on("click.usrMap", "#usrMap_btnSave", function () {
+                self.save(false);
+            });
+            $(document).off("click.usrMap", "#usrMap_btnOk").on("click.usrMap", "#usrMap_btnOk", function () {
+                self.save(true);
+            });
+            $(document).off("click.usrMap", "#usrMap_btnExcel").on("click.usrMap", "#usrMap_btnExcel", function () {
+                self.exportExcel();
+            });
+            $(document).off("change.usrMap", "input[name=usrMap_rightsType]").on("change.usrMap", "input[name=usrMap_rightsType]", function () {
+                self.loadTree();
+            });
+            $("#usrMap_modal").off("shown.bs.modal.usrMap").on("shown.bs.modal.usrMap", function () {
+                try {
+                    const g = $("#usrMap_grid").dxDataGrid("instance");
+                    if (g) g.updateDimensions();
+                } catch (ex) { }
+                if (self.rightsTree) self.rightsTree.updateDimensions();
+            });
+            $("#usrMap_modal").off("hidden.bs.modal.usrMap").on("hidden.bs.modal.usrMap", function () {
+                $(document).off(".usrMap");
+            });
+        },
+        loadUsers: function () {
+            const self = this;
+            $.get("/UserMapping/MappingUsers", function (data) {
+                if (data && data.error) {
+                    showToast("Error", data.error, false);
+                    return;
+                }
+                $("#usrMap_grid").dxDataGrid({
+                    dataSource: data || [],
+                    keyExpr: "id",
+                    height: "100%",
+                    showBorders: true,
+                    showRowLines: true,
+                    showColumnLines: true,
+                    hoverStateEnabled: true,
+                    allowColumnResizing: true,
+                    columnAutoWidth: true,
+                    selection: { mode: "single" },
+                    filterRow: { visible: true },
+                    headerFilter: { visible: true },
+                    paging: { enabled: false },
+                    scrolling: { mode: "standard" },
+                    columns: [
+                        { dataField: "loginName", caption: "Login Name", width: 120 },
+                        { dataField: "fullName", caption: "User Name" },
+                        { dataField: "groupName", caption: "User Group", width: 130 },
+                        { dataField: "departmentName", caption: "Department", width: 140 }
+                    ],
+                    onSelectionChanged: function (e) {
+                        const id = rowId((e.selectedRowsData || [])[0]);
+                        if (!id) return;
+                        self.selectedUserId = id;
+                        self.loadTree();
+                    }
+                });
+            });
+        },
+        preloadCatalog: function () {
+            const self = this;
+            ["0", "1"].forEach(function (isData) {
+                if (self.catalog[isData]) return;
+                $.get("/UserMapping/Catalog", { isDataRight: isData }, function (items) {
+                    if (items && items.error) return;
+                    self.catalog[isData] = items || [];
+                    if (isData === ($('input[name="usrMap_rightsType"]:checked').val() || "0") && self.rightsTree)
+                        self.rightsTree.ensure(self.catalog[isData], isData);
+                });
+            });
+        },
+        loadTree: function () {
+            const self = this;
+            if (!self.selectedUserId) {
+                if (self.rightsTree) self.rightsTree.applyGranted([]);
+                return;
+            }
+            const isData = $('input[name="usrMap_rightsType"]:checked').val() || "0";
+            const req = ++self.grantReq;
+            const ownerId = self.selectedUserId;
+            const paint = function (catalog) {
+                if (req !== self.grantReq) return;
+                self.rightsTree.ensure(catalog, isData);
+                $.get("/UserMapping/GrantedIds", { ownerId: ownerId, isDataRight: isData, isUser: 1 }, function (ids) {
+                    if (req !== self.grantReq) return;
+                    if (ids && ids.error) {
+                        showToast("Error", ids.error, false);
+                        return;
+                    }
+                    self.rightsTree.applyGranted(ids || []);
+                });
+            };
+            if (self.catalog[isData]) {
+                paint(self.catalog[isData]);
+                return;
+            }
+            $.get("/UserMapping/Catalog", { isDataRight: isData }, function (items) {
+                if (items && items.error) {
+                    showToast("Error", items.error, false);
+                    return;
+                }
+                self.catalog[isData] = items || [];
+                paint(self.catalog[isData]);
+            });
+        },
+        save: function (closeAfter) {
+            const self = this;
+            try {
+                const grid = $("#usrMap_grid").dxDataGrid("instance");
+                const id = rowId((grid.getSelectedRowsData() || [])[0]);
+                if (id) self.selectedUserId = id;
+            } catch (ex) { }
+            if (!self.selectedUserId) {
+                showToast("Warning", "Select a user.", false);
+                return;
+            }
+            const isData = $('input[name="usrMap_rightsType"]:checked').val();
+            if (!self.rightsTree || !self.rightsTree.isReady()) {
+                showToast("Warning", "Rights tree is still loading.", false);
+                return;
+            }
+            const ids = self.rightsTree.collect();
+            if (ids == null) {
+                showToast("Warning", "Rights tree is still loading.", false);
+                return;
+            }
+            $.post("/UserMapping/SaveUserRights", {
+                userId: self.selectedUserId,
+                isDataRight: isData,
+                ids: ids
+            }, function (res) {
+                if (res.success) {
+                    showToast("Success", res.message, true);
+                    if (closeAfter) $("#usrMap_modal").modal("hide");
+                } else {
+                    showToast("Warning", res.message || "Save failed.", false);
+                }
+            }).fail(function () {
+                showToast("Error", "Save failed.", false);
+            });
+        },
+        exportExcel: function () {
+            const grid = $("#usrMap_grid").dxDataGrid("instance");
+            if (!grid || typeof ExcelJS === "undefined") return;
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Users");
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet
+            }).then(function () {
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "UserRights.xlsx");
+                });
+            });
+        }
+    };
+
+    window.openModalUserMapping = function () {
+        $("#usrMap_modal").modal("show");
+        usrMap_Module.init();
+    };
+})(window, jQuery);
+</script>

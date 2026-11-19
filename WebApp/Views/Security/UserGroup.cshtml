@@ -4,12 +4,12 @@
     var selectedReport = @ViewBag.ReportHeader;
 }
 
-<div class="modal fade" id="usGr_modalMain" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="usGr_modalMain" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg-4by3 modal-dialog-centered ">
         <div class="modal-content">
 
             <div class="modal-header">
-                <h5 class="modal-title" id="usGr_modalTitle">User Group</h5>
+                <h5 class="modal-title" id="usGr_modalTitle">User of group</h5>
             </div>
 
             <div class="modal-body">
@@ -90,9 +90,9 @@
 
                 <!-- LOADING -->
                 <div id="usGr_loadingSpinner"
-                    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
-                    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
-                    height: 100%;display: flex;align-items: center;justify-content: center;">
+                    style="display:none;position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+                    z-index: 999;background: rgba(255, 255, 255, 0.35); backdrop-filter: blur(1px);width: 100%;
+                    height: 100%;align-items: center;justify-content: center;">
                     <div class="spinner-border text-primary"></div>
                 </div>
 
@@ -102,12 +102,12 @@
 </div>
 
 <!-- UPSERT MODAL (XL per requirement) -->
-<div class="modal fade" id="usGr_modalUpsert" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="usGr_modalUpsert" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
 
             <div class="modal-header">
-                <h6 class="modal-title" id="usGr_upsertTitle">Rate Class</h6>
+                <h6 class="modal-title" id="usGr_upsertTitle">User of group</h6>
             </div>
 
             <div class="modal-body mb-2">
@@ -221,73 +221,133 @@
             btnSave: "#usGr_btnSave"
         };
 
+        function initModal(el, extra) {
+            if (!el) return null;
+            const opts = Object.assign({ backdrop: "static", keyboard: false }, extra || {});
+            return bootstrap.Modal.getOrCreateInstance(el, opts);
+        }
+
+        function startMain() {
+            bindEvents();
+            reloadGrid();
+            if (window.applyPopupRights) {
+                window.applyPopupRights("Sec_UserGroup_View", {
+                    new: "#usGr_btnNew",
+                    edit: "#usGr_btnEdit",
+                    delete: "#usGr_btnDelete",
+                    save: "#usGr_btnSave"
+                });
+            }
+        }
+
         function init() {
-            mainModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modalMain), { backdrop: "static" });
-            upsertModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modalUpsert), { backdrop: "static" });
+            mainModal = initModal(document.querySelector(sel.modalMain));
+            upsertModal = initModal(document.querySelector(sel.modalUpsert), { backdrop: true });
 
-            $(sel.modalMain).off("shown.bs.modal.rtClass").on("shown.bs.modal.rtClass", function () {
-                bindEvents();
-                reloadGrid();
-            });
+            $(sel.modalMain).off("shown.bs.modal.usGr").on("shown.bs.modal.usGr", startMain);
 
-            $(sel.modalMain).off("hidden.bs.modal.rtClass").on("hidden.bs.modal.rtClass", function () {
+            $(sel.modalMain).off("hidden.bs.modal.usGr").on("hidden.bs.modal.usGr", function () {
+                if ($(sel.modalUpsert).hasClass("show") && upsertModal) upsertModal.hide();
                 cleanup();
             });
 
-            $(sel.modalUpsert).off("hidden.bs.modal.rtClass").on("hidden.bs.modal.rtClass", function () {
+            $(sel.modalUpsert).off("show.bs.modal.usGr").on("show.bs.modal.usGr", function () {
+                $(sel.modalMain).find(".modal-content").addClass("modal-blur");
+                this.style.zIndex = "1065";
+            });
+
+            $(sel.modalUpsert).off("shown.bs.modal.usGr").on("shown.bs.modal.usGr", function () {
+                const backs = document.querySelectorAll(".modal-backdrop");
+                if (backs.length) backs[backs.length - 1].style.zIndex = "1060";
+            });
+
+            $(sel.modalUpsert).off("hidden.bs.modal.usGr").on("hidden.bs.modal.usGr", function () {
+                $(sel.modalMain).find(".modal-content").removeClass("modal-blur");
                 clearForm();
                 if (typeof window.applyValidationErrors === "function") applyValidationErrors([], sel.form);
+                if ($(sel.modalMain).hasClass("show")) $("body").addClass("modal-open");
             });
         }
 
         function open() {
-            mainModal.show();
+            init();
+            const el = document.querySelector(sel.modalMain);
+            if (el && el.classList.contains("show")) {
+                startMain();
+                return;
+            }
+            if (mainModal) mainModal.show();
         }
 
         function bindEvents() {
-            $(document).off("click.rtClass", sel.btnView).on("click.rtClass", sel.btnView, function () {
+            $(document).off("click.usGr", sel.btnView).on("click.usGr", sel.btnView, function () {
                 reloadGrid();
             });
 
-            $(document).off("change.rtClass", sel.chkShowInactive).on("change.rtClass", sel.chkShowInactive, function () {
+            $(document).off("change.usGr", sel.chkShowInactive).on("change.usGr", sel.chkShowInactive, function () {
                 reloadGrid();
             });
 
-            // Optional: auto-search on enter
-            $(document).off("keydown.rtClass", sel.codeInput).on("keydown.rtClass", sel.codeInput, function (e) {
+            $(document).off("keydown.usGr", sel.codeInput).on("keydown.usGr", sel.codeInput, function (e) {
                 if (e.key === "Enter") reloadGrid();
             });
-            $(document).off("keydown.rtClass", sel.nameInput).on("keydown.rtClass", sel.nameInput, function (e) {
+            $(document).off("keydown.usGr", sel.nameInput).on("keydown.usGr", sel.nameInput, function (e) {
                 if (e.key === "Enter") reloadGrid();
             });
 
-            $(document).off("click.rtClass", sel.btnNew).on("click.rtClass", sel.btnNew, function () {
+            $(document).off("click.usGr", sel.btnNew).on("click.usGr", sel.btnNew, function () {
                 openNew();
             });
 
-            $(document).off("click.rtClass", sel.btnEdit).on("click.rtClass", sel.btnEdit, function () {
+            $(document).off("click.usGr", sel.btnEdit).on("click.usGr", sel.btnEdit, function () {
                 openEdit();
             });
 
-            $(document).off("click.rtClass", sel.btnDelete).on("click.rtClass", sel.btnDelete, function () {
+            $(document).off("click.usGr", sel.btnDelete).on("click.usGr", sel.btnDelete, function () {
                 doDelete();
             });
 
-            $(document).off("click.rtClass", sel.btnExportExcel).on("click.rtClass", sel.btnExportExcel, function () {
+            $(document).off("click.usGr", sel.btnExportExcel).on("click.usGr", sel.btnExportExcel, function () {
                 exportExcel();
             });
 
-            $(document).off("click.rtClass", sel.btnClose).on("click.rtClass", sel.btnClose, function () {
-                mainModal.hide();
+            $(document).off("click.usGr", sel.btnClose).on("click.usGr", sel.btnClose, function () {
+                if (mainModal) mainModal.hide();
             });
 
-            $(document).off("click.rtClass", sel.btnSave).on("click.rtClass", sel.btnSave, function () {
+            $(document).off("click.usGr", sel.btnSave).on("click.usGr", sel.btnSave, function () {
                 save();
+            });
+
+            $(document).off("keydown.usGrEsc").on("keydown.usGrEsc", function (e) {
+                if (e.key !== "Escape" && e.keyCode !== 27) return;
+                if ($(".cc-overlay").length || $(".swal2-container:visible").length) return;
+                if (!$(sel.modalMain).hasClass("show") && !$(sel.modalUpsert).hasClass("show")) return;
+
+                let top = null;
+                let topZ = -1;
+                document.querySelectorAll(".modal.show").forEach(function (el) {
+                    const z = parseInt(window.getComputedStyle(el).zIndex, 10) || 0;
+                    if (z >= topZ) {
+                        topZ = z;
+                        top = el;
+                    }
+                });
+                if (top && top.id !== "usGr_modalUpsert" && top.id !== "usGr_modalMain") return;
+
+                e.preventDefault();
+                e.stopImmediatePropagation();
+
+                if ($(sel.modalUpsert).hasClass("show")) {
+                    upsertModal.hide();
+                    return;
+                }
+                mainModal.hide();
             });
         }
 
         function showLoading(on) {
-            if (on) $(sel.loading).show(); else $(sel.loading).hide();
+            $(sel.loading).css("display", on ? "flex" : "none");
         }
 
         function getFilterPayload() {
@@ -302,7 +362,7 @@
             showLoading(true);
 
             $.ajax({
-                url: "/Security/UserGroupData",
+                url: "/UserGroup/UserGroupData",
                 type: "GET",
                 data: getFilterPayload(),
                 headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() },
@@ -399,7 +459,7 @@
         function openNew() {
             clearForm();
             if (typeof window.applyValidationErrors === "function") applyValidationErrors([], sel.form);
-            $(sel.upsertTitle).text("New Rate Class");
+            $(sel.upsertTitle).text("New User of group");
             upsertModal.show();
         }
 
@@ -418,7 +478,7 @@
             $(sel.description).val(selectedRow.Description);
             $(sel.inactive).prop("checked", selectedRow.Inactive == 1);
 
-            $(sel.upsertTitle).text("Edit Rate Class");
+            $(sel.upsertTitle).text("Edit User of group");
             upsertModal.show();
         }
 
@@ -426,7 +486,7 @@
             showLoading(true);
 
             $.ajax({
-                url: "/Security/UserGroupSave",
+                url: "/UserGroup/UserGroupSave",
                 type: "POST",
                 data: {
                     id: $(sel.id).val(),
@@ -470,7 +530,7 @@
             showLoading(true);
 
             $.ajax({
-                url: "/Security/UserGroupDelete",
+                url: "/UserGroup/UserGroupDelete",
                 type: "POST",
                 data: { id: selectedRow.ID },
                 headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() },
@@ -516,7 +576,7 @@
             worksheet.addRow([]);
             worksheet.addRow([]);
 
-            const reportRow = worksheet.addRow(['Rate Class']);
+            const reportRow = worksheet.addRow(['User of group']);
             worksheet.mergeCells('A5:D5');
             reportRow.font = { bold: true, size: 14 };
             reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -535,13 +595,14 @@
                 worksheet.getCell(`A${lastRow}`).font = { italic: true };
 
                 workbook.xlsx.writeBuffer().then(function (buffer) {
-                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "RateClass.xlsx");
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "UserGroup.xlsx");
                 });
             });
         }
 
         function cleanup() {
-            $(document).off(".rtClass");
+            $(document).off(".usGr");
+            $(document).off(".usGrEsc");
             destroyGrid();
         }
 
@@ -554,9 +615,5 @@
         usGr_Module.open();
     };
 
-    $(document).ready(function () {
-        usGr_Module.init();
-        // Auto-open if needed:
-        // window.openModalRtClass();
-    });
+    usGr_Module.init();
 </script>

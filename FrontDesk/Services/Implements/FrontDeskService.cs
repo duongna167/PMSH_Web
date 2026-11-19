@@ -234,5 +234,25 @@ namespace FrontDesk.Services.Implements
             return (roomModel.RoomNo, isVacant ? "vacant" : "occupied");
         }
 
+        public DataTable RoomAssignmentData(DateTime arrival, string groupProfile, string vipcode, string name, string reservationTypeCode, string crsno, string roomTypeCode, string roomNo, string confirmationNo)
+        {
+            SqlParameter[] param = new SqlParameter[]
+            {
+               new SqlParameter("@ArrivalDate", arrival),
+               new SqlParameter("@Group", groupProfile),
+                new SqlParameter("@VIP", vipcode),
+               new SqlParameter("@Name", name),
+                new SqlParameter("@ReservationType", reservationTypeCode),
+               new SqlParameter("@CRSNo", crsno),
+                  new SqlParameter("@RoomType", roomTypeCode),
+                new SqlParameter("@RoomNo", roomNo),
+               new SqlParameter("@ConfirmationNo", confirmationNo),
+                     new SqlParameter("@BusinessBlock", ""),
+               new SqlParameter("@Zone", "")
+            };
+
+            return DataTableHelper.getTableData("spReservationAssignRoom", param);
+        }
+
     }
 }

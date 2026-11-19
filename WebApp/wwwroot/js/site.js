@@ -682,3 +682,73 @@ UI.toggleButtons = function (ids, disabled) {
         el.style.cursor = disabled ? 'not-allowed' : 'pointer';
     });
 };
+
+window.getFunctionPermissionTokens = function () {
+    const data = JSON.parse(localStorage.getItem("PermissionNames") || "[]") || [];
+    const tokens = [];
+    data.forEach(function (x) {
+        if (x && x.code && String(x.code).trim())
+            tokens.push(String(x.code).trim().toLowerCase());
+    });
+    return tokens;
+};
+
+window.hasFunctionRight = function (code) {
+    if (!code) return false;
+    const key = String(code).trim().toLowerCase();
+    return window.getFunctionPermissionTokens().includes(key);
+};
+
+window.showAccessDenied = function () {
+    if (window.Swal) {
+        Swal.fire({
+            icon: "error",
+            title: "Access Denied",
+            text: "You do not have permission to access this function",
+            position: "center",
+            width: 320,
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true
+        });
+        return;
+    }
+    alert("Access Denied");
+};
+
+$(document).ajaxError(function (_event, jqxhr) {
+    if (!jqxhr) return;
+    if (jqxhr.status === 401) {
+        window.location.href = "/User/Index";
+        return;
+    }
+    if (jqxhr.status === 403 && typeof window.showAccessDenied === "function")
+        window.showAccessDenied();
+});
+
+window.hasDataRight = function (code) {
+    if (!code) return false;
+    const data = JSON.parse(localStorage.getItem("PermissionDataCodes") || "[]") || [];
+    const key = String(code).trim().toLowerCase();
+    return data.some(function (x) {
+        return [x.code, x.name].some(function (v) {
+            return v && String(v).trim().toLowerCase() === key;
+        });
+    });
+};
+
+window.applyPopupRights = function (code, selectors) {
+    if (!selectors) return;
+    const allowed = window.hasFunctionRight(code);
+    Object.keys(selectors).forEach(function (key) {
+        const sel = selectors[key];
+        if (!sel) return;
+        $(sel).each(function () {
+            if (allowed) {
+                $(this).show().prop("disabled", false).css({ pointerEvents: "", opacity: "", color: "" });
+            } else {
+                $(this).hide();
+            }
+        });
+    });
+};

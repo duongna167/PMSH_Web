@@ -1,4 +1,5 @@
-﻿using BaseBusiness.BO;
+using BaseBusiness.Auth;
+using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using DevExpress.Charts.Native;
@@ -49,6 +50,7 @@ namespace HouseKeeping.Controllers
             _iHouseKeepingService = iHouseKeepingService;
         }
         #region RoomControlPanel
+        [RequireFunction("rmg_RoomControlPanel")]
         public IActionResult RoomControlPanel()
         {
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
@@ -112,6 +114,7 @@ namespace HouseKeeping.Controllers
         #endregion
 
         #region RoomFacilityForecast
+        [RequireFunction("rmg_RoomFacilityForecast")]
         public IActionResult RoomFacilityForecast()
         {
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
@@ -172,6 +175,7 @@ namespace HouseKeeping.Controllers
         #endregion
 
         #region RoomAvailability
+        [RequireFunction("rmg_RoomAvailibility")]
         public IActionResult RoomAvailability()
         {
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
@@ -683,6 +687,7 @@ namespace HouseKeeping.Controllers
         }
 
         #region RoomStatus
+        [RequireFunction("rmg_RoomStatusGirdView")]
         public IActionResult RoomStatus()
         {
             List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
@@ -893,6 +898,7 @@ namespace HouseKeeping.Controllers
         #endregion
 
         #region HouseStatus
+        [RequireFunction("rmg_HouseStatus")]
         public IActionResult HouseStatus()
         {
             List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
@@ -1568,6 +1574,7 @@ namespace HouseKeeping.Controllers
         #endregion  
 
         #region RoomPlan
+        [RequireFunction("rmg_RoomPlan")]
         public IActionResult RoomPlan()
         {
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
@@ -1671,6 +1678,7 @@ namespace HouseKeeping.Controllers
         #endregion
 
         #region FloorPlan
+        [RequireFunction("rmg_FloorPlan")]
         public IActionResult FloorPlan()
         {
 
@@ -1786,6 +1794,7 @@ namespace HouseKeeping.Controllers
         #endregion
 
         #region AttendantPoint
+        [RequireFunction("hkp_AttendantPoint")]
         public IActionResult AttendantPoint()
         {
 
@@ -1891,6 +1900,7 @@ namespace HouseKeeping.Controllers
         #endregion
 
         #region TaskSheetStatus
+        [RequireFunction("hkp_TaskSheetStatus")]
         public IActionResult TaskSheetStatus()
         {
 
@@ -2082,6 +2092,7 @@ namespace HouseKeeping.Controllers
         #endregion
 
         #region RoomAttendentDailyWorksheet
+        [RequireFunction("hkp_RoomAttendentDailyWorksheet")]
         public IActionResult RoomAttendentDailyWorksheet(bool isPopup = false, string tasksheetnew = null)
         {
             List<hkpAttendantModel> listatt = PropertyUtils.ConvertToList<hkpAttendantModel>(hkpAttendantBO.Instance.FindAll());
@@ -2309,6 +2320,7 @@ namespace HouseKeeping.Controllers
         }
 
         #region  TaskAssignment
+        [RequireFunction("hkp_TaskAssignment")]
         public IActionResult TaskAssignment()
         {
 
@@ -2902,6 +2914,7 @@ namespace HouseKeeping.Controllers
         #endregion
 
         #region GuestServiceStatus
+        [RequireFunction("hkp_GuestServiceStatus")]
         public IActionResult GuestServiceStatus()
         {
             List<RoomModel> listroom = PropertyUtils.ConvertToList<RoomModel>(RoomBO.Instance.FindAll());
@@ -4603,7 +4616,7 @@ namespace HouseKeeping.Controllers
             ViewBag.ReservationTypeList = listrtype;
             List<VIPModel> listvip = PropertyUtils.ConvertToList<VIPModel>(VIPBO.Instance.FindAll());
             ViewBag.VIPList = listvip;
-            return PartialView();
+            return PartialView("~/Views/FrontDesk/RoomAssignment.cshtml");
         }
         [HttpGet]
         public IActionResult RoomAssignmentData(DateTime arrival, string groupProfile, string vipcode, string name, string reservationTypeCode, string crsno, string roomTypeCode, string roomNo, string confirmationNo)

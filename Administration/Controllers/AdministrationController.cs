@@ -1,4 +1,5 @@
-﻿using Administration.Helpers;
+using BaseBusiness.Auth;
+using Administration.Helpers;
 using Administration.Services.Interfaces;
 using BaseBusiness.BO;
 using BaseBusiness.Model;
@@ -394,6 +395,7 @@ namespace Administration.Controllers
         //    }
         //}
 
+        [RequireFunction("admin_Currency")]
         public IActionResult Currency()
         {
             return PartialView();
@@ -866,6 +868,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ConfigStatusColor")]
         public IActionResult ConfigStatusColor()
         {
             return PartialView();
@@ -1055,6 +1058,7 @@ namespace Administration.Controllers
         #endregion
 
         #region PersonInCharge
+        [RequireFunction("admin_PersonInCharge")]
         public ActionResult PersonInCharge()
         {
 
@@ -1243,6 +1247,7 @@ namespace Administration.Controllers
         #endregion 
 
         #region PersonInChargeGroup
+        [RequireFunction("admin_PersonInChargeGroup")]
         public ActionResult PersonInChargeGroup()
         {
             return PartialView();
@@ -1352,6 +1357,7 @@ namespace Administration.Controllers
         #endregion
 
         #region PersonInChargeZone
+        [RequireFunction("admin_PersonInChargeZone")]
         public ActionResult PersonInChargeZone()
         {
             return PartialView();
@@ -1461,6 +1467,7 @@ namespace Administration.Controllers
         #endregion
 
         #region ApprovedBy
+        [RequireFunction("admin_ApproveList")]
         public ActionResult ApproveBy()
         {
             return PartialView();
@@ -1567,6 +1574,7 @@ namespace Administration.Controllers
         #endregion
 
         #region Deposit/Cancellation Rules Search 
+        [RequireFunction("admin_DCR_DepositRule")]
         public IActionResult DepositRule()
         {
             List<UsersModel> listUser = PropertyUtils.ConvertToList<UsersModel>(UsersBO.Instance.FindAll());
@@ -1690,6 +1698,7 @@ namespace Administration.Controllers
             return Json(new { success = true });
         }
 
+        [RequireFunction("admin_DCR_CancellationRule")]
         public IActionResult CancellationRule()
         {
             List<UsersModel> listUser = PropertyUtils.ConvertToList<UsersModel>(UsersBO.Instance.FindAll());
@@ -1850,6 +1859,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("frm_City_View")]
         public IActionResult City()
         {
             List<CountryModel> listctry = PropertyUtils.ConvertToList<CountryModel>(CountryBO.Instance.FindAll());
@@ -1960,6 +1970,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("frm_Country_View")]
         public IActionResult Country()
         {
             return PartialView("ItemCategory/Country");
@@ -2066,6 +2077,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("frm_Language_View")]
         public IActionResult Language()
         {
             return PartialView("ItemCategory/Language");
@@ -2174,6 +2186,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ICP_Nationality")]
         public IActionResult Nationality()
         {
             return PartialView("ItemCategory/Nationality");
@@ -2280,6 +2293,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("frm_Title_View")]
         public IActionResult Title()
         {
             return PartialView("ItemCategory/Title");
@@ -2386,6 +2400,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("frm_Territory_View")]
         public IActionResult Territory()
         {
             return PartialView("ItemCategory/Territory");
@@ -2492,6 +2507,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ICP_State")]
         public IActionResult State()
         {
             //List<CountryModel> listctry = PropertyUtils.ConvertToList<CountryModel>(CountryBO.Instance.FindAll());
@@ -2601,6 +2617,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ICP_VIP")]
         public IActionResult VIP()
         {
             return PartialView("ItemCategory/VIP");
@@ -2730,6 +2747,7 @@ namespace Administration.Controllers
                 ["marketTypeID"] = data.MarketTypeID
             });
         }
+        [RequireFunction("admin_ICR_Market")]
         public IActionResult Market()
         {
             List<MarketTypeModel> listmktype = PropertyUtils.ConvertToList<MarketTypeModel>(MarketTypeBO.Instance.FindAll());
@@ -2839,6 +2857,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("frm_MarketType_View")]
         public IActionResult MarketType()
         {
             return PartialView("ItemCategory/MarketType");
@@ -2946,6 +2965,7 @@ namespace Administration.Controllers
             }
         }
 
+        [RequireFunction("admin_ICR_PickupAndDrop")]
         public IActionResult PickupDropPlace()
         {
             return PartialView("ItemCategory/PickupDropPlace");
@@ -3052,6 +3072,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("frm_TransportType_View")]
         public IActionResult TransportType()
         {
             return PartialView("ItemCategory/TransportType");
@@ -3158,6 +3179,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ICR_ReservationType")]
         public IActionResult ReservationType()
         {
             return PartialView("ItemCategory/ReservationType");
@@ -3261,6 +3283,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ICR_Reason")]
         public IActionResult Reason()
         {
             return PartialView("ItemCategory/Reason");
@@ -3367,6 +3390,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ICR_Origin")]
         public IActionResult Origin()
         {
             return PartialView("ItemCategory/Origin");
@@ -3474,6 +3498,7 @@ namespace Administration.Controllers
             }
         }
 
+        [RequireFunction("frm_Source_View")]
         public IActionResult Source()
         {
             return PartialView("ItemCategory/Source");
@@ -3582,6 +3607,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ICO_Alerts")]
         public IActionResult AlertsSetup()
         {
             return PartialView("ItemCategory/AlertsSetup");
@@ -3689,6 +3715,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ICO_Comment")]
         public IActionResult Comment()
         {
             List<CommentTypeModel> listctry = PropertyUtils.ConvertToList<CommentTypeModel>(CommentTypeBO.Instance.FindAll());
@@ -3795,6 +3822,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ICO_CommentType")]
         public IActionResult CommentType()
         {
             return PartialView("ItemCategory/CommentType");
@@ -3902,6 +3930,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ICO_Season")]
         public IActionResult Season()
         {
             return PartialView("ItemCategory/Season");
@@ -4008,6 +4037,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ICO_Zone")]
         public IActionResult Zone()
         {
             return PartialView("ItemCategory/Zone");
@@ -4115,6 +4145,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ICO_Department")]
         public IActionResult Department()
         {
             return PartialView("ItemCategory/Department");
@@ -4195,6 +4226,7 @@ namespace Administration.Controllers
 
         #region ItemCategory/Occupancy
 
+        [RequireFunction("admin_ICC_OccupancyConfig")]
         public IActionResult Occupancy()
         {
             return PartialView("ItemCategory/Occupancy");
@@ -4294,6 +4326,7 @@ namespace Administration.Controllers
 
         #region ItemCategory/ConfirmationConfig
 
+        [RequireFunction("admin_ICC_ConfirmationConfig")]
         public IActionResult ConfirmationConfig()
         {
             return PartialView("ItemCategory/ConfirmationConfig");
@@ -4374,6 +4407,7 @@ namespace Administration.Controllers
 
         #region ItemCategory/ConfirmationTemp
 
+        [RequireFunction("admin_ICC_ConfirmationTemp")]
         public IActionResult ConfirmationTemp()
         {
             List<RateCodeModel> listRateCode = PropertyUtils.ConvertToList<RateCodeModel>(RateCodeBO.Instance.FindAll());
@@ -4608,6 +4642,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ICP_PropertyType")]
         public IActionResult PropertyType()
         {
             return PartialView("ItemCategory/PropertyType");
@@ -4712,6 +4747,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ICP_Property")]
         public IActionResult Property()
         {
             List<PropertyTypeModel> listPropertyType = PropertyUtils.ConvertToList<PropertyTypeModel>(PropertyTypeBO.Instance.FindAll());
@@ -4812,6 +4848,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_ICP_PropertyPermission")]
         public IActionResult PropertyPermission()
         {
             List<PropertyModel> listProperty = PropertyUtils.ConvertToList<PropertyModel>(PropertyBO.Instance.FindAll());
@@ -4972,6 +5009,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("frm_PackageForecastGroup_View")]
         public IActionResult PackageForecastGroup()
         {
             return PartialView("ItemCategory/PackageForecastGroup");
@@ -5078,6 +5116,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("frm_PreferenceGroup_View")]
         public IActionResult PreferenceGroup()
         {
             return PartialView("ItemCategory/PreferenceGroup");
@@ -5573,6 +5612,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("frm_Priority_View")]
         public IActionResult Priority()
         {
             return PartialView("ItemCategory/Priority");
@@ -5679,6 +5719,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("frm_Promotion_View")]
         public IActionResult Promotion()
         {
             return PartialView("ItemCategory/Promotion");

@@ -73,6 +73,7 @@ namespace Administration.Controllers
         {
             try
             {
+                PmsMailConfig.EnsureVietAnhSmtpConfig();
                 string senderName = PropertyUtils.ConvertToList<ConfigSystemModel>(ConfigSystemBO.Instance.FindByAttribute("KeyName", "MAIL_FROMNAME")).FirstOrDefault().KeyValue;
                 string host = PropertyUtils.ConvertToList<ConfigSystemModel>(ConfigSystemBO.Instance.FindByAttribute("KeyName", "MAIL_SERVERNAME")).FirstOrDefault().KeyValue;
                 string port = PropertyUtils.ConvertToList<ConfigSystemModel>(ConfigSystemBO.Instance.FindByAttribute("KeyName", "MAIL_SERVERPORT")).FirstOrDefault().KeyValue;
@@ -318,6 +319,7 @@ namespace Administration.Controllers
         {
             try
             {
+                PmsMailConfig.EnsureResetPasswordTemplate();
                 var senderName = PropertyUtils.ConvertToList<ContactEmailTemplateModel>(ContactEmailTemplateBO.Instance.FindAll()).ToList();
 
 

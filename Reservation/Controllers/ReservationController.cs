@@ -1,3 +1,4 @@
+using BaseBusiness.Auth;
 using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
@@ -123,6 +124,7 @@ namespace Reservation.Controllers
             return $"{h:D2}:{m:D2}";
         }
 
+        [RequireFunction("resv_ReservationNew")]
         public IActionResult NewReservation(string key)
         {
             int? id = null;
@@ -227,6 +229,7 @@ namespace Reservation.Controllers
             }
         }
 
+        [RequireFunction("resv_ReservationSearch")]
         public IActionResult SearchReservation()
         {
 
@@ -264,6 +267,7 @@ namespace Reservation.Controllers
         }
 
 
+        [RequireFunction("resv_ReservationNew")]
         public IActionResult NewGroupReservation()
         {
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
@@ -275,6 +279,7 @@ namespace Reservation.Controllers
 
             return PartialView();
         }
+        [RequireFunction("resv_ReservationNewGroupReservation")]
         public IActionResult SearchGroupReservationModal()
         {
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
@@ -326,6 +331,7 @@ namespace Reservation.Controllers
             ViewBag.cboFloor = ListItemHelper.GetFloorProvider();
             return View();
         }
+        [RequireFunction("resv_ReservationOverbooking")]
         public IActionResult OverBooking()
         {
 

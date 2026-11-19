@@ -1,4 +1,5 @@
-﻿using BaseBusiness.BO;
+using BaseBusiness.Auth;
+using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using DevExpress.DataProcessing.InMemoryDataProcessor;
@@ -70,6 +71,7 @@ namespace Reservation.Controllers
             }
         }
         [HttpGet]
+        [RequireFunction("resv_ReservationAllotmentType")]
         public IActionResult AllotmentType()
         {
             return PartialView("~/Views/Reservation/Allotment/AllotmentType.cshtml");
@@ -197,6 +199,7 @@ namespace Reservation.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("resv_ReservationAllotmentStage")]
         public IActionResult AllotmentStage()
         {
             return PartialView("~/Views/Reservation/Allotment/AllotmentStage.cshtml");
@@ -329,6 +332,7 @@ namespace Reservation.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("resv_ReservationAllotmentSearch")]
         public IActionResult AllotmentSearch()
         {
             List<MarketModel> listMarket = PropertyUtils.ConvertToList<MarketModel>(MarketBO.Instance.FindAll());
@@ -965,6 +969,7 @@ namespace Reservation.Controllers
         #endregion
         #region Allotment Report 
         [HttpGet]
+        [RequireFunction("resv_ReservationAllotmentReport")]
         public IActionResult AllotmentReport()
         {
             List<AllotmentTypeModel> listAllottype =

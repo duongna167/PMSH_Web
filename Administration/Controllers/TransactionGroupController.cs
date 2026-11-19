@@ -1,4 +1,5 @@
-﻿using Administration.Services.Interfaces;
+using BaseBusiness.Auth;
+using Administration.Services.Interfaces;
 using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
@@ -33,6 +34,7 @@ namespace Administration.Controllers
             _iTransactionGroupService = iTransactionGroupService;
         }
 
+        [RequireFunction("admin_Trans_Group")]
         public IActionResult TransGroup()
         {
             return PartialView();

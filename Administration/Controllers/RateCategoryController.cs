@@ -1,3 +1,4 @@
+using BaseBusiness.Auth;
 using System.Collections;
 using System.Data;
 using System.Linq;
@@ -19,6 +20,7 @@ namespace Administration.Controllers
             _svRateCategory = RateCategory;
         }
         [HttpGet("RateCategory")] // Truyeenf DataGrid , script api
+        [RequireFunction("admin_RC_RateCatagory")]
         public IActionResult RateCategory()
         {
             return PartialView("~/Views/Administration/RateCode/RateCategory.cshtml");

@@ -1,3 +1,4 @@
+using BaseBusiness.Auth;
 using System.Data;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,7 @@ namespace Administration.Controllers
         private readonly IRateCodeService _rateCodeSer = rateCodeService;
 
         [HttpGet("")]
+        [RequireFunction("admin_RC_RateCode")]
         public IActionResult RateCode()
         {
             List<RateCodeModel> listRateCode = PropertyUtils.ConvertToList<RateCodeModel>(RateCodeBO.Instance.FindAll());

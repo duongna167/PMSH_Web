@@ -1,3 +1,4 @@
+using BaseBusiness.Auth;
 using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
@@ -13,6 +14,7 @@ namespace Administration.Controllers
         }
 
         [HttpGet("")]
+        [RequireFunction("admin_RoutingCode")]
         public IActionResult RoutingCode()
         {
             List<TransactionsModel> listTransac = PropertyUtils.ConvertToList<TransactionsModel>(TransactionsBO.Instance.FindAll());

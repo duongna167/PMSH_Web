@@ -1,4 +1,5 @@
-﻿using BaseBusiness.BO;
+using BaseBusiness.Auth;
+using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using BaseBusiness.Utils;
@@ -54,10 +55,12 @@ namespace NightAudit.Controllers
             _configuration = configuration;
             _iRoomRateService = iRoomRateService;
         }
+        [RequireFunction("tool_RoomRate")]
         public IActionResult RoomRate()
         {
             return PartialView();
         }
+        [RequireFunction("tool_RunNightAudit")]
         public IActionResult RunNightAudit()
         {
             return View();

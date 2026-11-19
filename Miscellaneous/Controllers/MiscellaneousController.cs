@@ -1,4 +1,5 @@
-﻿using BaseBusiness.BO;
+using BaseBusiness.Auth;
+using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using DevExpress.Charts.Native;
@@ -59,6 +60,7 @@ namespace Miscellaneous.Controllers
 
         #region CardManagement
 
+        [RequireFunction("misc_CardManagement")]
         public IActionResult CardManagement()
         {
             int baudRate = 9600;
@@ -269,6 +271,7 @@ namespace Miscellaneous.Controllers
         }
 
         #region Meal Report
+        [RequireFunction("misc_ReportMeal")]
         public IActionResult MealReport()
         {
             return View();
@@ -544,6 +547,7 @@ namespace Miscellaneous.Controllers
 
             // return PartialView("_ReportViewerPartial", report);
         }
+        [RequireFunction("misc_LoadCardsforGuests")]
         public IActionResult IssuingCardToGuests()
         {
             List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());

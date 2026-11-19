@@ -1,4 +1,5 @@
-﻿using Administration.Services.Implements;
+using BaseBusiness.Auth;
+using Administration.Services.Implements;
 using Administration.Services.Interfaces;
 using BaseBusiness.BO;
 using BaseBusiness.Model;
@@ -33,6 +34,7 @@ namespace Administration.Controllers
             _httpContextAccessor = httpContextAccessor;
             _iTransactionSubGroupService = iTransactionSubGroupService;
         }
+        [RequireFunction("admin_Trans_Subgroup")]
         public IActionResult TransSubGroup()
         {
             return PartialView();

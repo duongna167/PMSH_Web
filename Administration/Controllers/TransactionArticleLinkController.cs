@@ -1,3 +1,4 @@
+using BaseBusiness.Auth;
 using Administration.Services.Interfaces;
 using BaseBusiness.BO;
 using BaseBusiness.Model;
@@ -20,6 +21,7 @@ namespace Administration.Controllers
             _serviceTransactionArticleLink = transactionArticleLink;
         }
         [HttpGet("TransactionArticleLink")]
+        [RequireFunction("admin_Trans_TransactionArticleLink")]
         public IActionResult TransactionArticleLink()
 
         {

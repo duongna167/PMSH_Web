@@ -1,3 +1,4 @@
+using BaseBusiness.Auth;
 using System.Collections;
 using System.Data;
 using System.Linq;
@@ -18,6 +19,7 @@ namespace Administration.Controllers
         private readonly IRateCodeDetailService _detail = detail;
 
         [HttpGet("RateCodeDetail")] // Truyeenf DataGrid , script api
+        [RequireFunction("admin_RC_RateCodeDetail")]
         public IActionResult RateCodeDetail()
         {
             List<RateCodeModel> listRateCode = PropertyUtils.ConvertToList<RateCodeModel>(RateCodeBO.Instance.FindAll());

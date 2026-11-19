@@ -1,9 +1,141 @@
+@using System.Linq
 @{
-    var listsc = ViewBag.ShortcutKeyList;
-    var listfromandfuc = ViewBag.FormAndFunctionGroupList;
+    var listfromandfuc = ViewBag.FormAndFunctionGroupList as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var listfromandfucData = ViewBag.FormAndFunctionDataGroupList as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
 }
 
-<div class="modal fade" id="shortcutModal" tabindex="-1" aria-hidden="true">
+<style>
+    #shortcutModal .fn-filter-row {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 12px 16px;
+        width: auto;
+        max-width: 100%;
+    }
+    #shortcutModal .fn-filter-item {
+        display: inline-flex !important;
+        flex-direction: row !important;
+        align-items: center;
+        gap: 8px;
+        width: auto !important;
+        flex: 0 0 auto;
+    }
+    #shortcutModal .fn-filter-item label {
+        margin: 0;
+        white-space: nowrap;
+        width: auto;
+        text-align: left;
+    }
+    #shortcutModal .fn-filter-item input[type="text"] {
+        width: 160px;
+    }
+    #shortcutModal .fn-filter-item.rights-type-row {
+        gap: 12px;
+    }
+    #shortcutModal .fn-filter-item.rights-type-row > label {
+        display: inline-flex !important;
+        flex-direction: row !important;
+        align-items: center;
+        gap: 6px;
+        width: auto !important;
+    }
+    #shortcutModal #gridContainerAddfu .dx-treelist-headers .dx-header-row > td {
+        background-color: #f5f5f5 !important;
+        color: #000 !important;
+        font-weight: 700 !important;
+        border-bottom: 1px solid #aaaaaa !important;
+        text-align: left !important;
+        padding: 2px 6px !important;
+        font-size: 14px !important;
+        height: 24px !important;
+        line-height: 20px !important;
+    }
+    #shortcutModal #gridContainerAddfu .dx-treelist-headers .dx-treelist-text-content {
+        text-align: left !important;
+        justify-content: flex-start !important;
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        color: #000 !important;
+    }
+    #popupNewGrid .fn-form-row {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    #popupNewGrid .fn-form-row > label,
+    #fnGrp_itemModal .fn-form-row > label {
+        margin: 0;
+        width: 110px;
+        flex: 0 0 110px;
+        text-align: left;
+        white-space: nowrap;
+    }
+    #popupNewGrid .fn-form-row > label {
+        width: auto;
+        flex: 0 0 auto;
+    }
+    #fnGrp_itemModal .fn-form-row > label {
+        width: auto;
+        flex: 0 0 auto;
+    }
+    #fnGrp_itemModal .fn-form-row > .fn-form-ctl {
+        flex: 0 0 200px;
+        width: 200px;
+    }
+    #fnGrp_itemModal .fn-form-row > .fn-form-ctl .form-control,
+    #fnGrp_itemModal .fn-form-row > .fn-form-ctl .form-select,
+    #fnGrp_itemModal .ts-wrapper {
+        width: 100%;
+    }
+    #popupNewGrid .fn-form-row > .fn-form-ctl {
+        flex: 0 0 220px;
+        width: 220px;
+    }
+    #popupNewGrid .fn-form-row > .fn-form-ctl .form-control,
+    #popupNewGrid .fn-form-row > .fn-form-ctl .form-select {
+        width: 100%;
+    }
+    #fnGrp_itemModal .fn-form-row {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 4px;
+        margin-bottom: 8px;
+    }
+    #fnGrp_modal .fn-filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 12px 16px;
+    }
+    #fnGrp_modal .fn-filter-item {
+        display: inline-flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+    }
+    #fnGrp_modal .fn-filter-item label {
+        margin: 0;
+        text-align: left;
+        white-space: nowrap;
+    }
+    #fnGrp_modal .fn-filter-item input[type="text"],
+    #fnGrp_modal .fn-filter-item select {
+        width: 160px;
+    }
+    #fnGrp_modal.modal { z-index: 1060; }
+    #fnGrp_itemModal.modal { z-index: 1070; }
+    #popupNewGrid.modal { z-index: 1065; }
+</style>
+<div class="modal fade" id="shortcutModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-xl modal-4by3 modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content modal-full-height">
             <div class="modal-header">
@@ -12,62 +144,35 @@
             <div class="modal-body">
                 <div class="sticky-header bg-white p-2 shadow-sm z-3">
                     <div class="pb-2">
-                        <button id="btnPrint" class="mui-button mui-button-view">View</button>
-                        <button id="btnExportExcel" class="mui-button button-report-excel" type="button">Excel</button>
+                        <button id="btnPrint" class="mui-button mui-button-view" type="button">Search</button>
+                        <button id="btnGroupFn" class="mui-button mui-button-edit" type="button">Group</button>
                         <button id="btnNewTheKeyboard" class="mui-button mui-button-new" type="button">New</button>
                         <button id="btnEditAppoin" class="mui-button mui-button-edit" type="button">Edit</button>
                         <button id="btnDeleteAppoin" class="mui-button mui-button-delete" type="button">Delete</button>
-                        <button class="mui-button mui-button-new" id="btnClose">Close</button>
+                        <button id="btnExportExcel" class="mui-button button-report-excel" type="button">Excel</button>
+                        <button class="mui-button mui-button-new" id="btnClose" type="button">Close</button>
                     </div>
-                    <div class="container-fluid pt-2 filter-panel">
-                        <div class="row g-2 align-items-center">
-
-                            <!-- Code tag -->
-                            <div class="col-md-4">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label for="codetag" class="form-label mb-0 text-nowrap" style="min-width: 90px;">
-                                        Code tag
-                                    </label>
-                                    <input type="text" id="codetag" class="form-control form-control-sm">
-                                </div>
-                            </div>
-
-                            <!-- Name rights -->
-                            <div class="col-md-4">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label for="namerights" class="form-label mb-0 text-nowrap" style="min-width: 100px;">
-                                        Name rights
-                                    </label>
-                                    <input type="text" id="namerights" class="form-control form-control-sm">
-                                </div>
-                            </div>
-
-                            <!-- Type -->
-                            <div class="col-md-4">
-                                <div class="d-flex align-items-center gap-3">
-                                    <label class="form-label mb-0 text-nowrap" style="min-width: 60px;">
-                                        Type
-                                    </label>
-
-                                    <div class="form-check form-check-inline mb-0">
-                                        <input  type="radio" name="rightsType" id="functionsRights" value="0" checked>
-                                        <label class="form-check-label text-nowrap" for="functionsRights">
-                                            Functions rights
-                                        </label>
-                                    </div>
-
-                                    <div class="form-check form-check-inline mb-0">
-                                        <input  type="radio" name="rightsType" id="dataRights" value="1">
-                                        <label class="form-check-label text-nowrap" for="dataRights">
-                                            Data rights
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-
+                    <div class="fn-filter-row pt-2">
+                        <div class="fn-filter-item">
+                            <label for="codetag">Code tag</label>
+                            <input type="text" id="codetag" class="form-control form-control-sm" autocomplete="off">
+                        </div>
+                        <div class="fn-filter-item">
+                            <label for="namerights">Name rights</label>
+                            <input type="text" id="namerights" class="form-control form-control-sm" autocomplete="off">
+                        </div>
+                        <div class="fn-filter-item rights-type-row">
+                            <span class="fw-bold text-nowrap">Type</span>
+                            <label for="functionsRights">
+                                <input type="radio" name="rightsType" id="functionsRights" value="0" checked>
+                                Functions rights
+                            </label>
+                            <label for="dataRights">
+                                <input type="radio" name="rightsType" id="dataRights" value="1">
+                                Data rights
+                            </label>
                         </div>
                     </div>
-
                 </div>
 
                 <div class="mui-card">
@@ -82,86 +187,129 @@
     </div>
 </div>
 
-<!-- Popup New / Edit -->
-<div class="modal fade" id="popupNewGrid" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+<div class="modal fade" id="popupNewGrid" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header py-2">
-                <h5 class="modal-title">The Keyboard Shortcut</h5>
+                <h5 class="modal-title">Function / Data right</h5>
             </div>
             <div class="modal-body p-3">
                 <div class="d-flex justify-content-start mb-3 gap-2 pt-2">
-                    <button id="btnSaveAtt" class="mui-button mui-button-search">Save</button>
+                    <button id="btnSaveAtt" class="mui-button mui-button-search" type="button">Save</button>
                     <button type="button" id="btnClosePopup" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                 </div>
-                <div class="container-fluid">
-                    <div class="row g-3">
-                        <input type="hidden" id="txtid" name="txtid" />
-                        <div class="col-md-7">
-                            <fieldset class="border p-2 h-100">
-                                <legend class="float-none w-auto px-2 small fw-bold">Information</legend>
-                                <div class="row align-items-center mb-2">
-                                    <div class="col-md-4"><label class="mb-0">Code Tag</label></div>
-                                    <div class="col-md-8"><input type="text" id="codetagnew" class="form-control form-control-sm"></div>
-                                </div>
-                                <div class="row align-items-center mb-2">
-                                    <div class="col-md-4"><label class="mb-0">Name rights</label></div>
-                                    <div class="col-md-8"><input type="text" id="namerightnew" class="form-control form-control-sm"></div>
-                                </div>
-                                <div class="row align-items-center mb-2">
-                                    <div class="col-md-4"><label class="mb-0">Description</label></div>
-                                    <div class="col-md-8"><input type="text" id="descriptionnew" class="form-control form-control-sm"></div>
-                                </div>
-                                <div class="row align-items-center mb-2">
-                                    <div class="col-md-4"><label class="mb-0">Mapping Link Web</label></div>
-                                    <div class="col-md-8"><input type="text" id="mappingLinkWeb" class="form-control form-control-sm"></div>
-                                </div>
-                                <div class="row align-items-center mb-2">
-                                    <div class="col-md-4"><label class="mb-0">Group</label></div>
-                                    <div class="col-md-8">
-                                        <select id="groupnew" class="form-control form-control-sm">
-                                            <option value=""></option>
-                                            @foreach (var item in listfromandfuc)
-                                            {
-                                                <option value="@item.ID">@item.Name</option>
-                                            }
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="row align-items-center">
-                                    <div class="col-md-4"></div>
-                                    <div class="col-md-8">
-                                        <div class="form-check">
-                                            <input class="form-check-input me-2" type="checkbox" id="chkHide">
-                                            <label class="form-check-label" for="chkHide">Is Hide</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </fieldset>
-                        </div>
-                        <div class="col-md-5">
-                            <fieldset class="border p-2 h-100">
-                                <legend class="float-none w-auto px-2 small fw-bold">Shortcuts</legend>
-                                <div class="form-check mb-2"><input class="form-check-input me-2" type="checkbox" id="chkShift"><label>Keys Shift</label></div>
-                                <div class="form-check mb-2"><input class="form-check-input me-2" type="checkbox" id="chkCtrl"><label>Keys Ctrl</label></div>
-                                <div class="form-check mb-3"><input class="form-check-input me-2" type="checkbox" id="chkAlt"><label>Keys Alt</label></div>
-                                <div class="row align-items-center">
-                                    <div class="col-md-5"><label class="mb-0">Functions Keys</label></div>
-                                    <div class="col-md-7">
-                                        <select id="functionkeynew" class="form-control form-control-sm">
-                                            <option value=""></option>
-                                            @foreach (var item in listsc)
-                                            {
-                                                <option value="@item.Name">@item.Name</option>
-                                            }
-                                        </select>
-                                    </div>
-                                </div>
-                            </fieldset>
-                        </div>
+                <input type="hidden" id="txtid" name="txtid" />
+                <div class="fn-form-row">
+                    <label for="codetagnew">Code Tag</label>
+                    <div class="fn-form-ctl"><input type="text" id="codetagnew" class="form-control form-control-sm"></div>
+                </div>
+                <div class="fn-form-row">
+                    <label for="namerightnew">Name rights</label>
+                    <div class="fn-form-ctl"><input type="text" id="namerightnew" class="form-control form-control-sm"></div>
+                </div>
+                <div class="fn-form-row">
+                    <label for="descriptionnew">Description</label>
+                    <div class="fn-form-ctl"><input type="text" id="descriptionnew" class="form-control form-control-sm"></div>
+                </div>
+                <div class="fn-form-row">
+                    <label for="groupnew">Group</label>
+                    <div class="fn-form-ctl">
+                        <select id="groupnew" class="form-select form-select-sm">
+                            <option value=""></option>
+                            @foreach (var item in listfromandfuc)
+                            {
+                                <option value="@item.ID" data-kind="fn">@item.Name</option>
+                            }
+                            @foreach (var item in listfromandfucData)
+                            {
+                                <option value="@item.ID" data-kind="data">@item.Name</option>
+                            }
+                        </select>
                     </div>
                 </div>
-                <div id="logGridContainer" class="gridContainer mt-2" style="max-height:250px; overflow:auto;"></div>
+                <div class="fn-form-row">
+                    <label for="chkHide">Is Hide</label>
+                    <div class="fn-form-ctl">
+                        <input class="form-check-input" type="checkbox" id="chkHide">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="fnGrp_modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="fnGrp_title">Function Groups</h5>
+            </div>
+            <div class="modal-body">
+                <div class="pt-3 pb-2">
+                    <button type="button" id="fnGrp_btnSearch" class="mui-button mui-button-view">Search</button>
+                    <button type="button" id="fnGrp_btnNew" class="mui-button mui-button-new">New</button>
+                    <button type="button" id="fnGrp_btnEdit" class="mui-button mui-button-edit">Edit</button>
+                    <button type="button" id="fnGrp_btnDelete" class="mui-button mui-button-delete">Delete</button>
+                    <button type="button" id="fnGrp_btnClose" class="mui-button mui-button-new">Close</button>
+                </div>
+                <div class="fn-filter-row pb-2">
+                    <div class="fn-filter-item">
+                        <label for="fnGrp_name">Name</label>
+                        <input type="text" id="fnGrp_name" class="form-control form-control-sm">
+                    </div>
+                    <div class="fn-filter-item">
+                        <label for="fnGrp_parent">Parent</label>
+                        <select id="fnGrp_parent" class="form-select form-select-sm"></select>
+                    </div>
+                    <div class="fn-filter-item">
+                        <label for="fnGrp_code">Code</label>
+                        <input type="text" id="fnGrp_code" class="form-control form-control-sm">
+                    </div>
+                    <div class="fn-filter-item">
+                        <label for="fnGrp_desc">Description</label>
+                        <input type="text" id="fnGrp_desc" class="form-control form-control-sm">
+                    </div>
+                </div>
+                <div class="mui-card">
+                    <div id="fnGrp_grid" class="gridContainer" style="height: 420px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="fnGrp_itemModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="fnGrp_itemTitle">New Group</h5>
+            </div>
+            <div class="modal-body p-3">
+                <div class="d-flex justify-content-start mb-3 gap-2 pt-3">
+                    <button type="button" id="fnGrp_btnSave" class="mui-button mui-button-search">Save</button>
+                    <button type="button" id="fnGrp_btnCloseItem" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+                <input type="hidden" id="fnGrp_id" value="0" />
+                <div class="fn-form-row">
+                    <label for="fnGrp_codeNew">Code</label>
+                    <div class="fn-form-ctl"><input type="text" id="fnGrp_codeNew" class="form-control form-control-sm"></div>
+                </div>
+                <div class="fn-form-row">
+                    <label for="fnGrp_nameNew">Name</label>
+                    <div class="fn-form-ctl"><input type="text" id="fnGrp_nameNew" class="form-control form-control-sm"></div>
+                </div>
+                <div class="fn-form-row">
+                    <label for="fnGrp_parentNew">Parent</label>
+                    <div class="fn-form-ctl"><select id="fnGrp_parentNew" class="form-select form-select-sm"></select></div>
+                </div>
+                <div class="fn-form-row">
+                    <label for="fnGrp_descNew">Description</label>
+                    <div class="fn-form-ctl"><input type="text" id="fnGrp_descNew" class="form-control form-control-sm"></div>
+                </div>
+                <div class="fn-form-row">
+                    <label for="fnGrp_hideNew">Is Hide</label>
+                    <div class="fn-form-ctl"><input class="form-check-input" type="checkbox" id="fnGrp_hideNew"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -179,28 +327,60 @@
 
     var shortcut_Module = {
         selectedRowData: null,
+        groupRows: [],
+        selectedGroup: null,
+        groupSelect: null,
 
         init: function () {
             const self = this;
-            $(document).ready(function () {
-                self.loadData();
-            });
+            $("#codetag, #namerights").val("");
+            $("#functionsRights").prop("checked", true);
+            self.filterGroupOptions();
+            self.loadData();
             self.bindEvents();
+            if (window.applyPopupRights) {
+                window.applyPopupRights("usr_Functions", {
+                    new: "#btnNewTheKeyboard",
+                    edit: "#btnEditAppoin",
+                    delete: "#btnDeleteAppoin",
+                    save: "#btnSaveAtt"
+                });
+            }
+        },
+
+        destroy: function () {
+            $("#codetag, #namerights").val("");
+            $("#functionsRights").prop("checked", true);
+            this.destroyGroupSelect();
+            $(document).off(".aff");
+        },
+
+        rightsType: function () {
+            return $('input[name="rightsType"]:checked').val() === "1" ? 1 : 0;
+        },
+
+        isLeafRow: function (row) {
+            return row && parseInt(row.id, 10) > 0;
         },
 
         bindEvents: function () {
             const self = this;
 
-            $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+            $(document).off("click.aff", "#btnPrint").on("click.aff", "#btnPrint", function () {
                 self.loadData();
             });
 
-            $(document).off("click", "#btnClose").on("click", "#btnClose", function () {
+            $(document).off("click.aff", "#btnClose").on("click.aff", "#btnClose", function () {
                 $("#shortcutModal").modal("hide");
             });
 
-            $("#btnNewTheKeyboard").click(function () {
+            $(document).off("click.aff", "#btnGroupFn").on("click.aff", "#btnGroupFn", function () {
+                self.openGroupModal();
+            });
+
+            $("#btnNewTheKeyboard").off("click").on("click", function () {
                 self.clearForm();
+                self.filterGroupOptions();
                 $("#popupNewGrid").modal("show");
             });
 
@@ -219,14 +399,103 @@
             $("#btnExportExcel").off("click").on("click", function () {
                 self.exportToExcel();
             });
+
+            $(document).off("change.aff", "input[name=rightsType]").on("change.aff", "input[name=rightsType]", function () {
+                self.filterGroupOptions();
+                self.loadData();
+            });
+
+            $("#popupNewGrid").off("shown.bs.modal.aff").on("shown.bs.modal.aff", function () {
+                self.initGroupSelect();
+            });
+            $("#popupNewGrid").off("hidden.bs.modal.aff").on("hidden.bs.modal.aff", function () {
+                self.destroyGroupSelect();
+                if ($("#shortcutModal").hasClass("show")) $("body").addClass("modal-open");
+            });
+
+            $(document).off("click.aff", "#fnGrp_btnSearch").on("click.aff", "#fnGrp_btnSearch", function () {
+                self.loadGroupGrid();
+            });
+            $(document).off("click.aff", "#fnGrp_btnNew").on("click.aff", "#fnGrp_btnNew", function () {
+                self.openGroupItem(true);
+            });
+            $(document).off("click.aff", "#fnGrp_btnEdit").on("click.aff", "#fnGrp_btnEdit", function () {
+                self.openGroupItem(false);
+            });
+            $(document).off("click.aff", "#fnGrp_btnDelete").on("click.aff", "#fnGrp_btnDelete", function () {
+                self.deleteGroup();
+            });
+            $(document).off("click.aff", "#fnGrp_btnClose").on("click.aff", "#fnGrp_btnClose", function () {
+                $("#fnGrp_modal").modal("hide");
+            });
+            $(document).off("click.aff", "#fnGrp_btnSave").on("click.aff", "#fnGrp_btnSave", function () {
+                self.saveGroup();
+            });
+            $("#fnGrp_name, #fnGrp_code, #fnGrp_desc").off("keydown.aff").on("keydown.aff", function (e) {
+                if (e.key === "Enter") { e.preventDefault(); self.loadGroupGrid(); }
+            });
+            $("#fnGrp_modal").off("hidden.bs.modal.aff").on("hidden.bs.modal.aff", function () {
+                if ($("#shortcutModal").hasClass("show")) $("body").addClass("modal-open");
+                self.filterGroupOptions();
+            });
+            $("#fnGrp_itemModal").off("hidden.bs.modal.aff").on("hidden.bs.modal.aff", function () {
+                if ($("#fnGrp_modal").hasClass("show")) $("body").addClass("modal-open");
+            });
+        },
+        filterGroupOptions: function () {
+            const isData = this.rightsType() === 1;
+            $("#groupnew option").each(function () {
+                const kind = $(this).data("kind");
+                if (!kind) {
+                    $(this).prop("disabled", false);
+                    return;
+                }
+                $(this).prop("disabled", isData ? kind !== "data" : kind !== "fn");
+            });
+        },
+        destroyGroupSelect: function () {
+            const el = document.getElementById("groupnew");
+            if (el && el.tomselect) el.tomselect.destroy();
+            this.groupSelect = null;
+        },
+        bindDropSelect: function (el) {
+            if (!el || typeof TomSelect === "undefined") return;
+            if (el.tomselect) el.tomselect.destroy();
+            new TomSelect(el, {
+                allowEmptyOption: true,
+                maxItems: 1,
+                controlInput: null,
+                dropdownParent: "body",
+                onDropdownOpen: function () {
+                    const dd = this.dropdown;
+                    const rect = this.wrapper.getBoundingClientRect();
+                    const host = document.getElementById("shortcutModal");
+                    const hostBottom = host ? host.getBoundingClientRect().bottom : window.innerHeight;
+                    const space = Math.max(96, Math.min(220, hostBottom - rect.bottom - 12));
+                    dd.classList.remove("dropup");
+                    dd.style.position = "fixed";
+                    dd.style.left = rect.left + "px";
+                    dd.style.top = (rect.bottom + 2) + "px";
+                    dd.style.width = rect.width + "px";
+                    dd.style.maxHeight = space + "px";
+                    dd.style.zIndex = "1085";
+                    const content = dd.querySelector(".ts-dropdown-content");
+                    if (content) content.style.maxHeight = space + "px";
+                }
+            });
+        },
+        initGroupSelect: function () {
+            this.destroyGroupSelect();
+            this.filterGroupOptions();
+            this.bindDropSelect(document.getElementById("groupnew"));
         },
         loadData: function () {
-              const self = this;
+            const self = this;
             $("#loadingSpinner").show();
             const rightsType = $('input[name="rightsType"]:checked').val();
 
             $.ajax({
-                url: '/Security/AddFuncitionsToListData',
+                url: '/FormAndFunction/AddFuncitionsToListData',
                 type: 'GET',
                 data: {
                     codetag: $("#codetag").val(),
@@ -236,12 +505,11 @@
                 traditional: true,
                 headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
                 success: function (result) {
-                    console.log(result);
                     self.initializeGrid(result);
                     $("#loadingSpinner").hide();
                 },
                 error: function () {
-                    alert("Không thể tải báo cáo.");
+                    alert("Không thể tải dữ liệu.");
                     $("#loadingSpinner").hide();
                 }
             });
@@ -258,14 +526,13 @@
                 columnAutoWidth: true,
                 autoExpandAll: false,
                 columns: [
-                    { dataField: "name", caption: "Name Rights", width: "30%" },
-                    { dataField: "code", caption: "Code Tag", width: "20%" },
-                    { dataField: "mappingLinkWeb", caption: "Mapping Link Web", width: "20%" },
-                    booleanColumn("shiftKey", "Shift", "6%"),
-                    booleanColumn("ctrlKey", "Ctrl", "6%"),
-                    booleanColumn("altKey", "Alt", "6%"),
-                    { dataField: "shortcutKey", caption: "The Keyboard Shortcut", width: "20%" },
-                    booleanColumn("isHide", "Hide", "6%")
+                    { dataField: "name", caption: "Name Rights", width: "28%" },
+                    { dataField: "code", caption: "Code Tag", width: "18%" },
+                    booleanColumn("isHide", "Hide", "8%"),
+                    { dataField: "createdBy", caption: "Created By", width: 90 },
+                    { dataField: "createdDate", caption: "Cre.Date", width: 90, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "updatedBy", caption: "Updated By", width: 90 },
+                    { dataField: "updatedDate", caption: "Upd.Date", width: 90, dataType: "date", format: "dd/MM/yyyy" }
                 ],
                 selection: { mode: "single" },
                 filterRow: { visible: true },
@@ -274,11 +541,11 @@
                 scrolling: { mode: "standard" },
                 onRowClick: function (e) {
                     self.selectedRowData = e.data;
-                    console.log("Selected:", self.selectedRowData);
                 },
                 onRowPrepared: function (e) {
                     if (e.rowType === "data" && e.node.hasChildren) {
-                        e.rowElement.css({ "font-weight": "bold", "background-color": "#f8f9fa" });
+                        e.rowElement.css("background-color", "#f8f9fa");
+                        e.rowElement.children("td").first().css("font-weight", "bold");
                     }
                 }
             });
@@ -290,12 +557,16 @@
                 showToast('Warning', 'Vui lòng chọn một dòng trước khi chỉnh sửa.', false);
                 return;
             }
+            if (!self.isLeafRow(self.selectedRowData)) {
+                showToast('Warning', 'Only leaf rights can be edited (for example Profile New). Parent groups cannot be edited here. Use Group.', false);
+                return;
+            }
 
             const rightsType = $('input[name="rightsType"]:checked').val();
             $("#loadingSpinner").show();
 
             $.ajax({
-                url: '/Security/AddFuncitionsToListDetail',
+                url: '/FormAndFunction/AddFuncitionsToListDetail',
                 type: 'GET',
                 data: {
                     id: self.selectedRowData.id,
@@ -316,23 +587,25 @@
             });
         },
 
+        formatAuditDate: function (v) {
+            if (!v) return "";
+            const d = new Date(v);
+            if (isNaN(d)) return "";
+            const dd = String(d.getDate()).padStart(2, "0");
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            return dd + "/" + mm + "/" + d.getFullYear();
+        },
+
         populateForm: function (data, rightsType) {
+            this.filterGroupOptions();
             $("#txtid").val(data.id || "");
             $("#codetagnew").val(data.code || "");
             $("#namerightnew").val(data.name || "");
             $("#descriptionnew").val(data.description || data.name || "");
-            $("#mappingLinkWeb").val(data.mappingLinkWeb || "");
             $("#chkHide").prop("checked", data.isHide === true);
 
-            if (rightsType == "1") {
-                $("#groupnew").val(data.formAndFunctionDataGroupID || "");
-            } else {
-                $("#chkShift").prop("checked", data.shiftKey === true);
-                $("#chkCtrl").prop("checked", data.ctrlKey === true);
-                $("#chkAlt").prop("checked", data.altKey === true);
-                $("#functionkeynew").val(data.shortcutKey || "");
-                $("#groupnew").val(data.formAndFunctionGroupID || "");
-            }
+            const groupId = rightsType == "1" ? (data.formAndFunctionDataGroupID || "") : (data.formAndFunctionGroupID || "");
+            $("#groupnew").val(groupId);
         },
 
         clearForm: function () {
@@ -340,13 +613,8 @@
             $("#codetagnew").val("");
             $("#namerightnew").val("");
             $("#descriptionnew").val("");
-            $("#mappingLinkWeb").val("");
             $("#groupnew").val("");
             $("#chkHide").prop("checked", false);
-            $("#chkShift").prop("checked", false);
-            $("#chkCtrl").prop("checked", false);
-            $("#chkAlt").prop("checked", false);
-            $("#functionkeynew").val("");
         },
 
         saveForm: function () {
@@ -358,20 +626,20 @@
                 codetagnew: $("#codetagnew").val(),
                 namerightnew: $("#namerightnew").val(),
                 descriptionnew: $("#descriptionnew").val(),
-                mappingLinkWeb: $("#mappingLinkWeb").val(),
+                mappingLinkWeb: "",
                 groupnew: $("#groupnew").val(),
                 isHide: $('#chkHide').is(':checked') ? 1 : 0,
-                isShift: $('#chkShift').is(':checked') ? 1 : 0,
-                isCtrl: $('#chkCtrl').is(':checked') ? 1 : 0,
-                isAlt: $('#chkAlt').is(':checked') ? 1 : 0,
-                functionkeynew: $("#functionkeynew").val(),
+                isShift: 0,
+                isCtrl: 0,
+                isAlt: 0,
+                functionkeynew: "",
                 _IsDataRight: rightsType,
                 userName: JSON.parse(localStorage.getItem("Loginname")),
                 userID: JSON.parse(localStorage.getItem("userID"))
             };
 
             $.ajax({
-                url: '/Security/UpdateFormAndFunction',
+                url: '/FormAndFunction/UpdateFormAndFunction',
                 type: 'POST',
                 data: data,
                 traditional: true,
@@ -392,19 +660,224 @@
             });
         },
 
+        openGroupModal: function () {
+            $("#fnGrp_title").text(this.rightsType() === 1 ? "Data Groups" : "Function Groups");
+            $("#fnGrp_name, #fnGrp_code, #fnGrp_desc").val("");
+            this.selectedGroup = null;
+            $("#fnGrp_modal").modal("show");
+            this.loadGroupGrid();
+        },
+
+        syncMainGroupOptions: function () {
+            const isData = this.rightsType() === 1;
+            const kind = isData ? "data" : "fn";
+            const $sel = $("#groupnew");
+            const el = $sel[0];
+            if (el && el.tomselect) el.tomselect.destroy();
+            $sel.find("option[data-kind='" + kind + "']").remove();
+            (this.groupRows || []).forEach(function (g) {
+                $sel.append($("<option>").val(g.id).attr("data-kind", kind).text(g.name || ""));
+            });
+            this.filterGroupOptions();
+            this.bindDropSelect(el);
+        },
+
+        fillParentSelect: function ($sel, selectedId, skipId, allText) {
+            const el = $sel[0];
+            if (el && el.tomselect) el.tomselect.destroy();
+            const html = ['<option value="0">' + (allText || "None") + "</option>"];
+            (this.groupRows || []).forEach(function (g) {
+                if (skipId && g.id === skipId) return;
+                html.push('<option value="' + g.id + '">' + $("<div>").text(g.name || "").html() + "</option>");
+            });
+            $sel.html(html.join(""));
+            if (selectedId) $sel.val(String(selectedId));
+            if ($sel.attr("id") === "fnGrp_parentNew") this.bindDropSelect(el);
+        },
+
+        applyGroupFilter: function (rows) {
+            const name = ($("#fnGrp_name").val() || "").trim().toLowerCase();
+            const code = ($("#fnGrp_code").val() || "").trim().toLowerCase();
+            const desc = ($("#fnGrp_desc").val() || "").trim().toLowerCase();
+            const parent = parseInt($("#fnGrp_parent").val(), 10) || 0;
+            return (rows || []).filter(function (r) {
+                if (name && !(r.name || "").toLowerCase().includes(name)) return false;
+                if (code && !(r.code || "").toLowerCase().includes(code)) return false;
+                if (desc && !(r.description || "").toLowerCase().includes(desc)) return false;
+                if (parent && r.parentId !== parent && r.id !== parent) return false;
+                return true;
+            });
+        },
+
+        loadGroupGrid: function () {
+            const self = this;
+            $.ajax({
+                url: "/FormAndFunction/FunctionGroupTree",
+                type: "GET",
+                data: { isDataRight: self.rightsType() },
+                success: function (data) {
+                    if (data && data.code === -1) {
+                        showToast("Error", data.msg, false);
+                        return;
+                    }
+                    self.groupRows = data || [];
+                    self.fillParentSelect($("#fnGrp_parent"), parseInt($("#fnGrp_parent").val(), 10) || 0, 0, "All");
+                    self.syncMainGroupOptions();
+                    self.renderGroupGrid(self.applyGroupFilter(self.groupRows));
+                },
+                error: function () {
+                    showToast("Error", "Unable to load groups.", false);
+                }
+            });
+        },
+
+        renderGroupGrid: function (data) {
+            const self = this;
+            const $el = $("#fnGrp_grid");
+            const cols = [
+                { dataField: "name", caption: "Name", width: 240 },
+                { dataField: "code", caption: "Code", width: 140 },
+                { dataField: "description", caption: "Description", minWidth: 180 },
+                { dataField: "createdBy", caption: "Created By", width: 90 },
+                { dataField: "createdDate", caption: "Cre.Date", width: 90, dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "updatedBy", caption: "Updated By", width: 90 },
+                { dataField: "updatedDate", caption: "Upd.Date", width: 90, dataType: "date", format: "dd/MM/yyyy" }
+            ];
+            if ($el.data("dxTreeList")) {
+                const live = $el.dxTreeList("instance");
+                live.option("dataSource", data || []);
+                live.clearSelection();
+                self.selectedGroup = null;
+                return;
+            }
+            $el.dxTreeList({
+                dataSource: data || [],
+                keyExpr: "id",
+                parentIdExpr: "parentId",
+                rootValue: 0,
+                height: 420,
+                showBorders: true,
+                columnAutoWidth: true,
+                autoExpandAll: false,
+                selection: { mode: "single" },
+                paging: { enabled: false },
+                columns: cols,
+                onRowClick: function (e) { self.selectedGroup = e.data; },
+                onSelectionChanged: function (e) { self.selectedGroup = e.selectedRowsData[0] || null; }
+            });
+        },
+
+        openGroupItem: function (isNew) {
+            const self = this;
+            const skip = isNew ? 0 : (self.selectedGroup ? self.selectedGroup.id : 0);
+            if (isNew) {
+                $("#fnGrp_id").val(0);
+                $("#fnGrp_codeNew, #fnGrp_nameNew, #fnGrp_descNew").val("");
+                $("#fnGrp_hideNew").prop("checked", false);
+                self.fillParentSelect($("#fnGrp_parentNew"), self.selectedGroup ? self.selectedGroup.id : 0, 0, "None");
+                $("#fnGrp_itemTitle").text("New Group");
+                $("#fnGrp_itemModal").modal("show");
+                return;
+            }
+            if (!self.selectedGroup) {
+                showToast("Warning", "Please select a group to edit.", false);
+                return;
+            }
+            $.get("/FormAndFunction/FunctionGroupDetail", { id: self.selectedGroup.id, isDataRight: self.rightsType() }, function (item) {
+                if (!item || item.code === -1) {
+                    showToast("Warning", (item && item.msg) || "Group not found.", false);
+                    return;
+                }
+                $("#fnGrp_id").val(item.id);
+                $("#fnGrp_codeNew").val(item.code || "");
+                $("#fnGrp_nameNew").val(item.name || "");
+                $("#fnGrp_descNew").val(item.description || "");
+                $("#fnGrp_hideNew").prop("checked", item.isHide === true);
+                self.fillParentSelect($("#fnGrp_parentNew"), item.parentId || 0, item.id, "None");
+                $("#fnGrp_itemTitle").text("Edit Group");
+                $("#fnGrp_itemModal").modal("show");
+            }).fail(function () {
+                showToast("Error", "Unable to load group.", false);
+            });
+        },
+
+        saveGroup: function () {
+            const self = this;
+            $.ajax({
+                url: "/FormAndFunction/FunctionGroupSave",
+                type: "POST",
+                data: {
+                    id: $("#fnGrp_id").val() || 0,
+                    code: $("#fnGrp_codeNew").val(),
+                    name: $("#fnGrp_nameNew").val(),
+                    description: $("#fnGrp_descNew").val(),
+                    parentId: $("#fnGrp_parentNew").val() || 0,
+                    isHide: $("#fnGrp_hideNew").is(":checked") ? 1 : 0,
+                    isDataRight: self.rightsType()
+                },
+                success: function (res) {
+                    if (res.success) {
+                        showToast("Success", res.message, true);
+                        $("#fnGrp_itemModal").modal("hide");
+                        self.loadGroupGrid();
+                        self.loadData();
+                    } else {
+                        showToast("Warning", res.message, false);
+                    }
+                },
+                error: function () {
+                    showToast("Error", "Unable to save group.", false);
+                }
+            });
+        },
+
+        deleteGroup: function () {
+            const self = this;
+            if (!self.selectedGroup) {
+                showToast("Warning", "Please select a group to delete.", false);
+                return;
+            }
+            if (!confirm("Delete this group?")) return;
+            $.ajax({
+                url: "/FormAndFunction/FunctionGroupDelete",
+                type: "POST",
+                data: { id: self.selectedGroup.id, isDataRight: self.rightsType() },
+                success: function (res) {
+                    if (res.success) {
+                        showToast("Success", res.message, true);
+                        self.selectedGroup = null;
+                        self.loadGroupGrid();
+                        self.loadData();
+                    } else {
+                        showToast("Warning", res.message, false);
+                    }
+                },
+                error: function () {
+                    showToast("Error", "Unable to delete group.", false);
+                }
+            });
+        },
+
         deleteSelected: function () {
             const self = this;
             if (!self.selectedRowData) {
                 showToast('Warning', 'Vui lòng chọn một dòng trước khi xóa.', false);
                 return;
             }
+            if (!self.isLeafRow(self.selectedRowData)) {
+                showToast('Warning', 'Only leaf rights can be deleted. Parent groups cannot be deleted here. Use Group.', false);
+                return;
+            }
 
             if (!confirm("Bạn chắc chắn muốn xóa mục này?")) return;
 
             $.ajax({
-                url: '/Security/DeleteFormAndFunction', // sửa endpoint nếu backend khác
+                url: '/FormAndFunction/DeleteFormAndFunction',
                 type: 'POST',
-                data: { ID: self.selectedRowData.id },
+                data: {
+                    ID: self.selectedRowData.id,
+                    isDataRight: $('input[name="rightsType"]:checked').val()
+                },
                 traditional: true,
                 headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
                 success: function (response) {
@@ -425,7 +898,6 @@
         exportToExcel: function () {
             const grid = $("#gridContainerAddfu").dxTreeList("instance");
             const selectedReport = 'AddFuncitionsToList';
-
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet("Sheet 1");
 

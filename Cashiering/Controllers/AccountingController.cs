@@ -1,4 +1,5 @@
-﻿using BaseBusiness.BO;
+using BaseBusiness.Auth;
+using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using Cashiering.Commons.Helpers;
@@ -41,6 +42,7 @@ namespace Cashiering.Controllers
         }
 
         #region DatVp __ Accounting: Search
+        [RequireFunction("cash_AR_Manager")]
         public IActionResult AccountingSearch()
         {
             ViewBag.cboAccountType = ListItemHelper.GetARAccountType();
@@ -747,6 +749,7 @@ namespace Cashiering.Controllers
 
         #region AccountType
 
+        [RequireFunction("cash_AR_AccountType")]
         public IActionResult AccountType()
         {
 
@@ -940,6 +943,7 @@ namespace Cashiering.Controllers
         #region AROpening
 
 
+        [RequireFunction("cash_AR_Opening")]
         public IActionResult AROpening()
         {
             List<CurrencyModel> listcurr = PropertyUtils.ConvertToList<CurrencyModel>(CurrencyBO.Instance.FindAll());
@@ -1030,6 +1034,7 @@ namespace Cashiering.Controllers
         #endregion
 
         #region ARTraces
+        [RequireFunction("cash_AR_Trace")]
         public IActionResult ARTraces()
         {
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
@@ -1258,6 +1263,7 @@ namespace Cashiering.Controllers
         #endregion
 
         #region ARPaymentReport
+        [RequireFunction("cash_AR_Trace")]
         public IActionResult ARPaymentReport()
         {
             List<UsersModel> listUsers = PropertyUtils.ConvertToList<UsersModel>(UsersBO.Instance.FindAll());

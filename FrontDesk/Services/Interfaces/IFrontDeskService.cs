@@ -24,5 +24,6 @@ namespace FrontDesk.Services.Interfaces
         public DataTable GetRoomPFOS(int isVacant);
         int GetReservationCount(int roomId, bool isVacant);
         (string roomNo, string statusName) ExecuteUpdateStatus(RoomModel roomModel, bool isVacant, int userID);
+        DataTable RoomAssignmentData(DateTime arrival, string groupProfile, string vipcode, string name, string reservationTypeCode, string crsno, string roomTypeCode, string roomNo, string confirmationNo);
     }
 }

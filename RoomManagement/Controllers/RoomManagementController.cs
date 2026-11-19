@@ -1,4 +1,5 @@
-﻿using BaseBusiness.BO;
+using BaseBusiness.Auth;
+using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using Dapper;
@@ -35,6 +36,7 @@ namespace RoomManagement.Controllers
         // Define your actions here
         #region Discrepancy
 
+        [RequireFunction("rmg_Discrepancy")]
         public IActionResult Discrepancy()
         {
             List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
@@ -803,6 +805,7 @@ namespace RoomManagement.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("rmg_OOOS_View")]
         public IActionResult OOOSload()
         {
             List<RoomModel> listroom = PropertyUtils.ConvertToList<RoomModel>(RoomBO.Instance.FindAll());
