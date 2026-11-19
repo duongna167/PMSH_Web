@@ -1553,6 +1553,7 @@ namespace Report.Controllers
 
                                   AvrRate = !string.IsNullOrEmpty(d["AvrRate"].ToString()) ? d["AvrRate"] : "",
                                   ArrRms = !string.IsNullOrEmpty(d["ArrRms"].ToString()) ? d["ArrRms"] : "",
+                                  BlkArrRms = d.Table.Columns.Contains("BlkArrRms") && !string.IsNullOrEmpty(d["BlkArrRms"].ToString()) ? d["BlkArrRms"] : "",
                                   CHArrRms = !string.IsNullOrEmpty(d["CHArrRms"].ToString()) ? d["CHArrRms"] : "",
                                   DepRms = !string.IsNullOrEmpty(d["DepRms"].ToString()) ? d["DepRms"] : "",
                                   BlkDepRms = !string.IsNullOrEmpty(d["BlkDepRms"].ToString()) ? d["BlkDepRms"] : "",
@@ -3872,6 +3873,9 @@ namespace Report.Controllers
                     case "alert":
                         ViewBag.ALertList = CachedLookup("rpt:alert", () => PropertyUtils.ConvertToList<AlertsSetupModel>(AlertsSetupBO.Instance.FindAll()));
                         break;
+                    case "currency":
+                        ViewBag.CurrencyList = CachedLookup("rpt:currency", () => PropertyUtils.ConvertToList<CurrencyModel>(CurrencyBO.Instance.FindAll()));
+                        break;
                 }
             }
         }
@@ -3975,6 +3979,8 @@ namespace Report.Controllers
                     BindLookups("roomClass", "dept", "zone");
                     break;
                 case "ReservationSummary":
+                    BindLookups("zone", "roomType", "market", "currency");
+                    break;
                 case "SaleinChargeReport":
                     BindLookups("zone", "roomType", "market");
                     break;

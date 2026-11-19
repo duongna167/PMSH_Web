@@ -4,9 +4,10 @@
 *@
 @{
     ViewBag.Title = ViewBag.ReportHeader;
-    var zoneList = ViewBag.ZoneList;
-    var rtList = ViewBag.RoomTypeList;
-    var mkList = ViewBag.MarketList;
+    var zoneList = ViewBag.ZoneList as IEnumerable<dynamic>;
+    var rtList = ViewBag.RoomTypeList as IEnumerable<dynamic>;
+    var mkList = ViewBag.MarketList as IEnumerable<dynamic>;
+    var currList = ViewBag.CurrencyList as IEnumerable<dynamic>;
 }
 
 
@@ -70,93 +71,102 @@
 
  
 
-    .tomselect-custom {
-        width: 500px;
-        min-height: 30px; /* hoặc tùy theo chiều cao bạn muốn */
-        font-size: 0.65rem;
-        margin-left: 5px;
+    .sticky-header label { margin-bottom: 0; white-space: nowrap; }
+    .nrp-grid {
+        display: grid;
+        grid-template-columns: max-content max-content 160px max-content 160px;
+        column-gap: 6px;
+        row-gap: 8px;
+        align-items: center;
+        width: max-content;
+        max-width: 100%;
     }
-
-        .tomselect-custom .ts-control {
-            padding-left: 8px !important; /* hoặc bất kỳ giá trị nào bạn muốn */
-        }
-
-
-
+    .nrp-grid > label { margin: 0; white-space: nowrap; }
+    .nrp-grid .pair-gap { margin-left: 10px; }
+    .nrp-grid select, .nrp-grid [data-date-input] { width: 160px; min-width: 128px; max-width: 220px; }
 </style>
 <div class="text-center" id="reportTitle" style="font-size: 20px"></div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-        <!-- From Date -->
-        <div class="d-flex align-items-center me-3">
-            <label class="me-2 mb-0">From Date:</label>
-            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="fromDate" style="min-width:140px;">
-                <input type="text" class="date-ui form-control form-control-sm"
-                       placeholder="dd/mm/yyyy" autocomplete="off" />
-            </div>
-        </div>
-
-        <div class="d-flex align-items-center me-3">
-            <label class="me-2 mb-0">To Date:</label>
-            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="toDate" style="min-width:140px;">
-                <input type="text" class="date-ui form-control form-control-sm"
-                       placeholder="dd/mm/yyyy" autocomplete="off" />
-            </div>
-        </div>
-       
-        <div class="d-flex align-items-center me-1">
-            <label class="me-2 mb-0">Room Type:</label>
-            <select id="roomType" name="roomType" class="form-control form-control-sm report-dd ">
-                        <option value="">--All--</option>
-                @foreach (var item in rtList)
-                {
-                    <option value="@item.Code">@item.Code</option>
-                }
-            </select>
-        </div>
-
-        <div class="d-flex align-items-center me-1">
-            <label class="me-2 mb-0">Zone:</label>
-            <select id="zone" name="zone" class="form-control form-control-sm report-dd">
-                        <option value="">--All--</option>
-                @foreach (var item in zoneList)
-                {
-                    <option value="@item.Code">@item.Code</option>
-                }
-            </select>
-
-        </div>
-
-        <div class="d-flex align-items-center me-3">
-            <label class="me-2 mb-0">Market:</label>
-            <select id="market" name="market" class="form-control form-control-sm report-dd ">
-                        <option value="">--All--</option>
-                @foreach (var item in mkList)
-                {
-                    string marketLabel = item.Description;
-                    if (string.IsNullOrWhiteSpace(marketLabel)) marketLabel = item.Name;
-                    if (string.IsNullOrWhiteSpace(marketLabel)) { continue; }
-                    <option value="@item.Code">@marketLabel</option>
-                }
-            </select>
-
-        </div>
-
-        <div style="display:none!important" class="d-flex align-items-center me-3">
-            <label class="me-2 mb-0">Currency:</label>
-            <select id="viewBy" name="viewBy" class="form-control form-control-sm w-auto">
-
-                <option value="VND">VND</option>
-                <option value="USD">USD</option>
-            </select>
-        </div>
-
-  
-    </div>
     <div class="">
-        <button  id="btnPrint" class="mui-button mui-button-new">View</button>
-        <button  id="btnExportExcel" class="mui-button mui-button-new" type="button">  Excel</button>
-        <button  id="btnExportPdf" class="mui-button mui-button-new" type="button"> PDF</button>
+        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">PDF</button>
+    </div>
+    <div class="mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+        <div class="nrp-grid">
+            <label class="fw-bold">Date Range:</label>
+            <label>From Date:</label>
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="fromDate">
+                <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
+            <label class="pair-gap">To Date:</label>
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="toDate">
+                <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
+        </div>
+        <div class="nrp-grid" style="margin-top: 8px;">
+            <label class="fw-bold">Filter:</label>
+            <label>Zone:</label>
+            <select id="zone" name="zone" class="form-control form-control-sm report-dd">
+                <option value="">--All--</option>
+                @if (zoneList != null)
+                {
+                    foreach (var item in zoneList)
+                    {
+                        <option value="@item.Code">@item.Code</option>
+                    }
+                }
+            </select>
+            <label class="pair-gap">Room Type:</label>
+            <select id="roomType" name="roomType" class="form-control form-control-sm report-dd">
+                <option value="">--All--</option>
+                @if (rtList != null)
+                {
+                    foreach (var item in rtList)
+                    {
+                        <option value="@item.Code">@item.Code</option>
+                    }
+                }
+            </select>
+            <span></span>
+            <label>Market:</label>
+            <select id="market" name="market" class="form-control form-control-sm report-dd">
+                <option value="">--All--</option>
+                @if (mkList != null)
+                {
+                    foreach (var item in mkList)
+                    {
+                        string marketLabel = item.Description;
+                        if (string.IsNullOrWhiteSpace(marketLabel)) marketLabel = item.Name;
+                        if (string.IsNullOrWhiteSpace(marketLabel)) { continue; }
+                        <option value="@item.Code">@marketLabel</option>
+                    }
+                }
+            </select>
+            <label class="pair-gap">Currency:</label>
+            <select id="viewBy" name="viewBy" class="form-control form-control-sm report-dd">
+                @if (currList != null)
+                {
+                    foreach (var item in currList)
+                    {
+                        var cid = (string)item.ID;
+                        if (string.Equals(cid, "USD", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <option value="@cid" selected>@cid</option>
+                        }
+                        else
+                        {
+                            <option value="@cid">@cid</option>
+                        }
+                    }
+                }
+                else
+                {
+                    <option value="USD" selected>USD</option>
+                    <option value="VND">VND</option>
+                }
+            </select>
+        </div>
     </div>
 </div>
 
@@ -222,9 +232,9 @@
 
         Object.entries(groupedData).forEach(([month, records]) => {
              finalData.push({
-            weekDate: records[0].monthDisplay,
+            rsvSummaryDate: records[0].monthDisplay,
             isTitle: true,
-            cssClass: "custom" // Nếu cần CSS riêng cho tiêu đề
+            cssClass: "custom"
         });
             finalData.push(...records);
 
@@ -237,7 +247,7 @@
                 blkRmsNotPU: sum(records, 'blkRmsNotPU'),
                    totalAvailable: sum(records, 'totalAvailable'),
 
-                occPer: sum(records, 'occPer'),
+                occPer: average(records, 'occPer'),
                 roomRevenue: sum(records, 'roomRevenue'),
                 grpRevenue: sum(records, 'grpRevenue'),
                 indRevenue: sum(records, 'indRevenue'),
@@ -247,14 +257,14 @@
                 blkArrRms: sum(records, 'blkArrRms'),
                 charrRms: sum(records, 'charrRms'),
 
-                    totalArrRms: averageOfSums(records, ['arrRms', 'blkArrRms', 'charrRms']),
+                    totalArrRms: sum(records, 'arrRms') + sum(records, 'blkArrRms') + sum(records, 'charrRms'),
 
 
                 depRms: sum(records, 'depRms'),
                 blkDepRms: sum(records, 'blkDepRms'),
                 chdepRms: sum(records, 'chdepRms'),
 
-                  totalDepRms: averageOfSums(records, ['depRms', 'blkDepRms', 'chdepRms']),
+                  totalDepRms: sum(records, 'depRms') + sum(records, 'blkDepRms') + sum(records, 'chdepRms'),
 
                 oOORms: sum(records, 'oOORms'),
                 adl: average(records, 'adl'),
@@ -275,24 +285,19 @@
 
         return finalData;
     }
-      function averageOfSums(arr, fields) {
-        if (arr.length === 0) return 0;
-        let total = 0;
-        fields.forEach(field => {
-            total += sum(arr, field);
-        });
-        return total / fields.length;
+    function num(v) {
+        const n = parseFloat(v);
+        return isNaN(n) ? 0 : n;
     }
 
-    // Helper functions
     function sum(arr, field) {
-        return arr.reduce((total, item) => total + (item[field] || 0), 0);
+        return arr.reduce((total, item) => total + num(item[field]), 0);
     }
 
     function average(arr, field) {
-        const valid = arr.filter(x => x[field] != null);
+        const valid = arr.filter(x => x[field] != null && x[field] !== "");
         if (valid.length === 0) return 0;
-        return valid.reduce((sum, x) => sum + x[field], 0) / valid.length;
+        return valid.reduce((s, x) => s + num(x[field]), 0) / valid.length;
     }
       function initializReservationSummaryGrid(data) {
         const columnWidth = 180;
@@ -310,34 +315,50 @@
            dataSource: data,         height: 500,
             allowColumnResizing: true,
             columns: [
-                { dataField: "rsvSummaryDate", caption: "Date", width: columnWidth - 60, dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "weekDate", caption: "Week Date", width: columnWidth - 80 },
-                { dataField: "totalOccRms", caption: "TotalOcc.R", width: columnWidth - 60, dataType: "number", format: "#,##0" },
-                    { dataField: "indRms", caption: "IndRm", width: columnWidth - 60, dataType: "number", format: "#,##0" },
+                {
+                    dataField: "rsvSummaryDate", caption: "Date", width: columnWidth - 60,
+                    calculateDisplayValue: function (row) {
+                        if (!row || row.isTitle || row.isTotal) return row && row.rsvSummaryDate ? row.rsvSummaryDate : "";
+                        const v = row.rsvSummaryDate;
+                        if (!v) return "";
+                        const d = new Date(v);
+                        if (isNaN(d.getTime())) return v;
+                        const dd = String(d.getDate()).padStart(2, "0");
+                        const mm = String(d.getMonth() + 1).padStart(2, "0");
+                        const yy = String(d.getFullYear()).slice(-2);
+                        return dd + "/" + mm + "/" + yy;
+                    }
+                },
+                { dataField: "totalOccRms", caption: "Total Occ.R", width: columnWidth - 60, dataType: "number", format: "#,##0" },
+                    { dataField: "indRms", caption: "Ind Rm", width: columnWidth - 60, dataType: "number", format: "#,##0" },
                     { dataField: "blkRmsPU", caption: "Grp Rm", width: columnWidth - 60, dataType: "number", format: "#,##0" },
                     { dataField: "blkRmsNotPU", caption: "CH Rm", width: columnWidth - 60, dataType: "number", format: "#,##0" },
                     { dataField: "totalAvailable", caption: "Total Avail", width: columnWidth - 60, dataType: "number", format: "#,##0" },
-                    { dataField: "occPer", caption: "Occ %", width: columnWidth - 60, dataType: "number", format: "#,##0" },
-                { dataField: "roomRevenue", caption: "Individual Revenue", width: columnWidth - 30, dataType: "number", format: "#,##0" },
-                    { dataField: "grpRevenue", caption: "Group Revenue", width: columnWidth - 30, dataType: "number", format: "#,##0" },
-                    { dataField: "indRevenue", caption: "Total Revenue", width: columnWidth - 30, dataType: "number", format: "#,##0" },
-                    { dataField: "avrRate", caption: "Avr Rate", width: columnWidth - 60, dataType: "number", format: "#,##0" },
+                    { dataField: "occPer", caption: "Occ %", width: columnWidth - 60, dataType: "number", format: "#,##0.00" },
+                { dataField: "roomRevenue", caption: "Individual Revenue", width: columnWidth - 30, dataType: "number", format: "#,##0.00" },
+                    { dataField: "grpRevenue", caption: "Group Revenue", width: columnWidth - 30, dataType: "number", format: "#,##0.00" },
+                    { dataField: "indRevenue", caption: "Total Revenue", width: columnWidth - 30, dataType: "number", format: "#,##0.00" },
+                    { dataField: "avrRate", caption: "Avg Rate", width: columnWidth - 60, dataType: "number", format: "#,##0.00" },
                     { dataField: "arrRms", caption: "Ind Arr Rm", width: columnWidth - 60, dataType: "number", format: "#,##0" },
                     { dataField: "blkArrRms", caption: "Grp Arr Rm", width: columnWidth - 60, dataType: "number", format: "#,##0" },
                     { dataField: "charrRms", caption: "C&H Arr Rm", width: columnWidth - 60, dataType: "number", format: "#,##0" },
                 {
                     caption: "Total Arr Rm", width: columnWidth - 60, dataType: "number", format: "#,##0",
                     calculateCellValue: function (data) {
-                        return (data.arrRms || 0) + (data.blkArrRms || 0) + (data.charrRms || 0);
+                        if (data && data.isTitle) return "";
+                        if (data && data.isTotal && data.totalArrRms != null) return data.totalArrRms;
+                        return num(data.arrRms) + num(data.blkArrRms) + num(data.charrRms);
                     }
                 },
                     { dataField: "depRms", caption: "Ind Dep Rm", width: columnWidth - 60, dataType: "number", format: "#,##0" },
                     { dataField: "blkDepRms", caption: "Grp Dep Rm", width: columnWidth - 60, dataType: "number", format: "#,##0" },
-                    { dataField: "chdepRms", caption: "C&H Rate", width: columnWidth - 60, dataType: "number", format: "#,##0" },
+                    { dataField: "chdepRms", caption: "C&H Dep Rm", width: columnWidth - 60, dataType: "number", format: "#,##0" },
                 {
                         caption: "Total Dep Rm", width: columnWidth - 60, dataType: "number", format: "#,##0",
                     calculateCellValue: function (data) {
-                        return (data.depRms || 0) + (data.blkDepRms || 0) + (data.chdepRms || 0);
+                        if (data && data.isTitle) return "";
+                        if (data && data.isTotal && data.totalDepRms != null) return data.totalDepRms;
+                        return num(data.depRms) + num(data.blkDepRms) + num(data.chdepRms);
                     }
                 },
 
