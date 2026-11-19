@@ -1,0 +1,105 @@
+@* Xem trước request gửi nhà cung cấp cho một hóa đơn PMS (giai đoạn 4). Không gọi nhà cung cấp. *@
+
+<style>
+    #eiv_modalMain .modal-dialog { max-width: 90vw; width: 90vw; margin: 1.5vh auto; }
+    #eiv_modalMain .modal-content { height: 94vh; display: flex; flex-direction: column; }
+    #eiv_modalMain .modal-body { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; padding: 8px 12px; overflow: hidden; }
+    #eiv_modalMain .eiv-out { flex: 1 1 0; min-height: 0; overflow: auto; background: #1e1e1e; color: #d4d4d4; padding: 10px; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+    #eiv_modalMain .eiv-field label { font-size: 13px; margin-bottom: 2px; }
+</style>
+
+<div class="modal fade" id="eiv_modalMain" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Invoice Request Preview</h5></div>
+            <div class="modal-body">
+                <div class="row g-2 mb-2 align-items-end">
+                    <div class="col-12 col-lg-3 eiv-field"><label>Property</label><select id="eiv_property" class="form-select form-select-sm"></select></div>
+                    <div class="col-12 col-lg-3 eiv-field"><label>Operation</label><select id="eiv_operation" class="form-select form-select-sm"></select></div>
+                    <div class="col-6 col-lg-2 eiv-field"><label>FolioVATID</label><input type="number" id="eiv_folio" class="form-control form-control-sm" min="1" /></div>
+                    <div class="col-6 col-lg-4">
+                        <button id="eiv_btnPreview" type="button" class="mui-button mui-button-new">Preview</button>
+                        <button id="eiv_btnClose" type="button" class="mui-button mui-button-new">Close</button>
+                    </div>
+                </div>
+                <pre id="eiv_out" class="eiv-out">Select Property, Operation and enter FolioVATID, then click Preview.</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var eiv_Module = (function () {
+        let mainModal = null;
+        const csrf = () => ({ "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() });
+
+        function failToast(xhr, fallback) {
+            const m = xhr && xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : fallback;
+            showToast("Error", m, false);
+        }
+
+        function fill(sel, rows, valueField, textFn) {
+            $(sel).empty();
+            rows.forEach(r => $(sel).append($("<option>").val(r[valueField]).text(textFn(r))));
+        }
+
+        function open() {
+            mainModal = bootstrap.Modal.getOrCreateInstance(document.getElementById("eiv_modalMain"), { backdrop: "static", keyboard: false });
+            $("#eiv_modalMain").off("shown.bs.modal.eiv").on("shown.bs.modal.eiv", start);
+            $("#eiv_modalMain").off("hidden.bs.modal.eiv").on("hidden.bs.modal.eiv", function () { $(document).off(".eiv"); });
+            // ModalManager có thể đã mở popup trước khi gọi hàm này: khi đó chạy start() ngay
+            if (document.getElementById("eiv_modalMain").classList.contains("show")) { start(); return; }
+            mainModal.show();
+        }
+
+        function start() {
+            $(document).off(".eiv");
+            $(document).on("click.eiv", "#eiv_btnClose", function () { mainModal.hide(); });
+            $(document).on("click.eiv", "#eiv_btnPreview", preview);
+            $(document).on("change.eiv", "#eiv_property", loadOperations);
+
+            // Chỉ Property đang hoạt động và đã gắn Provider mới xem trước được
+            $.get("/EInvoiceProperty/PropertyData").done(function (res) {
+                const rows = (res.data || []).filter(p => !p.Inactive && p.ProviderID);
+                fill("#eiv_property", rows, "ID", p => p.Code + " - " + p.Name);
+                $("#eiv_property").data("rows", rows);
+                loadOperations();
+            }).fail(function (xhr) { failToast(xhr, "Unable to load properties."); });
+        }
+
+        // Operation của Provider đang dùng ở Property được chọn
+        function loadOperations() {
+            const rows = $("#eiv_property").data("rows") || [];
+            const p = rows.find(x => String(x.ID) === String($("#eiv_property").val()));
+            if (!p) { $("#eiv_operation").empty(); return; }
+            $.get("/EInvoiceProvider/OperationData", { providerId: p.ProviderID }).done(function (res) {
+                fill("#eiv_operation", (res.data || []).filter(o => !o.Inactive), "ID", o => o.OperationCode + " - " + (o.OperationName || ""));
+            }).fail(function (xhr) { failToast(xhr, "Unable to load operations."); });
+        }
+
+        function preview() {
+            const payload = {
+                propertyID: Number($("#eiv_property").val()) || 0,
+                operationID: Number($("#eiv_operation").val()) || 0,
+                folioVATID: Number($("#eiv_folio").val()) || 0
+            };
+            if (!payload.propertyID || !payload.operationID || !payload.folioVATID)
+                return showToast("Warning", "Please select Property, Operation and enter FolioVATID.", false);
+
+            $("#eiv_out").text("Loading...");
+            $.ajax({ url: "/EInvoiceInvoice/PreviewRequest", type: "POST", contentType: "application/json", data: JSON.stringify(payload), headers: csrf() })
+                .done(function (res) {
+                    $("#eiv_out").text(res.success ? JSON.stringify(res.data, null, 2) : res.message);
+                    if (!res.success) showToast("Error", res.message, false);
+                })
+                .fail(function (xhr) {
+                    $("#eiv_out").text("");
+                    failToast(xhr, "Preview failed.");
+                });
+        }
+
+        return { open };
+    })();
+
+    window.openModalEInvoicePreview = function () { eiv_Module.open(); };
+</script>

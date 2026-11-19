@@ -1,0 +1,1044 @@
+@* Provider Management - trang đầy đủ: nhà cung cấp hóa đơn điện tử, field cấu hình, option của field.
+   Giao diện theo màn ProviderManagement của PMSH_Web; dữ liệu qua EInvoiceProviderController (module EInvoice). *@
+@{
+    ViewData["Title"] = "Provider Management";
+}
+
+<div class="provider-page">
+    <div class="row g-3 provider-top-row">
+
+        <!-- E-Invoice Providers -->
+        <div class="col-xl-4 col-lg-12 col-md-12">
+            <div class="card provider-card h-100">
+                <div class="card-header provider-card-header">
+                    <div>
+                        <div class="provider-card-title">E-Invoice Providers</div>
+                        <div class="provider-card-subtitle">Select a provider to view configuration fields</div>
+                    </div>
+                    <div class="provider-header-actions">
+                        <button type="button" id="eip_btnProviderNew" class="btn btn-success btn-sm"><i class="fa fa-plus me-1"></i>New</button>
+                        <button type="button" id="eip_btnProviderRefresh" class="btn btn-light btn-sm"><i class="fa fa-refresh me-1"></i>Refresh</button>
+                    </div>
+                </div>
+                <div class="card-body p-0"><div id="eip_gridProvider"></div></div>
+            </div>
+        </div>
+
+        <!-- Provider Configuration Fields -->
+        <div class="col-xl-5 col-lg-7 col-md-12">
+            <div class="card provider-card h-100">
+                <div class="card-header provider-card-header">
+                    <div>
+                        <div class="provider-card-title">Provider Configuration Fields</div>
+                        <div class="provider-card-subtitle">Selected provider: <strong id="eip_lblProvider">None</strong></div>
+                    </div>
+                    <div class="provider-header-actions">
+                        <button type="button" id="eip_btnFieldNew" class="btn btn-success btn-sm" disabled><i class="fa fa-plus me-1"></i>New Field</button>
+                        <button type="button" id="eip_btnFieldRefresh" class="btn btn-light btn-sm" disabled><i class="fa fa-refresh me-1"></i>Refresh</button>
+                    </div>
+                </div>
+                <div class="card-body p-0"><div id="eip_gridField"></div></div>
+            </div>
+        </div>
+
+        <!-- Field Options -->
+        <div class="col-xl-3 col-lg-5 col-md-12">
+            <div class="card provider-card h-100">
+                <div class="card-header provider-card-header">
+                    <div>
+                        <div class="provider-card-title">Field Options</div>
+                        <div class="provider-card-subtitle">Selected field: <strong id="eip_lblField">None</strong></div>
+                    </div>
+                    <div class="provider-header-actions">
+                        <button type="button" id="eip_btnOptionNew" class="btn btn-success btn-sm" disabled><i class="fa fa-plus me-1"></i>New</button>
+                        <button type="button" id="eip_btnOptionRefresh" class="btn btn-light btn-sm" disabled><i class="fa fa-refresh me-1"></i>Refresh</button>
+                    </div>
+                </div>
+                <div class="card-body p-0"><div id="eip_gridOption"></div></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- API Management và API Parameter Mapping của nhà cung cấp đang chọn -->
+    <div class="row g-3 mt-1">
+
+        <!-- API Management -->
+        <div class="col-xl-5 col-lg-12 col-md-12">
+            <div class="provider-operation-section h-100">
+                <div class="provider-operation-header">
+                    <div>
+                        <h5 class="mb-1">API Management</h5>
+                        <div class="text-muted provider-operation-subtitle">Cấu hình endpoint và phương thức gọi API cho nhà cung cấp đang chọn: <strong id="eop_lblProvider">None</strong></div>
+                    </div>
+                    <div class="provider-operation-actions">
+                        <button type="button" id="eop_btnOpRefresh" class="btn btn-outline-secondary btn-sm"><i class="fa fa-refresh me-1"></i>Refresh</button>
+                        <button type="button" id="eop_btnOpNew" class="btn btn-primary btn-sm"><i class="fa fa-plus me-1"></i>Thêm API</button>
+                    </div>
+                </div>
+                <div id="eop_gridOp"></div>
+            </div>
+        </div>
+
+        <!-- API Parameter Mapping -->
+        <div class="col-xl-7 col-lg-12 col-md-12">
+            <div class="provider-mapping-section">
+                <div class="provider-mapping-header">
+                    <div>
+                        <h5 class="mb-1">API Parameter Mapping</h5>
+                        <div class="text-muted provider-mapping-subtitle">Selected operation: <strong id="eop_lblOp">None</strong></div>
+                    </div>
+                    <div class="provider-mapping-actions">
+                        <select id="eop_mapLocFilter" class="form-select form-select-sm" style="width:140px;">
+                            <option value="">All locations</option>
+                            <option>BODY</option><option>HEADER</option><option>QUERY</option><option>PATH</option><option>FORM</option><option>RESPONSE</option>
+                        </select>
+                        <button type="button" id="eop_btnMapRefresh" class="btn btn-outline-secondary btn-sm" disabled><i class="fa fa-refresh me-1"></i>Refresh</button>
+                        <button type="button" id="eop_btnMapNew" class="btn btn-primary btn-sm" disabled><i class="fa fa-plus me-1"></i>New Mapping</button>
+                    </div>
+                </div>
+                <div id="eop_gridMap"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    /* Dòng đang được chọn: nền xanh nhạt để người dùng nhận biết */
+    .dx-datagrid-rowsview .dx-row.dx-selection > td,
+    .dx-datagrid-rowsview .dx-row.dx-selection:hover > td,
+    .dx-datagrid-rowsview .dx-row.dx-selection.dx-row-alt > td { background-color: rgba(120, 120, 120, 0.15) !important; color: inherit !important; }
+
+    .provider-card { border: 1px solid #d8e2dc; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); overflow: hidden; }
+    .provider-top-row { margin-top: 8px; }
+    .provider-card-header { min-height: 62px; padding: 8px 12px; background: #f8fbf9; border-bottom: 1px solid #d8e2dc; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: nowrap; }
+    .provider-card-header > div:first-child { min-width: 0; flex: 1 1 auto; }
+    .provider-header-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+    .provider-card-title { font-size: 15px; font-weight: 600; color: #263238; }
+    .provider-card-subtitle { margin-top: 2px; font-size: 11px; color: #6c757d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    #eip_gridProvider, #eip_gridField, #eip_gridOption { height: 420px; min-height: 420px; }
+
+    /* Thu gọn chiều cao các ô của ba bảng */
+    #eip_gridProvider .dx-datagrid-rowsview .dx-data-row > td,
+    #eip_gridField .dx-datagrid-rowsview .dx-data-row > td,
+    #eip_gridOption .dx-datagrid-rowsview .dx-data-row > td { height: 26px; padding-top: 3px; padding-bottom: 3px; line-height: 17px; box-sizing: border-box; }
+    #eip_gridProvider .dx-datagrid-headers .dx-header-row > td,
+    #eip_gridField .dx-datagrid-headers .dx-header-row > td,
+    #eip_gridOption .dx-datagrid-headers .dx-header-row > td { height: 27px; padding-top: 4px; padding-bottom: 4px; line-height: 17px; box-sizing: border-box; }
+    .provider-operation-section, .provider-mapping-section { background: #fff; border: 1px solid #d9dee5; border-radius: 8px; padding: 16px; }
+    .provider-operation-header, .provider-mapping-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+    .provider-operation-header h5, .provider-mapping-header h5 { font-size: 18px; font-weight: 600; }
+    .provider-operation-subtitle, .provider-mapping-subtitle { font-size: 13px; }
+    .provider-operation-actions, .provider-mapping-actions { display: flex; align-items: center; gap: 8px; }
+    .provider-operation-actions .btn, .provider-mapping-actions .btn { min-height: 36px; padding-left: 14px; padding-right: 14px; }
+
+
+    /* Dòng/cell gọn, vừa với nội dung */
+    #eop_gridOp .dx-row > td, #eop_gridMap .dx-row > td { padding-top: 5px; padding-bottom: 5px; line-height: 18px; }
+    #eop_gridOp .dx-header-row > td, #eop_gridMap .dx-header-row > td { padding-top: 7px; padding-bottom: 7px; }
+
+    #eop_gridOp, #eop_gridMap { height: 460px; min-height: 460px; }
+</style>
+
+<!-- ===== PROVIDER FORM ===== -->
+<div class="modal fade" id="eip_providerModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h6 class="modal-title" id="eip_providerTitle">Provider</h6></div>
+            <div class="modal-body">
+                <div class="search-filter mb-2">
+                    <button type="button" id="eip_providerSave" class="mui-button mui-button-save">Save</button>
+                    <button type="button" data-bs-dismiss="modal" class="mui-button mui-button-close">Close</button>
+                </div>
+                <form id="eip_providerForm" novalidate>
+                    <input type="hidden" name="id" value="0" />
+                    <div class="row g-2">
+                        <div class="col-12"><div class="row g-1 align-items-center">
+                            <label class="col-md-3 col-form-label col-form-label-sm text-md-end">Code <span class="text-danger">*</span></label>
+                            <div class="col-md-9"><input type="text" name="code" class="form-control form-control-sm" maxlength="50" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12"><div class="row g-1 align-items-center">
+                            <label class="col-md-3 col-form-label col-form-label-sm text-md-end">Name <span class="text-danger">*</span></label>
+                            <div class="col-md-9"><input type="text" name="name" class="form-control form-control-sm" maxlength="150" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12"><div class="row g-1 align-items-start">
+                            <label class="col-md-3 col-form-label col-form-label-sm text-md-end">Description</label>
+                            <div class="col-md-9"><textarea name="description" class="form-control form-control-sm" rows="3" maxlength="500"></textarea><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12"><div class="row g-1 align-items-center">
+                            <label class="col-md-3 col-form-label col-form-label-sm text-md-end">Logo Path</label>
+                            <div class="col-md-9"><input type="text" name="logoPath" class="form-control form-control-sm" maxlength="500" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12"><div class="row g-1 align-items-center">
+                            <label class="col-md-3 col-form-label col-form-label-sm text-md-end">Inactive</label>
+                            <div class="col-md-9"><input type="checkbox" name="inactive" /></div>
+                        </div></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== FIELD FORM ===== -->
+<div class="modal fade" id="eip_fieldModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header"><h6 class="modal-title" id="eip_fieldTitle">Provider Field</h6></div>
+            <div class="modal-body">
+                <div class="search-filter mb-2">
+                    <button type="button" id="eip_fieldSave" class="mui-button mui-button-save">Save</button>
+                    <button type="button" data-bs-dismiss="modal" class="mui-button mui-button-close">Close</button>
+                </div>
+                <form id="eip_fieldForm" novalidate>
+                    <input type="hidden" name="id" value="0" />
+                    <div class="row g-2">
+
+                        <div class="col-12 col-lg-6"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Field Code <span class="text-danger">*</span></label>
+                            <div class="col-md-8"><input type="text" name="fieldCode" class="form-control form-control-sm" maxlength="100" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-6"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Display Name <span class="text-danger">*</span></label>
+                            <div class="col-md-8"><input type="text" name="displayName" class="form-control form-control-sm" maxlength="200" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12 col-lg-6"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Group Name</label>
+                            <div class="col-md-8"><input type="text" name="groupName" class="form-control form-control-sm" maxlength="150" placeholder="CONNECTION / AUTHENTICATION / INVOICE" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-3"><div class="row g-1 align-items-center">
+                            <label class="col-md-6 col-form-label col-form-label-sm text-md-end">Display Order</label>
+                            <div class="col-md-6"><input type="number" name="displayOrder" class="form-control form-control-sm" value="0" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-3"><div class="row g-1 align-items-center">
+                            <label class="col-md-6 col-form-label col-form-label-sm text-md-end">Column Width</label>
+                            <div class="col-md-6"><select name="columnWidth" class="form-select form-select-sm"><option value="4">4</option><option value="6" selected>6</option><option value="12">12</option></select><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12 col-lg-6"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Data Type <span class="text-danger">*</span></label>
+                            <div class="col-md-8"><select name="dataType" class="form-select form-select-sm">
+                                <option>String</option><option>Integer</option><option>Decimal</option><option>Boolean</option><option>Date</option><option>DateTime</option>
+                            </select><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-6"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Control Type <span class="text-danger">*</span></label>
+                            <div class="col-md-8"><select name="controlType" class="form-select form-select-sm">
+                                <option>Text</option><option>Password</option><option>Select</option><option>Checkbox</option><option>Textarea</option><option>Number</option><option>Date</option>
+                            </select><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12 col-lg-6"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Default Value</label>
+                            <div class="col-md-8"><input type="text" name="defaultValue" class="form-control form-control-sm" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-6"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Placeholder</label>
+                            <div class="col-md-8"><input type="text" name="placeholder" class="form-control form-control-sm" maxlength="300" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12 col-lg-6"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Max Length</label>
+                            <div class="col-md-8"><input type="number" name="maxLength" class="form-control form-control-sm" min="1" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-6"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Regex Pattern</label>
+                            <div class="col-md-8"><input type="text" name="regexPattern" class="form-control form-control-sm" maxlength="500" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12"><div class="row g-1 align-items-start">
+                            <label class="col-md-2 col-form-label col-form-label-sm text-md-end">Description</label>
+                            <div class="col-md-10"><textarea name="description" class="form-control form-control-sm" rows="2" maxlength="500"></textarea><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12 col-lg-4"><div class="row g-1 align-items-center">
+                            <label class="col-md-5 col-form-label col-form-label-sm text-md-end">Visible When Field</label>
+                            <div class="col-md-7"><input type="text" name="visibleWhenFieldCode" class="form-control form-control-sm" maxlength="100" /></div>
+                        </div></div>
+                        <div class="col-12 col-lg-4"><div class="row g-1 align-items-center">
+                            <label class="col-md-5 col-form-label col-form-label-sm text-md-end">Operator</label>
+                            <div class="col-md-7"><select name="visibleWhenOperator" class="form-select form-select-sm"><option value=""></option><option value="EQUALS">EQUALS</option><option value="IN">IN (comma list)</option></select></div>
+                        </div></div>
+                        <div class="col-12 col-lg-4"><div class="row g-1 align-items-center">
+                            <label class="col-md-5 col-form-label col-form-label-sm text-md-end">Value</label>
+                            <div class="col-md-7"><input type="text" name="visibleWhenValue" class="form-control form-control-sm" maxlength="200" /></div>
+                        </div></div>
+
+                        <div class="col-12"><div class="row g-1 align-items-center">
+                            <div class="col-md-10 offset-md-2 d-flex flex-wrap gap-4">
+                                <label class="mb-0"><input type="checkbox" name="isRequired" /> Required</label>
+                                <label class="mb-0"><input type="checkbox" name="isEncrypted" /> Encrypted</label>
+                                <label class="mb-0"><input type="checkbox" name="isReadOnly" /> Read Only</label>
+                                <label class="mb-0 text-danger"><input type="checkbox" name="inactive" /> Inactive</label>
+                            </div>
+                            <div class="col-md-10 offset-md-2"><div class="text-danger small invalid-feedback d-block" data-for="isEncrypted"></div></div>
+                        </div></div>
+
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== OPTION FORM ===== -->
+<div class="modal fade" id="eip_optionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h6 class="modal-title" id="eip_optionTitle">Field Option</h6></div>
+            <div class="modal-body">
+                <div class="search-filter mb-2">
+                    <button type="button" id="eip_optionSave" class="mui-button mui-button-save">Save</button>
+                    <button type="button" data-bs-dismiss="modal" class="mui-button mui-button-close">Close</button>
+                </div>
+                <form id="eip_optionForm" novalidate>
+                    <input type="hidden" name="id" value="0" />
+                    <div class="row g-2">
+                        <div class="col-12"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Value <span class="text-danger">*</span></label>
+                            <div class="col-md-8"><input type="text" name="optionValue" class="form-control form-control-sm" maxlength="150" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Display Text <span class="text-danger">*</span></label>
+                            <div class="col-md-8"><input type="text" name="optionText" class="form-control form-control-sm" maxlength="250" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Order</label>
+                            <div class="col-md-8"><input type="number" name="displayOrder" class="form-control form-control-sm" value="0" /></div>
+                        </div></div>
+                        <div class="col-12"><div class="row g-1 align-items-center">
+                            <div class="col-md-8 offset-md-4 d-flex gap-4">
+                                <label class="mb-0"><input type="checkbox" name="isDefault" /> Default</label>
+                                <label class="mb-0 text-danger"><input type="checkbox" name="inactive" /> Inactive</label>
+                            </div>
+                        </div></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== OPERATION FORM ===== -->
+<div class="modal fade" id="eop_opModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header"><h6 class="modal-title" id="eop_opTitle">Operation</h6></div>
+            <div class="modal-body">
+                <div class="search-filter mb-2">
+                    <button type="button" id="eop_opSave" class="mui-button mui-button-save">Save</button>
+                    <button type="button" data-bs-dismiss="modal" class="mui-button mui-button-close">Close</button>
+                </div>
+                <form id="eop_opForm" novalidate>
+                    <input type="hidden" name="id" value="0" />
+                    <div class="row g-2">
+                        <div class="col-12 col-lg-6"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Operation Code <span class="text-danger">*</span></label>
+                            <div class="col-md-8"><input type="text" name="operationCode" class="form-control form-control-sm" maxlength="50" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-6"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Operation Name <span class="text-danger">*</span></label>
+                            <div class="col-md-8"><input type="text" name="operationName" class="form-control form-control-sm" maxlength="150" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12 col-lg-6"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Business Action</label>
+                            <div class="col-md-8">
+                                <input type="text" name="businessActionCode" list="eop_actions" class="form-control form-control-sm" maxlength="50" />
+                                <datalist id="eop_actions">
+                                    <option>AUTH_LOGIN</option><option>ISSUE_INVOICE</option><option>UPLOAD_INVOICE</option><option>PUBLISH_INVOICE</option>
+                                    <option>GET_UPLOAD_STATUS</option><option>GET_PUBLISH_STATUS</option><option>SEARCH_INVOICE</option><option>PREVIEW_INVOICE</option>
+                                    <option>DOWNLOAD_INVOICE_PDF</option><option>GET_INVOICE_FILE</option><option>SEND_INVOICE_EMAIL</option>
+                                    <option>ADJUST_INVOICE</option><option>CANCEL_INVOICE</option>
+                                </datalist>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div></div>
+                        <div class="col-12 col-lg-3"><div class="row g-1 align-items-center">
+                            <label class="col-md-6 col-form-label col-form-label-sm text-md-end">HTTP Method</label>
+                            <div class="col-md-6"><select name="httpMethod" class="form-select form-select-sm"><option>POST</option><option>GET</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option></select><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-3"><div class="row g-1 align-items-center">
+                            <label class="col-md-6 col-form-label col-form-label-sm text-md-end">Body Type</label>
+                            <div class="col-md-6"><select name="bodyType" class="form-select form-select-sm"><option>JSON</option><option>FORM_URLENCODED</option><option>MULTIPART_FORM_DATA</option><option>SOAP11</option><option>SOAP12</option><option>NONE</option></select><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12"><div class="row g-1 align-items-center">
+                            <label class="col-md-2 col-form-label col-form-label-sm text-md-end">Endpoint Path <span class="text-danger">*</span></label>
+                            <div class="col-md-10"><input type="text" name="endpointPath" class="form-control form-control-sm" maxlength="500" placeholder="/auth/login" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12 col-lg-6"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Content Type</label>
+                            <div class="col-md-8">
+                                <input type="text" name="contentType" list="eop_ctypes" class="form-control form-control-sm" maxlength="100" value="application/json" />
+                                <datalist id="eop_ctypes"><option>application/json</option><option>application/x-www-form-urlencoded</option><option>text/xml; charset=utf-8</option><option>text/plain</option></datalist>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div></div>
+                        <div class="col-12 col-lg-3"><div class="row g-1 align-items-center">
+                            <label class="col-md-6 col-form-label col-form-label-sm text-md-end">Timeout (s)</label>
+                            <div class="col-md-6"><input type="number" name="timeoutSeconds" class="form-control form-control-sm" value="60" min="1" max="600" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-3"><div class="row g-1 align-items-center">
+                            <label class="col-md-6 col-form-label col-form-label-sm text-md-end">Success Codes</label>
+                            <div class="col-md-6"><input type="text" name="successStatusCodes" class="form-control form-control-sm" maxlength="100" placeholder="200,201" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12 col-lg-6"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Authentication Required</label>
+                            <div class="col-md-8"><input type="checkbox" name="isAuthenticationRequired" /></div>
+                        </div></div>
+                        <div class="col-12 col-lg-6"><div class="row g-1 align-items-center">
+                            <label class="col-md-4 col-form-label col-form-label-sm text-md-end">Authentication Operation</label>
+                            <div class="col-md-8"><select name="authenticationOperationID" data-int="1" class="form-select form-select-sm"></select><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12 col-lg-4"><div class="row g-1 align-items-center">
+                            <label class="col-md-6 col-form-label col-form-label-sm text-md-end">External Method</label>
+                            <div class="col-md-6"><input type="text" name="externalMethodCode" class="form-control form-control-sm" maxlength="50" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-4"><div class="row g-1 align-items-center">
+                            <label class="col-md-6 col-form-label col-form-label-sm text-md-end">Action Code (SOAP)</label>
+                            <div class="col-md-6"><input type="text" name="actionCode" class="form-control form-control-sm" maxlength="50" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-4"><div class="row g-1 align-items-center">
+                            <label class="col-md-6 col-form-label col-form-label-sm text-md-end">Display Order</label>
+                            <div class="col-md-6"><input type="number" name="displayOrder" class="form-control form-control-sm" value="0" /></div>
+                        </div></div>
+
+                        <div class="col-12"><div class="row g-1 align-items-start">
+                            <label class="col-md-2 col-form-label col-form-label-sm text-md-end">Description</label>
+                            <div class="col-md-10"><textarea name="description" class="form-control form-control-sm" rows="2" maxlength="500"></textarea><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12"><div class="row g-1">
+                            <div class="col-md-10 offset-md-2"><label class="mb-0 text-danger"><input type="checkbox" name="inactive" /> Inactive</label></div>
+                        </div></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MAPPING FORM ===== -->
+<div class="modal fade" id="eop_mapModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header"><h6 class="modal-title" id="eop_mapTitle">Mapping</h6></div>
+            <div class="modal-body">
+                <div class="search-filter mb-2">
+                    <button type="button" id="eop_mapSave" class="mui-button mui-button-save">Save</button>
+                    <button type="button" data-bs-dismiss="modal" class="mui-button mui-button-close">Close</button>
+                </div>
+                <form id="eop_mapForm" novalidate>
+                    <input type="hidden" name="id" value="0" />
+                    <div class="row g-2">
+                        <div class="col-12 col-lg-3"><div class="row g-1 align-items-center">
+                            <label class="col-md-5 col-form-label col-form-label-sm text-md-end">Location <span class="text-danger">*</span></label>
+                            <div class="col-md-7"><select name="mappingLocation" class="form-select form-select-sm"><option>BODY</option><option>HEADER</option><option>QUERY</option><option>PATH</option><option>FORM</option><option>RESPONSE</option></select><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-9"><div class="row g-1 align-items-center">
+                            <label class="col-md-2 col-form-label col-form-label-sm text-md-end">Target Path <span class="text-danger">*</span></label>
+                            <div class="col-md-10"><input type="text" name="targetPath" class="form-control form-control-sm" maxlength="500" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12 col-lg-3"><div class="row g-1 align-items-center">
+                            <label class="col-md-5 col-form-label col-form-label-sm text-md-end">Source Type <span class="text-danger">*</span></label>
+                            <div class="col-md-7"><select name="sourceType" class="form-select form-select-sm">
+                                <option>INVOICE</option><option>INVOICEDETAIL</option><option>CONFIG</option><option>STATIC</option><option>CONSTANT</option><option>SYSTEM</option>
+                                <option>RESPONSE</option><option>COLLECTION</option><option>DOCUMENT</option><option>CUSTOM</option><option>PROPERTY</option><option>SESSION</option>
+                            </select><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-9"><div class="row g-1 align-items-start">
+                            <label class="col-md-2 col-form-label col-form-label-sm text-md-end">Source Value</label>
+                            <div class="col-md-10"><textarea name="sourceValue" class="form-control form-control-sm" rows="3"></textarea><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12 col-lg-3"><div class="row g-1 align-items-center">
+                            <label class="col-md-5 col-form-label col-form-label-sm text-md-end">Data Type</label>
+                            <div class="col-md-7"><select name="dataType" class="form-select form-select-sm">
+                                <option>STRING</option><option>INT</option><option>INTEGER</option><option>DECIMAL</option><option>BOOLEAN</option><option>BOOL</option>
+                                <option>DATE</option><option>DATETIME</option><option>ARRAY</option><option>OBJECT</option><option>UNIX_MILLISECONDS</option>
+                            </select><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-9"><div class="row g-1 align-items-center">
+                            <label class="col-md-2 col-form-label col-form-label-sm text-md-end">Default Value</label>
+                            <div class="col-md-10"><input type="text" name="defaultValue" class="form-control form-control-sm" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12 col-lg-4"><div class="row g-1 align-items-center">
+                            <label class="col-md-5 col-form-label col-form-label-sm text-md-end">Format String</label>
+                            <div class="col-md-7"><input type="text" name="formatString" class="form-control form-control-sm" maxlength="100" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-4"><div class="row g-1 align-items-center">
+                            <label class="col-md-5 col-form-label col-form-label-sm text-md-end">Prefix</label>
+                            <div class="col-md-7"><input type="text" name="prefixValue" class="form-control form-control-sm" maxlength="200" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-4"><div class="row g-1 align-items-center">
+                            <label class="col-md-5 col-form-label col-form-label-sm text-md-end">Suffix</label>
+                            <div class="col-md-7"><input type="text" name="suffixValue" class="form-control form-control-sm" maxlength="200" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+
+                        <div class="col-12 col-lg-3"><div class="row g-1 align-items-center">
+                            <label class="col-md-5 col-form-label col-form-label-sm text-md-end">Display Order</label>
+                            <div class="col-md-7"><input type="number" name="displayOrder" class="form-control form-control-sm" value="0" min="0" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-9"><div class="d-flex flex-wrap gap-4 pt-1">
+                            <label class="mb-0"><input type="checkbox" name="isRequired" /> Required</label>
+                            <label class="mb-0"><input type="checkbox" name="omitWhenNull" checked /> Omit When Null</label>
+                            <label class="mb-0 text-danger"><input type="checkbox" name="inactive" /> Inactive</label>
+                        </div></div>
+
+                        <div class="col-12"><div class="eop-cond-title fw-semibold small mt-1">Condition (optional)</div></div>
+                        <div class="col-12 col-lg-3"><div class="row g-1 align-items-center">
+                            <label class="col-md-5 col-form-label col-form-label-sm text-md-end">Source Type</label>
+                            <div class="col-md-7"><select name="conditionSourceType" class="form-select form-select-sm">
+                                <option value=""></option><option>INVOICE</option><option>INVOICEDETAIL</option><option>CONFIG</option><option>STATIC</option><option>CONSTANT</option><option>SYSTEM</option><option>RESPONSE</option><option>CUSTOM</option><option>PROPERTY</option><option>SESSION</option>
+                            </select><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-3"><div class="row g-1 align-items-center">
+                            <label class="col-md-5 col-form-label col-form-label-sm text-md-end">Source Value</label>
+                            <div class="col-md-7"><input type="text" name="conditionSourceValue" class="form-control form-control-sm" maxlength="500" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-3"><div class="row g-1 align-items-center">
+                            <label class="col-md-5 col-form-label col-form-label-sm text-md-end">Operator</label>
+                            <div class="col-md-7"><select name="conditionOperator" class="form-select form-select-sm">
+                                <option value=""></option><option>=</option><option>==</option><option>!=</option><option>&gt;</option><option>&gt;=</option><option>&lt;</option><option>&lt;=</option>
+                                <option>CONTAINS</option><option>STARTSWITH</option><option>ENDSWITH</option><option>ISNULL</option><option>ISNOTNULL</option>
+                            </select><div class="invalid-feedback"></div></div>
+                        </div></div>
+                        <div class="col-12 col-lg-3"><div class="row g-1 align-items-center">
+                            <label class="col-md-5 col-form-label col-form-label-sm text-md-end">Expected</label>
+                            <div class="col-md-7"><input type="text" name="conditionExpectedValue" class="form-control form-control-sm" maxlength="500" /><div class="invalid-feedback"></div></div>
+                        </div></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var eip_Module = (function () {
+
+        let providerModal = null;
+        let fieldModal = null;
+        let optionModal = null;
+
+        let gridProvider = null;
+        let gridField = null;
+        let gridOption = null;
+
+        let selProvider = null;
+        let selField = null;
+        let selOption = null;
+
+        const csrf = () => ({ "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() });
+
+        function initModal(el) {
+            return el ? bootstrap.Modal.getOrCreateInstance(el, { backdrop: "static", keyboard: false }) : null;
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Khởi tạo trang
+        // ---------------------------------------------------------------------------------------
+        function start() {
+            providerModal = initModal(document.getElementById("eip_providerModal"));
+            fieldModal = initModal(document.getElementById("eip_fieldModal"));
+            optionModal = initModal(document.getElementById("eip_optionModal"));
+            bindEvents();
+            loadProviders();
+        }
+
+        function bindEvents() {
+            $("#eip_btnProviderNew").on("click", function () { openProvider(null); });
+            $("#eip_btnProviderRefresh").on("click", function () { loadProviders(); });
+            $("#eip_providerSave").on("click", saveProvider);
+
+            $("#eip_btnFieldNew").on("click", function () {
+                if (!selProvider) return showToast("Warning", "Please select a provider first.", false);
+                openField(null);
+            });
+            $("#eip_btnFieldRefresh").on("click", function () { loadFields(); });
+            $("#eip_fieldSave").on("click", saveField);
+
+            $("#eip_btnOptionNew").on("click", function () {
+                if (!selField) return showToast("Warning", "Please select a field first.", false);
+                openOption(null);
+            });
+            $("#eip_btnOptionRefresh").on("click", function () { loadOptions(); });
+            $("#eip_optionSave").on("click", saveOption);
+        }
+
+        // Nút theo ngữ cảnh chỉ bật khi đã chọn dòng cha (như PMSH_Web)
+        function syncButtons() {
+            $("#eip_btnFieldNew, #eip_btnFieldRefresh").prop("disabled", !selProvider);
+            $("#eip_btnOptionNew, #eip_btnOptionRefresh").prop("disabled", !selField);
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Lưới
+        // ---------------------------------------------------------------------------------------
+        function get(url, data) {
+            return $.ajax({ url: url, type: "GET", data: data, headers: csrf() });
+        }
+
+        function failToast(xhr, fallback) {
+            const m = xhr && xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : fallback;
+            showToast("Error", m, false);
+        }
+
+        function makeGrid(selector, columns, onSelect, rows, placeholder, onEdit) {
+            return $(selector).dxDataGrid({
+                dataSource: rows || [],
+                keyExpr: "ID",
+                showBorders: true,
+                height: 420,
+                width: "100%",
+                allowColumnResizing: true,
+                columnAutoWidth: true,
+                hoverStateEnabled: true,
+                selection: { mode: "single" },
+                filterRow: { visible: false },
+                searchPanel: { visible: true, width: 260, placeholder: placeholder || "Search..." },
+                paging: { pageSize: 20 },
+                pager: { visible: true, showPageSizeSelector: true, allowedPageSizes: [20, 50, 100], showInfo: true, showNavigationButtons: true },
+                scrolling: { mode: "standard", showScrollbar: "onHover" },
+                columns: onEdit ? columns.concat([{ type: "buttons", width: 50, buttons: [{ hint: "Edit", icon: "edit", onClick: function (e) { onEdit(e.row.data); } }] }]) : columns,
+                onRowDblClick: function (e) { if (onEdit) onEdit(e.data); },
+                onSelectionChanged: function (e) { onSelect(e.selectedRowsData.length ? e.selectedRowsData[0] : null); syncButtons(); }
+            }).dxDataGrid("instance");
+        }
+
+        function flagCol(field, caption, w) {
+            return { dataField: field, caption: caption, width: w || 70, dataType: "boolean", alignment: "center" };
+        }
+
+        function loadProviders(keepId) {
+            const wantId = typeof keepId === "number" ? keepId : (selProvider ? selProvider.ID : 0);
+            get("/EInvoiceProvider/ProviderData").done(function (res) {
+                const rows = res.data || [];
+                if (gridProvider) { try { gridProvider.dispose(); } catch { } }
+                gridProvider = makeGrid("#eip_gridProvider", [
+                    { dataField: "ID", visible: false },
+                    { dataField: "Code", caption: "Provider Code", width: 110 },
+                    { dataField: "Name", caption: "Provider Name", width: 140 },
+                    { dataField: "Description", caption: "Description", minWidth: 200 },
+                    flagCol("Inactive", "Inactive", 70)
+                ], function (row) {
+                    selProvider = row;
+                    selField = null; selOption = null;
+                    $("#eip_lblProvider").text(row ? row.Code : "None");
+                    if (window.eop_Module) eop_Module.setProvider(row ? row.ID : 0, row ? row.Code : "");
+                    $("#eip_lblField").text("None");
+                    if (row) loadFields(); else { renderFields([]); renderOptions([]); }
+                }, rows, "Search...", openProvider);
+                selProvider = null;
+                if (rows.length) gridProvider.selectRows([wantId && rows.some(r => r.ID === wantId) ? wantId : rows[0].ID], false);
+                else { renderFields([]); renderOptions([]); }
+            }).fail(function (xhr) { failToast(xhr, "Unable to load providers."); });
+        }
+
+        function loadFields(keepId) {
+            if (!selProvider) return renderFields([]);
+            const wantId = typeof keepId === "number" ? keepId : (selField ? selField.ID : 0);
+            get("/EInvoiceProvider/FieldData", { providerId: selProvider.ID }).done(function (res) {
+                const rows = res.data || [];
+                renderFields(rows);
+                if (rows.length) gridField.selectRows([wantId && rows.some(r => r.ID === wantId) ? wantId : rows[0].ID], false);
+                else renderOptions([]);
+            }).fail(function (xhr) { failToast(xhr, "Unable to load fields."); });
+        }
+
+        function renderFields(rows) {
+            if (gridField) { try { gridField.dispose(); } catch { } }
+            selField = null; selOption = null;
+            syncButtons();
+            gridField = makeGrid("#eip_gridField", [
+                { dataField: "ID", visible: false },
+                { dataField: "FieldCode", caption: "Field Code", width: 170 },
+                { dataField: "DisplayName", caption: "Display Name", width: 150 },
+                { dataField: "DataType", caption: "Data Type", width: 80 },
+                { dataField: "ControlType", caption: "Control", width: 80 },
+                flagCol("IsRequired", "Required", 70),
+                flagCol("IsEncrypted", "Encrypted", 75),
+                flagCol("IsReadOnly", "R/O", 55),
+                { dataField: "GroupName", caption: "Group", width: 130 },
+                { dataField: "DisplayOrder", caption: "Order", width: 60 },
+                { dataField: "ColumnWidth", caption: "Width", width: 60 },
+                flagCol("Inactive", "Inactive", 65)
+            ], function (row) {
+                selField = row; selOption = null;
+                $("#eip_lblField").text(row ? row.FieldCode : "None");
+                if (row) loadOptions(); else renderOptions([]);
+            }, rows, "Search fields...", openField);
+        }
+
+        function loadOptions(keepId) {
+            if (!selField) return renderOptions([]);
+            get("/EInvoiceProvider/OptionData", { fieldId: selField.ID }).done(function (res) {
+                renderOptions(res.data || []);
+            }).fail(function (xhr) { failToast(xhr, "Unable to load options."); });
+        }
+
+        function renderOptions(rows) {
+            if (gridOption) { try { gridOption.dispose(); } catch { } }
+            selOption = null;
+            syncButtons();
+            gridOption = makeGrid("#eip_gridOption", [
+                { dataField: "ID", visible: false },
+                { dataField: "OptionValue", caption: "Value", width: 130 },
+                { dataField: "OptionText", caption: "Display Text" },
+                flagCol("IsDefault", "Default", 70),
+                { dataField: "DisplayOrder", caption: "Order", width: 60 },
+                flagCol("Inactive", "Inactive", 70)
+            ], function (row) { selOption = row; }, rows, "Search options...", openOption);
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Form chung: nạp / đọc giá trị theo thuộc tính name của input
+        // ---------------------------------------------------------------------------------------
+        function fillForm(formSel, data, defaults) {
+            const $f = $(formSel);
+            applyValidationErrors([], formSel);
+            $f.find("[name]").each(function () {
+                const key = this.name;
+                // Tên input theo camelCase, dữ liệu lưới theo PascalCase
+                const pascal = key === "id" ? "ID" : key.charAt(0).toUpperCase() + key.slice(1);
+                let v = data ? data[pascal] : (defaults && key in defaults ? defaults[key] : undefined);
+                if (this.type === "checkbox") this.checked = v === true || v === 1;
+                else if (v === undefined || v === null) this.value = (defaults && key in defaults) ? defaults[key] : "";
+                else this.value = v;
+            });
+        }
+
+        function readForm(formSel) {
+            const o = {};
+            $(formSel).find("[name]").each(function () {
+                if (this.type === "checkbox") o[this.name] = this.checked;
+                else if (this.type === "number") o[this.name] = this.value === "" ? null : Number(this.value);
+                else if (this.tagName === "SELECT" && this.name === "columnWidth") o[this.name] = Number(this.value);
+                else o[this.name] = this.value;
+            });
+            o.id = Number(o.id) || 0;
+            return o;
+        }
+
+        function post(url, payload, formSel, modal, after) {
+            $.ajax({
+                url: url, type: "POST", contentType: "application/json", data: JSON.stringify(payload), headers: csrf()
+            }).done(function (res) {
+                if (res.success) {
+                    showToast("Success", res.message, true);
+                    if (modal) modal.hide();
+                    after(res.data ? res.data.id : 0);
+                } else {
+                    applyValidationErrors(res.errors || [], formSel);
+                    showToast("Error", (res.errors && res.errors.length ? res.errors[0].message : res.message) || "Save failed.", false);
+                }
+            }).fail(function (xhr) { failToast(xhr, "Save failed."); });
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Provider
+        // ---------------------------------------------------------------------------------------
+        function openProvider(row) {
+            fillForm("#eip_providerForm", row, { id: 0 });
+            $("#eip_providerTitle").text(row ? "Edit Provider" : "New Provider");
+            providerModal.show();
+        }
+
+        function saveProvider() {
+            post("/EInvoiceProvider/ProviderSave", readForm("#eip_providerForm"), "#eip_providerForm", providerModal, function (id) { loadProviders(id); });
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Field
+        // ---------------------------------------------------------------------------------------
+        function openField(row) {
+            fillForm("#eip_fieldForm", row, { id: 0, dataType: "String", controlType: "Text", columnWidth: 6, displayOrder: 0 });
+            $("#eip_fieldTitle").text((row ? "Edit Field" : "New Field") + " - " + selProvider.Code);
+            fieldModal.show();
+        }
+
+        function saveField() {
+            const payload = readForm("#eip_fieldForm");
+            payload.providerID = selProvider.ID;
+            post("/EInvoiceProvider/FieldSave", payload, "#eip_fieldForm", fieldModal, function (id) { loadFields(id); });
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Option
+        // ---------------------------------------------------------------------------------------
+        function openOption(row) {
+            fillForm("#eip_optionForm", row, { id: 0, displayOrder: 0 });
+            $("#eip_optionTitle").text((row ? "Edit Option" : "New Option") + " - " + selField.FieldCode);
+            optionModal.show();
+        }
+
+        function saveOption() {
+            const payload = readForm("#eip_optionForm");
+            payload.providerFieldID = selField.ID;
+            post("/EInvoiceProvider/OptionSave", payload, "#eip_optionForm", optionModal, function () { loadOptions(); });
+        }
+
+        return { start };
+    })();
+
+    $(function () { eip_Module.start(); });
+</script>
+
+<script>
+    var eop_Module = (function () {
+
+        let opModal = null, mapModal = null;
+        let gridOp = null, gridMap = null;
+        let selOp = null, selMap = null;
+        let providerId = 0, providerCode = "";      // Provider đang chọn ở khung phía trên
+        let ops = [];          // danh sách Operation của Provider đang chọn (dùng cho combo Authentication Operation)
+        let allMaps = [];      // Mapping của Operation đang chọn (lọc theo Location ở phía client)
+
+        const csrf = () => ({ "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() });
+
+        function initModal(el) {
+            return el ? bootstrap.Modal.getOrCreateInstance(el, { backdrop: "static", keyboard: false }) : null;
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Khởi tạo trang
+        // ---------------------------------------------------------------------------------------
+        function start() {
+            opModal = initModal(document.getElementById("eop_opModal"));
+            mapModal = initModal(document.getElementById("eop_mapModal"));
+            bindEvents();
+            syncButtons();
+        }
+
+        function bindEvents() {
+            $("#eop_btnOpRefresh").on("click", function () { loadOps(); });
+            $("#eop_mapLocFilter").on("change", function () { renderMaps(); });
+            $("#eop_btnMapRefresh").on("click", function () { loadMaps(); });
+
+            $("#eop_btnOpNew").on("click", function () {
+                if (!providerId) return showToast("Warning", "Please select a provider.", false);
+                openOp(null);
+            });
+            $("#eop_opSave").on("click", saveOp);
+
+            $("#eop_btnMapNew").on("click", function () {
+                if (!selOp) return showToast("Warning", "Please select an operation first.", false);
+                openMap(null);
+            });
+            $("#eop_mapSave").on("click", saveMap);
+        }
+
+        // Nút Mapping chỉ bật khi đã chọn Operation
+        function syncButtons() {
+            $("#eop_btnMapNew, #eop_btnMapRefresh").prop("disabled", !selOp);
+            $("#eop_btnOpNew, #eop_btnOpRefresh").prop("disabled", !providerId);
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Dữ liệu và lưới
+        // ---------------------------------------------------------------------------------------
+        function get(url, data) { return $.ajax({ url: url, type: "GET", data: data, headers: csrf() }); }
+
+        function failToast(xhr, fallback) {
+            const m = xhr && xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : fallback;
+            showToast("Error", m, false);
+        }
+
+        function makeGrid(selector, columns, onSelect, rows, extra, onEdit) {
+            return $(selector).dxDataGrid(Object.assign({
+                dataSource: rows || [],
+                keyExpr: "ID",
+                showBorders: true,
+                height: 460,
+                width: "100%",
+                allowColumnResizing: true,
+                columnAutoWidth: true,
+                hoverStateEnabled: true,
+                selection: { mode: "single" },
+                filterRow: { visible: false },
+                searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+                paging: { pageSize: 100 },
+                scrolling: { mode: "standard", showScrollbar: "onHover" },
+                columns: onEdit ? columns.concat([{ type: "buttons", width: 50, buttons: [{ hint: "Edit", icon: "edit", onClick: function (e) { onEdit(e.row.data); } }] }]) : columns,
+                onRowDblClick: function (e) { if (onEdit) onEdit(e.data); },
+                onSelectionChanged: function (e) { onSelect(e.selectedRowsData.length ? e.selectedRowsData[0] : null); syncButtons(); }
+            }, extra || {})).dxDataGrid("instance");
+        }
+
+        function flagCol(field, caption, w) {
+            return { dataField: field, caption: caption, width: w || 65, dataType: "boolean", alignment: "center" };
+        }
+
+        // Gọi từ khung Provider phía trên mỗi khi đổi dòng nhà cung cấp
+        function setProvider(id, code) {
+            providerId = Number(id) || 0;
+            providerCode = code || "";
+            selOp = null; selMap = null;
+            $("#eop_lblProvider").text(providerCode || "None");
+            syncButtons();
+            loadOps();
+        }
+
+        function loadOps(keepId) {
+            const pid = providerId;
+            const wantId = typeof keepId === "number" ? keepId : (selOp ? selOp.ID : 0);
+            if (!pid) { ops = []; renderOps([]); return; }
+            get("/EInvoiceProvider/OperationData", { providerId: pid }).done(function (res) {
+                ops = res.data || [];
+                renderOps(ops);
+                if (ops.length) gridOp.selectRows([wantId && ops.some(o => o.ID === wantId) ? wantId : ops[0].ID], false);
+            }).fail(function (xhr) { failToast(xhr, "Unable to load operations."); });
+        }
+
+        function renderOps(rows) {
+            if (gridOp) { try { gridOp.dispose(); } catch { } }
+            selOp = null;
+            gridOp = makeGrid("#eop_gridOp", [
+                { dataField: "ID", visible: false },
+                { dataField: "OperationCode", caption: "Operation Code" },
+                { dataField: "BusinessActionCode", caption: "Business Action", width: 150 },
+                { dataField: "HttpMethod", caption: "Method", width: 65 },
+                { dataField: "BodyType", caption: "Body", width: 95 },
+                { dataField: "AuthOperationCode", caption: "Auth Op", width: 110 },
+                { dataField: "MappingCount", caption: "Maps", width: 55 },
+                { dataField: "RuleCount", caption: "Rules", width: 55 },
+                flagCol("Inactive", "Inactive", 65)
+            ], function (row) {
+                selOp = row; selMap = null;
+                $("#eop_lblOp").text(row ? row.OperationCode : "None");
+                if (row) { loadMaps(); } else { allMaps = []; renderMaps(); }
+            }, rows, undefined, openOp);
+            if (!rows.length) { allMaps = []; renderMaps(); }
+        }
+
+        function loadMaps(keepId) {
+            if (!selOp) { allMaps = []; renderMaps(); return; }
+            const wantId = typeof keepId === "number" ? keepId : (selMap ? selMap.ID : 0);
+            get("/EInvoiceProvider/MappingData", { operationId: selOp.ID }).done(function (res) {
+                allMaps = res.data || [];
+                renderMaps();
+                if (wantId && gridMap && allMaps.some(m => m.ID === wantId)) gridMap.selectRows([wantId], false);
+            }).fail(function (xhr) { failToast(xhr, "Unable to load mappings."); });
+        }
+
+        function renderMaps() {
+            if (gridMap) { try { gridMap.dispose(); } catch { } }
+            selMap = null;
+            const loc = $("#eop_mapLocFilter").val();
+            const rows = loc ? allMaps.filter(m => m.MappingLocation === loc) : allMaps;
+            syncButtons();
+            gridMap = makeGrid("#eop_gridMap", [
+                { dataField: "ID", visible: false },
+                { dataField: "MappingLocation", caption: "Location", width: 80 },
+                { dataField: "TargetPath", caption: "Target Path", minWidth: 200 },
+                { dataField: "SourceType", caption: "Source", width: 105 },
+                { dataField: "SourceValue", caption: "Source Value", minWidth: 160 },
+                { dataField: "DataType", caption: "Type", width: 80 },
+                { dataField: "DefaultValue", caption: "Default", width: 90 },
+                flagCol("IsRequired", "Req.", 50),
+                flagCol("OmitWhenNull", "Omit", 50),
+                { dataField: "DisplayOrder", caption: "Order", width: 55 },
+                flagCol("Inactive", "Inactive", 65)
+            ], function (row) { selMap = row; }, rows, undefined, openMap);
+        }
+
+
+        // ---------------------------------------------------------------------------------------
+        //  Form chung
+        // ---------------------------------------------------------------------------------------
+        function fillForm(formSel, data, defaults) {
+            applyValidationErrors([], formSel);
+            $(formSel).find("[name]").each(function () {
+                const key = this.name;
+                const pascal = key === "id" ? "ID" : key.charAt(0).toUpperCase() + key.slice(1);
+                const v = data ? data[pascal] : undefined;
+                const d = defaults && key in defaults ? defaults[key] : "";
+                if (this.type === "checkbox") this.checked = data ? (v === true || v === 1) : d === true;
+                else this.value = (v === undefined || v === null) ? (data ? "" : d) : v;
+            });
+        }
+
+        function readForm(formSel) {
+            const o = {};
+            $(formSel).find("[name]").each(function () {
+                if (this.type === "checkbox") o[this.name] = this.checked;
+                else if (this.type === "number" || this.dataset.int) o[this.name] = this.value === "" ? null : Number(this.value);
+                else o[this.name] = this.value;
+            });
+            o.id = Number(o.id) || 0;
+            return o;
+        }
+
+        function post(url, payload, formSel, modal, after) {
+            $.ajax({ url: url, type: "POST", contentType: "application/json", data: JSON.stringify(payload), headers: csrf() })
+                .done(function (res) {
+                    if (res.success) {
+                        showToast("Success", res.message, true);
+                        if (modal) modal.hide();
+                        after(res.data ? res.data.id : 0);
+                    } else {
+                        applyValidationErrors(res.errors || [], formSel);
+                        showToast("Error", (res.errors && res.errors.length ? res.errors[0].message : res.message) || "Save failed.", false);
+                    }
+                }).fail(function (xhr) { failToast(xhr, "Save failed."); });
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Operation
+        // ---------------------------------------------------------------------------------------
+        function openOp(row) {
+            // Combo Authentication Operation: các Operation khác của cùng Provider
+            const $a = $("#eop_opForm [name=authenticationOperationID]").empty().append('<option value=""></option>');
+            ops.filter(o => !row || o.ID !== row.ID).forEach(function (o) { $a.append($("<option>").val(o.ID).text(o.OperationCode)); });
+            fillForm("#eop_opForm", row, { id: 0, httpMethod: "POST", bodyType: "JSON", contentType: "application/json", timeoutSeconds: 60, displayOrder: 0, isAuthenticationRequired: true });
+            $("#eop_opTitle").text((row ? "Edit API" : "New API") + " - " + providerCode);
+            opModal.show();
+        }
+
+        function saveOp() {
+            const payload = readForm("#eop_opForm");
+            payload.providerID = providerId;
+            post("/EInvoiceProvider/OperationSave", payload, "#eop_opForm", opModal, function (id) { loadOps(id); });
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Mapping
+        // ---------------------------------------------------------------------------------------
+        function openMap(row) {
+            fillForm("#eop_mapForm", row, { id: 0, mappingLocation: $("#eop_mapLocFilter").val() || "BODY", sourceType: "INVOICE", dataType: "STRING", displayOrder: 0, omitWhenNull: true });
+            $("#eop_mapTitle").text((row ? "Edit Mapping" : "New Mapping") + " - " + selOp.OperationCode);
+            mapModal.show();
+        }
+
+        function saveMap() {
+            const payload = readForm("#eop_mapForm");
+            payload.operationID = selOp.ID;
+            post("/EInvoiceProvider/MappingSave", payload, "#eop_mapForm", mapModal, function (id) { loadMaps(id); loadOpsCountOnly(); });
+        }
+
+        // Cập nhật lại cột Maps/Rules của lưới Operation mà không đổi dòng đang chọn
+        function loadOpsCountOnly() {
+            const pid = providerId;
+            if (!pid || !selOp) return;
+            const keep = selOp.ID;
+            get("/EInvoiceProvider/OperationData", { providerId: pid }).done(function (res) {
+                ops = res.data || [];
+                const cur = ops.find(o => o.ID === keep);
+                if (cur && gridOp) gridOp.option("dataSource", ops);
+            });
+        }
+
+        return { start, setProvider };
+    })();
+
+    $(function () { eop_Module.start(); });
+</script>
