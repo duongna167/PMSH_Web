@@ -1,653 +1,458 @@
-﻿@using DevExpress.XtraReports.UI
-@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
-    var selectedReport = @ViewBag.ReportHeader;
-    var trans = ViewBag.TransactionsList;
-    var dpm = ViewBag.DepartmentList;
-    var userInsertID = Context.Session.GetInt32("UserID") ?? 0;
-}
+﻿@* Item List (Room Management): danh sách Item, thêm / sửa / xóa Item, mở Item Daily Inventory.
+   Popup theo chuẩn của dự án (ModalManager + mui-button), logic tương ứng màn frmItemList / frmItemManagement của PMS desktop. *@
 
-
-<style>
-
-
-    .dx-datagrid-headers .dx-header-row td {
-        white-space: pre-line !important;
-        text-align: center;
-        font-size: 11px;
-    }
-
-
-    .dx-datagrid .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default, .dx-datagrid-container .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default {
-        display: none;
-    }
-
-
-    .filter_wrapper {
-        /*     background-color: #ececec; */
-        /*   margin: 0px 8px 14px 8px; */
-        padding: 18px 0px 0px 14px;
-        border-radius: 8px;
-    }
-
-    .gridContainer {
-        margin: 0px 8px;
-    }
-       
-    .button_wrapper {
-        display: flex;
-        column-gap: 12px;
-        margin: 0px 8px;
-    }
-
-        .button_wrapper .fa-solid {
-            margin-right: 5px;
-        }
-
-    .selected {
-        background-color: #4CAF50; /* Màu xanh */
-        color: white;
-    }
-
-    .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
-    }
-
-    .sticky-header label[class*="me-"] {
-        margin-right: .5rem !important;
-    }
-
-
-
-    .sticky-header input[type="date"].form-control-sm {
-        font-size: 12px !important; /* dúng 12?px */
-        height: calc(1.1em + .2rem + 2px); /* gi? cùng chi?u cao */
-    }
-
-    .sticky-header label {
-        font-size: 12px !important;
-        line-height: 1.2;
-    }
-
-
-    .sort-select {
-        max-width: 130px; /* ho?c 100px n?u mu?n nh? hon */
-        font-size: 12px;
-        padding: 0.15rem 0.5rem;
-    }
-
-    .sort-select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-image: none !important;
-        padding-right: 10px !important;
-    }
-
-    button:disabled {
-        pointer-events: none; /* Không cho hover/click */
-        opacity: 0.6; /* Cho nó mờ đi */
-        cursor: not-allowed; /* Hiện con trỏ cấm */
-        background-color: #ccc !important; /* tuỳ chỉnh màu khi disable */
-    }
-
-    .tomselect-custom {
-        width: 100px;
-        min-height: 30px; /* hoặc tùy theo chiều cao bạn muốn */
-        font-size: 12px !important;
-    
-    }
-
-        .tomselect-custom .ts-control {
-            padding-left: 8px !important; /* hoặc bất kỳ giá trị nào bạn muốn */
-        }
-
-    #groupCode.form-control-sm,
-    #subGroupCode.form-control-sm {
-        height: 26px !important; /* chiều cao nhỏ */
-        font-size: 12px !important; /* chữ nhỏ */
-        padding: 2px 6px !important; /* padding nhỏ */
-        line-height: 1.2 !important; /* căn giữa chữ */
-        max-width: 180px; /* chiều rộng vừa phải */
-    }
-
-    .hide-band .dx-datagrid-bands > tr:first-child {
-        display: none !important;
-    }
-
-    .shift-header {
-        background: #f2f2f2;
-        padding: 8px 12px;
-        border-bottom: 1px solid #ccc;
-        font-size: 13px;
-    }
-
-        .shift-header .row {
-            display: flex;
-            justify-content: flex-start;
-            margin-bottom: 4px;
-        }
-
-            .shift-header .row div {
-                flex: 1; /* chia đều các cột */
-                min-width: 150px; /* giữ cho không quá hẹp */
-            }
-
-        .shift-header i {
-            font-style: italic;
-            color: #333;
-        }
-
-        .shift-header b {
-            font-weight: bold;
-            margin-left: 4px;
-        }
-
-    .dx-popup-title {
-        text-align: center !important;
-        width: 100%;
-    }
-
-    /* Áp dụng cho tất cả text trong grid popup */
-    #popupShiftDetail .dx-datagrid {
-        font-size: 12px !important;
-    }
-
-        /* Nếu vẫn không ăn, target chi tiết hơn */
-        #popupShiftDetail .dx-datagrid .dx-row > td,
-        #popupShiftDetail .dx-datagrid .dx-header-row > td {
-            font-size: 12px !important;
-        }
-
-    #fromCurrency {
-        font-size: 12px; /* nhỏ chữ */
-        padding: 2px 6px; /* thu gọn khoảng cách */
-        height: auto; /* tránh Bootstrap ép chiều cao */
-    }
-
-    #toCurrency {
-        font-size: 12px; /* nhỏ chữ */
-        padding: 2px 6px; /* thu gọn khoảng cách */
-        height: auto; /* tránh Bootstrap ép chiều cao */
-    }
-
-    input[type=number]::-webkit-inner-spin-button,
-    input[type=number]::-webkit-outer-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-
-    /* Ẩn mũi tên trong Firefox */
-    input[type=number] {
-        -moz-appearance: textfield;
-        text-align: right;
-    }
-
-    #gridExchangeRate .dx-datagrid-headers td,
-    #gridExchangeRate .dx-datagrid-rowsview td,
-    #gridExchangeRate .dx-datagrid-filter-row td {
-        font-size: 12px !important;
-        padding: 2px 4px !important;
-        line-height: 1.2 !important;
-    }
-
-    .custom-modal-width {
-        max-width: 1000px; /* hoặc 1100px, tùy ý */
-    }
-
-    .modal.show {
-        overflow-y: auto !important;
-    }
-
-    .ts-dropdown {
-        max-height: 400px !important; /* Tăng lên bao nhiêu tùy ý, miễn không tràn màn hình */
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        z-index: 9999 !important;
-    }
-
-    .swal-small {
-        width: 300px !important; /* thu nhỏ chiều rộng */
-        font-size: 14px !important; /* giảm cỡ chữ */
-        padding: 15px !important; /* giảm padding */
-    }
-
-    .swal2-title {
-        font-size: 16px !important;
-    }
-
-    .swal2-html-container {
-        font-size: 14px !important;
-    }
-
-    .swal2-confirm, .swal2-cancel {
-        font-size: 13px !important;
-        padding: 4px 10px !important;
-    }
-</style>
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<!-- SweetAlert2 CSS & JS -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<div class="text-center" id="reportTitle" style="font-size: 20px">Item List</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-        <div class="d-flex align-items-center me-3">
-            <label class="me-2 mb-0">Item Group:</label>
-            <select id="itemGroup" name="itemGroup" class="form-control form-control-sm w-auto">
-                <option value="0">--All--</option>
-                <option value="1">Recreational</option>
-                <option value="2">Audiovisual</option>
-                <option value="3">Cocktail</option>
-                <option value="4">Decoration</option>
-                <option value="5">Room</option>
-            </select>
-        </div>
-        <div class="d-flex align-items-center me-2">
-            <label class="me-2 mb-0">Item Name:</label>
-            <input style="width: 80px;" type="text" id="itemName" name="itemName" class="form-control form-control-sm " />
-        </div>
-        
-    </div>
-    <div class="">
-        <button   id="btnView" class="mui-button mui-button-new"> View</button>
-        <button   id="btnNew" class="mui-button mui-button-new" type="button">  New</button>
-        <button   id="btnEdit" class="mui-button mui-button-new"> Edit</button>
-        <button   id="btnDelete" class="mui-button mui-button-new"> Delete</button>
-    </div>
-</div>
-
-<div class="mui-card">
-
-    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
-        <div class="gridContainer" id="gridContainer"></div>
-    </div>
-</div>
-<!-- Modal Popup for New Item -->
-<div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl custom-modal-width">
-        <!-- modal-lg để form rộng hơn -->
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="itemModalLabel">New Item</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal fade" id="ils_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Item List</h5>
             </div>
-            <div class="modal-body">
-             
-                <form id="itemForm">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-                                <div class="">
-                                    <label class="">Transaction Code:</label>
-                                    <select id="transactionCode" class="tomselect-custom" style="width: 457px;" multiple>
-                         
-                                        @foreach (var tr in ViewBag.TransactionsList)
-                                        {
-                                            <option value="@tr.Code">@tr.Code - @tr.Description</option>
-                                        }
-                                    </select>
-                                </div>
-                            <label>Group</label>
-                                <select id="groupId" name="group" class="form-select mb-2">
-                                    <option>--Chose One--</option>
-                                    <option value="1">Recreational</option>
-                                    <option value="2">Audiovisual</option>
-                                    <option value="3">Cocktail</option>
-                                    <option value="4">Decoration</option>
-                                    <option value="5">Room</option>
-                            </select>
-                            <label>Code</label>
-                            <input type="text" id="code" class="form-control mb-2" />
-                            <label>Name</label>
-                            <input type="text" id="name" class="form-control mb-2" />
-                            <label>Description</label>
-                            <textarea id="description" class="form-control mb-2"></textarea>
-                                <div class="">
-                                    <label class="">Department:</label>
-                                    <select id="department" class="form-control form-control-sm" style="width: 457px;">
-                                        <option value="">---Select Department---</option>
-                                        @foreach (var dpm in ViewBag.DepartmentList)
-                                        {
-                                            <option value="@dpm.ID">@dpm.Code - @dpm.Name</option>
-                                        }
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button id="ils_btnSearch" class="mui-button mui-button-view" data-action="rmg_ItemListView">Search</button>
+                    <button id="ils_btnNew" class="mui-button mui-button-new" data-action="rmg_ItemListNew">New</button>
+                    <button id="ils_btnEdit" class="mui-button mui-button-edit" data-action="rmg_ItemListEdit">Edit</button>
+                    <button id="ils_btnDelete" class="mui-button mui-button-delete" data-action="rmg_ItemListDelete">Delete</button>
+                    <button id="ils_btnDailyInv" class="mui-button mui-button-new" data-action="rmg_ItemListDailyInv">Daily Inv</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
+                    <div class="p-2 flex-shrink-0">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-xl-3 col-lg-4 col-md-6">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 fw-semibold text-nowrap">Item Group:</label>
+                                    <select id="ils_group" class="form-select form-select-sm flex-grow-1">
+                                        <option value="0">--All--</option>
                                     </select>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-6 ">
-                            <div style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-                            <label>Quantity in Stock</label>
-                            <input id="qins" type="number" class="form-control mb-2" />
-                            <label>Default Quantity</label>
-                            <input id="default" type="number" class="form-control mb-2" />
-                            <label>Available From</label>                           
-                                <input id="availableFrom" type="text" class="form-control mb-2" />
-                            <label>Available To</label>                            
-                                <input id="availableTo" type="text" class="form-control mb-2" />
-                            <label>Setup Time</label>
-                            <input id="setupTime"type="text" class="form-control mb-2" />
-                            <label>Setdown Time</label>
-                            <input id="setdownTime" type="text" class="form-control mb-2" />
+                            <div class="col-xl-3 col-lg-4 col-md-6">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 fw-semibold text-nowrap">Item Name:</label>
+                                    <input type="text" id="ils_itemNameFilter" class="form-control form-control-sm flex-grow-1" autocomplete="off" />
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <label>Trace Text</label>
-                    <textarea id="traceText" class="form-control mt-2"></textarea>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" id="btnSaveItem" class="btn btn-primary">Save</button>
+
+                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1 overflow-auto">
+                        <div id="ils_grid"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
+<!-- ===== Form thêm / sửa Item ===== -->
+<div class="modal fade" id="ils_itemModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ils_itemModalLabel">Item Management</h5>
+            </div>
+
+            <div class="modal-body">
+                <div class="py-2 d-flex gap-2">
+                    <button type="button" id="ils_btnSave" class="mui-button mui-button-save">Save</button>
+                    <button type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <form id="ils_form" novalidate autocomplete="off">
+                    <input type="hidden" id="ils_id" value="0" />
+                    <div class="container-fluid px-2">
+                        <div class="row g-4">
+
+                            <!-- Trái: thông tin chung -->
+                            <div class="col-12 col-lg-6">
+                                <div class="row mb-3 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold">Group <span class="text-danger">*</span></label>
+                                    <div class="col-12 col-md-8">
+                                        <select id="ils_formGroup" name="group" class="tomselect-custom w-100"></select>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold">Code</label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" id="ils_code" name="code" class="form-control form-control-sm" maxlength="200" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold">Name <span class="text-danger">*</span></label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" id="ils_name" name="name" class="form-control form-control-sm" maxlength="200" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold">Description</label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" id="ils_description" name="description" class="form-control form-control-sm" maxlength="200" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold">Department</label>
+                                    <div class="col-12 col-md-8">
+                                        <select id="ils_department" name="department" class="tomselect-custom w-100"></select>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold">Transaction Code</label>
+                                    <div class="col-12 col-md-8">
+                                        <select id="ils_transactionCode" name="transactionCode" class="tomselect-custom w-100" multiple></select>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Phải: số lượng và thời gian -->
+                            <div class="col-12 col-lg-6">
+                                <div class="row mb-3 align-items-center">
+                                    <label class="col-12 col-md-5 fw-bold">Quantity in Stock <span class="text-danger">*</span></label>
+                                    <div class="col-12 col-md-7">
+                                        <input type="number" id="ils_quantityStock" name="quantityStock" class="form-control form-control-sm" min="0" step="1" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3 align-items-center">
+                                    <label class="col-12 col-md-5 fw-bold">Default Quantity</label>
+                                    <div class="col-12 col-md-7">
+                                        <input type="number" id="ils_quantityDefault" name="quantityDefault" class="form-control form-control-sm" min="0" step="1" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3 align-items-center">
+                                    <label class="col-12 col-md-5 fw-bold">Available From</label>
+                                    <div class="col-12 col-md-7">
+                                        <input type="text" id="ils_availableFrom" name="availableFrom" class="form-control form-control-sm" maxlength="100" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3 align-items-center">
+                                    <label class="col-12 col-md-5 fw-bold">Available To</label>
+                                    <div class="col-12 col-md-7">
+                                        <input type="text" id="ils_availableTo" name="availableTo" class="form-control form-control-sm" maxlength="100" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3 align-items-center">
+                                    <label class="col-12 col-md-5 fw-bold">Setup Time</label>
+                                    <div class="col-12 col-md-7">
+                                        <input type="text" id="ils_setupTime" name="setupTime" class="form-control form-control-sm" maxlength="100" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-3 align-items-center">
+                                    <label class="col-12 col-md-5 fw-bold">Setdown Time</label>
+                                    <div class="col-12 col-md-7">
+                                        <input type="text" id="ils_setdownTime" name="setdownTime" class="form-control form-control-sm" maxlength="100" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Dưới: ghi chú -->
+                            <div class="col-12">
+                                <div class="row align-items-start">
+                                    <label class="col-12 col-md-2 fw-bold">Trace Text</label>
+                                    <div class="col-12 col-md-10">
+                                        <textarea id="ils_traces" name="traces" class="form-control form-control-sm" rows="3" maxlength="510"></textarea>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
+
 <script>
-    const departmentList = @Html.Raw(Json.Serialize(ViewBag.DepartmentList));
-    console.log("Department List:", departmentList);
-    const userInsertID = @userInsertID;
-    let selectedRowData = null;
-    DevExpress.localization.locale("vi");
-      function formatDate(date) {
-            let year = date.getFullYear();
-            let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-            let day = date.getDate().toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-            return `${year}-${month}-${day}`;
-        }
-      $(document).ready(function () {
-          
-                reloadGrid();
-                initializeTomSelects();
-        });
+    var ils_Module = {
+        selectedRowData: null,
+        lookups: { groups: [], departments: [], transactions: [] },
 
-        function initializeTomSelects() {
-                const selectors = ["#transactionCode"];
-
-            for (const id of selectors) {
-                const el = document.querySelector(id);
-                if (!el) continue;
-
-                if (el.tomselect) el.tomselect.destroy();
-
-                const ts = new TomSelect(el, {
-                    plugins: ['remove_button'],
-                    create: false,
-                    maxItems: null,
-                    allowEmptyOption: true,
-                    placeholder: '',
-                    persist: false,
-                    maxOptions: 1000,
-                    render: {
-                        option: function (data, escape) {
-                            return `<div>${escape(data.text)}</div>`;
-                        }
-                    }
-                });
-
-            }
-        }
-    $(document).off("click", "#btnView").on("click", "#btnView", function () {
-         reloadGrid();
-    });
-
-    function loadTelephoneGrid(data) {
-            $("#gridContainer").dxDataGrid({
-            dataSource: data,
+        baseGridOptions: {
+            height: "100%",
             width: "100%",
-            columnAutoWidth: false,
+            showBorders: true,
+            hoverStateEnabled: true,
+            wordWrapEnabled: true,
             allowColumnResizing: true,
             columnResizingMode: "widget",
+            columnAutoWidth: true,
             selection: { mode: "single" },
-            columns: [
-                { dataField: "group", caption: "Group", width: "7%" },
-                { dataField: "code", caption: "Code", width: "7%" },
-                { dataField: "name", caption: "Name", width: "8%" },
-                { dataField: "description", caption: "Description", width: "15%" },
-                { dataField: "transactionCode", caption: "Transaction Code", width: "12%" },
-                { dataField: "department", caption: "Department", width: "8%" },
-                { dataField: "qinStock", caption: "Q in Stock", width: "6%" },
-                { dataField: "defaultQ", caption: "Default", width: "6%" },
-                { dataField: "setupTime", caption: "Setup Time", width: "7%" },
-                { dataField: "setdownTime", caption: "Setdown Time", width: "7%" },
-                { dataField: "availFrom", caption: "Avail From", width: "8%" },
-                { dataField: "availTo", caption: "Avail To", width: "8%" },
-                { dataField: "traces", caption: "Traces", width: "5%" }
-   
-            ],
-            scrolling: {
-                    mode: "standard", // Không dùng virtual để footer hiển thị đúng
-                    showScrollbar: "always",
-                    scrollByContent: true
-                },
-                paging: {
-                    pageSize: 20
-                },
-                pager: {
-                    visible: true,
-                    allowedPageSizes: [20, 50, 'all'],
-                    showPageSizeSelector: true,
-                    showInfo: true,
-                    showNavigationButtons: true
-                },
-                    filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            // 🔥 Quan trọng: gán selectedRowData khi click chọn
-            onSelectionChanged: function (e) {
-                if (e.selectedRowsData.length > 0) {
-                    selectedRowData = e.selectedRowsData[0]; // gán row đang chọn
-                    console.log("Selected Row:", selectedRowData);
-                } else {
-                    selectedRowData = null;
-               
+            scrolling: { mode: "standard", showScrollbar: "always", useNative: true },
+            paging: { pageSize: 20 },
+            pager: { visible: true, allowedPageSizes: [20, 50, 100], showPageSizeSelector: true, showInfo: true, showNavigationButtons: true },
+            filterRow: { visible: true, applyFilter: "auto" }
+        },
+
+        init: function () {
+            this.initEvents();
+            this.initDOMEvents();
+        },
+
+        initEvents: function () {
+            const self = this;
+
+            window.openModalItemList = function () {
+                // Ẩn nút nghiệp vụ nếu người dùng không có quyền (server vẫn kiểm tra lại)
+                if (typeof window.hasFunctionRight === "function") {
+                    $("#ils_modal [data-action]").each(function () {
+                        if (!window.hasFunctionRight($(this).data("action"))) $(this).hide();
+                    });
                 }
-            }
-        });
-        }
 
-            function getGroupIdByName(name) {
-        const groupMap = {
-            "Recreational": 1,
-            "Audiovisual": 2,
-            "Cocktail": 3,
-            "Decoration": 4,
-            "Room": 5
-        };
+                self.loadLookups().always(function () { self.reloadGrid(); });
 
-        return groupMap[name] || 0;
-    }
-                   function findDepartmentId(value) {
-        if (!value || !Array.isArray(departmentList)) return 0;
-
-        const valLower = value.toString().toLowerCase();
-
-        // So sánh với code
-        const byCode = departmentList.find(d =>
-            d?.code?.toLowerCase() === valLower
-        );
-        if (byCode) return byCode.id;
-
-        // So sánh với name
-        const byName = departmentList.find(d =>
-            d?.name?.toLowerCase() === valLower
-        );
-        if (byName) return byName.id;
-
-        // Nếu nhập số ID thô
-        const idValue = parseInt(value);
-        if (!isNaN(idValue)) {
-            const byId = departmentList.find(d => d?.id === idValue);
-            if (byId) return byId.id;
-        }
-
-        return 0;
-    }
-
-
-   
-         $("#btnNew").click(function () {  
-          $("#itemForm")[0].reset();
-          $('#transactionCode')[0].tomselect.clear();
-          $("#itemModal").modal("show");
-    });
-        $(document).off("click", "#btnEdit").on("click", "#btnEdit", function () {
-        if (!selectedRowData) {
-            alert("Vui lòng chọn một dòng để chỉnh sửa.");
-            return;
-        }
-        $('#code').val(selectedRowData.code);
-        $('#name').val(selectedRowData.name);
-        $('#description').val(selectedRowData.description);
-
-        // transactionCode (là multiple select TomSelect)
-        const transactionSelect = $('#transactionCode')[0].tomselect;
-        if (transactionSelect) {
-            transactionSelect.clear(); // xoá tất cả option đang chọn
-            if (selectedRowData.transactionCode) {
-                const codes = selectedRowData.transactionCode.split(",");
-                transactionSelect.setValue(codes);
-            }
-        }
-
-        $('#groupId').val(getGroupIdByName(selectedRowData.group));
-        $('#department').val(findDepartmentId(selectedRowData.department)).trigger('change');
-        $('#qins').val(selectedRowData.qinStock);
-        $('#default').val(selectedRowData.defaultQ);
-        $('#availableFrom').val(selectedRowData.availFrom?.split("T")[0]); // ISO format
-        $('#availableTo').val(selectedRowData.availTo?.split("T")[0]);
-        $('#setupTime').val(selectedRowData.setupTime);
-        $('#setdownTime').val(selectedRowData.setdownTime);
-        $('#traceText').val(selectedRowData.traces);
-
-        // Hiển thị modal
-        $('#itemModal').modal("show");
-    });
-
-
-    $('#btnSaveItem').click(function() {
-        var data = {
-            id: selectedRowData?.id || 0,
-            code: $('#code').val(),
-            name: $('#name').val(),
-            description: $('#description').val(),
-            transactionCode: $('#transactionCode').val().join(','), // vì multiple select
-            articleCode: '', // nếu có input thì lấy giá trị tương tự
-            cost: '',
-            rateCodeID: 0,
-            rateAmount: 0,
-            itemGroupID: parseInt($('#groupId').val()) || 0,
-            departmentID:  parseInt($('#department').val()),
-            quantityStock: parseInt($('#qins').val()),
-            quantityDefault: parseInt($('#default').val()),
-            setupTime: $('#setupTime').val(),
-            setDownTime: $('#setdownTime').val(),
-            availableFrom: $('#availableFrom').val(),
-            availableTo: $('#availableTo').val(),
-            traces: $('#traceText').val(),
-            attribute: '',
-            createDate: new Date().toISOString(),
-            updateDate: new Date().toISOString(),
-            userInsertID: userInsertID, // hoặc lấy từ session/user context
-            userUpdateID: userInsertID
-        };
-           console.log("Sending data:", data);
-           console.log("Code field: ", $('#code').val());
-        // Kiểm tra ID có tồn tại không => insert hay update
-        const isEdit = selectedRowData && selectedRowData.id > 0;
-        const url = isEdit ? '/RoomManagement/UpdateItem' : '/RoomManagement/InsertItem';
-
-        $.ajax({
-            url: url,
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(data),
-            success: function (response) {
-                showToast('Success', (isEdit ? 'Update' : 'Insert') + ' successfully!', true);
-                $('#itemModal').modal('hide');
-                selectedRowData = null;
-                reloadGrid();
-            },
-            error: function (xhr) {
-                console.error('Ajax error', {
-                    status: xhr.status,
-                    responseText: xhr.responseText
+                $("#ils_modal").on("hidden.bs.modal", function () {
+                    self.disposeGrid("#ils_grid");
+                    self.selectedRowData = null;
                 });
-                showToast('Error', (isEdit ? 'Error update: ' : 'Error insert: ') + xhr.status + ' – ' + xhr.responseText, false);
-            }
-        });
-    });
 
-        $("#btnDelete").click(function () {
-        if (!selectedRowData) {
-            DevExpress.ui.notify("Please select a row first!", "warning", 2000);
-            return;
+                $("#ils_itemModal").on("hidden.bs.modal", function () {
+                    ValidationAdapter.clear("#ils_form");
+                });
+            };
+        },
+
+        initDOMEvents: function () {
+            const self = this;
+            $("#ils_btnSearch").on("click", () => self.reloadGrid());
+            $("#ils_itemNameFilter").on("keydown", function (e) { if (e.key === "Enter") self.reloadGrid(); });
+            $("#ils_btnNew").on("click", () => self.openNew());
+            $("#ils_btnEdit").on("click", () => self.openEdit());
+            $("#ils_btnDelete").on("click", () => self.confirmDelete());
+            $("#ils_btnSave").on("click", () => self.save());
+            $("#ils_btnDailyInv").on("click", function () {
+                ModalManager.load("/RoomManagement/ItemDailyInventory", "idi_modal", "openModalItemDailyInv");
+            });
+        },
+
+        // ---------------------------------------------------------------------------------------
+        //  Dữ liệu tham chiếu (nhóm, phòng ban, mã giao dịch)
+        // ---------------------------------------------------------------------------------------
+        loadLookups: function () {
+            const self = this;
+            return $.ajax({ url: "/RoomManagement/ItemLookups", type: "GET" }).done(function (res) {
+                if (!res || res.success === false) {
+                    showToast("Error", (res && res.message) || "Unable to load lookups.", false);
+                    return;
+                }
+                self.lookups = res;
+
+                // Ô lọc theo nhóm
+                const $g = $("#ils_group").empty().append('<option value="0">--All--</option>');
+                (res.groups || []).forEach(g => $g.append($("<option>").val(g.ID).text(g.Code)));
+
+                // Các ô chọn trong form
+                const fill = (sel, rows, valueKey, textFn, blank) => {
+                    const $s = $(sel).empty();
+                    if (blank !== undefined) $s.append($("<option>").val("").text(blank));
+                    rows.forEach(r => $s.append($("<option>").val(r[valueKey]).text(textFn(r))));
+                };
+                fill("#ils_formGroup", res.groups || [], "ID", g => g.Code, "--Choose One--");
+                fill("#ils_department", res.departments || [], "ID", d => d.Code + " - " + d.Name, "");
+                fill("#ils_transactionCode", res.transactions || [], "Code", t => t.Code + " - " + (t.Description || ""));
+                initTomSelect(["#ils_formGroup", "#ils_department", "#ils_transactionCode"]);
+            }).fail(function () { showToast("Error", "Unable to load lookups.", false); });
+        },
+
+        // ---------------------------------------------------------------------------------------
+        //  Lưới
+        // ---------------------------------------------------------------------------------------
+        reloadGrid: function () {
+            const self = this;
+            self.selectedRowData = null;
+            $.ajax({
+                url: "/RoomManagement/GetItemSearch",
+                type: "GET",
+                loadingGrid: "#ils_grid",
+                data: { groupID: $("#ils_group").val() || "0", name: $("#ils_itemNameFilter").val() || "" },
+                success: function (data) {
+                    // Server trả chuỗi khi lỗi
+                    if (!Array.isArray(data)) {
+                        showToast("Error", typeof data === "string" ? data : "Unable to load data", false);
+                        data = [];
+                    }
+                    self.renderGrid(data);
+                },
+                error: function () { showToast("Error", "Unable to load data", false); }
+            });
+        },
+
+        renderGrid: function (data) {
+            const self = this;
+            $("#ils_grid").dxDataGrid($.extend(true, {}, self.baseGridOptions, {
+                dataSource: data,
+                keyExpr: "id",
+                columns: [
+                    { dataField: "id", visible: false },
+                    { dataField: "group", caption: "Group", width: 100 },
+                    { dataField: "code", caption: "Code", width: 90 },
+                    { dataField: "name", caption: "Name", width: 150 },
+                    { dataField: "description", caption: "Description", minWidth: 150 },
+                    { dataField: "transactionCode", caption: "Transaction Code", width: 200 },
+                    { dataField: "department", caption: "Department", width: 100 },
+                    { dataField: "qinStock", caption: "Q in Stock", width: 75, alignment: "right" },
+                    { dataField: "defaultQ", caption: "Default", width: 65, alignment: "right" },
+                    { dataField: "setupTime", caption: "Setup Time", width: 85 },
+                    { dataField: "setdownTime", caption: "Setdown Time", width: 95 },
+                    { dataField: "availFrom", caption: "Avail From", width: 85 },
+                    { dataField: "availTo", caption: "Avail To", width: 85 },
+                    { dataField: "traces", caption: "Traces", width: 150 }
+                ],
+                onSelectionChanged: function (e) { self.selectedRowData = e.selectedRowsData[0] || null; },
+                onRowDblClick: function (e) { self.selectedRowData = e.data; self.openEdit(); }
+            }));
+        },
+
+        disposeGrid: function (sel) {
+            if ($(sel).data("dxDataGrid")) {
+                $(sel).dxDataGrid("dispose");
+                $(sel).empty();
+            }
+        },
+
+        // ---------------------------------------------------------------------------------------
+        //  Form thêm / sửa
+        // ---------------------------------------------------------------------------------------
+        resetForm: function () {
+            $("#ils_id").val(0);
+            $("#ils_form").find("input[type=text], input[type=number], textarea").val("");
+            ["#ils_formGroup", "#ils_department", "#ils_transactionCode"].forEach(function (s) {
+                const ts = document.querySelector(s).tomselect;
+                if (ts) ts.clear();
+            });
+            ValidationAdapter.clear("#ils_form");
+        },
+
+        openNew: function () {
+            this.resetForm();
+            $("#ils_itemModalLabel").text("New Item");
+            $("#ils_itemModal").modal("show");
+        },
+
+        openEdit: function () {
+            const self = this;
+            if (!self.selectedRowData) {
+                showToast("Warning", "Please select a row first!", false);
+                return;
+            }
+
+            // Lấy bản ghi đầy đủ theo ID (lưới chỉ có mã nhóm/phòng ban dạng chữ)
+            $.get("/RoomManagement/ItemGet", { id: self.selectedRowData.id }).done(function (res) {
+                if (!res.success) { showToast("Error", res.message, false); return; }
+
+                const d = res.data;
+                self.resetForm();
+                $("#ils_id").val(d.ID);
+                $("#ils_code").val(d.Code || "");
+                $("#ils_name").val(d.Name || "");
+                $("#ils_description").val(d.Description || "");
+                $("#ils_quantityStock").val(d.QuantityStock);
+                $("#ils_quantityDefault").val(d.QuantityDefault);
+                $("#ils_availableFrom").val(d.AvailableFrom || "");
+                $("#ils_availableTo").val(d.AvailableTo || "");
+                $("#ils_setupTime").val(d.SetupTime || "");
+                $("#ils_setdownTime").val(d.SetDownTime || "");
+                $("#ils_traces").val(d.Traces || "");
+                setTomSelectValue("#ils_formGroup", d.ItemGroupID ? String(d.ItemGroupID) : "");
+                setTomSelectValue("#ils_department", d.DepartmentID ? String(d.DepartmentID) : "");
+                setTomSelectValueMulti("#ils_transactionCode", d.TransactionCode || "");
+
+                $("#ils_itemModalLabel").text("Edit Item");
+                $("#ils_itemModal").modal("show");
+            }).fail(function () { showToast("Error", "Unable to load item.", false); });
+        },
+
+        save: function () {
+            const self = this;
+            const num = sel => { const v = $(sel).val(); return v === "" ? null : parseInt(v, 10); };
+
+            const payload = {
+                id: parseInt($("#ils_id").val(), 10) || 0,
+                itemGroupID: parseInt($("#ils_formGroup").val(), 10) || 0,
+                code: $("#ils_code").val(),
+                name: $("#ils_name").val(),
+                description: $("#ils_description").val(),
+                transactionCode: ($("#ils_transactionCode").val() || []).join(","),
+                departmentID: parseInt($("#ils_department").val(), 10) || 0,
+                quantityStock: num("#ils_quantityStock"),
+                quantityDefault: num("#ils_quantityDefault"),
+                availableFrom: $("#ils_availableFrom").val(),
+                availableTo: $("#ils_availableTo").val(),
+                setupTime: $("#ils_setupTime").val(),
+                setDownTime: $("#ils_setdownTime").val(),
+                traces: $("#ils_traces").val()
+            };
+
+            $.ajax({
+                url: "/RoomManagement/ItemSave",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (res) {
+                    if (res.success) {
+                        showToast("Success", res.message, true);
+                        $("#ils_itemModal").modal("hide");
+                        self.reloadGrid();
+                    } else if (res.errors && res.errors.length) {
+                        ValidationAdapter.apply(res.errors, "#ils_form");
+                        showToast("Warning", "Check for incorrect input fields.", false);
+                    } else {
+                        showToast("Error", res.message || "Something went wrong.", false);
+                    }
+                },
+                error: function (xhr) {
+                    showToast("Error", xhr.status === 403 ? "Access Denied" : "Server error occurred.", false);
+                }
+            });
+        },
+
+        // ---------------------------------------------------------------------------------------
+        //  Xóa
+        // ---------------------------------------------------------------------------------------
+        confirmDelete: function () {
+            const self = this;
+            if (!self.selectedRowData) {
+                showToast("Warning", "Please select a row first!", false);
+                return;
+            }
+
+            const run = function () {
+                $.ajax({
+                    url: "/RoomManagement/ItemDelete?id=" + self.selectedRowData.id,
+                    type: "POST",
+                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                    success: function (res) {
+                        showToast(res.success ? "Success" : "Error", res.message, !!res.success);
+                        if (res.success) self.reloadGrid();
+                    },
+                    error: function () { showToast("Error", "Delete failed!", false); }
+                });
+            };
+
+            if (window.Swal) {
+                Swal.fire({ title: "Are you sure to delete?", icon: "question", showCancelButton: true, confirmButtonText: "Yes", cancelButtonText: "No" })
+                    .then(r => { if (r.isConfirmed) run(); });
+            } else if (confirm("Are you sure to delete?")) run();
         }
+    };
 
-                Swal.fire({
-            title: 'Are you sure?',
-            text: "This action cannot be undone.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!',
-            cancelButtonText: 'Cancel',
-            customClass: {
-                popup: 'swal-small'
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                deleteSelectedItem();
-            }
-        });
-
+    $(document).ready(function () {
+        ils_Module.init();
     });
-    function deleteSelectedItem() {
-        $.post("/RoomManagement/DeleteItem", { id: selectedRowData.id }, function (res) {
-            if (res.deleted > 0) {
-                showToast("Success", "Deleted successfully!", true);
-                reloadGrid();
-                $("#itemForm")[0].reset();
-                selectedRowData = null;
-            } else {
-                showToast("Error", "Delete failed!", false);
-            }
-        }).fail(function (xhr) {
-            console.error("Delete error:", xhr.responseText);
-            showToast("Error", "Delete error!", false);
-        });
-    }
-
-        function reloadGrid() {
-        $("#loadingSpinner").show();
-        $.ajax({
-            url: '/RoomManagement/GetItemSearch',
-            type: 'GET',
-            data: {
-                groupID: $("#itemGroup").val(),
-                name: $("#itemName").val(),
-            },
-            success: function (data) {
-                // load lại grid với data mới
-                loadTelephoneGrid(data);
-                $("#loadingSpinner").hide();
-            },
-            error: function (xhr, status, error) {
-                alert("Không thể tải dữ liệu");
-                $("#loadingSpinner").hide();
-            }
-        });
-    }
-
-
 </script>

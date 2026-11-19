@@ -286,6 +286,107 @@ namespace RoomManagement.Services.Implements
 
             return resultTable;
         }
+        // =====================================================================================================
+        //  Item List / Item Daily Inventory
+        // =====================================================================================================
+
+        public DataTable ItemGroups() =>
+            DataTableHelper.ExecuteQuery("SELECT ID, Code, Name FROM ItemGroup ORDER BY ID");
+
+        public DataTable ItemNames() =>
+            DataTableHelper.ExecuteQuery("SELECT ID, ItemGroupID, Name FROM Item ORDER BY ItemGroupID, ID");
+
+        public DataTable ItemDepartments() =>
+            DataTableHelper.ExecuteQuery("SELECT ID, Code, Name FROM Department WHERE ISNULL(Inactive, 0) = 0 ORDER BY Code");
+
+        public DataTable ItemTransactions() =>
+            DataTableHelper.ExecuteQuery("SELECT Code, Description FROM Transactions ORDER BY Code");
+
+        public DataTable ItemGet(int id) =>
+            DataTableHelper.ExecuteQuery(
+                "SELECT ID, ItemGroupID, Code, Name, Description, TransactionCode, DepartmentID, QuantityStock, QuantityDefault, " +
+                "AvailableFrom, AvailableTo, SetupTime, SetDownTime, Traces FROM Item WHERE ID = @ID",
+                new[] { new SqlParameter("@ID", id) });
+
+        public int ItemSave(ItemSaveRequest r, int userId, DateTime businessDate)
+        {
+            var p = new List<SqlParameter>
+            {
+                new SqlParameter("@ItemGroupID", r.ItemGroupID),
+                new SqlParameter("@Code", (object?)r.Code?.Trim() ?? DBNull.Value),
+                new SqlParameter("@Name", r.Name!.Trim()),
+                new SqlParameter("@Description", (object?)r.Description?.Trim() ?? DBNull.Value),
+                new SqlParameter("@TransactionCode", (object?)r.TransactionCode?.Trim() ?? DBNull.Value),
+                new SqlParameter("@DepartmentID", r.DepartmentID),
+                new SqlParameter("@QuantityStock", r.QuantityStock ?? 0),
+                new SqlParameter("@QuantityDefault", r.QuantityDefault ?? 0),
+                new SqlParameter("@AvailableFrom", (object?)r.AvailableFrom?.Trim() ?? DBNull.Value),
+                new SqlParameter("@AvailableTo", (object?)r.AvailableTo?.Trim() ?? DBNull.Value),
+                new SqlParameter("@SetupTime", (object?)r.SetupTime?.Trim() ?? DBNull.Value),
+                new SqlParameter("@SetDownTime", (object?)r.SetDownTime?.Trim() ?? DBNull.Value),
+                new SqlParameter("@Traces", (object?)r.Traces?.Trim() ?? DBNull.Value),
+                new SqlParameter("@BusinessDate", businessDate),
+                new SqlParameter("@UserID", userId)
+            };
+
+            if (r.ID > 0)
+            {
+                // Sửa: giữ nguyên ngày/người tạo, chỉ cập nhật ngày/người sửa
+                p.Add(new SqlParameter("@ID", r.ID));
+                DataTableHelper.ExecuteNonQueryText(
+                    "UPDATE Item SET ItemGroupID = @ItemGroupID, Code = @Code, Name = @Name, Description = @Description, " +
+                    "TransactionCode = @TransactionCode, DepartmentID = @DepartmentID, QuantityStock = @QuantityStock, " +
+                    "QuantityDefault = @QuantityDefault, AvailableFrom = @AvailableFrom, AvailableTo = @AvailableTo, " +
+                    "SetupTime = @SetupTime, SetDownTime = @SetDownTime, Traces = @Traces, UpdateDate = @BusinessDate, UserUpdateID = @UserID " +
+                    "WHERE ID = @ID", p.ToArray());
+                return r.ID;
+            }
+
+            return DataTableHelper.ExecuteInsertAndReturnId(
+                "INSERT INTO Item (ItemGroupID, Code, Name, Description, TransactionCode, DepartmentID, QuantityStock, QuantityDefault, " +
+                "AvailableFrom, AvailableTo, SetupTime, SetDownTime, Traces, CreateDate, UpdateDate, UserInsertID, UserUpdateID) " +
+                "VALUES (@ItemGroupID, @Code, @Name, @Description, @TransactionCode, @DepartmentID, @QuantityStock, @QuantityDefault, " +
+                "@AvailableFrom, @AvailableTo, @SetupTime, @SetDownTime, @Traces, @BusinessDate, @BusinessDate, @UserID, 0); " +
+                "SELECT CAST(SCOPE_IDENTITY() AS int)", p.ToArray());
+        }
+
+        public bool ItemDelete(int id)
+        {
+            try
+            {
+                return DataTableHelper.ExecuteNonQueryText("DELETE FROM Item WHERE ID = @ID", new[] { new SqlParameter("@ID", id) }) > 0;
+            }
+            catch (SqlException ex) when (ex.Number == 547)
+            {
+                // Vướng khóa ngoại: Item đã được dùng ở nơi khác
+                return false;
+            }
+        }
+
+        public void ItemInventoryLoad(ItemInventoryLoadRequest r, int userId, DateTime businessDate)
+        {
+            using var conn = new SqlConnection(DBUtils.GetDBConnectionString());
+            conn.Open();
+            using var tx = conn.BeginTransaction();
+
+            for (DateTime day = r.FromDate.Date; day <= r.ToDate.Date; day = day.AddDays(1))
+            {
+                using var cmd = new SqlCommand(
+                    "UPDATE ItemInventory SET Quantity = @Qty, UpdateDate = @BusinessDate, UserUpdateID = @UserID " +
+                    "WHERE ItemID = @ItemID AND DATEDIFF(DAY, [Date], @Day) = 0; " +
+                    "IF @@ROWCOUNT = 0 INSERT INTO ItemInventory (ItemID, [Date], Quantity, CreateDate, UpdateDate, UserInsertID, UserUpdateID) " +
+                    "VALUES (@ItemID, @Day, @Qty, @BusinessDate, @BusinessDate, @UserID, @UserID)", conn, tx);
+                cmd.Parameters.AddWithValue("@ItemID", r.ItemID);
+                cmd.Parameters.AddWithValue("@Day", day);
+                cmd.Parameters.AddWithValue("@Qty", r.Quantity ?? 0);
+                cmd.Parameters.AddWithValue("@BusinessDate", businessDate);
+                cmd.Parameters.AddWithValue("@UserID", userId);
+                cmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+        }
+
         public DataTable SearchAllForTrans(string sqlCommand)
         {
             SqlParameter[] parameters = new SqlParameter[]

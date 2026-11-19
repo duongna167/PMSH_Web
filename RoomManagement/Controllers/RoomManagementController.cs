@@ -11,6 +11,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Crypto;
+using RoomManagement.Dto;
 using RoomManagement.Services.Interfaces;
 using System.Data;
 using static BaseBusiness.util.ValidationUtils;
@@ -148,6 +149,7 @@ namespace RoomManagement.Controllers
         }
 
         [HttpGet]
+        [RequireFunction("rmg_ItemListDailyInv")]
         public IActionResult GetItemDailyInventory(
                 int groupId,
                 DateTime firstDate,
@@ -220,9 +222,10 @@ namespace RoomManagement.Controllers
 
             // return PartialView("_ReportViewerPartial", report);
         }
+        [RequireFunction("rmg_ItemListDailyInv")]
         public IActionResult ItemDailyInventory()
         {
-            return View();
+            return PartialView();
         }
 
         [HttpPost]
@@ -274,6 +277,7 @@ namespace RoomManagement.Controllers
             }
         }
         [HttpGet]
+        [RequireFunction("rmg_ItemInventoryAvailable")]
         public IActionResult GetItemInventoryAvailable(
                 int groupId,
                 DateTime firstDate,
@@ -349,11 +353,13 @@ namespace RoomManagement.Controllers
 
             // return PartialView("_ReportViewerPartial", report);
         }
+        [RequireFunction("rmg_ItemInventoryAvailable")]
         public IActionResult ItemInventoryAvailable()
         {
-            return View();
+            return PartialView();
         }
         [HttpGet]
+        [RequireFunction("rmg_ItemInventoryAvailable")]
         public IActionResult GetItemResvDetail(int itemID, DateTime day)
         {
             try
@@ -384,11 +390,8 @@ namespace RoomManagement.Controllers
 
             // return PartialView("_ReportViewerPartial", report);
         }
-        public IActionResult ItemResvDetail()
-        {
-            return View();
-        }
         [HttpGet]
+        [RequireFunction("rmg_ItemListView")]
         public IActionResult GetItemSearch(string groupID, string name)
         {
             try
@@ -428,175 +431,165 @@ namespace RoomManagement.Controllers
 
             // return PartialView("_ReportViewerPartial", report);
         }
+        [RequireFunction("rmg_ItemListView")]
         public IActionResult ItemSearch()
         {
-            List<TransactionsModel> listpmtr = PropertyUtils.ConvertToList<TransactionsModel>(TransactionsBO.Instance.FindAll());
-            ViewBag.TransactionsList = listpmtr;
-            List<DepartmentModel> listdpm = PropertyUtils.ConvertToList<DepartmentModel>(DepartmentBO.Instance.FindAll());
-            ViewBag.DepartmentList = listdpm;
-            return View();
+            return PartialView();
         }
-        [HttpPost]
-        public int InsertItem([FromBody] ItemDto model)
-        {
-            using (SqlConnection conn = new SqlConnection(DBUtils.GetDBConnectionString()))
-            {
-                conn.Open();
-                var userId = HttpContext.Session.GetInt32("UserID") ?? 0;
-                using (SqlCommand cmd = new SqlCommand("sp_executesql", conn))
-                {
-                    cmd.CommandType = CommandType.StoredProcedure;
+        // =====================================================================================================
+        //  Item List / Item Daily Inventory / Item Availability
+        // =====================================================================================================
 
-                    string sqlInsert = @"
-                INSERT INTO Item 
-                (Code, Name, Description, TransactionCode, ArticleCode, Cost, RateCodeID, RateAmount, ItemGroupID, DepartmentID, QuantityStock, QuantityDefault, SetupTime, SetDownTime, AvailableFrom, AvailableTo, Traces, Attribute, CreateDate, UpdateDate, UserInsertID, UserUpdateID) 
-                VALUES 
-                (@Code, @Name, @Description, @TransactionCode, @ArticleCode, @Cost, @RateCodeID, @RateAmount, @ItemGroupID, @DepartmentID, @QuantityStock, @QuantityDefault, @SetupTime, @SetDownTime, @AvailableFrom, @AvailableTo, @Traces, @Attribute, @CreateDate, @UpdateDate, @UserInsertID, @UserUpdateID); 
-                SELECT @@IDENTITY AS 'ID'";
-
-                    string parameterDefs = @"
-                @Code nvarchar(1),
-                @Name nvarchar(1),
-                @Description nvarchar(1),
-                @TransactionCode nvarchar(9),
-                @ArticleCode nvarchar(4000),
-                @Cost nvarchar(4000),
-                @RateCodeID int,
-                @RateAmount decimal(1,0),
-                @ItemGroupID int,
-                @DepartmentID int,
-                @QuantityStock int,
-                @QuantityDefault int,
-                @SetupTime nvarchar(1),
-                @SetDownTime nvarchar(1),
-                @AvailableFrom nvarchar(10),
-                @AvailableTo nvarchar(10),
-                @Traces nvarchar(1),
-                @Attribute nvarchar(4000),
-                @CreateDate datetime,
-                @UpdateDate datetime,
-                @UserInsertID int,
-                @UserUpdateID int";
-
-                    cmd.Parameters.AddWithValue("@stmt", sqlInsert);
-                    cmd.Parameters.AddWithValue("@params", parameterDefs);
-                    cmd.Parameters.AddWithValue("@Code", model.Code);
-                    cmd.Parameters.AddWithValue("@Name", model.Name);
-                    cmd.Parameters.AddWithValue("@Description", model.Description);
-                    cmd.Parameters.AddWithValue("@TransactionCode", model.TransactionCode);
-                    cmd.Parameters.AddWithValue("@ArticleCode", model.ArticleCode);
-                    cmd.Parameters.AddWithValue("@Cost", model.Cost);
-                    cmd.Parameters.AddWithValue("@RateCodeID", model.RateCodeID);
-                    cmd.Parameters.AddWithValue("@RateAmount", model.RateAmount);
-                    cmd.Parameters.AddWithValue("@ItemGroupID", model.ItemGroupID);
-                    cmd.Parameters.AddWithValue("@DepartmentID", model.DepartmentID);
-                    cmd.Parameters.AddWithValue("@QuantityStock", model.QuantityStock);
-                    cmd.Parameters.AddWithValue("@QuantityDefault", model.QuantityDefault);
-                    cmd.Parameters.AddWithValue("@SetupTime", model.SetupTime);
-                    cmd.Parameters.AddWithValue("@SetDownTime", model.SetDownTime);
-                    cmd.Parameters.AddWithValue("@AvailableFrom", model.AvailableFrom);
-                    cmd.Parameters.AddWithValue("@AvailableTo", model.AvailableTo);
-                    cmd.Parameters.AddWithValue("@Traces", model.Traces);
-                    cmd.Parameters.AddWithValue("@Attribute", model.Attribute);
-                    cmd.Parameters.AddWithValue("@CreateDate", model.CreateDate);
-                    cmd.Parameters.AddWithValue("@UpdateDate", model.UpdateDate);
-                    cmd.Parameters.AddWithValue("@UserInsertID", userId);
-                    cmd.Parameters.AddWithValue("@UserUpdateID", model.UserUpdateID);
-
-                    object result = cmd.ExecuteScalar();
-                    return Convert.ToInt32(result);
-                }
-            }
-        }
-        [HttpPost]
-        public IActionResult UpdateItem([FromBody] ItemModel item)
+        /// <summary>Dữ liệu cho các ô chọn: nhóm Item, phòng ban, mã giao dịch và danh sách Item.</summary>
+        [HttpGet]
+        public IActionResult ItemLookups()
         {
             try
             {
-                using (SqlConnection conn = new SqlConnection(DBUtils.GetDBConnectionString()))
+                static List<Dictionary<string, object?>> Rows(DataTable t) => t.AsEnumerable()
+                    .Select(r => t.Columns.Cast<DataColumn>().ToDictionary(c => c.ColumnName, c => r[c] == DBNull.Value ? null : r[c]))
+                    .ToList();
+
+                return Json(new
                 {
-                    conn.Open();
-
-                    var cmd = new SqlCommand(@"
-                UPDATE Item SET 
-                    Code = @Code,
-                    Name = @Name,
-                    Description = @Description,
-                    TransactionCode = @TransactionCode,
-                    ArticleCode = @ArticleCode,
-                    Cost = @Cost,
-                    RateCodeID = @RateCodeID,
-                    RateAmount = @RateAmount,
-                    ItemGroupID = @ItemGroupID,
-                    DepartmentID = @DepartmentID,
-                    QuantityStock = @QuantityStock,
-                    QuantityDefault = @QuantityDefault,
-                    SetupTime = @SetupTime,
-                    SetDownTime = @SetDownTime,
-                    AvailableFrom = @AvailableFrom,
-                    AvailableTo = @AvailableTo,
-                    Traces = @Traces,
-                    Attribute = @Attribute,
-                    CreateDate = @CreateDate,
-                    UpdateDate = @UpdateDate,
-                    UserInsertID = @UserInsertID,
-                    UserUpdateID = @UserUpdateID
-                WHERE ID = @ID", conn);
-
-                    cmd.Parameters.AddWithValue("@ID", item.ID);
-                    cmd.Parameters.AddWithValue("@Code", item.Code ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@Name", item.Name ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@Description", item.Description ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@TransactionCode", item.TransactionCode ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@ArticleCode", item.ArticleCode ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@Cost", item.Cost ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@RateCodeID", item.RateCodeID);
-                    cmd.Parameters.AddWithValue("@RateAmount", item.RateAmount);
-                    cmd.Parameters.AddWithValue("@ItemGroupID", item.ItemGroupID);
-                    cmd.Parameters.AddWithValue("@DepartmentID", item.DepartmentID);
-                    cmd.Parameters.AddWithValue("@QuantityStock", item.QuantityStock);
-                    cmd.Parameters.AddWithValue("@QuantityDefault", item.QuantityDefault);
-                    cmd.Parameters.AddWithValue("@SetupTime", item.SetupTime ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@SetDownTime", item.SetDownTime ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@AvailableFrom", string.IsNullOrEmpty(item.AvailableFrom) ? (object)DBNull.Value : item.AvailableFrom);
-                    cmd.Parameters.AddWithValue("@AvailableTo", string.IsNullOrEmpty(item.AvailableTo) ? (object)DBNull.Value : item.AvailableTo);
-                    cmd.Parameters.AddWithValue("@Traces", item.Traces ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@Attribute", item.Attribute ?? (object)DBNull.Value);
-                    cmd.Parameters.AddWithValue("@CreateDate", item.CreateDate);
-                    cmd.Parameters.AddWithValue("@UpdateDate", item.UpdateDate);
-                    cmd.Parameters.AddWithValue("@UserInsertID", item.UserInsertID);
-                    cmd.Parameters.AddWithValue("@UserUpdateID", item.UserUpdateID);
-
-                    int rows = cmd.ExecuteNonQuery();
-
-                    return Ok(rows > 0 ? "Update thành công" : "Không có dòng nào được cập nhật");
-                }
+                    success = true,
+                    groups = Rows(_iRoomManagementService.ItemGroups()),
+                    items = Rows(_iRoomManagementService.ItemNames()),
+                    departments = Rows(_iRoomManagementService.ItemDepartments()),
+                    transactions = Rows(_iRoomManagementService.ItemTransactions())
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Lỗi khi cập nhật: " + ex.Message);
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        [RequireFunction("rmg_ItemListView")]
+        public IActionResult ItemGet(int id)
+        {
+            try
+            {
+                DataTable t = _iRoomManagementService.ItemGet(id);
+                if (t.Rows.Count == 0) return Json(new { success = false, message = "Item does not exist." });
+
+                var row = t.Columns.Cast<DataColumn>().ToDictionary(c => c.ColumnName, c => t.Rows[0][c] == DBNull.Value ? null : t.Rows[0][c]);
+                return Json(new { success = true, data = row });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>Thêm mới (ID = 0) hoặc sửa Item. Quyền New/Edit kiểm tra theo loại thao tác.</summary>
+        [HttpPost]
+        public IActionResult ItemSave([FromBody] ItemSaveRequest model)
+        {
+            try
+            {
+                if (model == null) return Json(new { success = false, message = "No data received." });
+
+                string right = model.ID > 0 ? "rmg_ItemListEdit" : "rmg_ItemListNew";
+                if (!HasFunctionRight(right)) return StatusCode(403, new { code = 403, msg = "Access Denied" });
+
+                var errors = GetErrors(
+                    Check(model.Name, "name", "Name must not be blank."),
+                    Check(model.ItemGroupID, "group", "Item Group must not be blank."),
+                    Check(model.QuantityStock == null, "quantityStock", "Quantity in stock must not be blank."),
+                    Check((model.Code?.Length ?? 0) > 200, "code", "Code must be at most 200 characters."),
+                    Check((model.Name?.Length ?? 0) > 200, "name", "Name must be at most 200 characters."),
+                    Check((model.Description?.Length ?? 0) > 200, "description", "Description must be at most 200 characters."),
+                    Check((model.TransactionCode?.Length ?? 0) > 400, "transactionCode", "Transaction Code is too long."),
+                    Check((model.Traces?.Length ?? 0) > 510, "traces", "Trace Text must be at most 510 characters."),
+                    Check((model.SetupTime?.Length ?? 0) > 100, "setupTime", "Setup Time must be at most 100 characters."),
+                    Check((model.SetDownTime?.Length ?? 0) > 100, "setdownTime", "Setdown Time must be at most 100 characters."),
+                    Check((model.AvailableFrom?.Length ?? 0) > 100, "availableFrom", "Available From must be at most 100 characters."),
+                    Check((model.AvailableTo?.Length ?? 0) > 100, "availableTo", "Available To must be at most 100 characters.")
+                );
+                if (errors.Count > 0) return Json(new { success = false, errors });
+
+                int userId = HttpContext.Session.GetInt32("UserID") ?? 0;
+                DateTime businessDate = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll())[0].BusinessDate;
+
+                int id = _iRoomManagementService.ItemSave(model, userId, businessDate);
+                return Json(new { success = true, message = "Save successfully", id });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
             }
         }
 
         [HttpPost]
-        public IActionResult DeleteItem(int id)
+        [RequireFunction("rmg_ItemListDelete")]
+        public IActionResult ItemDelete(int id)
         {
             try
             {
-                string sql = "DELETE FROM Item WHERE ID = @ID";
+                if (id <= 0) return Json(new { success = false, message = "Please select an item." });
 
-                SqlParameter[] parameters = {
-                new SqlParameter("@ID", id)
-        };
-
-                int rows = DataTableHelper.ExecuteNonQueryText(sql, parameters);
-
-                return Json(new { deleted = rows });
+                return _iRoomManagementService.ItemDelete(id)
+                    ? Json(new { success = true, message = "Delete successfully" })
+                    : Json(new { success = false, message = "Cannot delete this item because it is in use." });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return Json(new { success = false, message = ex.Message });
             }
+        }
+
+        /// <summary>Nạp số lượng tồn kho cho một Item theo khoảng ngày (không cho chọn ngày quá khứ).</summary>
+        [HttpPost]
+        [RequireFunction("rmg_ItemListDailyInv")]
+        public IActionResult ItemInventoryLoad([FromBody] ItemInventoryLoadRequest model)
+        {
+            try
+            {
+                if (model == null) return Json(new { success = false, message = "No data received." });
+
+                DateTime businessDate = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll())[0].BusinessDate;
+
+                var errors = GetErrors(
+                    Check(model.ItemID, "item", "Please select an item."),
+                    Check(model.FromDate, "fromDate", "Begin Date is required."),
+                    Check(model.ToDate, "toDate", "End Date is required."),
+                    Check(model.FromDate != default && model.FromDate.Date < businessDate.Date, "fromDate", "Can not choose the past date."),
+                    Check(model.FromDate != default && model.ToDate != default && model.ToDate.Date < model.FromDate.Date, "toDate", "End Date must be later than Begin Date."),
+                    Check(model.Quantity == null || model.Quantity < 0, "quantity", "Quantity is wrong format.")
+                );
+
+                // Số lượng nạp không được vượt tồn kho khai báo của Item
+                if (errors.Count == 0)
+                {
+                    DataTable item = _iRoomManagementService.ItemGet(model.ItemID);
+                    if (item.Rows.Count == 0)
+                        errors.Add(new ValidationError { Field = "item", Message = "Item does not exist." });
+                    else
+                    {
+                        int stock = item.Rows[0]["QuantityStock"] == DBNull.Value ? 0 : Convert.ToInt32(item.Rows[0]["QuantityStock"]);
+                        if (model.Quantity > stock)
+                            errors.Add(new ValidationError { Field = "quantity", Message = $"You loaded over quantity for this item, quantity must be less than or equal to {stock}." });
+                    }
+                }
+                if (errors.Count > 0) return Json(new { success = false, errors });
+
+                int userId = HttpContext.Session.GetInt32("UserID") ?? 0;
+                _iRoomManagementService.ItemInventoryLoad(model, userId, businessDate);
+                return Json(new { success = true, message = "Save successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>Người dùng đang đăng nhập có quyền (FormAndFunction) này không.</summary>
+        private bool HasFunctionRight(string code)
+        {
+            string raw = HttpContext.Session.GetString("PermissionCodes") ?? "";
+            return raw.Contains("\"" + code + "\"", StringComparison.OrdinalIgnoreCase);
         }
 
 
