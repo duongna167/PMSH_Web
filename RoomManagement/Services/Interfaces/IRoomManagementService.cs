@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BaseBusiness.Model;
+using RoomManagement.Dto;
 
 namespace RoomManagement.Services.Interfaces
 {
@@ -53,5 +54,17 @@ namespace RoomManagement.Services.Interfaces
         DataTable AvailableRoomsSearchOOO(string isDummy, string smoking,string floor, string roomTypeCode,string foStatus,string hkStatusID, string roomNo , DateTime fromDate, DateTime toDate, string zoneCode);
         DataTable RoomStatusHistoryOOO(string roomNo, DateTime fromDate, DateTime toDate, string userName);
         DataTable SearchAllForTrans(string sqlCommand);
+
+        // ---- Item List / Item Daily Inventory ----
+        DataTable ItemGroups();
+        DataTable ItemNames();
+        DataTable ItemDepartments();
+        DataTable ItemTransactions();
+        DataTable ItemGet(int id);
+        int ItemSave(ItemSaveRequest request, int userId, DateTime businessDate);
+        /// <summary>Xóa Item; trả về false nếu Item đang được dùng (vướng khóa ngoại).</summary>
+        bool ItemDelete(int id);
+        /// <summary>Nạp tồn kho mỗi ngày trong khoảng: ngày đã có thì ghi đè, chưa có thì thêm mới.</summary>
+        void ItemInventoryLoad(ItemInventoryLoadRequest request, int userId, DateTime businessDate);
     }
     }
