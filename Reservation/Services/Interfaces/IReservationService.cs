@@ -143,5 +143,8 @@ namespace Reservation.Services.Interfaces
         int SplitAllSpecial(int ReservationID, int pNoOfRoom, int UserID, string PartyGuest);
         void SplitAllRoomSharer(List<int> reservationIds, int UserID);
         DataTable ResConfNoList(int confirmationNo);
+
+        DataTable GetRecalculateRoomRevenueSource(DateTime fromDate, DateTime toDate, bool rateOnly);
+        void RecalculateRoomRevenue(int reservationId);
     }
 }

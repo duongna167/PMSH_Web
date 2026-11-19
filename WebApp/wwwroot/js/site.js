@@ -257,6 +257,17 @@ function focusElement($el) {
             }
         }
 
+        hideOtherPickers() {
+            const current = this.$ui[0];
+            $('.date-ui').each(function () {
+                if (this === current) return;
+                const inst = $(this).data('datepicker');
+                if (inst && inst.shown) {
+                    $(this).datepicker('hide');
+                }
+            });
+        }
+
         initCalendar() {
             const self = this;
 
@@ -265,9 +276,11 @@ function focusElement($el) {
                 autoHide: true,
                 format: self.format,
                 zIndex: 2048,
+                container: 'body',
 
                 // Thêm class tạm thời vào CHA khi đang mở lịch
                 show: function () {
+                    self.hideOtherPickers();
                     self.$root.addClass('datepicker-active');
                 },
                 hide: function () {
@@ -299,6 +312,21 @@ function focusElement($el) {
 
             // Chống đóng lịch khi click vào input (nổi bọt)
             this.$ui.on('click', (e) => e.stopPropagation());
+
+            // Gõ tay chỉ đổi chữ trên ô. Hidden (giá trị gửi server) chỉ cập nhật khi pick,
+            // nên blur phải ghi lại ngày đang hiện.
+            this.$ui.on('blur', () => {
+                const text = (self.$ui.val() || '').trim();
+                if (!text) {
+                    if (self.$hidden.val()) self.$hidden.val('').trigger('change');
+                    return;
+                }
+                const inst = self.$ui.data('datepicker');
+                const date = inst && typeof inst.getDate === 'function' ? inst.getDate() : null;
+                if (!(date instanceof Date) || isNaN(date.getTime())) return;
+                const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                if (self.$hidden.val() !== iso) self.$hidden.val(iso).trigger('change');
+            });
         }
 
         setupResponsive() {
@@ -326,6 +354,14 @@ function focusElement($el) {
                             autoHide: true,
                             format: targetFormat,
                             zIndex: 2048,
+                            container: 'body',
+                            show: function () {
+                                self.hideOtherPickers();
+                                self.$root.addClass('datepicker-active');
+                            },
+                            hide: function () {
+                                self.$root.removeClass('datepicker-active');
+                            },
                             pick: function (e) {
                                 const date = e.date;
                                 const y = date.getFullYear();
@@ -407,7 +443,8 @@ function focusElement($el) {
  * @param {string|null} name - name của date input (hidden input)
  */
 window.reloadBusinessDate = async function (name = null) {
-    const $targets = name ? $(`[data-date-input][data-name="${name}"]`) : $('[data-date-input]');
+    let $targets = $('[data-date-input][business-date]');
+    if (name) $targets = $targets.filter(`[data-name="${name}"]`);
 
     if (!$targets.length) {
         console.warn('[reloadBusinessDate] Không tìm thấy date input');
@@ -752,3 +789,69 @@ window.applyPopupRights = function (code, selectors) {
         });
     });
 };
+
+(function () {
+    var menu = null;
+    var owner = null;
+
+    function closePmshSelectMenu() {
+        if (menu) menu.remove();
+        menu = null;
+        owner = null;
+    }
+
+    function openPmshSelectMenu(select) {
+        closePmshSelectMenu();
+        var rect = select.getBoundingClientRect();
+        menu = document.createElement('div');
+        menu.className = 'pmsh-select-menu';
+        var space = Math.max(80, window.innerHeight - rect.bottom - 8);
+        menu.style.top = (rect.bottom + 1) + 'px';
+        menu.style.left = rect.left + 'px';
+        menu.style.minWidth = rect.width + 'px';
+        menu.style.maxWidth = Math.min(420, window.innerWidth - 16) + 'px';
+        menu.style.maxHeight = space + 'px';
+
+        Array.prototype.forEach.call(select.options, function (opt) {
+            if (opt.hidden) return;
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = opt.text;
+            if (opt.selected) btn.classList.add('is-active');
+            btn.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                select.value = opt.value;
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+                closePmshSelectMenu();
+            });
+            menu.appendChild(btn);
+        });
+
+        document.body.appendChild(menu);
+        owner = select;
+        var box = menu.getBoundingClientRect();
+        if (box.right > window.innerWidth - 8) {
+            menu.style.left = Math.max(8, window.innerWidth - box.width - 8) + 'px';
+        }
+    }
+
+    document.addEventListener('mousedown', function (e) {
+        var select = e.target && e.target.closest ? e.target.closest('#reportContainer .sticky-header select') : null;
+        if (select && e.button === 0) {
+            e.preventDefault();
+            if (owner === select) {
+                closePmshSelectMenu();
+                return;
+            }
+            openPmshSelectMenu(select);
+            return;
+        }
+        if (menu && !menu.contains(e.target)) closePmshSelectMenu();
+    }, true);
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closePmshSelectMenu();
+    });
+    window.addEventListener('scroll', closePmshSelectMenu, true);
+    window.addEventListener('resize', closePmshSelectMenu);
+})();

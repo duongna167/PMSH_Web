@@ -132,8 +132,67 @@
         margin-bottom: 0px;
     }
 
-    .content_wrapper {
+    html:has(.report-page),
+    body:has(.report-page) {
+        overflow: hidden;
+        overflow-anchor: none;
+        height: 100%;
+    }
+
+    main[role="main"]:has(.report-page) {
+        overflow: hidden !important;
+        overflow-anchor: none;
+    }
+
+    .content_wrapper.report-page {
         margin: 12px;
+        overflow: hidden;
+        overflow-anchor: none;
+        flex-wrap: nowrap;
+        align-items: stretch;
+        height: calc(100vh - 160px);
+        max-height: calc(100vh - 160px);
+    }
+
+    .content_wrapper.report-page > .filter_wrapper {
+        padding: 18px 0 0 14px !important;
+        border-radius: 8px !important;
+    }
+
+    .report-page .filter_wrapper {
+        height: 100%;
+        max-height: 100%;
+        align-self: stretch;
+        position: relative;
+        top: auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        overflow-anchor: none;
+        flex-shrink: 0;
+    }
+
+    .report-page .report-menu-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overflow-anchor: none;
+        overscroll-behavior: contain;
+    }
+
+    .report-page .function_wrapper {
+        min-width: 0;
+        min-height: 0;
+        max-height: 100%;
+        overflow: auto;
+        overflow-anchor: none;
+    }
+
+    #reportContainer,
+    #reportContainer .sticky-header {
+        min-width: 0;
+        max-width: 100%;
     }
 
     .filter-header {
@@ -239,8 +298,10 @@
             }
 
     .report-link {
-        transition: all 0.2s ease-in-out;
+        transition: background-color 0.15s ease, color 0.15s ease;
         display: block;
+        overflow-anchor: none;
+        scroll-margin: 0;
     }
 
         .report-link:hover,
@@ -274,13 +335,8 @@
     }
 
     .report-list-scrollable {
-        max-height: 380px; /* hoặc bạn chọn chiều cao phù hợp */
-        overflow-y: auto;
-        overflow-x: hidden;
-    }
-
-    .report-list-scrollable {
-        scroll-behavior: smooth;
+        max-height: none;
+        overflow: visible;
     }
 
     .wrap-cell {
@@ -325,12 +381,36 @@
         max-height: 400px; /* hoặc bao nhiêu tùy bạn */
         overflow-y: auto !important;
     }
+
+    #reportContainer .sticky-header > div {
+        row-gap: 12px;
+    }
+
+    #reportContainer .form-check {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding-left: 0;
+        margin: 2px 16px 2px 0;
+        min-height: 0;
+    }
+
+    #reportContainer .form-check .form-check-input {
+        position: static;
+        float: none;
+        margin: 0;
+    }
+
+    #reportContainer .form-check .form-check-label {
+        margin: 0;
+        padding-left: 0;
+    }
 </style>
 <div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
-<div class="content_wrapper row">
-    <div class="filter_wrapper mui-card col-custom-2-1" style="border: 1px solid #005f87; height:fit-content;">
+<div class="content_wrapper row report-page">
+    <div class="filter_wrapper mui-card col-custom-2-1" style="border: 1px solid #005f87;">
         <div class="text-center fw-bold py-2" style="font-size: 1.25rem; color: #005f87; border-bottom: 1px solid #ccc;">
             REPORT BY CHART
         </div>
@@ -338,6 +418,7 @@
         <div class=" py-1 me-1">
             <input type="text" class="form-control form-control-sm" id="report-search" placeholder="Search...">
         </div>
+        <div class="report-menu-body">
         <div class="filter-header fw-bold" id="header-sale" style="font-size: 14px;">
             <span>Report By Chart</span>
             <i id="icon-sale" class="fas fa-chevron-right"></i>
@@ -773,7 +854,8 @@
             <li class="list-group-item"><a style="color:blue" class="text-decoration-none report-link" data-report="ManagerReport" data-title="Manager Report">Manager Report</a></li>
             <li class="list-group-item"><a style="color:blue" class="text-decoration-none report-link" data-report="RoomTypeStatistic" data-title="Room Type Statistics">Room Type Statistics</a></li>
 
-        </ul> *@        
+        </ul> *@
+        </div>
     </div>
 
     <div class="function_wrapper col-custom-9-9">
@@ -790,6 +872,20 @@
 
 
     $(document).ready(function () {
+          function fitReportPage() {
+              var page = document.querySelector('.report-page');
+              if (!page) return;
+              var menu = page.querySelector('.report-menu-body');
+              var y = menu ? menu.scrollTop : 0;
+              var top = page.getBoundingClientRect().top;
+              var h = Math.max(240, window.innerHeight - top - 8);
+              page.style.height = h + 'px';
+              page.style.maxHeight = h + 'px';
+              if (menu) menu.scrollTop = y;
+          }
+          fitReportPage();
+          $(window).on('resize', fitReportPage);
+
            localStorage.removeItem("CompanyName");
 
           // Gán giá trị mới từ ViewBag vào localStorage
@@ -1114,18 +1210,93 @@
              });
          });
 
+    function fitReportSelect(select) {
+        if (!select || select.multiple || !select.options || select.options.length === 0) return;
+        if (select.closest('.rsvco-filter-grid, [class$="-filter-grid"]')) return;
+        var probe = document.createElement('span');
+        var cs = window.getComputedStyle(select);
+        probe.style.cssText = 'position:absolute;left:-9999px;top:0;white-space:nowrap;visibility:hidden;font:' + cs.font + ';';
+        document.body.appendChild(probe);
+        var max = 0;
+        for (var i = 0; i < select.options.length; i++) {
+            probe.textContent = select.options[i].text || '';
+            if (probe.offsetWidth > max) max = probe.offsetWidth;
+        }
+        probe.remove();
+        var padL = parseFloat(cs.paddingLeft) || 0;
+        var padR = parseFloat(cs.paddingRight) || 0;
+        var border = (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0);
+        var arrowRoom = 36;
+        var width = Math.ceil(max + padL + arrowRoom + border);
+        if (width < 128) width = 128;
+        if (width > 220) width = 220;
+        select.style.boxSizing = 'border-box';
+        select.style.paddingRight = '1.85rem';
+        select.style.minWidth = '128px';
+        select.style.width = width + 'px';
+    }
+
+    function layoutReportFilters(root) {
+        if (!root) return;
+        root.querySelectorAll('select').forEach(function (el) {
+            if (el.tomselect) {
+                try { el.tomselect.destroy(); } catch (e) { }
+            }
+            fitReportSelect(el);
+        });
+        var from = root.querySelector('[data-name="fromDate"]');
+        if (!from) return;
+        var target = from.getBoundingClientRect().left;
+        var rows = [];
+        root.querySelectorAll('.d-flex').forEach(function (el) {
+            var label = el.querySelector(':scope > label');
+            var text = label ? label.textContent.replace(/\s+/g, ' ').trim() : '';
+            if (/^filter\b/i.test(text)) rows.push(el);
+        });
+        rows.slice().forEach(function (row) {
+            var next = row.nextElementSibling;
+            if (next && next.querySelector && next.querySelector('select') && rows.indexOf(next) < 0) rows.push(next);
+        });
+        rows.forEach(function (row) {
+            var sel = row.querySelector('select');
+            if (!sel) return;
+            sel.style.marginLeft = '0px';
+            var delta = Math.round(target - sel.getBoundingClientRect().left);
+            if (delta > 2 && delta < 240) sel.style.marginLeft = delta + 'px';
+        });
+    }
+
+    var reportMenuScrollY = 0;
+    function pinReportMenuScroll() {
+        var menu = document.querySelector('.report-menu-body');
+        if (menu) menu.scrollTop = reportMenuScrollY;
+        if (window.scrollY || window.scrollX) window.scrollTo(0, 0);
+    }
+
      function loadReport(reportName, title) {
          $.ajax({
              url: '/Report/LoadReport',
              type: 'GET',
              data: { reportName: reportName, title: title },
              success: function (result) {
+                 pinReportMenuScroll();
                  $('#reportContainer').html(result);
 
                  // Thực thi script nếu có
                  $(result).filter('script').each(function () {
+                     if (this.src) return;
                      $.globalEval(this.text || this.textContent || this.innerHTML || '');
                  });
+                layoutReportFilters(document.getElementById('reportContainer'));
+                pinReportMenuScroll();
+                requestAnimationFrame(function () {
+                    layoutReportFilters(document.getElementById('reportContainer'));
+                    pinReportMenuScroll();
+                });
+                setTimeout(function () {
+                    layoutReportFilters(document.getElementById('reportContainer'));
+                    pinReportMenuScroll();
+                }, 50);
              },
              error: function () {
                  alert('Lỗi khi tải báo cáo!');
@@ -1133,11 +1304,24 @@
          });
      }
 
+        document.addEventListener('mousedown', function (e) {
+            var link = e.target.closest && e.target.closest('.report-link');
+            if (!link) return;
+            var menu = link.closest('.report-menu-body');
+            reportMenuScrollY = menu ? menu.scrollTop : 0;
+            e.preventDefault();
+            if (link.blur) link.blur();
+        }, true);
+
          $(document).on('click', '.report-link', function (e) {
              e.preventDefault();
-
+             e.stopPropagation();
+             var menu = this.closest('.report-menu-body');
+             reportMenuScrollY = menu ? menu.scrollTop : reportMenuScrollY;
              $(".report-link").removeClass("active");
              $(this).addClass("active");
+             if (this.blur) this.blur();
+             pinReportMenuScroll();
 
              var reportName = $(this).data('report');
              var title = $(this).data('title');

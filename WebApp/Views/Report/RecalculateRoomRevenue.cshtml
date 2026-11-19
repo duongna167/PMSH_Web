@@ -1,0 +1,225 @@
+@{
+    ViewBag.Title = ViewBag.ReportTitle;
+}
+
+<style>
+    .rrr-section {
+        font-weight: 700;
+        color: #000 !important;
+        margin-bottom: 8px;
+    }
+
+    .rrr-dates {
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 16px;
+    }
+
+    .rrr-date-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+    }
+
+    .rrr-date-item label {
+        margin: 0;
+        white-space: nowrap;
+    }
+
+    .rrr-date-item [data-date-input] {
+        width: 140px;
+        min-width: 140px;
+    }
+
+    .rrr-rate {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+    }
+
+    .rrr-rate .form-check-input {
+        margin: 0;
+    }
+
+    .rrr-rate .form-check-label {
+        margin: 0 0 0 4px;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    .rrr-posting {
+        text-align: left;
+        color: #000 !important;
+        font-weight: 400;
+        line-height: 1.7;
+        min-height: 110px;
+        padding-top: 12px;
+    }
+
+    .rrr-posting-label {
+        color: #000 !important;
+        font-weight: 700;
+    }
+
+    .rrr-wait {
+        font-style: italic;
+        font-weight: 600;
+        margin-top: 4px;
+    }
+</style>
+
+<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+    <div class="d-flex align-items-center mb-2" style="gap: 8px;">
+        <button type="button" id="rrr_btnRecalculate" class="mui-button mui-button-new">Recalculate</button>
+    </div>
+    <div class="mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+        <div class="rrr-section">Stay Over</div>
+        <div class="rrr-dates">
+            <div class="rrr-date-item">
+                <label>From</label>
+                <div data-date-input business-date data-format="DD/MM/YYYY" data-name="rrr_fromDate">
+                    <input type="text" class="date-ui form-control form-control-sm" autocomplete="off" />
+                </div>
+            </div>
+            <div class="rrr-date-item">
+                <label>To</label>
+                <div data-date-input business-date data-format="DD/MM/YYYY" data-name="rrr_toDate">
+                    <input type="text" class="date-ui form-control form-control-sm" autocomplete="off" />
+                </div>
+            </div>
+            <div class="rrr-rate">
+                <input class="form-check-input" type="checkbox" id="rrr_rateOnly" />
+                <label class="form-check-label" for="rrr_rateOnly">Rate Only</label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3">
+    <div class="rrr-section">Posting info</div>
+    <div class="rrr-posting">
+        <div><span class="rrr-posting-label">Status:</span> <span id="rrr_status"></span></div>
+        <div><span class="rrr-posting-label">Count Item:</span> <span id="rrr_count">0</span></div>
+        <div><span class="rrr-posting-label">Posted:</span> <span id="rrr_posted">0</span></div>
+        <div id="rrr_wait" class="rrr-wait" style="display:none;">Please wait any minute... for finish</div>
+    </div>
+</div>
+
+<script>
+    var rrr_Module = {
+        isRunning: false,
+
+        init: function () {
+            this.isRunning = false;
+            this.resetInfo();
+            document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
+            if (typeof window.initDateInputs === "function") window.initDateInputs();
+            this.bindEvents();
+        },
+
+        bindEvents: function () {
+            const self = this;
+            $(document).off("click.rrr", "#rrr_btnRecalculate").on("click.rrr", "#rrr_btnRecalculate", function () {
+                self.onRecalculate();
+            });
+        },
+
+        resetInfo: function () {
+            $("#rrr_status").text("");
+            $("#rrr_count").text("0");
+            $("#rrr_posted").text("0");
+            $("#rrr_wait").hide();
+        },
+
+        setRunningUi: function (running) {
+            this.isRunning = running;
+            $("#rrr_btnRecalculate").prop("disabled", running);
+            $("#rrr_rateOnly").prop("disabled", running);
+            $("#reportContainer .rrr-dates input").prop("disabled", running);
+        },
+
+        onRecalculate: function () {
+            const self = this;
+            if (self.isRunning) return;
+            if (!confirm("Are you sure you want to recalculate room revenue?")) return;
+
+            const fromDate = $("#rrr_fromDate").val();
+            const toDate = $("#rrr_toDate").val();
+            if (!fromDate || !toDate) {
+                showToast("Warning", "Please choose From and To date.", false);
+                return;
+            }
+
+            self.setRunningUi(true);
+            $("#rrr_status").text("Running");
+            $("#rrr_count").text("0");
+            $("#rrr_posted").text("0");
+            $("#rrr_wait").show();
+
+            $.ajax({
+                url: "/Reservation/GetRecalculateRoomRevenueList",
+                type: "GET",
+                data: {
+                    fromDate: fromDate,
+                    toDate: toDate,
+                    rateOnly: $("#rrr_rateOnly").is(":checked")
+                },
+                success: function (res) {
+                    if (!res || !res.success) {
+                        self.onError((res && res.message) ? res.message : "Load info error");
+                        return;
+                    }
+                    const ids = res.ids || [];
+                    $("#rrr_count").text(ids.length);
+                    self.processNext(ids, 0);
+                },
+                error: function (xhr) {
+                    if (xhr.status == 401) sessionTimeout();
+                    else self.onError("Load info error");
+                }
+            });
+        },
+
+        processNext: function (ids, index) {
+            const self = this;
+            if (index >= ids.length) {
+                $("#rrr_status").text("Finished");
+                $("#rrr_wait").hide();
+                self.setRunningUi(false);
+                return;
+            }
+
+            $.ajax({
+                url: "/Reservation/RecalculateRoomRevenueItem",
+                type: "POST",
+                data: { reservationId: ids[index] },
+                success: function (res) {
+                    if (!res || !res.success) {
+                        self.onError((res && res.message) ? res.message : "Recalculate error");
+                        return;
+                    }
+                    $("#rrr_posted").text(index + 1);
+                    self.processNext(ids, index + 1);
+                },
+                error: function (xhr) {
+                    if (xhr.status == 401) sessionTimeout();
+                    else self.onError("Recalculate error");
+                }
+            });
+        },
+
+        onError: function (message) {
+            $("#rrr_status").text(message || "Error");
+            $("#rrr_count").text("0");
+            $("#rrr_posted").text("0");
+            $("#rrr_wait").hide();
+            this.setRunningUi(false);
+        }
+    };
+
+    rrr_Module.init();
+</script>

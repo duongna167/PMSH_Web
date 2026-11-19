@@ -284,6 +284,53 @@ app.UseRouting();
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Property administration is reserved for the login names configured by oneS.
+// Keep this server-side check in addition to hiding the menu so direct URL/API
+// requests cannot bypass the restriction.
+var propertyAdminPaths = new HashSet<PathString>
+{
+    new("/Administration/GetPropertyType"),
+    new("/Administration/PropertyType"),
+    new("/Administration/PropertyTypeSave"),
+    new("/Administration/PropertyTypeDelete"),
+    new("/Administration/GetProperty"),
+    new("/Administration/Property"),
+    new("/Administration/PropertySave"),
+    new("/Administration/PropertyDelete"),
+    new("/Administration/GetPropertyPermission"),
+    new("/Administration/PropertyPermission"),
+    new("/Administration/PropertyPermissionSave"),
+    new("/Administration/DeletePropertyPermission")
+};
+
+app.Use(async (context, next) =>
+{
+    if (propertyAdminPaths.Contains(context.Request.Path))
+    {
+        var allowedLoginNames = app.Configuration
+            .GetSection("PropertyAccess:AllowedLoginNames")
+            .Get<string[]>() ?? Array.Empty<string>();
+        var loginName = context.Session.GetString("LoginName");
+        var isAllowed = !string.IsNullOrWhiteSpace(loginName)
+            && allowedLoginNames.Any(allowed =>
+                string.Equals(allowed?.Trim(), loginName.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        if (!isAllowed)
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                success = false,
+                message = "You do not have permission to access Property administration."
+            });
+            return;
+        }
+    }
+
+    await next();
+});
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=User}/{action=Index}/{id?}");

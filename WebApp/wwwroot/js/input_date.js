@@ -1572,15 +1572,8 @@
               offset = 10;
             }
 
-            if (
-              top > height &&
-              top + elementHeight + height > containerHeight
-            ) {
-              top -= height + offset;
-              placement = CLASS_BOTTOM_LEFT;
-            } else {
-              top += elementHeight + offset;
-            }
+            top += elementHeight + offset;
+            placement = CLASS_TOP_LEFT;
 
             if (left + width > containerWidth) {
               left += elementWidth - width;

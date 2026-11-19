@@ -1,0 +1,182 @@
+@using DevExpress.XtraReports.UI
+@{
+    ViewBag.Title = ViewBag.ReportHeader;
+    var roomClassList = ViewBag.RoomClassList;
+    var rtList = ViewBag.RoomTypeList;
+    var companyList = ViewBag.CompanyList;
+}
+<style>
+    .filter_wrapper { padding: 18px 0px 0px 14px !important; border-radius: 8px; }
+    .gridContainer { margin: 0px 8px; }
+    .sticky-header label, .sticky-header .form-control-sm { font-size: 14px; line-height: 1.2; }
+    .sticky-header .form-control-sm { padding: 2px 8px; height: 28px; }
+    .sticky-header label { margin-bottom: 0; white-space: nowrap; }
+    .nrp-grid {
+        display: grid;
+        grid-template-columns: max-content max-content 160px max-content 160px max-content 160px;
+        column-gap: 6px;
+        row-gap: 8px;
+        align-items: center;
+        width: max-content;
+        max-width: 100%;
+    }
+    .nrp-grid > label { margin: 0; white-space: nowrap; }
+    .nrp-grid .pair-gap { margin-left: 10px; }
+    .nrp-grid select { width: 160px; min-width: 128px; max-width: 220px; }
+    .nrp-check {
+        display: grid;
+        grid-template-columns: max-content max-content;
+        column-gap: 10px;
+        align-items: center;
+        width: max-content;
+        margin-top: 8px;
+    }
+    .nrp-check > .fw-bold { margin: 0; }
+    .nrp-check .form-check { margin: 0 !important; display: flex; align-items: center; gap: 6px; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection { background-color: #01579b !important; color: white !important; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection * { color: white !important; }
+</style>
+<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+    <div class="">
+        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">PDF</button>
+    </div>
+    <div class="mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+        <div class="nrp-grid">
+            <label class="fw-bold">Filter</label>
+            <label>Room Class:</label>
+            <select id="roomClass" class="form-control form-control-sm">
+                <option value="">--All--</option>
+                @if (roomClassList != null) { foreach (var item in roomClassList) { <option value="@item.Code">@item.Code</option> } }
+            </select>
+            <label class="pair-gap">Company:</label>
+            <select id="companyId" class="form-control form-control-sm">
+                <option value="">--All--</option>
+                @if (companyList != null) { foreach (var item in companyList) { <option value="@item.ID">@item.Account</option> } }
+            </select>
+            <label class="pair-gap">Room Type:</label>
+            <select id="roomType" class="form-control form-control-sm">
+                <option value="">--All--</option>
+                @if (rtList != null) { foreach (var item in rtList) { <option value="@item.Code">@item.Code</option> } }
+            </select>
+        </div>
+        <div class="nrp-check">
+            <label class="fw-bold">Include</label>
+            <div class="form-check"><input class="form-check-input" type="checkbox" id="pseudo" /><label class="form-check-label" for="pseudo">Pseudo Rooms</label></div>
+        </div>
+        <div class="nrp-grid">
+            <span></span>
+            <label>Sort Order:</label>
+            <select id="sortOrder" class="form-control form-control-sm">
+                <option value="0">Alphabetical</option>
+                <option value="1">Room No</option>
+                <option value="2">VIP</option>
+            </select>
+        </div>
+    </div>
+</div>
+<div class="mui-card">
+    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
+        <div class="gridContainer mt-2" id="gridContainer"></div>
+    </div>
+</div>
+<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+</div>
+<script>
+    function pick(row, names) {
+        for (var i = 0; i < names.length; i++) {
+            if (row[names[i]] !== undefined && row[names[i]] !== null && row[names[i]] !== "") return row[names[i]];
+        }
+        return "";
+    }
+    $(document).ready(function () {
+        document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
+        if (typeof window.initDateInputs === "function") window.initDateInputs();
+    });
+    function bindGrid(data) {
+        var rows = (Array.isArray(data) ? data : []).map(function (r) {
+            return {
+                name: pick(r, ["Name", "name"]),
+                roomNo: pick(r, ["RoomNo", "roomNo"]),
+                rms: pick(r, ["NoOfRoom", "noOfRoom"]),
+                roomType: pick(r, ["RoomType", "roomType"]),
+                arr: pick(r, ["ArrivalDate", "arrivalDate"]),
+                dep: pick(r, ["DepartureDate", "departureDate"]),
+                prs: pick(r, ["Prs", "prs"]),
+                vip: pick(r, ["VIP", "vip"]),
+                rate: pick(r, ["Rate", "rate"]),
+                curr: pick(r, ["CurrencyID", "currencyID"]),
+                rateCode: pick(r, ["RateCode", "rateCode"]),
+                block: pick(r, ["BusinessBlockCode", "businessBlockCode"]),
+                market: pick(r, ["MarketCode", "marketCode"]),
+                company: pick(r, ["Company", "company"])
+            };
+        });
+        $("#gridContainer").dxDataGrid({
+            dataSource: rows, height: 500, allowColumnResizing: true,
+            columns: [
+                { dataField: "name", caption: "Name", minWidth: 160 },
+                { dataField: "roomNo", caption: "Room No", width: 90 },
+                { dataField: "rms", caption: "Rms", width: 60, dataType: "number" },
+                { dataField: "roomType", caption: "Room Type", width: 90 },
+                { dataField: "arr", caption: "Arr. Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                { dataField: "dep", caption: "Dep. Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                { dataField: "prs", caption: "Prs", width: 50, dataType: "number" },
+                { dataField: "vip", caption: "VIP Code", width: 80 },
+                { dataField: "rate", caption: "Rate Amount", width: 100, dataType: "number", format: "#,##0.##" },
+                { dataField: "curr", caption: "Curr", width: 60 },
+                { dataField: "rateCode", caption: "Rate Code", width: 90 },
+                { dataField: "block", caption: "Block Code", width: 100 },
+                { dataField: "market", caption: "Market Code", width: 100 },
+                { dataField: "company", caption: "Company", groupIndex: 0, visible: false }
+            ],
+            grouping: { autoExpandAll: true },
+            paging: { pageSize: 25 },
+            scrolling: { useNative: true, showScrollbar: "always" },
+            pager: { visible: true, allowedPageSizes: [25, 50, "all"], showPageSizeSelector: true, showInfo: true, showNavigationButtons: true },
+            filterRow: { visible: true, applyFilter: "auto" },
+            headerFilter: { visible: true },
+            showBorders: true,
+            summary: { totalItems: [
+                { column: "rms", summaryType: "sum", displayFormat: "{0}" },
+                { column: "prs", summaryType: "sum", displayFormat: "{0}" }
+            ]}
+        });
+    }
+    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+        $("#loadingSpinner").show();
+        $.ajax({
+            url: "/Report/GuestInHousebyCompanyData", type: "GET",
+            data: {
+                roomClass: $("#roomClass").val(), roomType: $("#roomType").val(), companyId: $("#companyId").val(),
+                pseudo: $("#pseudo").is(":checked") ? "1" : "", sortOrder: $("#sortOrder").val()
+            },
+            success: function (result) {
+                if (typeof result === "string") { alert(result); $("#loadingSpinner").hide(); return; }
+                bindGrid(result); $("#loadingSpinner").hide();
+            },
+            error: function () { alert("Không thể tải báo cáo."); $("#loadingSpinner").hide(); }
+        });
+    });
+    $(document).off("click", "#btnExportExcel").on("click", "#btnExportExcel", function () {
+        const grid = $("#gridContainer").dxDataGrid("instance"); if (!grid) return;
+        const workbook = new ExcelJS.Workbook(); const worksheet = workbook.addWorksheet("Report");
+        const selectedReport = '@ViewBag.ReportTitle';
+        DevExpress.excelExporter.exportDataGrid({ component: grid, worksheet: worksheet, autoFilterEnabled: true })
+            .then(function () { workbook.xlsx.writeBuffer().then(function (buffer) { saveAs(new Blob([buffer], { type: "application/octet-stream" }), selectedReport + ".xlsx"); }); });
+    });
+    $(document).off("click", "#btnExportPdf").on("click", "#btnExportPdf", function () {
+        const grid = $("#gridContainer").dxDataGrid("instance"); if (!grid) return;
+        const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "A4" });
+        const selectedReport = '@ViewBag.ReportTitle';
+        grid.getDataSource().load().then(data => {
+            const columns = grid.getVisibleColumns().filter(c => c.dataField);
+            doc.text(selectedReport, doc.internal.pageSize.getWidth() / 2, 40, { align: "center" });
+            doc.autoTable({ startY: 56, head: [columns.map(c => c.caption)], body: data.map(row => columns.map(c => row[c.dataField] ?? "")), styles: { fontSize: 8 } });
+            doc.save(selectedReport + ".pdf");
+        });
+    });
+</script>

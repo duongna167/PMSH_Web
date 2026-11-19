@@ -1,0 +1,448 @@
+@using DevExpress.XtraReports.UI
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewBag.Title = ViewBag.ReportHeader;
+    var zoneList = ViewBag.ZoneList;
+    var rtList = ViewBag.RoomTypeList;
+}
+
+
+<style>
+    .filter_wrapper {
+        /*     background-color: #ececec; */
+        /*   margin: 0px 8px 14px 8px; */
+        padding: 18px 0px 0px 14px;
+        border-radius: 8px;
+    }
+
+    .gridContainer {
+        margin: 0px 8px;
+    }
+
+    .button_wrapper {
+        display: flex;
+        column-gap: 12px;
+        margin: 0px 8px;
+    }
+
+        .button_wrapper .fa-solid {
+            margin-right: 5px;
+        }
+
+    .selected {
+        background-color: #4CAF50; /* Màu xanh */
+        color: white;
+    }
+
+   
+    .bold-row {
+        font-weight: bold;
+    }
+
+    .sticky-header label,
+    .sticky-header .form-control-sm {
+        font-size: 14px;
+        line-height: 1.2;
+    }
+
+
+    .sticky-header .form-control-sm {
+        padding:  2px 8px;
+        height: 28px;
+    }
+
+    .sticky-header label[class*="me-"] {
+        margin-right: .5rem !important;
+    }
+
+  
+    .tomselect-custom {
+        width: 200px;
+        min-height: 30px; /* hoặc tùy theo chiều cao bạn muốn */
+        font-size: 0.65rem;
+    }
+
+
+
+</style>
+<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+        <label class="fw-bold me-3">Filter:</label>
+        <div class="d-flex align-items-center me-3">
+            <label class="me-2 mb-0">From Date:</label>
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="fromDate" style="min-width:140px;">
+                <input type="text" class="date-ui form-control form-control-sm"
+                       placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
+        </div>
+
+        <!-- To Date -->
+        <div class="d-flex align-items-center me-3">
+            <label class="me-2 mb-0">To Date:</label>
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="toDate" style="min-width:140px;">
+                <input type="text" class="date-ui form-control form-control-sm"
+                       placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
+        </div>
+        <div class="d-flex align-items-center me-3">
+            <label class="me-2 mb-0">Zone:</label>
+            <select id="zone" name="zone" class="form-control form-control-sm w-auto">
+                <option value="4">--All--</option>
+                @foreach (var item in zoneList)
+                {
+                    <option value="@item.ID">@item.Name</option>
+                }
+            </select>
+
+        </div>
+        <div class="d-flex align-items-center me-3">
+            <label class="me-2 mb-0">Room Type:</label>
+            <select id="roomtype" name="roomtype" class="form-control form-control-sm report-dd">
+                        <option value="">--All--</option>
+                @foreach (var item in rtList)
+                {
+                    <option value="@item.Code">@item.Code-@item.Description</option>
+                }
+            </select>
+        </div>
+    </div>
+    <div class="">
+        <button  id="btnPrint" class="mui-button mui-button-new">View</button>
+        <button  id="btnExportExcel" class="mui-button mui-button-new" type="button">  Excel</button>
+        <button  id="btnExportPdf" class="mui-button mui-button-new" type="button"> PDF</button>
+    </div>
+</div>
+
+<div class="mui-card">
+
+    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
+        <div class="gridContainer mt-2" id="gridContainer"></div>
+    </div>
+</div>
+<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+</div>
+<script>
+ 
+
+    $(document).ready(function () {
+         document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
+             window.initDateInputs();
+
+
+    });
+    function initializeTomSelects() {
+        const selectors = ["#roomtype"];
+
+            for (const id of selectors) {
+                const el = document.querySelector(id);
+                if (!el) continue;
+
+                // Nếu đã khởi tạo rồi thì destroy
+                if (el.tomselect) el.tomselect.destroy();
+
+                const ts = new TomSelect(el, {
+                    plugins: ['remove_button'],
+                    create: false,
+                    maxItems: null,
+                    allowEmptyOption: true,
+                    placeholder: '',
+                    persist: false,
+                    render: {
+                        option: function (data, escape) {
+                            return `<div>${escape(data.text)}</div>`;
+                        }
+                    }
+                });
+
+            }
+        }
+    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+        $("#loadingSpinner").show();
+        $.ajax({
+            url: '/Report/RevenueRoomReport',
+            type: 'GET',
+            data: {
+                fromDate: $("#fromDate").val(),
+                toDate: $("#toDate").val(),
+                zone: $("#zone").val(),
+                // roomtype: $("#roomtype").val() || "" ,
+                roomtype: ($("#roomtype").val() || ""),
+            },
+            traditional: true,
+              crossDomain: false,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+                // $("#reportViewerContainer").html(result);
+                // $("#loadingSpinner").hide();
+                     console.log(result);
+            const processedData = prepareRoomOccupancyData(result);
+            initializeRoomOccupancyGrid(processedData);
+
+                    $("#loadingSpinner").hide();
+            },
+            error: function () {
+                alert("Không thể tải báo cáo.");
+                $("#loadingSpinner").hide();
+            }
+        });
+    });
+         function prepareRoomOccupancyData(data) {
+        const vatRate = 0.155;
+        const groupedByRoomType = {};
+        let totalRoomUsedAll = 0;
+        let totalRoomSalesAll = 0;
+        let totalTurnOverAll = 0;
+        let totalTotalRoomAll = 0;
+        let totalPersonsAll = 0;
+
+
+        data.forEach(item => {
+            const roomType = item.roomType;
+            if (!groupedByRoomType[roomType]) {
+                groupedByRoomType[roomType] = [];
+            }
+
+            const roomSales = parseFloat(item.roomSales ?? 0);
+            const rmSaleNet = roomSales * (1 + vatRate);
+
+            const totalRoom = parseFloat(item.totalRoom ?? 0);
+            const roomUsed = parseFloat(item.room ?? 0);
+            const occPercent = totalRoom > 0 ? (roomUsed / totalRoom) * 100 : 0;
+            const turnOverPerOcc = roomUsed > 0 ? roomSales / roomUsed : 0;
+
+            const newItem = {
+            ...item,
+            rmSaleNet: roomSales * (1 + vatRate),
+            occ: parseFloat(occPercent.toFixed(2)),
+            turnOverPerOcc: parseFloat(turnOverPerOcc.toFixed(2))
+        };
+
+            groupedByRoomType[roomType].push(newItem);
+        });
+
+        const finalData = [];
+
+        Object.entries(groupedByRoomType).forEach(([roomType, records]) => {
+            finalData.push({
+                isRoomTypeTitle: true,
+                roomDate: "Room Type: " + roomType,
+                cssClass: "bold-row room-type-title"
+            });
+
+            finalData.push(...records);
+
+            const subtotal = {
+                roomDate: "Total",
+                totalRoom: records.reduce((sum, r) => sum + (parseFloat(r.totalRoom) || 0), 0),
+                room: records.reduce((sum, r) => sum + (parseFloat(r.room) || 0), 0),
+                persons: records.reduce((sum, r) => sum + (parseFloat(r.persons) || 0), 0),
+                roomSales: records.reduce((sum, r) => sum + (parseFloat(r.roomSales) || 0), 0),
+                turnOver: records.reduce((sum, r) => sum + (parseFloat(r.turnOver) || 0), 0),
+                cssClass: "bold-row room-type-subtotal",
+                isSubtotal: true
+            };
+
+            subtotal.rmSaleNet = parseFloat((subtotal.roomSales * (1 + vatRate)).toFixed(2));
+            subtotal.occ = subtotal.totalRoom > 0 ? parseFloat(((subtotal.room / subtotal.totalRoom) * 100).toFixed(2)) : 0;
+            subtotal.turnOverPerOcc = subtotal.room > 0 ? parseFloat((subtotal.roomSales / subtotal.room).toFixed(2)) : 0;
+
+            totalRoomUsedAll += subtotal.room;
+            totalRoomSalesAll += subtotal.roomSales;
+            totalTurnOverAll += subtotal.turnOver;
+            totalTotalRoomAll += subtotal.totalRoom;
+            totalPersonsAll += subtotal.persons;
+
+            finalData.push(subtotal);
+
+                const turnoverPerOccItem = {
+                roomDate: "Turnover per Occupancy",
+                roomSales: subtotal.room > 0 ? parseFloat((subtotal.roomSales / subtotal.room).toFixed(2)) : 0,
+                rmSaleNet: subtotal.room > 0 ? parseFloat((subtotal.rmSaleNet / subtotal.room).toFixed(2)) : 0,
+                turnOver: subtotal.room > 0 ? parseFloat((subtotal.turnOver / subtotal.room).toFixed(2)) : 0,
+                cssClass: "bold-row room-type-title"
+                 };
+
+
+                finalData.push(turnoverPerOccItem);
+
+                });
+            const grandTotal = {
+                    roomDate: "GRAND TOTAL",
+                    totalRoom: totalTotalRoomAll,
+                    room: totalRoomUsedAll,
+                    persons: totalPersonsAll,
+                    roomSales: totalRoomSalesAll,
+                    turnOver: totalTurnOverAll,
+                    rmSaleNet: parseFloat((totalRoomSalesAll * (1 + vatRate)).toFixed(2)),
+                    occ: totalTotalRoomAll > 0 ? parseFloat(((totalRoomUsedAll / totalTotalRoomAll) * 100).toFixed(2)) : 0,
+                    turnOverPerOcc: totalRoomUsedAll > 0 ? parseFloat((totalRoomSalesAll / totalRoomUsedAll).toFixed(2)) : 0,
+
+                    cssClass: "bold-row room-type-subtotal"
+                };
+                finalData.push(grandTotal);
+                finalData.push({
+                roomDate: "Turnover per Occupancy",
+                roomSales: totalRoomUsedAll > 0 ? parseFloat((totalRoomSalesAll / totalRoomUsedAll).toFixed(2)) : 0,
+                rmSaleNet: totalRoomUsedAll > 0 ? parseFloat(((totalRoomSalesAll * 1.155) / totalRoomUsedAll).toFixed(2)) : 0,
+                turnOver: totalRoomUsedAll > 0 ? parseFloat((totalTurnOverAll / totalRoomUsedAll).toFixed(2)) : 0,
+                cssClass: "bold-row room-type-title"
+            });
+
+
+        return finalData;
+    }
+
+    function initializeRoomOccupancyGrid(data) {
+        const columnWidth = 180;
+        $("#gridContainer").dxDataGrid({
+       dataSource: data,         height: 500, allowColumnResizing: true,
+            columns: [
+            { dataField: "roomDate", caption: "Date", width:columnWidth,dataType: "date",format: "dd/MM/yyyy" },
+            { dataField: "totalRoom", caption: "100%", width:columnWidth-50},
+            { dataField: "room", caption: "Room", width: columnWidth-70  },
+            { dataField: "occ", caption: "Occ (%)", width: columnWidth-70},
+            { dataField: "persons", caption: "Persons",width: columnWidth-70 },
+            { dataField: "roomSales", caption: "Room Sales",width: columnWidth-30, dataType: "number", format: "#,##0.00" },
+            { dataField: "rmSaleNet", caption: "Rm Sale Net", width:columnWidth-30, dataType: "number", format: "#,##0.00" },
+            { dataField: "turnOver", caption: "TurnOver",width: columnWidth-30 , dataType: "number", format: "#,##0.00" },
+            
+            ],
+               
+            paging: { pageSize: 25 },
+             scrolling:  {
+               useNative: true,
+               showScrollbar: "always"
+               },
+            pager: {
+                visible: true,
+                allowedPageSizes: [25, 50, 'all'],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true,
+            },
+             filterRow: {
+                 visible: true,
+                 applyFilter: "auto"
+              },
+               headerFilter: {
+                  visible: true
+              },
+            selection: { mode: "multiple", showCheckBoxesMode: "none" },
+              showBorders: true,                  onRowPrepared: function (e) {
+        if (e.rowType === "data" && e.data?.cssClass) {
+            e.rowElement.addClass(e.data.cssClass);
+        }
+    }
+
+        });
+    }
+
+
+    $("#btnExportExcel").click(function () {
+               const grid = $("#gridContainer").dxDataGrid("instance"); var selectedReport2 = '@ViewBag.ReportTitle';
+        var selectedReport = '@ViewBag.ReportTitle';
+        if (!selectedReport) {
+            alert("Vui lòng chọn báo cáo trước khi xuất Excel.");
+            return;
+        }
+
+                     const workbook = new ExcelJS.Workbook();const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+        const worksheet = workbook.addWorksheet("Sheet 1");
+
+        // === Tạo header công ty (dòng 1) ===
+       worksheet.addRow([companyName]);
+        worksheet.mergeCells('A1:E1');
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+
+        // === Dòng 2: Thời gian xuất (phải) ===
+        const now = new Date();
+        const exportDate = now.toLocaleString("vi-VN");
+        worksheet.addRow(['', '', '', '', ' ' + exportDate]);
+        worksheet.mergeCells('E2:H2');
+        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
+
+        // === Dòng 3–4: Trống
+        worksheet.addRow([]);
+        worksheet.addRow([]);
+
+        // === Dòng 5: Tên báo cáo ở giữa ===
+        const reportRow = worksheet.addRow(['', '', selectedReport]);
+        worksheet.mergeCells('C5:F5');
+        reportRow.font = { bold: true, size: 14 };
+        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        // === Dòng 6: Trống trước khi xuất dữ liệu
+        worksheet.addRow([]);
+
+        // === Export dữ liệu từ DevExtreme (bắt đầu từ dòng 7)
+        DevExpress.excelExporter.exportDataGrid({
+            component: grid,
+            worksheet: worksheet,
+            autoFilterEnabled: true,
+            topLeftCell: { row: 7, column: 1 } // dữ liệu bắt đầu từ dòng 7
+        }).then(function () {
+            // Footer
+            const lastRow = worksheet.lastRow.number + 2;
+ 
+            worksheet.mergeCells(`A${lastRow}:F${lastRow}`);
+            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
+            worksheet.getCell(`A${lastRow}`).font = { italic: true };
+
+            // Ghi file
+            let fileName = selectedReport + ".xlsx";
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+            });
+        });
+    });
+
+
+    // Nút xuất PDF
+         $("#btnExportPdf").click(function () {
+        const grid = $("#gridContainer").dxDataGrid("instance");
+
+        // Lấy đối tượng jsPDF từ window
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "A4" });
+
+        const selectedReport = '@ViewBag.ReportTitle';
+        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
+
+        grid.getDataSource().load().then(data => {
+            const columns = grid.getVisibleColumns();
+
+            const head = [columns.map(col => col.caption)];
+            const body = data.map(row =>
+                columns.map(col =>
+                    col.calculateCellValue ? col.calculateCellValue(row) : row[col.dataField]
+                )
+            );
+
+            doc.setFontSize(14);
+            doc.setFont("Helvetica", "bold");
+            doc.text(companyName, doc.internal.pageSize.getWidth() / 2, 40, { align: "center" });
+
+            doc.setFontSize(12);
+            doc.setFont("Helvetica", "normal");
+            doc.text(selectedReport, doc.internal.pageSize.getWidth() / 2, 60, { align: "center" });
+
+            // AutoTable
+            doc.autoTable({
+                startY: 80,
+                head: head,
+                body: body,
+                 styles: { fontSize: 9, cellPadding: 4 , lineWidth: 0.5, lineColor: [0, 0, 0]    },
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: [240, 240, 240] },
+                margin: { left: 20, right: 20 }
+            });
+
+            doc.save(selectedReport + ".pdf");
+        });
+    });
+</script>
