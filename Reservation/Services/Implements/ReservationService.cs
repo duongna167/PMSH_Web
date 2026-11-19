@@ -2872,5 +2872,28 @@ namespace Reservation.Services.Implements
                 throw new Exception($"ERROR: {ex.Message}", ex);
             }
         }
+
+        public DataTable GetRecalculateRoomRevenueSource(DateTime fromDate, DateTime toDate, bool rateOnly)
+        {
+            string from = fromDate.ToString("yyyy-MM-dd");
+            string to = toDate.ToString("yyyy-MM-dd");
+            string rateFilter = rateOnly
+                ? "AND b.Rate <> 0 and b.RoomRevenueBeforeTax = 0 "
+                : "";
+            string sql = "SELECT DISTINCT a.ID AS ReservationID " +
+                         "FROM dbo.Reservation a WITH (NOLOCK), dbo.ReservationRate b WITH (NOLOCK) " +
+                         "WHERE a.ID = b.ReservationID AND a.Status NOT IN (3,4,7) AND a.ReservationNo > 0 " +
+                         rateFilter +
+                         "AND a.RoomType <> 'H8' " +
+                         "AND DATEDIFF(day, b.RateDate, '" + from + "') <= 0 " +
+                         "AND DATEDIFF(day, b.RateDate, '" + to + "') >= 0";
+            return TextUtils.Select(sql);
+        }
+
+        public void RecalculateRoomRevenue(int reservationId)
+        {
+            if (reservationId <= 0) return;
+            GetRoomRevenue(reservationId);
+        }
     }
 }

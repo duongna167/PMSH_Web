@@ -1,6 +1,16 @@
 @using Microsoft.Extensions.Options
 @using static BaseBusiness.Global
 @inject IOptions<ContactInfo> ContactConfig
+@inject IConfiguration Configuration
+@{
+    var propertyAllowedLoginNames = Configuration
+        .GetSection("PropertyAccess:AllowedLoginNames")
+        .Get<string[]>() ?? Array.Empty<string>();
+    var currentLoginName = Context.Session.GetString("LoginName");
+    var canAccessProperty = !string.IsNullOrWhiteSpace(currentLoginName)
+        && propertyAllowedLoginNames.Any(loginName =>
+            string.Equals(loginName?.Trim(), currentLoginName.Trim(), StringComparison.OrdinalIgnoreCase));
+}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -379,8 +389,12 @@
                         <li class="nav-item">
                             <a class="nav-link" href="#">REPORT</a>
                             <div class="dropdown-menu-custom">
-                                <a asp-area="" asp-controller="Report" asp-action="OtherReportChart" data-action="rpt_ReportByChart_web">Report By Chart</a>
                                 <a asp-area="" asp-controller="Report" asp-action="OtherReport" data-action="rpt_ViewReport">View Report</a>
+                                <a asp-area="" asp-controller="Report" asp-action="ChartReport" asp-route-name="RoomOccupancyChart" data-action="rpt_ReportByChart_web">Room Occupancy Chart</a>
+                                <a asp-area="" asp-controller="Report" asp-action="ChartReport" asp-route-name="RevenueDetailChart" data-action="rpt_ReportByChart_web">Revenue Detail Chart</a>
+                                <a asp-area="" asp-controller="Report" asp-action="ChartReport" asp-route-name="RevenueReportChart" data-action="rpt_ReportByChart_web">Revenue Report Chart</a>
+                                <a asp-area="" asp-controller="Report" asp-action="ChartReport" asp-route-name="RevenueByChart" data-action="rpt_ReportByChart_web">Revenue By Chart</a>
+                                <a asp-area="" asp-controller="Report" asp-action="ChartReport" asp-route-name="ReservationCancellationChart" data-action="rpt_ReportByChart_web">Reservation Cancellation Chart</a>
                             </div>
                         </li>
 
@@ -398,6 +412,7 @@
                             <div class="dropdown-menu-custom">
                                 <a href="javascript:void(0);" onclick="openHKPRmRate()" data-action="tool_RoomRate">Room Rate</a>
                                 @*<a asp-area="" asp-controller="Report" asp-action="OtherReportChart">Fixed Charge</a> *@
+                                <a asp-area="" asp-controller="Report" asp-action="OtherReport" asp-route-name="RecalculateRoomRevenue" data-action="tool_RecanculateRoomRevenue" data-code="tool_RecanculateRoomRevenue">Recalculate Room Revenue</a>
                                 <a asp-area="" asp-controller="NightAudit" asp-action="RunNightAudit" data-action="tool_RunNightAudit">Run Night Audit</a>
                             </div>
                         </li>
@@ -552,16 +567,19 @@
                                     </div>
                                 </div> *@
 
-                                <div class="dropdown-submenu">
-                                    <a class="dropdown-submenu-toggle">
-                                        Property
-                                    </a>
-                                    <div class="dropdown-submenu-content">
-                                        <a href="javascript:void(0);" onclick="openPropertyType()" data-action="admin_ICP_PropertyType">Property Type</a>
-                                        <a href="javascript:void(0);" onclick="openProperty()" data-action="admin_ICP_Property">Property</a>
-                                        <a href="javascript:void(0);" onclick="openPropertyPermission()" data-action="admin_ICP_PropertyPermission">Property Permission</a>
+                                @if (canAccessProperty)
+                                {
+                                    <div class="dropdown-submenu">
+                                        <a class="dropdown-submenu-toggle">
+                                            Property
+                                        </a>
+                                        <div class="dropdown-submenu-content">
+                                            <a href="javascript:void(0);" onclick="openPropertyType()" data-action="admin_ICP_PropertyType">Property Type</a>
+                                            <a href="javascript:void(0);" onclick="openProperty()" data-action="admin_ICP_Property">Property</a>
+                                            <a href="javascript:void(0);" onclick="openPropertyPermission()" data-action="admin_ICP_PropertyPermission">Property Permission</a>
+                                        </div>
                                     </div>
-                                </div>
+                                }
 
 
 
@@ -1219,6 +1237,9 @@
             const code = el.getAttribute("data-code") || el.getAttribute("data-action");
             if (!code) return;
             if (typeof window.hasFunctionRight === "function" && window.hasFunctionRight(code)) return;
+            if (code === "rpt_ReportByChart_web"
+                && typeof window.hasFunctionRight === "function"
+                && window.hasFunctionRight("rpt_ViewReport")) return;
             if (el.closest(".navbar-nav")) {
                 el.style.display = "none";
                 el.setAttribute("data-no-right", "1");
@@ -1271,8 +1292,10 @@
             const action = (pathSegments[pathSegments.length - 1] || "").toLowerCase();
             if (controller === "home" || action === "index") return;
 
-            const here = window.location.pathname.replace(/\/+$/, "").toLowerCase();
-            const match = Array.from(document.querySelectorAll("a[data-action][href]")).find(function (a) {
+            const hereUrl = new URL(window.location.href);
+            const here = hereUrl.pathname.replace(/\/+$/, "").toLowerCase();
+            const hereName = (hereUrl.searchParams.get("name") || "").toLowerCase();
+            const matches = Array.from(document.querySelectorAll("a[data-action][href]")).filter(function (a) {
                 const href = a.getAttribute("href") || "";
                 if (!href || href.toLowerCase().indexOf("javascript:") === 0) return false;
                 try {
@@ -1281,6 +1304,18 @@
                     return false;
                 }
             });
+            let match = null;
+            if (hereName) {
+                match = matches.find(function (a) {
+                    try {
+                        const url = new URL(a.getAttribute("href"), window.location.origin);
+                        return (url.searchParams.get("name") || "").toLowerCase() === hereName;
+                    } catch (err) {
+                        return false;
+                    }
+                });
+            }
+            if (!match) match = matches[0];
             if (!match) return;
             const code = match.getAttribute("data-action");
             if (typeof window.hasFunctionRight === "function" && window.hasFunctionRight(code)) return;

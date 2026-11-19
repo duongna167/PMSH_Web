@@ -7088,6 +7088,46 @@ namespace Reservation.Controllers
             }
         }
         #endregion
+
+        #region Recalculate Room Revenue
+        [HttpGet]
+        [RequireFunction("tool_RecanculateRoomRevenue")]
+        public IActionResult GetRecalculateRoomRevenueList(DateTime fromDate, DateTime toDate, bool rateOnly)
+        {
+            try
+            {
+                DataTable table = _iReservationService.GetRecalculateRoomRevenueSource(fromDate, toDate, rateOnly);
+                if (table == null)
+                    return Json(new { success = false, message = "Load info error" });
+
+                var ids = table.AsEnumerable()
+                    .Select(r => TextUtils.ToInt(r["ReservationID"]?.ToString() ?? "0"))
+                    .Where(id => id > 0)
+                    .ToList();
+                return Json(new { success = true, ids });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [RequireFunction("tool_RecanculateRoomRevenue")]
+        public IActionResult RecalculateRoomRevenueItem(int reservationId)
+        {
+            try
+            {
+                _iReservationService.RecalculateRoomRevenue(reservationId);
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+        #endregion
+
         #endregion
 
     }

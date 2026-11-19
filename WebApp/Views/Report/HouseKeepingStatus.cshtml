@@ -1,0 +1,208 @@
+@using DevExpress.XtraReports.UI
+@{
+    ViewBag.Title = ViewBag.ReportHeader;
+    var roomClassList = ViewBag.RoomClassList;
+    var rtList = ViewBag.RoomTypeList;
+    var blockList = ViewBag.BusinessBlockList;
+    var vipList = ViewBag.VIPList;
+}
+<style>
+    .filter_wrapper { padding: 18px 0px 0px 14px !important; border-radius: 8px; }
+    .gridContainer { margin: 0px 8px; }
+    .sticky-header label, .sticky-header .form-control-sm { font-size: 14px; line-height: 1.2; }
+    .sticky-header .form-control-sm { padding: 2px 8px; height: 28px; }
+    .sticky-header label { margin-bottom: 0; white-space: nowrap; }
+    .nrp-grid {
+        display: grid;
+        grid-template-columns: max-content max-content 160px max-content 160px max-content 160px;
+        column-gap: 6px;
+        row-gap: 8px;
+        align-items: center;
+        width: max-content;
+        max-width: 100%;
+    }
+    .nrp-grid > label { margin: 0; white-space: nowrap; }
+    .nrp-grid .pair-gap { margin-left: 10px; }
+    .nrp-grid select, .nrp-grid [data-date-input] { width: 160px; min-width: 128px; max-width: 220px; }
+    .nrp-check {
+        display: grid;
+        grid-template-columns: max-content max-content max-content max-content max-content max-content;
+        column-gap: 16px;
+        align-items: center;
+        width: max-content;
+        margin-top: 8px;
+    }
+    .nrp-check > .fw-bold { margin: 0; padding-right: 4px; }
+    .nrp-check .form-check { margin: 0 !important; display: flex; align-items: center; gap: 6px; }
+    .nrp-check .form-check-label { white-space: nowrap; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection { background-color: #01579b !important; color: white !important; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection * { color: white !important; }
+</style>
+<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+    <div class="">
+        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">PDF</button>
+    </div>
+    <div class="mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+        <div class="nrp-grid">
+            <label class="fw-bold">Date</label>
+            <label>From Date:</label>
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="fromDate">
+                <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
+            <label class="pair-gap">To Date:</label>
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="toDate">
+                <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
+            <label class="fw-bold">Filter</label>
+            <label>Room Class:</label>
+            <select id="roomClassId" class="form-control form-control-sm">
+                <option value="">All</option>
+                @if (roomClassList != null) { foreach (var item in roomClassList) { <option value="@item.ID">@item.Code</option> } }
+            </select>
+            <label class="pair-gap">Room Type:</label>
+            <select id="roomTypeId" class="form-control form-control-sm">
+                <option value="">--All--</option>
+                @if (rtList != null) { foreach (var item in rtList) { <option value="@item.ID">@item.Code</option> } }
+            </select>
+            <label class="pair-gap">Block Code:</label>
+            <select id="blockCode" class="form-control form-control-sm">
+                <option value="">--All--</option>
+                @if (blockList != null) { foreach (var item in blockList) { <option value="@item.Code">@item.Code</option> } }
+            </select>
+        </div>
+        <div class="nrp-check">
+            <label class="fw-bold">Res Status</label>
+            <div class="form-check"><input class="form-check-input" type="checkbox" id="arrivals" /><label class="form-check-label" for="arrivals">Arrivals</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" id="arrived" /><label class="form-check-label" for="arrived">Arrived</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" id="stayOver" /><label class="form-check-label" for="stayOver">Stay Over</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" id="dueOut" /><label class="form-check-label" for="dueOut">Due Out</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" id="departed" /><label class="form-check-label" for="departed">Departed</label></div>
+        </div>
+        <div class="nrp-grid">
+            <span></span>
+            <label>VIP:</label>
+            <select id="vipId" class="form-control form-control-sm">
+                <option value="0">All</option>
+                @if (vipList != null) { foreach (var item in vipList) { <option value="@item.ID">@item.Code</option> } }
+            </select>
+            <label class="pair-gap">Sort Order:</label>
+            <select id="orderBy" class="form-control form-control-sm">
+                <option value="room">Room No</option>
+                <option value="name">Alphabetical</option>
+                <option value="arrival">Arrival Time</option>
+                <option value="status">Resv Status</option>
+            </select>
+        </div>
+    </div>
+</div>
+<div class="mui-card">
+    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
+        <div class="gridContainer mt-2" id="gridContainer"></div>
+    </div>
+</div>
+<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+</div>
+<script>
+    function pick(row, names) {
+        for (var i = 0; i < names.length; i++) {
+            if (row[names[i]] !== undefined && row[names[i]] !== null && row[names[i]] !== "") return row[names[i]];
+        }
+        return "";
+    }
+    $(document).ready(function () {
+        document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
+        if (typeof window.initDateInputs === "function") window.initDateInputs();
+    });
+    function bindGrid(data) {
+        var rows = (Array.isArray(data) ? data : []).map(function (r) {
+            var holders = [pick(r, ["Company", "company"]), pick(r, ["Trave Agent", "Travel Agent", "trave Agent"]), pick(r, ["Source", "source"])].filter(Boolean).join(" / ");
+            return {
+                roomNo: pick(r, ["Room No", "RoomNo", "roomNo"]),
+                name: pick(r, ["Name", "name"]),
+                vip: pick(r, ["VIP", "vip"]),
+                block: pick(r, ["Block Code", "BlockCode", "blockCode"]),
+                holder: holders,
+                roomType: pick(r, ["Code", "code", "RoomType", "roomType"]),
+                arr: pick(r, ["Arrival Date", "ArrivalDate", "arrivalDate"]),
+                eta: pick(r, ["ETA", "eta"]),
+                dep: pick(r, ["Departure Date", "DepartureDate", "departureDate"]),
+                etd: pick(r, ["ETD", "etd"]),
+                adl: pick(r, ["Adl", "adl"]),
+                chld: pick(r, ["Chld", "chld"]),
+                rms: pick(r, ["Rms", "rms"]),
+                status: pick(r, ["Resv. Status", "Resv Status", "status"])
+            };
+        });
+        $("#gridContainer").dxDataGrid({
+            dataSource: rows, height: 500, allowColumnResizing: true,
+            columns: [
+                { dataField: "roomNo", caption: "Room No", width: 90 },
+                { dataField: "name", caption: "Name", minWidth: 160 },
+                { dataField: "vip", caption: "VIP", width: 70 },
+                { dataField: "block", caption: "Block Code", width: 100 },
+                { dataField: "holder", caption: "Company / TA / Source", minWidth: 180 },
+                { dataField: "roomType", caption: "Room Type", width: 90 },
+                { dataField: "arr", caption: "Arr Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                { dataField: "eta", caption: "ETA", width: 70 },
+                { dataField: "dep", caption: "Dep Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                { dataField: "etd", caption: "ETD", width: 70 },
+                { dataField: "adl", caption: "Adl", width: 50, dataType: "number" },
+                { dataField: "chld", caption: "Chld", width: 50, dataType: "number" },
+                { dataField: "rms", caption: "Rms", width: 50, dataType: "number" },
+                { dataField: "status", caption: "Resv. Status", width: 110 }
+            ],
+            paging: { pageSize: 25 },
+            scrolling: { useNative: true, showScrollbar: "always" },
+            pager: { visible: true, allowedPageSizes: [25, 50, "all"], showPageSizeSelector: true, showInfo: true, showNavigationButtons: true },
+            filterRow: { visible: true, applyFilter: "auto" },
+            headerFilter: { visible: true },
+            showBorders: true,
+            summary: { totalItems: [
+                { column: "adl", summaryType: "sum", displayFormat: "{0}" },
+                { column: "chld", summaryType: "sum", displayFormat: "{0}" },
+                { column: "rms", summaryType: "sum", displayFormat: "{0}" }
+            ]}
+        });
+    }
+    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+        $("#loadingSpinner").show();
+        $.ajax({
+            url: "/Report/HouseKeepingStatusData", type: "GET",
+            data: {
+                fromDate: $("#fromDate").val(), toDate: $("#toDate").val(),
+                roomClassId: $("#roomClassId").val(), roomTypeId: $("#roomTypeId").val(),
+                blockCode: $("#blockCode").val(), vipId: $("#vipId").val() || 0,
+                arrivals: $("#arrivals").is(":checked"), arrived: $("#arrived").is(":checked"),
+                stayOver: $("#stayOver").is(":checked"), dueOut: $("#dueOut").is(":checked"), departed: $("#departed").is(":checked"),
+                orderBy: $("#orderBy").val()
+            },
+            success: function (result) {
+                if (typeof result === "string") { alert(result); $("#loadingSpinner").hide(); return; }
+                bindGrid(result); $("#loadingSpinner").hide();
+            },
+            error: function () { alert("Không thể tải báo cáo."); $("#loadingSpinner").hide(); }
+        });
+    });
+    $(document).off("click", "#btnExportExcel").on("click", "#btnExportExcel", function () {
+        const grid = $("#gridContainer").dxDataGrid("instance"); if (!grid) return;
+        const workbook = new ExcelJS.Workbook(); const worksheet = workbook.addWorksheet("Report");
+        const selectedReport = '@ViewBag.ReportTitle';
+        DevExpress.excelExporter.exportDataGrid({ component: grid, worksheet: worksheet, autoFilterEnabled: true })
+            .then(function () { workbook.xlsx.writeBuffer().then(function (buffer) { saveAs(new Blob([buffer], { type: "application/octet-stream" }), selectedReport + ".xlsx"); }); });
+    });
+    $(document).off("click", "#btnExportPdf").on("click", "#btnExportPdf", function () {
+        const grid = $("#gridContainer").dxDataGrid("instance"); if (!grid) return;
+        const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "A4" });
+        const selectedReport = '@ViewBag.ReportTitle';
+        grid.getDataSource().load().then(data => {
+            const columns = grid.getVisibleColumns().filter(c => c.dataField);
+            doc.text(selectedReport, doc.internal.pageSize.getWidth() / 2, 40, { align: "center" });
+            doc.autoTable({ startY: 56, head: [columns.map(c => c.caption)], body: data.map(row => columns.map(c => row[c.dataField] ?? "")), styles: { fontSize: 8 } });
+            doc.save(selectedReport + ".pdf");
+        });
+    });
+</script>

@@ -4,147 +4,142 @@
 *@
 @{
     ViewBag.Title = ViewBag.ReportHeader;
-    var roomClassList = ViewBag.RoomClassList;
-    var departmentList = ViewBag.DepartmentList;
+    var roomClassList = ViewBag.RoomClassList as IEnumerable<dynamic>;
+    var departmentList = ViewBag.DepartmentList as IEnumerable<dynamic>;
     var report = ViewBag.ReportName as XtraReport;
 }
 
-
 <style>
-    .filter_wrapper {
-        background-color: #ececec;
-        margin: 0px 8px 14px 8px;
-        padding: 18px 0px 0px 14px;
-        border-radius: 8px;
+    .trace-filter-grid {
+        display: grid;
+        grid-template-columns: max-content max-content minmax(140px, 1fr) max-content minmax(140px, 1fr) max-content minmax(140px, 1fr);
+        column-gap: 8px;
+        row-gap: 8px;
+        align-items: center;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
     }
 
-    .gridContainer {
-        margin: 0px 8px;
+    .trace-filter-grid > label {
+        margin-right: 0 !important;
+        margin-bottom: 0;
+        white-space: nowrap;
     }
 
-    .button_wrapper {
-        display: flex;
-        column-gap: 12px;
-        margin: 0px 8px;
+    .trace-filter-grid select,
+    .trace-filter-grid [data-date-input] {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
     }
 
-        .button_wrapper .fa-solid {
-            margin-right: 5px;
-        }
-
-    .selected {
-        background-color: #4CAF50; /* Màu xanh */
-        color: white;
+    .trace-check-grid {
+        display: grid;
+        grid-template-columns: max-content max-content max-content max-content max-content;
+        column-gap: 16px;
+        row-gap: 8px;
+        align-items: center;
+        width: 100%;
     }
 
-  
+    .trace-check-grid > .form-check {
+        margin: 0 !important;
+    }
 </style>
-<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
-</div>
-<div style="display:flex;margin: 12px;text-align:center">
-    <i class="fa-solid fa-arrow-left" style="padding-top:5px;margin-right:4px" onclick="window.location.href='@Url.Action("Index", "Home")'"></i>
-    <div style="font-size:18px"><b>Report/TraceReport</b></div>
-</div>
-<div class="button_wrapper row">
-    <button id="btnPrint" type="button" class="btn btn-primary col-lg-1 mb-4 col-col-6">View</button>
-</div>
-<div class="filter_wrapper row">
-
-    <div class="form-group row col-md-3  mb-3">
-        <label class="col-md-5 col-form-label text-right">From Date</label>
-        <div class="col-md-7">
-            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
+<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+    <div class="">
+        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">PDF</button>
+    </div>
+    <div class="mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+        <div class="trace-filter-grid">
+            <label class="fw-bold">Date Range:</label>
+            <label>From Date:</label>
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="fromDate">
                 <input type="text" class="date-ui form-control form-control-sm"
                        placeholder="dd/mm/yyyy" autocomplete="off" />
             </div>
-        </div>
-    </div>
-    <div class="form-group row col-md-3  mb-3">
-        <label class="col-md-5 col-form-label text-right">To Date</label>
-
-        <div class="col-md-7">
-            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="toDate">
+            <label>To Date:</label>
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="toDate">
                 <input type="text" class="date-ui form-control form-control-sm"
                        placeholder="dd/mm/yyyy" autocomplete="off" />
             </div>
-        </div>
-    </div>
-    <div class="form-group row col-md-6  mb-3">
-        <label class="col-md-2 col-form-label text-right">Include</label>
-        <div class="col-md-10 d-flex align-items-center flex-wrap">
-            <div class="form-check mr-3">
-                <input class="form-check-input" type="checkbox" id="PseudoRoom" name="includeOptions" value="Option1" checked>
-                <label class="form-check-label" for="includeOption1">Pseudo Room</label>
-            </div>
-            <div class="form-check mr-3">
-                <input class="form-check-input" type="checkbox" id="Reserved" name="includeOptions" value="Option2" checked>
-                <label class="form-check-label" for="includeOption2">Reserved</label>
-            </div>
-            <div class="form-check mr-3">
-                <input class="form-check-input" type="checkbox" id="CheckedIn" name="includeOptions" value="Option3" >
-                <label class="form-check-label" for="includeOption3">Checked In</label>
-            </div>
-               <div class="form-check mr-3">
-                <input class="form-check-input" type="checkbox" id="Dueout" name="includeOptions" value="Option3" checked>
-                <label class="form-check-label" for="includeOption3">Due out</label>
-            </div>
-               <div class="form-check mr-3">
-                <input class="form-check-input" type="checkbox" id="Individual" name="includeOptions" value="Option3" checked>
-                <label class="form-check-label" for="includeOption3">Individual</label>
-            </div>
-               <div class="form-check mr-3">
-                <input class="form-check-input" type="checkbox" id="Blockcode" name="includeOptions" value="Option3" checked>
-                <label class="form-check-label" for="includeOption3">Blockcode</label>
-            </div>
-               <div class="form-check mr-3">
-                <input class="form-check-input" type="checkbox" id="VipOnly" name="includeOptions" value="Option3">
-                <label class="form-check-label" for="includeOption3">VipOnly</label>
-            </div>
+            <span></span>
+            <span></span>
 
-        </div>
-    </div>
-    <div class="form-group row col-md-3 mt-3  mb-3">
-        <label class="col-md-4 col-form-label text-right">Room Class</label>
-        <div class="col-md-8">
-            <select class="form-control" id="roomClass" name="selectType1">
+            <label class="fw-bold">Filter:</label>
+            <label>Room Class:</label>
+            <select class="form-control form-control-sm report-dd" id="roomClass" name="selectType1">
                 <option value="0">ALL</option>
-                @foreach (var item in roomClassList)
+                @if (roomClassList != null)
                 {
-                    <option value="@item.ID">@item.Code</option>
+                    foreach (var item in roomClassList)
+                    {
+                        <option value="@item.ID">@item.Code</option>
+                    }
                 }
             </select>
-        </div>
-    </div>
-
-    <div class="form-group row col-md-3 mt-3  mb-3">
-        <label class="col-md-4 col-form-label text-right">Department</label>
-        <div class="col-md-8">
-            <select class="form-control" id="department" name="selectType2">
+            <label>Department:</label>
+            <select class="form-control form-control-sm report-dd" id="department" name="selectType2">
                 <option value="0">ALL</option>
-                @foreach (var item in departmentList)
+                @if (departmentList != null)
                 {
-                    <option value="@item.ID">@item.Code</option>
+                    foreach (var item in departmentList)
+                    {
+                        <option value="@item.ID">@item.Code</option>
+                    }
                 }
             </select>
-        </div>
-    </div>
-
-    <div class="form-group row col-md-3 mt-3  mb-3">
-        <label class="col-md-4 col-form-label text-right">Status</label>
-        <div class="col-md-8">
-            <select class="form-control" id="selectType3" name="selectType3">
+            <label>Status:</label>
+            <select class="form-control form-control-sm report-dd" id="selectType3" name="selectType3">
                 <option value="0">ALL</option>
                 <option value="1">UnResolved</option>
                 <option value="2">Resolved</option>
             </select>
         </div>
-        </div> 
-    </div>
-    <div class="form-group row col-md-3 mt-3  mb-3">
-        <label class="col-md-4 col-form-label text-right">Sort Order</label>
-        <div class="col-md-8">
-        <select class="form-control" id="sortOrder" name="sortOrder">
+
+        <div class="trace-check-grid" style="margin-top: 8px;">
+            <label class="fw-bold mb-0">Include:</label>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="PseudoRoom" name="includeOptions" checked>
+                <label class="form-check-label" for="PseudoRoom">Pseudo Room</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="Reserved" name="includeOptions" checked>
+                <label class="form-check-label" for="Reserved">Reserved</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="CheckedIn" name="includeOptions">
+                <label class="form-check-label" for="CheckedIn">Checked In</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="Dueout" name="includeOptions" checked>
+                <label class="form-check-label" for="Dueout">Due out</label>
+            </div>
+
+            <span></span>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="Individual" name="includeOptions" checked>
+                <label class="form-check-label" for="Individual">Individual</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="Blockcode" name="includeOptions" checked>
+                <label class="form-check-label" for="Blockcode">Blockcode</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="VipOnly" name="includeOptions">
+                <label class="form-check-label" for="VipOnly">VipOnly</label>
+            </div>
+            <span></span>
+        </div>
+
+        <div class="d-flex align-items-center" style="margin-top: 8px; gap: 6px;">
+            <label class="fw-bold mb-0">Sort:</label>
+            <label class="mb-0">Order:</label>
+            <select class="form-control form-control-sm report-dd" id="sortOrder" name="sortOrder">
                 <option>By Alphabetical</option>
                 <option>By Room</option>
                 <option>By Vip</option>
@@ -152,24 +147,24 @@
         </div>
     </div>
 </div>
+
+<div class="mui-card">
+    <div id="reportViewerContainer" class="gridContainer mt-2"></div>
+</div>
 <div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
-<div id="reportViewerContainer" class="gridContainer mt-2">
-    <!-- Report viewer will be injected here -->
-</div>
 
 <script>
- 
     $(document).ready(function () {
-             window.initDateInputs();
-
-
+        var titleEl = document.getElementById("reportTitle");
+        if (titleEl) titleEl.innerText = '@ViewBag.ReportTitle';
+        window.initDateInputs();
     });
-             $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+
+    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
         $("#loadingSpinner").show();
 
-        // Xử lý sortOrder
         let byAlphabetical = 0;
         let byRoom = 0;
         let byVip = 0;
@@ -184,7 +179,6 @@
             byVip = 1;
         }
 
-        // Xử lý includeOptions (Checkbox)
         let pseudoRoom = $("#PseudoRoom").is(":checked") ? 1 : 0;
         let reserved = $("#Reserved").is(":checked") ? 1 : 0;
         let checkedIn = $("#CheckedIn").is(":checked") ? 1 : 0;
@@ -224,6 +218,4 @@
             }
         });
     });
-
-
 </script>

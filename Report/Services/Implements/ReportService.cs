@@ -1328,5 +1328,210 @@ namespace Report.Services.Implements
             DataTable myTable = DataTableHelper.getTableData("spRmgRoomAvailableNew", param);
             return myTable;
         }
+
+        private static string Nz(string value) => value ?? "";
+
+        public DataTable GuestBirthdayReportData(DateTime fromDate, DateTime toDate, string reservationStatus, string orderBy)
+        {
+            SqlParameter[] param =
+            {
+                new SqlParameter("@dtpFromDate", fromDate),
+                new SqlParameter("@dtpToDate", toDate),
+                new SqlParameter("@ReservationStatus", string.IsNullOrWhiteSpace(reservationStatus) ? "(1)" : reservationStatus),
+                new SqlParameter("@OrderBy", Nz(orderBy)),
+            };
+            return DataTableHelper.getTableData("spRptGuestBirthday", param);
+        }
+
+        public DataTable GuestInHousebyCompanyData(string roomClass, string roomType, string companyId, string pseudo, string sortOrder)
+        {
+            SqlParameter[] param =
+            {
+                new SqlParameter("@RoomClass", Nz(roomClass)),
+                new SqlParameter("@RoomType", Nz(roomType)),
+                new SqlParameter("@CompanyID", string.IsNullOrWhiteSpace(companyId) ? "0" : companyId),
+                new SqlParameter("@Pseudo", Nz(pseudo)),
+                new SqlParameter("@SortOrder", string.IsNullOrWhiteSpace(sortOrder) ? "0" : sortOrder),
+            };
+            return DataTableHelper.getTableData("spRptGuestsInHouseByCompany", param);
+        }
+
+        public DataTable GuestInHousebyGroupData(DateTime fromDate, DateTime toDate, string roomClass, string blockCode, string vipOnly, string printRate, string sortOrder)
+        {
+            SqlParameter[] param =
+            {
+                new SqlParameter("@FromDate", fromDate),
+                new SqlParameter("@ToDate", toDate),
+                new SqlParameter("@RoomClass", Nz(roomClass)),
+                new SqlParameter("@BlockCode", Nz(blockCode)),
+                new SqlParameter("@VIPOnly", Nz(vipOnly)),
+                new SqlParameter("@PrintRate", Nz(printRate)),
+                new SqlParameter("@SortOrder", string.IsNullOrWhiteSpace(sortOrder) ? "0" : sortOrder),
+            };
+            return DataTableHelper.getTableData("spRptGuestsInHouseByGroup", param);
+        }
+
+        public DataTable GuestInHousebyRoomData(string roomClass, string roomType, string payment, string pseudo, string vip, string vipOnly, string individual, string blockCode, int disRoomSharer, string sortOrder, string noPost)
+        {
+            SqlParameter[] param =
+            {
+                new SqlParameter("@RoomClass", Nz(roomClass)),
+                new SqlParameter("@RoomType", Nz(roomType)),
+                new SqlParameter("@Payment", Nz(payment)),
+                new SqlParameter("@Pseudo", Nz(pseudo)),
+                new SqlParameter("@VIP", Nz(vip)),
+                new SqlParameter("@ChkVIPOnly", Nz(vipOnly)),
+                new SqlParameter("@Individual", Nz(individual)),
+                new SqlParameter("@BlockCode", Nz(blockCode)),
+                new SqlParameter("@DisRoomSharer", disRoomSharer),
+                new SqlParameter("@SortOrder", string.IsNullOrWhiteSpace(sortOrder) ? "0" : sortOrder),
+                new SqlParameter("@NoPost", Nz(noPost)),
+            };
+            return DataTableHelper.getTableData("spRptGuestsInHouseByRoom", param);
+        }
+
+        public DataTable GuestInHouseCashPaymentMethodData(DateTime fromDate)
+        {
+            return DataTableHelper.getTableData("spRptGuestsInHouseCashPaymentMethod", new[] { new SqlParameter("@FromDate", fromDate) });
+        }
+
+        public DataTable GuestInHouseSpecialRequestsData(DateTime fromDate, DateTime toDate, DateTime? departure, int sortOrder, string special)
+        {
+            SqlParameter[] param =
+            {
+                new SqlParameter("@FromDate", fromDate),
+                new SqlParameter("@ToDate", toDate),
+                new SqlParameter("@Departure", departure.HasValue ? departure.Value : (object)DBNull.Value),
+                new SqlParameter("@SortOder", sortOrder),
+                new SqlParameter("@Special", Nz(special)),
+            };
+            return DataTableHelper.getTableData("spRptGuestsInHouseSpecialRequests", param);
+        }
+
+        public DataTable MessagesGuestsINHAndDueArrivalData(string receiveStatus)
+        {
+            return DataTableHelper.getTableData("spRptMessage", new[] { new SqlParameter("@ReceiveStatus", Nz(receiveStatus)) });
+        }
+
+        public DataTable GuestInHouseComplimentaryAndHouseUseData(bool vipOnly, string vipIds, bool showComp, bool showHU, bool displayComment, string sort)
+        {
+            SqlParameter[] param =
+            {
+                new SqlParameter("@vipOnly", vipOnly),
+                new SqlParameter("@vipIDs", Nz(vipIds)),
+                new SqlParameter("@showComp", showComp),
+                new SqlParameter("@showHU", showHU),
+                new SqlParameter("@displayComment", displayComment),
+                new SqlParameter("@sort", string.IsNullOrWhiteSpace(sort) ? "Room No." : sort),
+            };
+            return DataTableHelper.getTableData("spRptGuestsInHouseCompHU", param);
+        }
+
+        public DataTable GIHComplimentaryData()
+        {
+            return DataTableHelper.getTableData("spRpt_GIHComplimentary");
+        }
+
+        public DataTable HouseKeepingStatusData(string roomClassId, string roomTypeId, string blockCode, DateTime fromDate, DateTime toDate, string orderBy, bool arrivals, bool arrived, bool stayOver, bool dueOut, bool departed, int vipId)
+        {
+            SqlParameter[] param =
+            {
+                new SqlParameter("@RoomClassID", Nz(roomClassId)),
+                new SqlParameter("@RoomTypeID", Nz(roomTypeId)),
+                new SqlParameter("@BlockCode", Nz(blockCode)),
+                new SqlParameter("@FromDate", fromDate),
+                new SqlParameter("@ToDate", toDate),
+                new SqlParameter("@OrderByRoomNo", orderBy == "room"),
+                new SqlParameter("@OrderByArrivalTime", orderBy == "arrival"),
+                new SqlParameter("@OrderByResvStatus", orderBy == "status"),
+                new SqlParameter("@OrderByAlphabetical", orderBy == "name"),
+                new SqlParameter("@Arrivals", arrivals),
+                new SqlParameter("@Arrived", arrived),
+                new SqlParameter("@StayOver", stayOver),
+                new SqlParameter("@DueOut", dueOut),
+                new SqlParameter("@Departed", departed),
+                new SqlParameter("@BusinessDate", fromDate),
+                new SqlParameter("@VIPID", vipId),
+            };
+            return DataTableHelper.getTableData("spRptHouseKeepingStatus", param);
+        }
+
+        public DataTable OutOfOrderByPersonData(DateTime fromDate, DateTime toDate, string roomType, string zone, string orderBy, int oooStatus)
+        {
+            SqlParameter[] param =
+            {
+                new SqlParameter("@FromDate", fromDate),
+                new SqlParameter("@ToDate", toDate),
+                new SqlParameter("@RoomType", Nz(roomType)),
+                new SqlParameter("@Zone", Nz(zone)),
+                new SqlParameter("@OrderBy", string.IsNullOrWhiteSpace(orderBy) ? " order by b.RoomNo" : orderBy),
+                new SqlParameter("@OOOStatus", oooStatus),
+            };
+            return DataTableHelper.getTableData("spRptOOOByReason", param);
+        }
+
+        public DataTable DialingInformationData(DateTime fromDate)
+        {
+            return DataTableHelper.getTableData("spRptDialInformation", new[] { new SqlParameter("@Date", fromDate) });
+        }
+
+        public DataTable ProfileAddressData(string profileType, string nameStart, string vipOnly)
+        {
+            SqlParameter[] param =
+            {
+                new SqlParameter("@ProfileType", Nz(profileType)),
+                new SqlParameter("@NameStart", Nz(nameStart)),
+                new SqlParameter("@VIPOnly", string.IsNullOrWhiteSpace(vipOnly) ? "0" : vipOnly),
+            };
+            return DataTableHelper.getTableData("spRptProfileAddress", param);
+        }
+
+        public DataTable ProfileProductivityData(DateTime fromDate, DateTime toDate, string name)
+        {
+            SqlParameter[] param =
+            {
+                new SqlParameter("@FromDate", fromDate),
+                new SqlParameter("@ToDate", toDate),
+                new SqlParameter("@Name", Nz(name)),
+            };
+            return DataTableHelper.getTableData("spRptProfileProductivity", param);
+        }
+
+        public DataTable ComplimentaryGuestReportData(DateTime fromDate)
+        {
+            return DataTableHelper.getTableData("spRptGuestReport_Compl", new[] { new SqlParameter("@dtpFromDate", fromDate) });
+        }
+
+        public DataTable PaidOutReportData(DateTime fromDate, DateTime toDate)
+        {
+            SqlParameter[] param =
+            {
+                new SqlParameter("@dtpFromDate", fromDate),
+                new SqlParameter("@dtpToDate", toDate),
+            };
+            return DataTableHelper.getTableData("spRptPaidOut", param);
+        }
+
+        public DataTable HistoryAndForecastData(DateTime fromDate, DateTime toDate, string zone)
+        {
+            SqlParameter[] param =
+            {
+                new SqlParameter("@FromDate", fromDate),
+                new SqlParameter("@ToDate", toDate),
+                new SqlParameter("@Zone", Nz(zone)),
+            };
+            return DataTableHelper.getTableData("spRptHistoryAndForecast", param);
+        }
+
+        public DataTable MarketSegmentDetailData(DateTime fromDate, DateTime toDate, string zone)
+        {
+            SqlParameter[] param =
+            {
+                new SqlParameter("@FromDate", fromDate),
+                new SqlParameter("@ToDate", toDate),
+                new SqlParameter("@Zone", Nz(zone)),
+            };
+            return DataTableHelper.getTableData("spRptMarketSegmentDetailReport", param);
+        }
     }
 }

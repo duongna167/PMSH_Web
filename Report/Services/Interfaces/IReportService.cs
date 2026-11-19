@@ -96,6 +96,24 @@ namespace Report.Services.Interfaces
         DataTable RoomFacilityForecastData(DateTime fromDate, DateTime toDate, string zone);
         DataTable ReservationSearchRSVDate(DateTime businessDate, int status);
         DataTable RoomAvailableNew(DateTime businessDate, string paraDate, string paraDateConvert, string resvType,string Code);
+        DataTable GuestBirthdayReportData(DateTime fromDate, DateTime toDate, string reservationStatus, string orderBy);
+        DataTable GuestInHousebyCompanyData(string roomClass, string roomType, string companyId, string pseudo, string sortOrder);
+        DataTable GuestInHousebyGroupData(DateTime fromDate, DateTime toDate, string roomClass, string blockCode, string vipOnly, string printRate, string sortOrder);
+        DataTable GuestInHousebyRoomData(string roomClass, string roomType, string payment, string pseudo, string vip, string vipOnly, string individual, string blockCode, int disRoomSharer, string sortOrder, string noPost);
+        DataTable GuestInHouseCashPaymentMethodData(DateTime fromDate);
+        DataTable GuestInHouseSpecialRequestsData(DateTime fromDate, DateTime toDate, DateTime? departure, int sortOrder, string special);
+        DataTable MessagesGuestsINHAndDueArrivalData(string receiveStatus);
+        DataTable GuestInHouseComplimentaryAndHouseUseData(bool vipOnly, string vipIds, bool showComp, bool showHU, bool displayComment, string sort);
+        DataTable GIHComplimentaryData();
+        DataTable HouseKeepingStatusData(string roomClassId, string roomTypeId, string blockCode, DateTime fromDate, DateTime toDate, string orderBy, bool arrivals, bool arrived, bool stayOver, bool dueOut, bool departed, int vipId);
+        DataTable OutOfOrderByPersonData(DateTime fromDate, DateTime toDate, string roomType, string zone, string orderBy, int oooStatus);
+        DataTable DialingInformationData(DateTime fromDate);
+        DataTable ProfileAddressData(string profileType, string nameStart, string vipOnly);
+        DataTable ProfileProductivityData(DateTime fromDate, DateTime toDate, string name);
+        DataTable ComplimentaryGuestReportData(DateTime fromDate);
+        DataTable PaidOutReportData(DateTime fromDate, DateTime toDate);
+        DataTable HistoryAndForecastData(DateTime fromDate, DateTime toDate, string zone);
+        DataTable MarketSegmentDetailData(DateTime fromDate, DateTime toDate, string zone);
     }
 
 }

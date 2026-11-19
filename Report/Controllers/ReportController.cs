@@ -13,7 +13,9 @@ using DevExpress.CodeParser;
 using DevExpress.XtraReports.UI;
 using DevExpress.XtraRichEdit.Import.Doc;
 using DevExpress.XtraRichEdit.Import.Html;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewEngines;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -28,14 +30,17 @@ namespace Report.Controllers
         private readonly ILogger<ReportController> _logger;
         private readonly IMemoryCache _cache;
         private readonly IReportService _iReportService;
+        private readonly ICompositeViewEngine _viewEngine;
 
         public ReportController(ILogger<ReportController> logger,
-             IMemoryCache cache, IConfiguration configuration, IReportService iReportService)
+             IMemoryCache cache, IConfiguration configuration, IReportService iReportService,
+             ICompositeViewEngine viewEngine)
         {
             _cache = cache;
             _logger = logger;
             _configuration = configuration;
             _iReportService = iReportService;
+            _viewEngine = viewEngine;
         }
 
         public IActionResult Index()
@@ -105,6 +110,70 @@ namespace Report.Controllers
             ViewBag.CompanyName = companyConfig.Desciption;
             return View();
 
+        }
+
+        private static readonly Dictionary<string, string> ChartReportCodes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["RoomOccupancyChart"] = "rptRoomOccupancyChart",
+            ["RevenueDetailChart"] = "rptRevenueDetailChart",
+            ["RevenueReportChart"] = "rptRevenueReportChart",
+            ["RevenueByChart"] = "rptRevenueByChart",
+            ["ReservationCancellationChart"] = "rptReservationCancellationChart",
+        };
+
+        private static readonly Dictionary<string, string> ChartReportTitles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["RoomOccupancyChart"] = "Room Occupancy Chart",
+            ["RevenueDetailChart"] = "Revenue Detail Chart",
+            ["RevenueReportChart"] = "Revenue Report Chart",
+            ["RevenueByChart"] = "Revenue By Chart",
+            ["ReservationCancellationChart"] = "Reservation Cancellation Chart",
+        };
+
+        [HttpGet]
+        public IActionResult ChartReport(string name)
+        {
+            if (HttpContext.Session.GetInt32("UserID") is null or <= 0)
+                return Redirect("/User/Index");
+
+            if (string.IsNullOrWhiteSpace(name) || !ChartReportCodes.TryGetValue(name, out var code))
+                return Redirect("/Home/Index?denied=1");
+
+            if (!SessionHasFunction(code)
+                && !SessionHasFunction("rpt_ReportByChart_web")
+                && !SessionHasFunction("rpt_ViewReport"))
+                return Redirect("/Home/Index?denied=1");
+
+            if (name.Equals("RoomOccupancyChart", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("RevenueByChart", StringComparison.OrdinalIgnoreCase))
+            {
+                ViewBag.ZoneList = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
+                ViewBag.RoomTypeList = PropertyUtils.ConvertToList<RoomTypeModel>(RoomTypeBO.Instance.FindAll());
+            }
+            else if (name.Equals("ReservationCancellationChart", StringComparison.OrdinalIgnoreCase))
+            {
+                ViewBag.ComList = PropertyUtils.ConvertToList<CommentModel>(CommentBO.Instance.FindAll());
+            }
+
+            ViewBag.ReportTitle = ChartReportTitles[name];
+            return View(name);
+        }
+
+        private bool SessionHasFunction(string code)
+        {
+            var raw = HttpContext.Session.GetString("PermissionCodes");
+            if (string.IsNullOrWhiteSpace(raw) || string.IsNullOrWhiteSpace(code))
+                return false;
+
+            try
+            {
+                var list = System.Text.Json.JsonSerializer.Deserialize<string[]>(raw) ?? Array.Empty<string>();
+                return list.Any(item => string.Equals(item?.Trim(), code.Trim(), StringComparison.OrdinalIgnoreCase));
+            }
+            catch
+            {
+                return false;
+            }
         }
         public IActionResult FreeUpgradeReport()
         {
@@ -1742,11 +1811,11 @@ namespace Report.Controllers
         {
             try
             {
-                // Lấy tất cả các loại phòng trong khu vực Zone theo ZoneID
+                // zone = 0: mọi khu. Ngược lại chỉ lấy loại phòng thuộc zone đã chọn.
                 List<RoomTypeModel> roomTypesInZone = PropertyUtils
-                    .ConvertToList<RoomTypeModel>(RoomTypeBO.Instance.FindAll())
-                    .Where(rt => rt.ZoneID == zone)
-                    .ToList();
+                    .ConvertToList<RoomTypeModel>(RoomTypeBO.Instance.FindAll());
+                if (zone > 0)
+                    roomTypesInZone = roomTypesInZone.Where(rt => rt.ZoneID == zone).ToList();
 
                 // Lấy mã khu vực (zone)
                 string zonecode = string.Join(",", roomTypesInZone.Select(rt => rt.ID.ToString()));
@@ -3569,115 +3638,402 @@ namespace Report.Controllers
                 return Json(new { error = ex.Message });
             }
         }
+
+        private IActionResult JsonTable(DataTable table)
+        {
+            var rows = new List<Dictionary<string, object>>();
+            if (table != null)
+            {
+                foreach (DataRow r in table.Rows)
+                {
+                    var d = new Dictionary<string, object>();
+                    foreach (DataColumn c in table.Columns)
+                    {
+                        var v = r[c];
+                        d[c.ColumnName] = v == DBNull.Value || v == null ? "" : v;
+                    }
+                    rows.Add(d);
+                }
+            }
+            return Json(rows);
+        }
+
+        private static DateTime NzDate(DateTime d) => d == default ? DateTime.Today : d;
+
+        [HttpGet]
+        public IActionResult GuestBirthdayReportData(DateTime fromDate, DateTime toDate, string reservationStatus, string orderBy)
+        {
+            try { return JsonTable(_iReportService.GuestBirthdayReportData(NzDate(fromDate), NzDate(toDate), reservationStatus, orderBy)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult GuestInHousebyCompanyData(string roomClass, string roomType, string companyId, string pseudo, string sortOrder)
+        {
+            try { return JsonTable(_iReportService.GuestInHousebyCompanyData(roomClass, roomType, companyId, pseudo, sortOrder)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult GuestInHousebyGroupData(DateTime fromDate, DateTime toDate, string roomClass, string blockCode, string vipOnly, string printRate, string sortOrder)
+        {
+            try { return JsonTable(_iReportService.GuestInHousebyGroupData(NzDate(fromDate), NzDate(toDate), roomClass, blockCode, vipOnly, printRate, sortOrder)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult GuestInHousebyRoomData(string roomClass, string roomType, string payment, string pseudo, string vip, string vipOnly, string individual, string blockCode, int disRoomSharer, string sortOrder, string noPost)
+        {
+            try { return JsonTable(_iReportService.GuestInHousebyRoomData(roomClass, roomType, payment, pseudo, vip, vipOnly, individual, blockCode, disRoomSharer, sortOrder, noPost)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult GuestInHouseCashPaymentMethodData(DateTime fromDate)
+        {
+            try { return JsonTable(_iReportService.GuestInHouseCashPaymentMethodData(NzDate(fromDate))); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult GuestInHouseSpecialRequestsData(DateTime fromDate, DateTime toDate, DateTime? departure, int sortOrder, string special)
+        {
+            try { return JsonTable(_iReportService.GuestInHouseSpecialRequestsData(NzDate(fromDate), NzDate(toDate), departure, sortOrder, special)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult MessagesGuestsINHAndDueArrivalData(string receiveStatus)
+        {
+            try { return JsonTable(_iReportService.MessagesGuestsINHAndDueArrivalData(receiveStatus)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult GuestInHouseComplimentaryAndHouseUseData(bool vipOnly, string vipIds, bool showComp, bool showHU, bool displayComment, string sort)
+        {
+            try { return JsonTable(_iReportService.GuestInHouseComplimentaryAndHouseUseData(vipOnly, vipIds, showComp, showHU, displayComment, sort)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult GIHComplimentaryData()
+        {
+            try { return JsonTable(_iReportService.GIHComplimentaryData()); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult HouseKeepingStatusData(string roomClassId, string roomTypeId, string blockCode, DateTime fromDate, DateTime toDate, string orderBy, bool arrivals, bool arrived, bool stayOver, bool dueOut, bool departed, int vipId)
+        {
+            try { return JsonTable(_iReportService.HouseKeepingStatusData(roomClassId, roomTypeId, blockCode, NzDate(fromDate), NzDate(toDate), orderBy, arrivals, arrived, stayOver, dueOut, departed, vipId)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult OutOfOrderByPersonData(DateTime fromDate, DateTime toDate, string roomType, string zone, string orderBy, int oooStatus)
+        {
+            try { return JsonTable(_iReportService.OutOfOrderByPersonData(NzDate(fromDate), NzDate(toDate), roomType, zone, orderBy, oooStatus)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult DialingInformationData(DateTime fromDate)
+        {
+            try { return JsonTable(_iReportService.DialingInformationData(NzDate(fromDate))); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult ProfileAddressData(string profileType, string nameStart, string vipOnly)
+        {
+            try { return JsonTable(_iReportService.ProfileAddressData(profileType, nameStart, vipOnly)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult ProfileProductivityData(DateTime fromDate, DateTime toDate, string name)
+        {
+            try { return JsonTable(_iReportService.ProfileProductivityData(NzDate(fromDate), NzDate(toDate), name)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult ComplimentaryGuestReportData(DateTime fromDate)
+        {
+            try { return JsonTable(_iReportService.ComplimentaryGuestReportData(NzDate(fromDate))); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult PaidOutReportData(DateTime fromDate, DateTime toDate)
+        {
+            try { return JsonTable(_iReportService.PaidOutReportData(NzDate(fromDate), NzDate(toDate))); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult HistoryAndForecastData(DateTime fromDate, DateTime toDate, string zone)
+        {
+            try { return JsonTable(_iReportService.HistoryAndForecastData(NzDate(fromDate), NzDate(toDate), zone)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult MarketSegmentDetailData(DateTime fromDate, DateTime toDate, string zone)
+        {
+            try { return JsonTable(_iReportService.MarketSegmentDetailData(NzDate(fromDate), NzDate(toDate), zone)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        private static readonly TimeSpan LookupCacheTtl = TimeSpan.FromMinutes(15);
+
+        private List<T> CachedLookup<T>(string key, Func<List<T>> factory)
+        {
+            return _cache.GetOrCreate(key, entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = LookupCacheTtl;
+                return factory() ?? new List<T>();
+            }) ?? new List<T>();
+        }
+
+        private void BindLookups(params string[] keys)
+        {
+            foreach (var key in keys)
+            {
+                switch (key)
+                {
+                    case "zone":
+                        ViewBag.ZoneList = CachedLookup("rpt:zone", () => PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll()));
+                        break;
+                    case "roomType":
+                        ViewBag.RoomTypeList = CachedLookup("rpt:roomType", () => PropertyUtils.ConvertToList<RoomTypeModel>(RoomTypeBO.Instance.FindAll()));
+                        break;
+                    case "roomClass":
+                        ViewBag.RoomClassList = CachedLookup("rpt:roomClass", () => PropertyUtils.ConvertToList<RoomClassModel>(RoomClassBO.Instance.FindAll()));
+                        break;
+                    case "market":
+                        ViewBag.MarketList = CachedLookup("rpt:market", () => PropertyUtils.ConvertToList<MarketModel>(MarketBO.Instance.FindAll()));
+                        break;
+                    case "rateCode":
+                        ViewBag.RateCodeList = CachedLookup("rpt:rateCode", () => PropertyUtils.ConvertToList<RateCodeModel>(RateCodeBO.Instance.FindAll()));
+                        break;
+                    case "room":
+                        ViewBag.RoomList = CachedLookup("rpt:room", () => PropertyUtils.ConvertToList<RoomModel>(RoomBO.Instance.FindAll()));
+                        break;
+                    case "article":
+                        ViewBag.ArticleList = CachedLookup("rpt:article", () => PropertyUtils.ConvertToList<ArticleModel>(ArticleBO.Instance.FindAll()));
+                        break;
+                    case "source":
+                        ViewBag.SourceList = CachedLookup("rpt:source", () => PropertyUtils.ConvertToList<SourceModel>(SourceBO.Instance.FindAll()));
+                        break;
+                    case "payTxn":
+                        ViewBag.TransactionsList = CachedLookup("rpt:payTxn", () =>
+                            PropertyUtils.ConvertToList<TransactionsModel>(TransactionsBO.Instance.FindAll()).Where(x => x.GroupType == 1).ToList());
+                        break;
+                    case "txn":
+                        ViewBag.TransactionsList = CachedLookup("rpt:txn", () => PropertyUtils.ConvertToList<TransactionsModel>(TransactionsBO.Instance.FindAll()));
+                        break;
+                    case "block":
+                        ViewBag.BusinessBlockList = CachedLookup("rpt:block", () => PropertyUtils.ConvertToList<BusinessBlockModel>(BusinessBlockBO.Instance.FindAll()));
+                        break;
+                    case "cashier":
+                        ViewBag.CashierUserList = CachedLookup("rpt:cashier", () => PropertyUtils.ConvertToList<CashierUserModel>(CashierUserBO.Instance.FindAll()));
+                        break;
+                    case "arPay":
+                        ViewBag.ARPaymentList = CachedLookup("rpt:arPay", () =>
+                            PropertyUtils.ConvertToList<ARPaymentModel>(ARPaymentBO.Instance.FindAll())
+                                .GroupBy(x => x.TransactionCode)
+                                .Select(g => g.First())
+                                .ToList());
+                        break;
+                    case "vip":
+                        ViewBag.VIPList = CachedLookup("rpt:vip", () => PropertyUtils.ConvertToList<VIPModel>(VIPBO.Instance.FindAll()));
+                        break;
+                    case "transport":
+                        ViewBag.TransportTypeList = CachedLookup("rpt:transport", () => PropertyUtils.ConvertToList<TransportTypeModel>(TransportTypeBO.Instance.FindAll()));
+                        break;
+                    case "users":
+                        ViewBag.UsersList = CachedLookup("rpt:users", () => PropertyUtils.ConvertToList<UsersModel>(UsersBO.Instance.FindAll()));
+                        break;
+                    case "pref":
+                        ViewBag.PreferenceList = CachedLookup("rpt:pref", () => PropertyUtils.ConvertToList<PreferenceModel>(PreferenceBO.Instance.FindAll()));
+                        break;
+                    case "company":
+                        ViewBag.CompanyList = CachedLookup("rpt:company", () =>
+                            PropertyUtils.ConvertToList<ProfileModel>(ProfileBO.Instance.FindAll()).Where(x => x.Type == 2).ToList());
+                        break;
+                    case "dept":
+                        ViewBag.DepartmentList = CachedLookup("rpt:dept", () => PropertyUtils.ConvertToList<DepartmentModel>(DepartmentBO.Instance.FindAll()));
+                        break;
+                    case "comment":
+                        ViewBag.ComList = CachedLookup("rpt:comment", () => PropertyUtils.ConvertToList<CommentModel>(CommentBO.Instance.FindAll()));
+                        break;
+                    case "alert":
+                        ViewBag.ALertList = CachedLookup("rpt:alert", () => PropertyUtils.ConvertToList<AlertsSetupModel>(AlertsSetupBO.Instance.FindAll()));
+                        break;
+                }
+            }
+        }
+
         public IActionResult LoadReport(string reportName,string title)
         {
-           
             switch (reportName)
             {
                 case "RatecodebyDateReport":
-                    List<RateCodeModel> list = PropertyUtils.ConvertToList<RateCodeModel>(RateCodeBO.Instance.FindAll());
-                    ViewBag.RateCodeList = list;
+                case "OtherReport":
+                case "OtherReportChart":
+                    BindLookups("rateCode");
                     break;
                 case "FixChargeReport":
-                    List<TransactionsModel> listts = PropertyUtils.ConvertToList<TransactionsModel>(TransactionsBO.Instance.FindAll());
-                    ViewBag.TransactionsList = listts;
+                    BindLookups("txn");
                     break;
-
                 case "RevenueBy":
                 case "RevenueByChart":
+                case "RoomOccupancyStatistics":
+                case "RevenueRoom":
+                case "Revenuebyroom":
+                case "SaleinChargeActivity":
+                case "ProductActivity":
+                case "TAProductionReport":
+                    BindLookups("zone", "roomType");
+                    break;
                 case "DailyMinibarReport":
+                    BindLookups("room", "article");
+                    break;
                 case "DepositActivity":
+                    BindLookups("cashier");
+                    break;
                 case "IncurringDepositCollection":
                 case "IncurringDepositReturn":
                 case "IncurringDepositSummary":
                 case "IncurringDepositPaymentPlan":
+                    BindLookups("cashier", "zone");
+                    break;
                 case "JournalByCashierAndArticle":
+                    BindLookups("payTxn", "room", "article", "cashier", "roomClass");
+                    break;
                 case "ArticleByRoom":
+                    BindLookups("zone", "room", "article");
+                    break;
                 case "ReservationStatistics":
-                case "RoomOccupancyStatistics":
-                case "DeparturesReport":
-                case "ArrivalsDetailed":
-                case "ArrivalDetailedGroupbyHolder":
-                case "ReservationPreblocked":
-                case "VacantRoom":
-                case "Transportation":
-             
                 case "RoomOccupancy":
                 case "RoomOccupancyChart":
-                case "RevenueRoom":
-                
-                case "RoomMoves":
-                case "OccupancyByPercon":
-                case "NoShowReport":
-                case "RevenueReports":
                 case "GuestMarketReport":
-                case "CashierAudit":
-                case "RoomStatistic":                 
-                case "AnnualRoomOccupancy":
-                case "RoomTypeStatistic":
                 case "NationalStatistics":
-                case "ReservationSummary":
-                case "GuestTrialBalance":
-                case "ReservationbyCompany":
                 case "LeadTimeReport":
+                case "HistoryAndForecast":
+                case "MarketSegmentDetail":
+                case "GuestLedger":
+                case "PostingJournalInvoicing":
+                case "CancellationJournal":
+                    BindLookups("zone");
+                    break;
+                case "DeparturesReport":
+                    BindLookups("roomClass", "roomType", "zone", "vip", "rateCode", "payTxn", "block");
+                    break;
+                case "ArrivalsDetailed":
+                case "ArrivalDetailedGroupbyHolder":
+                    BindLookups("roomClass", "roomType", "source", "vip", "rateCode", "market");
+                    break;
+                case "ReservationPreblocked":
+                case "VacantRoom":
+                case "GuestTrialBalance":
+                    BindLookups("roomClass", "roomType");
+                    break;
+                case "Transportation":
+                    BindLookups("transport");
+                    break;
+                case "OccupancyByPercon":
+                case "RoomTypeStatistic":
+                    BindLookups("roomType");
+                    break;
+                case "NoShowReport":
+                    BindLookups("roomClass", "zone");
+                    break;
+                case "CashierAudit":
+                    BindLookups("payTxn", "users");
+                    break;
+                case "RoomStatistic":
+                case "ReservationRateCheck":
+                case "TrialBalance":
+                case "TransferARReport":
+                case "DepositRequestLogReport":
+                    BindLookups("roomClass");
+                    break;
+                case "AnnualRoomOccupancy":
                 case "RatecodeReport":
+                    BindLookups("zone", "rateCode");
+                    break;
+                case "ReservationbyCompany":
+                    BindLookups("roomClass", "roomType", "zone");
+                    break;
                 case "ArrivalsAndCheckInToday":
+                    BindLookups("roomClass", "roomType", "arPay", "vip");
+                    break;
                 case "DailyPickupReport":
-                    List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
-                    ViewBag.ZoneList = listzo;
-                    List<RoomTypeModel> listrt = PropertyUtils.ConvertToList<RoomTypeModel>(RoomTypeBO.Instance.FindAll());
-                    ViewBag.RoomTypeList = listrt;
-                    List<RoomClassModel> listrl = PropertyUtils.ConvertToList<RoomClassModel>(RoomClassBO.Instance.FindAll());
-                    ViewBag.RoomClassList = listrl;
-                    List<MarketModel> listmk = PropertyUtils.ConvertToList<MarketModel>(MarketBO.Instance.FindAll());
-                    ViewBag.MarketList = listmk;
-                    List<RateCodeModel> listrc = PropertyUtils.ConvertToList<RateCodeModel>(RateCodeBO.Instance.FindAll());
-                    ViewBag.RateCodeList = listrc;
-                    List<RoomModel> listroom = PropertyUtils.ConvertToList<RoomModel>(RoomBO.Instance.FindAll());
-                    ViewBag.RoomList = listroom;
-                    List<ArticleModel> listaticl = PropertyUtils.ConvertToList<ArticleModel>(ArticleBO.Instance.FindAll());
-                    ViewBag.ArticleList = listaticl;
-                    List<SourceModel> listsrc = PropertyUtils.ConvertToList<SourceModel>(SourceBO.Instance.FindAll());
-                    ViewBag.SourceList = listsrc;
-                    List<TransactionsModel> listpmtr = PropertyUtils.ConvertToList<TransactionsModel>(TransactionsBO.Instance.FindAll()).Where(x => x.GroupType == 1).ToList();
-                    ViewBag.TransactionsList = listpmtr;
-                    List<BusinessBlockModel> listbnbl = PropertyUtils.ConvertToList<BusinessBlockModel>(BusinessBlockBO.Instance.FindAll());
-                    ViewBag.BusinessBlockList = listbnbl;
-                    List<CashierUserModel> listcse = PropertyUtils.ConvertToList<CashierUserModel>(CashierUserBO.Instance.FindAll());
-                    ViewBag.CashierUserList = listcse;
-                    List<ARPaymentModel> listarpm = PropertyUtils
-                    .ConvertToList<ARPaymentModel>(ARPaymentBO.Instance.FindAll())
-                    .GroupBy(x => x.TransactionCode)
-                    .Select(g => g.First())
-                    .ToList();
-                    ViewBag.ARPaymentList = listarpm;
-                    List<VIPModel> listvip = PropertyUtils.ConvertToList<VIPModel>(VIPBO.Instance.FindAll());
-                    ViewBag.VIPList = listvip;
-                    List<TransportTypeModel> listtrantt = PropertyUtils.ConvertToList<TransportTypeModel>(TransportTypeBO.Instance.FindAll());
-                    ViewBag.TransportTypeList = listtrantt;                 
-                    List<UsersModel> listuser = PropertyUtils.ConvertToList<UsersModel>(UsersBO.Instance.FindAll());
-                    ViewBag.UsersList = listuser;
+                    BindLookups("roomClass", "dept", "zone");
+                    break;
+                case "ReservationSummary":
+                case "SaleinChargeReport":
+                    BindLookups("zone", "roomType", "market");
+                    break;
+                case "GuestInHousebyCompany":
+                    BindLookups("roomClass", "roomType", "company");
+                    break;
+                case "GuestInHousebyGroup":
+                    BindLookups("roomClass", "block");
+                    break;
+                case "GuestInHousebyRoom":
+                    BindLookups("roomClass", "roomType", "vip", "payTxn", "block");
+                    break;
+                case "GuestInHouseSpecialRequests":
+                    BindLookups("pref");
+                    break;
+                case "GuestInHouseComplimentaryAndHouseUse":
+                case "GIHComplimentaryandHouseUse":
+                    BindLookups("vip");
+                    break;
+                case "HouseKeepingStatus":
+                    BindLookups("roomClass", "roomType", "block", "vip");
+                    break;
+                case "OutOfOrderByPerson":
+                    BindLookups("roomType", "zone");
+                    break;
+                case "TraceReport":
+                case "RoomDiscrepancy":
+                case "RevenueSummary":
+                case "RevenueDetail":
+                case "OTAsMonthlyReport":
+                case "BlacklistReport":
+                case "BookingSource":
+                case "ReportNationalityStatistics":
+                    BindLookups("roomClass", "dept");
                     break;
                 case "ReservationCancellation":
-                    List<CommentModel> listcm = PropertyUtils.ConvertToList<CommentModel>(CommentBO.Instance.FindAll());
-                    ViewBag.ComList = listcm;
-                    List<ZoneModel> lzone = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
-                    ViewBag.ZoneList = lzone ;
+                    BindLookups("comment", "zone");
                     break;
-                
                 case "Alerts":
-                    List<AlertsSetupModel> listal = PropertyUtils.ConvertToList<AlertsSetupModel>(AlertsSetupBO.Instance.FindAll());
-                    ViewBag.ALertList = listal;
-                    break;                                               
-                   
-                case "ReservationCancellationChart":
-                    List<CommentModel> listcm1 = PropertyUtils.ConvertToList<CommentModel>(CommentBO.Instance.FindAll());
-                    ViewBag.ComList = listcm1;
+                    BindLookups("alert");
                     break;
-                    ;
+                case "ReservationCancellationChart":
+                    BindLookups("comment");
+                    break;
             }
             ViewBag.ReportTitle = title;
-            // Tùy thuộc vào tên báo cáo, trả về báo cáo tương ứng
+            var found = _viewEngine.FindView(ControllerContext, reportName, isMainPage: false);
+            if (!found.Success)
+            {
+                found = _viewEngine.GetView(executingFilePath: null, viewPath: $"~/Views/Report/{reportName}.cshtml", isMainPage: false);
+            }
+            if (!found.Success)
+            {
+                var safeTitle = System.Net.WebUtility.HtmlEncode(title ?? reportName);
+                var safeName = System.Net.WebUtility.HtmlEncode(reportName);
+                return Content(
+                    $"<div class=\"p-3\">Báo cáo <b>{safeTitle}</b> chưa có màn hình (thiếu Views/Report/{safeName}.cshtml).</div>",
+                    "text/html");
+            }
             return PartialView(reportName, title);
         }
 
