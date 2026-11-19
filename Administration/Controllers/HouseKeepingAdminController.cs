@@ -1,4 +1,5 @@
-﻿using Administration.Services.Implements;
+using BaseBusiness.Auth;
+using Administration.Services.Implements;
 using Administration.Services.Interfaces;
 using BaseBusiness.BO;
 using BaseBusiness.Model;
@@ -41,6 +42,7 @@ namespace Administration.Controllers
         }
 
         #region Attendants
+        [RequireFunction("admin_Hkp_Attendants")]
         public IActionResult Attendants()
         {
             List<FloorModel> listfloor = PropertyUtils.ConvertToList<FloorModel>(FloorBO.Instance.FindAll());
@@ -153,6 +155,7 @@ namespace Administration.Controllers
         #endregion
 
         #region FacilityCode
+        [RequireFunction("admin_Hkp_FacilityCode")]
         public IActionResult FacilityCode()
         {
             List<hkpFacilityCategoryModel> facilityCategory = PropertyUtils.ConvertToList<hkpFacilityCategoryModel>(FacilityCategoryBO.Instance.FindAll());
@@ -326,6 +329,7 @@ namespace Administration.Controllers
                 return Json(ex.Message);
             }
         }
+        [RequireFunction("admin_Hkp_FacilityCategory")]
         public IActionResult FacilityCategory()
         {
             return PartialView("~/Views/Administration/HouseKeepingAdmin/FacilityCategory.cshtml");
@@ -413,6 +417,7 @@ namespace Administration.Controllers
         #endregion
 
         #region Section
+        [RequireFunction("admin_Hkp_Section")]
         public IActionResult Section()
         {
             List<hkpSectionModel> hkpSection = PropertyUtils.ConvertToList<hkpSectionModel>(hkpSectionBO.Instance.FindAll());
@@ -541,6 +546,7 @@ namespace Administration.Controllers
 
         #region HouseKeepingEmployee
 
+        [RequireFunction("admin_Hkp_Employee")]
         public IActionResult HouseKeepingEmployee()
         {
             List<hkpEmployeeModel> hkpEmployee = PropertyUtils.ConvertToList<hkpEmployeeModel>(hkpEmployeeBO.Instance.FindAll());
@@ -669,6 +675,7 @@ namespace Administration.Controllers
 
         #region  LostAndFoundZone
 
+        [RequireFunction("admin_Hkp_LostAndFoundZone")]
         public IActionResult LostAndFoundZone()
         {
 
@@ -792,6 +799,7 @@ namespace Administration.Controllers
         #endregion
 
         #region LostAndFoundStatus
+        [RequireFunction("admin_Hkp_LostAndFoundStatus")]
         public IActionResult LostAndFoundStatus()
         {
 
@@ -917,6 +925,7 @@ namespace Administration.Controllers
         #endregion
 
         #region LostAndFoundQuality
+        [RequireFunction("admin_Hkp_LostAndFoundQuality")]
         public IActionResult LostAndFoundQuality()
         {
 

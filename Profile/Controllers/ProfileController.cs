@@ -1,4 +1,5 @@
-﻿using BaseBusiness.BO;
+using BaseBusiness.Auth;
+using BaseBusiness.BO;
 using BaseBusiness.Contants;
 using BaseBusiness.Model;
 using BaseBusiness.util;
@@ -449,6 +450,7 @@ namespace Profile.Controllers
         #endregion
 
         #region SearchProfile
+        [RequireFunction("prf_ProfileSearch")]
         public IActionResult SearchProfile()
         {
             return PartialView();
@@ -1063,6 +1065,7 @@ namespace Profile.Controllers
         #endregion
 
         #region Profile Export
+        [RequireFunction("prf_ProfileExport")]
         public IActionResult ProfileExport()
         {
             return PartialView();
@@ -1739,23 +1742,27 @@ namespace Profile.Controllers
         #endregion
 
         #region New/Edit Profile
+        [RequireFunction("prf_ProfileSearch")]
         public IActionResult Individual()
         {
             return PartialView("~/Views/Profile/NewProfileModal/Individual.cshtml");
 
         }
 
+        [RequireFunction("prf_ProfileSearch")]
         public IActionResult Company()
         {
             return PartialView("~/Views/Profile/NewProfileModal/Company.cshtml");
         }
 
+        [RequireFunction("prf_ProfileSearch")]
         public IActionResult Contact()
         {
             return PartialView("~/Views/Profile/NewProfileModal/Contact.cshtml");
 
         }
 
+        [RequireFunction("prf_ProfileSearch")]
         public IActionResult Group()
         {
             return PartialView("~/Views/Profile/NewProfileModal/Group.cshtml");

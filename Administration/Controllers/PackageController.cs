@@ -1,3 +1,4 @@
+using BaseBusiness.Auth;
 using System.Data;
 using Administration.DTO;
 using Administration.Services.Interfaces;
@@ -22,6 +23,7 @@ namespace Administration.Controllers
         }
 
         [HttpGet("Package")] // Truyeenf DataGrid , script api
+        [RequireFunction("admin_RC_Packages")]
         public IActionResult Package()
         {
             List<SeasonModel> listSeason = PropertyUtils.ConvertToList<SeasonModel>(SeasonBO.Instance.FindAll());

@@ -152,14 +152,62 @@ namespace User.Services.Implements
 
         public DataTable PermissionNames(int UserGroupID, int UserID)
         {
-            SqlParameter[] param = new SqlParameter[]
-            {
-               new SqlParameter("@UserGroupID", UserGroupID),
-               new SqlParameter("@UserID", UserID),
-            };
+            return LoadEffectiveCodes(UserGroupID, UserID, isDataRight: false);
+        }
 
-            DataTable myTable = DataTableHelper.getTableData("GetPermissionNamesByUserGroup", param);
-            return myTable;
+        public DataTable PermissionDataCodes(int UserGroupID, int UserID)
+        {
+            return LoadEffectiveCodes(UserGroupID, UserID, isDataRight: true);
+        }
+
+        private static DataTable LoadEffectiveCodes(int userGroupId, int userId, bool isDataRight)
+        {
+            if (userGroupId <= 0 && userId > 0)
+            {
+                if (UsersBO.Instance.FindByPrimaryKey(userId) is UsersModel user)
+                    userGroupId = user.UserGroupID;
+            }
+
+            var idColumn = isDataRight ? "FormAndFunctionDataID" : "FormAndFunctionID";
+            var catalog = isDataRight ? "FormAndFunctionData" : "FormAndFunction";
+            var inactiveFilter = isDataRight ? "" : " AND ISNULL(ff.Inactive, 0) = 0";
+
+            var sql = $@"
+;WITH GroupIds AS (
+    SELECT {idColumn} AS Id
+    FROM UserGroupRightDistribution WITH (NOLOCK)
+    WHERE UserGroupID = @UserGroupID AND ISNULL({idColumn}, 0) > 0
+),
+UserIds AS (
+    SELECT {idColumn} AS Id
+    FROM UserRightDistribution WITH (NOLOCK)
+    WHERE UserID = @UserID AND ISNULL({idColumn}, 0) > 0
+),
+Effective AS (
+    SELECT Id FROM GroupIds
+    UNION
+    SELECT Id FROM UserIds
+    EXCEPT
+    SELECT g.Id FROM GroupIds g INNER JOIN UserIds u ON g.Id = u.Id
+),
+Allowed AS (
+    SELECT ff.*
+    FROM Effective e
+    INNER JOIN {catalog} ff WITH (NOLOCK) ON ff.ID = e.Id
+    WHERE ISNULL(ff.IsHide, 0) = 0
+      {inactiveFilter}
+      AND LTRIM(RTRIM(ISNULL(ff.Code, N''))) <> N''
+)
+SELECT LTRIM(RTRIM(ff.Code)) AS Code,
+       LTRIM(RTRIM(ff.Code)) AS Name,
+       LTRIM(RTRIM(ff.Name)) AS DisplayName
+FROM Allowed ff";
+
+            return DataTableHelper.ExecuteQuery(sql, new[]
+            {
+                new SqlParameter("@UserGroupID", userGroupId),
+                new SqlParameter("@UserID", userId)
+            });
         }
 
         private static string EncryptPassword(string plainText)

@@ -1,4 +1,5 @@
-﻿using Administration.Services.Implements;
+using BaseBusiness.Auth;
+using Administration.Services.Implements;
 using Administration.Services.Interfaces;
 using BaseBusiness.BO;
 using BaseBusiness.Model;
@@ -39,6 +40,7 @@ namespace Administration.Controllers
         {
             return View();
         }
+        [RequireFunction("admin_Trans_Article")]
         public IActionResult Article()
         {
             List<TransactionsModel> listTransac = PropertyUtils.ConvertToList<TransactionsModel>(TransactionsBO.Instance.FindAll());

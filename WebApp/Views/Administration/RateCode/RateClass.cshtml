@@ -4,7 +4,7 @@
     var selectedReport = @ViewBag.ReportHeader;
 }
 
-<div class="modal fade" id="rtClass_modalMain" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="rtClass_modalMain" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg-4by3 modal-dialog-centered ">
         <div class="modal-content">
 
@@ -102,7 +102,7 @@
 </div>
 
 <!-- UPSERT MODAL (XL per requirement) -->
-<div class="modal fade" id="rtClass_modalUpsert" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="rtClass_modalUpsert" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
 
@@ -221,9 +221,15 @@
             btnSave: "#rtClass_btnSave"
         };
 
+        function initModal(el) {
+            const existing = bootstrap.Modal.getInstance(el);
+            if (existing) existing.dispose();
+            return new bootstrap.Modal(el, { backdrop: "static", keyboard: false });
+        }
+
         function init() {
-            mainModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modalMain), { backdrop: "static" });
-            upsertModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modalUpsert), { backdrop: "static" });
+            mainModal = initModal(document.querySelector(sel.modalMain));
+            upsertModal = initModal(document.querySelector(sel.modalUpsert));
 
             $(sel.modalMain).off("shown.bs.modal.rtClass").on("shown.bs.modal.rtClass", function () {
                 bindEvents();
@@ -231,12 +237,14 @@
             });
 
             $(sel.modalMain).off("hidden.bs.modal.rtClass").on("hidden.bs.modal.rtClass", function () {
+                if ($(sel.modalUpsert).hasClass("show")) upsertModal.hide();
                 cleanup();
             });
 
             $(sel.modalUpsert).off("hidden.bs.modal.rtClass").on("hidden.bs.modal.rtClass", function () {
                 clearForm();
                 if (typeof window.applyValidationErrors === "function") applyValidationErrors([], sel.form);
+                if ($(sel.modalMain).hasClass("show")) $("body").addClass("modal-open");
             });
         }
 
@@ -283,6 +291,24 @@
 
             $(document).off("click.rtClass", sel.btnSave).on("click.rtClass", sel.btnSave, function () {
                 save();
+            });
+
+            $(document).off("keydown.rtClassEsc").on("keydown.rtClassEsc", function (e) {
+                if (e.key !== "Escape" && e.keyCode !== 27) return;
+                if ($(".cc-overlay").length || $(".swal2-container:visible").length) return;
+                if (!$(sel.modalMain).hasClass("show") && !$(sel.modalUpsert).hasClass("show")) return;
+
+                const top = $(".modal.show").last()[0];
+                if (top && top.id !== "rtClass_modalUpsert" && top.id !== "rtClass_modalMain") return;
+
+                e.preventDefault();
+                e.stopImmediatePropagation();
+
+                if ($(sel.modalUpsert).hasClass("show")) {
+                    upsertModal.hide();
+                    return;
+                }
+                mainModal.hide();
             });
         }
 
@@ -551,6 +577,7 @@
 
         function cleanup() {
             $(document).off(".rtClass");
+            $(document).off(".rtClassEsc");
             destroyGrid();
         }
 

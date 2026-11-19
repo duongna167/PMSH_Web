@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using BaseBusiness.BO;
@@ -106,7 +107,7 @@ namespace User.Controllers
                 if (HasExpireDate(user.PassExpireDate) && remaining >= 0 && remaining <= 5)
                 {
                     SetPending(user, "renew");
-                    SignIn(user, loginName);
+                    SignIn(user, loginName, payload.Codes);
                     var warnMsg = remaining == 0
                         ? "Your password will expire today. Do you want to change it now?"
                         : $"Your password will expire in {remaining} day{(remaining == 1 ? "" : "s")}. Do you want to change it now?";
@@ -116,18 +117,20 @@ namespace User.Controllers
                         msg = warnMsg,
                         daysRemaining = remaining,
                         data = payload.Data,
+                        dataPermissions = payload.DataPermissions,
                         namelogin = payload.LoginName,
                         userID = payload.UserId,
                         businessDate = payload.BusinessDate
                     });
                 }
 
-                SignIn(user, loginName);
+                SignIn(user, loginName, payload.Codes);
                 return Json(new
                 {
                     code = 0,
                     msg = "Successfully",
                     data = payload.Data,
+                    dataPermissions = payload.DataPermissions,
                     namelogin = payload.LoginName,
                     userID = payload.UserId,
                     businessDate = payload.BusinessDate
@@ -178,12 +181,13 @@ namespace User.Controllers
                     return payload.Error;
 
                 ClearPending();
-                SignIn(user, payload.LoginName);
+                SignIn(user, payload.LoginName, payload.Codes);
                 return Json(new
                 {
                     code = 0,
                     msg = "Successfully",
                     data = payload.Data,
+                    dataPermissions = payload.DataPermissions,
                     namelogin = payload.LoginName,
                     userID = payload.UserId,
                     businessDate = payload.BusinessDate
@@ -203,6 +207,8 @@ namespace User.Controllers
             HttpContext.Session.Remove("UserID");
             HttpContext.Session.Remove("LoginName");
             HttpContext.Session.Remove("CashierNo");
+            HttpContext.Session.Remove("UserGroupID");
+            HttpContext.Session.Remove("PermissionCodes");
             return Json(new { code = 0 });
         }
 
@@ -301,11 +307,18 @@ namespace User.Controllers
             HttpContext.Session.Remove(PendingLoginNameKey);
         }
 
-        private void SignIn(UsersModel user, string loginName)
+        private void SignIn(UsersModel user, string loginName, IEnumerable<string> codes)
         {
             HttpContext.Session.SetInt32("UserID", user.ID);
             HttpContext.Session.SetString("LoginName", loginName ?? user.LoginName ?? "");
             HttpContext.Session.SetInt32("CashierNo", user.CashierNo);
+            HttpContext.Session.SetInt32("UserGroupID", user.UserGroupID);
+            var list = (codes ?? Array.Empty<string>())
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            HttpContext.Session.SetString("PermissionCodes", System.Text.Json.JsonSerializer.Serialize(list));
         }
 
         private static bool HasExpireDate(DateTime expireDate)
@@ -320,13 +333,20 @@ namespace User.Controllers
 
         private LoginPayload BuildLoginPayload(UsersModel user, string loginName)
         {
-            var result2 = _iUserService.PermissionNames(user.UserGroupID, user.ID);
+            var functionTable = _iUserService.PermissionNames(user.UserGroupID, user.ID);
+            var functions = MapPermissionRows(functionTable);
+            var dataRights = MapPermissionRows(_iUserService.PermissionDataCodes(user.UserGroupID, user.ID));
+            var codes = new List<string>();
+            if (functionTable != null)
+            {
+                foreach (DataRow row in functionTable.Rows)
+                {
+                    if (row["Code"] == DBNull.Value) continue;
+                    var code = row["Code"].ToString()?.Trim();
+                    if (!string.IsNullOrEmpty(code)) codes.Add(code);
+                }
+            }
             var businessDates = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
-            var resultname = (from d in result2.AsEnumerable()
-                              select new
-                              {
-                                  Name = !string.IsNullOrEmpty(d["Name"].ToString()) ? d["Name"] : "",
-                              }).ToList();
 
             if (businessDates == null || businessDates.Count == 0)
             {
@@ -338,18 +358,49 @@ namespace User.Controllers
 
             return new LoginPayload
             {
-                Data = resultname,
+                Data = functions,
+                DataPermissions = dataRights,
                 LoginName = loginName ?? user.LoginName,
                 UserId = user.ID,
+                Codes = codes,
                 BusinessDate = businessDates[0].BusinessDate.ToString("dd/MM/yyyy")
             };
+        }
+
+        private static List<object> MapPermissionRows(DataTable table)
+        {
+            if (table == null || table.Rows.Count == 0)
+                return new List<object>();
+
+            string Col(DataRow d, string name)
+            {
+                if (!d.Table.Columns.Contains(name) || d[name] == DBNull.Value)
+                    return "";
+                return d[name].ToString()?.Trim() ?? "";
+            }
+
+            return table.AsEnumerable().Select(d =>
+            {
+                var code = Col(d, "Code");
+                var name = Col(d, "Name");
+                if (string.IsNullOrEmpty(code))
+                    code = name;
+                return (object)new
+                {
+                    code,
+                    name,
+                    displayName = Col(d, "DisplayName")
+                };
+            }).Where(x => x != null).ToList();
         }
 
         private sealed class LoginPayload
         {
             public object Data { get; set; }
+            public object DataPermissions { get; set; }
             public string LoginName { get; set; }
             public int UserId { get; set; }
+            public List<string> Codes { get; set; }
             public string BusinessDate { get; set; }
             public JsonResult Error { get; set; }
         }

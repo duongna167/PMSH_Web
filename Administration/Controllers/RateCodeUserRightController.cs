@@ -1,3 +1,4 @@
+using BaseBusiness.Auth;
 using System.Collections;
 using System.Data;
 using System.Linq;
@@ -19,6 +20,7 @@ namespace Administration.Controllers
             _svRateCodeUserRight = RateCodeUserRight;
         }
         [HttpGet("RateCodeUserRight")] // Truyeenf DataGrid , script api
+        [RequireFunction("admin_RC_UserRight")]
         public IActionResult RateCodeUserRight()
         {
             List<UsersModel> listUser = PropertyUtils.ConvertToList<UsersModel>(UsersBO.Instance.FindAll());

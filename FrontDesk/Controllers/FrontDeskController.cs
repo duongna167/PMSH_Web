@@ -1,4 +1,5 @@
-﻿using System;
+using BaseBusiness.Auth;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -44,6 +45,7 @@ namespace FrontDesk.Controllers
 
         }
 
+        [RequireFunction("fo_TelephoneBook")]
         public IActionResult TelephoneBook()
         {
             List<TelephoneBookCategoryModel> tlplist = PropertyUtils.ConvertToList<TelephoneBookCategoryModel>(TelephoneBookCategoryBO.Instance.FindAll());
@@ -375,6 +377,7 @@ namespace FrontDesk.Controllers
         }
 
         #region WakeUpCall
+        [RequireFunction("fo_WakeUpCall")]
         public IActionResult WakeUpCall()
         {
             List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
@@ -858,6 +861,7 @@ namespace FrontDesk.Controllers
 
         #endregion
         #region PostingToRoom
+        [RequireFunction("tool_PostingRoom")]
         public IActionResult PostingToRoom()
         {
 
@@ -3791,6 +3795,7 @@ namespace FrontDesk.Controllers
 
 
         #region MapTransaction
+        [RequireFunction("tool_MapTransactionCode")]
         public IActionResult MapTransactionCode()
         {
 
@@ -3920,6 +3925,7 @@ namespace FrontDesk.Controllers
         }
         #endregion
         #region Tuan_2/2026
+        [RequireFunction("admin_ProcessFOStatus")]
         public IActionResult ProcessFOStatus()
         {
             return PartialView();
@@ -3999,6 +4005,7 @@ namespace FrontDesk.Controllers
         #endregion
 
         #region Room Assignment
+        [RequireFunction("resv_ReservationAsignRoom")]
         public IActionResult RoomAssignment()
         {
             List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());

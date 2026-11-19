@@ -1,4 +1,5 @@
-﻿using BaseBusiness.BO;
+using BaseBusiness.Auth;
+using BaseBusiness.BO;
 using BaseBusiness.Model;
 using BaseBusiness.util;
 using Cashiering.Commons.Helpers;
@@ -42,6 +43,7 @@ namespace Cashiering.Controllers
         {
             return View(); // View này sẽ chứa DataGrid + script gọi API
         }
+        [RequireFunction("cash_Functions_PostingJournal")]
         public IActionResult PostingJournal()
         {
             List<TransactionGroupModel> tlplist = PropertyUtils.ConvertToList<TransactionGroupModel>(TransactionGroupBO.Instance.FindAll());
@@ -299,6 +301,7 @@ namespace Cashiering.Controllers
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
+        [RequireFunction("cash_Functions_CashierAudit")]
         public IActionResult CashierAudit()
         {
             List<TransactionGroupModel> tlplist = PropertyUtils.ConvertToList<TransactionGroupModel>(TransactionGroupBO.Instance.FindAll());
@@ -588,6 +591,7 @@ namespace Cashiering.Controllers
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
+        [RequireFunction("cash_ExchangeCurrency")]
         public IActionResult ExchangeCurrency()
         {
 
@@ -671,6 +675,7 @@ namespace Cashiering.Controllers
 
 
         #region DatVP __ Cashiering Manager
+        [RequireFunction("cash_Manager")]
         public IActionResult CashieringManager()
         {
             ViewBag.cboZone = ListItemHelper.GetZoneProvider();
@@ -816,6 +821,7 @@ namespace Cashiering.Controllers
 
             // return PartialView("_ReportViewerPartial", report);
         }
+        [RequireFunction("cash_Functions_FolioHistory")]
         public ActionResult FolioHistoryView()
         {
             List<UsersModel> listuser = PropertyUtils.ConvertToList<UsersModel>(UsersBO.Instance.FindAll());
@@ -1001,6 +1007,7 @@ namespace Cashiering.Controllers
         }
 
         #region ExchangeCurrencyReport
+        [RequireFunction("cash_ExchangeCurrencyReport")]
         public IActionResult ExchangeCurrencyReport()
         {
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
