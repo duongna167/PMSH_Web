@@ -10,10 +10,8 @@
 <style>
     .ttsr_status-color-box {
         display: inline-block;
-        width: 22px;
-        height: 22px;
-        margin-right: 4px;
-        vertical-align: middle;
+        width: 18px;
+        height: 18px;
         border: 1px solid #ccc;
     }
 
@@ -48,7 +46,7 @@
 
     .ttsr_hk-dirty {
         background-color: red;
-        color: white;
+        color: black;
     }
 
     .ttsr_hk-outoforder {
@@ -70,115 +68,205 @@
         background-color: lightgray;
         color: black;
     }
+
+    /* ===== Bố cục như bản WinForms: toolbar 1 hàng + Room Status 3 cột x 2 hàng + Attendant ID ===== */
+    #ttsr_modal .ttsr-toolbar {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 4px;
+        padding-bottom: 4px;
+    }
+
+    #ttsr_modal .ttsr-toolbar .mui-button {
+        flex: 1 1 0;
+        min-width: 0;
+        margin: 0;
+        padding-left: 4px;
+        padding-right: 4px;
+        white-space: nowrap;
+    }
+
+    #ttsr_modal .ttsr-filter {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        column-gap: 36px;
+        row-gap: 8px;
+        margin-top: 6px;
+    }
+
+    #ttsr_modal .ttsr-roomstatus {
+        display: grid;
+        grid-auto-flow: column;
+        grid-template-rows: repeat(2, 30px);
+        column-gap: 24px;
+        align-items: center;
+    }
+
+    #ttsr_modal .ttsr-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+
+    #ttsr_modal .ttsr-item label {
+        margin: 0;
+    }
+
+    #ttsr_modal .ttsr-att {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 30px;
+    }
+
+    #ttsr_modal .ttsr-att label {
+        margin: 0;
+        white-space: nowrap;
+    }
+
+    #ttsr_modal .ttsr-att .ttsr-att-ctrl {
+        width: 230px;
+        min-width: 0;
+    }
+
+    #ttsr_modal .ttsr-att .ts-wrapper {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    #ttsr_modal .ttsr-att .ts-control {
+        flex-wrap: nowrap !important;
+        overflow: hidden !important;
+    }
+
+    #ttsr_modal .ttsr-att .ts-control input {
+        flex: 1 1 20px !important;
+        min-width: 20px !important;
+    }
+
+    #ttsr_modal .modal-body {
+        display: flex;
+        flex-direction: column;
+    }
+
+    #ttsr_gridContainer {
+        height: calc(90vh - 250px);
+        min-height: 240px;
+        width: 100%;
+    }
+
+    #ttsr_moveModal .ttsr-move-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        column-gap: 10px;
+        row-gap: 8px;
+        align-items: center;
+    }
+
+    #ttsr_moveModal .ttsr-move-grid > label {
+        margin: 0;
+        text-align: right;
+        white-space: nowrap;
+    }
 </style>
 
 <!-- =========================
      MAIN VIEW AS BS5 MODAL
      ========================= -->
 <div class="modal fade" id="ttsr_modal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-4by3">
+    <div class="modal-dialog modal-xl modal-4by3">
         <div class="modal-content">
 
             <div class="modal-header py-2">
-                <h5 class="modal-title mb-0">
-                    Turn down Task sheet
-                </h5>
+                <h5 class="modal-title mb-0">Turndown Tasksheet</h5>
             </div>
 
             <div class="modal-body pt-2">
 
                 <div class="search-filter">
-                    <div class="d-flex flex-wrap gap-2">
+
+                    <!-- TOOLBAR (cùng 1 hàng, thứ tự như WinForms) -->
+                    <div class="ttsr-toolbar">
                         <button id="ttsr_btnPrint" class="mui-button mui-button-new" type="button">View</button>
-
-                        <button id="ttsr_btnCheckAll" class="mui-button mui-button-advance" type="button">
-                            Check All
-                        </button>
-
-                        <button id="ttsr_btnDailytasksheet" class="mui-button mui-button-profile" type="button">
-                            Daily
-                        </button>
-
-                        <button id="ttsr_btnExportExcel" class="mui-button mui-button-new" type="button">
-                            Excel
-                        </button>
-                        <button class="mui-button mui-button-new" data-bs-dismiss="modal" aria-label="Close">Close</button>
+                        <button id="ttsr_btnCheckAll" class="mui-button mui-button-advance" type="button">Check All</button>
+                        <button id="ttsr_btnChange" class="mui-button mui-button-edit" type="button" disabled
+                                title="Chưa triển khai: cần tài liệu WinForms của nút Change">Change</button>
+                        <button id="ttsr_btnMove" class="mui-button mui-button-option" type="button">Move</button>
+                        <button id="ttsr_btnAdd" class="mui-button mui-button-new" type="button" disabled
+                                title="Chưa triển khai: cần tài liệu WinForms của nút Add">Add</button>
+                        <button id="ttsr_btnResv" class="mui-button mui-button-search" type="button">Resv</button>
+                        <button id="ttsr_btnDetail" class="mui-button mui-button-card" type="button">Detail</button>
+                        <button id="ttsr_btnDailytasksheet" class="mui-button mui-button-profile" type="button">Daily</button>
+                        <button id="ttsr_btnReport" class="mui-button mui-button-export" type="button">Report</button>
+                        <button id="ttsr_btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+                        <button class="mui-button mui-button-edit" type="button" data-bs-dismiss="modal" aria-label="Close">Close</button>
                     </div>
 
-                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1 filter-panel mt-1">
+                    <div class="ttsr-filter">
 
-                        <div class="d-flex flex-column">
-                            <div class="d-flex align-items-center me-3">
-                                <label class="mb-1 me-2">Room Status: </label>
-
-                                <div class="form-check me-3">
+                        <!-- Room Status: 3 cột x 2 hàng như Win -->
+                        <div>
+                            <div class="ttsr-roomstatus">
+                                <div class="ttsr-item">
                                     <span class="ttsr_status-color-box ttsr_color-clean-uncheck"></span>
-                                    <input type="checkbox" id="ttsr_cleanUncheck" name="ttsr_includeOptions" value="1"
-                                           checked>
-                                    <label class="form-check-label" for="ttsr_cleanUncheck">Clean Non-Checked</label>
+                                    <input type="checkbox" id="ttsr_cleanUncheck" name="ttsr_includeOptions" value="1" checked>
+                                    <label for="ttsr_cleanUncheck">Clean Non - Checked</label>
                                 </div>
-
-                                <div class="form-check me-3">
+                                <div class="ttsr-item">
                                     <span class="ttsr_status-color-box ttsr_color-dirty"></span>
                                     <input type="checkbox" id="ttsr_dirty" name="ttsr_includeOptions" value="2" checked>
-                                    <label class="form-check-label" for="ttsr_dirty">Dirty</label>
+                                    <label for="ttsr_dirty">Dirty</label>
                                 </div>
-
-                                <div class="form-check me-3">
-                                    <span class="ttsr_status-color-box ttsr_color-outoforder"></span>
-                                    <input type="checkbox" id="ttsr_outofOrder" name="ttsr_includeOptions" value="5"
-                                           checked>
-                                    <label class="form-check-label" for="ttsr_outofOrder">Out of Order</label>
-                                </div>
-
-                                <div class="form-check me-3">
+                                <div class="ttsr-item">
                                     <span class="ttsr_status-color-box ttsr_color-pickup"></span>
-                                    <input type="checkbox" id="ttsr_pickup" name="ttsr_includeOptions" value="3"
-                                           checked>
-                                    <label class="form-check-label" for="ttsr_pickup">Pickup</label>
+                                    <input type="checkbox" id="ttsr_pickup" name="ttsr_includeOptions" value="3" checked>
+                                    <label for="ttsr_pickup">Pickup</label>
                                 </div>
-
-                                <div class="form-check me-3">
+                                <div class="ttsr-item">
                                     <span class="ttsr_status-color-box ttsr_color-clean"></span>
                                     <input type="checkbox" id="ttsr_clean" name="ttsr_includeOptions" value="4" checked>
-                                    <label class="form-check-label" for="ttsr_clean">Clean</label>
+                                    <label for="ttsr_clean">Clean</label>
                                 </div>
-
-                                <div class="form-check me-3">
+                                <div class="ttsr-item">
+                                    <span class="ttsr_status-color-box ttsr_color-outoforder"></span>
+                                    <input type="checkbox" id="ttsr_outofOrder" name="ttsr_includeOptions" value="5" checked>
+                                    <label for="ttsr_outofOrder">Out of Order</label>
+                                </div>
+                                <div class="ttsr-item">
                                     <span class="ttsr_status-color-box ttsr_color-outofservices"></span>
-                                    <input type="checkbox" id="ttsr_outofServices" name="ttsr_includeOptions" value="6"
-                                           checked>
-                                    <label class="form-check-label" for="ttsr_outofServices">Out of Services</label>
+                                    <input type="checkbox" id="ttsr_outofServices" name="ttsr_includeOptions" value="6" checked>
+                                    <label for="ttsr_outofServices">Out of Service</label>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="d-flex align-items-center gap-3">
-
-                            <div class="d-flex align-items-center">
-                                <label class="me-2 mb-0 text-nowrap">Attendant ID:</label>
-                                <select id="ttsr_attendant" name="ttsr_attendant" class="tomselect-custom" multiple style="width: 220px;">
+                        <!-- Attendant ID -->
+                        <div class="ttsr-att">
+                            <label>Attendant ID</label>
+                            <div class="ttsr-att-ctrl">
+                                <select id="ttsr_attendant" name="ttsr_attendant" class="tomselect-custom" multiple>
                                     @foreach (var item in listatt)
                                     {
                                         <option value="@item.ID">@item.Name</option>
                                     }
                                 </select>
                             </div>
-
-                            <div class="d-flex align-items-center" style="display:none !important">
-                                <label class="me-2 mb-0 text-nowrap">Task Date:</label>
-                                <input type="date" id="ttsr_fromDate" name="ttsr_fromDate"
-                                       class="form-control form-control-sm w-auto" />
-                            </div>
-
                         </div>
 
+                        <input type="date" id="ttsr_fromDate" name="ttsr_fromDate" style="display:none" />
                     </div>
 
                 </div>
 
-                <div class="mui-card">
-                    <div id="ttsr_gridContainer" class="gridContainer mt-2"></div>
+                <div class="mui-card mt-2">
+                    <div id="ttsr_gridContainer" class="gridContainer"></div>
+                </div>
+
+                <div id="ttsr_loadingSpinner" style="display:none; position:absolute; inset:0; z-index:999;
+                     background: rgba(255,255,255,0.55); align-items:center; justify-content:center;">
+                    <div class="spinner-border text-primary"></div>
                 </div>
 
             </div>
@@ -188,7 +276,56 @@
 </div>
 
 <!-- =========================
-     POPUP GRID AS BS5 MODAL
+     MOVE: chuyển phòng sang tasksheet khác
+     ========================= -->
+<div class="modal fade" id="ttsr_moveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:520px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Move Rooms to Task Sheet</h6>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex gap-2 mb-3">
+                    <button id="ttsr_btnMoveOk" class="mui-button mui-button-new" type="button" style="flex:0 0 110px;">OK</button>
+                    <button class="mui-button mui-button-edit" type="button" data-bs-dismiss="modal" style="flex:0 0 110px;">Close</button>
+                </div>
+                <div class="ttsr-move-grid">
+                    <label>Rooms</label>
+                    <div id="ttsr_moveRooms" class="fw-semibold"></div>
+                    <label>Task Sheet</label>
+                    <select id="ttsr_moveTarget" class="form-select form-select-sm"></select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================
+     DETAIL: chi tiết tasksheet theo phòng (frmTurndownTasksheetDetail)
+     ========================= -->
+<div class="modal fade" id="ttsr_detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-4by3">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Tasksheet Detail</h6>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <label class="mb-0 text-nowrap">Room No:</label>
+                    <input type="text" id="ttsr_detailRoomNo" class="form-control form-control-sm" style="max-width:300px;" />
+                    <button id="ttsr_detailSearch" class="mui-button mui-button-new" type="button" style="flex:0 0 100px;">Search</button>
+                    <button id="ttsr_detailExcel" class="mui-button mui-button-new" type="button" style="flex:0 0 100px;">Excel</button>
+                    <button id="ttsr_detailDelete" class="mui-button mui-button-delete" type="button" style="flex:0 0 100px;">Delete</button>
+                    <button class="mui-button mui-button-edit" type="button" data-bs-dismiss="modal" style="flex:0 0 100px;">Close</button>
+                </div>
+                <div id="ttsr_detailGrid" class="gridContainer" style="height: calc(90vh - 190px); min-height: 240px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================
+     POPUP GRID AS BS5 MODAL (Report)
      ========================= -->
 <div class="modal fade" id="ttsr_popupNewGridModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen">
@@ -203,9 +340,7 @@
 
                 <div class="d-flex justify-content-start mb-3 gap-2">
                     <button id="ttsr_btnExportpopExcel" class="mui-button mui-button-new" type="button">Excel</button>
-                    <button id="ttsr_btnClosePopup" class="btn btn-sm btn-danger" type="button">
-                        Close
-                    </button>
+                    <button id="ttsr_btnClosePopup" class="mui-button mui-button-edit" type="button">Close</button>
                 </div>
 
                 <div id="ttsr_logGridContainer" class="gridContainer mt-2"></div>
@@ -216,9 +351,17 @@
     </div>
 </div>
 
-<div id="ttsr_loadingSpinner"
-     style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
+<!-- RESERVATION MODAL (mở từ nút Resv) -->
+<div class="modal fade" id="newReservationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Reservation</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body"></div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -232,13 +375,137 @@
         parsedBusinessDate: null,
         toggleSelectAll: false,
 
+        selectedRows: [],   // các dòng được tick
+        focusedRow: null,   // dòng vừa bấm (dùng cho Resv)
+        lastData: [],
+
         init: function () {
             const self = this;
-            initTomSelect(".tomselect-custom");
+            // Chỉ khởi tạo ô của màn này; lỗi ở đây không được chặn việc tải dữ liệu
+            try { initTomSelect(["#ttsr_attendant"]); } catch (e) { console.error("TTSR initTomSelect error:", e); }
             self.getBusinessDate();
-            // self.initializeTomSelects();
-            self.bindEvents();
+            try { self.bindEvents(); } catch (e) { console.error("TTSR bindEvents error:", e); }
             self.bindModalLifecycle();
+        },
+
+        // ===== Mở reservation (nút Resv) =====
+        openReservation: function (resvId) {
+            if (!resvId) { showToast("Warning", "Reservation ID not found.", false); return; }
+
+            const modal = $("#newReservationModal");
+            modal.find(".modal-body").html('<div class="text-center py-5"><div class="spinner-border"></div><p class="mt-3">Loading reservation...</p></div>');
+            modal.modal("show");
+
+            $.ajax({ url: "/Reservation/EncryptId", type: "POST", data: { id: resvId } })
+                .done(function (response) {
+                    if (!response || !response.success) { modal.modal("hide"); alert("EncryptId failed."); return; }
+                    $.ajax({ url: "/Reservation/NewReservation", type: "GET", data: { key: response.encryptedId }, cache: false })
+                        .done(function (html) { modal.find(".modal-body").html(html); })
+                        .fail(function () {
+                            modal.find(".modal-body").html('<div class="alert alert-danger m-4"><strong>Error!</strong> Cannot load reservation.</div>');
+                        });
+                })
+                .fail(function () { modal.modal("hide"); alert("Server connection error."); });
+        },
+
+        // ===== Detail: chi tiết tasksheet theo phòng =====
+        detailRow: null, // dòng đang chọn trong lưới Detail (dùng cho nút Delete)
+
+        loadDetail: function () {
+            const self = this;
+            self.detailRow = null;
+            const roomNo = ($("#ttsr_detailRoomNo").val() || "").trim();
+            $.ajax({
+                url: "/HouseKeeping/TasksheetDetailByRoom",
+                type: "GET",
+                data: { roomNo: roomNo },
+                success: function (data) {
+                    if (data && data.error) { alert(data.error); return; }
+                    $("#ttsr_detailGrid").dxDataGrid({
+                        dataSource: data || [],
+                        allowColumnResizing: true,
+                        columnAutoWidth: true,
+                        height: "100%",
+                        showBorders: true,
+                        filterRow: { visible: true },
+                        noDataText: "No tasksheet found for this room on the current business date",
+                        columns: [
+                            { dataField: "taskDate", caption: "Task Date", dataType: "date", format: "dd/MM/yyyy" },
+                            { dataField: "roomNo", caption: "Room No" },
+                            { dataField: "roomType", caption: "Room Type" },
+                            { dataField: "credits", caption: "Credits" },
+                            { dataField: "facilityTask", caption: "Facility Task" },
+                            { dataField: "tasksheetNo", caption: "Tasksheet No" },
+                            { dataField: "attendant", caption: "Attendant" },
+                            { dataField: "facility", caption: "Facility" },
+                            { dataField: "quantity", caption: "Quantity" },
+                            { dataField: "description", caption: "Description" },
+                            { dataField: "createdBy", caption: "Created By" },
+                            { dataField: "createdDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy" },
+                            { dataField: "updatedBy", caption: "Updated By" },
+                            { dataField: "updatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy" },
+                            { dataField: "timeIn", caption: "Time In" },
+                            { dataField: "timeOut", caption: "Time Out" }
+                        ],
+                        scrolling: { useNative: true, showScrollbar: "always" },
+                        paging: { pageSize: 25 },
+                        selection: { mode: "single" },
+                        hoverStateEnabled: true,
+                        onRowClick: function (e) {
+                            if (e.rowType === "data") self.detailRow = e.data;
+                        }
+                    });
+                },
+                error: function () { alert("Unable to load data."); }
+            });
+        },
+
+        // ===== Time In/Out: nếu là datetime thì chỉ hiện giờ =====
+        formatTime: function (cellInfo) {
+            const v = cellInfo.value;
+            if (!v) return "";
+            if (/^\d{1,2}:\d{2}/.test(v)) return v;
+            const d = new Date(v);
+            if (isNaN(d.getTime())) return v;
+            const p = (n) => String(n).padStart(2, "0");
+            return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+        },
+
+        // ===== Xuất Excel dùng chung =====
+        exportGrid: function (grid, reportName) {
+            if (!grid) { showToast("Error", "The data is not yet available.", false); return; }
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            worksheet.addRow(["Công ty Cổ phần Giải pháp Công nghệ CS-Solution"]);
+            worksheet.mergeCells("A1:E1");
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.addRow(["", "", "", "", " " + new Date().toLocaleString("vi-VN")]);
+            worksheet.mergeCells("E2:H2");
+            worksheet.getRow(2).alignment = { vertical: "middle", horizontal: "right" };
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+            const reportRow = worksheet.addRow(["", "", reportName]);
+            worksheet.mergeCells("C5:F5");
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { horizontal: "center" };
+            worksheet.addRow([]);
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.getCell("A" + lastRow).value = "--- END ---";
+                worksheet.mergeCells("A" + lastRow + ":F" + lastRow);
+                worksheet.getCell("A" + lastRow).alignment = { horizontal: "center" };
+                worksheet.getCell("A" + lastRow).font = { italic: true };
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), reportName + ".xlsx");
+                });
+            });
         },
 
         bindModalLifecycle: function () {
@@ -345,7 +612,7 @@
             const self = this;
 
             $(document).off("click", "#ttsr_btnPrint").on("click", "#ttsr_btnPrint", function () {
-                $("#ttsr_loadingSpinner").show();
+                $("#ttsr_loadingSpinner").css("display", "flex");
 
                 var selectedStatuses = $("input[name='ttsr_includeOptions']:checked")
                     .map(function () {
@@ -380,20 +647,27 @@
                             return;
                         }
 
+                        self.lastData = data;
+                        self.selectedRows = [];
+                        self.focusedRow = null;
+                        self.toggleSelectAll = false;
+                        $("#ttsr_btnCheckAll").text("Check All");
+
                         self.initializeTurndownTasksheetDataGrid(data);
-                        self.initializeTurndownTasksheetGrid(data);
 
                         $("#ttsr_loadingSpinner").hide();
                     },
                     error: function () {
-                        alert("Không th? t?i báo cáo.");
+                        alert("Cannot load data.");
                         $("#ttsr_loadingSpinner").hide();
                     }
                 });
             });
 
             $(document).off("click", "#ttsr_btnCheckAll").on("click", "#ttsr_btnCheckAll", function () {
-                const grid = $("#ttsr_gridContainer").dxDataGrid("instance");
+                let grid = null;
+                try { grid = $("#ttsr_gridContainer").dxDataGrid("instance"); } catch (e) { }
+                if (!grid) return;
 
                 if (!self.toggleSelectAll) {
                     grid.selectAll();
@@ -407,7 +681,7 @@
             });
 
             $(document).off("click", "#ttsr_btnDailytasksheet").on("click", "#ttsr_btnDailytasksheet", function () {
-                $("#ttsr_loadingSpinner").show();
+                $("#ttsr_loadingSpinner").css("display", "flex");
                 const modalEl = document.getElementById("ttsr_modal");
                 const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
 
@@ -526,6 +800,140 @@
                 var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
                 modal.hide();
             });
+
+            // ===== Resv: reservation của dòng đang đứng (vừa bấm), chưa bấm thì lấy dòng tick đầu tiên =====
+            $(document).off("click", "#ttsr_btnResv").on("click", "#ttsr_btnResv", function () {
+                const row = self.focusedRow || self.selectedRows[0];
+                if (!row || !row.reservationID) {
+                    showToast("Warning", "Please select a row first!", false);
+                    return;
+                }
+                self.openReservation(row.reservationID);
+            });
+
+            // ===== Detail: chi tiết tasksheet theo phòng đã chọn =====
+            $(document).off("click", "#ttsr_btnDetail").on("click", "#ttsr_btnDetail", function () {
+                let rooms = self.selectedRows.map(r => r.roomNo);
+                if (!rooms.length && self.focusedRow) rooms = [self.focusedRow.roomNo];
+                if (!rooms.length) {
+                    showToast("Warning", "Please select a row first!", false);
+                    return;
+                }
+                $("#ttsr_detailRoomNo").val(rooms.join(","));
+                bootstrap.Modal.getOrCreateInstance(document.getElementById("ttsr_detailModal"), { backdrop: "static" }).show();
+                self.loadDetail();
+            });
+            $(document).off("click", "#ttsr_detailSearch").on("click", "#ttsr_detailSearch", function () { self.loadDetail(); });
+            // Delete: xóa facility của dòng đang chọn (giống frmTurndownTasksheetDetail)
+            $(document).off("click", "#ttsr_detailDelete").on("click", "#ttsr_detailDelete", function () {
+                const row = self.detailRow;
+                if (!row || !(Number(row.id) > 0)) {
+                    showToast("Warning", "Please select a row first!", false);
+                    return;
+                }
+                const doDelete = function () {
+                    $.ajax({
+                        url: "/HouseKeeping/DeleteTasksheetFacility",
+                        type: "POST",
+                        data: { id: row.id },
+                        headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() }
+                    }).done(function (res) {
+                        if (res && res.success) { showToast("Success", res.message, true); self.loadDetail(); }
+                        else showToast("Error", (res && res.message) ? res.message : "Cannot delete.", false);
+                    }).fail(function (xhr) {
+                        if (xhr && xhr.status === 401) { sessionTimeout(); return; }
+                        showToast("Error", "Cannot delete.", false);
+                    });
+                };
+                if (window.Swal) {
+                    Swal.fire({ title: "Are you sure you want to delete this facility code?", icon: "question", showCancelButton: true, confirmButtonText: "Yes", cancelButtonText: "No" })
+                        .then(function (r) { if (r.isConfirmed) doDelete(); });
+                } else if (confirm("Are you sure you want to delete this facility code?")) {
+                    doDelete();
+                }
+            });
+
+            $(document).off("click", "#ttsr_detailExcel").on("click", "#ttsr_detailExcel", function () {
+                let grid = null;
+                try { grid = $("#ttsr_detailGrid").dxDataGrid("instance"); } catch (e) { }
+                self.exportGrid(grid, "Tasksheet Detail");
+            });
+
+            // ===== Report: danh sách turndown tasksheet (spRptTurndownTasksheet) =====
+            $(document).off("click", "#ttsr_btnReport").on("click", "#ttsr_btnReport", function () {
+                $("#ttsr_loadingSpinner").css("display", "flex");
+                const selectedStatuses = $("input[name='ttsr_includeOptions']:checked").map(function () { return this.value; }).get().join(",");
+                $.ajax({
+                    url: "/HouseKeeping/TurndownTasksheetReportData",
+                    type: "GET",
+                    traditional: true,
+                    data: {
+                        fromDate: $("#ttsr_fromDate").val(),
+                        attendant: ($("#ttsr_attendant").val() || []).join(","),
+                        roomStatus: selectedStatuses
+                    }
+                })
+                    .done(function (data) {
+                        $("#ttsr_loadingSpinner").hide();
+                        if (!Array.isArray(data)) { alert("Cannot load report: " + (typeof data === "string" ? data : "invalid response.")); return; }
+                        const modalEl = document.getElementById("ttsr_popupNewGridModal");
+                        $(modalEl).off("shown.bs.modal.ttsrreport").one("shown.bs.modal.ttsrreport", function () {
+                            self.initializeTurndownTasksheetGrid(data);
+                        });
+                        bootstrap.Modal.getOrCreateInstance(modalEl, { backdrop: "static" }).show();
+                    })
+                    .fail(function (xhr) {
+                        $("#ttsr_loadingSpinner").hide();
+                        if (xhr && xhr.status === 401) { sessionTimeout(); return; }
+                        alert("Cannot load report: " + ((xhr && xhr.responseText) ? xhr.responseText : "server error."));
+                    });
+            });
+
+            // ===== Move: chuyển các phòng đã tick sang tasksheet khác =====
+            $(document).off("click", "#ttsr_btnMove").on("click", "#ttsr_btnMove", function () {
+                if (!self.selectedRows.length) {
+                    showToast("Warning", "Please select a row first!", false);
+                    return;
+                }
+                // Danh sách tasksheet có trong lưới (loại tasksheet hiện tại của các phòng đã chọn)
+                const currentIds = new Set(self.selectedRows.map(r => String(r.tasksheetID)));
+                const sheets = new Map();
+                (self.lastData || []).forEach(function (r) {
+                    if (r.tasksheetID && !currentIds.has(String(r.tasksheetID)) && !sheets.has(r.tasksheetID)) {
+                        sheets.set(r.tasksheetID, "Sheet " + r.tasksheetNo + " - " + (r.attendant || ""));
+                    }
+                });
+                if (!sheets.size) {
+                    showToast("Warning", "There is no other task sheet to move to.", false);
+                    return;
+                }
+                const $sel = $("#ttsr_moveTarget").empty();
+                sheets.forEach(function (label, id) { $sel.append($("<option>").val(id).text(label)); });
+                $("#ttsr_moveRooms").text(self.selectedRows.map(r => r.roomNo).join(", "));
+                bootstrap.Modal.getOrCreateInstance(document.getElementById("ttsr_moveModal"), { backdrop: "static" }).show();
+            });
+
+            $(document).off("click", "#ttsr_btnMoveOk").on("click", "#ttsr_btnMoveOk", function () {
+                const target = $("#ttsr_moveTarget").val();
+                const ids = self.selectedRows.map(r => r.tasksheetDetailID).filter(x => x).join(",");
+                if (!target || !ids) { showToast("Warning", "Please select a row first!", false); return; }
+
+                $.ajax({
+                    url: "/HouseKeeping/MoveTaskSheetDetails",
+                    type: "POST",
+                    data: { selectedRows: ids, targetTaskSheetData: target },
+                    headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() }
+                })
+                    .done(function (result) {
+                        showToast("Success", (result && result.message) ? result.message : "Moved successfully", true);
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById("ttsr_moveModal")).hide();
+                        $("#ttsr_btnPrint").trigger("click");
+                    })
+                    .fail(function (xhr) {
+                        if (xhr && xhr.status === 401) { sessionTimeout(); return; }
+                        showToast("Error", (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : "Cannot move rooms.", false);
+                    });
+            });
         },
 
         initializeTurndownTasksheetDataGrid: function (data) {
@@ -545,55 +953,30 @@
                 columnAutoWidth: true,
                 width: "100%",
                 height: "100%",
+                noDataText: "No data",
                 columns: [
-
                     {
                         dataField: "hkstatusID_color",
-                        caption: "Room Status",
+                        caption: "C",
+                        width: 40,
+                        allowFiltering: false,
                         cellTemplate: function (container, options) {
-                            let colorClass = "";
-                            switch (options.value) {
-                                case "Clean Non-Checked":
-                                    colorClass = "ttsr_hk-clean-uncheck";
-                                    break;
-                                case "Dirty":
-                                    colorClass = "ttsr_hk-dirty";
-                                    break;
-                                case "Out Of Order":
-                                    colorClass = "ttsr_hk-outoforder";
-                                    break;
-                                case "Pickup":
-                                    colorClass = "ttsr_hk-pickup";
-                                    break;
-                                case "Clean":
-                                    colorClass = "ttsr_hk-clean";
-                                    break;
-                                case "Out Of Services":
-                                    colorClass = "ttsr_hk-outofservices";
-                                    break;
-                                default:
-                                    colorClass = "";
-                            }
-
-                            $(container)
-                                .addClass(colorClass)
-                                .text(options.value)
-                                .css({
-                                    "text-align": "center",
-                                    "color": "#000"
-                                });
+                            $("<div>")
+                                .addClass("ttsr_status-color-box " + self.colorClass(options.value))
+                                .appendTo(container);
                         }
                     },
-                    { dataField: "Sheet No", caption: "Sheet No" },
+                    { dataField: "tasksheetNo", caption: "Sheet No" },
                     { dataField: "roomNo", caption: "Room No" },
                     { dataField: "attendant", caption: "Attendant", groupIndex: 0, visible: false },
                     { dataField: "roomType", caption: "Room Type" },
                     { dataField: "credits", caption: "Credits", dataType: "number", format: "#,##0" },
                     { dataField: "facilityTask", caption: "Facility Task" },
+                    { dataField: "hkstatusID_color", caption: "Room Status", name: "roomStatusText" },
                     { dataField: "foStatus", caption: "FO Status" },
-                    { dataField: "timeIn", caption: "Time In" },
-                    { dataField: "timeOut", caption: "Time Out" },
-                    { dataField: "Description", caption: "Description" },
+                    { dataField: "timeIn", caption: "Time In", customizeText: self.formatTime },
+                    { dataField: "timeOut", caption: "Time Out", customizeText: self.formatTime },
+                    { dataField: "description", caption: "Description" }
                 ],
 
                 paging: { pageSize: 20 },
@@ -611,12 +994,49 @@
                 filterRow: { visible: true, applyFilter: "auto" },
                 headerFilter: { visible: true },
                 selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                grouping: { autoExpandAll: true },
                 showBorders: true,
 
+                onCellPrepared: function (e) {
+                    // Cột Room Status tô màu kín ô
+                    if (e.rowType === "data" && e.column && e.column.name === "roomStatusText") {
+                        const cls = self.hkClass(e.value);
+                        if (cls) e.cellElement.addClass(cls).css("text-align", "center");
+                    }
+                },
+                onSelectionChanged: function (e) {
+                    self.selectedRows = e.selectedRowsData || [];
+                },
                 onRowClick: function (e) {
-                    selectedRowData = e.data;
+                    if (e.rowType === "data") self.focusedRow = e.data;
                 }
             }).dxDataGrid("instance");
+        },
+
+        colorClass: function (statusName) {
+            switch ((statusName || "").trim().toLowerCase()) {
+                case "clean non-checked": return "ttsr_color-clean-uncheck";
+                case "dirty": return "ttsr_color-dirty";
+                case "pickup": return "ttsr_color-pickup";
+                case "clean": return "ttsr_color-clean";
+                case "out of order": return "ttsr_color-outoforder";
+                case "out of services":
+                case "out of service": return "ttsr_color-outofservices";
+                default: return "";
+            }
+        },
+
+        hkClass: function (statusName) {
+            switch ((statusName || "").trim().toLowerCase()) {
+                case "clean non-checked": return "ttsr_hk-clean-uncheck";
+                case "dirty": return "ttsr_hk-dirty";
+                case "pickup": return "ttsr_hk-pickup";
+                case "clean": return "ttsr_hk-clean";
+                case "out of order": return "ttsr_hk-outoforder";
+                case "out of services":
+                case "out of service": return "ttsr_hk-outofservices";
+                default: return "";
+            }
         },
 
         initializeTurndownTasksheetGrid: function (data) {
@@ -715,5 +1135,10 @@
         var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         modal.show();
     };
+
+    // Dọn dẹp khi đóng màn chính
+    $("#ttsr_modal").on("hidden.bs.modal", function () {
+        try { ttsr_Module.destroy(); } catch (e) { }
+    });
 
 </script>

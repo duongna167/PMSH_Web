@@ -17,8 +17,8 @@
                     <button id="ar_trace_btnNew" class="mui-button mui-button-new"> New</button>
                     <button id="ar_trace_btnUpdate" class="mui-button mui-button-edit"> Edit</button>
                     <button id="ar_trace_btnDelete" class="mui-button button-report-delete"> Delete </button>
-                    <button id="ar_trace_btnResolve" class="mui-button mui-button-resolve"> Resolve</button>
-                    <button id="ar_trace_btnUnsolve" class="mui-button mui-button-unsolve"> Unsolve </button>
+                    <button id="ar_trace_btnResolve" class="mui-button mui-button-new"> Resolve</button>
+                    <button id="ar_trace_btnUnsolve" class="mui-button mui-button-new" style="display:none;"> Unsolve </button>
                     <button id="ar_trace_btnExportExcel" class="mui-button mui-button-export" type="button"> Excel</button>
                     <button class="mui-button mui-button-close" data-bs-dismiss="modal"> Close </button>
                 </div>
@@ -187,17 +187,12 @@
                 ],
                 onRowClick: (e) => {
                     this.selectedRowData = e.data;
-                    if (e.data.resolvedBy === "Unresolved") {
-                        $("#ar_trace_btnResolve").show();
-                        $("#ar_trace_btnUnsolve").hide();
-                    } else {
-                        $("#ar_trace_btnResolve").hide();
-                        $("#ar_trace_btnUnsolve").show();
-                    }
+                    // Resolve luôn hiển thị (ngay sau Delete); Unsolve chỉ hiện khi dòng đã được resolve
+                    $("#ar_trace_btnUnsolve").toggle(e.data.resolvedBy !== "Unresolved");
                 }
             });
-            // Ẩn nút resolve khi chưa chọn gì
-            $("#ar_trace_btnResolve, #ar_trace_btnUnsolve").hide();
+            // Chưa chọn dòng nào: ẩn Unsolve
+            $("#ar_trace_btnUnsolve").hide();
         },
 
         openNewModal: function () {
@@ -334,7 +329,15 @@
         },
 
         processResolve: function (url) {
-            if (!this.selectedRowData) return;
+            if (!this.selectedRowData) {
+                showToast('Warning', 'Please select 1 row first.', false);
+                return;
+            }
+            // Resolve: dòng đã resolve rồi thì không làm lại
+            if (url.indexOf('Unresolve') < 0 && this.selectedRowData.resolvedBy !== "Unresolved") {
+                showToast('Warning', 'This trace is already resolved.', false);
+                return;
+            }
             $("#ar_trace_loading").show();
             $.ajax({
                 url: url,
