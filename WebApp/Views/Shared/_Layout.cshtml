@@ -226,7 +226,6 @@
                             <a class="nav-link" asp-controller="Reservation"
                                asp-action="SearchReservation">RESERVATION</a>
                             <div class="dropdown-menu-custom">
-                                <a href="javascript:void(0);" onclick="openRoomAvailability()" data-action="rmg_RoomAvailibility">Room Availability</a>
                                 @*              <a asp-area="" asp-controller="Reservation" asp-action="NewReservation">New reservation</a> *@
                                 <a href="javascript:void(0);" class="open-new-reservation-modal" data-action="resv_ReservationNew">New Reservation</a>
                                 <a asp-area="" asp-controller="Reservation" asp-action="SearchReservation" data-action="resv_ReservationSearch">
@@ -299,6 +298,7 @@
                         <li class="nav-item">
                             <a class="nav-link" href="#">ROOM MANAGEMENT</a>
                             <div class="dropdown-menu-custom">
+                                <a href="javascript:void(0);" onclick="openRoomAvailability()" data-action="rmg_RoomAvailibility">Room Availability</a>
                                 <a asp-area="" asp-controller="HouseKeeping" asp-action="HouseStatus" data-action="rmg_HouseStatus">House Status</a>
 
                                 <a href="javascript:void(0);" onclick="openRoomControlPanel()" data-action="rmg_RoomControlPanel">Room Control Panel</a>
@@ -390,11 +390,7 @@
                             <a class="nav-link" href="#">REPORT</a>
                             <div class="dropdown-menu-custom">
                                 <a asp-area="" asp-controller="Report" asp-action="OtherReport" data-action="rpt_ViewReport">View Report</a>
-                                <a asp-area="" asp-controller="Report" asp-action="ChartReport" asp-route-name="RoomOccupancyChart" data-action="rpt_ReportByChart_web">Room Occupancy Chart</a>
-                                <a asp-area="" asp-controller="Report" asp-action="ChartReport" asp-route-name="RevenueDetailChart" data-action="rpt_ReportByChart_web">Revenue Detail Chart</a>
-                                <a asp-area="" asp-controller="Report" asp-action="ChartReport" asp-route-name="RevenueReportChart" data-action="rpt_ReportByChart_web">Revenue Report Chart</a>
-                                <a asp-area="" asp-controller="Report" asp-action="ChartReport" asp-route-name="RevenueByChart" data-action="rpt_ReportByChart_web">Revenue By Chart</a>
-                                <a asp-area="" asp-controller="Report" asp-action="ChartReport" asp-route-name="ReservationCancellationChart" data-action="rpt_ReportByChart_web">Reservation Cancellation Chart</a>
+                                <a asp-area="" asp-controller="Report" asp-action="OtherReportChart" data-action="rpt_ReportByChart_web">Report By Chart</a>
                             </div>
                         </li>
 
@@ -592,6 +588,7 @@
                                 <a href="javascript:void(0);" onclick="openUserGroup()" data-action="Sec_UserGroup_View">User of group</a>
                                 <a href="javascript:void(0);" onclick="openAddFuncitionsToList()" data-action="usr_Functions">Add Functions To List</a>
                                 <a href="javascript:void(0);" onclick="openUsersManagement()" data-action="UsersManagement_web">Users Management</a>
+                                <a href="javascript:void(0);" onclick="openPasswordHistory()" data-action="usr_PasswordHistory">Password History</a>
                                 <a href="javascript:void(0);" onclick="openUserMapping()" data-action="usr_UserRight">User mapping</a>
                                 <a href="javascript:void(0);" onclick="openUserMappingByGroup()" data-action="usr_GroupUserRight">User mapping by group</a>
                                 @*  <a asp-area="" asp-controller="Home" asp-action="">User management</a>
@@ -1341,6 +1338,51 @@
 
           initGlobalEvents: function() {
 
+              // Focus can still be on the parent when a child is opened programmatically.
+              // Handle the stack before Bootstrap handles Escape on the focused modal.
+              let handledStackEscape = false;
+              let closingStackModal = null;
+              document.addEventListener("keydown", function (event) {
+                  if (event.key !== "Escape" || event.isComposing || event.defaultPrevented) return;
+                  if (closingStackModal || (event.repeat && handledStackEscape)) {
+                      event.preventDefault();
+                      event.stopImmediatePropagation();
+                      return;
+                  }
+                  handledStackEscape = false;
+                  if ($(".cc-overlay:visible, .swal2-container:visible, .pmsh-select-menu:visible").length) return;
+
+                  const modals = Array.from(document.querySelectorAll(".modal.show"))
+                      .sort((first, second) => (parseInt(getComputedStyle(first).zIndex, 10) || 0)
+                          - (parseInt(getComputedStyle(second).zIndex, 10) || 0));
+                  if (modals.length < 2 || !modals.slice(0, -1).some(modal => modal.classList.contains("managed-modal"))) return;
+
+                  const top = modals[modals.length - 1];
+                  if (top.getAttribute("data-bs-keyboard") === "false"
+                      || top.querySelector(".ts-wrapper.dropdown-active, .ts-dropdown:focus-within")
+                      || $(event.target).closest(".dx-overlay-content").length) return;
+
+                  const instance = bootstrap.Modal.getInstance(top);
+                  if (!instance) return;
+                  event.preventDefault();
+                  event.stopImmediatePropagation();
+                  handledStackEscape = true;
+
+                  const parent = modals[modals.length - 2];
+                  closingStackModal = top;
+                  $(top).off("hidden.bs.modal.stackEscape").one("hidden.bs.modal.stackEscape", function () {
+                      closingStackModal = null;
+                      if (!parent.classList.contains("show")) return;
+                      document.body.classList.add("modal-open");
+                      parent.focus({ preventScroll: true });
+                  });
+                  instance.hide();
+                  if (top.classList.contains("show")) {
+                      closingStackModal = null;
+                      $(top).off("hidden.bs.modal.stackEscape");
+                  }
+              }, true);
+
               $(document).on("input change", ".is-invalid, .tomselect-custom, [data-date-input] input", function () {
                   if (window.ValidationAdapter) window.ValidationAdapter.clearField(this);
               });
@@ -1853,6 +1895,14 @@
               "/UsersManagement/UsersManagement",
               "ousm_modal",
               "openModalOusm"
+          );
+      }
+
+      function openPasswordHistory() {
+          ModalManager.load(
+              "/PasswordHistory/PasswordHistory",
+              "pwdh_modal",
+              "openModalPasswordHistory"
           );
       }
 

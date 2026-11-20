@@ -12,8 +12,8 @@ namespace Security.Services.Interfaces
         List<DepartmentModel> Departments();
         DataTable Search(string lastName, string firstName, string loginName, int userStatus, int cashierStatus, string jobtitle, string department);
         UsersModel? GetById(int id);
-        OpResult Save(UsersModel model);
-        OpResult ResetPassword(UsersModel model);
+        OpResult Save(UsersModel model, string computerIp = "");
+        OpResult ResetPassword(UsersModel model, string computerIp = "");
         OpResult SendResetPasswordEmail(int id, string plainPassword, int sendBy);
         OpResult Lock(int id);
         OpResult Delete(int id);

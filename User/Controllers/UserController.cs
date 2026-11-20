@@ -71,7 +71,7 @@ namespace User.Controllers
                 var user = _iUserService.FindByLoginName(loginName);
                 if (user == null || user.ID == 0 || !_iUserService.VerifyPassword(user, password))
                 {
-                    return HandleFailedPassword(user, loginName);
+                    return HandleFailedPassword(user, loginName, password);
                 }
 
                 ClearLoginFails(loginName);
@@ -172,6 +172,8 @@ namespace User.Controllers
                 if (!_iUserService.ChangePassword(pendingId.Value, currentPassword, newPassword, requireCurrent, out var error))
                     return Json(new { code = -1, msg = error });
 
+                UserDetailLog.Write(pendingId.Value, "", UserDetailLog.TypeChange, UserDetailLog.ClientIp(HttpContext));
+
                 var user = (UsersModel)UsersBO.Instance.FindByPrimaryKey(pendingId.Value);
                 if (user == null || user.ID == 0)
                     return Json(new { code = -1, msg = "The user account was not found." });
@@ -212,7 +214,7 @@ namespace User.Controllers
             return Json(new { code = 0 });
         }
 
-        private IActionResult HandleFailedPassword(UsersModel user, string loginName)
+        private IActionResult HandleFailedPassword(UsersModel? user, string loginName, string typedPassword)
         {
             const string invalidMsg = "Invalid Username and/or Password, or Account is not active!";
 
@@ -221,6 +223,8 @@ namespace User.Controllers
                 LogLoginFailed(0, loginName, 0, MaxPasswordFails);
                 return Json(new { code = -1, msg = "The username or password is incorrect. Please try again.", showTries = false });
             }
+
+            UserDetailLog.Write(user.ID, typedPassword, UserDetailLog.TypeWrong, UserDetailLog.ClientIp(HttpContext));
 
             if (user.Status == -1)
                 return Json(new { code = 7, msg = "This user account has been terminated. Please contact the system administrator." });

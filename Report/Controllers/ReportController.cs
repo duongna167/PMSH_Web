@@ -2522,10 +2522,16 @@ namespace Report.Controllers
         {
             try
             {
-                var data = _iReportService.ReservationRateCheck(date, status, ind, pseudo, variance,
+                var statuses = (status ?? "").Split(',', StringSplitOptions.TrimEntries).Distinct().ToArray();
+                if (statuses.Any(code => code.Length != 1 || code[0] < '0' || code[0] > '8'))
+                    return BadRequest("Select at least one valid reservation status.");
+
+                var loadStatus = (string code) =>
+                {
+                    var data = _iReportService.ReservationRateCheck(date, code, ind, pseudo, variance,
                                                                     fixRate, package, dcReason, sort, showFixCharge, showAlerts);
 
-                var result = (from d in data.AsEnumerable()
+                    return (from d in data.AsEnumerable()
                               select new
                               {                             
                                   ConfirmationNo = !string.IsNullOrEmpty(d["ConfirmationNo"].ToString()) ? d["ConfirmationNo"] : "",
@@ -2550,7 +2556,23 @@ namespace Report.Controllers
                                   ReservationPacketes =  !string.IsNullOrEmpty(d["Reservation Packages"].ToString()) ? d["Reservation Packages"] : "",
 
                               }).ToList();
-                return Json(result);
+                };
+
+                var result = loadStatus(statuses[0]);
+                if (statuses.Length == 1)
+                    return Json(result);
+
+                var seen = result.ToHashSet();
+                foreach (var code in statuses.Skip(1))
+                {
+                    var rows = loadStatus(code);
+                    result.AddRange(rows.Where(row => !seen.Contains(row)));
+                    seen.UnionWith(rows);
+                }
+
+                return Json(sort == "Name"
+                    ? result.OrderBy(row => row.Name)
+                    : result.OrderBy(row => row.RoomNo));
             }
             catch (Exception ex)
             {

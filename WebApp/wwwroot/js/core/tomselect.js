@@ -93,8 +93,8 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
 
             if (isMultiple) {
                 tsOptions.plugins['remove_button'] = {
-                    title: '', // Để trống title mặc định
-                    label: `<span data-tooltip="Delete">×</span>`, // Thêm tooltip cho nút x từng item
+                    title: 'Delete',
+                    label: '×',
                 };
             }
 

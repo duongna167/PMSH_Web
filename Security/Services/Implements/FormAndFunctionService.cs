@@ -178,6 +178,15 @@ namespace Security.Services.Implements
             var pt = new ProcessTransactions();
             try
             {
+                if (id <= 0)
+                {
+                    var isSubgroup = isDataRight == 1
+                        ? DataGroups().Any(g => g.ID == groupId && g.ParentID > 0)
+                        : FunctionGroups().Any(g => g.ID == groupId && g.ParentID > 0);
+                    if (!isSubgroup)
+                        return OpResult.Fail("Please select a subgroup.");
+                }
+
                 pt.OpenConnection();
                 pt.BeginTransaction();
                 var now = TextUtils.GetSystemDate();

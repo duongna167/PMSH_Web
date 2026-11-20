@@ -60,7 +60,8 @@
         font-weight: 700 !important;
         color: #000 !important;
     }
-    #popupNewGrid .fn-form-row {
+    #popupNewGrid .fn-form-row,
+    #fnGrp_itemModal .fn-form-row {
         display: flex;
         flex-direction: row;
         align-items: center;
@@ -76,38 +77,16 @@
         text-align: left;
         white-space: nowrap;
     }
-    #popupNewGrid .fn-form-row > label {
-        width: auto;
-        flex: 0 0 auto;
-    }
-    #fnGrp_itemModal .fn-form-row > label {
-        width: auto;
-        flex: 0 0 auto;
-    }
+    #popupNewGrid .fn-form-row > .fn-form-ctl,
     #fnGrp_itemModal .fn-form-row > .fn-form-ctl {
-        flex: 0 0 200px;
-        width: 200px;
-    }
-    #fnGrp_itemModal .fn-form-row > .fn-form-ctl .form-control,
-    #fnGrp_itemModal .fn-form-row > .fn-form-ctl .form-select,
-    #fnGrp_itemModal .ts-wrapper {
-        width: 100%;
-    }
-    #popupNewGrid .fn-form-row > .fn-form-ctl {
-        flex: 0 0 220px;
-        width: 220px;
+        flex: 0 1 220px;
+        min-width: 0;
     }
     #popupNewGrid .fn-form-row > .fn-form-ctl .form-control,
-    #popupNewGrid .fn-form-row > .fn-form-ctl .form-select {
+    #popupNewGrid .fn-form-row > .fn-form-ctl .form-select,
+    #fnGrp_itemModal .fn-form-row > .fn-form-ctl .form-control,
+    #fnGrp_itemModal .fn-form-row > .fn-form-ctl .form-select {
         width: 100%;
-    }
-    #fnGrp_itemModal .fn-form-row {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 4px;
-        margin-bottom: 8px;
     }
     #fnGrp_modal .fn-filter-row {
         display: flex;
@@ -214,15 +193,15 @@
                 <div class="fn-form-row">
                     <label for="groupnew">Group</label>
                     <div class="fn-form-ctl">
-                        <select id="groupnew" class="form-select form-select-sm">
-                            <option value=""></option>
+                        <select id="groupnew" class="form-select form-select-sm" data-pmsh-select-down>
+                            <option value="">--Select--</option>
                             @foreach (var item in listfromandfuc)
                             {
-                                <option value="@item.ID" data-kind="fn">@item.Name</option>
+                                <option value="@item.ID" data-kind="fn" data-parent-id="@item.ParentID">@item.Name</option>
                             }
                             @foreach (var item in listfromandfucData)
                             {
-                                <option value="@item.ID" data-kind="data">@item.Name</option>
+                                <option value="@item.ID" data-kind="data" data-parent-id="@item.ParentID">@item.Name</option>
                             }
                         </select>
                     </div>
@@ -300,7 +279,11 @@
                 </div>
                 <div class="fn-form-row">
                     <label for="fnGrp_parentNew">Parent</label>
-                    <div class="fn-form-ctl"><select id="fnGrp_parentNew" class="form-select form-select-sm"></select></div>
+                    <div class="fn-form-ctl">
+                        <select id="fnGrp_parentNew" class="form-select form-select-sm" data-pmsh-select-down>
+                            <option value="0">None</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="fn-form-row">
                     <label for="fnGrp_descNew">Description</label>
@@ -329,7 +312,6 @@
         selectedRowData: null,
         groupRows: [],
         selectedGroup: null,
-        groupSelect: null,
 
         init: function () {
             const self = this;
@@ -338,6 +320,7 @@
             self.filterGroupOptions();
             self.loadData();
             self.bindEvents();
+            document.addEventListener("keydown", self.handleChildEscape, true);
             if (window.applyPopupRights) {
                 window.applyPopupRights("usr_Functions", {
                     new: "#btnNewTheKeyboard",
@@ -351,8 +334,30 @@
         destroy: function () {
             $("#codetag, #namerights").val("");
             $("#functionsRights").prop("checked", true);
-            this.destroyGroupSelect();
             $(document).off(".aff");
+            document.removeEventListener("keydown", this.handleChildEscape, true);
+            $("#fnGrp_itemModal, #fnGrp_modal, #popupNewGrid").each(function () {
+                bootstrap.Modal.getInstance(this)?.dispose();
+            }).remove();
+        },
+
+        handleChildEscape: function (event) {
+            if (event.key !== "Escape" || event.isComposing || event.defaultPrevented) return;
+            if ($(".cc-overlay, .swal2-container:visible").length) return;
+
+            const topModal = Array.from(document.querySelectorAll(".modal.show")).reduce((top, modal) => {
+                return !top || Number(getComputedStyle(modal).zIndex) >= Number(getComputedStyle(top).zIndex)
+                    ? modal : top;
+            }, null);
+            if (!topModal) return;
+            const isChild = topModal.matches("#fnGrp_itemModal, #fnGrp_modal, #popupNewGrid");
+            if (!isChild && !(event.repeat && topModal.id === "shortcutModal")) return;
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            if (event.repeat) return;
+
+            bootstrap.Modal.getInstance(topModal)?.hide();
         },
 
         rightsType: function () {
@@ -380,7 +385,6 @@
 
             $("#btnNewTheKeyboard").off("click").on("click", function () {
                 self.clearForm();
-                self.filterGroupOptions();
                 $("#popupNewGrid").modal("show");
             });
 
@@ -405,12 +409,8 @@
                 self.loadData();
             });
 
-            $("#popupNewGrid").off("shown.bs.modal.aff").on("shown.bs.modal.aff", function () {
-                self.initGroupSelect();
-            });
             $("#popupNewGrid").off("hidden.bs.modal.aff").on("hidden.bs.modal.aff", function () {
-                self.destroyGroupSelect();
-                if ($("#shortcutModal").hasClass("show")) $("body").addClass("modal-open");
+                self.restoreParentModal("#shortcutModal");
             });
 
             $(document).off("click.aff", "#fnGrp_btnSearch").on("click.aff", "#fnGrp_btnSearch", function () {
@@ -435,59 +435,33 @@
                 if (e.key === "Enter") { e.preventDefault(); self.loadGroupGrid(); }
             });
             $("#fnGrp_modal").off("hidden.bs.modal.aff").on("hidden.bs.modal.aff", function () {
-                if ($("#shortcutModal").hasClass("show")) $("body").addClass("modal-open");
+                self.restoreParentModal("#shortcutModal");
                 self.filterGroupOptions();
             });
             $("#fnGrp_itemModal").off("hidden.bs.modal.aff").on("hidden.bs.modal.aff", function () {
-                if ($("#fnGrp_modal").hasClass("show")) $("body").addClass("modal-open");
+                self.restoreParentModal("#fnGrp_modal");
             });
         },
-        filterGroupOptions: function () {
-            const isData = this.rightsType() === 1;
-            $("#groupnew option").each(function () {
-                const kind = $(this).data("kind");
-                if (!kind) {
-                    $(this).prop("disabled", false);
-                    return;
-                }
-                $(this).prop("disabled", isData ? kind !== "data" : kind !== "fn");
+        restoreParentModal: function (selector) {
+            const parent = document.querySelector(selector + ".show");
+            if (!parent) return;
+            document.body.classList.add("modal-open");
+            parent.focus();
+        },
+        filterGroupOptions: function (groupId = $("#groupnew").val()) {
+            const kind = this.rightsType() === 1 ? "data" : "fn";
+            const editing = !!$("#txtid").val();
+            const select = document.getElementById("groupnew");
+            let selectedIndex = 0;
+            Array.from(select.options).forEach(function (option, index) {
+                if (!option.dataset.kind) return;
+                const selected = option.value === String(groupId);
+                const available = option.dataset.kind === kind
+                    && (Number(option.dataset.parentId) > 0 || (editing && selected));
+                option.hidden = option.disabled = !available;
+                if (available && selected) selectedIndex = index;
             });
-        },
-        destroyGroupSelect: function () {
-            const el = document.getElementById("groupnew");
-            if (el && el.tomselect) el.tomselect.destroy();
-            this.groupSelect = null;
-        },
-        bindDropSelect: function (el) {
-            if (!el || typeof TomSelect === "undefined") return;
-            if (el.tomselect) el.tomselect.destroy();
-            new TomSelect(el, {
-                allowEmptyOption: true,
-                maxItems: 1,
-                controlInput: null,
-                dropdownParent: "body",
-                onDropdownOpen: function () {
-                    const dd = this.dropdown;
-                    const rect = this.wrapper.getBoundingClientRect();
-                    const host = document.getElementById("shortcutModal");
-                    const hostBottom = host ? host.getBoundingClientRect().bottom : window.innerHeight;
-                    const space = Math.max(96, Math.min(220, hostBottom - rect.bottom - 12));
-                    dd.classList.remove("dropup");
-                    dd.style.position = "fixed";
-                    dd.style.left = rect.left + "px";
-                    dd.style.top = (rect.bottom + 2) + "px";
-                    dd.style.width = rect.width + "px";
-                    dd.style.maxHeight = space + "px";
-                    dd.style.zIndex = "1085";
-                    const content = dd.querySelector(".ts-dropdown-content");
-                    if (content) content.style.maxHeight = space + "px";
-                }
-            });
-        },
-        initGroupSelect: function () {
-            this.destroyGroupSelect();
-            this.filterGroupOptions();
-            this.bindDropSelect(document.getElementById("groupnew"));
+            select.selectedIndex = selectedIndex;
         },
         loadData: function () {
             const self = this;
@@ -597,7 +571,6 @@
         },
 
         populateForm: function (data, rightsType) {
-            this.filterGroupOptions();
             $("#txtid").val(data.id || "");
             $("#codetagnew").val(data.code || "");
             $("#namerightnew").val(data.name || "");
@@ -605,7 +578,7 @@
             $("#chkHide").prop("checked", data.isHide === true);
 
             const groupId = rightsType == "1" ? (data.formAndFunctionDataGroupID || "") : (data.formAndFunctionGroupID || "");
-            $("#groupnew").val(groupId);
+            this.filterGroupOptions(groupId);
         },
 
         clearForm: function () {
@@ -614,12 +587,17 @@
             $("#namerightnew").val("");
             $("#descriptionnew").val("");
             $("#groupnew").val("");
+            this.filterGroupOptions();
             $("#chkHide").prop("checked", false);
         },
 
         saveForm: function () {
             const self = this;
             const rightsType = $('input[name="rightsType"]:checked').val();
+            if (!$("#txtid").val() && !$("#groupnew").val()) {
+                showToast("Warning", "Please select a subgroup.", false);
+                return;
+            }
 
             const data = {
                 ID: $("#txtid").val(),
@@ -671,28 +649,29 @@
         syncMainGroupOptions: function () {
             const isData = this.rightsType() === 1;
             const kind = isData ? "data" : "fn";
-            const $sel = $("#groupnew");
-            const el = $sel[0];
-            if (el && el.tomselect) el.tomselect.destroy();
-            $sel.find("option[data-kind='" + kind + "']").remove();
+            const $select = $("#groupnew");
+            const selectedId = $select.val();
+            $select.find("option[data-kind='" + kind + "']").remove();
             (this.groupRows || []).forEach(function (g) {
-                $sel.append($("<option>").val(g.id).attr("data-kind", kind).text(g.name || ""));
+                $select.append($("<option>", {
+                    value: g.id,
+                    "data-kind": kind,
+                    "data-parent-id": g.parentId,
+                    text: g.name || ""
+                }));
             });
-            this.filterGroupOptions();
-            this.bindDropSelect(el);
+            this.filterGroupOptions(selectedId);
         },
 
-        fillParentSelect: function ($sel, selectedId, skipId, allText) {
-            const el = $sel[0];
-            if (el && el.tomselect) el.tomselect.destroy();
-            const html = ['<option value="0">' + (allText || "None") + "</option>"];
-            (this.groupRows || []).forEach(function (g) {
-                if (skipId && g.id === skipId) return;
-                html.push('<option value="' + g.id + '">' + $("<div>").text(g.name || "").html() + "</option>");
+        fillParentSelect: function ($sel, selectedId, placeholder = "All", skipId = 0) {
+            const rows = [{ id: 0, name: placeholder }, ...this.groupRows];
+            $sel.empty();
+            rows.forEach(function (group) {
+                if (skipId && Number(group.id) === Number(skipId)) return;
+                $sel.append(new Option(group.name || "", group.id));
             });
-            $sel.html(html.join(""));
-            if (selectedId) $sel.val(String(selectedId));
-            if ($sel.attr("id") === "fnGrp_parentNew") this.bindDropSelect(el);
+            $sel.val(String(selectedId));
+            if ($sel.val() === null) $sel.val("0");
         },
 
         applyGroupFilter: function (rows) {
@@ -721,7 +700,7 @@
                         return;
                     }
                     self.groupRows = data || [];
-                    self.fillParentSelect($("#fnGrp_parent"), parseInt($("#fnGrp_parent").val(), 10) || 0, 0, "All");
+                    self.fillParentSelect($("#fnGrp_parent"), parseInt($("#fnGrp_parent").val(), 10) || 0);
                     self.syncMainGroupOptions();
                     self.renderGroupGrid(self.applyGroupFilter(self.groupRows));
                 },
@@ -774,7 +753,7 @@
                 $("#fnGrp_id").val(0);
                 $("#fnGrp_codeNew, #fnGrp_nameNew, #fnGrp_descNew").val("");
                 $("#fnGrp_hideNew").prop("checked", false);
-                self.fillParentSelect($("#fnGrp_parentNew"), self.selectedGroup ? self.selectedGroup.id : 0, 0, "None");
+                self.fillParentSelect($("#fnGrp_parentNew"), self.selectedGroup ? self.selectedGroup.id : 0, "None");
                 $("#fnGrp_itemTitle").text("New Group");
                 $("#fnGrp_itemModal").modal("show");
                 return;
@@ -793,7 +772,7 @@
                 $("#fnGrp_nameNew").val(item.name || "");
                 $("#fnGrp_descNew").val(item.description || "");
                 $("#fnGrp_hideNew").prop("checked", item.isHide === true);
-                self.fillParentSelect($("#fnGrp_parentNew"), item.parentId || 0, item.id, "None");
+                self.fillParentSelect($("#fnGrp_parentNew"), item.parentId || 0, "None", item.id);
                 $("#fnGrp_itemTitle").text("Edit Group");
                 $("#fnGrp_itemModal").modal("show");
             }).fail(function () {

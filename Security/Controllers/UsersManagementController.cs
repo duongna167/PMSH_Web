@@ -4,6 +4,7 @@ using System.Data;
 using System.Linq;
 using BaseBusiness.Auth;
 using BaseBusiness.Model;
+using BaseBusiness.util;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Security.Helpers;
@@ -88,7 +89,7 @@ namespace Security.Controllers
         [HttpPost]
         public IActionResult UpdateUsersManagement(UsersModel modelRoom)
         {
-            try { return ToJson(_service.Save(modelRoom)); }
+            try { return ToJson(_service.Save(modelRoom, UserDetailLog.ClientIp(HttpContext))); }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
@@ -97,7 +98,7 @@ namespace Security.Controllers
         {
             try
             {
-                var r = _service.ResetPassword(modelRoom);
+                var r = _service.ResetPassword(modelRoom, UserDetailLog.ClientIp(HttpContext));
                 if (!r.Success)
                     return Json(new { success = false, message = r.Message });
                 var data = r.Data as Dictionary<string, object> ?? new Dictionary<string, object>();

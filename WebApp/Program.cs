@@ -212,6 +212,7 @@ builder.Services.AddSingleton<INewProfileService, NewProfileService>();
 builder.Services.AddSingleton<IExtendProfileService, ExtendProfileService>();
 builder.Services.AddSingleton<IUserGroupService, UserGroupService>();
 builder.Services.AddSingleton<IUsersManagementService, UsersManagementService>();
+builder.Services.AddSingleton<IPasswordHistoryService, PasswordHistoryService>();
 builder.Services.AddSingleton<IUserMappingService, UserMappingService>();
 builder.Services.AddSingleton<IFormAndFunctionService, FormAndFunctionService>();
 

@@ -5,6 +5,7 @@
 @{
     ViewBag.Title = ViewBag.ReportHeader;
     var rtList = ViewBag.RoomClassList;
+    var statuses = new[] { "Reserved", "Checked In", "Checked Out", "Cancel Rsv", "Wait list", "Due In", "Due Out", "No Show", "Day Use" };
 }
 
 <style>
@@ -15,12 +16,70 @@
         font-weight: bold !important;
     }
 
-    #reservationStatusBox {
-        appearance: none;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        background-image: none !important;
-        padding-right: 8px !important;
+    .rrc-status-field {
+        flex: 0 0 260px;
+        width: 260px;
+        min-width: 220px;
+        max-width: 280px;
+        margin-left: 8px;
+        overflow: visible;
+        position: relative;
+        z-index: 5;
+    }
+
+    .rrc-status-field .ts-wrapper {
+        overflow: visible !important;
+        width: 100% !important;
+    }
+
+    .rrc-status-field .ts-control {
+        flex-wrap: nowrap !important;
+        overflow: hidden !important;
+    }
+
+    .rrc-status-field .ts-control .item {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        width: auto !important;
+        padding: 0 2px 0 4px !important;
+        margin-right: 2px !important;
+    }
+
+    .rrc-status-field .ts-control .item > div,
+    .rrc-status-field .ts-control .item .ts-item-text,
+    .rrc-status-field .ts-control .item > span {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        display: block !important;
+    }
+
+    .rrc-status-field .ts-control .item .remove {
+        opacity: 1 !important;
+        visibility: visible !important;
+        margin-left: 2px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .rrc-status-field .ts-wrapper.has-items .ts-control input {
+        flex: 0 0 8px !important;
+        width: 8px !important;
+        min-width: 8px !important;
+        max-width: 8px !important;
+    }
+
+    body > .ts-dropdown {
+        position: fixed !important;
+        min-width: 0 !important;
+        width: var(--rrc-dd-w, 280px) !important;
+        max-width: var(--rrc-dd-w, 280px) !important;
+        left: var(--rrc-dd-x, 0px) !important;
+        top: var(--rrc-dd-y, 0px) !important;
+        right: auto !important;
+        z-index: 5000 !important;
     }
 
     .rrc-check-grid {
@@ -53,18 +112,15 @@
             </div>
             <div class="d-flex align-items-center">
                 <label class="fw-bold mb-0">Filter:</label>
-                <label class="mb-0">Reservation Status:</label>
-                <select id="reservationStatusBox" class="form-control form-control-sm report-dd">
-                    <option value="0">Reserved</option>
-                    <option value="1">Checked In</option>
-                    <option value="2">Checked Out</option>
-                    <option value="3">Cancel Rsv</option>
-                    <option value="4">Wait list</option>
-                    <option value="5">Due In</option>
-                    <option value="6">Due Out</option>
-                    <option value="7">No Show</option>
-                    <option value="8">Day Use</option>
-                </select>
+                <label for="reservationStatusBox" class="mb-0">Reservation Status:</label>
+                <div class="rrc-status-field">
+                    <select id="reservationStatusBox" class="tomselect-custom" data-report-keep-tomselect multiple>
+                        @for (var index = 0; index < statuses.Length; index++)
+                        {
+                            <option value="@index">@statuses[index]</option>
+                        }
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -108,7 +164,7 @@
         <div class="d-flex align-items-center">
             <label class="fw-bold mb-0">Sort:</label>
             <label class="mb-0">Order:</label>
-            <select id="sort" class="form-select form-select-sm sort-select">
+            <select id="sort" class="form-control form-control-sm report-dd sort-select">
                 <option value="Room No.">Room No.</option>
                 <option value="Name">Name</option>
             </select>
@@ -141,11 +197,35 @@
         const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         window.initDateInputs();
         document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
+        var statusEl = document.getElementById("reservationStatusBox");
+        if (statusEl && statusEl.tomselect) {
+            try { statusEl.tomselect.destroy(); } catch (e) { }
+        }
+        initTomSelect("#reservationStatusBox", {
+            placeholder: "Select...",
+            dropdownParent: "body",
+            hidePlaceholder: false
+        });
+        var ts = statusEl && statusEl.tomselect;
+        if (ts) {
+            ts.clear(true);
+            ts.on("dropdown_open", function () {
+                var box = ts.control.getBoundingClientRect();
+                var root = document.documentElement;
+                root.style.setProperty("--rrc-dd-w", Math.round(box.width) + "px");
+                root.style.setProperty("--rrc-dd-x", Math.round(box.left) + "px");
+                root.style.setProperty("--rrc-dd-y", Math.round(box.bottom + 1) + "px");
+            });
+        }
     });
-     
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+        const raw = $("#reservationStatusBox").val();
+        const status = Array.isArray(raw) ? raw.join(",") : (raw || "");
+        if (!status) {
+            showToast("Warning", "Please select at least one reservation status.", false);
+            return;
+        }
         $("#loadingSpinner").show();
-        const status = $("#reservationStatusBox").val() || [];
 
 
         $.ajax({
@@ -153,7 +233,7 @@
             type: 'GET',
             data: {
                 date: $('#date').val(),
-                status: $("#reservationStatusBox").val(),
+                status: status,
                 ind: $('#ind').is(":checked") ? 1 : 0,
                 pseudo: $('#pseudo').is(":checked") ? 1 : 0,
                 variance: $('#variance').is(":checked") ? 1 : 0,

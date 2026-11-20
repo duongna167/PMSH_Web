@@ -53,7 +53,7 @@ namespace Security.Services.Implements
             return model;
         }
 
-        public OpResult Save(UsersModel modelRoom)
+        public OpResult Save(UsersModel modelRoom, string computerIp = "")
         {
             modelRoom.PasswordHash = DBUtils.Encrypt(
                 modelRoom.PasswordHash, DBUtils.passPhrase, DBUtils.saltValue, DBUtils.hashAlgorithm,
@@ -82,15 +82,18 @@ namespace Security.Services.Implements
             }
 
             var existing = (UsersModel)UsersBO.Instance.FindByPrimaryKey(modelRoom.ID);
-            if (existing != null && existing.PasswordHash != modelRoom.PasswordHash)
+            bool passwordChanged = existing != null && existing.PasswordHash != modelRoom.PasswordHash;
+            if (passwordChanged)
                 modelRoom.PasswordStatus = false;
             else if (existing != null)
                 modelRoom.PasswordStatus = existing.PasswordStatus;
             UsersBO.Instance.Update(modelRoom);
+            if (passwordChanged)
+                UserDetailLog.Write(modelRoom.ID, "", UserDetailLog.TypeChange, computerIp);
             return OpResult.Ok("User updated successfully.");
         }
 
-        public OpResult ResetPassword(UsersModel modelRoom)
+        public OpResult ResetPassword(UsersModel modelRoom, string computerIp = "")
         {
             if (modelRoom == null || modelRoom.ID == 0)
                 return OpResult.Fail("Please save the user before resetting the password.");
@@ -109,6 +112,7 @@ namespace Security.Services.Implements
             if (modelRoom.UserUpdateID != 0)
                 user.UserUpdateID = modelRoom.UserUpdateID;
             UsersBO.Instance.Update(user);
+            UserDetailLog.Write(user.ID, "", UserDetailLog.TypeChange, computerIp);
             return OpResult.Ok("The password has been reset.", new Dictionary<string, object>
             {
                 ["plainPassword"] = tempPassword,
