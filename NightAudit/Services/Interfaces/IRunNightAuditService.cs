@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Data;
 
 namespace NightAudit.Services.Interfaces
 {
-    internal interface IRunNightAuditService
+    public interface IRunNightAuditService
     {
-        
+        /// <summary>Danh sách khách đang ở (Guest In House) để chọn phòng cần đăng tiền.</summary>
+        DataTable SearchGuestInHouse();
     }
 }

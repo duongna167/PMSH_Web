@@ -179,6 +179,7 @@ builder.Services.AddSingleton<IInvoicingService, InvoicingService>();
 builder.Services.AddSingleton<ITransferTransactionService, TransferTransactionService>();
 builder.Services.AddSingleton<IRoomManagementService, RoomManagementService>();
 builder.Services.AddSingleton<IRoomRateService, RoomRateService>();
+builder.Services.AddSingleton<IRunNightAuditService, RunNightAuditService>();
 builder.Services.AddSingleton<IMiscellaneousService, MiscellaneousService>();
 builder.Services.AddSingleton<IAdministrationService, AdministrationService>();
 builder.Services.AddSingleton<IAdjustTransactionService, AdjustTransactionService>();
