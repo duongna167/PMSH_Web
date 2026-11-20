@@ -89,7 +89,14 @@ namespace Security.Controllers
         [HttpPost]
         public IActionResult UpdateUsersManagement(UsersModel modelRoom)
         {
-            try { return ToJson(_service.Save(modelRoom, UserDetailLog.ClientIp(HttpContext))); }
+            try
+            {
+                return ToJson(_service.Save(
+                    modelRoom,
+                    UserDetailLog.ClientIp(HttpContext),
+                    HttpContext.Session.GetInt32("UserID") ?? 0,
+                    HttpContext.Session.GetString("LoginName") ?? ""));
+            }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
@@ -98,7 +105,11 @@ namespace Security.Controllers
         {
             try
             {
-                var r = _service.ResetPassword(modelRoom, UserDetailLog.ClientIp(HttpContext));
+                var r = _service.ResetPassword(
+                    modelRoom,
+                    UserDetailLog.ClientIp(HttpContext),
+                    HttpContext.Session.GetInt32("UserID") ?? 0,
+                    HttpContext.Session.GetString("LoginName") ?? "");
                 if (!r.Success)
                     return Json(new { success = false, message = r.Message });
                 var data = r.Data as Dictionary<string, object> ?? new Dictionary<string, object>();
@@ -108,7 +119,8 @@ namespace Security.Controllers
                     message = r.Message,
                     plainPassword = data.GetValueOrDefault("plainPassword"),
                     passExpireDate = data.GetValueOrDefault("passExpireDate"),
-                    hasEmail = data.GetValueOrDefault("hasEmail")
+                    hasEmail = data.GetValueOrDefault("hasEmail"),
+                    status = data.GetValueOrDefault("status")
                 });
             }
             catch (Exception ex)
@@ -132,16 +144,15 @@ namespace Security.Controllers
         }
 
         [HttpPost]
-        public IActionResult LockUsersManagement(int id)
-        {
-            try { return ToJson(_service.Lock(id)); }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
-        }
-
-        [HttpPost]
         public IActionResult UsersManagementDelete(int id)
         {
-            try { return ToJson(_service.Delete(id)); }
+            try
+            {
+                return ToJson(_service.Delete(
+                    id,
+                    HttpContext.Session.GetInt32("UserID") ?? 0,
+                    HttpContext.Session.GetString("LoginName") ?? ""));
+            }
             catch (Exception ex) { return BadRequest(new { success = false, message = ex.Message }); }
         }
 

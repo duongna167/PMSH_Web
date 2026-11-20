@@ -18,8 +18,6 @@
                         <button id="ousm_btnNewUsermana" class="mui-button mui-button-new" type="button">New</button>
                         <button id="ousm_btnEditUsermana" class="mui-button mui-button-edit" type="button">Edit</button>
                         <button id="ousm_btnDeleteUsermana" class="mui-button mui-button-delete" type="button">Delete</button>
-                        <button id="ousm_btnLockUsermana" class="mui-button mui-button-delete" type="button">Lock User</button>
-                        <button id="ousm_btnMapping" class="mui-button mui-button-edit" type="button">Rights</button>
                         <button class="mui-button mui-button-new" id="ousm_btnClose">Close</button>
                     </div>
 
@@ -530,6 +528,7 @@
 
     const ousm_Module = {
         selectedRowData: null,
+        originalStatus: null,
 
         init: function () {
             this.destroyPopupSelects();
@@ -620,6 +619,7 @@
 
             const $menu = $("<div class='ousm-select-menu'></div>").data("selectId", selectEl.id);
             Array.from(selectEl.options).forEach(function (opt) {
+                if (opt.disabled) return;
                 const $item = $("<div class='ousm-select-item'></div>")
                     .text(opt.text)
                     .attr("data-value", opt.value);
@@ -698,16 +698,9 @@
                     });
 
             $(document)
-                .off("click.ousm", "#ousm_btnLockUsermana")
-                .on("click.ousm", "#ousm_btnLockUsermana", function () {
-                    self.lockSelected();
-                });
-
-            $(document)
-                .off("click.ousm", "#ousm_btnMapping")
-                .on("click.ousm", "#ousm_btnMapping", function () {
-                    if (typeof openUserMapping === "function")
-                        openUserMapping();
+                .off("change.ousmStatus", "#ousm_statusNew")
+                .on("change.ousmStatus", "#ousm_statusNew", function () {
+                    self.guardTerminatedStatus();
                 });
 
             $(document)
@@ -843,40 +836,22 @@
                 }
             });
         },
-            lockSelected: function () {
-                const self = this;
-                if (!self.selectedRowData) {
-                    showToast("Warning", "Please select a user.", false);
-                    return;
-                }
-                const loginName = self.selectedRowData.loginName || "";
-                if (!confirm("Are you sure you want to lock user " + loginName + "?")) {
-                    return;
-                }
-                $("#ousm_loadingSpinner").show();
-                $.ajax({
-                    url: "/UsersManagement/LockUsersManagement",
-                    type: "POST",
-                    data: { id: self.selectedRowData.id },
-                    traditional: true,
-                    headers: {
-                        "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val()
-                    },
-                    success: function (res) {
-                        if (res.success) {
-                            showToast("Success", res.message, true);
-                            self.usersManagementData();
-                        } else {
-                            showToast("Warning", res.message, false);
-                        }
-                        $("#ousm_loadingSpinner").hide();
-                    },
-                    error: function () {
-                        showToast("Error", "Unable to lock the user.", false);
-                        $("#ousm_loadingSpinner").hide();
-                    }
-                });
+            applyTerminatedStatusLock: function (status) {
+                const terminated = Number(status) === -1;
+                this.originalStatus = status == null || status === "" ? null : Number(status);
+                $("#ousm_statusNew option[value='1']").prop("disabled", terminated);
             },
+
+            guardTerminatedStatus: function () {
+                const $sel = $("#ousm_statusNew");
+                if (this.originalStatus === -1 && Number($sel.val()) === 1) {
+                    $sel.val("-1");
+                    showToast("Warning", "A terminated user cannot be activated again.", false);
+                    return false;
+                }
+                return true;
+            },
+
             deleteSelected: function () {
                 const self = this;
 
@@ -982,6 +957,9 @@
                 return;
             }
 
+            if (!self.guardTerminatedStatus()) {
+                return;
+            }
 
             // ===== DATA =====
             const data = {
@@ -1090,7 +1068,9 @@
                         if (response.passExpireDate) {
                             UI.setHiddenDate("ousm_expiredate", response.passExpireDate);
                         }
-                        $("#ousm_statusNew").val("1");
+                        if (response.status != null && Number(response.status) !== -1) {
+                            $("#ousm_statusNew").val("1");
+                        }
                         showToast("Success", response.message, true);
                         self.usersManagementData();
                         if (!response.hasEmail) {
@@ -1168,6 +1148,7 @@
             $("#ousm_ischeckCashier").prop("checked", !!data.isCashier);
             $("#ousm_cachierNo").val(data.cashierNo ?? "");
             $("#ousm_statusNew").val(data.status ?? 1);
+            this.applyTerminatedStatusLock(data.status);
         },
 
         clearForm: function () {
@@ -1205,6 +1186,7 @@
             $("#ousm_cachierNo").val("");
 
             $("#ousm_statusNew").val(1);
+            this.applyTerminatedStatusLock(null);
         },
 
         initializeDataGridSearch: function (data) {

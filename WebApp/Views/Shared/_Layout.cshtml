@@ -179,7 +179,11 @@
                     </div>
 
                     <div id="notificationDropdown" class="notification-dropdown" style="display:none;">
-                        <ul id="notificationList"></ul>
+                        <ul id="notificationList">
+                            <li class="notif-kind" data-kind="birthday">Birthday (<span id="notif_birthdayCount">0</span>)</li>
+                            <li class="notif-kind" data-kind="message">Message (<span id="notif_messageCount">0</span>)</li>
+                            <li class="notif-kind" data-kind="trace">Trace (<span id="notif_traceCount">0</span>)</li>
+                        </ul>
                     </div>
                 </div>
 
@@ -292,6 +296,7 @@
                                 <a href="javascript:void(0);" onclick="openLostAndFound()" data-action="hkp_LostAndFound">Lost And Found</a>
                                 <a href="javascript:void(0);" onclick="openPFOS()" data-action="admin_ProcessFOStatus">Process FO Status</a>
                                 <a href="javascript:void(0);" onclick="openDialingInformation()" data-action="fo_DialingInformation"> Dialing Information</a>
+                                <a href="javascript:void(0);" onclick="openCreateMessage()" data-action="fo_CreateMessage_web">Create Message</a>
 
                             </div>
                         </li>
@@ -389,8 +394,8 @@
                         <li class="nav-item">
                             <a class="nav-link" href="#">REPORT</a>
                             <div class="dropdown-menu-custom">
-                                <a asp-area="" asp-controller="Report" asp-action="OtherReport" data-action="rpt_ViewReport">View Report</a>
                                 <a asp-area="" asp-controller="Report" asp-action="OtherReportChart" data-action="rpt_ReportByChart_web">Report By Chart</a>
+                                <a asp-area="" asp-controller="Report" asp-action="OtherReport" data-action="rpt_ViewReport">View Report</a>
                             </div>
                         </li>
 
@@ -853,54 +858,52 @@
         });
     });
 
-    function showNotification() {
-        $("#loadingSpinner").show();
-
+    function applyNotificationSummary(data) {
+        var b = (data && data.birthdayCount) || 0;
+        var m = (data && data.messageCount) || 0;
+        var t = (data && data.traceCount) || 0;
+        var total = (data && data.total) || (b + m + t);
+        $("#notif_birthdayCount").text(b);
+        $("#notif_messageCount").text(m);
+        $("#notif_traceCount").text(t);
+        var $badge = $(".notification-badge");
+        if (total > 0) $badge.text(total).show();
+        else $badge.hide();
+    }
+    function loadNotificationCount() {
         $.ajax({
-            url: '/Profile/ShowNotification',
-            type: 'GET',
-            success: function (result) {
-
-                let html = "";
-
-                if (result && result.length > 0) {
-                    result.forEach(function (item) {
-                        html += `
-                            <li>
-                                🎂 <strong>${item.Firstname}</strong><br/>
-                                <small>Today's Birthday</small>
-                            </li>`;
-                    });
-                } else {
-                    html = `<li>Không có sinh nhật hôm nay</li>`;
-                }
-
-                $("#notificationList").html(html);
-                $("#notificationDropdown").toggle();
-            },
-            error: function () {
-                alert("Không thể tải thông báo sinh nhật.");
-            },
-            complete: function () {
-                $("#loadingSpinner").hide();
-            }
+            url: "/Notification/Summary",
+            type: "GET",
+            success: applyNotificationSummary
         });
     }
-    function loadBirthdayCount() {
-        $.ajax({
-            url: '/Profile/ShowNotification',
-            type: 'GET',
-            success: function (result) {
-                let count = result ? result.length : 0;
-                const $badge = $(".notification-badge");
-
-                if (count > 0) {
-                    $badge.text(count).show();
-                } else {
-                    $badge.hide();
-                }
-            }
-        });
+    function showNotification() {
+        loadNotificationCount();
+        $("#notificationDropdown").toggle();
+    }
+    $(document).off("click.notifKind", "#notificationList .notif-kind").on("click.notifKind", "#notificationList .notif-kind", function (e) {
+        e.stopPropagation();
+        $("#notificationDropdown").hide();
+        var kind = $(this).data("kind");
+        if (kind === "birthday") {
+            ModalManager.load("/Notification/Birthday", "nfb_modal", "openModalNotificationBirthday");
+        } else if (kind === "message") {
+            ModalManager.load("/Notification/MessageList", "nfm_modal", "openModalNotificationMessage");
+        } else if (kind === "trace") {
+            ModalManager.load("/Notification/TraceList", "nft_modal", "openModalNotificationTrace");
+        }
+    });
+    $(document).on("click", function (e) {
+        if (!$(e.target).closest(".notification-wrapper").length) {
+            $("#notificationDropdown").hide();
+        }
+    });
+    function openCreateMessage() {
+        ModalManager.load(
+            "/Notification/CreateMessage",
+            "foim_modal",
+            "openModalCreateMessage"
+        );
     }
 
     let isFormLoaded = false;
@@ -1006,7 +1009,7 @@
             window.currentAjaxGridId = null;
         });
 
-        loadBirthdayCount();
+        loadNotificationCount();
         //     // Khi đóng modal → có thể reset nếu cần
         // $('#newReservationModal').on('hidden.bs.modal', function () {
         //     const modal = $(this);

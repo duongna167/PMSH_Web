@@ -213,7 +213,7 @@ ORDER BY a.LoginName",
                 "rptARCreditCardTransfer", "rptARCreditLimit", "rptARLedger", "rptARPayments",
                 "rptARTransferReport", "rptARDetailedAging"
             }),
-            ("02 - Sales&Reservation", new[]
+            ("02 - Sales & Reservation", new[]
             {
                 "rptAlerts", "rptDepositActivity", "rptReservationByCompany", "rptReservationPreblocked",
                 "rptReservationStatistic", "rptReservationCancellation", "rptRoomOccupancy", "rptTransportation",

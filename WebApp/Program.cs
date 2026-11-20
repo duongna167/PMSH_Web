@@ -164,6 +164,7 @@ builder.Services.AddSingleton<IFolioDetailService, FolioDetailService>();
 builder.Services.AddSingleton<IDepositService, DepositService>();
 builder.Services.AddSingleton<IRoutingService, RoutingService>();
 builder.Services.AddSingleton<IFrontDeskService, FrontDeskService>();
+builder.Services.AddSingleton<INotificationService, NotificationService>();
 builder.Services.AddSingleton<ICashieringService, CashieringService>();
 builder.Services.AddSingleton<IPostService, PostService>();
 builder.Services.AddSingleton<IPostingInvoiceService, PostingService>();
