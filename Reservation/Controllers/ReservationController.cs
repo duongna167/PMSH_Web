@@ -232,6 +232,24 @@ namespace Reservation.Controllers
         [RequireFunction("resv_ReservationSearch")]
         public IActionResult SearchReservation()
         {
+            FillReservationOptionLookups();
+            return View();
+        }
+
+        /// <summary>
+        /// Các popup tùy chọn đặt phòng (Billing, Check Out, C/O All, Share, Routing...) dùng chung với Search Reservation,
+        /// để màn khác (Guest In House của Cashiering) mở lại đúng các popup đó cho một đặt phòng.
+        /// </summary>
+        [RequireFunction("resv_ReservationSearch", "cash_Manager")]
+        public IActionResult ReservationOptionsHost()
+        {
+            FillReservationOptionLookups();
+            return PartialView();
+        }
+
+        /// <summary>Danh sách chọn (ViewBag) mà các popup tùy chọn đặt phòng cần.</summary>
+        private void FillReservationOptionLookups()
+        {
 
             List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
             ViewBag.cboNationality = ListItemHelper.GetNationalityProvider();
@@ -263,7 +281,6 @@ namespace Reservation.Controllers
             ViewBag.businesDate = businessDateModel[0].BusinessDate;
             ViewBag.cboItem = ListItemHelper.GetItemInventoryProvider();
             ViewBag.cboTransaction = ListItemHelper.GetTransactionProvider(true, "Choose Transaction");
-            return View();
         }
 
 

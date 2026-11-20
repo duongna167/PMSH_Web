@@ -91,7 +91,16 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
                 },
             };
 
-            if (isMultiple) {
+            // Danh sách ngắn (Zone, Room Type, Section, Floor, Status...): hiển thị như combo chọn 1.
+            // Thẻ <select multiple> được giữ nguyên để .val() và getTomSelectData() vẫn trả về mảng (tối đa 1 phần tử),
+            // nên các màn đang đọc giá trị dạng danh sách không phải sửa. Bỏ trống = tất cả; nút × để xóa lựa chọn.
+            const isSingleChoice = el.hasAttribute('data-single-choice');
+            if (isSingleChoice) {
+                tsOptions.maxItems = 1;
+                tsOptions.placeholder = el.getAttribute('data-placeholder') || 'All';
+            }
+
+            if (isMultiple && !isSingleChoice) {
                 tsOptions.plugins['remove_button'] = {
                     title: 'Delete', // Tooltip cho nút x từng item
                     label: '×', // Chỉ để ký tự thuần (plugin escape HTML, không dùng thẻ span ở đây)

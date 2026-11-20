@@ -16,6 +16,10 @@
         flex: 1 1 0; min-width: 0; max-width: 120px; margin: 0; padding-left: 4px; padding-right: 4px; white-space: nowrap;
     }
 
+    /* Nút Options là menu xổ xuống: cùng kích cỡ với các nút khác */
+    #ar_opening_cashier_modal .arc-toolbar .dropdown { flex: 1 1 0; min-width: 0; max-width: 120px; display: flex; }
+    #ar_opening_cashier_modal .arc-toolbar .dropdown .mui-button { max-width: none; width: 100%; }
+
     /* Khối bộ lọc: gọn trong 3 hàng */
     #ar_opening_cashier_modal .arc-filter { display: flex; align-items: flex-start; gap: 12px; flex-wrap: nowrap; }
     #ar_opening_cashier_modal .arc-inputs {
@@ -90,13 +94,16 @@
                     <button class="mui-button mui-button-new" id="ar_opening_btnSearch">Search</button>
                     <button class="mui-button mui-button-new" id="ar_opening_btnClear">Clear</button>
                     <button class="mui-button mui-button-new" id="ar_opening_btnCheckAll">Check All</button>
-                    <button class="mui-button mui-button-new" id="ar_opening_btnGroupAdm" disabled title="Not available yet">Group ADM</button>
-                    <button class="mui-button mui-button-new" id="ar_opening_btnResv" disabled title="Not available yet">Resv</button>
-                    <button class="mui-button mui-button-new" id="ar_opening_btnOptions" disabled title="Not available yet">Options</button>
-                    <button class="mui-button mui-button-new" id="ar_opening_btnBilling" disabled title="Not available yet">Billing</button>
-                    <button class="mui-button mui-button-new" id="ar_opening_btnCoAll" disabled title="Not available yet">C/O All</button>
-                    <button class="mui-button mui-button-new" id="ar_opening_btnCoZero" disabled title="Not available yet">C/O Zero</button>
-                    <button class="mui-button mui-button-new" id="ar_opening_btnCheckOut" disabled title="Not available yet">Check Out</button>
+                    <button class="mui-button mui-button-new" id="ar_opening_btnGroupAdm">Group ADM</button>
+                    <button class="mui-button mui-button-new" id="ar_opening_btnResv">Resv</button>
+                    <div class="btn-group dropdown d-inline-block">
+                        <button class="mui-button mui-button-new dropdown-toggle" id="ar_opening_btnOptions" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">Options</button>
+                        <ul class="dropdown-menu" id="ar_opening_optionsMenu"></ul>
+                    </div>
+                    <button class="mui-button mui-button-new" id="ar_opening_btnBilling">Billing</button>
+                    <button class="mui-button mui-button-new" id="ar_opening_btnCoAll">C/O All</button>
+                    <button class="mui-button mui-button-new" id="ar_opening_btnCoZero">C/O Zero</button>
+                    <button class="mui-button mui-button-new" id="ar_opening_btnCheckOut">Check Out</button>
                     <button class="mui-button mui-button-new" id="ar_opening_btnExcel">Excel</button>
                     <button class="mui-button mui-button-edit" data-bs-dismiss="modal">Close</button>
                 </div>
@@ -220,6 +227,9 @@
     </div>
 </div>
 
+<!-- Các popup đặt phòng dùng chung với Search Reservation (nạp khi bấm nút nghiệp vụ lần đầu) -->
+<div id="ar_opening_host"></div>
+
 <script>
     var ar_opening_cashier_Module = {
         gridInstance: null,
@@ -239,6 +249,7 @@
         },
 
         initDOMEvents: function () {
+            this.initActions();
             // Button events
             $("#ar_opening_btnSearch").on("click", () => this.searchReservation());
             $("#ar_opening_btnClear").on("click", () => this.resetForm());
@@ -378,6 +389,8 @@
 
         initializeGrid: function (data) {
             const self = this;
+            self.rows = data;
+            self.currentRow = null;
             if (self.gridInstance) { try { self.gridInstance.dispose(); } catch (e) { } self.gridInstance = null; }
 
             $("#ar_opening_rowCount").text(data.length);
@@ -421,7 +434,7 @@
                         else if (o.summaryProcess === 'finalize') { o.totalValue = roomSet ? roomSet.size : 0; }
                     }
                 },
-                onFocusedRowChanged: function (e) { self.showDetail(e.row ? e.row.data : null); },
+                onFocusedRowChanged: function (e) { self.currentRow = e.row ? e.row.data : null; self.showDetail(self.currentRow); },
                 // Màu dòng theo cột Color của SP (số ARGB như Win: Color.FromArgb)
                 onRowPrepared: function (e) {
                     if (e.rowType !== "data" || !e.data || !e.data.Color) return;
@@ -450,7 +463,7 @@
                 if (req !== this._tabReq) return;
                 const btns = [];
                 [['shares', 'Shares'], ['routing', 'Routing'], ['package', 'Package'], ['billing', 'Billing']].forEach(function (p) {
-                    if (r && r[p[0]]) btns.push($('<button type="button" class="arc-tab" disabled title="Not available yet">').text(p[1])[0]);
+                    if (r && r[p[0]]) btns.push($('<button type="button" class="arc-tab">').text(p[1]).attr('data-act', p[0])[0]);
                 });
                 $box.empty().append(btns);
             });
@@ -490,6 +503,195 @@
                     saveAs(new Blob([buffer], { type: "application/octet-stream" }), "Guest In House.xlsx");
                 });
             });
+        },
+
+        // =====================================================================================================
+        //  Nút nghiệp vụ (Resv, Options, Billing, C/O All, C/O Zero, Check Out, Group ADM, các tab phía dưới):
+        //  dùng lại đúng các popup của màn Search Reservation, nạp từ /Reservation/ReservationOptionsHost.
+        // =====================================================================================================
+        rows: [],
+        currentRow: null,
+        _hostReady: null,
+
+        // Mã trạng thái đặt phòng theo tên hiển thị (fnGetRsvStatus)
+        statusCode: function (text) {
+            const map = { 'RESVED': 0, 'CHECKED IN': 1, 'CHECKED OUT': 2, 'CANCEL': 3, 'WAIT LIST': 4, 'DUE IN': 5, 'DUE OUT': 6, 'NO SHOW': 7, 'DAY USE': 8 };
+            const t = String(text || '').trim().toUpperCase();
+            return Object.prototype.hasOwnProperty.call(map, t) ? map[t] : NaN;
+        },
+
+        // dd/MM/yyyy -> yyyy-MM-ddT00:00:00 (dạng ngày các popup đặt phòng đang dùng)
+        isoDate: function (s) {
+            const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(s || ''));
+            return m ? (m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0') + 'T00:00:00') : (s || '');
+        },
+
+        // Dòng của lưới Guest In House -> dạng dòng của Search Reservation mà các popup đọc
+        toRsvRow: function (d) {
+            const arr = this.isoDate(d.Arrival), dep = this.isoDate(d.Departure);
+            let nights = 0;
+            if (arr && dep) nights = Math.max(0, Math.round((new Date(dep) - new Date(arr)) / 86400000));
+            return Object.assign({}, d, {
+                ID: d.ReservationID,
+                ReservationStatus: this.statusCode(d.Status),
+                Status: d.Status,
+                ConfirmationNo: d.ConfirmationNo,
+                Arrival: arr,
+                Departure: dep,
+                GuestName: d.Name,
+                RoomNo: d.Room,
+                RoomID: d.RoomID,
+                RoomType: d.RoomType,
+                RoomStatus: '',
+                ProfileIndividualID: d.ProfileIndividualID,
+                PriceNet: d.Rate,
+                NoOfNight: nights,
+                MG: d.MainGuest
+            });
+        },
+
+        // Dòng đang đứng; nếu chưa đứng ở dòng nào thì lấy dòng đầu tiên được tích
+        currentRsvRow: function () {
+            const d = this.currentRow || (this.gridInstance ? this.gridInstance.getSelectedRowsData()[0] : null);
+            return d ? this.toRsvRow(d) : null;
+        },
+
+        // Nạp các popup tùy chọn đặt phòng (một lần mỗi lần mở màn hình)
+        ensureHost: function () {
+            const self = this;
+            if (self._hostReady) return self._hostReady;
+
+            self._hostReady = new Promise(function (resolve, reject) {
+                // Màn Search Reservation đang mở sẵn các popup này thì dùng lại
+                if ($('#modalBilling').length && !$('#ar_opening_host #modalBilling').length) { resolve(); return; }
+
+                $('#ar_opening_host').load('/Reservation/ReservationOptionsHost', function (resp, st, xhr) {
+                    if (st === 'error') {
+                        self._hostReady = null;
+                        showToast('Error', xhr.status === 403 ? 'Access Denied' : 'Unable to load reservation options.', false);
+                        reject();
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+            return self._hostReady;
+        },
+
+        // Gán các biến trang mà các popup đọc (giống khi bấm một dòng ở Search Reservation)
+        applyRow: function (r) {
+            window.idReservation = parseInt(r.ID, 10) || 0;
+            window.statusID = r.ReservationStatus;
+            window.reservationStatus = r.ReservationStatus;
+            window.roomID = r.RoomID;
+            window.status = r.Status;
+            window.roomStatus = r.RoomStatus;
+            window.roomType = r.RoomType;
+            window.roomNo = r.RoomNo;
+            window.arivalDate = r.Arrival;
+            window.departureDate = r.Departure;
+            window.confirmationNo = r.ConfirmationNo;
+            window.lastname = r.GuestName;
+            window.profileID = r.ProfileIndividualID;
+            window.rateAmount = r.PriceNet;
+            window.night = r.NoOfNight;
+            window._currentReservationData = r;
+            window.listReservationByConfirmationNo = this.rows
+                .filter(x => x.ConfirmationNo === r.ConfirmationNo).map(x => this.toRsvRow(x));
+
+            // Đầu cửa sổ Billing
+            $('#rsvStatusBilling').text(r.Status);
+            $('#conNoBilling').text(r.ConfirmationNo);
+            $('#arivalBilling').text(r.Arrival ? String(r.Arrival).split('T')[0] : '');
+            $('#departureBilling').text(r.Departure ? String(r.Departure).split('T')[0] : '');
+            if (typeof window.setBillingHeaderInfo === 'function') window.setBillingHeaderInfo(r);
+            if (typeof window.GetBalanceVND === 'function') window.GetBalanceVND(window.idReservation);
+        },
+
+        // Chạy một chức năng của popup đặt phòng cho dòng đang đứng
+        runOption: function (fnName) {
+            const self = this;
+            const r = self.currentRsvRow();
+            if (!r) { showToast('Warning', 'Please select a row first!', false); return; }
+
+            self.ensureHost().then(function () {
+                self.applyRow(r);
+                if (typeof window[fnName] !== 'function') { showToast('Warning', 'This function is not available.', false); return; }
+                window[fnName]();
+            }).catch(function () { });
+        },
+
+        // C/O All (type 1) và C/O Zero (type 2): xử lý trên các dòng đã tích, không tích dòng nào thì trên toàn bộ danh sách
+        checkOutAll: function (type) {
+            const self = this;
+            const checked = self.gridInstance ? self.gridInstance.getSelectedRowsData() : [];
+            const src = checked.length ? checked : self.rows;
+            if (!src.length) { showToast('Warning', 'There is no data.', false); return; }
+
+            self.ensureHost().then(function () {
+                window.listData = src.map(d => self.toRsvRow(d));
+                window.reservationStatus = 6;   // popup lọc lại theo trạng thái DUE OUT của từng dòng
+                if (typeof window.openModalCheckOutAll !== 'function') { showToast('Warning', 'This function is not available.', false); return; }
+                window.openModalCheckOutAll(type);
+            }).catch(function () { });
+        },
+
+        // Resv: mở đặt phòng của dòng đang đứng
+        openReservation: function () {
+            const r = this.currentRsvRow();
+            if (!r) { showToast('Warning', 'Please select a row first!', false); return; }
+
+            const modal = $('#newReservationModal');
+            modal.find('.modal-body').html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-3">Loading reservation...</p></div>');
+            modal.modal('show');
+
+            $.ajax({
+                url: '/Reservation/EncryptId', type: 'POST', data: { id: r.ID },
+                success: function (response) {
+                    if (!response.success) { modal.modal('hide'); showToast('Error', 'Cannot open reservation.', false); return; }
+                    $.ajax({
+                        url: '/Reservation/NewReservation', type: 'GET', data: { key: response.encryptedId }, cache: false,
+                        success: function (html) {
+                            modal.find('.modal-body').html(html);
+                            if (typeof window.focusNewReservationFirstField === 'function') window.focusNewReservationFirstField();
+                        },
+                        error: function () { modal.find('.modal-body').html('<div class="alert alert-danger m-4">Unable to load reservation details.</div>'); }
+                    });
+                },
+                error: function () { modal.modal('hide'); showToast('Error', 'Server connection error.', false); }
+            });
+        },
+
+        // Các mục của nút Options (cùng danh sách chức năng của Search Reservation)
+        optionItems: [
+            ['Accompany', 'openModalAccompanying'], ['Add On', 'openModalAddOn'], ['Alerts', 'openModalAlerts'],
+            ['Changes', 'openModalChanges'], ['Dep/DXL', 'openModalDeposit'], ['Fixed Charges', 'openModalFixedCharges'],
+            ['Invoicing', 'openModalInvoicing'], ['Message', 'openModalMessage'], ['Packages', 'openModalPackage'],
+            ['Registration Card', 'openModalRegistrationCard'], ['Reinstate', 'openConfirmReinstate'], ['Room Move', 'openRoomMove'],
+            ['Routing', 'openModalRouting'], ['Share', 'openModalShare'], ['Split', 'openModalSplit'],
+            ['Traces', 'openModalTraces'], ['Wake up', 'openModalWakeupCall']
+        ],
+
+        initActions: function () {
+            const self = this;
+            window.rvhRefresh = () => self.searchReservation();
+
+            $("#ar_opening_btnResv").on("click", () => self.openReservation());
+            $("#ar_opening_btnBilling").on("click", () => self.runOption('openModalBilling'));
+            $("#ar_opening_btnGroupAdm").on("click", () => self.runOption('openGroupAdmin'));
+            $("#ar_opening_btnCheckOut").on("click", () => self.runOption('openModalCheckOut'));
+            $("#ar_opening_btnCoAll").on("click", () => self.checkOutAll(1));
+            $("#ar_opening_btnCoZero").on("click", () => self.checkOutAll(2));
+
+            const $menu = $("#ar_opening_optionsMenu").empty();
+            self.optionItems.forEach(function (it) {
+                $menu.append($('<li>').append($('<a class="dropdown-item" href="#">').text(it[0]).attr('data-fn', it[1])));
+            });
+            $menu.on("click", "a", function (e) { e.preventDefault(); self.runOption($(this).attr('data-fn')); });
+
+            // Tab phía dưới (Shares / Routing / Package / Billing) của dòng đang đứng
+            const tabFn = { shares: 'openModalShare', routing: 'openModalRouting', package: 'openModalPackage', billing: 'openModalBilling' };
+            $("#ar_opening_tabs").on("click", ".arc-tab", function () { self.runOption(tabFn[$(this).attr('data-act')]); });
         },
 
         resetForm: function () {
