@@ -852,6 +852,9 @@ window.applyPopupRights = function (code, selectors) {
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') closePmshSelectMenu();
     });
-    window.addEventListener('scroll', closePmshSelectMenu, true);
+    window.addEventListener('scroll', function (e) {
+        if (menu && e.target && (e.target === menu || menu.contains(e.target))) return;
+        closePmshSelectMenu();
+    }, true);
     window.addEventListener('resize', closePmshSelectMenu);
 })();
