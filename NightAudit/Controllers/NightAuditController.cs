@@ -32,6 +32,7 @@ namespace NightAudit.Controllers
         private readonly IMemoryCache _cache;
         private readonly IRoomRateService _iRoomRateService;
         private readonly IRunNightAuditService _iRunNightAuditService;
+        private readonly IFixedChargeService _iFixedChargeService;
         public enum HistoryType { Gen_Post, Basic_Post, Night_Post, Early_Post, Advance_Post, Correct, Split, Tranferred, Deleted, Payment, Print };
         static int _HKP_VD_VC = 0;
         string _Error = "";
@@ -50,13 +51,14 @@ namespace NightAudit.Controllers
         public DateTime SystemDate = DateTime.Now;
 
         public NightAuditController(ILogger<NightAuditController> logger,
-                IMemoryCache cache, IConfiguration configuration, IRoomRateService iRoomRateService, IRunNightAuditService iRunNightAuditService)
+                IMemoryCache cache, IConfiguration configuration, IRoomRateService iRoomRateService, IRunNightAuditService iRunNightAuditService, IFixedChargeService iFixedChargeService)
         {
             _cache = cache;
             _logger = logger;
             _configuration = configuration;
             _iRoomRateService = iRoomRateService;
             _iRunNightAuditService = iRunNightAuditService;
+            _iFixedChargeService = iFixedChargeService;
         }
         // =====================================================================================================
         //  Posting Room: đăng tiền phòng, Fixed Charge và Package cho các phòng được chọn theo một ngày.
@@ -144,6 +146,39 @@ namespace NightAudit.Controllers
                 }
 
                 return Json(new { success = true, message = "Posting Complete!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // =====================================================================================================
+        //  Fixed Charge: danh sách Fixed Charge đang hiệu lực trong một ngày (frmSearchFixCharge)
+        // =====================================================================================================
+
+        [RequireFunction("tool_FixedCharge")]
+        public IActionResult FixedCharge()
+        {
+            return PartialView();
+        }
+
+        [HttpGet]
+        [RequireFunction("tool_FixedCharge")]
+        public IActionResult SearchFixedCharge(DateTime? date, bool warning, bool reservation, bool checkIn, bool checkOut, bool dueIn, bool dueOut)
+        {
+            try
+            {
+                DateTime day = date ?? TextUtils.GetBusinessDate();
+                DataTable t = _iFixedChargeService.SearchFixedCharge(day, warning, reservation, checkIn, checkOut, dueIn, dueOut);
+
+                var data = t.AsEnumerable()
+                    .Select(r => t.Columns.Cast<DataColumn>().ToDictionary(
+                        // Cột "Rsv.Holder" có dấu chấm sẽ bị lưới hiểu là đường dẫn lồng nhau: đổi tên
+                        c => c.ColumnName == "Rsv.Holder" ? "RsvHolder" : c.ColumnName,
+                        c => r[c] == DBNull.Value ? null : r[c]))
+                    .ToList();
+                return Json(new { success = true, data });
             }
             catch (Exception ex)
             {

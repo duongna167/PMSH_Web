@@ -180,6 +180,9 @@ builder.Services.AddSingleton<ITransferTransactionService, TransferTransactionSe
 builder.Services.AddSingleton<IRoomManagementService, RoomManagementService>();
 builder.Services.AddSingleton<IRoomRateService, RoomRateService>();
 builder.Services.AddSingleton<IRunNightAuditService, RunNightAuditService>();
+builder.Services.AddSingleton<IFixedChargeService, FixedChargeService>();
+builder.Services.AddSingleton<IMapTransactionService, MapTransactionService>();
+builder.Services.AddSingleton<IExportRevenueService, ExportRevenueService>();
 builder.Services.AddSingleton<IMiscellaneousService, MiscellaneousService>();
 builder.Services.AddSingleton<IAdministrationService, AdministrationService>();
 builder.Services.AddSingleton<IAdjustTransactionService, AdjustTransactionService>();

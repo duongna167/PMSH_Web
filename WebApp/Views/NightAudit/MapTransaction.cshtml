@@ -1,0 +1,361 @@
+@* Map Transaction Code with Account Code (Night Audit): gắn mã giao dịch với mã tài khoản kế toán (bảng InterfaceToAcc).
+   Popup theo chuẩn của dự án (ModalManager + mui-button), logic tương ứng màn frmMapTransaction của PMS desktop:
+   sửa trực tiếp trên lưới rồi Save, Add để thêm dòng mới, Delete xóa dòng đang chọn, Excel xuất lưới. *@
+
+<div class="modal fade" id="mtr_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Map Transaction Code with Account Code</h5>
+            </div>
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button id="mtr_btnAdd" class="mui-button mui-button-new">Add</button>
+                    <button id="mtr_btnEdit" class="mui-button mui-button-edit">Edit</button>
+                    <button id="mtr_btnDelete" class="mui-button mui-button-delete">Delete</button>
+                    <button id="mtr_btnExcel" class="mui-button mui-button-export">Excel</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
+                    <div class="gridContainer d-flex flex-column flex-grow-1 overflow-auto">
+                        <div id="mtr_grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Thêm dòng map mới ===== -->
+<div class="modal fade" id="mtr_addModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" style="max-width: 760px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mtr_formTitle">Add Map Transaction</h5>
+            </div>
+
+            <div class="modal-body px-3">
+                <div class="py-2 d-flex gap-2 border-bottom mb-3">
+                    <button type="button" id="mtr_btnAddSave" class="mui-button mui-button-save">Save</button>
+                    <button type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <form id="mtr_form" novalidate autocomplete="off">
+                    <input type="hidden" id="mtr_id" value="0" />
+                    <div class="container-fluid px-1 pb-1">
+                        <div class="row g-3">
+                            <div class="col-12 col-lg-6">
+                            <div class="border rounded px-3 py-2 h-100">
+                                <div class="fw-semibold text-success mb-2">General</div>
+                                <div class="row mb-2 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold mb-1 mb-md-0">Profit Center</label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" maxlength="100" name="ProfitCenter" class="form-control form-control-sm" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-2 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold mb-1 mb-md-0">Transaction Code <span class="text-danger">*</span></label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" maxlength="100" name="TransactionCode" class="form-control form-control-sm" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-2 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold mb-1 mb-md-0">Account Code</label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" maxlength="30" name="AccountCode" class="form-control form-control-sm" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-2 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold mb-1 mb-md-0">Description</label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" maxlength="510" name="Description" class="form-control form-control-sm" style="width: calc(100% + 16px);" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <div class="border rounded px-3 py-2 h-100">
+                                <div class="fw-semibold text-success mb-2">Debit / Credit Accounts</div>
+                                <div class="row mb-2 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold mb-1 mb-md-0">TK_No</label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" maxlength="30" name="TK_No" class="form-control form-control-sm" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-2 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold mb-1 mb-md-0">TK_Co</label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" maxlength="30" name="TK_Co" class="form-control form-control-sm" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-2 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold mb-1 mb-md-0">TK_Co_Deposit</label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" maxlength="30" name="TK_Co_Deposit" class="form-control form-control-sm" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-2 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold mb-1 mb-md-0">TK_No_DT</label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" maxlength="30" name="TK_No_DT" class="form-control form-control-sm" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <div class="border rounded px-3 py-2 h-100">
+                                <div class="fw-semibold text-success mb-2">Accounting Codes</div>
+                                <div class="row mb-2 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold mb-1 mb-md-0">MaBP_ACC</label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" maxlength="100" name="MaBP_ACC" class="form-control form-control-sm" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-2 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold mb-1 mb-md-0">MaDT_ACC</label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" maxlength="100" name="MaDT_ACC" class="form-control form-control-sm" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-2 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold mb-1 mb-md-0">MaCN_ACC</label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" maxlength="100" name="MaCN_ACC" class="form-control form-control-sm" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <div class="border rounded px-3 py-2 h-100">
+                                <div class="fw-semibold text-success mb-2">Other Codes</div>
+                                <div class="row mb-2 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold mb-1 mb-md-0">MaBCDT</label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" maxlength="100" name="MaBCDT" class="form-control form-control-sm" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-2 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold mb-1 mb-md-0">Ma BPDC</label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="text" maxlength="100" name="MaBPDC" class="form-control form-control-sm" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-2 align-items-center">
+                                    <label class="col-12 col-md-4 fw-bold mb-1 mb-md-0">PerDT</label>
+                                    <div class="col-12 col-md-8">
+                                        <input type="number" step="1" name="PerDT" class="form-control form-control-sm" />
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var mtr_Module = {
+        grid: null,
+        selectedRow: null,
+
+        // Các cột nhập liệu theo thứ tự màn desktop (ID chỉ đọc)
+        columns: [
+            ["ProfitCenter", "ProfitCenter", 90], ["TransactionCode", "TransactionCode", 120], ["Description", "Description", 260],
+            ["AccountCode", "AccountCode", 110], ["TK_No", "TK_No", 80], ["TK_Co", "TK_Co", 80], ["TK_Co_Deposit", "TK_Co_Deposit", 110],
+            ["TK_No_DT", "TK_No_DT", 95], ["MaBP_ACC", "MaBP_ACC", 95], ["MaDT_ACC", "MaDT_ACC", 95], ["MaCN_ACC", "MaCN_ACC", 95],
+            ["PerDT", "PerDT", 70], ["MaBCDT", "MaBCDT", 90], ["MaBPDC", "Ma BPDC", 90]
+        ],
+
+        csrf: () => ({ "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() }),
+
+        init: function () {
+            const self = this;
+
+            window.openModalMapTransaction = function () {
+                self.load();
+
+                $("#mtr_modal").on("hidden.bs.modal", function () {
+                    if ($("#mtr_grid").data("dxDataGrid")) $("#mtr_grid").dxDataGrid("dispose");
+                    $("#mtr_grid").empty();
+                    self.grid = null;
+                    self.selectedRow = null;
+                });
+                $("#mtr_addModal").on("hidden.bs.modal", function () { ValidationAdapter.clear("#mtr_form"); });
+            };
+
+            $("#mtr_btnAdd").on("click", () => self.openAdd());
+            $("#mtr_btnEdit").on("click", () => self.openEdit());
+            $("#mtr_btnAddSave").on("click", () => self.saveForm());
+            $("#mtr_btnDelete").on("click", () => self.confirmDelete());
+            $("#mtr_btnExcel").on("click", () => self.exportExcel());
+        },
+
+        // ---------------------------------------------------------------------------------------
+        //  Lưới (chỉ xem và chọn dòng; thêm / sửa bằng form)
+        // ---------------------------------------------------------------------------------------
+        load: function () {
+            const self = this;
+            $.ajax({
+                url: "/MapTransaction/MapTransactionData",
+                type: "GET",
+                loadingGrid: "#mtr_grid",
+                success: function (res) {
+                    if (!res.success) {
+                        showToast("Error", res.message || "Unable to load data", false);
+                        self.render([]);
+                        return;
+                    }
+                    self.render(res.data || []);
+                },
+                error: function () { showToast("Error", "Unable to load data", false); }
+            });
+        },
+
+        render: function (data) {
+            const self = this;
+            if ($("#mtr_grid").data("dxDataGrid")) $("#mtr_grid").dxDataGrid("dispose");
+            self.selectedRow = null;
+
+            const cols = [{ dataField: "ID", caption: "ID", width: 60, alignment: "right" }];
+            self.columns.forEach(function (c) {
+                const col = { dataField: c[0], caption: c[1], width: c[2] };
+                if (c[0] === "PerDT") { col.dataType = "number"; col.alignment = "right"; }
+                if (c[0] === "Description") { col.minWidth = c[2]; delete col.width; }
+                cols.push(col);
+            });
+
+            self.grid = $("#mtr_grid").dxDataGrid({
+                dataSource: data,
+                keyExpr: "ID",
+                height: "100%",
+                width: "100%",
+                showBorders: true,
+                hoverStateEnabled: true,
+                allowColumnResizing: true,
+                columnResizingMode: "widget",
+                columnAutoWidth: false,
+                selection: { mode: "single" },
+                scrolling: { mode: "standard", showScrollbar: "always", useNative: true },
+                paging: { pageSize: 50 },
+                pager: { visible: true, allowedPageSizes: [50, 100, 500], showPageSizeSelector: true, showInfo: true, showNavigationButtons: true },
+                filterRow: { visible: true, applyFilter: "auto" },                columns: cols,
+                onSelectionChanged: function (e) { self.selectedRow = e.selectedRowsData[0] || null; },
+                onRowDblClick: function (e) { self.selectedRow = e.data; self.openEdit(); }
+            }).dxDataGrid("instance");
+        },
+
+        // ---------------------------------------------------------------------------------------
+        //  Thêm / Sửa / Xóa / Excel
+        // ---------------------------------------------------------------------------------------
+        openAdd: function () {
+            $("#mtr_form")[0].reset();
+            $("#mtr_id").val(0);
+            ValidationAdapter.clear("#mtr_form");
+            $("#mtr_formTitle").text("Add Map Transaction");
+            $("#mtr_addModal").modal("show");
+        },
+
+        openEdit: function () {
+            if (!this.selectedRow) { showToast("Warning", "Please select a row first!", false); return; }
+
+            const r = this.selectedRow;
+            $("#mtr_form")[0].reset();
+            ValidationAdapter.clear("#mtr_form");
+            $("#mtr_id").val(r.ID);
+            $("#mtr_form [name]").each(function () { $(this).val(r[this.name] == null ? "" : r[this.name]); });
+            $("#mtr_formTitle").text("Edit Map Transaction");
+            $("#mtr_addModal").modal("show");
+        },
+
+        // Save của form: ID = 0 thì thêm mới, ngược lại cập nhật dòng đó
+        saveForm: function () {
+            const self = this;
+            const id = parseInt($("#mtr_id").val(), 10) || 0;
+            const values = {};
+            $("#mtr_form [name]").each(function () { values[this.name] = $(this).val(); });
+
+            const isEdit = id > 0;
+            const payload = isEdit ? [Object.assign({ ID: String(id) }, values)] : values;
+
+            $.ajax({
+                url: isEdit ? "/MapTransaction/MapTransactionSave" : "/MapTransaction/MapTransactionAdd",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                headers: self.csrf(),
+                success: function (res) {
+                    if (res.success) {
+                        showToast("Success", res.message, true);
+                        $("#mtr_addModal").modal("hide");
+                        self.load();
+                    } else if (res.errors && res.errors.length) {
+                        ValidationAdapter.apply(res.errors, "#mtr_form");
+                        showToast("Warning", "Check for incorrect input fields.", false);
+                    } else {
+                        showToast("Error", res.message || "Something went wrong.", false);
+                    }
+                },
+                error: function (xhr) { showToast("Error", xhr.status === 403 ? "Access Denied" : "Server error occurred.", false); }
+            });
+        },
+
+        confirmDelete: function () {
+            const self = this;
+            if (!self.selectedRow) { showToast("Warning", "Please select a row first!", false); return; }
+
+            const run = function () {
+                $.ajax({
+                    url: "/MapTransaction/MapTransactionDelete?id=" + self.selectedRow.ID,
+                    type: "POST",
+                    headers: self.csrf(),
+                    success: function (res) {
+                        showToast(res.success ? "Success" : "Error", res.message, !!res.success);
+                        if (res.success) self.load();
+                    },
+                    error: function () { showToast("Error", "Delete failed!", false); }
+                });
+            };
+
+            if (window.Swal) {
+                Swal.fire({ title: "Are you sure delete ?", icon: "question", showCancelButton: true, confirmButtonText: "Yes", cancelButtonText: "No" })
+                    .then(r => { if (r.isConfirmed) run(); });
+            } else if (confirm("Are you sure delete ?")) run();
+        },
+
+        exportExcel: function () {
+            if (!this.grid) { showToast("Warning", "No data to export!", false); return; }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Sheet 1");
+            DevExpress.excelExporter.exportDataGrid({ component: this.grid, worksheet: worksheet, autoFilterEnabled: true })
+                .then(function () {
+                    workbook.xlsx.writeBuffer().then(function (buffer) {
+                        saveAs(new Blob([buffer], { type: "application/octet-stream" }), "MapTransactionCode.xlsx");
+                    });
+                });
+        }
+    };
+
+    $(document).ready(function () {
+        mtr_Module.init();
+    });
+</script>
