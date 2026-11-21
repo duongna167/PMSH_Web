@@ -1,0 +1,193 @@
+@* Fixed Charge (Night Audit): danh sách Fixed Charge đang hiệu lực trong một ngày của các đặt phòng, lọc theo trạng thái.
+   Popup theo chuẩn của dự án (ModalManager + mui-button), logic tương ứng màn frmSearchFixCharge của PMS desktop. *@
+
+<div class="modal fade" id="fxc_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Search Fix Charge</h5>
+            </div>
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button id="fxc_btnSearch" class="mui-button mui-button-view">Search</button>
+                    <button id="fxc_btnExcel" class="mui-button mui-button-export">Excel</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
+                    <div class="p-2 flex-shrink-0">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-xl-3 col-lg-4 col-md-6">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 fw-semibold">Date:</label>
+                                    <div style="width:140px;" data-date-input data-format="DD/MM/YYYY" business-date data-name="fxc_date">
+                                        <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-xl-9 col-lg-8 col-md-12">
+                                <div class="d-flex align-items-center flex-wrap gap-3">
+                                    <label class="mb-0 fw-semibold">Type:</label>
+                                    <label class="mb-0"><input type="checkbox" id="fxc_warning"> Warning</label>
+                                    <label class="mb-0"><input type="checkbox" id="fxc_reservation" checked> Reservation</label>
+                                    <label class="mb-0"><input type="checkbox" id="fxc_checkIn" checked> Check In</label>
+                                    <label class="mb-0"><input type="checkbox" id="fxc_checkOut" checked> Check Out</label>
+                                    <label class="mb-0"><input type="checkbox" id="fxc_dueIn" checked> Due In</label>
+                                    <label class="mb-0"><input type="checkbox" id="fxc_dueOut" checked> Due Out</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1 overflow-auto">
+                        <div id="fxc_grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var fxc_Module = {
+        init: function () {
+            const self = this;
+
+            window.openModalFixedCharge = function () {
+                self.search();
+
+                $("#fxc_modal").on("hidden.bs.modal", function () {
+                    if ($("#fxc_grid").data("dxDataGrid")) $("#fxc_grid").dxDataGrid("dispose");
+                    $("#fxc_grid").empty();
+                    if (typeof reloadBusinessDate === "function") reloadBusinessDate();
+                });
+            };
+
+            $("#fxc_btnSearch").on("click", () => self.search());
+            $("#fxc_btnExcel").on("click", () => self.exportExcel());
+        },
+
+        // Cờ trạng thái gửi cho stored procedure (Warning mặc định tắt, các trạng thái còn lại bật như bản desktop)
+        getFilters: function () {
+            return {
+                date: $("#fxc_date").val() || window.dateSystem,
+                warning: $("#fxc_warning").is(":checked"),
+                reservation: $("#fxc_reservation").is(":checked"),
+                checkIn: $("#fxc_checkIn").is(":checked"),
+                checkOut: $("#fxc_checkOut").is(":checked"),
+                dueIn: $("#fxc_dueIn").is(":checked"),
+                dueOut: $("#fxc_dueOut").is(":checked")
+            };
+        },
+
+        search: function () {
+            const self = this;
+            $.ajax({
+                url: "/NightAudit/SearchFixedCharge",
+                type: "GET",
+                loadingGrid: "#fxc_grid",
+                data: self.getFilters(),
+                success: function (res) {
+                    if (!res.success) {
+                        showToast("Error", res.message || "Unable to load data", false);
+                        self.renderGrid([]);
+                        return;
+                    }
+                    self.renderGrid(res.data || []);
+                },
+                error: function () { showToast("Error", "Unable to load data", false); }
+            });
+        },
+
+        renderGrid: function (data) {
+            if ($("#fxc_grid").data("dxDataGrid")) $("#fxc_grid").dxDataGrid("dispose");
+
+            const usd = { dataType: "number", format: { type: "fixedPoint", precision: 2 }, alignment: "right" };
+            const vnd = { dataType: "number", format: "#,##0", alignment: "right" };
+
+            $("#fxc_grid").dxDataGrid({
+                dataSource: data,
+                height: "100%",
+                width: "100%",
+                showBorders: true,
+                hoverStateEnabled: true,
+                wordWrapEnabled: false,
+                allowColumnResizing: true,
+                columnResizingMode: "widget",
+                columnAutoWidth: false,
+                selection: { mode: "single" },
+                scrolling: { mode: "standard", showScrollbar: "always", useNative: true },
+                paging: { pageSize: 50 },
+                pager: { visible: true, allowedPageSizes: [50, 100, 500], showPageSizeSelector: true, showInfo: true, showNavigationButtons: true },
+                filterRow: { visible: true, applyFilter: "auto" },
+                columns: [
+                    { dataField: "ID", visible: false },
+                    { dataField: "RoomNo", caption: "Room No", width: 80 },
+                    { dataField: "LastName", caption: "Guest Name", width: 180 },
+                    { dataField: "ArrivalDate", caption: "Arr.", dataType: "date", format: "dd.MM.yyyy", width: 90 },
+                    { dataField: "DepartureDate", caption: "Dep.", dataType: "date", format: "dd.MM.yyyy", width: 90 },
+                    { dataField: "TransactionCode", caption: "Trans.Code", width: 110 },
+                    { dataField: "Description", caption: "Description", minWidth: 180 },
+                    Object.assign({ dataField: "AmountUSD", caption: "Amount USD", width: 110 }, usd),
+                    Object.assign({ dataField: "AmountNetUSD", caption: "Amount Net USD", width: 125 }, usd),
+                    Object.assign({ dataField: "AmountVND", caption: "Amount VND", width: 115 }, vnd),
+                    Object.assign({ dataField: "AmountNetVND", caption: "Amount Net VND", width: 130 }, vnd),
+                    { dataField: "CurrencyID", caption: "Curr", width: 55, alignment: "center" },
+                    { dataField: "Status", caption: "Status", width: 100 },
+                    { dataField: "BeginDate", caption: "Begin Date", dataType: "date", format: "dd.MM.yyyy", width: 95 },
+                    { dataField: "EndDate", caption: "End Date", dataType: "date", format: "dd.MM.yyyy", width: 95 },
+                    { dataField: "RsvHolder", caption: "Rsv.Holder", minWidth: 180 }
+                ],
+                // Tổng ở chân lưới như bản desktop
+                summary: {
+                    totalItems: [
+                        { column: "AmountUSD", summaryType: "sum", valueFormat: { type: "fixedPoint", precision: 2 }, displayFormat: "{0}" },
+                        { column: "AmountNetUSD", summaryType: "sum", valueFormat: { type: "fixedPoint", precision: 2 }, displayFormat: "{0}" },
+                        { column: "AmountVND", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" },
+                        { column: "AmountNetVND", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" }
+                    ]
+                }
+            });
+        },
+
+        exportExcel: function () {
+            const grid = $("#fxc_grid").data("dxDataGrid") ? $("#fxc_grid").dxDataGrid("instance") : null;
+            if (!grid) { showToast("Warning", "No data to export!", false); return; }
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Sheet 1");
+            const companyName = localStorage.getItem("CompanyName") || "";
+
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells("A1:E1");
+            worksheet.getRow(1).font = { bold: true };
+
+            worksheet.addRow(["Export Date: " + new Date().toLocaleString("vi-VN")]);
+            worksheet.mergeCells("A2:E2");
+            worksheet.getRow(2).font = { italic: true };
+
+            worksheet.addRow([]);
+            const title = worksheet.addRow(["Night Audit Fixed Charge"]);
+            worksheet.mergeCells("A4:H4");
+            title.font = { bold: true, size: 14 };
+            title.alignment = { horizontal: "center" };
+            worksheet.addRow([]);
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 6, column: 1 }
+            }).then(function () {
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "NightAuditFixedCharge.xlsx");
+                });
+            });
+        }
+    };
+
+    $(document).ready(function () {
+        fxc_Module.init();
+    });
+</script>

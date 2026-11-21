@@ -1,0 +1,172 @@
+@* Export Revenue (Night Audit): xuất doanh thu/thanh toán trong ngày thành các dòng định khoản cho kế toán.
+   Popup theo chuẩn của dự án (ModalManager + mui-button), logic tương ứng màn frmExportRevenue_New của PMS desktop. *@
+
+<div class="modal fade" id="exr_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Export Revenue</h5>
+            </div>
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button id="exr_btnSearch" class="mui-button mui-button-view">Search</button>
+                    <button id="exr_btnExcel" class="mui-button mui-button-export">Excel</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
+                    <div class="p-2 flex-shrink-0">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-xl-3 col-lg-4 col-md-6">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 fw-semibold">Date:</label>
+                                    <div style="width:140px;" data-date-input data-format="DD/MM/YYYY" business-date data-name="exr_date">
+                                        <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1 overflow-auto">
+                        <div id="exr_grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var exr_Module = {
+        init: function () {
+            const self = this;
+
+            window.openModalExportRevenue = function () {
+                self.renderGrid([]);
+
+                $("#exr_modal").on("hidden.bs.modal", function () {
+                    if ($("#exr_grid").data("dxDataGrid")) $("#exr_grid").dxDataGrid("dispose");
+                    $("#exr_grid").empty();
+                    if (typeof reloadBusinessDate === "function") reloadBusinessDate();
+                });
+            };
+
+            $("#exr_btnSearch").on("click", () => self.search());
+            $("#exr_btnExcel").on("click", () => self.exportExcel());
+        },
+
+        date: function () { return $("#exr_date").val() || window.dateSystem; },
+
+        search: function () {
+            const self = this;
+            $.ajax({
+                url: "/ExportRevenue/ExportRevenueData",
+                type: "GET",
+                loadingGrid: "#exr_grid",
+                data: { date: self.date(), summary: true }, // desktop ẩn tuỳ chọn Summary/Detail và luôn chạy Summary
+                success: function (res) {
+                    if (!res.success) {
+                        showToast("Error", res.message || "Unable to load data", false);
+                        self.renderGrid([]);
+                        return;
+                    }
+                    self.renderGrid(res.data || []);
+                },
+                error: function () { showToast("Error", "Unable to load data", false); }
+            });
+        },
+
+        renderGrid: function (data) {
+            if ($("#exr_grid").data("dxDataGrid")) $("#exr_grid").dxDataGrid("dispose");
+
+            const usd = { dataType: "number", format: { type: "fixedPoint", precision: 2 }, alignment: "right" };
+            const vnd = { dataType: "number", format: "#,##0", alignment: "right" };
+
+            $("#exr_grid").dxDataGrid({
+                dataSource: data,
+                height: "100%",
+                width: "100%",
+                showBorders: true,
+                hoverStateEnabled: true,
+                wordWrapEnabled: false,
+                allowColumnResizing: true,
+                columnResizingMode: "widget",
+                columnAutoWidth: false,
+                selection: { mode: "single" },
+                scrolling: { mode: "standard", showScrollbar: "always", useNative: true },
+                paging: { enabled: false },
+                columns: [
+                    { dataField: "accountCode", caption: "Mã TK", width: 100 },
+                    { dataField: "accountName", caption: "Tên TK", width: 120 },
+                    { dataField: "customerCode", caption: "Mã khách", width: 110 },
+                    { dataField: "customerName", caption: "Tên khách", width: 120 },
+                    { dataField: "description", caption: "Diễn giải", minWidth: 220 },
+                    Object.assign({ dataField: "debitUSD", caption: "Phát sinh nợ USD", width: 130 }, usd),
+                    Object.assign({ dataField: "creditUSD", caption: "Phát sinh có USD", width: 130 }, usd),
+                    Object.assign({ dataField: "debitVND", caption: "Phát sinh nợ VND", width: 140 }, vnd),
+                    Object.assign({ dataField: "creditVND", caption: "Phát sinh có VND", width: 140 }, vnd),
+                    { dataField: "maBoPhan", caption: "Bộ phận", width: 90 },
+                    { dataField: "maDoanhThu", caption: "Mã DT", width: 90 },
+                    { dataField: "maBPDC", caption: "Mã BPDC", width: 90 },
+                    { dataField: "nhomDK", caption: "Nhóm ĐK", width: 80, alignment: "center" }
+                ],
+                summary: {
+                    totalItems: [
+                        { column: "debitUSD", summaryType: "sum", valueFormat: { type: "fixedPoint", precision: 2 }, displayFormat: "{0}" },
+                        { column: "creditUSD", summaryType: "sum", valueFormat: { type: "fixedPoint", precision: 2 }, displayFormat: "{0}" },
+                        { column: "debitVND", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" },
+                        { column: "creditVND", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" }
+                    ]
+                }
+            });
+        },
+
+        // Excel theo đúng vị trí cột của file mẫu ImportPKT_PMS (dữ liệu từ dòng 6) để kế toán import được.
+        // Cột: 1 Mã TK, 2 Tên TK, 3 Mã khách, 4 Tên khách, 5 Nợ VND, 6 Có VND, 7 Diễn giải, 9 Bộ phận, 13 Mã DT, 15 Nhóm ĐK
+        exportExcel: function () {
+            const grid = $("#exr_grid").data("dxDataGrid") ? $("#exr_grid").dxDataGrid("instance") : null;
+            const rows = grid ? grid.getDataSource().items() : [];
+            if (!rows.length) { showToast("Warning", "No data to export!", false); return; }
+
+            const workbook = new ExcelJS.Workbook();
+            const ws = workbook.addWorksheet("Sheet1");
+
+            ws.getCell("A1").value = "Export Revenue " + this.date();
+            ws.getCell("A1").font = { bold: true, size: 14 };
+
+            const header = ws.getRow(5);
+            const heads = { 1: "Mã TK", 2: "Tên TK", 3: "Mã khách", 4: "Tên khách", 5: "Phát sinh nợ", 6: "Phát sinh có", 7: "Diễn giải", 9: "Bộ phận", 13: "Mã DT", 15: "Nhóm ĐK" };
+            Object.keys(heads).forEach(function (c) { header.getCell(parseInt(c)).value = heads[c]; });
+            header.font = { bold: true };
+
+            rows.forEach(function (r, i) {
+                const row = ws.getRow(6 + i);
+                row.getCell(1).value = r.accountCode;
+                row.getCell(2).value = r.accountName;
+                row.getCell(3).value = r.customerCode;
+                row.getCell(4).value = r.customerName;
+                row.getCell(5).value = r.debitVND;
+                row.getCell(6).value = r.creditVND;
+                row.getCell(7).value = r.description;
+                row.getCell(9).value = r.maBoPhan;
+                row.getCell(13).value = r.maDoanhThu;
+                row.getCell(15).value = r.nhomDK;
+                row.getCell(5).numFmt = "#,##0";
+                row.getCell(6).numFmt = "#,##0";
+            });
+
+            const widths = { 1: 14, 2: 16, 3: 14, 4: 16, 5: 16, 6: 16, 7: 50, 9: 12, 13: 12, 15: 10 };
+            Object.keys(widths).forEach(function (c) { ws.getColumn(parseInt(c)).width = widths[c]; });
+
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                saveAs(new Blob([buffer], { type: "application/octet-stream" }), "ImportPKT_PMS.xlsx");
+            });
+        }
+    };
+
+    $(document).ready(function () {
+        exr_Module.init();
+    });
+</script>

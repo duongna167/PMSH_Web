@@ -5,6 +5,7 @@ using BaseBusiness.util;
 using BaseBusiness.Utils;
 using DevExpress.ClipboardSource.SpreadsheetML;
 using DevExpress.CodeParser;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
@@ -30,6 +31,8 @@ namespace NightAudit.Controllers
         private readonly ILogger<NightAuditController> _logger;
         private readonly IMemoryCache _cache;
         private readonly IRoomRateService _iRoomRateService;
+        private readonly IRunNightAuditService _iRunNightAuditService;
+        private readonly IFixedChargeService _iFixedChargeService;
         public enum HistoryType { Gen_Post, Basic_Post, Night_Post, Early_Post, Advance_Post, Correct, Split, Tranferred, Deleted, Payment, Print };
         static int _HKP_VD_VC = 0;
         string _Error = "";
@@ -48,13 +51,141 @@ namespace NightAudit.Controllers
         public DateTime SystemDate = DateTime.Now;
 
         public NightAuditController(ILogger<NightAuditController> logger,
-                IMemoryCache cache, IConfiguration configuration, IRoomRateService iRoomRateService)
+                IMemoryCache cache, IConfiguration configuration, IRoomRateService iRoomRateService, IRunNightAuditService iRunNightAuditService, IFixedChargeService iFixedChargeService)
         {
             _cache = cache;
             _logger = logger;
             _configuration = configuration;
             _iRoomRateService = iRoomRateService;
+            _iRunNightAuditService = iRunNightAuditService;
+            _iFixedChargeService = iFixedChargeService;
         }
+        // =====================================================================================================
+        //  Posting Room: đăng tiền phòng, Fixed Charge và Package cho các phòng được chọn theo một ngày.
+        //  Dùng lại đúng bộ xử lý của Run Night Audit (_PostRoomCharge / _PostFixedCharge / _PostPackage),
+        //  chỉ thay ngày nghiệp vụ bằng ngày được chọn và giới hạn trong các phòng được chọn.
+        // =====================================================================================================
+
+        /// <summary>Ngày dùng để đăng; null = ngày nghiệp vụ hiện tại (Run Night Audit bình thường).</summary>
+        private DateTime? _postingDate;
+
+        /// <summary>Các số phòng cần đăng; null = tất cả phòng đang ở (Run Night Audit bình thường).</summary>
+        private List<string>? _postingRooms;
+
+        private DateTime PostingBusDate() => _postingDate ?? TextUtils.GetBusinessDate();
+
+        /// <summary>Điều kiện SQL giới hạn theo phòng (alias bảng Reservation là a).</summary>
+        private string PostingRoomFilter()
+        {
+            if (_postingRooms == null) return "";
+            return " AND a.RoomNo IN (" + string.Join(",", _postingRooms.Select(r => "N'" + r.Replace("'", "''") + "'")) + ") ";
+        }
+
+        [RequireFunction("tool_PostingRoom")]
+        public IActionResult PostingRoom()
+        {
+            return PartialView();
+        }
+
+        [HttpGet]
+        [RequireFunction("tool_PostingRoom")]
+        public IActionResult SearchPostingRoom()
+        {
+            try
+            {
+                DataTable t = _iRunNightAuditService.SearchGuestInHouse();
+                var data = t.AsEnumerable()
+                    .Select(r => t.Columns.Cast<DataColumn>().ToDictionary(c => c.ColumnName, c => r[c] == DBNull.Value ? null : r[c]))
+                    .ToList();
+                return Json(new { success = true, data });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [RequireFunction("tool_PostingRoom")]
+        public IActionResult PostRooms([FromBody] NightAudit.Dto.PostingRoomRequest model)
+        {
+            try
+            {
+                var rooms = (model?.Rooms ?? new List<string>())
+                    .Select(r => (r ?? "").Trim())
+                    .Where(r => r.Length > 0 && r.Length <= 30)
+                    .Distinct()
+                    .ToList();
+
+                if (model == null || model.Date == default) return Json(new { success = false, message = "Please select a date." });
+                if (rooms.Count == 0) return Json(new { success = false, message = "Please select at least one room." });
+
+                int userId = HttpContext.Session.GetInt32("UserID") ?? 0;
+                string userName = HttpContext.Session.GetString("LoginName") ?? "";
+
+                _postingDate = model.Date.Date;
+                _postingRooms = rooms;
+
+                DataTable? dtR = null;
+                bool ok = true;
+
+                // 1. Tiền phòng (kèm các package nằm trong giá phòng)
+                _Error = "";
+                _PostRoomCharge(ref ok, ref dtR, userId, userName);
+                if (!ok) return Json(new { success = false, message = "Posting room charge failed: " + _Error });
+
+                if (dtR != null && dtR.Rows.Count > 0)
+                {
+                    // 2. Fixed Charge
+                    _PostFixedCharge(ref ok, dtR, userId, userName);
+                    if (!ok) return Json(new { success = false, message = "Posting fixed charge failed: " + _Error });
+
+                    // 3. Package không nằm trong giá phòng
+                    _PostPackage(ref ok, dtR, userId, userName);
+                    if (!ok) return Json(new { success = false, message = "Posting package failed: " + _Error });
+                }
+
+                return Json(new { success = true, message = "Posting Complete!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // =====================================================================================================
+        //  Fixed Charge: danh sách Fixed Charge đang hiệu lực trong một ngày (frmSearchFixCharge)
+        // =====================================================================================================
+
+        [RequireFunction("tool_FixedCharge")]
+        public IActionResult FixedCharge()
+        {
+            return PartialView();
+        }
+
+        [HttpGet]
+        [RequireFunction("tool_FixedCharge")]
+        public IActionResult SearchFixedCharge(DateTime? date, bool warning, bool reservation, bool checkIn, bool checkOut, bool dueIn, bool dueOut)
+        {
+            try
+            {
+                DateTime day = date ?? TextUtils.GetBusinessDate();
+                DataTable t = _iFixedChargeService.SearchFixedCharge(day, warning, reservation, checkIn, checkOut, dueIn, dueOut);
+
+                var data = t.AsEnumerable()
+                    .Select(r => t.Columns.Cast<DataColumn>().ToDictionary(
+                        // Cột "Rsv.Holder" có dấu chấm sẽ bị lưới hiểu là đường dẫn lồng nhau: đổi tên
+                        c => c.ColumnName == "Rsv.Holder" ? "RsvHolder" : c.ColumnName,
+                        c => r[c] == DBNull.Value ? null : r[c]))
+                    .ToList();
+                return Json(new { success = true, data });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
         [RequireFunction("tool_RoomRate")]
         public IActionResult RoomRate()
         {
@@ -1784,14 +1915,14 @@ namespace NightAudit.Controllers
                                                   "ArrivalDate, DepartureDate, RoomTypeID, RoomType, RoomID, RoomNo, a.DiscountRate, a.DiscountAmount " +
                                                   "FROM Reservation a WITH (NOLOCK), RoomType b WITH (NOLOCK) " +
                                                   "WHERE a.RoomTypeID = b.ID " +
-                                                  "AND a.Status IN (1,6) AND a.ReservationNo > 0 AND b.IsPseudo = 0 " +
+                                                  "AND a.Status IN (1,6) AND a.ReservationNo > 0 AND b.IsPseudo = 0 " + PostingRoomFilter() +
                                                   "Order By RoomNo ");
                 if (_dtR.Rows.Count > 0)
                 {
                     #region 1.Khai báo biến
                     _dtR_1 = _dtR;
                     //Lấy ra ngày BB
-                    DateTime _BusDate = TextUtils.GetBusinessDate();
+                    DateTime _BusDate = PostingBusDate();
                     DateTime _SysDate = TextUtils.GetSystemDate();
                     //Xác định số tổng post vào code nào
                     string _RC_P = TextUtils.Select("Select KeyValue From ConfigSystem Where KeyName = 'RoomCharge_P'").Rows[0]["KeyValue"].ToString();
@@ -2526,7 +2657,7 @@ namespace NightAudit.Controllers
                 {
                     #region 1.Khai báo biến
                     //Lấy ra ngày BB
-                    DateTime _BusDate = TextUtils.GetBusinessDate();
+                    DateTime _BusDate = PostingBusDate();
                     DateTime _SysDate = TextUtils.GetSystemDate();
                     //Xác định xem fc có được post hay ko?
                     bool _IsPost = false;
@@ -2762,7 +2893,7 @@ namespace NightAudit.Controllers
                 {
                     #region 1.Khai báo biến
                     //Lấy ra ngày BB
-                    DateTime _BusDate = TextUtils.GetBusinessDate();
+                    DateTime _BusDate = PostingBusDate();
                     DateTime _SysDate = TextUtils.GetSystemDate();
                     #endregion
 

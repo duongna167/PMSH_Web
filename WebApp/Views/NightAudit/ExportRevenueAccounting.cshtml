@@ -1,0 +1,226 @@
+@* Export Revenue (Night Audit) — 3 bản dùng chung giao diện:
+   market  = frmExportRevenueByMarket (có lọc Market/Source), sun = frmExportRevenue_SunSystem, invoice = frmExportRevenue_FLC_V1.
+   Popup theo chuẩn của dự án (ModalManager + mui-button). Dữ liệu và định dạng Excel do server tính (ExportRevenueService). *@
+@{
+    string mode = (string)ViewBag.Mode;
+    string title = (string)ViewBag.Title;
+    var markets = ViewBag.Markets as List<(int Id, string Name)>;
+    var sources = ViewBag.Sources as List<(int Id, string Name)>;
+}
+
+<div class="modal fade" id="exa_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">@title</h5>
+            </div>
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button id="exa_btnSearch" class="mui-button mui-button-view">Search</button>
+                    <button id="exa_btnExcel" class="mui-button mui-button-export">Excel</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
+                    <div class="p-2 flex-shrink-0">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-xl-3 col-lg-4 col-md-6">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 fw-semibold">To date:</label>
+                                    <div style="width:140px;" data-date-input data-format="DD/MM/YYYY" business-date data-name="exa_date">
+                                        <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                                    </div>
+                                </div>
+                            </div>
+                            @if (mode != "market")
+                            {
+                                @* Hai ô tổng của bản Sun System / By invoice: Nợ = công nợ khách hàng (transaction 903), Có = tổng Payment và giảm trừ *@
+                                <div class="col-xl-4 col-lg-5 col-md-6">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <label class="mb-0 fw-semibold" style="width: 140px;">Total Debit Amount</label>
+                                        <input type="text" id="exa_totalDebit" class="form-control form-control-sm text-end" readonly />
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <label class="mb-0 fw-semibold" style="width: 140px;">Total Credit Amount</label>
+                                        <input type="text" id="exa_totalCredit" class="form-control form-control-sm text-end" readonly />
+                                    </div>
+                                </div>
+                            }
+                            @if (mode == "market")
+                            {
+                                <div class="col-xl-4 col-lg-4 col-md-6">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <label class="mb-0 fw-semibold text-nowrap">By Market:</label>
+                                        <div class="flex-grow-1" style="min-width:0;"><select id="exa_market" multiple class="tomselect-custom" data-placeholder="All">
+                                            @foreach (var m in markets!)
+                                            {
+                                                <option value="@m.Id">@m.Name</option>
+                                            }
+                                        </select></div>
+                                    </div>
+                                </div>
+                                <div class="col-xl-4 col-lg-4 col-md-6">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <label class="mb-0 fw-semibold text-nowrap">By Source:</label>
+                                        <div class="flex-grow-1" style="min-width:0;"><select id="exa_source" multiple class="tomselect-custom" data-placeholder="All">
+                                            @foreach (var s in sources!)
+                                            {
+                                                <option value="@s.Id">@s.Name</option>
+                                            }
+                                        </select></div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1 overflow-auto">
+                        <div id="exa_grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var exa_Module = {
+        mode: "@mode",
+        excel: null, // dữ liệu Excel của lần Search gần nhất (desktop cũng chỉ xuất được sau khi đã Search)
+
+        init: function () {
+            const self = this;
+
+            window.openModalExportRevenueAccounting = function () {
+                if (self.mode === "market") initTomSelect(["#exa_market", "#exa_source"]);
+                self.renderGrid([]);
+
+                $("#exa_modal").on("hidden.bs.modal", function () {
+                    if ($("#exa_grid").data("dxDataGrid")) $("#exa_grid").dxDataGrid("dispose");
+                    $("#exa_grid").empty();
+                    if (typeof reloadBusinessDate === "function") reloadBusinessDate();
+                });
+            };
+
+            $("#exa_btnSearch").on("click", () => self.search());
+            $("#exa_btnExcel").on("click", () => self.exportExcel());
+        },
+
+        date: function () { return $("#exa_date").val() || window.dateSystem; },
+
+        // Giá trị chọn của combo nhiều lựa chọn -> chuỗi ID cách nhau dấu phẩy (rỗng = tất cả)
+        ids: function (selector) {
+            const v = $(selector).val();
+            return Array.isArray(v) ? v.join(",") : "";
+        },
+
+        search: function () {
+            const self = this;
+            self.excel = null;
+            $("#exa_totalDebit, #exa_totalCredit").val("");
+            $.ajax({
+                url: "/ExportRevenue/ExportRevenueAccountingData",
+                type: "GET",
+                loadingGrid: "#exa_grid",
+                data: {
+                    mode: self.mode,
+                    date: self.date(),
+                    marketIds: self.mode === "market" ? self.ids("#exa_market") : "",
+                    sourceIds: self.mode === "market" ? self.ids("#exa_source") : ""
+                },
+                success: function (res) {
+                    if (!res.success) {
+                        showToast("Error", res.message || "Unable to load data", false);
+                        self.renderGrid([]);
+                        return;
+                    }
+                    self.excel = res.excel;
+                    $("#exa_totalDebit").val(res.totalDebit || "");
+                    $("#exa_totalCredit").val(res.totalCredit || "");
+                    self.renderGrid(res.data || []);
+                },
+                error: function () { showToast("Error", "Unable to load data", false); }
+            });
+        },
+
+        renderGrid: function (data) {
+            if ($("#exa_grid").data("dxDataGrid")) $("#exa_grid").dxDataGrid("dispose");
+
+            const usd = { dataType: "number", format: { type: "fixedPoint", precision: 2 }, alignment: "right" };
+            const vnd = { dataType: "number", format: "#,##0", alignment: "right" };
+            const cols = [
+                { dataField: "accountCode", caption: "Mã TK", width: 100 },
+                { dataField: "accountName", caption: "Tên TK", width: 120 },
+                { dataField: "customerCode", caption: "Mã khách", width: 110 },
+                { dataField: "customerName", caption: "Tên khách", width: 120 },
+                { dataField: "description", caption: "Diễn giải", minWidth: 220 },
+                Object.assign({ dataField: "debitUSD", caption: "Phát sinh nợ USD", width: 130 }, usd),
+                Object.assign({ dataField: "creditUSD", caption: "Phát sinh có USD", width: 130 }, usd),
+                Object.assign({ dataField: "debitVND", caption: "Phát sinh nợ VND", width: 140 }, vnd),
+                Object.assign({ dataField: "creditVND", caption: "Phát sinh có VND", width: 140 }, vnd),
+                { dataField: "maBoPhan", caption: "Bộ phận", width: 90 },
+                { dataField: "maDoanhThu", caption: "Mã DT", width: 90 },
+                { dataField: "maBPDC", caption: "Mã BPDC", width: 90 },
+                { dataField: "nhomDK", caption: "Nhóm ĐK", width: 80, alignment: "center" }
+            ];
+            // Bản By invoice có thêm cột số hóa đơn trên lưới
+            if (this.mode === "invoice") cols.push({ dataField: "invoiceNo", caption: "Invoice No", width: 100 });
+
+            $("#exa_grid").dxDataGrid({
+                dataSource: data,
+                height: "100%",
+                width: "100%",
+                showBorders: true,
+                hoverStateEnabled: true,
+                wordWrapEnabled: false,
+                allowColumnResizing: true,
+                columnResizingMode: "widget",
+                columnAutoWidth: false,
+                selection: { mode: "single" },
+                scrolling: { mode: "standard", showScrollbar: "always", useNative: true },
+                paging: { enabled: false },
+                columns: cols,
+                summary: {
+                    totalItems: [
+                        { column: "debitUSD", summaryType: "sum", valueFormat: { type: "fixedPoint", precision: 2 }, displayFormat: "{0}" },
+                        { column: "creditUSD", summaryType: "sum", valueFormat: { type: "fixedPoint", precision: 2 }, displayFormat: "{0}" },
+                        { column: "debitVND", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" },
+                        { column: "creditVND", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" }
+                    ]
+                }
+            });
+        },
+
+        // Ghi file Excel từ các dòng/cột server đã tính sẵn (theo vị trí cột của file mẫu desktop)
+        exportExcel: function () {
+            const x = this.excel;
+            if (!x || !x.rows || !x.rows.length) { showToast("Warning", "No data to export!", false); return; }
+
+            const workbook = new ExcelJS.Workbook();
+            const ws = workbook.addWorksheet("Sheet1");
+
+            const headerRow = ws.getRow(x.startRow - 1);
+            Object.keys(x.headers).forEach(function (c) { headerRow.getCell(parseInt(c)).value = x.headers[c]; });
+            headerRow.font = { bold: true };
+
+            x.rows.forEach(function (r, i) {
+                const row = ws.getRow(x.startRow + i);
+                Object.keys(r).forEach(function (c) {
+                    const cell = row.getCell(parseInt(c));
+                    cell.value = r[c];
+                    if (typeof r[c] === "number") cell.numFmt = "#,##0";
+                });
+            });
+
+            for (let c = 1; c <= 26; c++) ws.getColumn(c).width = 16;
+            workbook.xlsx.writeBuffer().then(function (buffer) {
+                saveAs(new Blob([buffer], { type: "application/octet-stream" }), x.fileName);
+            });
+        }
+    };
+
+    $(document).ready(function () {
+        exa_Module.init();
+    });
+</script>

@@ -1064,19 +1064,10 @@ namespace Cashiering.Controllers
 
                 DataTable dataTable = _iCashieringService.ExchangeCurrencyReportData(fromDate, cachier, zonecode);
                 // Nếu có dữ liệu, tạo report
-                var report = new Reports.RptExchangeCurrencyByCashier();
+                using var report = new Reports.RptExchangeCurrencyByCashier(dataTable.Rows.Count > 0);
                 report.DataSource = dataTable;
+                report.Parameters["TransactionDate"].Value = fromDate.ToString("dd/MM/yyyy");
 
-                // 👉 Lấy giá trị CashierName đầu tiên trong DataTable để gán vào nhãn trong report
-                if (dataTable.Rows.Count > 0)
-                {
-                    string cashierName = dataTable.Rows[0]["CashierName"]?.ToString() ?? "";
-                    report.Parameters["CashierName"].Value = cashierName;  // nếu bạn có Parameter tên CashierName
-                    report.Parameters["TransactionDate"].Value = dataTable.Rows[0]["TransactionDate"]?.ToString() ?? "";
-                    report.Parameters["ShiftID"].Value = dataTable.Rows[0]["ShiftID"]?.ToString() ?? "";
-                    report.Parameters["LogoutTime"].Value = dataTable.Rows[0]["LogoutTime"]?.ToString() ?? "";
-                    report.Parameters["LoginTime"].Value = dataTable.Rows[0]["LoginTime"]?.ToString() ?? "";
-                }
                 using (var ms = new MemoryStream())
                 {
                     report.ExportToPdf(ms);

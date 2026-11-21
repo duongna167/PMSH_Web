@@ -1,0 +1,248 @@
+@* Các popup tùy chọn đặt phòng (Billing, Check Out, C/O All, Share, Routing, Package...) dùng chung với màn Search Reservation.
+   View này được màn khác (Guest In House của Cashiering) nạp vào để mở lại đúng các popup đó cho một đặt phòng.
+   Màn Search Reservation tự khai báo các biến/hàm trang mà các popup cần; ở đây khai báo lại bản tối thiểu (chỉ khi chưa có). *@
+
+<div id="rvh_host">
+    <div id="overlay"
+         style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 9999;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; text-align: center;">
+            <div class="spinner-border text-light" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <span>Processing</span>
+        </div>
+    </div>
+
+    @await Html.PartialAsync("Options/Deposit")
+    @await Html.PartialAsync("Options/RoomMove")
+    @await Html.PartialAsync("Options/Message")
+    @await Html.PartialAsync("Options/Accompanying")
+    @await Html.PartialAsync("Options/FixedCharges")
+    @await Html.PartialAsync("Options/RegistrationCard")
+    @await Html.PartialAsync("Options/CheckIn")
+    @await Html.PartialAsync("Options/Billing")
+    @await Html.PartialAsync("Options/Invoicing")
+    @await Html.PartialAsync("Options/AddOn")
+    @await Html.PartialAsync("Options/Routing")
+    @await Html.PartialAsync("Options/Cancel")
+    @await Html.PartialAsync("Options/Delete")
+    @await Html.PartialAsync("Options/Share")
+    @await Html.PartialAsync("Options/Reinstate")
+    @await Html.PartialAsync("Options/Split")
+    @await Html.PartialAsync("Options/RoomAssignment")
+    @await Html.PartialAsync("Options/ViewProfile")
+    @await Html.PartialAsync("Options/WaitList")
+    @await Html.PartialAsync("Options/CheckOutAll")
+    @await Html.PartialAsync("Options/CheckOutZero")
+    @await Html.PartialAsync("Options/Packages")
+    @await Html.PartialAsync("Options/CheckOut")
+    @await Html.PartialAsync("Options/Alerts")
+    @await Html.PartialAsync("Options/Traces")
+    @await Html.PartialAsync("Options/Changes")
+    @await Html.PartialAsync("Options/WakeUpCall")
+    @await Html.PartialAsync("~/Views/Reservation/GroupAdmin.cshtml")
+    @await Html.PartialAsync("ModalNewReservation/ModalSearchRoom")
+</div>
+
+<script>
+    // ---- Biến trang mà các popup đọc (chỉ khai báo khi chưa có) ----
+    if (typeof idReservation === 'undefined') var idReservation = 0;
+    if (typeof listFolioData === 'undefined') var listFolioData = [];
+    if (typeof status === 'undefined') var status = '';
+    if (typeof statusID === 'undefined') var statusID = 0;
+    if (typeof _currentReservationData === 'undefined') var _currentReservationData = null;
+    if (typeof roomStatus === 'undefined') var roomStatus = '';
+    if (typeof roomNo === 'undefined') var roomNo = '';
+    if (typeof roomID === 'undefined') var roomID = 0;
+    if (typeof arivalDate === 'undefined') var arivalDate = '';
+    if (typeof departureDate === 'undefined') var departureDate = '';
+    if (typeof confirmationNo === 'undefined') var confirmationNo = '';
+    if (typeof night === 'undefined') var night = 0;
+    if (typeof rateAmount === 'undefined') var rateAmount = 0;
+    if (typeof lastname === 'undefined') var lastname = '';
+    if (typeof listData === 'undefined') var listData = [];
+    if (typeof roomType === 'undefined') var roomType = '';
+    if (typeof listReservationByConfirmationNo === 'undefined') var listReservationByConfirmationNo = [];
+    if (typeof profileID === 'undefined') var profileID = 0;
+    if (typeof folioNoID === 'undefined') var folioNoID = 0;
+    if (typeof reservationStatus === 'undefined') var reservationStatus = 0;
+
+    // ---- Hàm trang mà các popup gọi (chỉ khai báo khi chưa có) ----
+    if (typeof normalizeSearchReservationRows !== 'function') {
+        window.normalizeSearchReservationRows = function (data) {
+            if (Array.isArray(data)) return data;
+            if (data && Array.isArray(data.data)) return data.data;
+            if (data && Array.isArray(data.items)) return data.items;
+            return null;
+        };
+    }
+
+    if (typeof parseBillingAmount !== 'function') {
+        window.parseBillingAmount = function (value) {
+            if (value === null || value === undefined || value === '') return null;
+            if (typeof value === 'number') return isNaN(value) ? null : value;
+
+            const raw = value.toString().trim();
+            if (!raw || raw.toLowerCase() === 'null' || raw.toLowerCase() === 'undefined') return null;
+
+            const normalized = raw.replace(/\s/g, '');
+            if (normalized.includes('.') && normalized.includes(',')) {
+                const localized = Number(normalized.replace(/\./g, '').replace(',', '.'));
+                return isNaN(localized) ? null : localized;
+            }
+            if (normalized.includes(',')) {
+                const localized = Number(normalized.replace(',', '.'));
+                return isNaN(localized) ? null : localized;
+            }
+            if (/^-?\d{1,3}(\.\d{3})+$/.test(normalized)) {
+                const thousands = Number(normalized.replace(/\./g, ''));
+                return isNaN(thousands) ? null : thousands;
+            }
+            const parsed = Number(normalized);
+            return isNaN(parsed) ? null : parsed;
+        };
+    }
+
+    if (typeof formatBillingAmount !== 'function') {
+        window.formatBillingAmount = function (value) {
+            const parsed = parseBillingAmount(value);
+            if (parsed === null) return '0';
+            return parsed.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
+    }
+
+    if (typeof formatNumberBilling !== 'function') {
+        window.formatNumberBilling = function (number) { return formatBillingAmount(number); };
+    }
+
+    if (typeof getReservationHeaderValue !== 'function') {
+        window.getReservationHeaderValue = function (source, fields) {
+            if (!source) return '';
+            for (const field of fields) {
+                const value = source[field];
+                if (value !== null && value !== undefined) {
+                    const text = value.toString().trim();
+                    if (text !== '' && text.toLowerCase() !== 'undefined' && text.toLowerCase() !== 'null') return text;
+                }
+            }
+            return '';
+        };
+    }
+
+    if (typeof getReservationHeaderAmount !== 'function') {
+        window.getReservationHeaderAmount = function (source, fields) {
+            if (!source) return null;
+            for (const field of fields) {
+                const amount = parseBillingAmount(source[field]);
+                if (amount !== null) return amount;
+            }
+            return null;
+        };
+    }
+
+    // Thông tin đầu cửa sổ Billing (nhóm, công ty, số dư, tổng)
+    if (typeof setBillingHeaderInfo !== 'function') {
+        window.setBillingHeaderInfo = function (source) {
+            const groupValue = getReservationHeaderValue(source, ['GroupName', 'GroupCode', 'Group', 'GroupNo']);
+            const companyValue = getReservationHeaderValue(source, ['CompanyName', 'Company', 'CompanyCode']);
+            const balanceValue = getReservationHeaderAmount(source, ['BalanceVND', 'Balance', 'BalanceAmount', 'FolioBalance']);
+            const totalValue = getReservationHeaderAmount(source, ['TotalVND', 'TotalAmount', 'Total', 'GrossAmount']);
+
+            $('#groupBilling').text(groupValue);
+            $('#companyBilling').text(companyValue);
+            $('#balanceBilling').text(balanceValue !== null ? formatNumberBilling(balanceValue) : '0');
+            $('#totalBilling').text(totalValue !== null ? formatNumberBilling(totalValue) : '0');
+        };
+    }
+
+    if (typeof GetBalanceVND !== 'function') {
+        window.GetBalanceVND = function (reservationId) {
+            $.ajax({
+                url: '/Billing/GetBalanceVND',
+                type: 'get',
+                dataType: 'json',
+                data: { rsvID: reservationId },
+                crossDomain: false,
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (result) {
+                    if (result && result.length > 0) {
+                        const balanceAmount = getReservationHeaderAmount(result[0], ['balanceVND', 'BalanceVND', 'balance', 'Balance']);
+                        const totalAmount = getReservationHeaderAmount(result[0], ['totalAmount', 'TotalAmount', 'total', 'Total', 'TotalVND', 'GrossAmount']);
+                        $('#balanceBilling').text(balanceAmount !== null ? formatNumberBilling(balanceAmount) : '0');
+                        $('#totalBilling').text(totalAmount !== null ? formatNumberBilling(totalAmount) : '0');
+                    }
+                },
+                error: function (xhr) { if (xhr.status == 401 && typeof sessionTimeout === 'function') sessionTimeout(); }
+            });
+        };
+    }
+
+    if (typeof resetBillingData !== 'function') {
+        window.resetBillingData = function () {
+            folioNoID = 0;
+            listFolioNoID = [];
+            listFolioData = [];
+            folioPosting = 1;
+            totalAmountBilling = 0;
+
+            $('#infoBillingName').html('<i class="fas fa-spinner fa-spin"></i> Loading...');
+            $('#groupBilling').text('');
+            $('#companyBilling').text('');
+            $('#balanceBilling').text('0');
+            $('#totalBilling').text('0');
+            $('#balanceBillingMaster').text('0');
+            $('#totalBillingMaster').text('0');
+            $('#listFolioNo').empty();
+
+            var grid = $("#gridContainerBilling").data("dxDataGrid");
+            if (grid) {
+                grid.option("dataSource", []);
+                grid.refresh();
+            }
+        };
+    }
+
+    if (typeof getSelectedCheckboxes !== 'function') {
+        window.getSelectedCheckboxes = function (name) {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"][name="' + name + '"]:checked');
+            return Array.from(checkboxes).map(c => c.value).join(',');
+        };
+    }
+
+    if (typeof getSelectedRadio !== 'function') {
+        window.getSelectedRadio = function (name) {
+            const radio = document.querySelector('input[type="radio"][name="' + name + '"]:checked');
+            return radio ? radio.value : null;
+        };
+    }
+
+    if (typeof showLoading !== 'function') {
+        window.showLoading = function () {
+            const overlay = document.createElement('div');
+            overlay.id = 'loading-overlay';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+            overlay.innerHTML = '<div style="background:white;padding:20px;border-radius:10px;text-align:center;"><p>Loading....</p>' +
+                '<div class="spinner-border text-primary" role="status"></div></div>';
+            document.body.appendChild(overlay);
+            return overlay;
+        };
+    }
+
+    if (typeof hideLoading !== 'function') {
+        window.hideLoading = function (element) {
+            if (element && element.parentNode) element.parentNode.removeChild(element);
+        };
+    }
+
+    // Làm mới danh sách của màn đang mở sau khi popup xử lý xong (Check Out, Cancel, Room Move...)
+    if (typeof searchReservation !== 'function') {
+        window.searchReservation = function () {
+            if (typeof window.rvhRefresh === 'function') window.rvhRefresh();
+        };
+    }
+
+    // Group Admin gọi hàm này để lấy lại dòng đang chọn từ lưới; ở đây dòng đã được gán trước khi mở
+    if (typeof syncReservationSelectionFromGrid !== 'function') {
+        window.syncReservationSelectionFromGrid = function () { return idReservation > 0; };
+    }
+</script>
