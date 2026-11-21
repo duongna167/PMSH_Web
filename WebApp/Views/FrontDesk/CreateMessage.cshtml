@@ -1,0 +1,144 @@
+@using BaseBusiness.Model
+@{
+    var fromName = ViewBag.FromName as string ?? "";
+    var departments = ViewBag.Departments as IEnumerable<DepartmentModel>;
+}
+<style>
+    #foim_modal .search-filter {
+        margin-bottom: 14px;
+    }
+    #foim_modal .foim-field {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+    #foim_modal .foim-field label {
+        margin: 0;
+        white-space: nowrap;
+        min-width: 120px;
+        font-size: 14px;
+    }
+    #foim_modal textarea {
+        min-height: 140px;
+        font-size: 14px;
+        border-radius: 4px;
+        flex: 1;
+    }
+    #foim_modal .foim-field [data-date-input] {
+        width: 160px;
+        min-width: 128px;
+        max-width: 220px;
+        position: relative;
+        overflow: visible;
+    }
+    #foim_modal .foim-field [data-date-input] .date-ui {
+        width: 100%;
+        height: 28px;
+        font-size: 14px;
+        box-sizing: border-box;
+        padding: 2px 1.85rem 2px 8px;
+        border-radius: 4px;
+        border: 1px solid #ced4da;
+    }
+    #foim_modal .foim-field select,
+    #foim_modal #foim_from {
+        width: 160px;
+        min-width: 128px;
+        max-width: 220px;
+        height: 28px;
+        font-size: 14px;
+        padding: 2px 1.85rem 2px 8px;
+        border-radius: 4px;
+        border: 1px solid #ced4da;
+    }
+    #foim_modal #foim_from {
+        padding-right: 8px;
+        background: #f5f5f5;
+    }
+</style>
+<div class="modal fade" id="foim_modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" data-bs-focus="false">
+    <div class="modal-dialog modal-md-4by3 modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Message</h5>
+            </div>
+            <div class="modal-body">
+                <div class="search-filter">
+                    <div>
+                        <button type="button" id="foim_btnSave" class="mui-button mui-button-edit">OK</button>
+                        <button type="button" id="foim_btnClose" class="mui-button mui-button-new">Close</button>
+                    </div>
+                </div>
+                <div class="foim-field">
+                    <label>From Department</label>
+                    <input id="foim_from" type="text" class="form-control form-control-sm" value="@fromName" readonly />
+                </div>
+                <div class="foim-field">
+                    <label>To Department</label>
+                    <select id="foim_toDept" class="form-control form-control-sm" data-pmsh-select-down>
+                        <option value="0">All</option>
+                        @if (departments != null)
+                        {
+                            foreach (var d in departments)
+                            {
+                                <option value="@d.ID">@d.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="foim-field">
+                    <label>From Date</label>
+                    <div data-date-input business-date data-format="DD/MM/YYYY" data-name="foim_fromDate">
+                        <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                    </div>
+                </div>
+                <div class="foim-field">
+                    <label>To Date</label>
+                    <div data-date-input business-date data-format="DD/MM/YYYY" data-name="foim_toDate">
+                        <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                    </div>
+                </div>
+                <div class="foim-field" style="align-items:flex-start;">
+                    <label>Message</label>
+                    <textarea id="foim_text" class="form-control" rows="6"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    window.openModalCreateMessage = function () {
+        if (typeof window.initDateInputs === "function") window.initDateInputs(document.getElementById("foim_modal"));
+        $("#foim_text").val("");
+        $("#foim_toDept").val("0");
+    };
+    $(document).off("click.foim", "#foim_btnClose").on("click.foim", "#foim_btnClose", function () {
+        $("#foim_modal").modal("hide");
+    });
+    $(document).off("click.foim", "#foim_btnSave").on("click.foim", "#foim_btnSave", function () {
+        $.ajax({
+            url: "/Notification/SaveMessage",
+            type: "POST",
+            data: {
+                message: $("#foim_text").val(),
+                fromDate: $("#foim_fromDate").val(),
+                toDate: $("#foim_toDate").val(),
+                toDepartmentId: $("#foim_toDept").val()
+            },
+            success: function (res) {
+                if (res && res.code === 0) {
+                    if (window.showToast) showToast("Success", res.msg, true);
+                    $("#foim_modal").modal("hide");
+                    if (typeof loadNotificationCount === "function") loadNotificationCount();
+                } else {
+                    if (window.showToast) showToast("Error", (res && res.msg) || "Save failed.", false);
+                }
+            },
+            error: function (xhr) {
+                if (window.showToast) showToast("Error", xhr.responseText || "Save failed.", false);
+            }
+        });
+    });
+</script>

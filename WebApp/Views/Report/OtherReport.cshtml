@@ -245,9 +245,8 @@
             box-sizing: border-box;
         }
 
-    .sticky-header {
-        position: sticky;
-        top: 0;
+    #reportContainer .sticky-header {
+        position: relative;
         background-color: #fff;
         z-index: 10;
         padding-top: 10px;
@@ -737,7 +736,7 @@
 
 
         <div class="filter-header fw-bold" id="header-reservation" style="font-size: 14px;">
-            <span>02 - Sales&amp;Reservation</span>
+            <span>02 - Sales &amp; Reservation</span>
             <i id="icon-reservation" class="fas fa-chevron-right"></i>
         </div>
         <hr class="mui-divider" />
@@ -753,7 +752,7 @@
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="Transportation" data-code="rptTransportation" data-title="Transportation">Transportation</a> </li>
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="MarketSegmentDetail" data-code="rptMarketSegmentDetail" data-title="Market Segment Detail">Market Segment Detail</a> </li>
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="DepositLedger" data-code="rptDepositLedger" data-title="Deposit Ledger">Deposit Ledger</a></li>
-            <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="ReservationSummary" data-code="rpt_Spr_ReservationSummaryReport" data-title="Reservation Summary">Reservation Summary</a></li>
+            <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="ReservationSummaryReport" data-code="rpt_Spr_ReservationSummaryReport" data-title="Reservation Summary Report">Reservation Summary Report</a></li>
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="RatecodeReport" data-code="rpt_Spr_RateCodeReport" data-title="Ratecode Report">Ratecode Report</a></li>
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="RatecodebyDateReport" data-code="rpt_OT_RatecodebyDate" data-title="Ratecode by Date Report">Ratecode by Date Report</a></li>
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="OTAsMonthlyReport" data-code="rpt_OT_OTAsMonthly" data-title="OTAs Monthly Report">OTAs Monthly Report</a></li>
@@ -772,6 +771,8 @@
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="LeadTimeReport" data-code="rpt_Spr_LeadTimeReport" data-title="Lead Time Report">Lead Time Report</a></li>
             <li class="list-group-item"><a style="color:black" id="AnnualRoomOccupancy" class="text-decoration-none report-link" data-report="AnnualRoomOccupancy" data-code="rpt_Spr_AnnualRoomOccupancy" data-title="Annual Room Occupancy">Annual Room Occupancy</a></li>
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="TraceReport" data-code="rpt_Spr_TraceReport" data-title="Trace Report">Trace Report</a></li>
+            <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="GuestStayReport" data-code="rpt_Spr_GuestStayReport" data-title="Guest Stay Report">Guest Stay Report</a></li>
+            <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="GuestStayOverReport" data-code="rpt_Spr_GuestStayOver" data-title="Guest Stay Over">Guest Stay Over</a></li>
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="FixChargeReport" data-code="rpt_Spr_FixchargeReport" data-title="Fix Charge Report">Fix Charge Report</a></li>
 
         </ul>
@@ -1254,6 +1255,7 @@
     function layoutReportFilters(root) {
         if (!root) return;
         root.querySelectorAll('select').forEach(function (el) {
+            if (el.hasAttribute('data-report-keep-tomselect')) return;
             if (el.tomselect) {
                 try { el.tomselect.destroy(); } catch (e) { }
             }
@@ -1275,7 +1277,11 @@
             data: { reportName: reportName, title: title },
             success: function (result) {
                 pinReportMenuScroll();
+                document.querySelectorAll('#reportContainer select[data-report-keep-tomselect]').forEach(function (el) {
+                    el.tomselect?.destroy();
+                });
                 $('#reportContainer').html(result);
+                document.querySelector('.report-page > .function_wrapper').scrollTop = 0;
 
                 // Thực thi script nếu có
                 $(result).filter('script').each(function () {

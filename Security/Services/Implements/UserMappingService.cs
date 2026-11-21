@@ -213,7 +213,7 @@ ORDER BY a.LoginName",
                 "rptARCreditCardTransfer", "rptARCreditLimit", "rptARLedger", "rptARPayments",
                 "rptARTransferReport", "rptARDetailedAging"
             }),
-            ("02 - Sales&Reservation", new[]
+            ("02 - Sales & Reservation", new[]
             {
                 "rptAlerts", "rptDepositActivity", "rptReservationByCompany", "rptReservationPreblocked",
                 "rptReservationStatistic", "rptReservationCancellation", "rptRoomOccupancy", "rptTransportation",
@@ -223,7 +223,8 @@ ORDER BY a.LoginName",
                 "rpt_Spr_ProductActivity", "rptFreeUpgradeReport", "rpt_Spr_GroupReservationReport",
                 "rpt_Spr_BlackListReport", "rpt_Spr_DepositRequestlogReport", "rptBookingSource",
                 "rptDailyBreakfastDetail", "rptBookingSummaryByStatus", "rpt_Spr_LeadTimeReport",
-                "rpt_Spr_AnnualRoomOccupancy", "rpt_Spr_TraceReport", "rpt_Spr_FixchargeReport"
+                "rpt_Spr_AnnualRoomOccupancy", "rpt_Spr_TraceReport", "rpt_Spr_GuestStayReport",
+                "rpt_Spr_GuestStayOver", "rpt_Spr_FixchargeReport"
             }),
             ("03 - Arrival & Departure", new[]
             {

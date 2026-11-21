@@ -84,7 +84,9 @@
 
             function bindCheckClicks() {
                 const host = $el[0];
-                if (!host || host._smcCheckBound) return;
+                if (!host) return;
+                host._smcToggle = toggleKey;
+                if (host._smcCheckBound) return;
                 host._smcCheckBound = true;
                 host.addEventListener("click", function (ev) {
                     const t = ev.target;
@@ -95,8 +97,17 @@
                     if (!box) return;
                     ev.preventDefault();
                     ev.stopPropagation();
-                    toggleKey(box.getAttribute("data-key"));
+                    if (host._smcToggle) host._smcToggle(box.getAttribute("data-key"));
                 }, true);
+            }
+
+            function absorbVisibleLeaves() {
+                $el.find("input." + checkClass).each(function () {
+                    const key = parseInt(this.getAttribute("data-key"), 10);
+                    if (!(key > 0)) return;
+                    if (this.checked) checkedSet[key] = true;
+                    else delete checkedSet[key];
+                });
             }
 
             function applyGranted(ids) {
@@ -111,10 +122,31 @@
 
             function collect() {
                 if (!ready) return null;
+                absorbVisibleLeaves();
                 return Object.keys(checkedSet)
                     .map(function (k) { return parseInt(k, 10); })
                     .filter(function (k) { return k > 0 && checkedSet[k]; })
                     .join(",");
+            }
+
+            function paintCell(el, key, value) {
+                if (!el) return;
+                let box = el.querySelector("input." + checkClass);
+                if (!box) {
+                    const wrap = document.createElement("div");
+                    wrap.className = cellClass;
+                    box = document.createElement("input");
+                    box.type = "checkbox";
+                    box.className = checkClass;
+                    box.setAttribute("data-key", key);
+                    const name = document.createElement("span");
+                    name.className = nameClass;
+                    name.textContent = value || "";
+                    wrap.appendChild(box);
+                    wrap.appendChild(name);
+                    el.appendChild(wrap);
+                }
+                fillCheckbox(box, key);
             }
 
             function init(data) {
@@ -122,17 +154,7 @@
                 ready = false;
                 bindCheckClicks();
                 indexTree(data);
-                const live = $el.data("dxTreeList") ? $el.dxTreeList("instance") : null;
-                if (live) {
-                    tree = live;
-                    live.option({
-                        dataSource: data,
-                        expandedRowKeys: expandedKeysFrom(data),
-                        autoExpandAll: false
-                    });
-                    setTimeout(syncCheckboxes, 0);
-                    return;
-                }
+                if ($el.data("dxTreeList")) $el.dxTreeList("dispose");
                 tree = $el.dxTreeList({
                     dataSource: data,
                     keyExpr: "id",
@@ -159,14 +181,20 @@
                             wrap.appendTo(container);
                         }
                     }],
-                    scrolling: { mode: "virtual", useNative: false, showScrollbar: "always", scrollByContent: true, scrollByThumb: true },
+                    scrolling: { mode: "standard", useNative: true, showScrollbar: "always" },
                     paging: { enabled: false },
                     onRowPrepared: function (e) {
                         if (e.rowType === "data" && e.node && e.node.hasChildren)
                             e.rowElement.addClass("smc-parent-node");
                     },
+                    onCellPrepared: function (e) {
+                        if (e.rowType !== "data" || !e.column || e.column.dataField !== "name") return;
+                        const el = e.cellElement && e.cellElement.get ? e.cellElement.get(0) : e.cellElement;
+                        paintCell(el, e.key, e.value);
+                    },
                     onRowExpanded: function () { setTimeout(syncCheckboxes, 0); },
-                    onRowCollapsed: function () { setTimeout(syncCheckboxes, 0); }
+                    onRowCollapsed: function () { setTimeout(syncCheckboxes, 0); },
+                    onContentReady: function () { syncCheckboxes(); }
                 }).dxTreeList("instance");
             }
 

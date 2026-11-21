@@ -12,10 +12,9 @@ namespace Security.Services.Interfaces
         List<DepartmentModel> Departments();
         DataTable Search(string lastName, string firstName, string loginName, int userStatus, int cashierStatus, string jobtitle, string department);
         UsersModel? GetById(int id);
-        OpResult Save(UsersModel model);
-        OpResult ResetPassword(UsersModel model);
+        OpResult Save(UsersModel model, string computerIp = "", int actorUserId = 0, string actorUserName = "");
+        OpResult ResetPassword(UsersModel model, string computerIp = "", int actorUserId = 0, string actorUserName = "");
         OpResult SendResetPasswordEmail(int id, string plainPassword, int sendBy);
-        OpResult Lock(int id);
-        OpResult Delete(int id);
+        OpResult Delete(int id, int actorUserId = 0, string actorUserName = "");
     }
 }

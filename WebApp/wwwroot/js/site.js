@@ -813,14 +813,14 @@ window.applyPopupRights = function (code, selectors) {
         menu.style.maxHeight = space + 'px';
 
         Array.prototype.forEach.call(select.options, function (opt) {
-            if (opt.hidden) return;
+            if (opt.hidden || opt.disabled) return;
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.textContent = opt.text;
             if (opt.selected) btn.classList.add('is-active');
             btn.addEventListener('click', function (ev) {
                 ev.preventDefault();
-                select.value = opt.value;
+                select.selectedIndex = opt.index;
                 select.dispatchEvent(new Event('change', { bubbles: true }));
                 closePmshSelectMenu();
             });
@@ -836,22 +836,44 @@ window.applyPopupRights = function (code, selectors) {
     }
 
     document.addEventListener('mousedown', function (e) {
-        var select = e.target && e.target.closest ? e.target.closest('#reportContainer .sticky-header select') : null;
+        var select = e.target && e.target.closest
+            ? e.target.closest('#reportContainer .sticky-header select, select[data-pmsh-select-down]')
+            : null;
+        if (select && (select.hasAttribute('data-report-keep-tomselect') || select.classList.contains('tomselect-custom') || select.tomselect)) {
+            return;
+        }
         if (select && e.button === 0) {
             e.preventDefault();
             if (owner === select) {
                 closePmshSelectMenu();
                 return;
             }
+            if (select.hasAttribute('data-pmsh-select-down')) select.focus();
             openPmshSelectMenu(select);
+            return;
+        }
+        if (menu && owner.hasAttribute('data-pmsh-select-down') && menu.contains(e.target)) {
+            e.preventDefault();
             return;
         }
         if (menu && !menu.contains(e.target)) closePmshSelectMenu();
     }, true);
 
     document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape' || !owner || !owner.hasAttribute('data-pmsh-select-down')) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        closePmshSelectMenu();
+    }, true);
+    document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') closePmshSelectMenu();
     });
-    window.addEventListener('scroll', closePmshSelectMenu, true);
+    document.addEventListener('hide.bs.modal', function (e) {
+        if (owner && e.target.contains(owner)) closePmshSelectMenu();
+    });
+    window.addEventListener('scroll', function (e) {
+        if (menu && e.target && (e.target === menu || menu.contains(e.target))) return;
+        closePmshSelectMenu();
+    }, true);
     window.addEventListener('resize', closePmshSelectMenu);
 })();
