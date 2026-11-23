@@ -591,7 +591,7 @@
                             <a class="nav-link" href="#">SECURITY</a>
                             <div class="dropdown-menu-custom">
                                 <a href="javascript:void(0);" onclick="openUserGroup()" data-action="Sec_UserGroup_View">User of group</a>
-                                <a href="javascript:void(0);" onclick="openAddFuncitionsToList()" data-action="usr_Functions">Add Functions To List</a>
+                                <a href="javascript:void(0);" onclick="openAddFuncitionsToList()" data-action="usr_Functions">Function List</a>
                                 <a href="javascript:void(0);" onclick="openUsersManagement()" data-action="UsersManagement_web">Users Management</a>
                                 <a href="javascript:void(0);" onclick="openPasswordHistory()" data-action="usr_PasswordHistory">Password History</a>
                                 <a href="javascript:void(0);" onclick="openUserMapping()" data-action="usr_UserRight">User mapping</a>
@@ -1450,6 +1450,13 @@
 
           load: function (url, modalId, callback, showModal = true) {
 
+              const leftover = document.getElementById(modalId);
+              if (leftover) {
+                  const leftoverInst = bootstrap.Modal.getInstance(leftover);
+                  if (leftoverInst) leftoverInst.dispose();
+                  leftover.remove();
+              }
+
               const $container = this.getOrCreateContainer(modalId);
 
               $container.empty();
@@ -1492,9 +1499,17 @@
                               keyboard:true
                           });
 
+                          const hostedModals = $container.find(".modal").get();
+
                           $(modalEl).one("hidden.bs.modal", () => {
 
                               modal.dispose();
+                              hostedModals.forEach(function (el) {
+                                  const inst = bootstrap.Modal.getInstance(el);
+                                  if (inst) inst.dispose();
+                                  if (el.parentNode) el.remove();
+                              });
+                              if (modalEl.parentNode) modalEl.remove();
                               $container.remove();
 
                               if ($('.modal.show').length > 0)

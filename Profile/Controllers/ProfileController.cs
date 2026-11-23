@@ -74,12 +74,16 @@ namespace Profile.Controllers
         /// <returns>list city model</returns>
 
         [HttpGet]
-        public async Task<IActionResult> GetAllCity()
+        public async Task<IActionResult> GetAllCity(int? countryId)
         {
             List<CityModel> list = new List<CityModel>();
             try
             {
-                list = PropertyUtils.ConvertToList<CityModel>(CityBO.Instance.FindAll());
+                var raw = countryId.HasValue && countryId.Value > 0
+                    ? CityBO.Instance.FindByAttribute("CountryID", countryId.Value)
+                    : CityBO.Instance.FindAll();
+                list = PropertyUtils.ConvertToList<CityModel>(raw) ?? new List<CityModel>();
+                list = list.Where(c => !c.Inactive).ToList();
             }
             catch (Exception ex)
             {

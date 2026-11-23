@@ -10,6 +10,7 @@ INSERT INTO @fn (Code, Name, Description, GroupId) VALUES
     (N'hkp_TurndownManagement_web', N'Turndown Management', N'Turndown Management', @hkpId),
     (N'hkp_HKPStatus_web', N'HKP Status', N'HKP Status', @hkpId),
     (N'rpt_ReportByChart_web', N'Report By Chart', N'Report By Chart', @rptId),
+    (N'rpt_Spr_FFPAndotherCards', N'Frequent Flyer Programs and other Cards', N'Frequent Flyer Programs and other Cards', @rptId),
     (N'admin_SetupEmail_web', N'Setup Email', N'Setup Email', @admId),
     (N'admin_SendEmail_web', N'Send Email', N'Send Email', @admId),
     (N'admin_SendSMS_web', N'Send SMS', N'Send SMS', @admId),

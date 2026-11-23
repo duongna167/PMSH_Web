@@ -394,7 +394,6 @@
                         data: item
                     };
                 }),
-                loadDataToTomSelect("#con_txtCity", "/Profile/GetAllCity", mapCode),
                 loadDataToTomSelect("#con_txtCountry", "/Profile/GetAllCountry", mapCode),
                 loadDataToTomSelect("#con_txtOwner", "/Profile/GetAllOwner", mapCode),
                 loadDataToTomSelect("#con_txtTerritory", "/Profile/GetAllTerritory", mapCode),
@@ -410,6 +409,7 @@
                 })
             ];
 
+            self.cityCountry = bindCitySelectToCountry("#con_txtCountry", "#con_txtCity");
             Promise.all(loadTasks).finally(() => {
                 LoadingGlobal.hide();
             });
@@ -585,11 +585,16 @@
             $("#con_txtAddress").val(data.address || "");
             $("#con_txtHomeAddress").val(data.homeAddress || "");
 
-            setTS("#con_txtCity", data.city);
-
             $("#con_txtPostalCode").val(data.postalCode || "");
 
-            setTS("#con_txtCountry", data.countryID);
+            const countryTs = getTomSelect("#con_txtCountry");
+            if (countryTs) {
+                countryTs._suspendCityReload = true;
+                countryTs.setValue(data.countryID || "", true);
+                countryTs._suspendCityReload = false;
+            }
+            if (this.cityCountry) this.cityCountry.load(data.countryID, data.city);
+            else setTS("#con_txtCity", data.city);
             setTS("#con_txtState", data.stateID);
 
             setTS("#con_txtOwner", data.ownerID);

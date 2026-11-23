@@ -1,0 +1,228 @@
+@{
+    ViewBag.Title = ViewBag.ReportHeader;
+}
+<style>
+    .gridContainer { margin: 0px 8px; }
+    .sticky-header label, .sticky-header .form-control-sm { font-size: 14px; line-height: 1.2; }
+    .sticky-header .form-control-sm { padding: 2px 8px; height: 28px; }
+    .sticky-header label { margin-bottom: 0; white-space: nowrap; }
+    .nrp-grid {
+        display: grid;
+        grid-template-columns: max-content max-content 160px max-content 160px max-content 160px;
+        column-gap: 6px;
+        row-gap: 8px;
+        align-items: center;
+        width: max-content;
+        max-width: 100%;
+    }
+    .nrp-grid > label { margin: 0; white-space: nowrap; }
+    .nrp-grid input, .nrp-grid .nrp-date { width: 160px; min-width: 128px; max-width: 220px; height: 28px; }
+    .nrp-grid .nrp-date { grid-column: 3; margin: 0; }
+    .nrp-grid .nrp-date input { display: block; box-sizing: border-box; margin: 0; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection { background-color: #e8e8e8 !important; color: inherit !important; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection td:not(.pu-bday):not(.pu-status-in) { color: inherit !important; }
+    #gridContainer .pu-bday { background: #e53935 !important; }
+    #gridContainer .pu-status-in { background: #2e7d32 !important; color: #fff !important; }
+</style>
+<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+    <div>
+        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+        <button id="btnEdit" class="mui-button mui-button-edit" type="button">Edit</button>
+        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">PDF</button>
+    </div>
+    <div class="mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+        <div class="nrp-grid">
+            <label class="fw-bold">Date Range:</label>
+            <label>Date:</label>
+            <div class="nrp-date" data-date-input business-date data-format="DD/MM/YYYY" data-name="date">
+                <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
+            <span></span><span></span><span></span><span></span>
+            <label class="fw-bold">Filter:</label>
+            <label>Conf.No:</label>
+            <input type="text" id="confirmationNo" class="form-control form-control-sm" />
+            <label>Room No:</label>
+            <input type="text" id="roomNo" class="form-control form-control-sm" />
+            <label>Name:</label>
+            <input type="text" id="name" class="form-control form-control-sm" />
+        </div>
+    </div>
+</div>
+<div class="mui-card">
+    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
+        <div class="gridContainer mt-2" id="gridContainer"></div>
+    </div>
+</div>
+<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+</div>
+<script>
+    (function () {
+        var selectedRow = null;
+        var reportTitle = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((string)(ViewBag.ReportTitle ?? "Profile Update")));
+
+        function dateVal() {
+            return ($("#date").val() || "").trim();
+        }
+
+        function bindGrid(data) {
+            const rows = Array.isArray(data) ? data : [];
+            selectedRow = null;
+            $("#gridContainer").dxDataGrid({
+                dataSource: rows,
+                height: 500,
+                allowColumnResizing: true,
+                columnAutoWidth: true,
+                showBorders: true,
+                selection: { mode: "single" },
+                hoverStateEnabled: true,
+                columns: [
+                    { dataField: "id", visible: false },
+                    { dataField: "nationality", caption: "Nationality", minWidth: 90 },
+                    { dataField: "confirmationNo", caption: "Conf.No", minWidth: 90 },
+                    { dataField: "roomNo", caption: "RoomNo", minWidth: 80 },
+                    { dataField: "account", caption: "Account", minWidth: 160 },
+                    {
+                        dataField: "dateOfBirth", caption: "Birthday", minWidth: 90,
+                        cellTemplate: function (container, options) {
+                            const v = options.value ? String(options.value) : "";
+                            $("<div>").text(v).toggleClass("pu-bday", !v).appendTo(container);
+                        }
+                    },
+                    { dataField: "passPort", caption: "Passport", minWidth: 100 },
+                    { dataField: "identityCard", caption: "Identity Card", minWidth: 110 },
+                    { dataField: "email", caption: "Email", minWidth: 140 },
+                    { dataField: "address", caption: "Address", minWidth: 140 },
+                    { dataField: "createBy", caption: "Create By", minWidth: 80 },
+                    { dataField: "createDate", caption: "Create Date", minWidth: 100 },
+                    { dataField: "updateBy", caption: "Update By", minWidth: 80 },
+                    {
+                        dataField: "status", caption: "Status", minWidth: 100,
+                        cellTemplate: function (container, options) {
+                            const v = options.value ? String(options.value) : "";
+                            $("<div>").text(v)
+                                .toggleClass("pu-status-in", /checked\s*in/i.test(v))
+                                .appendTo(container);
+                        }
+                    },
+                    { dataField: "updateDate", caption: "Update Date", minWidth: 100 }
+                ],
+                paging: { pageSize: 25 },
+                scrolling: { useNative: true, showScrollbar: "always" },
+                pager: { visible: true, allowedPageSizes: [25, 50, "all"], showPageSizeSelector: true, showInfo: true, showNavigationButtons: true },
+                filterRow: { visible: true, applyFilter: "auto" },
+                headerFilter: { visible: true },
+                onSelectionChanged: function (e) {
+                    selectedRow = e.selectedRowsData.length ? e.selectedRowsData[0] : null;
+                },
+                onRowDblClick: function (e) {
+                    if (e.data) { selectedRow = e.data; openEdit(); }
+                }
+            });
+        }
+
+        function loadData() {
+            $("#loadingSpinner").show();
+            $.ajax({
+                url: "/Report/ProfileUpdateReportData",
+                type: "GET",
+                data: {
+                    date: dateVal(),
+                    confirmationNo: $("#confirmationNo").val() || "",
+                    roomNo: $("#roomNo").val() || "",
+                    name: $("#name").val() || ""
+                },
+                success: function (result) {
+                    if (typeof result === "string") {
+                        if (window.showToast) showToast("Error", result, false);
+                        else alert(result);
+                        $("#loadingSpinner").hide();
+                        return;
+                    }
+                    bindGrid(result);
+                    $("#loadingSpinner").hide();
+                },
+                error: function (xhr) {
+                    var msg = xhr.status === 403 ? "Bạn không có quyền xem báo cáo này." : "Không thể tải báo cáo.";
+                    if (window.showToast) showToast("Error", msg, false);
+                    else alert(msg);
+                    bindGrid([]);
+                    $("#loadingSpinner").hide();
+                }
+            });
+        }
+
+        function openEdit() {
+            if (!selectedRow || !selectedRow.id) {
+                if (window.showToast) showToast("Warning", "Please select 1 row to edit.", false);
+                return;
+            }
+            const id = selectedRow.id;
+            if (typeof ModalManager === "undefined" || typeof ModalManager.load !== "function") {
+                if (window.showToast) showToast("Error", "Profile editor is not available.", false);
+                return;
+            }
+            ModalManager.load("/Profile/Individual", "modalIndividual", function () {
+                waitForFunction("pro_ind_Module", function () {
+                    window.pro_ind_Module.init();
+                    if (window.pro_ind_Module.loadProfileByID) {
+                        setTimeout(function () { window.pro_ind_Module.loadProfileByID(id); }, 300);
+                    }
+                });
+            });
+        }
+
+        $(document).ready(function () {
+            document.getElementById("reportTitle").innerText = reportTitle;
+            if (typeof window.initDateInputs === "function") window.initDateInputs();
+            bindGrid([]);
+            var start = function () { loadData(); };
+            if (typeof waitForBusinessDate === "function") {
+                waitForBusinessDate("date", 8000).then(start).catch(start);
+            } else {
+                setTimeout(start, 400);
+            }
+        });
+
+        $(document).off("click", "#btnPrint").on("click", "#btnPrint", loadData);
+        $(document).off("click", "#btnEdit").on("click", "#btnEdit", openEdit);
+
+        $(document).off("click", "#btnExportExcel").on("click", "#btnExportExcel", function () {
+            const grid = $("#gridContainer").dxDataGrid("instance");
+            if (!grid) return;
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Report");
+            worksheet.addRow([localStorage.getItem("CompanyName") || ""]);
+            const reportRow = worksheet.addRow(["", "", reportTitle]);
+            reportRow.font = { bold: true, size: 14 };
+            DevExpress.excelExporter.exportDataGrid({ component: grid, worksheet: worksheet, autoFilterEnabled: true, topLeftCell: { row: 4, column: 1 } })
+                .then(function () {
+                    workbook.xlsx.writeBuffer().then(function (buffer) {
+                        saveAs(new Blob([buffer], { type: "application/octet-stream" }), reportTitle + ".xlsx");
+                    });
+                });
+        });
+
+        $(document).off("click", "#btnExportPdf").on("click", "#btnExportPdf", function () {
+            const grid = $("#gridContainer").dxDataGrid("instance");
+            if (!grid) return;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "A4" });
+            grid.getDataSource().load().then(function (data) {
+                const columns = grid.getVisibleColumns().filter(c => c.dataField);
+                doc.setFontSize(12);
+                doc.text(localStorage.getItem("CompanyName") || "", doc.internal.pageSize.getWidth() / 2, 36, { align: "center" });
+                doc.text(reportTitle, doc.internal.pageSize.getWidth() / 2, 54, { align: "center" });
+                doc.autoTable({
+                    startY: 70,
+                    head: [columns.map(col => col.caption)],
+                    body: data.map(row => columns.map(col => row[col.dataField] ?? "")),
+                    styles: { fontSize: 8, cellPadding: 3 }
+                });
+                doc.save(reportTitle + ".pdf");
+            });
+        });
+    })();
+</script>

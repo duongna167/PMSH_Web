@@ -197,7 +197,24 @@ ORDER BY a.LoginName",
 
         private static (string Name, string[] Codes)[] WebReportFolders() => new (string, string[])[]
         {
-            ("01 - End Of Day", new[]
+            ("01 - Account Receivable", new[]
+            {
+                "rptAgingbyTypeOnly", "rptAgingSummaryByType", "rptAgingSummaryofAllAcounts", "rptARAdjustment",
+                "rptARAgingSummaryofAllTypes", "rptARCollectionStatistics", "rptARCreditBalance",
+                "rptARCreditCardTransfer", "rptARCreditLimit", "rptARLedger", "rptARPayments",
+                "rptARTransferReport", "rptARDetailedAging"
+            }),
+            ("02 - Arrival & Departure", new[]
+            {
+                "rptArrivalAndCheckInToDay", "rptArrivalDetailed", "rptArrivalDetailedGroupByHolder",
+                "rptDepartureIndividualAndGroup", "rptDepartureReport", "rptDepartureExtended"
+            }),
+            ("03 - Cashiering", new[]
+            {
+                "rptDialingInfomation", "rptIncurringDepositCollection", "rptIncurringDepositPaymentPlan",
+                "rptIncurringDepositReturn", "rptIncurringDepositSummary"
+            }),
+            ("04 - End Of Day", new[]
             {
                 "rptCashierAudit", "rptCashierSummary", "rptCancellationJournal", "rptGuestTrialBalance",
                 "rptRevenueReport", "rptRevenueSummary", "rptRevenueDetail", "rptRevenueSpa",
@@ -206,62 +223,50 @@ ORDER BY a.LoginName",
                 "rptRoomOccupancyStatistic", "rptNationalStatistic", "rptNoShowReport",
                 "tool_RecanculateRoomRevenue"
             }),
-            ("02 - Account Receivable", new[]
+            ("05 - Financial", new[]
             {
-                "rptAgingbyTypeOnly", "rptAgingSummaryByType", "rptAgingSummaryofAllAcounts", "rptARAdjustment",
-                "rptARAgingSummaryofAllTypes", "rptARCollectionStatistics", "rptARCreditBalance",
-                "rptARCreditCardTransfer", "rptARCreditLimit", "rptARLedger", "rptARPayments",
-                "rptARTransferReport", "rptARDetailedAging"
+                "rptTrialBalance", "rpt_Acc_DailyRevenueReportNew", "rpt_Acc_DailyRevenueReport(V2)",
+                "rpt_Acc_GroupBalance"
             }),
-            ("02 - Sales & Reservation", new[]
-            {
-                "rptAlerts", "rptDepositActivity", "rptReservationByCompany", "rptReservationPreblocked",
-                "rptReservationStatistic", "rptReservationCancellation", "rptRoomOccupancy", "rptTransportation",
-                "rptMarketSegmentDetail", "rptDepositLedger", "rpt_Spr_ReservationSummaryReport",
-                "rpt_Spr_RateCodeReport", "rpt_OT_RatecodebyDate", "rpt_OT_OTAsMonthly", "rpt_OT_TAProduction",
-                "rpt_Spr_SaleInChargeReport", "rpt_Spr_SaleInChargeActivity", "rpt_Spr_GuestMarketReport",
-                "rpt_Spr_ProductActivity", "rptFreeUpgradeReport", "rpt_Spr_GroupReservationReport",
-                "rpt_Spr_BlackListReport", "rpt_Spr_DepositRequestlogReport", "rptBookingSource",
-                "rptDailyBreakfastDetail", "rptBookingSummaryByStatus", "rpt_Spr_LeadTimeReport",
-                "rpt_Spr_AnnualRoomOccupancy", "rpt_Spr_TraceReport", "rpt_Spr_GuestStayReport",
-                "rpt_Spr_GuestStayOver", "rpt_Spr_FixchargeReport"
-            }),
-            ("03 - Arrival & Departure", new[]
-            {
-                "rptArrivalAndCheckInToDay", "rptArrivalDetailed", "rptArrivalDetailedGroupByHolder",
-                "rptDepartureIndividualAndGroup", "rptDepartureReport", "rptDepartureExtended"
-            }),
-            ("04 - Guest In House", new[]
+            ("06 - Guest In House", new[]
             {
                 "rptGuestBirthDay", "rptGIHByCompany", "rptGIHByGroup", "rptGIHByRoom",
                 "rptGIHCashPaymentMethod", "rptGIHSpecialRequests", "rptMessagesGIHDueArrival",
                 "rptRoomMoves", "rptGuestInHouseComplimentaryAndHouseUse", "rptGuestLedger"
             }),
-            ("05 - HouseKeeping", new[]
+            ("07 - HouseKeeping", new[]
             {
                 "rptArticleByRoom", "rptDailyMinibarReport", "rptHouseKeepingStatus",
                 "rptJournalByCashierAndArticle", "rptOccupancyByPerson", "rptOutOfOrderByPerson",
                 "rptRoomDiscrepancy", "rptSummaryByArticle", "rptVacantRoom"
             }),
-            ("06 - Cashiering", new[]
+            ("08 - Orther Reports", new[]
             {
-                "rptDialingInfomation", "rptIncurringDepositCollection", "rptIncurringDepositPaymentPlan",
-                "rptIncurringDepositReturn", "rptIncurringDepositSummary"
+                "rptComplimentaryGuestReport", "rptGIHComplimentary", "rptGIHComplimentaryAndHouseUse",
+                "rptPaidOutReport", "rptRevenueBy", "rptHistoryAndForecast", "rptRevenuebyroom",
+                "rptDailyPickupReport"
             }),
-            ("07 - Financial", new[]
-            {
-                "rptTrialBalance", "rpt_Acc_DailyRevenueReportNew", "rpt_Acc_DailyRevenueReport(V2)"
-            }),
-            ("08 - Profile & Statistics", new[]
+            ("09 - Profile & Statistics", new[]
             {
                 "rptProfileAddress", "rptProfileProductivity", "rptRoomStatistic",
                 "rptRoomTypeStatistic", "rpt_Acc_NationalityStatistics"
             }),
-            ("09 - Orther Reports", new[]
+            ("10 - Sales & Reservation", new[]
             {
-                "rptComplimentaryGuestReport", "rptGIHComplimentary", "rptGIHComplimentaryAndHouseUse",
-                "rptPaidOutReport", "rptRevenueBy", "rptHistoryAndForecast", "rptRevenuebyroom",
-                "rptDailyPickupReport", "rptTransferARReport"
+                "rptAlerts", "rptDepositActivity", "rptReservationByCompany", "rptReservationPreblocked",
+                "rptReservationRateCheck",
+                "rptReservationStatistic", "rptReservationCancellation", "rptRoomOccupancy", "rptTransportation",
+                "rptMarketSegmentDetail", "rptDepositLedger", "rpt_Spr_ReservationSummaryReport",
+                "rpt_Spr_RateCodeReport", "rpt_OT_RatecodebyDate", "rpt_OT_OTAsMonthly", "rpt_OT_TAProduction",
+                "rpt_Spr_SaleInChargeReport", "rpt_Spr_SaleInChargeActivity", "rpt_Spr_GuestMarketReport",
+                "rpt_Spr_ProductActivity", "rptFreeUpgradeReport", "rpt_Spr_GroupReservationReport",
+                "rpt_Spr_FFPAndotherCards",
+                "rpt_Spr_BlackListReport", "rpt_Spr_DepositRequestlogReport", "rptBookingSource",
+                "rptDailyBreakfastDetail", "rptBookingSummaryByStatus", "rpt_Spr_LeadTimeReport",
+                "rpt_Spr_AnnualRoomOccupancy", "rpt_Spr_TraceReport", "rpt_Spr_GuestStayReport",
+                "rpt_Spr_GuestStayOver", "rpt_Spr_FixchargeReport",
+                "rpt_OT_ProfileProductionStatistics", "rpt_Spr_BookingbyHolder", "rpt_Spr_ProfileUpdate",
+                "rpt_Spr_PackageReportbyPerson", "rpt_Spr_ReservationView", "rpt_Spr_ReportComments"
             })
         };
 
@@ -288,9 +293,9 @@ ORDER BY a.LoginName",
             var used = new HashSet<int>();
             foreach (var node in items)
             {
-                if (!node.isLeaf || node.parentId != -WebReportGroupId)
+                if (!node.isLeaf)
                     continue;
-                if (!leafCodes.TryGetValue(node.id, out var code))
+                if (!leafCodes.TryGetValue(node.id, out var code) || string.IsNullOrWhiteSpace(code))
                     continue;
                 if (codeToFolder.TryGetValue(code, out var folderId))
                 {

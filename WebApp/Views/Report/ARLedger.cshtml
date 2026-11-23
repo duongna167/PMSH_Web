@@ -1,0 +1,108 @@
+@{
+    ViewBag.Title = ViewBag.ReportHeader;
+}
+<style>
+    .gridContainer { margin: 0px 8px; }
+    .sticky-header label, .sticky-header .form-control-sm { font-size: 14px; line-height: 1.2; }
+    .sticky-header .form-control-sm { padding: 2px 8px; height: 28px; }
+    .sticky-header label { margin-bottom: 0; white-space: nowrap; }
+    .nrp-grid {
+        display: grid;
+        grid-template-columns: max-content max-content 160px;
+        column-gap: 6px;
+        row-gap: 8px;
+        align-items: center;
+        width: max-content;
+        max-width: 100%;
+    }
+    .nrp-grid > label { margin: 0; white-space: nowrap; }
+    .nrp-grid [data-date-input] { width: 160px; min-width: 128px; max-width: 220px; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection { background-color: #01579b !important; color: white !important; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection * { color: white !important; }
+</style>
+<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+    <div class="">
+        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">PDF</button>
+    </div>
+    <div class="mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+        <div class="nrp-grid">
+            <label class="fw-bold">Date Range:</label>
+            <label>Date:</label>
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="date">
+                <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
+        </div>
+    </div>
+</div>
+<div class="mui-card">
+    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
+        <div class="gridContainer mt-2" id="gridContainer"></div>
+    </div>
+</div>
+<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+</div>
+<script>
+    $(document).ready(function () {
+        document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
+        if (typeof window.initDateInputs === "function") window.initDateInputs();
+    });
+    function bindAutoGrid(data) {
+        const rows = Array.isArray(data) ? data : [];
+        const keys = rows.length ? Object.keys(rows[0]) : [];
+        const columns = keys.map(function (k) {
+            const sample = rows.find(r => r[k] !== null && r[k] !== "")?.[k];
+            const col = { dataField: k, caption: k, minWidth: 90 };
+            if (typeof sample === "number") { col.dataType = "number"; col.format = "#,##0.##"; }
+            else if (sample && (k.toLowerCase().indexOf("date") >= 0 || /\d{4}-\d{2}-\d{2}/.test(String(sample)))) { col.dataType = "date"; col.format = "dd/MM/yyyy"; }
+            return col;
+        });
+        $("#gridContainer").dxDataGrid({
+            dataSource: rows, height: 500, allowColumnResizing: true, columns: columns,
+            paging: { pageSize: 25 }, scrolling: { useNative: true, showScrollbar: "always" },
+            pager: { visible: true, allowedPageSizes: [25, 50, "all"], showPageSizeSelector: true, showInfo: true, showNavigationButtons: true },
+            filterRow: { visible: true, applyFilter: "auto" }, headerFilter: { visible: true }, showBorders: true
+        });
+    }
+    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+        $("#loadingSpinner").show();
+        $.ajax({
+            url: "/Report/ARLedgerData", type: "GET", data: { date: $("#date").val() },
+            success: function (result) {
+                if (typeof result === "string") { alert(result); $("#loadingSpinner").hide(); return; }
+                bindAutoGrid(result); $("#loadingSpinner").hide();
+            },
+            error: function () { alert("Không thể tải báo cáo."); $("#loadingSpinner").hide(); }
+        });
+    });
+    $(document).off("click", "#btnExportExcel").on("click", "#btnExportExcel", function () {
+        const grid = $("#gridContainer").dxDataGrid("instance");
+        if (!grid) return;
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Report");
+        const selectedReport = '@ViewBag.ReportTitle';
+        worksheet.addRow([localStorage.getItem("CompanyName") || ""]);
+        const reportRow = worksheet.addRow(["", "", selectedReport]);
+        reportRow.font = { bold: true, size: 14 };
+        DevExpress.excelExporter.exportDataGrid({ component: grid, worksheet: worksheet, autoFilterEnabled: true, topLeftCell: { row: 4, column: 1 } })
+            .then(function () { workbook.xlsx.writeBuffer().then(function (buffer) { saveAs(new Blob([buffer], { type: "application/octet-stream" }), selectedReport + ".xlsx"); }); });
+    });
+    $(document).off("click", "#btnExportPdf").on("click", "#btnExportPdf", function () {
+        const grid = $("#gridContainer").dxDataGrid("instance");
+        if (!grid) return;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "A4" });
+        const selectedReport = '@ViewBag.ReportTitle';
+        grid.getDataSource().load().then(data => {
+            const columns = grid.getVisibleColumns().filter(c => c.dataField);
+            doc.setFontSize(12);
+            doc.text(localStorage.getItem("CompanyName") || "", doc.internal.pageSize.getWidth() / 2, 36, { align: "center" });
+            doc.text(selectedReport, doc.internal.pageSize.getWidth() / 2, 54, { align: "center" });
+            doc.autoTable({ startY: 70, head: [columns.map(col => col.caption)], body: data.map(row => columns.map(col => row[col.dataField] ?? "")), styles: { fontSize: 8, cellPadding: 3 } });
+            doc.save(selectedReport + ".pdf");
+        });
+    });
+</script>

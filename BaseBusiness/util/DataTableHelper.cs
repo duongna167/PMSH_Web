@@ -28,7 +28,7 @@ namespace BaseBusiness.util
             catch (SqlException se)
             {
                 if (se.Class == 20)
-                    throw new Exception("DB Connection Error");
+                    throw new Exception(PmshMessages.ServerConnectionError);
                 else
                     throw new Exception(se.Message);
             }
@@ -103,7 +103,7 @@ namespace BaseBusiness.util
             catch (SqlException se)
             {
                 if (se.Class == 20)
-                    throw new Exception("DB Connection Error");
+                    throw new Exception(PmshMessages.ServerConnectionError);
                 else
                     throw new Exception(se.Message);
             }
@@ -145,7 +145,7 @@ namespace BaseBusiness.util
             catch (SqlException se)
             {
                 if (se.Class == 20)
-                    throw new Exception("DB Connection Error");
+                    throw new Exception(PmshMessages.ServerConnectionError);
                 else
                     throw new Exception(se.Message);
             }
