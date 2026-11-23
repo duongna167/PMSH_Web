@@ -33,7 +33,7 @@ namespace BaseBusiness.BO
             get { return instance; }
         }
 
-        public List<UserDetailHistoryRow> Search(int userId, int type)
+        public List<UserDetailHistoryRow> Search(int userId, int type, string? username = null)
         {
             const string sql = @"
 SELECT u.LoginName AS Username, ud.TypedPassword, ud.Type,
@@ -42,11 +42,12 @@ FROM UserDetail ud WITH (NOLOCK)
 LEFT JOIN Users u WITH (NOLOCK) ON ud.UserID = u.ID
 WHERE ud.ID > 0
   AND (@userId = 0 OR ud.UserID = @userId)
+  AND (@username = '' OR CHARINDEX(LOWER(@username), LOWER(u.LoginName)) > 0)
   AND (@type < 0 OR ud.Type = @type)
 ORDER BY u.LoginName, ud.CreatedDate DESC";
 
             using var conn = new SqlConnection(DBUtils.GetDBConnectionString());
-            return conn.Query<UserDetailHistoryRow>(sql, new { userId, type }).AsList();
+            return conn.Query<UserDetailHistoryRow>(sql, new { userId, type, username = username?.Trim() ?? "" }).AsList();
         }
     }
 }

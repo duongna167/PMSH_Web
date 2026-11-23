@@ -11,7 +11,7 @@ namespace FrontDesk.Services.Interfaces
         List<BirthdayNotifRow> Birthdays();
         List<InternalMessageNotifRow> Messages(int userId);
         string LoginDepartmentName(int userId);
-        int SaveMessage(string message, DateTime fromDate, DateTime toDate, int userId, int toDepartmentId);
+        int SaveMessage(string message, DateTime fromDate, DateTime toDate, int userId, string toDepartmentIds);
         void MarkReceived(int messageId, int userId);
         List<TraceNotifRow> OpenTraces(int userId);
         string ResolveTraces(int userId, string userName, List<int> selectedIds);

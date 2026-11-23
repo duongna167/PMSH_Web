@@ -19,16 +19,15 @@ namespace Security.Controllers
         [RequireFunction("usr_PasswordHistory")]
         public IActionResult PasswordHistory()
         {
-            ViewBag.UserList = _service.Users();
             return PartialView("~/Views/Security/PasswordHistory.cshtml");
         }
 
         [HttpGet]
-        public IActionResult PasswordHistoryData(int userId, int type)
+        public IActionResult PasswordHistoryData(int userId, int type, string? username = null)
         {
             try
             {
-                var rows = _service.Search(userId, type);
+                var rows = _service.Search(userId, type, username);
                 var result = rows.Select(r => new
                 {
                     Username = r.Username ?? "",

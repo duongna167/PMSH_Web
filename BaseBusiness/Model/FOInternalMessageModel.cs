@@ -10,6 +10,7 @@ namespace BaseBusiness.Model
         public DateTime FromDate { get; set; }
         public DateTime ToDate { get; set; }
         public int ToDepartmentID { get; set; }
+        public string ToDepartmentIDs { get; set; }
         public bool IsDelete { get; set; }
         public int UserInsertID { get; set; }
         public DateTime CreateDate { get; set; }
