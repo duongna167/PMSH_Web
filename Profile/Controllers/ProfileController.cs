@@ -1285,6 +1285,12 @@ namespace Profile.Controllers
         }
         #endregion
 
+        [RequireFunction("prf_ProfileSearch")]
+        public IActionResult ProfileOption()
+        {
+            return PartialView("~/Views/Profile/Options/ProfileOption.cshtml");
+        }
+
         #region Nam __ Profile changes
 
         public IActionResult Changes()
@@ -1297,11 +1303,25 @@ namespace Profile.Controllers
         {
             try
             {
-                string sql = $@"  SELECT UserName,  Convert(varchar,ChangeDate, 108) Time, ChangeDate Date, Change, OldValue,NewValue, Description 
-                              FROM ActivityLog WITH (NOLOCK)
-                              WHERE TableName = 'Profile' AND ObjectID = {profileID} ORDER BY ChangeDate";
+                if (profileID <= 0)
+                    return Json(new List<object>());
 
-                DataTable dataTable = TextUtils.Select(sql);
+                string sql = @"SELECT TOP (500)
+                    UserName,
+                    CONVERT(varchar(8), ChangeDate, 108) AS Time,
+                    ChangeDate AS Date,
+                    Change,
+                    OldValue,
+                    NewValue,
+                    Description
+                FROM ActivityLog WITH (NOLOCK)
+                WHERE TableName = N'Profile' AND ObjectID = @ProfileID
+                ORDER BY ChangeDate DESC";
+
+                DataTable dataTable = DataTableHelper.ExecuteQuery(sql, new[]
+                {
+                    new Microsoft.Data.SqlClient.SqlParameter("@ProfileID", profileID)
+                });
 
                 //var result = (from d in dataTable.AsEnumerable()
                 //              select d.Table.Columns.Cast<DataColumn>()

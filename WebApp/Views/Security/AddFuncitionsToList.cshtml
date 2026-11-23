@@ -55,6 +55,17 @@
         font-weight: 700 !important;
         color: #000 !important;
     }
+    #shortcutModal #gridContainerAddfu .dx-treelist-rowsview .dx-selection,
+    #shortcutModal #gridContainerAddfu .dx-treelist-rowsview .dx-selection > td,
+    #shortcutModal #gridContainerAddfu .dx-treelist-rowsview .dx-row-focused,
+    #shortcutModal #gridContainerAddfu .dx-treelist-rowsview .dx-row-focused > td {
+        background-color: #e8e8e8 !important;
+        color: #000 !important;
+    }
+    #shortcutModal #gridContainerAddfu .dx-treelist-rowsview .dx-selection *,
+    #shortcutModal #gridContainerAddfu .dx-treelist-rowsview .dx-row-focused * {
+        color: #000 !important;
+    }
     #popupNewGrid .fn-form-row,
     #fnGrp_itemModal .fn-form-row {
         display: flex;
@@ -456,6 +467,15 @@
             document.body.classList.add("modal-open");
             parent.focus();
         },
+        selectTreeKey: function (tree, key) {
+            if (!tree || key == null) return;
+            const node = tree.getNodeByKey(key);
+            if (!node || !node.data) return;
+            this.selectedRowData = node.data;
+            tree.option("focusedRowKey", key);
+            tree.selectRows([key], false);
+        },
+
         groupIdFromTreeRow: function (row) {
             if (!row) return 0;
             const raw = parseInt(row.id, 10);
@@ -473,13 +493,23 @@
             if (!row) return null;
             const tree = $("#gridContainerAddfu").dxTreeList("instance");
             const node = tree ? tree.getNodeByKey(row.id) : null;
-            const parentId = this.rowParentId(row, node);
-            if (!parentId) return null;
-            const isSubgroup = !this.isLeafRow(row) || (node && node.hasChildren);
-            if (!isSubgroup) return null;
-            const id = this.groupIdFromTreeRow(row);
+            const isLeaf = this.isLeafRow(row) && !(node && node.hasChildren);
+
+            let groupRow = row;
+            if (isLeaf) {
+                if (node && node.parent && node.parent.data)
+                    groupRow = node.parent.data;
+                else {
+                    const pid = this.rowParentId(row, node);
+                    if (!pid) return null;
+                    const parentNode = tree ? tree.getNodeByKey(pid) : null;
+                    groupRow = (parentNode && parentNode.data) || { id: pid, name: "" };
+                }
+            }
+
+            const id = this.groupIdFromTreeRow(groupRow);
             if (!id) return null;
-            return { id: id, name: row.name || "" };
+            return { id: id, name: groupRow.name || "" };
         },
 
         openNew: function () {
@@ -546,12 +576,28 @@
                     { dataField: "updatedDate", caption: "Upd.Date", width: 118, dataType: "date", format: "dd/MM/yyyy" }
                 ],
                 selection: { mode: "single" },
+                focusedRowEnabled: true,
+                autoNavigateToFocusedRow: true,
+                keyboardNavigation: { enabled: true },
                 filterRow: { visible: true },
                 headerFilter: { visible: true },
                 paging: { enabled: false },
                 scrolling: { mode: "standard" },
                 onRowClick: function (e) {
                     self.selectedRowData = e.data || null;
+                },
+                onFocusedRowChanged: function (e) {
+                    const key = e.component.option("focusedRowKey");
+                    const data = e.row && e.row.data;
+                    if (!data || key == null) return;
+                    self.selectedRowData = data;
+                    e.component.selectRows([key], false);
+                },
+                onRowExpanding: function (e) {
+                    self.selectTreeKey(e.component, e.key);
+                },
+                onRowCollapsing: function (e) {
+                    self.selectTreeKey(e.component, e.key);
                 },
                 onSelectionChanged: function (e) {
                     self.selectedRowData = (e.selectedRowsData && e.selectedRowsData[0]) || null;

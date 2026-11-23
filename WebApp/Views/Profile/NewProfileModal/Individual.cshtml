@@ -172,6 +172,7 @@
                 <div class="ind-toolbar">
                     <button type="button" id="ind_btnSearch" class="mui-button mui-button-new">Search</button>
                     <button type="button" id="ind_btnSave" class="mui-button mui-button-new">Save</button>
+                    <button type="button" id="ind_btnOptions" class="mui-button mui-button-new">Options</button>
                     <button type="button" id="ind_btnClear" class="mui-button mui-button-save">Clear</button>
                     <button type="button" id="ind_btnClose" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                 </div>
@@ -426,7 +427,7 @@
 </div>
 
 <div class="modal fade modal-search" id="pro_search_modalIndividualSearch" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
         <div class="modal-content">
             <div class="modal-header py-2">
                 <h6 class="modal-title mb-0">Search</h6>
@@ -449,7 +450,7 @@
                                placeholder="Enter first name" />
                     </div>
                 </div>
-                <div id="pro_individualGrid" class="gridContainer"></div>
+                <div id="pro_individualGrid" class="gridContainer" style="height: 480px;"></div>
             </div>
         </div>
     </div>
@@ -472,6 +473,8 @@
             });
 
             $('#ind_btnSave').off('click').on('click', function() {self.saveProfile();});
+
+            $('#ind_btnOptions').off('click').on('click', function() { self.openOptions(); });
 
             $('#ind_btnClear').off('click').on('click', function() {self.clearForm();});
 
@@ -903,10 +906,58 @@
             }
         },
 
+        openOptions: function () {
+            const self = this;
+            const profileID = parseInt($("#ind_id").val(), 10) || 0;
+            const profileName = ($("#ind_txtFullName").val() || "").trim();
+            ModalManager.load("/Profile/ProfileOption", "modalProfileOption", function () {
+                waitForFunction("openModalProfileOption", function () {
+                    window.openModalProfileOption({
+                        profileID: profileID,
+                        profileName: profileName,
+                        profileType: 0
+                    });
+                });
+            });
+        },
+
+        pickProfileForMerge: function (keepId) {
+            this._mergePick = true;
+            this._mergeKeepId = parseInt(keepId, 10) || (parseInt($("#ind_id").val(), 10) || 0);
+            showToast("Warning", "Select the other profile to merge (this profile will be kept).", false);
+            this.openModalSearch();
+        },
+
+        completeMergePick: function (otherId) {
+            const self = this;
+            self._mergePick = false;
+            const keepId = self._mergeKeepId || (parseInt($("#ind_id").val(), 10) || 0);
+            const sourceId = parseInt(otherId, 10) || 0;
+            const searchEl = document.getElementById("pro_search_modalIndividualSearch");
+            const searchModal = searchEl ? bootstrap.Modal.getInstance(searchEl) : null;
+            if (searchModal) searchModal.hide();
+            if (!sourceId || !keepId) {
+                showToast("Warning", "Please select a profile to merge.", false);
+                return;
+            }
+            if (sourceId === keepId) {
+                showToast("Warning", "Please choose a different profile.", false);
+                return;
+            }
+            ModalManager.load("/Profile/MergeProfile", "modalMergeProfile", function () {
+                waitForFunction("openModalMerge", function () {
+                    window.openModalMerge(sourceId, keepId, 0);
+                });
+            });
+        },
+
         openModalSearch: function () {
             const self = this;
             const modalEl = document.getElementById('pro_search_modalIndividualSearch');
             const modal = new bootstrap.Modal(modalEl);
+            $(modalEl).off("hidden.bs.modal.mergePick").one("hidden.bs.modal.mergePick", function () {
+                self._mergePick = false;
+            });
             modal.show();
 
             self.initSearchGrid();
@@ -971,7 +1022,7 @@
 
                 hoverStateEnabled: true,
 
-                height: 300,
+                height: 480,
                 scrolling: {
                     mode: "standard",
                     showScrollbar: "always"
@@ -979,9 +1030,12 @@
 
                 onRowDblClick: function (e) {
 
-                    console.log("Row Data:", e.data);
-
                     if (!e.data) return;
+
+                    if (self._mergePick) {
+                        self.completeMergePick(e.data.id);
+                        return;
+                    }
 
                     self.loadProfileByID(e.data.id);
 

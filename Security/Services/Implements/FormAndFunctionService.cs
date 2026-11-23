@@ -180,10 +180,10 @@ namespace Security.Services.Implements
             {
                 if (id <= 0)
                 {
-                    var isSubgroup = isDataRight == 1
-                        ? DataGroups().Any(g => g.ID == groupId && g.ParentID > 0)
-                        : FunctionGroups().Any(g => g.ID == groupId && g.ParentID > 0);
-                    if (!isSubgroup)
+                    var groupExists = isDataRight == 1
+                        ? DataGroups().Any(g => g.ID == groupId)
+                        : FunctionGroups().Any(g => g.ID == groupId);
+                    if (groupId <= 0 || !groupExists)
                         return OpResult.Fail("Please select a subgroup.");
                 }
 
