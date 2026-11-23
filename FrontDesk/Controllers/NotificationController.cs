@@ -51,9 +51,26 @@ namespace FrontDesk.Controllers
                 var rows = _service.Birthdays() ?? new();
                 return Json(rows.Select(r => new
                 {
+                    id = r.ProfileID,
                     name = r.Name ?? "",
+                    firstName = r.FirstName ?? "",
+                    lastName = r.LastName ?? "",
+                    middleName = r.MiddleName ?? "",
                     dateOfBirth = r.DateOfBirth,
-                    nationality = r.Nationality ?? ""
+                    nationality = r.Nationality ?? "",
+                    passport = r.Passport ?? "",
+                    identityCard = r.IdentityCard ?? "",
+                    telephone = r.Telephone ?? "",
+                    handPhone = r.HandPhone ?? "",
+                    fax = r.Fax ?? "",
+                    email = r.Email ?? "",
+                    website = r.Website ?? "",
+                    address = r.Address ?? "",
+                    homeAddress = r.HomeAddress ?? "",
+                    city = r.City ?? "",
+                    company = r.Company ?? "",
+                    businessTitle = r.BusinessTitle ?? "",
+                    occupation = r.Occupation ?? ""
                 }).ToList());
             }
             catch (Exception ex)
@@ -77,7 +94,7 @@ namespace FrontDesk.Controllers
 
         [HttpPost]
         [RequireFunction("fo_CreateMessage_web")]
-        public IActionResult SaveMessage(string message, string fromDate, string toDate, int toDepartmentId)
+        public IActionResult SaveMessage(string message, string fromDate, string toDate, string toDepartmentIds)
         {
             try
             {
@@ -85,11 +102,13 @@ namespace FrontDesk.Controllers
                     return Json(new { code = 1, msg = "Please login." });
                 if (string.IsNullOrWhiteSpace(message))
                     return Json(new { code = 1, msg = "Message can not be blank." });
+                if (string.IsNullOrWhiteSpace(toDepartmentIds))
+                    return Json(new { code = 1, msg = "Please select To Department." });
                 if (!TryParseUiDate(fromDate, out var from) || !TryParseUiDate(toDate, out var to))
                     return Json(new { code = 1, msg = "From Date and To Date are required." });
                 if (to.Date < from.Date)
                     return Json(new { code = 1, msg = "To Date must be on or after From Date." });
-                _service.SaveMessage(message.Trim(), from, to, SessionUserId, toDepartmentId);
+                _service.SaveMessage(message.Trim(), from, to, SessionUserId, toDepartmentIds);
                 return Json(new { code = 0, msg = "Message sent successfully." });
             }
             catch (Exception ex)
@@ -116,7 +135,7 @@ namespace FrontDesk.Controllers
                     fromName = r.FromName ?? "",
                     message = r.Message ?? "",
                     isRead = r.IsRead,
-                    receivedDate = r.ReceivedDate
+                    receivedDate = r.SentDate
                 }).ToList());
             }
             catch (Exception ex)

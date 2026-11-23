@@ -29,8 +29,8 @@ namespace FrontDesk.Services.Implements
         public string LoginDepartmentName(int userId)
             => FOInternalMessageBO.Instance.GetUserDepartmentName(userId);
 
-        public int SaveMessage(string message, DateTime fromDate, DateTime toDate, int userId, int toDepartmentId)
-            => FOInternalMessageBO.Instance.InsertMessage(message, fromDate, toDate, userId, toDepartmentId);
+        public int SaveMessage(string message, DateTime fromDate, DateTime toDate, int userId, string toDepartmentIds)
+            => FOInternalMessageBO.Instance.InsertMessage(message, fromDate, toDate, userId, toDepartmentIds);
 
         public void MarkReceived(int messageId, int userId)
             => FOInternalMessageBO.Instance.MarkReceived(messageId, userId);

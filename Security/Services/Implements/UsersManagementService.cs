@@ -33,10 +33,10 @@ namespace Security.Services.Implements
                 new SqlParameter("@LastName", lastName ?? ""),
                 new SqlParameter("@FirstName", firstName ?? ""),
                 new SqlParameter("@LoginName", loginName ?? ""),
-                new SqlParameter("@Status", userStatus),
-                new SqlParameter("@Cashier", cashierStatus),
                 new SqlParameter("@JobTitle", jobtitle ?? ""),
-                new SqlParameter("@Department", department ?? "")
+                new SqlParameter("@Department", department ?? ""),
+                new SqlParameter("@Cashier", cashierStatus),
+                new SqlParameter("@Status", userStatus)
             ];
             return DataTableHelper.getTableData("spSearchUsers", param);
         }

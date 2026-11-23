@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using BaseBusiness.bc;
 using BaseBusiness.Facade;
 using BaseBusiness.util;
@@ -10,9 +11,26 @@ namespace BaseBusiness.BO
 {
     public class BirthdayNotifRow
     {
+        public int ProfileID { get; set; }
         public string Name { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string MiddleName { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public string Nationality { get; set; }
+        public string Passport { get; set; }
+        public string IdentityCard { get; set; }
+        public string Telephone { get; set; }
+        public string HandPhone { get; set; }
+        public string Fax { get; set; }
+        public string Email { get; set; }
+        public string Website { get; set; }
+        public string Address { get; set; }
+        public string HomeAddress { get; set; }
+        public string City { get; set; }
+        public string Company { get; set; }
+        public string BusinessTitle { get; set; }
+        public string Occupation { get; set; }
     }
 
     public class InternalMessageNotifRow
@@ -21,7 +39,7 @@ namespace BaseBusiness.BO
         public string FromName { get; set; }
         public string Message { get; set; }
         public bool IsRead { get; set; }
-        public DateTime? ReceivedDate { get; set; }
+        public DateTime? SentDate { get; set; }
     }
 
     public class TraceNotifRow
@@ -78,9 +96,26 @@ WHERE {BirthdayTodayFilter}";
         {
             var sql = $@"
 SELECT
+    p.ID AS ProfileID,
     LTRIM(RTRIM(ISNULL(p.LastName, N'') + N' ' + ISNULL(p.Firstname, N''))) AS Name,
+    ISNULL(p.Firstname, N'') AS FirstName,
+    ISNULL(p.LastName, N'') AS LastName,
+    ISNULL(p.MiddleName, N'') AS MiddleName,
     p.DateOfBirth,
-    ISNULL(n.Name, N'') AS Nationality
+    ISNULL(n.Name, N'') AS Nationality,
+    ISNULL(p.PassPort, N'') AS Passport,
+    ISNULL(p.IdentityCard, N'') AS IdentityCard,
+    ISNULL(p.Telephone, N'') AS Telephone,
+    ISNULL(p.HandPhone, N'') AS HandPhone,
+    ISNULL(p.Fax, N'') AS Fax,
+    ISNULL(p.Email, N'') AS Email,
+    ISNULL(p.Website, N'') AS Website,
+    ISNULL(p.Address, N'') AS Address,
+    ISNULL(p.HomeAddress, N'') AS HomeAddress,
+    ISNULL(p.City, N'') AS City,
+    ISNULL(p.Company, N'') AS Company,
+    ISNULL(p.BusinessTitle, N'') AS BusinessTitle,
+    ISNULL(p.Occupation, N'') AS Occupation
 FROM Profile p WITH (NOLOCK)
 LEFT JOIN Nationality n WITH (NOLOCK) ON p.NationalityID = n.ID
 WHERE {BirthdayTodayFilter}
@@ -110,7 +145,11 @@ WHERE u.ID = @userId";
         private const string DeptFilter = @"
 ISNULL(m.IsDelete, 0) = 0
   AND CAST(m.FromDate AS DATE) <= @biz
-  AND (ISNULL(m.ToDepartmentID, 0) = 0 OR ISNULL(m.ToDepartmentID, 0) = @deptId)";
+  AND (
+        ISNULL(m.ToDepartmentID, 0) = 0
+     OR ISNULL(m.ToDepartmentID, 0) = @deptId
+     OR (N',' + REPLACE(ISNULL(m.ToDepartmentIDs, N''), N' ', N'') + N',' LIKE N'%,' + CAST(@deptId AS NVARCHAR(20)) + N',%')
+  )";
 
         private const string VisibleFilter = DeptFilter + @"
   AND CAST(m.ToDate AS DATE) >= @biz";
@@ -139,7 +178,7 @@ SELECT
     ISNULL(fd.Name, N'') AS FromName,
     m.Message,
     CAST(CASE WHEN r.ID IS NULL THEN 0 ELSE 1 END AS BIT) AS IsRead,
-    m.CreateDate AS ReceivedDate
+    m.CreateDate AS SentDate
 FROM FOInternalMessage m WITH (NOLOCK)
 LEFT JOIN Users u WITH (NOLOCK) ON m.UserInsertID = u.ID
 LEFT JOIN Department fd WITH (NOLOCK) ON fd.ID = u.DepartmentID
@@ -150,11 +189,22 @@ ORDER BY m.CreateDate DESC, m.ID DESC";
             return conn.Query<InternalMessageNotifRow>(sql, new { biz = biz.Date, userId, deptId }).AsList();
         }
 
-        public int InsertMessage(string message, DateTime fromDate, DateTime toDate, int userId, int toDepartmentId)
+        public int InsertMessage(string message, DateTime fromDate, DateTime toDate, int userId, string toDepartmentIds)
         {
+            var ids = (toDepartmentIds ?? "")
+                .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => int.TryParse(s.Trim(), out var n) ? n : (int?)null)
+                .Where(n => n.HasValue)
+                .Select(n => n.Value)
+                .Distinct()
+                .ToList();
+            var isAll = ids.Count == 0 || ids.Contains(0);
+            var toDepartmentId = isAll ? 0 : ids[0];
+            var idList = isAll ? "" : string.Join(",", ids);
+
             const string sql = @"
-INSERT INTO FOInternalMessage (Message, FromDate, ToDate, IsDelete, UserInsertID, CreateDate, ToDepartmentID)
-VALUES (@message, @fromDate, @toDate, 0, @userId, GETDATE(), @toDepartmentId);
+INSERT INTO FOInternalMessage (Message, FromDate, ToDate, IsDelete, UserInsertID, CreateDate, ToDepartmentID, ToDepartmentIDs)
+VALUES (@message, @fromDate, @toDate, 0, @userId, @createDate, @toDepartmentId, @idList);
 SELECT CAST(SCOPE_IDENTITY() AS INT);";
             using var conn = new SqlConnection(DBUtils.GetDBConnectionString());
             return conn.ExecuteScalar<int>(sql, new
@@ -163,7 +213,9 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);";
                 fromDate = fromDate.Date,
                 toDate = toDate.Date,
                 userId,
-                toDepartmentId
+                toDepartmentId,
+                idList,
+                createDate = TextUtils.GetBusinessDateTime()
             });
         }
 
@@ -172,9 +224,9 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);";
             const string sql = @"
 IF NOT EXISTS (SELECT 1 FROM FOInternalMessageReceived WITH (NOLOCK) WHERE MessageID = @messageId AND UserID = @userId)
 INSERT INTO FOInternalMessageReceived (MessageID, UserID, ReceivedDate)
-VALUES (@messageId, @userId, GETDATE());";
+VALUES (@messageId, @userId, @receivedDate);";
             using var conn = new SqlConnection(DBUtils.GetDBConnectionString());
-            conn.Execute(sql, new { messageId, userId });
+            conn.Execute(sql, new { messageId, userId, receivedDate = TextUtils.GetBusinessDateTime() });
             return true;
         }
 

@@ -18,6 +18,9 @@ END;
 IF COL_LENGTH(N'dbo.FOInternalMessage', N'ToDepartmentID') IS NULL
     ALTER TABLE dbo.FOInternalMessage ADD ToDepartmentID INT NOT NULL CONSTRAINT DF_FOInternalMessage_ToDept DEFAULT (0);
 
+IF COL_LENGTH(N'dbo.FOInternalMessage', N'ToDepartmentIDs') IS NULL
+    ALTER TABLE dbo.FOInternalMessage ADD ToDepartmentIDs NVARCHAR(500) NULL;
+
 IF OBJECT_ID(N'dbo.FOInternalMessageReceived', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.FOInternalMessageReceived (

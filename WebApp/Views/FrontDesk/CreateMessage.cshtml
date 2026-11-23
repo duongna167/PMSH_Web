@@ -42,20 +42,75 @@
         border-radius: 4px;
         border: 1px solid #ced4da;
     }
-    #foim_modal .foim-field select,
     #foim_modal #foim_from {
         width: 160px;
         min-width: 128px;
         max-width: 220px;
         height: 28px;
         font-size: 14px;
-        padding: 2px 1.85rem 2px 8px;
+        padding: 2px 8px;
         border-radius: 4px;
         border: 1px solid #ced4da;
-    }
-    #foim_modal #foim_from {
-        padding-right: 8px;
         background: #f5f5f5;
+    }
+    #foim_modal .foim-toDept {
+        flex: 0 0 260px;
+        width: 260px;
+        min-width: 220px;
+        max-width: 280px;
+        position: relative;
+        z-index: 5;
+        overflow: visible;
+    }
+    #foim_modal .foim-toDept .ts-wrapper {
+        overflow: visible !important;
+        width: 100% !important;
+    }
+    #foim_modal .foim-toDept .ts-control {
+        min-height: 28px !important;
+        max-height: 28px !important;
+        flex-wrap: nowrap !important;
+        overflow: hidden !important;
+    }
+    #foim_modal .foim-toDept .ts-control .item {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        width: auto !important;
+        padding: 0 2px 0 4px !important;
+        margin-right: 2px !important;
+    }
+    #foim_modal .foim-toDept .ts-control .item > div,
+    #foim_modal .foim-toDept .ts-control .item .ts-item-text,
+    #foim_modal .foim-toDept .ts-control .item > span {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        display: block !important;
+    }
+    #foim_modal .foim-toDept .ts-control .item .remove {
+        opacity: 1 !important;
+        visibility: visible !important;
+        margin-left: 2px !important;
+        flex-shrink: 0 !important;
+    }
+    #foim_modal .foim-toDept .ts-wrapper.has-items .ts-control input {
+        flex: 0 0 8px !important;
+        width: 8px !important;
+        min-width: 8px !important;
+        max-width: 8px !important;
+    }
+    body > .ts-dropdown.foim-ts-dropdown {
+        position: fixed !important;
+        min-width: 0 !important;
+        width: var(--foim-dd-w, 260px) !important;
+        max-width: var(--foim-dd-w, 260px) !important;
+        left: var(--foim-dd-x, 0px) !important;
+        top: var(--foim-dd-y, 0px) !important;
+        right: auto !important;
+        z-index: 5000 !important;
     }
 </style>
 <div class="modal fade" id="foim_modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" data-bs-focus="false">
@@ -77,16 +132,18 @@
                 </div>
                 <div class="foim-field">
                     <label>To Department</label>
-                    <select id="foim_toDept" class="form-control form-control-sm" data-pmsh-select-down>
-                        <option value="0">All</option>
-                        @if (departments != null)
-                        {
-                            foreach (var d in departments)
+                    <div class="foim-toDept">
+                        <select id="foim_toDept" class="tomselect-custom" multiple>
+                            <option value="0">All</option>
+                            @if (departments != null)
                             {
-                                <option value="@d.ID">@d.Name</option>
+                                foreach (var d in departments)
+                                {
+                                    <option value="@d.ID">@d.Name</option>
+                                }
                             }
-                        }
-                    </select>
+                        </select>
+                    </div>
                 </div>
                 <div class="foim-field">
                     <label>From Date</label>
@@ -109,15 +166,58 @@
     </div>
 </div>
 <script>
+    function foim_pinToDeptDropdown(ts) {
+        if (!ts || !ts.control) return;
+        var box = ts.control.getBoundingClientRect();
+        var root = document.documentElement;
+        root.style.setProperty("--foim-dd-w", Math.round(box.width) + "px");
+        root.style.setProperty("--foim-dd-x", Math.round(box.left) + "px");
+        root.style.setProperty("--foim-dd-y", Math.round(box.bottom + 1) + "px");
+        if (ts.dropdown) ts.dropdown.classList.add("foim-ts-dropdown");
+    }
+
+    function foim_initToDept() {
+        var el = document.getElementById("foim_toDept");
+        if (!el) return;
+        if (el.tomselect) {
+            try { el.tomselect.destroy(); } catch (e) { }
+        }
+        if (typeof initTomSelect === "function") {
+            initTomSelect("#foim_toDept", {
+                placeholder: "Select...",
+                dropdownParent: "body",
+                hidePlaceholder: false
+            });
+        }
+        var ts = el.tomselect;
+        if (!ts) return;
+        ts.on("item_add", function (value) {
+            if (value === "0") {
+                var others = (ts.getValue() || []).filter(function (v) { return v !== "0"; });
+                others.forEach(function (v) { ts.removeItem(v, true); });
+            } else if ((ts.getValue() || []).indexOf("0") >= 0) {
+                ts.removeItem("0", true);
+            }
+        });
+        if (ts.dropdown) ts.dropdown.classList.add("foim-ts-dropdown");
+        ts.on("dropdown_open", function () {
+            foim_pinToDeptDropdown(ts);
+            requestAnimationFrame(function () { foim_pinToDeptDropdown(ts); });
+        });
+        ts.clear(true);
+    }
+
     window.openModalCreateMessage = function () {
         if (typeof window.initDateInputs === "function") window.initDateInputs(document.getElementById("foim_modal"));
         $("#foim_text").val("");
-        $("#foim_toDept").val("0");
+        foim_initToDept();
     };
     $(document).off("click.foim", "#foim_btnClose").on("click.foim", "#foim_btnClose", function () {
         $("#foim_modal").modal("hide");
     });
     $(document).off("click.foim", "#foim_btnSave").on("click.foim", "#foim_btnSave", function () {
+        var raw = $("#foim_toDept").val();
+        var toDept = Array.isArray(raw) ? raw.join(",") : (raw || "");
         $.ajax({
             url: "/Notification/SaveMessage",
             type: "POST",
@@ -125,7 +225,7 @@
                 message: $("#foim_text").val(),
                 fromDate: $("#foim_fromDate").val(),
                 toDate: $("#foim_toDate").val(),
-                toDepartmentId: $("#foim_toDept").val()
+                toDepartmentIds: toDept
             },
             success: function (res) {
                 if (res && res.code === 0) {
