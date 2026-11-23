@@ -4,11 +4,12 @@
     ViewData["Title"] = "Electronic Invoice PMS";
 }
 
-<div class="text-center" style="font-size: 20px">Electronic Invoice PMS</div>
+<div class="text-center" style="font-size: 20px">Electronic Invoice Management</div>
 
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
     <div class="mb-2 d-flex gap-2 align-items-center">
         <button id="btnSearch" class="mui-button mui-button-search">Search</button>
+        <button id="btnNewInvoice" class="mui-button mui-button-new" data-action="EInvoice_Issue">New Invoice</button>
 
         <button id="btnSelect" class="mui-button mui-button-new">Select All</button>
         <button id="btnUnselect" class="mui-button mui-button-delete">Unselect</button>
@@ -457,6 +458,17 @@
             loadProperties();
 
             $("#btnSearch").on("click", search);
+            // New Invoice: chọn folio chưa xuất hóa đơn rồi tạo hóa đơn (popup NewInvoice); tạo xong thì tải lại danh sách
+            // Phải chọn Property trước: hóa đơn được tạo trong DB PMS của Property đó (tên Property hiện trên tiêu đề popup)
+            $("#btnNewInvoice").on("click", function () {
+                const propertyID = Number($("#propertyId").val()) || 0;
+                if (!propertyID) return notify("Please select property first!", "warning", 3000);
+
+                // Kiểm tra Property trước khi mở popup để báo lỗi rõ ràng (Property Inactive, thiếu cấu hình DB...)
+                $.get("/NewInvoice/Context", { propertyId: propertyID })
+                    .done(() => ModalManager.load("/NewInvoice/NewInvoice?propertyId=" + propertyID, "nvi_modal", "openModalNewInvoice"))
+                    .fail(xhr => notify((xhr.responseJSON && xhr.responseJSON.message) || "Cannot open New Invoice", "error"));
+            });
             $("#btnSelect").on("click", () => grid.selectAll());
             $("#btnUnselect").on("click", () => grid.clearSelection());
             $("#btnClose").on("click", () => { window.location.href = "/Home/Index"; });

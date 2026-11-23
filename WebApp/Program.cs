@@ -233,6 +233,7 @@ builder.Services.AddSingleton<EInvoice.Runtime.ProviderExecutionService>();
 builder.Services.AddSingleton<EInvoice.Runtime.PmsInvoiceContextBuilder>();
 builder.Services.AddSingleton<IEInvoiceRuntimeService, EInvoiceRuntimeService>();
 builder.Services.AddSingleton<IEInvoiceInvoiceService, EInvoiceInvoiceService>();
+builder.Services.AddSingleton<INewInvoiceService, NewInvoiceService>();
 
 builder.Services.AddSingleton<IAllotmentService, AllotmentService>();
 

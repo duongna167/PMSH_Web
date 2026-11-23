@@ -1,0 +1,530 @@
+@* New Invoice (New Summary Invoice) của màn E Invoice Management — port từ FolioVAT của PMSH_Web.
+   Gồm 3 popup: chọn folio chưa xuất hóa đơn (nvi_modal) -> chi tiết hóa đơn (nvc_modal) và Billing của folio (nvb_modal). *@
+@{
+    string fromIso = (string)ViewBag.FromDate;
+    string toIso = (string)ViewBag.ToDate;
+    int propertyId = (int)ViewBag.PropertyId;
+    string propertyName = (string)ViewBag.PropertyName;
+}
+
+<!-- ===== 1. Chọn folio ===== -->
+<div class="modal fade" id="nvi_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">New Summary Invoice - @propertyName</h5>
+            </div>
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button id="nvi_btnSearch" class="mui-button mui-button-view">Search</button>
+                    <button id="nvi_btnCreate" class="mui-button mui-button-save">Create invoice</button>
+                    <button id="nvi_btnBilling" class="mui-button mui-button-view">Billing</button>
+                    <button id="nvi_btnSelect" class="mui-button">Select</button>
+                    <button id="nvi_btnUnselect" class="mui-button">Unselect</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
+                    <div class="p-2 flex-shrink-0">
+                        <div class="d-flex flex-wrap align-items-center gap-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="mb-0 fw-semibold">Folio No.</label>
+                                <input type="text" id="nvi_folioNo" class="form-control form-control-sm" style="width:120px;" />
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="mb-0 fw-semibold">Room No.</label>
+                                <input type="text" id="nvi_roomNo" class="form-control form-control-sm" style="width:120px;" />
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="mb-0 fw-semibold">Conf. No.</label>
+                                <input type="text" id="nvi_confNo" class="form-control form-control-sm" style="width:120px;" />
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="mb-0 fw-semibold">From</label>
+                                <div style="width:140px;" data-date-input data-format="DD/MM/YYYY" data-default="@fromIso" data-name="nvi_fromDate">
+                                    <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="mb-0 fw-semibold">To</label>
+                                <div style="width:140px;" data-date-input data-format="DD/MM/YYYY" data-default="@toIso" data-name="nvi_toDate">
+                                    <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1 overflow-auto">
+                        <div id="nvi_grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 2. Chi tiết hóa đơn sẽ tạo ===== -->
+<div class="modal fade" id="nvc_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Create Invoice - Folio details - @propertyName</h5>
+            </div>
+            <div class="modal-body">
+                <div class="py-1 mb-2">
+                    <button id="nvc_btnSave" class="mui-button mui-button-save">Save</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="row g-2 align-items-end mb-2">
+                    <div class="col-auto">
+                        <label class="form-label mb-0">Invoice date</label>
+                        <div style="width:140px;" data-date-input data-format="DD/MM/YYYY" data-default="@toIso" data-name="nvc_invoiceDate">
+                            <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label mb-0">Currency</label>
+                        <input type="text" id="nvc_currency" class="form-control form-control-sm" style="width:90px;" value="VND" />
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label mb-0">Form No.</label>
+                        <input type="text" id="nvc_formNo" class="form-control form-control-sm" style="width:120px;" />
+                    </div>
+                    <div class="col">
+                        <label class="form-label mb-0">Comment</label>
+                        <input type="text" id="nvc_comment" class="form-control form-control-sm" />
+                    </div>
+                </div>
+
+                <div class="row g-2 align-items-end mb-2">
+                    <div class="col-auto">
+                        <label class="form-label mb-0">Invoice serial</label>
+                        <input type="text" id="nvc_serial" class="form-control form-control-sm" style="width:120px;" />
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label mb-0">Invoice No.</label>
+                        <input type="text" id="nvc_invoiceNo" class="form-control form-control-sm text-end" style="width:120px;" />
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label mb-0">Exchange rate</label>
+                        <input type="text" id="nvc_exchange" class="form-control form-control-sm text-end" style="width:110px;" value="0" />
+                    </div>
+                    <div class="col">
+                        <label class="form-label mb-0">Payment type</label>
+                        <input type="text" id="nvc_paymentType" class="form-control form-control-sm" />
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                    <span class="fw-semibold">Group type:</span>
+                    <label class="d-flex align-items-center gap-1 mb-0"><input type="radio" name="nvc_groupType" value="0" checked /> All transactions</label>
+                    <label class="d-flex align-items-center gap-1 mb-0"><input type="radio" name="nvc_groupType" value="3" /> Group by Type</label>
+                    <label class="d-flex align-items-center gap-1 mb-0"><input type="radio" name="nvc_groupType" value="2" /> Group by Folio</label>
+                    <label class="d-flex align-items-center gap-1 mb-0"><input type="radio" name="nvc_groupType" value="1" /> All Folio in 1 Invoice group by Type</label>
+                </div>
+
+                <div class="mui-card">
+                    <div id="nvc_grid" class="gridContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 3. Billing của folio ===== -->
+<div class="modal fade" id="nvb_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Billing - Folio Transactions - @propertyName</h5>
+            </div>
+            <div class="modal-body">
+                <div class="py-1 mb-2">
+                    <button id="nvb_btnRefresh" class="mui-button mui-button-view">Refresh</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center p-2 mb-2 rounded" style="background:#f1f3f5;">
+                    <div>
+                        <div><strong>Folio:</strong> <span id="nvb_folioNo"></span> &nbsp; <strong>Conf.No:</strong> <span id="nvb_confNo"></span></div>
+                        <div><strong>Room:</strong> <span id="nvb_roomNo"></span> &nbsp; <strong>Company:</strong> <span id="nvb_company"></span></div>
+                    </div>
+                    <div class="text-end">
+                        <div><strong>Balance (VND):</strong> <span id="nvb_balanceVND"></span></div>
+                        <div><strong>Balance (USD):</strong> <span id="nvb_balanceUSD"></span></div>
+                    </div>
+                </div>
+
+                <div class="mui-card">
+                    <div id="nvb_grid" class="gridContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var nvi_Module = {
+        folioGrid: null,
+        detailGrid: null,
+        billingGrid: null,
+        propertyId: @propertyId, // Property đang chọn trên màn Electronic Invoice PMS: mọi thao tác chạy trên DB của Property này
+        selectedFolios: [],   // folio đã chọn khi bấm Create invoice (để Save dùng lại)
+        billingFolioId: 0,
+
+        init: function () {
+            const self = this;
+
+            // ModalManager gọi hàm này sau khi popup chính đã hiện
+            window.openModalNewInvoice = function () {
+                self.renderFolioGrid([]);
+                self.search();
+            };
+
+            $("#nvi_btnSearch").on("click", () => self.search());
+            $("#nvi_btnSelect").on("click", () => self.folioGrid && self.folioGrid.selectAll());
+            $("#nvi_btnUnselect").on("click", () => self.folioGrid && self.folioGrid.clearSelection());
+            $("#nvi_btnCreate").on("click", () => self.createInvoice());
+            $("#nvi_btnBilling").on("click", () => self.billing());
+            $("#nvc_btnSave").on("click", () => self.save(false));
+            $("#nvb_btnRefresh").on("click", () => self.loadBilling(self.billingFolioId));
+
+            // Popup chi tiết hóa đơn/Billing: giải phóng lưới khi đóng
+            $("#nvc_modal").on("hidden.bs.modal", () => self.disposeGrid("detailGrid", "#nvc_grid"));
+            $("#nvb_modal").on("hidden.bs.modal", () => self.disposeGrid("billingGrid", "#nvb_grid"));
+        },
+
+        // ---------- Tiện ích ----------
+        fmt: function (v) {
+            if (v === null || v === undefined || v === "") return "";
+            const n = Number(v);
+            return isNaN(n) ? v : n.toLocaleString("vi-VN", { maximumFractionDigits: 0 });
+        },
+
+        disposeGrid: function (prop, selector) {
+            if (this[prop]) { try { this[prop].dispose(); } catch (e) { } this[prop] = null; }
+            $(selector).empty();
+        },
+
+        showPopup: function (id) {
+            const el = document.getElementById(id);
+            if (typeof window.initDateInputs === "function") window.initDateInputs(el); // khởi tạo ô ngày của popup phụ
+            bootstrap.Modal.getOrCreateInstance(el, { backdrop: "static", keyboard: true }).show();
+        },
+
+        // ---------- 1. Danh sách folio chưa xuất hóa đơn ----------
+        search: function () {
+            const self = this;
+            $.ajax({
+                url: "/NewInvoice/SearchFolios",
+                type: "GET",
+                loadingGrid: "#nvi_grid",
+                data: {
+                    propertyId: self.propertyId,
+                    confirmationNo: $("#nvi_confNo").val(),
+                    folioNo: $("#nvi_folioNo").val(),
+                    roomNo: $("#nvi_roomNo").val(),
+                    fromDate: $("#nvi_fromDate").val() || window.dateSystem,
+                    toDate: $("#nvi_toDate").val() || window.dateSystem
+                },
+                success: function (rows) { self.renderFolioGrid(rows || []); },
+                error: function (xhr) {
+                    const msg = (xhr.responseJSON && xhr.responseJSON.message) || "Unable to load folios";
+                    showToast("Error", msg, false);
+                }
+            });
+        },
+
+        renderFolioGrid: function (data) {
+            const self = this;
+            this.disposeGrid("folioGrid", "#nvi_grid");
+
+            this.folioGrid = $("#nvi_grid").dxDataGrid({
+                dataSource: data,
+                keyExpr: "ID",
+                height: "100%",
+                width: "100%",
+                showBorders: true,
+                hoverStateEnabled: true,
+                allowColumnResizing: true,
+                columnResizingMode: "widget",
+                columnAutoWidth: false,
+                selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                filterRow: { visible: true, applyFilter: "auto" },
+                scrolling: { mode: "standard", showScrollbar: "always", useNative: true },
+                paging: { pageSize: 25 },
+                pager: { showPageSizeSelector: true, allowedPageSizes: [15, 25, 50], showInfo: true },
+                columns: [
+                    { dataField: "FolioNo", caption: "Folio No", width: 90 },
+                    { dataField: "FolioDate", caption: "Comment", width: 90, alignment: "center" },
+                    { dataField: "Balance", caption: "Balance (VND)", width: 130, alignment: "right", dataType: "number", format: "#,##0" },
+                    { dataField: "BalanceUSD", caption: "Balance (USD)", width: 120, alignment: "right", dataType: "number", format: { type: "fixedPoint", precision: 2 } },
+                    { dataField: "RoomNo", caption: "Room No", width: 90 },
+                    { dataField: "Rsv_Type", caption: "Rsv. Type", width: 90 },
+                    { dataField: "ProfileID", caption: "Guest Code", width: 100 },
+                    { dataField: "FullName", caption: "Guest Name", minWidth: 200 },
+                    { dataField: "CompanyName", caption: "Company Name", width: 200 },
+                    { dataField: "TaxCode", caption: "Tax Code", width: 120 },
+                    { dataField: "ConfirmationNo", caption: "Conf. No.", width: 100 },
+                    { dataField: "HomeAddress", caption: "Tax Address", width: 220 }
+                ],
+                summary: {
+                    totalItems: [
+                        { column: "Balance", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" },
+                        { column: "BalanceUSD", summaryType: "sum", valueFormat: { type: "fixedPoint", precision: 2 }, displayFormat: "{0}" }
+                    ]
+                }
+            }).dxDataGrid("instance");
+        },
+
+        // ---------- 2. Tạo hóa đơn: lấy giao dịch chưa xuất của các folio đã chọn ----------
+        createInvoice: function () {
+            const self = this;
+            const folios = this.folioGrid ? this.folioGrid.getSelectedRowsData() : [];
+            if (!folios.length) { showToast("Warning", "Please select one folio", false); return; }
+
+            const fromDate = $("#nvi_fromDate").val() || window.dateSystem;
+            const toDate = $("#nvi_toDate").val() || window.dateSystem;
+            this.selectedFolios = folios;
+
+            // Mỗi folio một request; gom lại thành một danh sách, gắn tiêu đề nhóm "Folio No - Conf. No"
+            const requests = folios.map(function (f) {
+                return $.ajax({ url: "/NewInvoice/FolioDetails", type: "GET", data: { propertyId: self.propertyId, folioId: f.ID, fromDate: fromDate, toDate: toDate } })
+                    .then(function (rows) {
+                        (rows || []).forEach(function (r) {
+                            r.FolioNo = f.FolioNo;
+                            r.ConfirmationNo = f.ConfirmationNo;
+                            r.FolioGroup = "Folio No: " + (f.FolioNo || f.ID) + " - Conf. No: " + (f.ConfirmationNo || "");
+                        });
+                        return rows || [];
+                    });
+            });
+
+            $.when.apply($, requests).done(function () {
+                let details = [];
+                for (let i = 0; i < arguments.length; i++) {
+                    const part = requests.length === 1 ? arguments[0] : arguments[i];
+                    details = details.concat(Array.isArray(part) ? part : []);
+                }
+
+                // Giá trị mặc định lấy từ folio đầu tiên / ô lọc của màn Upload Invoice
+                $("#nvc_currency").val(folios[0].CurrencyID || "VND");
+                $("#nvc_serial").val($("#eim_InvoiceSerial").val() || "");
+                $("#nvc_invoiceNo").val("");
+                $("#nvc_formNo").val("");
+                $("#nvc_exchange").val("0");
+                $("#nvc_paymentType").val("");
+                $("#nvc_comment").val("");
+                $("input[name='nvc_groupType'][value='0']").prop("checked", true);
+
+                self.showPopup("nvc_modal");
+                self.renderDetailGrid(details);
+            }).fail(function (xhr) {
+                const msg = (xhr.responseJSON && xhr.responseJSON.message) || "Error loading folio details";
+                showToast("Error", msg, false);
+            });
+        },
+
+        renderDetailGrid: function (data) {
+            const self = this;
+            this.disposeGrid("detailGrid", "#nvc_grid");
+
+            const num = { alignment: "right", dataType: "number", format: "#,##0" };
+            this.detailGrid = $("#nvc_grid").dxDataGrid({
+                dataSource: data,
+                keyExpr: "ID",
+                height: 360,
+                showBorders: true,
+                columnAutoWidth: true,
+                allowColumnResizing: true,
+                filterRow: { visible: true, applyFilter: "auto" },
+                paging: { pageSize: 20 },
+                pager: { showPageSizeSelector: true, allowedPageSizes: [10, 20, 50], showInfo: true },
+                grouping: { autoExpandAll: true },
+                groupPanel: { visible: false },
+                columns: [
+                    {
+                        dataField: "FolioGroup", groupIndex: 0, visible: false,
+                        groupCellTemplate: function (container, options) { container.text(options.key); } // chỉ hiện tiêu đề nhóm, bỏ phần tổng kèm theo
+                    },
+                    { dataField: "TransactionName", caption: "Transaction name", width: 300 },
+                    { dataField: "Quantity", caption: "Qty.", width: 60, alignment: "center" },
+                    Object.assign({ dataField: "Amount", caption: "Amount" }, num),
+                    { dataField: "VAT", caption: "VAT", width: 80, alignment: "center", customizeText: function (e) { return e.value ? e.value + " %" : ""; } },
+                    Object.assign({ dataField: "VATAmount", caption: "VAT Amount", width: 120 }, num),
+                    { dataField: "Svc", caption: "Svc", width: 60, alignment: "center" },
+                    Object.assign({ dataField: "SvcAmount", caption: "Service charge", width: 120 }, num),
+                    Object.assign({ dataField: "AmountIncludedTax", caption: "Amount Inc. Tax", width: 140 }, num),
+                    { dataField: "CurrencyID", caption: "Currency", width: 80 }
+                ],
+                summary: {
+                    groupItems: [
+                        { column: "Amount", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}", showInGroupFooter: true },
+                        { column: "AmountIncludedTax", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}", showInGroupFooter: true }
+                    ],
+                    totalItems: [
+                        { column: "Amount", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" },
+                        { column: "VATAmount", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" },
+                        { column: "SvcAmount", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" },
+                        { column: "AmountIncludedTax", summaryType: "sum", valueFormat: "#,##0", displayFormat: "{0}" }
+                    ]
+                },
+                onRowPrepared: function (e) {
+                    if (e.rowType === "group") $(e.rowElement).css({ "font-weight": "bold", "background-color": "#f8f9fa" });
+                }
+            }).dxDataGrid("instance");
+
+            // Lưới được dựng khi popup đang hiện dần: tính lại kích thước sau khi popup hiện xong
+            $("#nvc_modal").one("shown.bs.modal", () => { if (self.detailGrid) self.detailGrid.updateDimensions(); });
+        },
+
+        // ---------- Lưu hóa đơn ----------
+        save: function (ignoreDuplicate) {
+            const self = this;
+
+            const formNo = ($("#nvc_formNo").val() || "").trim();
+            const serial = ($("#nvc_serial").val() || "").trim();
+            const startNo = parseInt(($("#nvc_invoiceNo").val() || "").trim(), 10);
+
+            if (!formNo) { showToast("Warning", "Form No. cannot be blank", false); $("#nvc_formNo").focus(); return; }
+            if (!serial) { showToast("Warning", "Invoice serial cannot be blank", false); $("#nvc_serial").focus(); return; }
+            if (isNaN(startNo) || startNo < 1) { showToast("Warning", "Invoice No. cannot be blank or zero", false); $("#nvc_invoiceNo").focus(); return; }
+
+            const detailCount = this.detailGrid ? this.detailGrid.getDataSource().items().length : 0;
+            if (!this.selectedFolios.length || !detailCount) { showToast("Warning", "No invoice details found", false); return; }
+
+            const payload = {
+                propertyId: this.propertyId,
+                folioIds: this.selectedFolios.map(f => f.ID),
+                fromDate: $("#nvi_fromDate").val() || window.dateSystem,
+                toDate: $("#nvi_toDate").val() || window.dateSystem,
+                vatDate: $("#nvc_invoiceDate").val() || window.dateSystem,
+                formNo: formNo,
+                serial: serial,
+                startInvoiceNo: startNo,
+                exchangeRate: parseFloat($("#nvc_exchange").val()) || 0,
+                currency: ($("#nvc_currency").val() || "VND").trim(),
+                paymentType: ($("#nvc_paymentType").val() || "").trim(),
+                comment: ($("#nvc_comment").val() || "").trim(),
+                groupType: parseInt($("input[name='nvc_groupType']:checked").val() || "0", 10),
+                isSameProfile: false,
+                ignoreDuplicateInvoiceNo: !!ignoreDuplicate
+            };
+
+            const $btn = $("#nvc_btnSave").prop("disabled", true);
+            $.ajax({
+                url: "/NewInvoice/CreateInvoice",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                data: JSON.stringify(payload),
+                success: function (res) {
+                    $btn.prop("disabled", false);
+                    if (res && res.success) {
+                        showToast("Success", res.message || "Completed", true);
+                        bootstrap.Modal.getInstance(document.getElementById("nvc_modal"))?.hide();
+                        bootstrap.Modal.getInstance(document.getElementById("nvi_modal"))?.hide();
+                        // Làm mới danh sách hóa đơn của màn đang mở (Upload Invoice hoặc Electronic Invoice PMS)
+                        if (window.eim_Module && typeof eim_Module.searchInvoiceOrInvoiceDetail === "function") eim_Module.searchInvoiceOrInvoiceDetail();
+                        else $("#btnSearch").trigger("click");
+                    } else {
+                        showToast("Error", ((res && res.message) || "Save failed") + "\n" + ((res && res.errors) || []).join("\n"), false);
+                    }
+                },
+                error: function (xhr) {
+                    $btn.prop("disabled", false);
+                    const j = xhr.responseJSON;
+                    // Trùng số hóa đơn (409): hỏi người dùng có muốn tạo tiếp không (như WinForms)
+                    if (xhr.status === 409 && j && j.isDuplicateConflict) {
+                        const list = (j.duplicateInvoiceNos || []).join(", ");
+                        if (confirm("The invoice no(s): [" + list + "] already exist in system.\nDo you want to create with new invoice numbers anyway?")) {
+                            self.save(true);
+                        }
+                        return;
+                    }
+                    showToast("Error", (j && j.message) || xhr.statusText || "Save failed", false);
+                }
+            });
+        },
+
+        // ---------- 3. Billing ----------
+        billing: function () {
+            const folios = this.folioGrid ? this.folioGrid.getSelectedRowsData() : [];
+            if (!folios.length) { showToast("Warning", "Please select one folio", false); return; }
+            if (folios.length > 1) { showToast("Warning", "Please select only one folio to view billing details", false); return; }
+
+            const f = folios[0];
+            this.billingFolioId = f.ID;
+            $("#nvb_folioNo").text(f.FolioNo || "");
+            $("#nvb_confNo").text(f.ConfirmationNo || "");
+            $("#nvb_roomNo").text(f.RoomNo || "");
+            $("#nvb_company").text(f.CompanyName || "");
+            $("#nvb_balanceVND").text(this.fmt(f.BalanceVND));
+            $("#nvb_balanceUSD").text(f.BalanceUSD === null || f.BalanceUSD === undefined ? "" : Number(f.BalanceUSD).toFixed(2));
+
+            this.showPopup("nvb_modal");
+            this.loadBilling(f.ID);
+        },
+
+        loadBilling: function (folioId) {
+            const self = this;
+            if (!folioId) return;
+            $.ajax({
+                url: "/NewInvoice/FolioTransactions",
+                type: "GET",
+                data: { propertyId: self.propertyId, folioId: folioId },
+                success: function (rows) { self.renderBillingGrid(rows || []); },
+                error: function (xhr) {
+                    const msg = (xhr.responseJSON && xhr.responseJSON.message) || "Error loading billing details";
+                    showToast("Error", msg, false);
+                }
+            });
+        },
+
+        renderBillingGrid: function (data) {
+            const self = this;
+            this.disposeGrid("billingGrid", "#nvb_grid");
+
+            const pad = n => ("0" + n).slice(-2);
+            this.billingGrid = $("#nvb_grid").dxDataGrid({
+                dataSource: data,
+                keyExpr: "FolioDetailID",
+                height: 360,
+                showBorders: true,
+                columnAutoWidth: true,
+                allowColumnResizing: true,
+                filterRow: { visible: true, applyFilter: "auto" },
+                paging: { pageSize: 20 },
+                pager: { showPageSizeSelector: true, allowedPageSizes: [10, 20, 50], showInfo: true },
+                columns: [
+                    {
+                        dataField: "Date", caption: "Date", width: 100, alignment: "center",
+                        calculateCellValue: function (r) { if (!r.Date) return ""; const d = new Date(r.Date); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + "/" + String(d.getFullYear()).slice(-2); }
+                    },
+                    { dataField: "Code", caption: "Code", width: 80 },
+                    { dataField: "Description", caption: "Description", width: 340 },
+                    { dataField: "Amount", caption: "Amount", width: 120, alignment: "right", dataType: "number", format: "#,##0" },
+                    { dataField: "Currency", caption: "Curr", width: 70 },
+                    { dataField: "Supplement", caption: "Supplement", width: 200 },
+                    { dataField: "Reference", caption: "Reference", width: 200 },
+                    { dataField: "UserName", caption: "Cashier", width: 110 },
+                    {
+                        caption: "Time", width: 90, alignment: "center",
+                        calculateCellValue: function (r) {
+                            if (!r.Date) return "";
+                            const d = new Date(r.Date);
+                            return pad(d.getHours()) + ":" + pad(d.getMinutes()) + (d.getHours() >= 12 ? " PM" : " AM");
+                        }
+                    }
+                ]
+            }).dxDataGrid("instance");
+
+            $("#nvb_modal").one("shown.bs.modal", () => { if (self.billingGrid) self.billingGrid.updateDimensions(); });
+        }
+    };
+
+    $(document).ready(function () {
+        nvi_Module.init();
+    });
+</script>
