@@ -12,6 +12,8 @@ namespace Miscellaneous.Services.Interfaces
     {
         DataTable CardManagement(string sqlCommand);
         DataTable MealReport(DateTime fromDate, DateTime toDate, int type);
+        DateTime GetMealBusinessDate();
+        bool CancelReportedMeal(int id);
         DataTable ReportCustom(DateTime fromDate, DateTime toDate, string mealShiftID, string roomNo);
         DataTable ReportCancelMeal(DateTime fromDate, DateTime toDate);
         DataTable ReportWaiveMeal(DateTime fromDate, DateTime toDate, string mealShift, string roomNo);
