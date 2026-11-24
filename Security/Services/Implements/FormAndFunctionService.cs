@@ -180,11 +180,18 @@ namespace Security.Services.Implements
             {
                 if (id <= 0)
                 {
-                    var groupExists = isDataRight == 1
-                        ? DataGroups().Any(g => g.ID == groupId)
-                        : FunctionGroups().Any(g => g.ID == groupId);
-                    if (groupId <= 0 || !groupExists)
-                        return OpResult.Fail("Please select a subgroup.");
+                    if (isDataRight == 1)
+                    {
+                        var dg = DataGroups().FirstOrDefault(g => g.ID == groupId);
+                        if (groupId <= 0 || dg == null || dg.ParentID == 0)
+                            return OpResult.Fail("Please select a function.");
+                    }
+                    else
+                    {
+                        var fg = FunctionGroups().FirstOrDefault(g => g.ID == groupId);
+                        if (groupId <= 0 || fg == null || fg.ParentID == 0)
+                            return OpResult.Fail("Please select a function.");
+                    }
                 }
 
                 pt.OpenConnection();
