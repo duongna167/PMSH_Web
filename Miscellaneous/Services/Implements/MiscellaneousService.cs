@@ -14,6 +14,22 @@ namespace Miscellaneous.Services.Implements
 {
     public class MiscellaneousService : IMiscellaneousService
     {
+        public DateTime GetMealBusinessDate() => TextUtils.GetBusinessDate().Date;
+
+        public bool CancelReportedMeal(int id)
+        {
+            // The eligibility check and update are atomic; a repeated request cannot cancel twice.
+            using var connection = new SqlConnection(DBUtils.GetDBConnectionString());
+            using var command = new SqlCommand(@"
+                UPDATE dbo.MealDailyUsing
+                SET Inactive = 1, UsingDate = GETDATE()
+                WHERE ID = @ID AND Inactive = 0
+                  AND DATEDIFF(DAY, UsingDate, dbo.getBusinessDate()) = 0;", connection);
+            command.Parameters.Add("@ID", SqlDbType.Int).Value = id;
+            connection.Open();
+            return command.ExecuteNonQuery() > 0;
+        }
+
         public DataTable CardManagement(string sqlCommand)
         {
             SqlParameter[] parameters = new SqlParameter[]
@@ -102,7 +118,7 @@ namespace Miscellaneous.Services.Implements
                 new SqlParameter("@RoomNo", roomNo ?? "" ),
             };
 
-            DataTable resultTable = DataTableHelper.getTableData("spMeal_UsedBreakfast", parameters);
+            DataTable resultTable = DataTableHelper.getTableData("spMeal_UseBreakfast", parameters);
 
             return resultTable;
         }

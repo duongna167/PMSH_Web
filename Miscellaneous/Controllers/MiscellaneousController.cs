@@ -271,220 +271,78 @@ namespace Miscellaneous.Controllers
         }
 
         #region Meal Report
-        [RequireFunction("misc_ReportMeal")]
+        [HttpGet, RequireFunction("misc_ReportMeal")]
         public IActionResult MealReport()
         {
-            return View();
+            ViewBag.MealBusinessDate = _iMiscellaneousService.GetMealBusinessDate().ToString("yyyy-MM-dd");
+            return PartialView("~/Views/Miscellaneous/MealReport.cshtml");
         }
-        [HttpGet]
-        public IActionResult GetMealReport(DateTime fromDate, DateTime toDate, int type)
+
+        [HttpGet, RequireFunction("misc_ReportMeal")]
+        public IActionResult GetMealReport(DateTime fromDate, DateTime toDate, int type) =>
+            ReadMealReport(fromDate, toDate, () => type is >= 0 and <= 2
+                ? _iMiscellaneousService.MealReport(fromDate, toDate, type)
+                : throw new ArgumentException("Invalid meal change type."));
+
+        [HttpGet, RequireFunction("misc_ReportMeal")]
+        public IActionResult GetMealSearchCustom(DateTime fromDate, DateTime toDate, string mealShiftID = "", string roomNo = "") =>
+            ReadMealReport(fromDate, toDate, () => _iMiscellaneousService.ReportCustom(fromDate, toDate, mealShiftID, roomNo));
+
+        [HttpGet, RequireFunction("misc_ReportMeal")]
+        public IActionResult GetReportCancelMeal(DateTime fromDate, DateTime toDate) =>
+            ReadMealReport(fromDate, toDate, () => _iMiscellaneousService.ReportCancelMeal(fromDate, toDate));
+
+        [HttpGet, RequireFunction("misc_ReportMeal")]
+        public IActionResult GetReportWaiveMeal(DateTime fromDate, DateTime toDate, string mealShift = "", string roomNo = "") =>
+            ReadMealReport(fromDate, toDate, () => _iMiscellaneousService.ReportWaiveMeal(fromDate, toDate, mealShift, roomNo));
+
+        [HttpGet, RequireFunction("misc_ReportMeal")]
+        public IActionResult GetReportUsedBreakFastMeal(DateTime fromDate, DateTime toDate, string roomNo = "") =>
+            ReadMealReport(fromDate, toDate, () => _iMiscellaneousService.ReportUsedBreakFastMeal(fromDate, toDate, roomNo));
+
+        [HttpGet, RequireFunction("misc_ReportMeal")]
+        public IActionResult GetReportUseBreakFastMeal(DateTime fromDate, DateTime toDate, string roomNo = "") =>
+            ReadMealReport(fromDate, toDate, () => _iMiscellaneousService.ReportUseBreakFastMeal(fromDate, toDate, roomNo));
+
+        [HttpPost, ValidateAntiForgeryToken, RequireFunction("misc_ReportMeal")]
+        public IActionResult CancelReportedMeal(int id)
         {
+            if (id <= 0) return BadRequest(new { success = false, message = "Please select a meal record." });
             try
             {
-                DataTable dataTable = _iMiscellaneousService.MealReport(fromDate, toDate, type);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new    
-                              {
-                                  STT = !string.IsNullOrEmpty(d["STT"].ToString()) ? d["STT"] : "",
-                                  ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"] : "",
-                                  FromMeal = !string.IsNullOrEmpty(d["FromMeal"].ToString()) ? d["FromMeal"] : "",
-                                  ToMeal = !string.IsNullOrEmpty(d["ToMeal"].ToString()) ? d["ToMeal"] : "",
-                                  BreakFast = !string.IsNullOrEmpty(d["BreakFast"].ToString()) ? d["BreakFast"] : "",
-                                  Lunch = !string.IsNullOrEmpty(d["Lunch"].ToString()) ? d["Lunch"] : "",
-                                  Dinner = !string.IsNullOrEmpty(d["Dinner"].ToString()) ? d["Dinner"] : "",
-                                  Type = !string.IsNullOrEmpty(d["Type"].ToString()) ? d["Type"] : "",
-                                  FromDate = !string.IsNullOrEmpty(d["FromDate"].ToString()) ? d["FromDate"] : "",
-                                  ToDate = !string.IsNullOrEmpty(d["ToDate"].ToString()) ? d["ToDate"] : "",
-                                  ReservationID = !string.IsNullOrEmpty(d["ReservationID"].ToString()) ? d["ReservationID"] : "",
-                                  Account = !string.IsNullOrEmpty(d["Account"].ToString()) ? d["Account"] : "",
-                                  RoomNo = !string.IsNullOrEmpty(d["RoomNo"].ToString()) ? d["RoomNo"] : "",
-                                  CardID = !string.IsNullOrEmpty(d["CardID"].ToString()) ? d["CardID"] : "",
-                              }).ToList();
-                return Json(result);
+                if (!_iMiscellaneousService.CancelReportedMeal(id))
+                    return BadRequest(new { success = false, message = "Only active meal records from the current business date can be cancelled. Refresh the report and try again." });
+                return Json(new { success = true });
             }
             catch (Exception ex)
             {
-                return Json(ex.Message);
+                _logger.LogError(ex, "Cannot cancel meal record {MealID}", id);
+                return StatusCode(500, new { success = false, message = "Cannot cancel the meal record." });
             }
-            //  report.DataSource = dataTable;
-
-            // Không cần gán parameter
-            // report.RequestParameters = false;
-
-            // return PartialView("_ReportViewerPartial", report);
         }
-        [HttpGet]
-        public IActionResult GetMealSearchCustom(DateTime fromDate, DateTime toDate, string mealShiftID, string roomNo)
+
+        private IActionResult ReadMealReport(DateTime fromDate, DateTime toDate, Func<DataTable> load)
         {
+            if (!ModelState.IsValid || fromDate == default || toDate == default || fromDate.Date > toDate.Date)
+                return BadRequest(new { success = false, message = "Please enter a valid date range (From Date <= To Date)." });
             try
             {
-                DataTable dataTable = _iMiscellaneousService.ReportCustom(fromDate, toDate, mealShiftID, roomNo);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  STT = !string.IsNullOrEmpty(d["STT"].ToString()) ? d["STT"] : "",
-                                  ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"] : "",
-                                  ReservationID = !string.IsNullOrEmpty(d["ReservationID"].ToString()) ? d["ReservationID"] : "",
-                                  UsingDate = !string.IsNullOrEmpty(d["UsingDate"].ToString()) ? d["UsingDate"] : "",
-                                  RoomNo = !string.IsNullOrEmpty(d["RoomNo"].ToString()) ? d["RoomNo"] : "",
-                                  RoomType = !string.IsNullOrEmpty(d["RoomType"].ToString()) ? d["RoomType"] : "",
-                                  Account = !string.IsNullOrEmpty(d["Account"].ToString()) ? d["Account"] : "",
-                                  ProfileID = !string.IsNullOrEmpty(d["ProfileID"].ToString()) ? d["ProfileID"] : "",
-                                  MealShift = !string.IsNullOrEmpty(d["MealShift"].ToString()) ? d["MealShift"] : "",
-                                  Zone = !string.IsNullOrEmpty(d["Zone"].ToString()) ? d["Zone"] : "",
-                                  RestaurantName = !string.IsNullOrEmpty(d["RestaurantName"].ToString()) ? d["RestaurantName"] : "",
-                              }).ToList();
-                return Json(result);
+                DataTable table = load();
+                // Keep all SP columns (including IDs for cancellation), and serialize dates as ISO values.
+                var rows = table.AsEnumerable().Select(row => table.Columns.Cast<DataColumn>().ToDictionary(
+                    col => System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(col.ColumnName),
+                    col => row[col] == DBNull.Value ? null : row[col]));
+                return Json(rows);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
-                return Json(ex.Message);
+                _logger.LogError(ex, "Cannot load meal report from {FromDate} to {ToDate}", fromDate, toDate);
+                return StatusCode(500, new { success = false, message = "Cannot load meal report. Please check the database configuration." });
             }
-        }
-        
-        [HttpGet]
-        public IActionResult GetReportCancelMeal(DateTime fromDate, DateTime toDate)
-        {
-            try
-            {
-
-
-                DataTable dataTable = _iMiscellaneousService.ReportCancelMeal(fromDate, toDate);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  STT = !string.IsNullOrEmpty(d["STT"].ToString()) ? d["STT"] : "",
-                                  ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"] : "",
-                                  ReservationID = !string.IsNullOrEmpty(d["ReservationID"].ToString()) ? d["ReservationID"] : "",
-                                  CancelDate = !string.IsNullOrEmpty(d["CancelDate"].ToString()) ? d["CancelDate"] : "",
-                                  RoomNo = !string.IsNullOrEmpty(d["RoomNo"].ToString()) ? d["RoomNo"] : "",
-                                  RoomType = !string.IsNullOrEmpty(d["RoomType"].ToString()) ? d["RoomType"] : "",
-                                  Account = !string.IsNullOrEmpty(d["Account"].ToString()) ? d["Account"] : "",
-                                  ProfileID = !string.IsNullOrEmpty(d["ProfileID"].ToString()) ? d["ProfileID"] : "",
-                                  CardID = !string.IsNullOrEmpty(d["CardID"].ToString()) ? d["CardID"] : "",
-                                  MealShift = !string.IsNullOrEmpty(d["MealShift"].ToString()) ? d["MealShift"] : "",
-                                  Zone = !string.IsNullOrEmpty(d["Zone"].ToString()) ? d["Zone"] : "",
-                                  RestaurantName = !string.IsNullOrEmpty(d["RestaurantName"].ToString()) ? d["RestaurantName"] : "",
-                              }).ToList();
-                return Json(result);
-            }
-            catch (Exception ex)
-            {
-                return Json(ex.Message);
-            }
-            //  report.DataSource = dataTable;
-
-            // Không cần gán parameter
-            // report.RequestParameters = false;
-
-            // return PartialView("_ReportViewerPartial", report);
-        }
-       
-        [HttpGet]
-       
-        public IActionResult GetReportWaiveMeal(DateTime fromDate, DateTime toDate, string mealShift, string roomNo)
-        {
-            try
-            {
-
-
-                DataTable dataTable = _iMiscellaneousService.ReportWaiveMeal(fromDate, toDate, mealShift, roomNo);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                      
-                                  ReservationID = !string.IsNullOrEmpty(d["ReservationID"].ToString()) ? d["ReservationID"] : "",
-                                  RateDate = !string.IsNullOrEmpty(d["RateDate"].ToString()) ? d["RateDate"] : "",
-                                  BreakFast = !string.IsNullOrEmpty(d["BreakFast"].ToString()) ? d["BreakFast"] : "",
-                                  Lunch = !string.IsNullOrEmpty(d["Lunch"].ToString()) ? d["Lunch"] : "",
-                                  Dinner = !string.IsNullOrEmpty(d["Dinner"].ToString()) ? d["Dinner"] : "",
-                                  RoomNo = !string.IsNullOrEmpty(d["RoomNo"].ToString()) ? d["RoomNo"] : "",
-                                  Account = !string.IsNullOrEmpty(d["Account"].ToString()) ? d["Account"] : "",
-                              }).ToList();
-                return Json(result);
-            }
-            catch (Exception ex)
-            {
-                return Json(ex.Message);
-            }
-            //  report.DataSource = dataTable;
-
-            // Không cần gán parameter
-            // report.RequestParameters = false;
-
-            // return PartialView("_ReportViewerPartial", report);
-        }
-       
-        [HttpGet]
-        public IActionResult GetReportUsedBreakFastMeal(DateTime fromDate, DateTime toDate, string roomNo)
-        {
-            try
-            {
-
-
-                DataTable dataTable = _iMiscellaneousService.ReportUsedBreakFastMeal(fromDate, toDate, roomNo);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-
-                                  STT = !string.IsNullOrEmpty(d["STT"].ToString()) ? d["STT"] : "",
-                                  ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"] : "",
-                                  ReservationID = !string.IsNullOrEmpty(d["ReservationID"].ToString()) ? d["ReservationID"] : "",
-                                  UsingDate = !string.IsNullOrEmpty(d["UsingDate"].ToString()) ? d["UsingDate"] : "",
-                                  RoomNo = !string.IsNullOrEmpty(d["RoomNo"].ToString()) ? d["RoomNo"] : "",
-                                  RoomType = !string.IsNullOrEmpty(d["RoomType"].ToString()) ? d["RoomType"] : "",
-                                  Account = !string.IsNullOrEmpty(d["Account"].ToString()) ? d["Account"] : "",
-                                  ProfileID = !string.IsNullOrEmpty(d["ProfileID"].ToString()) ? d["ProfileID"] : "",
-                                  MealShift = !string.IsNullOrEmpty(d["MealShift"].ToString()) ? d["MealShift"] : "",
-                                  Zone = !string.IsNullOrEmpty(d["Zone"].ToString()) ? d["Zone"] : "",
-                                  RestaurantName = !string.IsNullOrEmpty(d["RestaurantName"].ToString()) ? d["RestaurantName"] : "",
-                                  Amount = !string.IsNullOrEmpty(d["Amount"].ToString()) ? d["Amount"] : "",
-                              }).ToList();
-                return Json(result);
-            }
-            catch (Exception ex)
-            {
-                return Json(ex.Message);
-            }
-            //  report.DataSource = dataTable;
-
-            // Không cần gán parameter
-            // report.RequestParameters = false;
-
-            // return PartialView("_ReportViewerPartial", report);
-        }
-        [HttpGet]
-        public IActionResult GetReportUseBreakFastMeal(DateTime fromDate, DateTime toDate, string roomNo)
-        {
-            try
-            {
-
-
-                DataTable dataTable = _iMiscellaneousService.ReportUseBreakFastMeal(fromDate, toDate, roomNo);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-
-                                  STT = !string.IsNullOrEmpty(d["STT"].ToString()) ? d["STT"] : "",              
-                                  UsingDate = !string.IsNullOrEmpty(d["UsingDate"].ToString()) ? d["UsingDate"] : "",
-                                  MealShift = !string.IsNullOrEmpty(d["MealShift"].ToString()) ? d["MealShift"] : "",
-                                  Account = !string.IsNullOrEmpty(d["Account"].ToString()) ? d["Account"] : "",
-                                  RoomNo = !string.IsNullOrEmpty(d["RoomNo"].ToString()) ? d["RoomNo"] : "",
-                                  Zone = !string.IsNullOrEmpty(d["Zone"].ToString()) ? d["Zone"] : "",                    
-                                  Amount = !string.IsNullOrEmpty(d["Amount"].ToString()) ? d["Amount"] : "",
-                              }).ToList();
-                return Json(result);
-            }
-            catch (Exception ex)
-            {
-                return Json(ex.Message);
-            }
-            //  report.DataSource = dataTable;
-
-            // Không cần gán parameter
-            // report.RequestParameters = false;
-
-            // return PartialView("_ReportViewerPartial", report);
         }
         #endregion
 

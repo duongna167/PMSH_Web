@@ -62,6 +62,13 @@
             border-radius: 3px;
         }
 
+    /* Các ô số liệu (chỉ đọc) căn lề phải, kể cả ô có màu (OOO, OOS, Clean, Dirty...) */
+    .form-row input:disabled,
+    .form-row input.status-box {
+        text-align: right;
+        padding-right: 8px;
+    }
+
     .search-flex-container {
         display: flex;
         gap: 15px;
@@ -138,27 +145,44 @@
 
     /* Trạng thái màu sắc (Giữ nguyên logic) */
     .status-box {
-        text-align: center;
+        text-align: right;
         font-weight: 600;
-        color: white;
+        color: #000;
         border-radius: 4px;
-        padding: 2px 0;
+        padding: 2px 8px 2px 0;
     }
 
-    .green {
-        background-color: #28a745;
+    /* Màu ô theo form WinForms: ô số liệu nền trắng chữ đen cho dễ đọc; ô tổng nền xám nhạt;
+       ô trạng thái dùng đúng màu WinForms (xanh lá, đỏ, hồng đậm, xám) chữ đen */
+    .form-row input:disabled {
+        background-color: #fff !important;
+        color: #000 !important;
+        opacity: 1;
+        border: 1px solid #7a7a7a;
     }
 
-    .red {
-        background-color: #dc3545;
+    .form-row input#cleanTotal:disabled,
+    .form-row input#cleannonTotal:disabled,
+    .form-row input#dirtyTotal:disabled,
+    .form-row input#totalVacant:disabled,
+    .form-row input#totalOccupied:disabled {
+        background-color: #f0f0f0 !important;
     }
 
-    .pink {
-        background-color: #ff00ff;
+    .form-row input.green:disabled, .green {
+        background-color: #00ff00 !important;
     }
 
-    .gray {
-        background-color: #6c757d;
+    .form-row input.red:disabled, .red {
+        background-color: #ff0000 !important;
+    }
+
+    .form-row input.pink:disabled, .pink {
+        background-color: #ff0080 !important;
+    }
+
+    .form-row input.gray:disabled, .gray {
+        background-color: #808080 !important;
     }
 
 
@@ -376,6 +400,14 @@
                                 <input id="cleanTotal" disabled>
                             </div>
                             <div class="form-row triple-input">
+                                <label>Clean Non-Checked</label>
+                                <input id="cleannonVacant" disabled>
+                                <i class="fas fa-ellipsis-h ellipsis-icon"></i>
+                                <input id="cleannonOccupied" disabled>
+                                <i class="fas fa-ellipsis-h ellipsis-icon"></i>
+                                <input id="cleannonTotal" disabled>
+                            </div>
+                            <div class="form-row triple-input">
                                 <label>Dirty</label>
                                 <input id="dirtyVacant" class="red" disabled>
                                 <i class="fas fa-ellipsis-h ellipsis-icon"></i>
@@ -436,8 +468,7 @@
                         Excel
                     </button>
 
-                    <button class="mui-button mui-button-close"
-                            data-bs-dismiss="modal">
+                    <button type="button" class="mui-button mui-button-close">
                         Close
                     </button>
                 </div>
@@ -588,6 +619,57 @@
         });
     });
 
+
+    /* =======================
+     * ĐÓNG POPUP "Detail House Status"
+     * Popup này mở chồng lên form House Status. Đóng bằng Close phải: ẩn popup, dọn lớp nền (backdrop) thừa,
+     * giữ form chính còn thao tác được, và có phương án dự phòng nếu hiệu ứng đóng bị kẹt (màn hình xám, không bấm được).
+     * ======================= */
+    function cleanupDetailPopup() {
+        const $grid = $("#logGridContainer");
+        if ($grid.data("dxDataGrid")) $grid.dxDataGrid("dispose");
+        $grid.empty();
+
+        // Mỗi modal đang mở chỉ giữ đúng một lớp nền; xoá các lớp nền thừa còn sót lại
+        // (giữ lớp nền đầu tiên - của form chính - và bỏ các lớp phía sau)
+        const openCount = $(".modal.show").length;
+        $(".modal-backdrop").slice(openCount).remove();
+        // Lớp nền của form chính phải nằm dưới form (z-index theo quy ước của _Layout: nền 1049, modal 1050)
+        $(".modal-backdrop").first().css("z-index", 1049);
+        $(".modal.show").first().css("z-index", 1050);
+
+        // Form chính còn mở thì body phải giữ trạng thái "modal-open" (Bootstrap bỏ class này khi đóng popup chồng)
+        if (openCount > 0) $("body").addClass("modal-open");
+        else $("body").removeClass("modal-open").css({ overflow: "", paddingRight: "" });
+    }
+
+    function closeDetailPopup() {
+        const el = document.getElementById("popupLogGrid");
+        const instance = bootstrap.Modal.getInstance(el);
+        if (instance) instance.hide();
+
+        // Dự phòng: sau 600ms mà popup vẫn còn hiện (hiệu ứng đóng bị kẹt) thì đóng cưỡng bức
+        setTimeout(function () {
+            if ($(el).hasClass("show")) {
+                $(el).removeClass("show").css("display", "none").attr("aria-hidden", "true").removeAttr("aria-modal role");
+                // Huỷ đối tượng modal cũ để lần mở sau tạo lại từ đầu (nếu không Bootstrap vẫn coi là đang mở và bỏ qua lệnh mở)
+                const stale = bootstrap.Modal.getInstance(el);
+                if (stale) stale.dispose();
+            }
+            // Luôn dọn lớp nền thừa sau khi đóng (kể cả khi sự kiện hidden.bs.modal không phát ra):
+            // lớp nền sót lại nằm đè lên form chính làm mờ và chặn mọi thao tác.
+            cleanupDetailPopup();
+        }, 700);
+    }
+
+    $(document).off("click.hsClose", "#popupLogGrid .mui-button-close")
+        .on("click.hsClose", "#popupLogGrid .mui-button-close", function (e) {
+            e.preventDefault();
+            closeDetailPopup();
+        });
+
+    $(document).off("hidden.bs.modal.hsDetail", "#popupLogGrid")
+        .on("hidden.bs.modal.hsDetail", "#popupLogGrid", cleanupDetailPopup);
 
     function initializeLogStatusGrid(data, inputId) {
         const columnWidth = 130;
@@ -911,6 +993,24 @@
                 { dataField: "zone", caption: "Zone", width: "60%" },
             );
         }
+        // Cột STT (số thứ tự) ở đầu: đánh số theo thứ tự đang hiển thị (đúng cả khi lọc/sắp xếp và khi sang trang khác)
+        columns.unshift({
+            caption: "No.",
+            width: 60,
+            alignment: "center",
+            allowFiltering: false,
+            allowHeaderFiltering: false,
+            allowSorting: false,
+            allowResizing: false,
+            cellTemplate: function (container, options) {
+                if (options.data && options.data.isTotal) return; // dòng tổng không đánh số
+                const grid = options.component;
+                const pageSize = grid.pageSize() || 0;
+                const offset = pageSize > 0 ? grid.pageIndex() * pageSize : 0; // "all" -> pageSize = 0
+                $(container).text(offset + options.rowIndex + 1);
+            }
+        });
+
         $("#logGridContainer").dxDataGrid({
             dataSource: data,
             allowColumnResizing: true,
