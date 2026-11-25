@@ -114,6 +114,24 @@ namespace Report.Services.Interfaces
         DataTable PaidOutReportData(DateTime fromDate, DateTime toDate);
         DataTable HistoryAndForecastData(DateTime fromDate, DateTime toDate, string zone);
         DataTable MarketSegmentDetailData(DateTime fromDate, DateTime toDate, string zone);
+        DataTable GroupBalanceSearch(string confirmationNo);
+        DataTable GroupBalanceDetail(string confirmationNo);
+        (string Holder, string GroupName, int TotalRooms, int InHouse) GroupBalanceSummary(string confirmationNo);
+        DataTable ProfileProductionStatisticsData(DateTime fromDate, DateTime toDate, int profileType, int profileId, string roomClassId, string currencyId, bool includeTax, bool rollupMaster, string metrics);
+        DataTable BookingbyHolderData(DateTime date, string holder, string market);
+        DataTable ReportHolderLookup();
+        DataTable FrequentFlyerData(DateTime fromDate, DateTime toDate, string status, string memberID, int isSortByCardName);
+        DataTable PackageReportbyPersonData(DateTime fromDate, DateTime toDate);
+        DataTable AgingbyTypeOnlyData(DateTime date, int accType, string sort);
+        DataTable AgingSummaryByTypeData(DateTime date, string sort);
+        DataTable ARAdjustmentData(DateTime fromDate, DateTime toDate);
+        DataTable ARCreditLimitData(int option1, int option2, int sort);
+        DataTable ARLedgerData(DateTime date);
+        DataTable ARPaymentsData(DateTime date);
+        DataTable ARTransferReportData(DateTime date);
+        DataTable ProfileUpdateReportData(DateTime date, string confirmationNo, string roomNo, string name);
+        DataTable ReservationViewData(int status, string nationality, string city, string country);
+        DataTable ReservationCommentsData(DateTime fromDate, DateTime toDate, string status, int viewBy, int type);
     }
 
 }

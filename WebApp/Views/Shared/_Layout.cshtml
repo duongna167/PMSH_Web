@@ -626,7 +626,7 @@
                             <a class="nav-link" href="#">SECURITY</a>
                             <div class="dropdown-menu-custom">
                                 <a href="javascript:void(0);" onclick="openUserGroup()" data-action="Sec_UserGroup_View">User of group</a>
-                                <a href="javascript:void(0);" onclick="openAddFuncitionsToList()" data-action="usr_Functions">Add Functions To List</a>
+                                <a href="javascript:void(0);" onclick="openAddFuncitionsToList()" data-action="usr_Functions">Function List</a>
                                 <a href="javascript:void(0);" onclick="openUsersManagement()" data-action="UsersManagement_web">Users Management</a>
                                 <a href="javascript:void(0);" onclick="openPasswordHistory()" data-action="usr_PasswordHistory">Password History</a>
                                 <a href="javascript:void(0);" onclick="openUserMapping()" data-action="usr_UserRight">User mapping</a>
@@ -1376,50 +1376,82 @@
 
           initGlobalEvents: function() {
 
+              function modalZ(el) {
+                  if (!el) return 0;
+                  const inline = parseInt(el.style.zIndex, 10);
+                  if (!isNaN(inline) && inline > 0) return inline;
+                  return parseInt(getComputedStyle(el).zIndex, 10) || 0;
+              }
+
+              function shownModals() {
+                  return Array.from(document.querySelectorAll(".modal.show"));
+              }
+
+              function stackedModals() {
+                  return shownModals().sort(function (a, b) {
+                      const d = modalZ(a) - modalZ(b);
+                      return d !== 0 ? d : 0;
+                  });
+              }
+
+              function restoreAfterChildClose(parent) {
+                  document.body.classList.add("modal-open");
+                  if (!parent || !parent.classList.contains("show")) return;
+                  $(parent).find(".modal-content").removeClass("modal-blur");
+                  parent.focus({ preventScroll: true });
+              }
+
               // Focus can still be on the parent when a child is opened programmatically.
               // Handle the stack before Bootstrap handles Escape on the focused modal.
               let handledStackEscape = false;
               let closingStackModal = null;
               document.addEventListener("keydown", function (event) {
-                  if (event.key !== "Escape" || event.isComposing || event.defaultPrevented) return;
+                  if (event.key !== "Escape" || event.isComposing) return;
                   if (closingStackModal || (event.repeat && handledStackEscape)) {
                       event.preventDefault();
+                      event.stopPropagation();
                       event.stopImmediatePropagation();
                       return;
                   }
                   handledStackEscape = false;
                   if ($(".cc-overlay:visible, .swal2-container:visible, .pmsh-select-menu:visible").length) return;
+                  if ($(event.target).closest(".dx-overlay-content, .ts-dropdown, .ts-wrapper.dropdown-active").length) return;
 
-                  const modals = Array.from(document.querySelectorAll(".modal.show"))
-                      .sort((first, second) => (parseInt(getComputedStyle(first).zIndex, 10) || 0)
-                          - (parseInt(getComputedStyle(second).zIndex, 10) || 0));
-                  if (modals.length < 2 || !modals.slice(0, -1).some(modal => modal.classList.contains("managed-modal"))) return;
+                  const modals = stackedModals();
+                  if (!modals.length) return;
 
                   const top = modals[modals.length - 1];
-                  if (top.getAttribute("data-bs-keyboard") === "false"
-                      || top.querySelector(".ts-wrapper.dropdown-active, .ts-dropdown:focus-within")
-                      || $(event.target).closest(".dx-overlay-content").length) return;
-
-                  const instance = bootstrap.Modal.getInstance(top);
+                  const instance = bootstrap.Modal.getInstance(top) || bootstrap.Modal.getOrCreateInstance(top, { backdrop: "static", keyboard: false });
                   if (!instance) return;
+
                   event.preventDefault();
+                  event.stopPropagation();
                   event.stopImmediatePropagation();
                   handledStackEscape = true;
 
-                  const parent = modals[modals.length - 2];
-                  closingStackModal = top;
-                  $(top).off("hidden.bs.modal.stackEscape").one("hidden.bs.modal.stackEscape", function () {
-                      closingStackModal = null;
-                      if (!parent.classList.contains("show")) return;
-                      document.body.classList.add("modal-open");
-                      parent.focus({ preventScroll: true });
-                  });
-                  instance.hide();
-                  if (top.classList.contains("show")) {
-                      closingStackModal = null;
-                      $(top).off("hidden.bs.modal.stackEscape");
+                  const parent = modals.length >= 2 ? modals[modals.length - 2] : null;
+                  if (parent) {
+                      closingStackModal = top;
+                      $(top).off("hidden.bs.modal.stackEscape").one("hidden.bs.modal.stackEscape", function () {
+                          closingStackModal = null;
+                          restoreAfterChildClose(parent);
+                      });
                   }
+                  instance.hide();
               }, true);
+
+              // Never hide a parent while a higher child dialog is still shown.
+              $(document).on("hide.bs.modal", ".modal", function (e) {
+                  const el = this;
+                  const higher = shownModals().filter(function (m) {
+                      return m !== el && modalZ(m) > modalZ(el);
+                  });
+                  if (!higher.length) return;
+                  e.preventDefault();
+                  const top = higher.sort(function (a, b) { return modalZ(a) - modalZ(b); }).pop();
+                  const inst = bootstrap.Modal.getInstance(top);
+                  if (inst && top !== closingStackModal) inst.hide();
+              });
 
               $(document).on("input change", ".is-invalid, .tomselect-custom, [data-date-input] input", function () {
                   if (window.ValidationAdapter) window.ValidationAdapter.clearField(this);
@@ -1459,8 +1491,21 @@
 
               });
 
-              $(document).on("hidden.bs.modal", ".modal.managed-modal", function () {
-                  $('.modal.show').last().find('.modal-content').removeClass('modal-blur');
+              $(document).on("hidden.bs.modal", ".modal", function () {
+                  const rest = stackedModals();
+                  const backs = Array.from(document.querySelectorAll(".modal-backdrop"));
+                  backs.slice(rest.length).forEach(function (b) { b.remove(); });
+                  if (!rest.length) return;
+                  document.body.classList.add("modal-open");
+                  const top = rest[rest.length - 1];
+                  rest.forEach(function (m, i) {
+                      $(m).css("z-index", 1050 + (10 * i));
+                      $(m).find(".modal-content").toggleClass("modal-blur", m !== top);
+                  });
+                  document.querySelectorAll(".modal-backdrop").forEach(function (b, i) {
+                      b.style.zIndex = String(1049 + (10 * i));
+                  });
+                  top.focus({ preventScroll: true });
               });
 
               $(document).on("hide.bs.modal", ".modal.managed-modal", function () {
@@ -1531,10 +1576,12 @@
 
                       if (showModal) {
 
-                          const modal = new bootstrap.Modal(modalEl,{
+                          const modal = bootstrap.Modal.getOrCreateInstance(modalEl,{
                               backdrop:'static',
-                              keyboard:true
+                              keyboard:false
                           });
+
+                          const hostedModals = $container.find(".modal").get();
 
                           $(modalEl).one("hidden.bs.modal", () => {
 
@@ -1542,8 +1589,14 @@
                               // Modal đã bị chuyển ra <body> nên phải xóa riêng, không chỉ xóa container
                               $ownedModals.each(function () {
                                   if (this !== modalEl) bootstrap.Modal.getInstance(this)?.dispose();
+                                  if (this.parentNode) this.remove();
                               });
-                              $ownedModals.remove();
+                              hostedModals.forEach(function (el) {
+                                  const inst = bootstrap.Modal.getInstance(el);
+                                  if (inst) inst.dispose();
+                                  if (el.parentNode) el.remove();
+                              });
+                              if (modalEl.parentNode) modalEl.remove();
                               $container.remove();
 
                               if ($('.modal.show').length > 0)

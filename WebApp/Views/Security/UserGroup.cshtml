@@ -251,14 +251,25 @@
                 cleanup();
             });
 
+            function stackUpsert() {
+                const el = document.querySelector(sel.modalUpsert);
+                if (!el) return;
+                if (el.parentElement !== document.body) document.body.appendChild(el);
+                const shownCount = document.querySelectorAll(".modal.show").length;
+                const modalZ = Math.max(1080, 1050 + (10 * Math.max(shownCount, 1)));
+                el.style.zIndex = String(modalZ);
+                const backs = document.querySelectorAll(".modal-backdrop");
+                if (backs.length) backs[backs.length - 1].style.zIndex = String(modalZ - 1);
+            }
+
             $(sel.modalUpsert).off("show.bs.modal.usGr").on("show.bs.modal.usGr", function () {
                 $(sel.modalMain).find(".modal-content").addClass("modal-blur");
-                this.style.zIndex = "1065";
+                stackUpsert();
             });
 
             $(sel.modalUpsert).off("shown.bs.modal.usGr").on("shown.bs.modal.usGr", function () {
-                const backs = document.querySelectorAll(".modal-backdrop");
-                if (backs.length) backs[backs.length - 1].style.zIndex = "1060";
+                stackUpsert();
+                setTimeout(stackUpsert, 0);
             });
 
             $(sel.modalUpsert).off("hidden.bs.modal.usGr").on("hidden.bs.modal.usGr", function () {
@@ -319,31 +330,7 @@
                 save();
             });
 
-            $(document).off("keydown.usGrEsc").on("keydown.usGrEsc", function (e) {
-                if (e.key !== "Escape" && e.keyCode !== 27) return;
-                if ($(".cc-overlay").length || $(".swal2-container:visible").length) return;
-                if (!$(sel.modalMain).hasClass("show") && !$(sel.modalUpsert).hasClass("show")) return;
-
-                let top = null;
-                let topZ = -1;
-                document.querySelectorAll(".modal.show").forEach(function (el) {
-                    const z = parseInt(window.getComputedStyle(el).zIndex, 10) || 0;
-                    if (z >= topZ) {
-                        topZ = z;
-                        top = el;
-                    }
-                });
-                if (top && top.id !== "usGr_modalUpsert" && top.id !== "usGr_modalMain") return;
-
-                e.preventDefault();
-                e.stopImmediatePropagation();
-
-                if ($(sel.modalUpsert).hasClass("show")) {
-                    upsertModal.hide();
-                    return;
-                }
-                mainModal.hide();
-            });
+            $(document).off("keydown.usGrEsc");
         }
 
         function showLoading(on) {

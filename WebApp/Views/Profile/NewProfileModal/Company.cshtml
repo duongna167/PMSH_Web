@@ -533,8 +533,9 @@
                 data: item
             });
 
+            this.cityCountry = bindCitySelectToCountry("#com_txtCountry", "#com_txtCity");
+
             const loadPromises = [
-                new Promise(resolve => loadDataToTomSelect("#com_txtCity", "/Profile/GetAllCity", mapCode, resolve)),
                 new Promise(resolve => loadDataToTomSelect("#com_txtCountry", "/Profile/GetAllCountry", mapCode, resolve)),
                 new Promise(resolve => loadDataToTomSelect("#com_txtOwner", "/Profile/GetAllOwner", mapCode, resolve)),
                 new Promise(resolve => loadDataToTomSelect("#com_txtTerritory", "/Profile/GetAllTerritory", mapCode, resolve)),
@@ -629,8 +630,14 @@
                 if (ts && val) ts.setValue(val);
             };
 
-            setTS("#com_txtCity", data.city);
-            setTS("#com_txtCountry", data.countryID);
+            const countryTs = getTomSelect("#com_txtCountry");
+            if (countryTs) {
+                countryTs._suspendCityReload = true;
+                countryTs.setValue(data.countryID || "", true);
+                countryTs._suspendCityReload = false;
+            }
+            if (this.cityCountry) this.cityCountry.load(data.countryID, data.city);
+            else setTS("#com_txtCity", data.city);
             setTS("#com_txtState", data.stateID);
             setTS("#com_txtOwner", data.ownerID);
             setTS("#com_txtTerritory", data.territoryID);

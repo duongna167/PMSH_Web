@@ -753,6 +753,9 @@ window.showAccessDenied = function () {
     alert("Access Denied");
 };
 
+window.PMSH_SERVER_CONNECTION_MSG =
+    "Unable to connect server. Please check connection or server";
+
 $(document).ajaxError(function (_event, jqxhr) {
     if (!jqxhr) return;
     if (jqxhr.status === 401) {

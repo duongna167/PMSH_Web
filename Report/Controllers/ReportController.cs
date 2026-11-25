@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.Mvc.ViewEngines;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using BaseBusiness.Auth;
 using Report.Services.Implements;
 using Report.Services.Interfaces;
 
@@ -3115,11 +3116,11 @@ namespace Report.Controllers
             }            
             }
         [HttpGet]
-        public IActionResult DailyRevenueReportNew(DateTime dateView)
+        public IActionResult DailyRevenueReportNew(string dateView)
         {
             try
             {
-                DataTable dt = _iReportService.DailyRevenueReportNew(dateView);
+                DataTable dt = _iReportService.DailyRevenueReportNew(ParseReportDate(dateView));
                 var result = (from d in dt.AsEnumerable()
                               select new
                               {
@@ -3147,11 +3148,12 @@ namespace Report.Controllers
             }
         }
         [HttpGet]
-        public IActionResult DailyRevenueReportsV2(DateTime dateView)
+        public IActionResult DailyRevenueReportsV2(string dateView)
         {
             try
             {
-                DataTable dt = _iReportService.DailyRevenueReportsV2(dateView);
+                DataTable dt = _iReportService.DailyRevenueReportsV2(ParseReportDate(dateView));
+                if (dt == null) return Json(Array.Empty<object>());
                 var result = (from d in dt.AsEnumerable()
                               select new
                               {
@@ -3662,7 +3664,9 @@ namespace Report.Controllers
             }
         }
 
-        private IActionResult JsonTable(DataTable table)
+        private IActionResult JsonTable(DataTable table) => Json(TableRows(table));
+
+        private static List<Dictionary<string, object>> TableRows(DataTable table)
         {
             var rows = new List<Dictionary<string, object>>();
             if (table != null)
@@ -3678,10 +3682,63 @@ namespace Report.Controllers
                     rows.Add(d);
                 }
             }
-            return Json(rows);
+            return rows;
         }
 
         private static DateTime NzDate(DateTime d) => d == default ? DateTime.Today : d;
+
+        private static string ColStr(DataRow d, string col)
+        {
+            if (d == null || d.Table == null || !d.Table.Columns.Contains(col) || d[col] == DBNull.Value) return "";
+            return Convert.ToString(d[col]) ?? "";
+        }
+
+        private static decimal ColDec(DataRow d, string col)
+        {
+            if (d == null || d.Table == null || string.IsNullOrEmpty(col) || !d.Table.Columns.Contains(col) || d[col] == DBNull.Value)
+                return 0m;
+            try { return Convert.ToDecimal(d[col]); }
+            catch { return 0m; }
+        }
+
+        private static string ColDate(DataRow d, string col)
+        {
+            if (d == null || d.Table == null || string.IsNullOrEmpty(col) || !d.Table.Columns.Contains(col) || d[col] == DBNull.Value) return "";
+            if (d[col] is DateTime dt)
+            {
+                if (dt.Year <= 1900) return "";
+                return dt.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+            }
+            if (DateTime.TryParse(Convert.ToString(d[col]), out var parsed))
+            {
+                if (parsed.Year <= 1900) return "";
+                return parsed.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+            }
+            return Convert.ToString(d[col]) ?? "";
+        }
+
+        private static string FirstExisting(DataRow d, params string[] cols)
+        {
+            if (d?.Table == null || cols == null) return "";
+            foreach (var c in cols)
+                if (!string.IsNullOrEmpty(c) && d.Table.Columns.Contains(c)) return c;
+            return "";
+        }
+
+        private static string FirstCol(DataRow d, params string[] cols) => ColStr(d, FirstExisting(d, cols));
+
+        private static DateTime ParseReportDate(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return DateTime.Today;
+            raw = raw.Trim();
+            if (DateTime.TryParseExact(raw, new[] { "yyyy-MM-dd", "dd/MM/yyyy", "dd/MM/yy", "yyyy-MM-ddTHH:mm:ss" },
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out var d))
+                return d.Date;
+            if (DateTime.TryParse(raw, CultureInfo.GetCultureInfo("vi-VN"), DateTimeStyles.None, out d))
+                return d.Date;
+            if (DateTime.TryParse(raw, out d)) return d.Date;
+            return DateTime.Today;
+        }
 
         [HttpGet]
         public IActionResult GuestBirthdayReportData(DateTime fromDate, DateTime toDate, string reservationStatus, string orderBy)
@@ -3809,6 +3866,244 @@ namespace Report.Controllers
             catch (Exception ex) { return Json(ex.Message); }
         }
 
+        [HttpGet]
+        public IActionResult GroupBalanceSearch(string confirmationNo)
+        {
+            try { return JsonTable(_iReportService.GroupBalanceSearch(confirmationNo)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult GroupBalanceDetail(string confirmationNo)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(confirmationNo))
+                    return Json("Confirmation No dose not exits.");
+                var table = _iReportService.GroupBalanceDetail(confirmationNo);
+                var sum = _iReportService.GroupBalanceSummary(confirmationNo);
+                return Json(new
+                {
+                    rows = TableRows(table),
+                    holder = sum.Holder,
+                    groupName = sum.GroupName,
+                    totalRooms = sum.TotalRooms,
+                    inHouse = sum.InHouse
+                });
+            }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult ProfileProductionStatisticsData(DateTime fromDate, DateTime toDate, int profileType, int profileId, string roomClassId, string currencyId, bool includeTax, bool rollupMaster, string metrics)
+        {
+            try
+            {
+                return JsonTable(_iReportService.ProfileProductionStatisticsData(
+                    NzDate(fromDate), NzDate(toDate), profileType, profileId, roomClassId, currencyId, includeTax, rollupMaster, metrics));
+            }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult BookingbyHolderData(DateTime date, string holder, string market)
+        {
+            try { return JsonTable(_iReportService.BookingbyHolderData(NzDate(date), holder, market)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        public IActionResult ReportHolderLookup()
+        {
+            try { return JsonTable(_iReportService.ReportHolderLookup()); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        [RequireFunction("rptAgingbyTypeOnly")]
+        public IActionResult AgingbyTypeOnlyData(DateTime date, int accType, string sort)
+        {
+            try { return JsonTable(_iReportService.AgingbyTypeOnlyData(NzDate(date), accType, sort ?? "")); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        [RequireFunction("rptAgingSummaryByType")]
+        public IActionResult AgingSummaryByTypeData(string date, string sort)
+        {
+            try { return JsonTable(_iReportService.AgingSummaryByTypeData(ParseReportDate(date), sort ?? "")); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        [RequireFunction("rptARAdjustment")]
+        public IActionResult ARAdjustmentData(string fromDate, string toDate)
+        {
+            try { return JsonTable(_iReportService.ARAdjustmentData(ParseReportDate(fromDate), ParseReportDate(toDate))); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        [RequireFunction("rptARCreditLimit")]
+        public IActionResult ARCreditLimitData(int option1, int option2, int sort)
+        {
+            try { return JsonTable(_iReportService.ARCreditLimitData(option1, option2, sort)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        [RequireFunction("rptARLedger")]
+        public IActionResult ARLedgerData(DateTime date)
+        {
+            try { return JsonTable(_iReportService.ARLedgerData(NzDate(date))); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        [RequireFunction("rptARPayments")]
+        public IActionResult ARPaymentsData(DateTime date)
+        {
+            try { return JsonTable(_iReportService.ARPaymentsData(NzDate(date))); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        [RequireFunction("rptARTransferReport")]
+        public IActionResult ARTransferReportData(string date)
+        {
+            try { return JsonTable(_iReportService.ARTransferReportData(ParseReportDate(date))); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        [RequireFunction("rpt_Spr_ProfileUpdate")]
+        public IActionResult ProfileUpdateReportData(string date, string confirmationNo, string roomNo, string name)
+        {
+            try
+            {
+                var table = _iReportService.ProfileUpdateReportData(ParseReportDate(date), confirmationNo ?? "", roomNo ?? "", name ?? "");
+                var result = new List<Dictionary<string, object>>();
+                if (table != null)
+                {
+                    foreach (DataRow d in table.Rows)
+                    {
+                        result.Add(new Dictionary<string, object>
+                        {
+                            ["id"] = ColStr(d, "ID"),
+                            ["nationality"] = ColStr(d, "Nationality"),
+                            ["confirmationNo"] = ColStr(d, "ConfirmationNo"),
+                            ["roomNo"] = ColStr(d, "RoomNo"),
+                            ["account"] = ColStr(d, "Account"),
+                            ["dateOfBirth"] = ColDate(d, "DateOfBirth"),
+                            ["passPort"] = FirstCol(d, "PassPort", "Passport"),
+                            ["identityCard"] = ColStr(d, "IdentityCard"),
+                            ["email"] = ColStr(d, "Email"),
+                            ["address"] = ColStr(d, "Address"),
+                            ["createBy"] = ColStr(d, "CreateBy"),
+                            ["createDate"] = ColDate(d, "CreateDate"),
+                            ["updateBy"] = ColStr(d, "UpdateBy"),
+                            ["status"] = ColStr(d, "Status"),
+                            ["updateDate"] = ColDate(d, FirstExisting(d, "UpdateDate", "UpDateDate", "UpdDate"))
+                        });
+                    }
+                }
+                return Json(result);
+            }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        [RequireFunction("rpt_Spr_FFPAndotherCards")]
+        public IActionResult FrequentFlyerData(DateTime fromDate, DateTime toDate, string status, string memberID, int isSortByCardName = 0)
+        {
+            try
+            {
+                DataTable dataTable = _iReportService.FrequentFlyerData(NzDate(fromDate), NzDate(toDate), status ?? "", memberID ?? "", isSortByCardName);
+                var result = new List<Dictionary<string, object>>();
+                if (dataTable != null)
+                {
+                    foreach (DataRow d in dataTable.Rows)
+                    {
+                        result.Add(new Dictionary<string, object>
+                        {
+                            ["roNo"] = ColStr(d, "RoNo"),
+                            ["name"] = ColStr(d, "Name"),
+                            ["cardNumber"] = ColStr(d, "CardNumber"),
+                            ["arrival"] = ColDate(d, "Arrival"),
+                            ["depart"] = ColDate(d, "Depart"),
+                            ["nights"] = ColStr(d, "Nights"),
+                            ["marketCode"] = ColStr(d, "MarketCode"),
+                            ["rateCode"] = ColStr(d, "RateCode"),
+                            ["status"] = ColStr(d, "Status"),
+                            ["member"] = ColStr(d, "Member"),
+                            ["cardHolder"] = ColStr(d, "CardHolder")
+                        });
+                    }
+                }
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+
+        [HttpGet]
+        [RequireFunction("rpt_Spr_ReservationView")]
+        public IActionResult ReservationViewData(int status, string nationality, string city, string country)
+        {
+            try { return JsonTable(_iReportService.ReservationViewData(status, nationality, city, country)); }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        [RequireFunction("rpt_Spr_ReportComments")]
+        public IActionResult ReservationCommentsData(string fromDate, string toDate, int status, int viewBy)
+        {
+            try
+            {
+                var st = status == 1 ? "0,5" : status == 2 ? "1,6" : status == 3 ? "2" : "";
+                var type = viewBy == 2 ? 1 : 0;
+                return JsonTable(_iReportService.ReservationCommentsData(
+                    ParseReportDate(fromDate), ParseReportDate(toDate), st, viewBy, type));
+            }
+            catch (Exception ex) { return Json(ex.Message); }
+        }
+
+        [HttpGet]
+        [RequireFunction("rpt_Spr_PackageReportbyPerson")]
+        public IActionResult PackageReportbyPersonData(DateTime fromDate, DateTime toDate)
+        {
+            try
+            {
+                DataTable dataTable = _iReportService.PackageReportbyPersonData(NzDate(fromDate), NzDate(toDate));
+                var result = new List<Dictionary<string, object>>();
+                if (dataTable != null)
+                {
+                    foreach (DataRow d in dataTable.Rows)
+                    {
+                        result.Add(new Dictionary<string, object>
+                        {
+                            ["package"] = ColStr(d, "Package"),
+                            ["name"] = FirstCol(d, "PackageName", "Name"),
+                            ["a"] = ColDec(d, "NoOfAdult"),
+                            ["c"] = ColDec(d, "NoOfChild"),
+                            ["c1"] = ColDec(d, "NoOfChild1"),
+                            ["c2"] = ColDec(d, "NoOfChild2"),
+                            ["bn1"] = ColDec(d, "BN1"),
+                            ["bn2"] = ColDec(d, FirstExisting(d, "Person", "BN2")),
+                            ["rn"] = ColDec(d, "RN")
+                        });
+                    }
+                }
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+
         private static readonly TimeSpan LookupCacheTtl = TimeSpan.FromMinutes(15);
 
         private List<T> CachedLookup<T>(string key, Func<List<T>> factory)
@@ -3886,17 +4181,58 @@ namespace Report.Controllers
                         ViewBag.CompanyList = CachedLookup("rpt:company", () =>
                             PropertyUtils.ConvertToList<ProfileModel>(ProfileBO.Instance.FindAll()).Where(x => x.Type == 2).ToList());
                         break;
+                    case "holder":
+                        break;
                     case "dept":
                         ViewBag.DepartmentList = CachedLookup("rpt:dept", () => PropertyUtils.ConvertToList<DepartmentModel>(DepartmentBO.Instance.FindAll()));
                         break;
                     case "comment":
                         ViewBag.ComList = CachedLookup("rpt:comment", () => PropertyUtils.ConvertToList<CommentModel>(CommentBO.Instance.FindAll()));
                         break;
+                    case "memberType":
+                        ViewBag.MemberTypeList = CachedLookup("rpt:memberType", () =>
+                            PropertyUtils.ConvertToList<MemberTypeModel>(MemberTypeBO.Instance.FindAll())
+                                .Where(x => !x.Inactive)
+                                .OrderBy(x => x.Name ?? x.Code)
+                                .ToList());
+                        break;
+                    case "memberCat":
+                        ViewBag.MemberCategoryList = CachedLookup("rpt:memberCat", () =>
+                            PropertyUtils.ConvertToList<MemberCategoryModel>(MemberCategoryBO.Instance.FindAll())
+                                .Where(x => !x.Inactive)
+                                .OrderBy(x => x.Name ?? x.Code)
+                                .ToList());
+                        break;
                     case "alert":
                         ViewBag.ALertList = CachedLookup("rpt:alert", () => PropertyUtils.ConvertToList<AlertsSetupModel>(AlertsSetupBO.Instance.FindAll()));
                         break;
                     case "currency":
                         ViewBag.CurrencyList = CachedLookup("rpt:currency", () => PropertyUtils.ConvertToList<CurrencyModel>(CurrencyBO.Instance.FindAll()));
+                        break;
+                    case "nationality":
+                        ViewBag.NationalityList = CachedLookup("rpt:nationality", () =>
+                            PropertyUtils.ConvertToList<NationalityModel>(NationalityBO.Instance.FindAll())
+                                ?.Where(x => !x.Inactive)
+                                .OrderBy(x => x.Name ?? x.Code)
+                                .ToList());
+                        break;
+                    case "city":
+                        ViewBag.CityList = CachedLookup("rpt:city", () =>
+                            PropertyUtils.ConvertToList<CityModel>(CityBO.Instance.FindAll())
+                                ?.Where(x => !x.Inactive)
+                                .OrderBy(x => x.Name ?? x.Code)
+                                .ToList());
+                        break;
+                    case "country":
+                        ViewBag.CountryList = CachedLookup("rpt:country", () =>
+                            PropertyUtils.ConvertToList<CountryModel>(CountryBO.Instance.FindAll())
+                                ?.Where(x => !x.Inactive)
+                                .OrderBy(x => x.Name ?? x.Code)
+                                .ToList());
+                        break;
+                    case "arAccType":
+                        ViewBag.ARAccountTypeList = CachedLookup("rpt:arAccType", () =>
+                            PropertyUtils.ConvertToList<ARAccountTypeModel>(ARAccountTypeBO.Instance.FindAll()));
                         break;
                 }
             }
@@ -3983,9 +4319,19 @@ namespace Report.Controllers
                 case "RoomStatistic":
                 case "ReservationRateCheck":
                 case "TrialBalance":
-                case "TransferARReport":
                 case "DepositRequestLogReport":
                     BindLookups("roomClass");
+                    break;
+                case "TransferARReport":
+                    BindLookups("cashier");
+                    break;
+                case "GroupBalance":
+                    break;
+                case "ProfileProductionStatistics":
+                    BindLookups("roomClass", "currency");
+                    break;
+                case "BookingbyHolder":
+                    BindLookups("market");
                     break;
                 case "AnnualRoomOccupancy":
                 case "RatecodeReport":
@@ -4043,6 +4389,19 @@ namespace Report.Controllers
                     break;
                 case "Alerts":
                     BindLookups("alert");
+                    break;
+                case "FrequentFlyerReport":
+                    BindLookups("memberCat", "memberType");
+                    break;
+                case "PackageReportbyPerson":
+                    break;
+                case "ReservationView":
+                    BindLookups("nationality", "city", "country");
+                    break;
+                case "ReservationComments":
+                    break;
+                case "AgingbyTypeOnly":
+                    BindLookups("arAccType");
                     break;
                 case "ReservationCancellationChart":
                     BindLookups("comment");

@@ -25,7 +25,7 @@ namespace Profile.Services.Implements
                 };
 
                 DataTable myTable = DataTableHelper.getTableData("spProfileFuture", param);
-                return myTable;
+                return myTable ?? new DataTable();
             }
             catch (SqlException ex)
             {

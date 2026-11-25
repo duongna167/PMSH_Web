@@ -38,7 +38,7 @@ namespace BaseBusiness.util
 			}
 			catch
 			{
-				throw new Exception("Can not connect to DB");
+				throw new Exception(PmshMessages.ServerConnectionError);
 			}
 		}
 
@@ -51,7 +51,7 @@ namespace BaseBusiness.util
             }
             catch
             {
-                throw new Exception("Can not connect to DB");
+                throw new Exception(PmshMessages.ServerConnectionError);
             }
         }
 
