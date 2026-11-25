@@ -52,7 +52,7 @@ namespace HouseKeeping.Services.Implements
             DataTable myTable = DataTableHelper.getTableData("spGetRoomOCC", param);
             return myTable;
         }
-        public DataTable RoomStatusData(int cleannon_room, int clean, int dirty, int pickup, int oocheck, int oscheck, int vacant, int occupied, int arrivals, int arrived, int stayover, int dayuse, int dueout, int departed, int notReserved, int departuredarr, string roomType, string zone, string roomFrom, string roomTo)
+        public DataTable RoomStatusData(int cleannon_room, int clean, int dirty, int pickup, int oocheck, int oscheck, int vacant, int occupied, int arrivals, int arrived, int stayover, int dayuse, int dueout, int departed, int notReserved, int departuredarr, string roomType, string zone, string roomFrom, string roomTo, DateTime businessDate)
         {
             SqlParameter[] param = new SqlParameter[]
             {
@@ -74,7 +74,11 @@ namespace HouseKeeping.Services.Implements
                 new SqlParameter("@Departed", departed),
                  new SqlParameter("@NotReserved", notReserved),
                         new SqlParameter("@Departured", departuredarr),
-                          new SqlParameter("@CurrentDate", DateTime.Now),
+                          new SqlParameter("@CurrentDate", businessDate),
+                          new SqlParameter("@StartRoomNo", roomFrom ?? ""),
+                new SqlParameter("@ToRoom", roomTo ?? ""),
+                 new SqlParameter("@RoomTypeID", roomType ?? ""),
+                        new SqlParameter("@ZoneID", zone ?? ""),
             };
 
             DataTable myTable = DataTableHelper.getTableData("spHkpRoomStatus", param);
@@ -263,6 +267,15 @@ namespace HouseKeeping.Services.Implements
 
             DataTable myTable = DataTableHelper.getTableData("spTaskAssignmentSearch", param);
             return myTable;
+        }
+
+        public DataTable TasksheetDetailSearchByRoom(string roomNo)
+        {
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@RoomNo", roomNo)
+            };
+            return DataTableHelper.getTableData("spTasksheetDetailSearch", param);
         }
 
         public DataTable RoomAttendentDailyWorksheetData(DateTime fromDate, string attendant, string tasksheet, string roomStatus, string facilityCode)

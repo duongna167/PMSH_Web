@@ -12,7 +12,7 @@ namespace HouseKeeping.Services.Interfaces
     {
         DataTable RoomControlPanelData(DateTime fromDate, DateTime toDate, string zone);
         DataTable RoomFacilityForecastData(DateTime fromDate, DateTime toDate, string zone);
-        DataTable RoomStatusData(int cleannon_room, int clean, int dirty, int pickup, int oocheck, int oscheck, int vacant, int occupied, int arrivals, int arrived, int stayover, int dayuse, int dueout, int departed, int notReserved, int departuredarr, string roomType, string zone, string roomFrom, string roomTo);
+        DataTable RoomStatusData(int cleannon_room, int clean, int dirty, int pickup, int oocheck, int oscheck, int vacant, int occupied, int arrivals, int arrived, int stayover, int dayuse, int dueout, int departed, int notReserved, int departuredarr, string roomType, string zone, string roomFrom, string roomTo, DateTime businessDate);
         DataTable CheckLogStatus(string RoomNo, DateTime fromDate, DateTime toDate, string username);
         DataTable RoomPlanData(DateTime fromDate, DateTime toDate, int orderbyroom, string owner);
         DataTable SummaryTotalPhysicalRoom(string roomtype, string zone);
@@ -80,6 +80,7 @@ namespace HouseKeeping.Services.Interfaces
         DataTable ViewTurnDown(string roomTypead, string sectionAd, string zoneAd, string fromRoom, string toRoom, string HKStatusID, string ReservationStatus, string arrived, string turndownStatus);
         DataTable TasksheetDetailsSearch(int ID);
         DataTable RoomAttendentDailyWorksheetData(DateTime fromDate, string attendant, string tasksheet, string roomStatus, string facilityCode);
+        DataTable TasksheetDetailSearchByRoom(string roomNo);
         DataTable TurndownTasksheet(DateTime fromDate, string attendant, string roomStatus);
         DataTable TasksheetAutomatically(string HK_FO, DateTime taskdateauto, string floorauto, string roomTypeauto, string zonecodeauto, string subzonecodeauto, string includeroomAS, string arrivalOnly, string _ListRoomNotAss);
         DataTable TurndownTasksheetData(DateTime fromDate, string attendant, string IsDueOut, string roomStatus);

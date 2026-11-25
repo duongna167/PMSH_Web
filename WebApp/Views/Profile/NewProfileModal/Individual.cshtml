@@ -1051,16 +1051,17 @@
             }
         },
 
-        loadProfileByID: function (id) {
+        // request: (tùy chọn) jqXHR đã gọi sẵn từ trước (vd. Search Profile > Edit) để không phải chờ modal mở xong
+        loadProfileByID: function (id, request) {
 
             const self = this;
 
-            $.ajax({
+            (request || $.ajax({
                 url: '/Profile/GetProfileByID/',
                 type: 'GET',
                 contentType: "application/json",
-                data: {id: id},
-                success: function (res) {
+                data: {id: id}
+            })).then(function (res) {
 
                     if (res.code !== 0) {
                         showToast("Error", res.msg, false);
@@ -1080,13 +1081,8 @@
                         apply();
                     }
 
-                },
-
-                error: function () {
-                    showToast("Error", "Cannot load profile", false);
-
-                }
-
+            }, function () {
+                showToast("Error", "Cannot load profile", false);
             });
 
         },

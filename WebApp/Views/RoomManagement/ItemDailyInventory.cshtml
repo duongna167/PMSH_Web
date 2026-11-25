@@ -1,482 +1,369 @@
-﻿@using DevExpress.XtraReports.UI
-@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{   
-    
-    var businessDate = DateTime.Today;
-    var sessionBusinessDate = Context.Session.GetString("BusinessDate");
-    if (!string.IsNullOrEmpty(sessionBusinessDate))
-    {
-        businessDate = DateTime.Parse(sessionBusinessDate);
-    }
-
-    var nextDate = businessDate.AddDays(1);
-}
+﻿@* Item Daily Inventory (Room Management): tồn kho Item theo từng ngày (15 ngày), nạp tồn kho theo khoảng ngày.
+   Popup theo chuẩn của dự án (ModalManager + mui-button), logic tương ứng màn frmItemDailyInventory / frmItemInventoryLoad của PMS desktop. *@
 
 <style>
-  
-
-    .dx-datagrid-headers .dx-header-row td {
-        white-space: pre-line !important;
-        text-align: center;
-        font-size: 11px;
-    }
-
-
-    .dx-datagrid .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default, .dx-datagrid-container .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default {
-        display: none;
-    }
-
-
-    .filter_wrapper {
-        /*     background-color: #ececec; */
-        /*   margin: 0px 8px 14px 8px; */
-        padding: 18px 0px 0px 14px;
-        border-radius: 8px;
-    }
-
-    .gridContainer {
-        margin: 0px 8px;
-    }
-
-    .button_wrapper {
-        display: flex;
-        column-gap: 12px;
-        margin: 0px 8px;
-    }
-
-        .button_wrapper .fa-solid {
-            margin-right: 5px;
-        }
-
-    .selected {
-        background-color: #4CAF50; /* Màu xanh */
-        color: white;
-    }
-
-
-    .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
-    }
-
-    .sticky-header label[class*="me-"] {
-        margin-right: .5rem !important;
-    }
-
-
-    .sticky-header input[type="date"].form-control-sm {
-        font-size: 12px !important; /* dúng 12?px */
-        height: calc(1.1em + .2rem + 2px); /* gi? cùng chi?u cao */
-    }
-
-    .sticky-header label {
-        font-size: 12px !important;
-        line-height: 1.2;
-    }
-
-
-    .sort-select {
-        max-width: 130px; /* ho?c 100px n?u mu?n nh? hon */
-        font-size: 12px;
-        padding: 0.15rem 0.5rem;
-    }
-
-    .sort-select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-image: none !important;
-        padding-right: 10px !important;
-    }
-
-    button:disabled {
-        pointer-events: none; /* Không cho hover/click */
-        opacity: 0.6; /* Cho nó mờ đi */
-        cursor: not-allowed; /* Hiện con trỏ cấm */
-        background-color: #ccc !important; /* tuỳ chỉnh màu khi disable */
-    }
-
-    .tomselect-custom {
-        width: 100px;
-        min-height: 30px; /* hoặc tùy theo chiều cao bạn muốn */
-        font-size: 12px !important;
-    }
-
-        .tomselect-custom .ts-control {
-            padding-left: 8px !important; /* hoặc bất kỳ giá trị nào bạn muốn */
-        }
-
-    #groupCode.form-control-sm,
-    #subGroupCode.form-control-sm {
-        height: 26px !important; /* chiều cao nhỏ */
-        font-size: 12px !important; /* chữ nhỏ */
-        padding: 2px 6px !important; /* padding nhỏ */
-        line-height: 1.2 !important; /* căn giữa chữ */
-        max-width: 180px; /* chiều rộng vừa phải */
-    }
-
-    .hide-band .dx-datagrid-bands > tr:first-child {
-        display: none !important;
-    }
-
-    .btn-mini {
-        padding: 4px 10px; /* cao hơn btn-sm */
-        font-size: 14px; /* chữ lớn hơn một chút */
-        line-height: 1.2;
-    }
-
+    /* Tiêu đề cột ngày gồm 3 dòng: 15-Sept / Tue / CW 38 */
+    #idi_grid .dx-header-row > td { white-space: pre-line; text-align: center; font-size: 12px; }
+    #idi_grid .dx-data-row > td { text-align: center; }
+    #idi_grid .dx-data-row > td:first-child { text-align: left; }
 </style>
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px">Item Daily Inventory</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-        <!-- From Date -->
-        <div class="d-flex flex-column ">
 
-            <div class="d-flex align-items-center">
-                <div class="d-flex align-items-center me-3">
-                    <label class="me-2 mb-0">Date:</label>
-                    <input type="date" id="firstDate" name="firstDate" class="form-control form-control-sm w-auto" />
-                </div>             
+<div class="modal fade" id="idi_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Item Daily Inventory</h5>
+            </div>
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button id="idi_btnSearch" class="mui-button mui-button-view">Search</button>
+                    <button id="idi_btnLoad" class="mui-button mui-button-new" data-action="rmg_ItemListDailyInv" disabled>Load</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
+                    <div class="p-2 flex-shrink-0">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-xl-3 col-lg-4 col-md-6">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 fw-semibold text-nowrap">Item Group:</label>
+                                    <select id="idi_group" class="form-select form-select-sm flex-grow-1">
+                                        <option value="0">--All--</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-xl-5 col-lg-6 col-md-8">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 fw-semibold">Date:</label>
+                                    <div style="width:140px;" data-date-input data-format="DD/MM/YYYY" business-date data-name="idi_date">
+                                        <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                                    </div>
+                                    <button type="button" id="idi_btnPrev" class="mui-button mui-button-new">- 15 days</button>
+                                    <button type="button" id="idi_btnNext" class="mui-button mui-button-new">+ 15 days</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1 overflow-auto">
+                        <div id="idi_grid"></div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="d-flex align-items-center me-3">
-            <label class="me-2 mb-0">Item Group:</label>
-            <select id="groupId" name="groupId" class="form-control form-control-sm w-auto">
-                <option value="0">--All--</option>
-                <option value="1">Recreational</option>
-                <option value="2">Audiovisual</option>
-                <option value="3">Cocktail</option>
-                <option value="4">Decoration</option>
-                <option value="5">Room</option>
-            </select>
-        </div>
-        <div style="display:flex; gap:5px;">
-            <button id="btnMinus15" type="button" class="btn btn-outline-secondary btn-mini">- 15 days</button>
-            <button id="btnPlus15" type="button" class="btn btn-outline-secondary btn-mini">+ 15 days</button>
-        </div>
-
-    </div>
-    <div class="">
-        <button style="border-radius: 4px;  margin-right: 6px; " id="btnPrint" class="mui-button mui-button-new">View</button>
-        <button style="border-radius: 4px;  margin-right: 6px; " id="btnLoad" class="mui-button mui-button-new" type="button">  Load</button>
-        
     </div>
 </div>
 
-<div class="mui-card">
-
-    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
-        <div class="gridContainer" id="gridContainer"></div>
-    </div>
-</div>
-<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
-</div>
-<div class="modal fade" id="loadPopupModal" tabindex="-1" aria-labelledby="loadPopupLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<!-- ===== Load: nạp tồn kho cho một Item theo khoảng ngày ===== -->
+<div class="modal fade" id="idi_loadModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="loadPopupLabel">Load Item</h5>
-              @*   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> *@
+                <h5 class="modal-title">Load Item Inventory</h5>
             </div>
-            <div class="modal-body">
-                <form id="popupForm">
-                    <div class="d-flex justify-content-start mb-1 gap-2">
-                        <button type="button" id="btnPopupOK" class="mui-button mui-button-new">OK</button>
-                        <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
-                    </div>
-                    <div class="mb-2">
-                        <label for="popupGroup" class="me-2 mb-0">Group</label>
-                        <select class="form-control form-control-sm" id="popupGroup">
-                            <option value="5">Room</option>
-                            <option value="1">Recreational</option>
-                            <option value="2">Audiovisual</option>
-                            <option value="3">Cocktail</option>
-                            <option value="4">Decoration</option>
-                        </select>
-                    </div>
-                    <div class="mb-2">
-                        <label for="popupItem" class="me-2 mb-0">Item</label>
-                        <select class="form-control form-control-sm" id="popupItem">
-                            <option value="22">Baby Cot</option>
-                            <option value="23">EB</option>
-                            <!-- thêm tùy chọn nếu cần -->
-                        </select>
-                    </div>
-                    <div class="mb-2">
-                        <label for="popupBeginDate" class="me-2 mb-0">Begin Date</label>
-                        <input type="date" class="form-control form-control-sm" id="popupBeginDate" value="@businessDate.ToString("yyyy-MM-dd")" />
-                    </div>
-                    <div class="mb-2">
-                        <label for="popupEndDate" class="me-2 mb-0">End Date</label>
-                        <input type="date" class="form-control form-control-sm" id="popupEndDate" value="@nextDate.ToString("yyyy-MM-dd")" />
-                    </div>
 
-                    <div class="mb-2">
-                        <label for="popupQuantity" class="me-2 mb-0">Quantity</label>
-                        <input  class="form-control form-control-sm" id="popupQuantity" min="0" />
+            <div class="modal-body">
+                <div class="py-2 d-flex gap-2">
+                    <button type="button" id="idi_btnSave" class="mui-button mui-button-save">Save</button>
+                    <button type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <form id="idi_form" novalidate autocomplete="off">
+                    <div class="container-fluid px-2">
+                        <div class="row mb-3 align-items-center">
+                            <label class="col-12 col-md-4 fw-bold">Group</label>
+                            <div class="col-12 col-md-8">
+                                <select id="idi_loadGroup" class="form-select form-select-sm"></select>
+                            </div>
+                        </div>
+                        <div class="row mb-3 align-items-center">
+                            <label class="col-12 col-md-4 fw-bold">Item <span class="text-danger">*</span></label>
+                            <div class="col-12 col-md-8">
+                                <select id="idi_loadItem" name="item" class="form-select form-select-sm"></select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="row mb-3 align-items-center">
+                            <label class="col-12 col-md-4 fw-bold">Begin Date <span class="text-danger">*</span></label>
+                            <div class="col-12 col-md-8">
+                                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="idi_loadFrom" name="fromDate">
+                                    <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                                </div>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="row mb-3 align-items-center">
+                            <label class="col-12 col-md-4 fw-bold">End Date <span class="text-danger">*</span></label>
+                            <div class="col-12 col-md-8">
+                                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="idi_loadTo" name="toDate">
+                                    <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                                </div>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="row mb-3 align-items-center">
+                            <label class="col-12 col-md-4 fw-bold">Quantity <span class="text-danger">*</span></label>
+                            <div class="col-12 col-md-8">
+                                <input type="number" id="idi_quantity" name="quantity" class="form-control form-control-sm" min="0" step="1" />
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
-           @*  <div class="modal-footer">
-                <button type="button" id="btnPopupOK" class="mui-button mui-button-new">OK</button>
-                <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
-            </div> *@
         </div>
     </div>
 </div>
-<script>
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        let day = date.getDate().toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-        return `${year}-${month}-${day}`;
-    }
-    // const businessDate = new Date("@businessDate.ToString("yyyy-MM-dd")");
-    // const endDate = new Date(businessDate);
-    // endDate.setDate(endDate.getDate() + 1);
 
-    // document.addEventListener("DOMContentLoaded", function () {
-    //     document.getElementById("popupBeginDate").value = businessDate.toISOString().split('T')[0];
-    //     document.getElementById("popupEndDate").value = endDate.toISOString().split('T')[0];
-    // });
+<script>
+    var idi_Module = {
+        selectedRowData: null,
+        lookups: { groups: [], items: [] },
+
+        // Cột ngày: tên field trả về từ SP theo thứ tự 15 ngày
+        dateFields: ["firstDate", "secondDate", "thirthDate", "fourthDate", "fifthDate", "sixthDate", "seventhDate", "eighthDate",
+                     "ninthDate", "tenthDate", "eleventhDate", "twelvethDate", "thirtheenDate", "fourtheenDate", "fiftheenDate"],
+
+        init: function () {
+            this.initEvents();
+            this.initDOMEvents();
+        },
+
+        initEvents: function () {
+            const self = this;
+
+            window.openModalItemDailyInv = function () {
+                if (typeof window.hasFunctionRight === "function") {
+                    $("#idi_modal [data-action]").each(function () {
+                        if (!window.hasFunctionRight($(this).data("action"))) $(this).hide();
+                    });
+                }
+
+                self.loadLookups().always(function () { self.reloadGrid(); });
+
+                $("#idi_modal").on("hidden.bs.modal", function () {
+                    if ($("#idi_grid").data("dxDataGrid")) $("#idi_grid").dxDataGrid("dispose");
+                    $("#idi_grid").empty();
+                    self.selectedRowData = null;
+                    if (typeof reloadBusinessDate === "function") reloadBusinessDate();
+                });
+
+                $("#idi_loadModal").on("hidden.bs.modal", function () {
+                    ValidationAdapter.clear("#idi_form");
+                    if (typeof reloadBusinessDate === "function") reloadBusinessDate();
+                });
+            };
+        },
+
+        initDOMEvents: function () {
+            const self = this;
+            $("#idi_btnSearch").on("click", () => self.reloadGrid());
+            $("#idi_group").on("change", () => self.reloadGrid());
+            $("#idi_btnPrev").on("click", () => self.shiftDate(-15));
+            $("#idi_btnNext").on("click", () => self.shiftDate(15));
+            $("#idi_btnLoad").on("click", () => self.openLoad());
+            $("#idi_btnSave").on("click", () => self.saveLoad());
+            $("#idi_loadGroup").on("change", () => self.fillItems());
+        },
+
+        // ---------------------------------------------------------------------------------------
+        //  Ngày
+        // ---------------------------------------------------------------------------------------
+        ymd: function (d) {
+            return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+        },
+
+        parseYmd: function (s) {
+            const p = (s || "").split("T")[0].split("-");
+            return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        },
+
+        firstDate: function () {
+            return this.parseYmd($("#idi_date").val() || window.dateSystem);
+        },
+
+        shiftDate: function (days) {
+            const d = this.firstDate();
+            d.setDate(d.getDate() + days);
+            UI.setHiddenDate("idi_date", this.ymd(d));
+            this.reloadGrid();
+        },
+
+        // Tiêu đề cột: "15-Sept\nTue\nCW 38" (tuần tính theo tuần chứa ngày 1/1, bắt đầu từ Chủ nhật như bản desktop)
+        caption: function (d) {
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "June", "July", "Aug", "Sept", "Oct", "Nov", "Dec"];
+            const dows = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            const jan1 = new Date(d.getFullYear(), 0, 1);
+            const dayOfYear = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - jan1) / 86400000);
+            const cw = Math.floor((dayOfYear + jan1.getDay()) / 7) + 1;
+            return d.getDate() + "-" + months[d.getMonth()] + "\n" + dows[d.getDay()] + "\nCW " + cw;
+        },
+
+        // ---------------------------------------------------------------------------------------
+        //  Dữ liệu tham chiếu
+        // ---------------------------------------------------------------------------------------
+        loadLookups: function () {
+            const self = this;
+            return $.ajax({ url: "/RoomManagement/ItemLookups", type: "GET" }).done(function (res) {
+                if (!res || res.success === false) {
+                    showToast("Error", (res && res.message) || "Unable to load lookups.", false);
+                    return;
+                }
+                self.lookups = res;
+                const $g = $("#idi_group").empty().append('<option value="0">--All--</option>');
+                const $l = $("#idi_loadGroup").empty();
+                (res.groups || []).forEach(function (g) {
+                    $g.append($("<option>").val(g.ID).text(g.Code));
+                    $l.append($("<option>").val(g.ID).text(g.Code));
+                });
+            }).fail(function () { showToast("Error", "Unable to load lookups.", false); });
+        },
+
+        // ---------------------------------------------------------------------------------------
+        //  Lưới
+        // ---------------------------------------------------------------------------------------
+        reloadGrid: function () {
+            const self = this;
+            const first = self.firstDate();
+            if (isNaN(first)) return;
+
+            const params = { groupId: $("#idi_group").val() || 0 };
+            const days = [];
+            for (let i = 0; i < 15; i++) {
+                const d = new Date(first);
+                d.setDate(first.getDate() + i);
+                days.push(d);
+                params[self.dateFields[i]] = self.ymd(d);
+            }
+
+            self.selectedRowData = null;
+            $("#idi_btnLoad").prop("disabled", true);
+
+            $.ajax({
+                url: "/RoomManagement/GetItemDailyInventory",
+                type: "GET",
+                loadingGrid: "#idi_grid",
+                data: params,
+                success: function (data) {
+                    if (!Array.isArray(data)) {
+                        showToast("Error", typeof data === "string" ? data : "Unable to load data", false);
+                        data = [];
+                    }
+                    self.renderGrid(data, days);
+                },
+                error: function () { showToast("Error", "Unable to load data", false); }
+            });
+        },
+
+        renderGrid: function (data, days) {
+            const self = this;
+            const cols = [
+                { dataField: "id", visible: false },
+                { dataField: "itemID", visible: false },
+                { dataField: "itemName", caption: "Item Name", width: 200, allowSorting: false }
+            ];
+            self.dateFields.forEach(function (f, i) {
+                cols.push({ dataField: f, caption: self.caption(days[i]), width: 56, alignment: "center", allowSorting: false });
+            });
+
+            $("#idi_grid").dxDataGrid({
+                dataSource: data,
+                keyExpr: "id",
+                height: "100%",
+                width: "100%",
+                showBorders: true,
+                hoverStateEnabled: true,
+                columnAutoWidth: false,
+                allowColumnResizing: true,
+                selection: { mode: "single" },
+                scrolling: { mode: "standard", showScrollbar: "always", useNative: true },
+                paging: { enabled: false },
+                columns: cols,
+                onSelectionChanged: function (e) {
+                    self.selectedRowData = e.selectedRowsData[0] || null;
+                    $("#idi_btnLoad").prop("disabled", !self.selectedRowData);
+                },
+                onRowDblClick: function (e) {
+                    self.selectedRowData = e.data;
+                    self.openLoad();
+                }
+            });
+        },
+
+        // ---------------------------------------------------------------------------------------
+        //  Load
+        // ---------------------------------------------------------------------------------------
+        fillItems: function (selectedId) {
+            const gid = parseInt($("#idi_loadGroup").val(), 10) || 0;
+            const $i = $("#idi_loadItem").empty();
+            (this.lookups.items || []).filter(i => i.ItemGroupID === gid)
+                .forEach(i => $i.append($("<option>").val(i.ID).text(i.Name)));
+            if (selectedId) $i.val(String(selectedId));
+        },
+
+        openLoad: function () {
+            const self = this;
+            window.initDateInputs();
+            if (!self.selectedRowData) {
+                showToast("Warning", "Please select an item first!", false);
+                return;
+            }
+
+            // Nhóm của Item đang chọn
+            const item = (self.lookups.items || []).find(i => i.ID === self.selectedRowData.id);
+            if (item) $("#idi_loadGroup").val(String(item.ItemGroupID));
+            self.fillItems(self.selectedRowData.id);
+
+            ValidationAdapter.clear("#idi_form");
+            $("#idi_quantity").val("");
+
+            // Mặc định: từ ngày nghiệp vụ đến ngày kế tiếp
+            const bd = self.parseYmd(window.dateSystem);
+            const next = new Date(bd);
+            next.setDate(bd.getDate() + 1);
+            UI.setHiddenDate("idi_loadFrom", self.ymd(bd));
+            UI.setHiddenDate("idi_loadTo", self.ymd(next));
+
+            $("#idi_loadModal").modal("show");
+        },
+
+        saveLoad: function () {
+            const self = this;
+            const q = $("#idi_quantity").val();
+            const payload = {
+                itemID: parseInt($("#idi_loadItem").val(), 10) || 0,
+                fromDate: $("#idi_loadFrom").val() || window.dateSystem,
+                toDate: $("#idi_loadTo").val() || window.dateSystem,
+                quantity: q === "" ? null : parseInt(q, 10)
+            };
+
+            $.ajax({
+                url: "/RoomManagement/ItemInventoryLoad",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (res) {
+                    if (res.success) {
+                        showToast("Success", res.message, true);
+                        $("#idi_loadModal").modal("hide");
+                        self.reloadGrid();
+                    } else if (res.errors && res.errors.length) {
+                        ValidationAdapter.apply(res.errors, "#idi_form");
+                        showToast("Warning", res.errors[0].message, false);
+                    } else {
+                        showToast("Error", res.message || "Something went wrong.", false);
+                    }
+                },
+                error: function (xhr) {
+                    showToast("Error", xhr.status === 403 ? "Access Denied" : "Server error occurred.", false);
+                }
+            });
+        }
+    };
 
     $(document).ready(function () {
-      getBusinessDate();
+        idi_Module.init();
     });
-    function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
-                    let dateStr = result.split('T')[0];
-
-                    // Parse to Date (local)
-                    let parts = dateStr.split('-');
-                    let dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
-
-                    // Add 1 day
-                    dateObj.setDate(dateObj.getDate() + 1);
-
-                    // Format back to yyyy-MM-dd
-                    let endDate =
-                        dateObj.getFullYear() + '-' +
-                        String(dateObj.getMonth() + 1).padStart(2, '0') + '-' +
-                        String(dateObj.getDate()).padStart(2, '0');
-
-                    // Assign values
-                    $('#firstDate').val(dateStr);
-                    $('#popupBeginDate').val(dateStr);
-                    $('#popupEndDate').val(endDate);
-               $("#btnPrint").trigger("click");
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
-            }
-        });
-    }
-
-
-        document.getElementById("btnMinus15").addEventListener("click", function () {
-        let dateInput = document.getElementById("firstDate");
-        let date = new Date(dateInput.value);
-        date.setDate(date.getDate() - 15);
-        dateInput.value = date.toISOString().split('T')[0];
-        $("#btnPrint").trigger("click"); // Tự động load lại grid
-    });
-
-    document.getElementById("btnPlus15").addEventListener("click", function () {
-        let dateInput = document.getElementById("firstDate");
-        let date = new Date(dateInput.value);
-        date.setDate(date.getDate() + 15);
-        dateInput.value = date.toISOString().split('T')[0];
-        $("#btnPrint").trigger("click"); // Tự động load lại grid
-    });
-        $(document).on("click", "#btnLoad", function () {
-        const popup = new bootstrap.Modal(document.getElementById('loadPopupModal'));
-        popup.show();
-    });
-
-     $(document).on('click', '#btnPopupOK', function () {
-
-        // var data = {
-        //     ItemID: parseInt($('#popupItem').val()), // nếu popupItem là text, bạn có thể cần thay đổi
-        //     Date: $('#popupBeginDate').val(),
-        //     MatchDate: $('#popupBeginDate').val(),
-        //     Quantity: parseInt($('#popupQuantity').val()),
-          
-        // };
-
-         $.ajax({
-            url: "/RoomManagement/UpdateItemInventory",
-            type: 'POST',
-           data: {
-                ItemID: parseInt($('#popupItem').val()), // nếu popupItem là text, bạn có thể cần thay đổi
-                Date: $('#popupBeginDate').val(),
-                MatchDate: $('#popupBeginDate').val(),
-                Quantity: parseInt($('#popupQuantity').val()),
-                UserID :JSON.parse(localStorage.getItem("userID"))
-            },
-            success: function (response) {
-               if (response.success) {
-                    showToast('Success', response.message, true);
-                    $("#btnPrint").trigger("click");
-                    selectedRowData = null;
-                } else {
-                    showToast('Warning', response.message, false);
-                }
-            },
-
-            error: function (xhr, status, error) {
-                console.error("AJAX Status:", status);
-                console.error("AJAX Error:", error);
-                console.error("Response:", xhr.responseText);
-
-                alert("Lỗi hệ thống, vui lòng thử lại.");
-            }
-        });
-
-    });
-
-
-        $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
-        $("#loadingSpinner").show();
-
-        let groupId = $("#groupId").val();
-        let firstDateVal = $("#firstDate").val();
-        let firstDate = new Date(firstDateVal);
-
-        // Hàm format yyyy-MM-dd HH:mm:ss
-        function formatDateTime(date) {
-            let y = date.getFullYear();
-            let m = String(date.getMonth() + 1).padStart(2, '0');
-            let d = String(date.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d} 00:00:00`;
-        }
-
-        // Tạo object params đầy đủ 15 ngày
-        let params = {
-            GroupID: groupId
-        };
-
-        let paramNames = [
-            "FirstDate", "SecondDate", "ThirthDate", "FourthDate", "FifthDate",
-            "SixthDate", "SeventhDate", "EighthDate", "NinthDate", "TenthDate",
-            "EleventhDate", "TwelvethDate", "ThirtheenDate", "FourtheenDate", "FiftheenDate"
-        ];
-
-        paramNames.forEach((name, index) => {
-            let newDate = new Date(firstDate);
-            newDate.setDate(firstDate.getDate() + index);
-            params[name] = formatDateTime(newDate);
-        });
-
-        $.ajax({
-            url: '/RoomManagement/GetItemDailyInventory',
-            type: 'GET',
-            data: params,
-            success: function (data) {
-                console.log(data);
-                console.log("Field names:", Array.isArray(data) && data.length > 0 ? Object.keys(data[0]) : "No data");
-                loadTelephoneGrid(data);
-                $("#loadingSpinner").hide();
-            },
-            error: function (xhr, status, error) {
-                console.error("AJAX Error", status, error);
-                console.error("Response Text:", xhr.responseText);
-                alert("Không thể tải dữ liệu");
-                $("#loadingSpinner").hide();
-            }
-        });
-    });
-            function generateDynamicCaptions(firstDateVal) {
-        const captions = [];
-        const firstDate = new Date(firstDateVal);
-
-        for (let i = 0; i < 15; i++) {
-            const newDate = new Date(firstDate);
-            newDate.setDate(firstDate.getDate() + i);
-
-            // Định dạng ngày (dd-MMM)
-            const day = newDate.getDate().toString().padStart(2, '0');
-            const month = newDate.toLocaleString('en-US', { month: 'short' });
-            const dayOfWeek = newDate.toLocaleString('en-US', { weekday: 'short' }); // Ví dụ: Thu, Fri
-
-            // Tính số tuần (Calendar Week)
-            const yearStart = new Date(newDate.getFullYear(), 0, 1);
-            const days = Math.floor((newDate - yearStart) / (24 * 60 * 60 * 1000));
-            const weekNumber = Math.ceil((days + yearStart.getDay() + 1) / 7); // Tính tuần ISO
-
-            // Tạo caption với định dạng: "dd-MMM (day) CW week"
-            captions.push(`${day}-${month}\n(${dayOfWeek})\nCW ${weekNumber}`);
-        }
-
-        return captions;
-    }
-
-            function loadTelephoneGrid(data) {
-                let firstDateVal = $("#firstDate").val(); // Lấy giá trị ngày đầu tiên
-                const dynamicCaptions = generateDynamicCaptions(firstDateVal);
-            $("#gridContainer").dxDataGrid({
-                    dataSource: data,
-                    height: 400,
-                    allowColumnResizing: true,
-                    selection: { mode: "single" },
-                    columns: [
-                            { dataField: "itemName", caption: "Item Name" },
-                            { dataField: "firstDate", caption: dynamicCaptions[0],wordWrapEnabled: true },
-                            { dataField: "secondDate", caption: dynamicCaptions[1],wordWrapEnabled: true },
-                            { dataField: "thirthDate", caption: dynamicCaptions[2] ,wordWrapEnabled: true},
-                            { dataField: "fourthDate", caption: dynamicCaptions[3] ,wordWrapEnabled: true},
-                            { dataField: "fifthDate", caption: dynamicCaptions[4] ,wordWrapEnabled: true},
-                            { dataField: "sixthDate", caption: dynamicCaptions[5] ,wordWrapEnabled: true},
-                            { dataField: "seventhDate", caption: dynamicCaptions[6] ,wordWrapEnabled: true},
-                            { dataField: "eighthDate", caption: dynamicCaptions[7] ,wordWrapEnabled: true},
-                            { dataField: "ninthDate", caption: dynamicCaptions[8] ,wordWrapEnabled: true},
-                            { dataField: "tenthDate", caption: dynamicCaptions[9] ,wordWrapEnabled: true},
-                            { dataField: "eleventhDate", caption: dynamicCaptions[10] ,wordWrapEnabled: true},
-                            { dataField: "twelvethDate", caption: dynamicCaptions[11] ,wordWrapEnabled: true},
-                            { dataField: "thirtheenDate", caption: dynamicCaptions[12] ,wordWrapEnabled: true},
-                            { dataField: "fourtheenDate", caption: dynamicCaptions[13] ,wordWrapEnabled: true},
-                            { dataField: "fiftheenDate", caption: dynamicCaptions[14] ,wordWrapEnabled: true},
-                        ],
-                scrolling: {
-                mode: "standard", // Không dùng virtual để footer hiển thị đúng
-                showScrollbar: "always",
-                scrollByContent: true
-            },
-            paging: {
-                pageSize: 20
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [20, 40, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-                filterRow: {
-            visible: true,
-            applyFilter: "auto"
-        },
-            showBorders: true,
-            wordWrapEnabled: true
-        });
-        }
-
-
-
-
-
-
-
 </script>

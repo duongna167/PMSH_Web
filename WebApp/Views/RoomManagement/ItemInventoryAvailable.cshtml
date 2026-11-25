@@ -1,582 +1,385 @@
-﻿@using DevExpress.XtraReports.UI
-@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
-
-}
+﻿@* Item Availability (Room Management): số lượng Item còn lại theo từng ngày (15 ngày) và chi tiết các đặt chỗ đang giữ Item.
+   Popup theo chuẩn của dự án (ModalManager + mui-button), logic tương ứng màn frmItemInventoryAvailable / frmItemReservationDetails của PMS desktop. *@
 
 <style>
- 
-
-    .dx-datagrid-headers .dx-header-row td {
-        white-space: pre-line !important;
-        text-align: center;
-        font-size: 11px;
-    }
-
-
-    .dx-datagrid .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default, .dx-datagrid-container .dx-editor-with-menu .dx-menu-item-content .dx-icon.dx-icon-filter-operation-default {
-        display: none;
-    }
-
-
-    .filter_wrapper {
-        /*     background-color: #ececec; */
-        /*   margin: 0px 8px 14px 8px; */
-        padding: 18px 0px 0px 14px;
-        border-radius: 8px;
-    }
-
-    .gridContainer {
-        margin: 0px 8px;
-    }
-
-    .button_wrapper {
-        display: flex;
-        column-gap: 12px;
-        margin: 0px 8px;
-    }
-
-        .button_wrapper .fa-solid {
-            margin-right: 5px;
-        }
-
-    .selected {
-        background-color: #4CAF50; /* Màu xanh */
-        color: white;
-    }
-
-
-    .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
-    }
-
-    .sticky-header label[class*="me-"] {
-        margin-right: .5rem !important;
-    }
-
-
-    .sticky-header input[type="date"].form-control-sm {
-        font-size: 12px !important; /* dúng 12?px */
-        height: calc(1.1em + .2rem + 2px); /* gi? cùng chi?u cao */
-    }
-
-    .sticky-header label {
-        font-size: 12px !important;
-        line-height: 1.2;
-    }
-
-
-    .sort-select {
-        max-width: 130px; /* ho?c 100px n?u mu?n nh? hon */
-        font-size: 12px;
-        padding: 0.15rem 0.5rem;
-    }
-
-    .sort-select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-image: none !important;
-        padding-right: 10px !important;
-    }
-
-    button:disabled {
-        pointer-events: none; /* Không cho hover/click */
-        opacity: 0.6; /* Cho nó mờ đi */
-        cursor: not-allowed; /* Hiện con trỏ cấm */
-        background-color: #ccc !important; /* tuỳ chỉnh màu khi disable */
-    }
-
-    .tomselect-custom {
-        width: 100px;
-        min-height: 30px; /* hoặc tùy theo chiều cao bạn muốn */
-        font-size: 12px !important;
-    }
-
-        .tomselect-custom .ts-control {
-            padding-left: 8px !important; /* hoặc bất kỳ giá trị nào bạn muốn */
-        }
-
-    #groupCode.form-control-sm,
-    #subGroupCode.form-control-sm {
-        height: 26px !important; /* chiều cao nhỏ */
-        font-size: 12px !important; /* chữ nhỏ */
-        padding: 2px 6px !important; /* padding nhỏ */
-        line-height: 1.2 !important; /* căn giữa chữ */
-        max-width: 180px; /* chiều rộng vừa phải */
-    }
-
-    .hide-band .dx-datagrid-bands > tr:first-child {
-        display: none !important;
-    }
-
-    .btn-mini {
-        padding: 4px 10px; /* cao hơn btn-sm */
-        font-size: 14px; /* chữ lớn hơn một chút */
-        line-height: 1.2;
-    }
-    .selected-cell {
-        background-color: #d0eaff !important;
-        border: 2px solid #007acc !important;
-    }
+    /* Tiêu đề cột ngày gồm 3 dòng: 15-Sept / Tue / CW 38 */
+    #iia_grid .dx-header-row > td { white-space: pre-line; text-align: center; font-size: 12px; }
+    #iia_grid .dx-data-row > td { text-align: center; }
+    #iia_grid .dx-data-row > td:first-child { text-align: left; }
+    /* Dòng tổng tồn kho vật lý (Total-Physical) */
+    #iia_grid .dx-data-row.iia-total-row > td { background-color: #f0ffff; }
+    /* Ô ngày đang chọn */
+    #iia_grid .dx-data-row > td.iia-selected-cell { background-color: rgba(120, 120, 120, 0.25) !important; font-weight: 600; }
 </style>
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<div class="text-center" id="reportTitle" style="font-size: 20px">Item Inventory Available</div>
-<div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="">
-        <button style="border-radius: 4px;  margin-right: 6px; " id="btnPrint" class="mui-button mui-button-new">View</button>
-        <button style="border-radius: 4px;  margin-right: 6px; " id="btnDetail" class="mui-button mui-button-new" type="button">  Detail</button>
 
-    </div>
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-        <div class="d-flex align-items-center me-3">
-            <label class="me-2 mb-0">Item Group:</label>
-            <select id="groupId" name="groupId" class="form-control form-control-sm w-auto">
-                <option value="0">--All--</option>
-                <option value="1">Recreational</option>
-                <option value="2">Audiovisual</option>
-                <option value="3">Cocktail</option>
-                <option value="4">Decoration</option>
-                <option value="5">Room</option>
-            </select>
-        </div>
-        <!-- From Date -->
-        <div class="d-flex flex-column ">
+<div class="modal fade" id="iia_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Item Availability</h5>
+            </div>
 
-            <div class="d-flex align-items-center">
-                <div class="d-flex align-items-center me-3">
-                    <label class="me-2 mb-0">Date:</label>
-                    <input type="date" id="firstDate" name="firstDate" class="form-control form-control-sm w-auto" />
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button id="iia_btnSearch" class="mui-button mui-button-view">Search</button>
+                    <button id="iia_btnDetail" class="mui-button mui-button-new" disabled>Detail</button>
+                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
+                    <div class="p-2 flex-shrink-0">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-xl-3 col-lg-4 col-md-6">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 fw-semibold text-nowrap">Item Group:</label>
+                                    <select id="iia_group" class="form-select form-select-sm flex-grow-1">
+                                        <option value="0">--All--</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-xl-5 col-lg-6 col-md-8">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="mb-0 fw-semibold">Date:</label>
+                                    <div style="width:140px;" data-date-input data-format="DD/MM/YYYY" business-date data-name="iia_date">
+                                        <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                                    </div>
+                                    <button type="button" id="iia_btnPrev" class="mui-button mui-button-new">- 15 days</button>
+                                    <button type="button" id="iia_btnNext" class="mui-button mui-button-new">+ 15 days</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1 overflow-auto">
+                        <div id="iia_grid"></div>
+                    </div>
                 </div>
             </div>
         </div>
-       
-        <div style="display:flex; gap:5px;">
-            <button id="btnMinus15" type="button" class="btn btn-outline-secondary btn-mini">- 15 days</button>
-            <button id="btnPlus15" type="button" class="btn btn-outline-secondary btn-mini">+ 15 days</button>
-        </div>
-
-    </div>
-   
-</div>
-
-<div class="mui-card">
-
-    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
-        <div class="gridContainer" id="gridContainer"></div>
     </div>
 </div>
-<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
-</div>
-<div class="modal fade" id="popupShiftDetail" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+
+<!-- ===== Chi tiết các đặt chỗ giữ Item trong một ngày ===== -->
+<div class="modal fade" id="iia_detailModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Item Reservation</h5>
-                @* <button type="button" class="btn-close" data-bs-dismiss="modal"></button> *@
             </div>
 
             <div class="modal-body">
-                <div class="mui-card shift-header mb-2"></div>
-                <div class="gridContainer"  id="gridShiftDetail"></div>
-            </div>
+                <div class="py-2 d-flex gap-2">
+                    <button type="button" id="iia_btnReservation" class="mui-button mui-button-new" disabled>Detail</button>
+                    <button type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
 
-            <div class="modal-footer">
-               @*  <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">
-                    Close
-                </button> *@
+                <div class="row g-2 align-items-center mb-2">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="mb-0 fw-semibold text-nowrap">Item Name:</label>
+                            <input type="text" id="iia_detailItem" class="form-control form-control-sm" readonly />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="fw-semibold">Date: <span id="iia_detailDate"></span></span>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="fw-semibold">Total quantity: <span id="iia_detailTotal">0</span></span>
+                    </div>
+                </div>
+
+                <div class="gridContainer">
+                    <div id="iia_detailGrid" style="height: 50vh;"></div>
+                </div>
+                <div id="iia_detailEmpty" class="text-muted text-center py-2 d-none">There is no reservation for this item on this date.</div>
             </div>
         </div>
     </div>
 </div>
 
-
 <script>
-    // Biến toàn cục lưu dòng của ô được click
-    let selectedCellData = null;
+    var iia_Module = {
+        selectedRowData: null,
+        selectedDay: null,
 
-    function formatDate(date) {
-        let year = date.getFullYear();
-        let month = (date.getMonth() + 1).toString().padStart(2, '0');
-        let day = date.getDate().toString().padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
+        // Tên field trả về từ SP theo thứ tự 15 ngày (tham số của controller là cùng tên nhưng "eleven"/"twelve")
+        dateFields: ["firstDate1", "secondDate1", "thirthDate1", "fourthDate1", "fifthDate1", "sixthDate1", "seventhDate1", "eighthDate1",
+                     "ninthDate1", "tenthDate1", "eleventhDate1", "twelvethDate1", "thirtheenDate1", "fourtheenDate1", "fiftheenDate1"],
+        dateParams: ["firstDate", "secondDate", "thirthDate", "fourthDate", "fifthDate", "sixthDate", "seventhDate", "eighthDate",
+                     "ninthDate", "tenthDate", "elevenDate", "twelveDate", "thirtheenDate", "fourtheenDate", "fiftheenDate"],
 
-    // Tạo caption cột động theo ngày
-    function generateDynamicCaptions(firstDateVal) {
-        const captions = [];
-        const firstDate = new Date(firstDateVal);
+        init: function () {
+            this.initEvents();
+            this.initDOMEvents();
+        },
 
-        for (let i = 0; i < 15; i++) {
-            const newDate = new Date(firstDate);
-            newDate.setDate(firstDate.getDate() + i);
+        initEvents: function () {
+            const self = this;
 
-            const day = newDate.getDate().toString().padStart(2, '0');
-            const month = newDate.toLocaleString('en-US', { month: 'short' });
-            const dayOfWeek = newDate.toLocaleString('en-US', { weekday: 'short' });
+            window.openModalItemAvailability = function () {
+                self.loadGroups().always(function () { self.reloadGrid(); });
 
-            const yearStart = new Date(newDate.getFullYear(), 0, 1);
-            const days = Math.floor((newDate - yearStart) / (24 * 60 * 60 * 1000));
-            const weekNumber = Math.ceil((days + yearStart.getDay() + 1) / 7);
-
-            captions.push(`${day}-${month}\n(${dayOfWeek})\nCW ${weekNumber}`);
-        }
-
-        return captions;
-    }
-
-    function loadTelephoneGrid(data) {
-        let firstDateVal = $("#firstDate").val();
-        const dynamicCaptions = generateDynamicCaptions(firstDateVal);
-
-        $("#gridContainer").dxDataGrid({
-            dataSource: data,
-            height: 400,
-            keyExpr: "id",
-            allowColumnResizing: true,
-            selection: {
-                mode: "none"
-            },
-            onCellClick: function (e) {
-                // Kiểm tra có dữ liệu dòng không
-                if (!e.data || !e.column || !e.column.dataField) return;
-
-                $(".dx-datagrid-rowsview .selected-cell").removeClass("selected-cell");
-                $(e.cellElement).addClass("selected-cell");
-
-                selectedCellData = e.data;
-                selectedColumn = e.column.dataField;
-
-                console.log("== CELL CLICKED ==");
-                console.log("Data of row (e.data):", e.data);
-                console.log("Clicked column:", e.column.dataField);
-                console.log("Value in cell:", e.data[e.column.dataField]);
-                if (selectedColumn !== "itemName") {
-                    showShiftDetail(selectedCellData, selectedColumn);
-                }
-            },
-            columns: [
-                { dataField: "itemName", caption: "Item Name" },
-                { dataField: "firstDate1",     caption: dynamicCaptions[0],  dataType: "number", wordWrapEnabled: true },
-                { dataField: "secondDate1",    caption: dynamicCaptions[1],  dataType: "number", wordWrapEnabled: true },
-                { dataField: "thirthDate1",    caption: dynamicCaptions[2],  dataType: "number", wordWrapEnabled: true },
-                { dataField: "fourthDate1",    caption: dynamicCaptions[3],  dataType: "number", wordWrapEnabled: true },
-                { dataField: "fifthDate1",     caption: dynamicCaptions[4],  dataType: "number", wordWrapEnabled: true },
-                { dataField: "sixthDate1",     caption: dynamicCaptions[5],  dataType: "number", wordWrapEnabled: true },
-                { dataField: "seventhDate1",   caption: dynamicCaptions[6],  dataType: "number", wordWrapEnabled: true },
-                { dataField: "eighthDate1",    caption: dynamicCaptions[7],  dataType: "number", wordWrapEnabled: true },
-                { dataField: "ninthDate1",     caption: dynamicCaptions[8],  dataType: "number", wordWrapEnabled: true },
-                { dataField: "tenthDate1",     caption: dynamicCaptions[9],  dataType: "number", wordWrapEnabled: true },
-                { dataField: "eleventhDate1",  caption: dynamicCaptions[10], dataType: "number", wordWrapEnabled: true },
-                { dataField: "twelvethDate1",  caption: dynamicCaptions[11], dataType: "number", wordWrapEnabled: true },
-                { dataField: "thirtheenDate1", caption: dynamicCaptions[12], dataType: "number", wordWrapEnabled: true },
-                { dataField: "fourtheenDate1", caption: dynamicCaptions[13], dataType: "number", wordWrapEnabled: true },
-                { dataField: "fiftheenDate1",  caption: dynamicCaptions[14], dataType: "number", wordWrapEnabled: true }
-
-            ],
-            scrolling: {
-                mode: "standard",
-                showScrollbar: "always",
-                scrollByContent: true
-            },
-            paging: {
-                pageSize: 20
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [20, 40, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            showBorders: true,
-            wordWrapEnabled: true
-        });
-    }
-
-      let gridShiftDetailInstance = null;
-
-    function initShiftDetailGrid() {
-        if (gridShiftDetailInstance) return;
-
-        gridShiftDetailInstance = $("#gridShiftDetail").dxDataGrid({
-            dataSource: [],
-            showBorders: true,
-            height: "60vh",
-            width: "100%",
-            columnAutoWidth: true,
-            selection: {
-                mode: "single"
-            },
-            columns: [
-                  { dataField: "id", caption: "id", dataType: "number", visible: false },
-                { dataField: "confirmationNo", caption: "Confirmation No", dataType: "number" },
-                { dataField: "name", caption: "Name" },
-                { dataField: "roomNo", caption: "Room No", dataType: "number" },
-                { dataField: "reservedFrom", caption: "Reserved From", dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "reservedTo", caption: "Reserved To", dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "qty", caption: "Qty", dataType: "number", format: "#,##0.00" }
-            ],
-            scrolling: {
-                mode: "standard",
-                showScrollbar: "always",
-                scrollByContent: true
-            },
-            paging: { pageSize: 20 },
-            pager: {
-                visible: true,
-                allowedPageSizes: [20, 40, "all"],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            }
-        }).dxDataGrid("instance");
-    }
-    function goReview(idReservation) {
-        var modal = $('#newReservationModal');
-
-        // Luôn hiển thị loading
-        modal.find('.modal-body').html(`
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-3">Loading reservation...</p>
-            </div>
-        `);
-
-        modal.modal('show');
-
-        $.ajax({
-            url: '/Reservation/EncryptId',
-            type: 'POST',
-            data: { id: idReservation },
-            success: function (response) {
-                if (response.success) {
-                    $.ajax({
-                        url: '/Reservation/NewReservation',
-                        type: 'GET',
-                        data: { key: response.encryptedId },
-                        cache: false,
-                        success: function (html) {
-                            modal.find('.modal-body').html(html);
-
-                        },
-                        error: function () {
-                            modal.find('.modal-body').html(`
-                                <div class="alert alert-danger m-4">
-                                    <strong>Lỗi!</strong> Không thể tải thông tin đặt chỗ.
-                                </div>
-                            `);
-                        }
-                    });
-                } else {
-                    modal.modal('hide');
-                    alert('Lỗi khi mã hóa ID');
-                }
-            },
-            error: function () {
-                modal.modal('hide');
-                alert('Lỗi kết nối server');
-            }
-        });
-    }
-
-    $("#btnDetail").on("click", function () {
-        if (!selectedCellData || !selectedColumn) {
-                 showToast('Warning', "Select 1 row, please!", true);
-            return;
-        }
-        showShiftDetail(selectedCellData, selectedColumn);
-    });
-
-    function formatDateTimeToSQL(date) {
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const d = String(date.getDate()).padStart(2, '0');
-        const hh = String(date.getHours()).padStart(2, '0');
-        const mm = String(date.getMinutes()).padStart(2, '0');
-        const ss = String(date.getSeconds()).padStart(2, '0');
-        return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
-    }
-     function showShiftDetail(rowData, columnDataField) {
-        const itemID = rowData.id;
-        if (!itemID || !columnDataField) return;
-
-        const grid = $("#gridContainer").dxDataGrid("instance");
-
-        const firstDateVal = $("#firstDate").val();
-        const year = new Date(firstDateVal).getFullYear();
-
-        const caption = grid.columnOption(columnDataField, "caption");
-        const dayMonth = caption.split('\n')[0];        // ví dụ: 28-Aug
-        const selectedDate = new Date(`${dayMonth}-${year}`);
-
-        if (isNaN(selectedDate)) {
-            alert("Ngày không hợp lệ");
-            return;
-        }
-
-        // Header
-        $(".shift-header").html(`
-            <div class="d-flex align-items-center">
-                <button id="btnDetailpopup"
-                        class="mui-button mui-button-new"
-                       >
-                    Detail
-                </button>
-                <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
-               <div class="d-flex align-items-center me-4 ps-3">
-                    <label class="me-2 mb-0">Item Name:</label>
-                    <input type="text"
-                           class="form-control form-control-sm w-auto"
-                           value="${rowData.itemName}" />
-                </div>
-
-            </div>
-        `);
-
-        // Init grid nếu chưa có
-        initShiftDetailGrid();
-
-        // Load data
-        gridShiftDetailInstance.option("dataSource", new DevExpress.data.DataSource({
-            load: function () {
-                return $.ajax({
-                    url: "/RoomManagement/GetItemResvDetail",
-                    data: {
-                        itemID: itemID,
-                        day: formatDateTimeToSQL(selectedDate)
-                    },
-                    dataType: "json"
-                }).then(res => {
-                    let arr = Array.isArray(res) ? res : Object.values(res);
-                    arr = arr.filter(x => x != null);
-                    if (Array.isArray(arr[0])) arr = arr[0];
-                    return arr;
+                $("#iia_modal").on("hidden.bs.modal", function () {
+                    if ($("#iia_grid").data("dxDataGrid")) $("#iia_grid").dxDataGrid("dispose");
+                    $("#iia_grid").empty();
+                    self.selectedRowData = null;
+                    self.selectedDay = null;
+                    if (typeof reloadBusinessDate === "function") reloadBusinessDate();
                 });
-            }
-        }));
 
-        // Show Bootstrap modal
-        const modal = new bootstrap.Modal(document.getElementById("popupShiftDetail"));
-        modal.show();
-    }
+                $("#iia_detailModal").on("hidden.bs.modal", function () {
+                    if ($("#iia_detailGrid").data("dxDataGrid")) $("#iia_detailGrid").dxDataGrid("dispose");
+                    $("#iia_detailGrid").empty();
+                });
+            };
+        },
 
-     $(document).on("click", "#btnDetailpopup", function () {
-        const grid = $("#gridShiftDetail").dxDataGrid("instance");
-        const selectedRows = grid.getSelectedRowsData();
+        initDOMEvents: function () {
+            const self = this;
+            $("#iia_btnSearch").on("click", () => self.reloadGrid());
+            $("#iia_group").on("change", () => self.reloadGrid());
+            $("#iia_btnPrev").on("click", () => self.shiftDate(-15));
+            $("#iia_btnNext").on("click", () => self.shiftDate(15));
+            $("#iia_btnDetail").on("click", () => self.openDetail());
+            $("#iia_btnReservation").on("click", () => self.openReservation());
+        },
 
-        if (!selectedRows || selectedRows.length === 0) {
-            showToast("Warning", "Please select one reservation!", true);
-            return;
-        }
+        // ---------------------------------------------------------------------------------------
+        //  Ngày
+        // ---------------------------------------------------------------------------------------
+        ymd: function (d) {
+            return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+        },
 
-        const idReservation = selectedRows[0].id;
+        parseYmd: function (s) {
+            const p = (s || "").split("T")[0].split("-");
+            return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        },
 
-        if (!idReservation) {
-            showToast("Error", "Reservation ID not found!", true);
-            return;
-        }
+        firstDate: function () {
+            return this.parseYmd($("#iia_date").val() || window.dateSystem);
+        },
 
-        // Gọi hàm review
-        goReview(idReservation);
-    });
+        shiftDate: function (days) {
+            const d = this.firstDate();
+            d.setDate(d.getDate() + days);
+            UI.setHiddenDate("iia_date", this.ymd(d));
+            this.reloadGrid();
+        },
 
-    // Khởi tạo ngày mặc định và tự động load grid khi bấm Load
-    $(document).ready(function () {
-      getBusinessDate();
-    });
-    function getBusinessDate() {
-        return $.ajax({
-            url: '/Reservation/GetBusinessDate',
-            type: 'get',
-            dataType: 'json',
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            success: function (result) {
+        // Tiêu đề cột: "15-Sept\nTue\nCW 38" (tuần tính theo tuần chứa ngày 1/1, bắt đầu từ Chủ nhật như bản desktop)
+        caption: function (d) {
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "June", "July", "Aug", "Sept", "Oct", "Nov", "Dec"];
+            const dows = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            const jan1 = new Date(d.getFullYear(), 0, 1);
+            const dayOfYear = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - jan1) / 86400000);
+            const cw = Math.floor((dayOfYear + jan1.getDay()) / 7) + 1;
+            return d.getDate() + "-" + months[d.getMonth()] + "\n" + dows[d.getDay()] + "\nCW " + cw;
+        },
 
-
-                // Gán vào input type="date"
-                $('#firstDate').val(result.split('T')[0]);
-               
-               $("#btnPrint").trigger("click");
-            },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
+        loadGroups: function () {
+            return $.ajax({ url: "/RoomManagement/ItemLookups", type: "GET" }).done(function (res) {
+                if (!res || res.success === false) {
+                    showToast("Error", (res && res.message) || "Unable to load item groups.", false);
+                    return;
                 }
+                const $g = $("#iia_group").empty().append('<option value="0">--All--</option>');
+                (res.groups || []).forEach(g => $g.append($("<option>").val(g.ID).text(g.Code)));
+            }).fail(function () { showToast("Error", "Unable to load item groups.", false); });
+        },
+
+        // ---------------------------------------------------------------------------------------
+        //  Lưới
+        // ---------------------------------------------------------------------------------------
+        reloadGrid: function () {
+            const self = this;
+            const first = self.firstDate();
+            if (isNaN(first)) return;
+
+            const params = { groupId: $("#iia_group").val() || 0 };
+            const days = [];
+            for (let i = 0; i < 15; i++) {
+                const d = new Date(first);
+                d.setDate(first.getDate() + i);
+                days.push(d);
+                params[self.dateParams[i]] = self.ymd(d);
             }
-        });
-    }
-    // Button -15 ngày
-    $("#btnMinus15").on("click", function () {
-        let dateInput = $("#firstDate");
-        let date = new Date(dateInput.val());
-        date.setDate(date.getDate() - 15);
-        dateInput.val(date.toISOString().split('T')[0]);
-        $("#btnPrint").trigger("click");
-    });
 
-    // Button +15 ngày
-    $("#btnPlus15").on("click", function () {
-        let dateInput = $("#firstDate");
-        let date = new Date(dateInput.val());
-        date.setDate(date.getDate() + 15);
-        dateInput.val(date.toISOString().split('T')[0]);
-        $("#btnPrint").trigger("click");
-    });
+            self.selectedRowData = null;
+            self.selectedDay = null;
+            $("#iia_btnDetail").prop("disabled", true);
 
-    // Load dữ liệu lên grid khi bấm Load
-    $("#btnPrint").on("click", function () {
-        $("#loadingSpinner").show();
+            $.ajax({
+                url: "/RoomManagement/GetItemInventoryAvailable",
+                type: "GET",
+                loadingGrid: "#iia_grid",
+                data: params,
+                success: function (data) {
+                    if (!Array.isArray(data)) {
+                        showToast("Error", typeof data === "string" ? data : "Unable to load data", false);
+                        data = [];
+                    }
+                    self.renderGrid(data, days);
+                },
+                error: function () { showToast("Error", "Unable to load data", false); }
+            });
+        },
 
-        let groupId = $("#groupId").val() || ""; // Nếu có input groupId
-        let firstDateVal = $("#firstDate").val();
+        renderGrid: function (data, days) {
+            const self = this;
+            const cols = [
+                { dataField: "id", visible: false },
+                { dataField: "itemID", visible: false },
+                { dataField: "itemName", caption: "Item Name", width: 200, allowSorting: false }
+            ];
+            self.dateFields.forEach(function (f, i) {
+                cols.push({ dataField: f, caption: self.caption(days[i]), width: 56, alignment: "center", allowSorting: false });
+            });
 
-        function formatDateTime(date) {
-            let y = date.getFullYear();
-            let m = String(date.getMonth() + 1).padStart(2, '0');
-            let d = String(date.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d} 00:00:00`;
+            $("#iia_grid").dxDataGrid({
+                dataSource: data,
+                height: "100%",
+                width: "100%",
+                showBorders: true,
+                hoverStateEnabled: true,
+                columnAutoWidth: false,
+                allowColumnResizing: true,
+                // Dòng thứ 2 của mỗi Item là Total-Physical: tô màu riêng
+                selection: { mode: "none" },
+                scrolling: { mode: "standard", showScrollbar: "always", useNative: true },
+                paging: { enabled: false },
+                sorting: { mode: "none" },
+                columns: cols,
+                onRowPrepared: function (e) {
+                    if (e.rowType === "data" && e.data.itemName === "Total-Physical") $(e.rowElement).addClass("iia-total-row");
+                },
+                // Bấm vào một ô ngày để chọn (Detail chỉ bật khi chọn ô ngày), bấm đúp để xem chi tiết
+                onCellClick: function (e) {
+                    if (e.rowType !== "data" || !e.column.dataField) return;
+                    const idx = self.dateFields.indexOf(e.column.dataField);
+                    $("#iia_grid .iia-selected-cell").removeClass("iia-selected-cell");
+                    if (idx < 0) {
+                        self.selectedRowData = null;
+                        self.selectedDay = null;
+                        $("#iia_btnDetail").prop("disabled", true);
+                        return;
+                    }
+                    $(e.cellElement).addClass("iia-selected-cell");
+                    self.selectedRowData = e.data;
+                    self.selectedDay = days[idx];
+                    $("#iia_btnDetail").prop("disabled", false);
+                },
+                onCellDblClick: function (e) {
+                    if (e.rowType === "data" && self.dateFields.indexOf(e.column.dataField) >= 0) self.openDetail();
+                }
+            });
+        },
+
+        // ---------------------------------------------------------------------------------------
+        //  Chi tiết đặt chỗ
+        // ---------------------------------------------------------------------------------------
+        openDetail: function () {
+            const self = this;
+            if (!self.selectedRowData || !self.selectedDay) {
+                showToast("Warning", "Please select a date cell first!", false);
+                return;
+            }
+
+            // id của cả dòng Item và dòng Total-Physical đều là ID của Item
+            const itemId = self.selectedRowData.id;
+            $("#iia_detailItem").val(self.selectedRowData.itemName === "Total-Physical" ? self.itemNameOf(itemId) : self.selectedRowData.itemName);
+            $("#iia_detailDate").text(self.selectedDay.toLocaleDateString("en-GB"));
+            $("#iia_btnReservation").prop("disabled", true);
+
+            $.ajax({
+                url: "/RoomManagement/GetItemResvDetail",
+                type: "GET",
+                data: { itemID: itemId, day: self.ymd(self.selectedDay) },
+                success: function (data) {
+                    if (!Array.isArray(data)) {
+                        showToast("Error", typeof data === "string" ? data : "Unable to load data", false);
+                        data = [];
+                    }
+                    self.renderDetailGrid(data);
+                    $("#iia_detailModal").modal("show");
+                },
+                error: function () { showToast("Error", "Unable to load data", false); }
+            });
+        },
+
+        // Tên Item khi chọn dòng Total-Physical: lấy từ dòng Item cùng ID
+        itemNameOf: function (id) {
+            const grid = $("#iia_grid").dxDataGrid("instance");
+            const rows = grid ? grid.getDataSource().items() : [];
+            const r = rows.find(x => x.id === id && x.itemName !== "Total-Physical");
+            return r ? r.itemName : "";
+        },
+
+        renderDetailGrid: function (data) {
+            const self = this;
+            const total = data.reduce((s, r) => s + (parseInt(r.qty, 10) || 0), 0);
+            $("#iia_detailTotal").text(total);
+            $("#iia_detailEmpty").toggleClass("d-none", data.length > 0);
+
+            if ($("#iia_detailGrid").data("dxDataGrid")) $("#iia_detailGrid").dxDataGrid("dispose");
+            $("#iia_detailGrid").dxDataGrid({
+                dataSource: data,
+                height: "50vh",
+                width: "100%",
+                showBorders: true,
+                hoverStateEnabled: true,
+                columnAutoWidth: true,
+                allowColumnResizing: true,
+                selection: { mode: "single" },
+                scrolling: { mode: "standard", showScrollbar: "always", useNative: true },
+                paging: { pageSize: 20 },
+                pager: { visible: true, allowedPageSizes: [20, 50, 100], showPageSizeSelector: true, showInfo: true, showNavigationButtons: true },
+                columns: [
+                    { dataField: "id", visible: false },
+                    { dataField: "confirmationNo", caption: "Confirmation No", width: 130 },
+                    { dataField: "name", caption: "Name", minWidth: 200 },
+                    { dataField: "roomNo", caption: "Room No", width: 90 },
+                    { dataField: "reservedFrom", caption: "Reserved From", dataType: "date", format: "dd/MM/yyyy", width: 120 },
+                    { dataField: "reservedTo", caption: "Reserved To", dataType: "date", format: "dd/MM/yyyy", width: 120 },
+                    { dataField: "qty", caption: "Qty", width: 70, alignment: "right" }
+                ],
+                onSelectionChanged: function (e) {
+                    const row = e.selectedRowsData[0];
+                    self.selectedReservationId = row ? parseInt(row.id, 10) || 0 : 0;
+                    $("#iia_btnReservation").prop("disabled", !self.selectedReservationId);
+                },
+                onRowDblClick: function (e) {
+                    self.selectedReservationId = parseInt(e.data.id, 10) || 0;
+                    self.openReservation();
+                }
+            });
+        },
+
+        // Mở màn Reservation (popup dùng chung của layout) của dòng đang chọn
+        openReservation: function () {
+            const id = this.selectedReservationId;
+            if (!id) return;
+
+            const modal = $("#newReservationModal");
+            modal.find(".modal-body").html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-3">Loading reservation...</p></div>');
+            modal.modal("show");
+
+            $.ajax({
+                url: "/Reservation/EncryptId", type: "POST", data: { id: id },
+                success: function (response) {
+                    if (!response.success) { modal.modal("hide"); showToast("Error", "Cannot open reservation.", false); return; }
+                    $.ajax({
+                        url: "/Reservation/NewReservation", type: "GET", data: { key: response.encryptedId }, cache: false,
+                        success: function (html) { modal.find(".modal-body").html(html); },
+                        error: function () { modal.find(".modal-body").html('<div class="alert alert-danger m-4">Unable to load reservation.</div>'); }
+                    });
+                },
+                error: function () { modal.modal("hide"); showToast("Error", "Server connection error.", false); }
+            });
         }
+    };
 
-        let firstDate = new Date(firstDateVal);
-        let params = { GroupID: groupId };
-
-        const paramNames = [
-            "FirstDate", "SecondDate", "ThirthDate", "FourthDate", "FifthDate",
-            "SixthDate", "SeventhDate", "EighthDate", "NinthDate", "TenthDate",
-            "ElevenDate", "TwelveDate", "ThirtheenDate", "FourtheenDate", "FiftheenDate"
-        ];
-
-        paramNames.forEach((name, index) => {
-            let newDate = new Date(firstDate);
-            newDate.setDate(firstDate.getDate() + index);
-            params[name] = formatDateTime(newDate);
-        });
-
-        $.ajax({
-            url: '/RoomManagement/GetItemInventoryAvailable',
-            type: 'GET',
-            data: params,
-            success: function (data) {
-                loadTelephoneGrid(data);
-                $("#loadingSpinner").hide();
-            },
-            error: function () {
-                alert("Không thể tải dữ liệu");
-                $("#loadingSpinner").hide();
-            }
-        });
+    $(document).ready(function () {
+        iia_Module.init();
     });
 </script>

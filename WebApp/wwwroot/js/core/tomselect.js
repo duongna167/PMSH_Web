@@ -91,10 +91,19 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
                 },
             };
 
-            if (isMultiple) {
+            // Danh sách ngắn (Zone, Room Type, Section, Floor, Status...): hiển thị như combo chọn 1.
+            // Thẻ <select multiple> được giữ nguyên để .val() và getTomSelectData() vẫn trả về mảng (tối đa 1 phần tử),
+            // nên các màn đang đọc giá trị dạng danh sách không phải sửa. Bỏ trống = tất cả; nút × để xóa lựa chọn.
+            const isSingleChoice = el.hasAttribute('data-single-choice');
+            if (isSingleChoice) {
+                tsOptions.maxItems = 1;
+                tsOptions.placeholder = el.getAttribute('data-placeholder') || 'All';
+            }
+
+            if (isMultiple && !isSingleChoice) {
                 tsOptions.plugins['remove_button'] = {
-                    title: 'Delete',
-                    label: '×',
+                    title: 'Delete', // Tooltip cho nút x từng item
+                    label: '×', // Chỉ để ký tự thuần (plugin escape HTML, không dùng thẻ span ở đây)
                 };
             }
 
@@ -344,34 +353,60 @@ function destroyTomSelect(selectors) {
 
  */
 
+/**
+ * Trả về Promise resolve khi dữ liệu đã nạp xong vào TomSelect (kể cả lỗi / bị request mới thay thế),
+ * để có thể chờ: await loadDataToTomSelect(...) hoặc Promise.all([...]).
+ * Promise không bao giờ reject. Cách gọi cũ (không dùng giá trị trả về) vẫn hoạt động như trước.
+ */
 function loadDataToTomSelect(selector, source, mapFn = null, callback = null) {
+    return new Promise((resolve) => {
+        _loadDataToTomSelectImpl(selector, source, mapFn, callback, resolve);
+    });
+}
+
+function _loadDataToTomSelectImpl(selector, source, mapFn, callback, done) {
     const el = document.querySelector(selector);
     if (!el || !el.tomselect) {
         console.warn(`[TomSelect] ${selector} chưa init.`);
+        done({ success: false, error: 'Not initialized' });
         return;
     }
 
     const ts = el.tomselect;
 
-    const requestId = Date.now();
+    // Date.now() có thể trùng khi gọi liên tiếp trong cùng 1ms -> thêm bộ đếm
+    const requestId = Date.now() + '_' + (++_loadDataToTomSelectImpl._seq);
     ts._lastLoadId = requestId;
+
+    // Request đang chạy bị thay thế: báo xong theo request mới nhất
+    const supersede = () => {
+        if (ts._lastFinishedId === ts._lastLoadId) {
+            done({ success: true, superseded: true });
+            return;
+        }
+        const waiters = ts._loadWaiters || (ts._loadWaiters = []);
+        waiters.push(done);
+    };
+    const finish = (result) => {
+        ts._lastFinishedId = requestId;
+        done(result);
+        const waiters = ts._loadWaiters || [];
+        ts._loadWaiters = [];
+        waiters.forEach(w => w(result));
+    };
 
     try {
         ts.clear(true);          // silent clear
         ts.clearOptions();
 
         const handleData = (rawData) => {
-            if (ts._lastLoadId !== requestId) return;
+            if (ts._lastLoadId !== requestId) return supersede();
 
             if (!Array.isArray(rawData) || rawData.length === 0) {
                 ts.refreshOptions(false);
 
-                callback?.({
-                    ts,
-                    data: [],
-                    success: true,
-                    empty: true
-                });
+                const emptyResult = { ts, data: [], success: true, empty: true };
+                try { callback?.(emptyResult); } finally { finish(emptyResult); }
                 return;
             }
 
@@ -391,12 +426,8 @@ function loadDataToTomSelect(selector, source, mapFn = null, callback = null) {
             ts.addOptions(formattedData);
             ts.refreshOptions(false);
 
-            callback?.({
-                ts,
-                data: formattedData,
-                success: true,
-                empty: false
-            });
+            const okResult = { ts, data: formattedData, success: true, empty: false };
+            try { callback?.(okResult); } finally { finish(okResult); }
         };
 
         // ===== LOCAL =====
@@ -414,16 +445,13 @@ function loadDataToTomSelect(selector, source, mapFn = null, callback = null) {
                 })
                 .then(data => handleData(data))
                 .catch(err => {
-                    if (ts._lastLoadId !== requestId) return;
+                    if (ts._lastLoadId !== requestId) return supersede();
+                    if (ts._lastFinishedId === requestId) return; // lỗi phát sinh từ callback, đã finish
 
                     console.error(`[TomSelect] Load error (${selector})`, err);
 
-                    callback?.({
-                        ts,
-                        data: [],
-                        success: false,
-                        error: err
-                    });
+                    const errResult = { ts, data: [], success: false, error: err };
+                    try { callback?.(errResult); } finally { finish(errResult); }
                 });
 
             return;
@@ -432,26 +460,20 @@ function loadDataToTomSelect(selector, source, mapFn = null, callback = null) {
         // ===== INVALID SOURCE =====
         console.warn(`[TomSelect] Source không hợp lệ (${selector})`);
 
-        callback?.({
-            ts,
-            data: [],
-            success: false,
-            error: 'Invalid source'
-        });
+        const invalidResult = { ts, data: [], success: false, error: 'Invalid source' };
+        try { callback?.(invalidResult); } finally { finish(invalidResult); }
 
     } catch (error) {
-        if (ts._lastLoadId !== requestId) return;
+        if (ts._lastLoadId !== requestId) return supersede();
+        if (ts._lastFinishedId === requestId) return; // lỗi phát sinh từ callback, đã finish
 
         console.error(`[TomSelect] Load Data Error (${selector}):`, error);
 
-        callback?.({
-            ts,
-            data: [],
-            success: false,
-            error: error
-        });
+        const errResult = { ts, data: [], success: false, error: error };
+        try { callback?.(errResult); } finally { finish(errResult); }
     }
 }
+_loadDataToTomSelectImpl._seq = 0;
 /**
  * Hàm thần thánh mod được full dữ liệu tomselect (Chat GPT)
  *  VD:

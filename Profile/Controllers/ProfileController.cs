@@ -507,6 +507,29 @@ namespace Profile.Controllers
             }
         }
 
+        // Xuất Excel kết quả Search Profile theo bộ lọc hiện tại (toàn bộ, không phân trang)
+        [HttpGet]
+        public IActionResult ExportProfileSearchExcel(string code, string account, string firstName, string keyWord, string city, string type, bool showSaleInCharge)
+        {
+            // File tạm tự xóa khi stream đóng (sau khi gửi xong cho client, hoặc khi lỗi)
+            var stream = new FileStream(Path.Combine(Path.GetTempPath(), $"ProfileSearch_{Guid.NewGuid():N}.xlsx"),
+                FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 81920, FileOptions.DeleteOnClose);
+            try
+            {
+                Profile.Services.Implements.ProfileSearchExcelExporter.Write(
+                    stream, code, account, firstName, keyWord, city, type, showSaleInCharge);
+                stream.Position = 0;
+
+                string fileName = $"ProfileSearch_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+            }
+            catch (Exception ex)
+            {
+                stream.Dispose();
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetAllProfileTest(string code, string account, string firstName, string keyWord, string city, string type, bool showSaleInCharge, int skip = 0, int take = 15)
         {
@@ -1128,6 +1151,110 @@ namespace Profile.Controllers
             string fileName = $"ThongTinKhach_{DateTime.Now.Ticks}.xml";
 
             return File(ms, "application/xml", fileName);
+        }
+
+        // Export Profile to Excel (WinForm: frmProfileExport_V2 - spGuestProfileSearch / spGuestProfileSearchGuest)
+        public IActionResult ProfileExportV2()
+        {
+            return PartialView();
+        }
+
+        [HttpGet]
+        public IActionResult SearchProfileExportV2(DateTime fromDate, DateTime toDate, bool guestInHouse = false)
+        {
+            try
+            {
+                var data = _iProfileService.SearchProfileExportV2(fromDate, toDate, guestInHouse);
+
+                // Giữ nguyên kiểu dữ liệu (số, ngày) để grid tính cột USD và định dạng
+                var result = data.AsEnumerable()
+                    .Select(row => data.Columns.Cast<DataColumn>().ToDictionary(
+                        col => col.ColumnName,
+                        col => row[col] == DBNull.Value ? null : row[col]))
+                    .ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        // Export Data to .CSV (WinForm: frmProfileExport_C - spProfileExportCSV)
+        public IActionResult ProfileExportCSV()
+        {
+            return PartialView();
+        }
+
+        [HttpGet]
+        public IActionResult SearchProfileExportCSV(DateTime fromDate, DateTime toDate)
+        {
+            try
+            {
+                var data = _iProfileService.SearchProfileExportCSV(fromDate, toDate);
+
+                var result = data.AsEnumerable()
+                    .Select(row => data.Columns.Cast<DataColumn>().ToDictionary(
+                        col => col.ColumnName,
+                        col => FormatCsvValue(row[col])))
+                    .ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet]
+        public IActionResult ExportCSV(DateTime fromDate, DateTime toDate)
+        {
+            DataTable data;
+            try
+            {
+                data = _iProfileService.SearchProfileExportCSV(fromDate, toDate);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+
+            if (data == null || data.Rows.Count == 0)
+                return BadRequest("No data to export");
+
+            // Thứ tự cột theo grid WinForm, các cột khác (nếu SP trả thêm) nối phía sau
+            var preferred = new[] { "Indexs", "HotelID", "EmailAddress", "FirstName", "LastName", "ArrivalDate", "DepartureDate", "Language" };
+            var columns = data.Columns.Cast<DataColumn>()
+                .OrderBy(c => Array.IndexOf(preferred, c.ColumnName) is var i && i >= 0 ? i : int.MaxValue)
+                .ToList();
+
+            var sb = new StringBuilder();
+            sb.AppendLine(string.Join(",", columns.Select(c => EscapeCsv(c.ColumnName))));
+            foreach (DataRow row in data.Rows)
+            {
+                sb.AppendLine(string.Join(",", columns.Select(c => EscapeCsv(FormatCsvValue(row[c])))));
+            }
+
+            // UTF-8 có BOM để Excel đọc đúng tiếng Việt
+            var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+            string fileName = $"ProfileExport_{fromDate:yyyyMMdd}_{toDate:yyyyMMdd}.csv";
+            return File(bytes, "text/csv", fileName);
+        }
+
+        // Ngày xuất theo định dạng yyyy-MM-dd giống WinForm
+        private static string FormatCsvValue(object value)
+        {
+            if (value == null || value == DBNull.Value) return "";
+            if (value is DateTime dt) return dt.ToString("yyyy-MM-dd");
+            return Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? "";
+        }
+
+        private static string EscapeCsv(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return "";
+            if (value.IndexOfAny(new[] { ',', '"', '\r', '\n' }) >= 0)
+                return "\"" + value.Replace("\"", "\"\"") + "\"";
+            return value;
         }
 
 

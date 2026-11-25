@@ -1,412 +1,424 @@
-﻿@using DevExpress.XtraReports.UI
-@{
-    var selectedReport = @ViewBag.ReportHeader;
-    var crrlist = ViewBag.CurrencyList;
+﻿@{
+    ViewBag.Title = "Exchange Rates";
 }
 
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+<style>
+    /* ===== Exchange Rates: bố cục như bản WinForms (frmGenExChangeRates) ===== */
+    #exr_modalMain .exr-toolbar { display: flex; flex-wrap: nowrap; gap: 4px; padding-bottom: 4px; }
+    #exr_modalMain .exr-toolbar .mui-button { flex: 0 0 110px; min-width: 0; margin: 0; padding-left: 4px; padding-right: 4px; white-space: nowrap; }
+    #exr_modalMain .modal-body { display: flex; flex-direction: column; position: relative; }
 
-<div class="text-center" id="reportTitle" style="font-size: 20px">Exchange Rate</div>
+    #exr_modalMain .exr-form { display: flex; align-items: flex-start; gap: 16px; margin-top: 6px; flex-wrap: nowrap; }
+    #exr_modalMain .exr-col { display: flex; flex-direction: column; gap: 6px; }
+    #exr_modalMain .exr-row { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+    #exr_modalMain .exr-row > label { margin: 0; white-space: nowrap; text-align: right; }
+    #exr_modalMain .exr-col-b .exr-row > label { min-width: 90px; }
+    #exr_modalMain .exr-group { border: 1px solid var(--bs-border-color, #ccc); border-radius: 4px; padding: 6px 10px 8px; position: relative; margin-top: 8px; }
+    #exr_modalMain .exr-group > legend { position: absolute; top: -10px; left: 10px; background: var(--bs-body-bg, #fff); padding: 0 6px; font-size: 13px; margin: 0; width: auto; color: #8b1a3a; }
+    #exr_modalMain .exr-group .exr-row > label { min-width: 120px; }
+    #exr_modalMain .exr-group .exr-grid2 { display: grid; grid-template-columns: auto auto auto auto; column-gap: 8px; row-gap: 6px; align-items: center; }
+    #exr_modalMain .exr-group .exr-grid2 label { margin: 0; text-align: right; white-space: nowrap; }
+    #exr_modalMain .exr-num { text-align: right; font-weight: 600; }
 
-<div class="search-filter mb-1">
-    <div class="">
-        <button id="btnNew" class="mui-button mui-button-new"> New</button>
-        <button id="btnEdit" class="mui-button mui-button-new"> Edit</button>
-        <button id="btnDelete" class="mui-button mui-button-new"> Delete</button>
-        <button id="btnExportExcel" class="mui-button mui-button-new" type="button"> Excel</button>
-    </div>
-</div>
+    #exr_modalMain [data-date-input] { width: 140px; position: relative; }
+    #exr_modalMain [data-date-input] .date-ui { width: 100% !important; padding-right: 30px !important; }
 
-<div class="mui-card">
-    <div id="gridWrapper">
-        <div id="gridContainer" class="gridContainer"></div>
-    </div>
-</div>
+    #exr_gridContainer { height: calc(90vh - 300px); min-height: 220px; width: 100%; }
+</style>
 
-<div class="modal fade" id="editorModal" tabindex="-1" aria-labelledby="editorModalLabel" aria-hidden="true"
-    data-bs-backdrop="static">
-    <div class="modal-dialog modal-lg  modal-dialog-centered">
+<div class="modal fade" id="exr_modalMain" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-4by3">
         <div class="modal-content">
+
             <div class="modal-header">
-                <h5 class="modal-title" id="editorModalLabel">Exchange Rate</h5>
+                <h5 class="modal-title">Exchange Rates</h5>
             </div>
+
             <div class="modal-body">
-                <form id="exchangeRateForm">
-                    <!-- Buttons -->
-                    <div class="d-flex justify-content-start gap-2 mb-1">
-                        <button type="button" class="mui-button mui-button-new" id="btnModalSave">Save</button>
-                        <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
-                    </div>
-                    <input type="hidden" id="ID" name="ID" />
 
-                    <div class="row  align-items-center mb-1">
-                        <div class="col-md-6">
-                            <div class="row align-items-center">
-                                <label class="col-sm-4 col-form-label text-sm-end">Date:</label>
-                                <div class="col-sm-8">
-                                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="DateTime">
-                                        <input type="text" class="date-ui form-control" placeholder="dd/mm/yyyy"
-                                            autocomplete="off" />
-                                    </div>
+                <!-- TOOLBAR: New, Save, Cancel, Edit, Delete, Excel, Close -->
+                <div class="exr-toolbar">
+                    <button id="exr_btnNew" type="button" class="mui-button mui-button-new">New</button>
+                    <button id="exr_btnSave" type="button" class="mui-button mui-button-new" disabled>Save</button>
+                    <button id="exr_btnCancel" type="button" class="mui-button mui-button-edit" disabled>Cancel</button>
+                    <button id="exr_btnEdit" type="button" class="mui-button mui-button-edit">Edit</button>
+                    <button id="exr_btnDelete" type="button" class="mui-button mui-button-delete">Delete</button>
+                    <button id="exr_btnExcel" type="button" class="mui-button mui-button-new">Excel</button>
+                    <button id="exr_btnClose" type="button" class="mui-button mui-button-edit" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <!-- FORM -->
+                <div class="exr-form">
+
+                    <!-- Date + Master Currency -->
+                    <div class="exr-col exr-col-a">
+                        <div class="exr-row">
+                            <label for="exr_dateUi">Date</label>
+                            <div>
+                                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="exr_date">
+                                    <input id="exr_dateUi" name="exr_dateUi" type="text" class="date-ui form-control form-control-sm"
+                                           placeholder="dd/mm/yyyy" autocomplete="off" />
                                 </div>
+                                <input type="hidden" id="exr_date" name="exr_date" />
                             </div>
                         </div>
-
-                        <div class="col-md-6">
-                            <div class="row align-items-center">
-                                <label class="col-sm-4 col-form-label text-sm-end">From Curr:</label>
-                                <div class="col-sm-8">
-                                    <select id="FromCurrencyID" name="FromCurrencyID"
-                                        class="form-select form-select-sm">
-                                        <option value="">---Select---</option>
-                                        @foreach (var crr in ViewBag.CurrencyList)
-                                        {
-                                            <option value="@crr.ID">@crr.ID - @crr.Description</option>
-                                        }
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="row align-items-center">
-                                <label class="col-sm-4 col-form-label text-sm-end">To Curr:</label>
-                                <div class="col-sm-8">
-                                    <select id="ToCurrencyIDSelect" class="form-select form-select-sm" disabled>
-                                        @foreach (var crr in crrlist)
-                                        {
-                                            if (crr.ID == "VND")
-                                            {
-                                                <option value="@crr.ID" selected>@crr.ID -
-                                                    @crr.Description</option>
-                                            }
-                                        }
-                                    </select>
-                                    <input type="hidden" id="ToCurrencyID" name="ToCurrencyID" value="VND" />
-                                </div>
-                            </div>
+                        <div class="exr-row">
+                            <label>Master Currency :</label>
+                            <span id="exr_master" class="fw-semibold" style="color:#1a4fb4;"></span>
                         </div>
                     </div>
 
-                    <div class="row mb-1">
-                        <div class="col-md-6">
-                            <div class="row align-items-center">
-                                <label class="col-sm-4 col-form-label text-sm-end fw-bold">Buy Rate:</label>
-                                <div class="col-sm-8">
-                                    <input type="number" id="ExChangeRate" value="0" name="ExChangeRate"
-                                        class="form-control form-control-sm" />
-                                </div>
-                            </div>
+                    <!-- From / To / Buy / Sell -->
+                    <div class="exr-col exr-col-b">
+                        <div class="exr-row">
+                            <label for="exr_from">From Currency</label>
+                            <select id="exr_from" class="form-select form-select-sm" style="width:200px;"></select>
                         </div>
-                        <div class="col-md-6">
-                            <div class="row align-items-center">
-                                <label class="col-sm-4 col-form-label text-sm-end fw-bold">Sell Rate:</label>
-                                <div class="col-sm-8">
-                                    <input type="number" id="ExChangeRateSell" value="0" name="ExChangeRateSell"
-                                        class="form-control form-control-sm" />
-                                </div>
-                            </div>
+                        <div class="exr-row">
+                            <label for="exr_to">To Currency</label>
+                            <select id="exr_to" class="form-select form-select-sm" style="width:200px;" disabled></select>
+                        </div>
+                        <div class="exr-row">
+                            <label for="exr_buy" class="fw-bold" style="color:#8b1a3a;">Buy Rate</label>
+                            <input type="text" id="exr_buy" class="form-control form-control-sm exr-num" style="width:200px;" value="0" data-kind="dec" />
+                        </div>
+                        <div class="exr-row">
+                            <label for="exr_sell">Sell Rate</label>
+                            <input type="text" id="exr_sell" class="form-control form-control-sm exr-num" style="width:200px;" value="0" data-kind="dec" />
                         </div>
                     </div>
 
-                    <div class="row ">
-                        <div class="col-lg-4">
-                            <div class="border-start border-end">
-                                <div class="text-center  fw-bold d-block">MAX</div>
-                                <div>
-                                    <label class="col-5 col-form-label text-sm-end fw-bold">Denomination</label>
-                                    <input type="number" id="DenominationMax" value="0" name="DenominationMax"
-                                        class="form-control-sm col-6" />
-                                </div>
-                                <div>
-                                    <label class="col-5 col-form-label text-sm-end fw-bold">Rate</label>
-                                    <input type="number" id="ExChangeRateMax" value="0" name="ExChangeRateMax"
-                                        class="form-control-sm col-6" />
-                                </div>
-                            </div>
+                    <!-- Exchange Currency (Max / Medium / Min) -->
+                    <fieldset class="exr-group">
+                        <legend>Exchange Currency</legend>
+                        <div class="exr-grid2">
+                            <label for="exr_denoMax">Denomination Max</label>
+                            <input type="text" id="exr_denoMax" class="form-control form-control-sm exr-num" style="width:120px;" value="0" data-kind="int" />
+                            <span></span><span></span>
+
+                            <label for="exr_rateMax">Buy Rate max</label>
+                            <input type="text" id="exr_rateMax" class="form-control form-control-sm exr-num" style="width:120px;" value="0" data-kind="dec" />
+                            <span></span><span></span>
+
+                            <label for="exr_denoMed">Denomination medium</label>
+                            <input type="text" id="exr_denoMed" class="form-control form-control-sm exr-num" style="width:120px;" value="0" data-kind="int" />
+                            <label for="exr_denoMin">Denomination min</label>
+                            <input type="text" id="exr_denoMin" class="form-control form-control-sm exr-num" style="width:120px;" value="0" data-kind="int" />
+
+                            <label for="exr_rateMed">Buy Rate medium</label>
+                            <input type="text" id="exr_rateMed" class="form-control form-control-sm exr-num" style="width:120px;" value="0" data-kind="dec" />
+                            <label for="exr_rateMin">Buy Rate min</label>
+                            <input type="text" id="exr_rateMin" class="form-control form-control-sm exr-num" style="width:120px;" value="0" data-kind="dec" />
                         </div>
-                        <div class="col-lg-4">
-                            <div class="border-start border-end">
-                                <div class="text-center  fw-bold d-block">MEDIUM</div>
-                                <div>
-                                    <label class="col-5 col-form-label text-sm-end fw-bold">Denomination</label>
-                                    <input type="number" id="DenominationMedium" value="0" name="DenominationMedium"
-                                        class="form-control-sm col-6" />
-                                </div>
-                                <div>
-                                    <label class="col-5 col-form-label text-sm-end fw-bold">Rate</label>
-                                    <input type="number" id="ExChangeRateMedium" value="0" name="ExChangeRateMedium"
-                                        class="form-control-sm col-6" />
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-4">
-                            <div class="border-start border-end">
-                                <div class="text-center  fw-bold d-block">MIN</div>
-                                <div>
-                                    <label class="col-5 col-form-label text-sm-end fw-bold">Denomination</label>
-                                    <input type="number" id="DenominationMin" value="0" name="DenominationMin"
-                                        class="form-control-sm col-6" />
-                                </div>
-                                <div>
-                                    <label class="col-5 col-form-label text-sm-end fw-bold">Rate</label>
-                                    <input type="number" id="ExChangeRateMin" value="0" name="ExChangeRateMin"
-                                        class="form-control-sm col-6" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
+                    </fieldset>
+                </div>
+
+                <!-- GRID -->
+                <div class="mui-card mt-2">
+                    <div id="exr_gridContainer" class="gridContainer"></div>
+                </div>
+
             </div>
         </div>
     </div>
 </div>
 
-<div id="loadingSpinner"
-    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
-    <i class="fa-solid fa-spinner fa-spin"></i>
-</div>
-
 <script>
-    let selectedRowData = null;
+    var exr_Module = (function () {
 
-    DevExpress.localization.locale("vi");
+        let mode = "idle";          // idle | new | edit
+        let editingId = 0;
+        let selectedRow = null;
+        let gridInstance = null;
+        let masterCurrency = "";
 
-    $(document).ready(function () {
-    });
+        const csrf = () => ({ "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() });
 
-    // --- REFACTORED: New Button ---
-    // Opens the modal in "Insert" mode
-    $("#btnNew").click(function () {
-        // Reset form
-        $("#exchangeRateForm")[0].reset();
-        $("#ID").val(""); // Ensure ID is empty for Insert
-        reloadBusinessDate();        // Set Modal Title and Show
-        $("#editorModalLabel").text("New Exchange Rate");
-        $("#editorModal").modal("show");
-    });
+        // ---------- helpers ----------
+        function parseNum(v) {
+            const n = parseFloat(String(v == null ? "" : v).replace(/,/g, ""));
+            return isNaN(n) ? NaN : n;
+        }
+        function fmtDec(n) { return Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 }); }
+        function fmtInt(n) { return String(parseInt(n || 0, 10) || 0); }
 
-    // --- REFACTORED: Edit Button ---
-    // Opens the modal in "Update" mode with data pre-filled
-    $("#btnEdit").click(function () {
-        if (!selectedRowData) {
-            alert("Please select a row first!");
-            return;
+        function getDateIso() {
+            return $("input[type=hidden][name='exr_date']").val() || $("#exr_date").val() || "";
         }
 
-        // Map selected row data to form (Existing Logic Preserved)
-        $("#ID").val(selectedRowData.id);
-        $("#DateTime").val(selectedRowData.dateTime.split("T")[0]);
-        $("#FromCurrencyID").val(selectedRowData.fromCurrencyID);
-        $("#ToCurrencyID").val(selectedRowData.toCurrencyID);
-        $("#ExChangeRate").val(selectedRowData.buyRate);
-        $("#ExChangeRateSell").val(selectedRowData.sellRate);
-        $("#ExChangeRateMax").val(selectedRowData.exChangeRateMax);
-        $("#DenominationMax").val(selectedRowData.denominationMax);
-        $("#ExChangeRateMedium").val(selectedRowData.exChangeRateMedium);
-        $("#DenominationMedium").val(selectedRowData.denominationMedium);
-        $("#ExChangeRateMin").val(selectedRowData.exChangeRateMin);
-        $("#DenominationMin").val(selectedRowData.denominationMin);
+        function setState(next) {
+            mode = next;
+            const idle = next === "idle";
+            $("#exr_btnNew").prop("disabled", !idle);
+            $("#exr_btnEdit").prop("disabled", !idle);
+            $("#exr_btnDelete").prop("disabled", !idle);
+            $("#exr_btnSave").prop("disabled", idle);
+            $("#exr_btnCancel").prop("disabled", idle);
+        }
 
-        // Set Modal Title and Show
-        $("#editorModalLabel").text("Edit Exchange Rate");
-        $("#editorModal").modal("show");
-    });
+        function clearForm() {
+            editingId = 0;
+            $("#exr_buy,#exr_sell,#exr_rateMax,#exr_rateMed,#exr_rateMin").val("0");
+            $("#exr_denoMax,#exr_denoMed,#exr_denoMin").val("0");
+        }
 
-    // --- REFACTORED: Save Button (Inside Modal) ---
-    // Reuse existing logic, but now closes modal on success
-    $("#btnModalSave").click(function () {
-        let id = $("#ID").val();
-        let data = $("#exchangeRateForm").serialize();
+        // ---------- lookups ----------
+        function loadLookups() {
+            return $.ajax({ url: "/Cashiering/ExchangeRateLookups", type: "GET", dataType: "json" }).then(function (res) {
+                masterCurrency = res.masterCurrency || "";
+                $("#exr_master").text(masterCurrency);
 
-        console.log("Serialized Data:", data);
+                const $from = $("#exr_from").empty().append('<option value="">--- Select a Currency ---</option>');
+                (res.currencies || []).forEach(function (c) {
+                    $from.append($("<option>").val(c.id).text(c.code));
+                });
 
-        if (!id) {
-            // === Insert Logic ===
-            $.post("/Cashiering/Insert", data, function (res) {
-                console.log("Insert Response:", res);
-                DevExpress.ui.notify("Inserted new ID: " + res.id, "success", 2000);
-
-                // Refresh Grid
-                $("#gridContainer").dxDataGrid("instance").refresh();
-
-                // Close Modal
-                $("#editorModal").modal("hide");
-
-            }).fail(function (xhr) {
-                console.error("Insert error:", xhr.responseText);
-                DevExpress.ui.notify("Insert failed!", "error", 2000);
-            });
-        } else {
-            // === Update Logic ===
-            $.post("/Cashiering/Update", data, function (res) {
-                console.log("Update Response:", res);
-                DevExpress.ui.notify("Updated ID: " + res.id, "success", 2000);
-
-                // Refresh Grid
-                $("#gridContainer").dxDataGrid("instance").refresh();
-
-                // Close Modal
-                $("#editorModal").modal("hide");
-
-            }).fail(function (xhr) {
-                console.error("Update error:", xhr.responseText);
-                DevExpress.ui.notify("Update failed!", "error", 2000);
+                const $to = $("#exr_to").empty();
+                $to.append($("<option>").val(masterCurrency).text(res.masterCurrencyText || masterCurrency));
+                $to.val(masterCurrency);
             });
         }
-    });
 
-    // --- NEW: Modal Hidden Event ---
-    // Ensures clean state if user closes modal via X or backdrop
-    $("#editorModal").on('hidden.bs.modal', function () {
-        $("#exchangeRateForm")[0].reset();
-        $("#ID").val("");
-        // Reset date to today
-        $("#DateTime").val(formatDate(new Date()));
-    });
-
-    // --- REUSED: Delete Logic (Unchanged) ---
-    $("#btnDelete").click(function () {
-        if (!selectedRowData) {
-            showToast("Warning", "Please select a row first!", false);
-            return;
+        // ---------- grid ----------
+        function loadGrid() {
+            return $.ajax({ url: "/Cashiering/ExchangeRateList", type: "GET", dataType: "json" }).then(function (rows) {
+                selectedRow = null;
+                const dtFmt = "dd/MM/yyyy HH:mm";
+                if (gridInstance) { try { gridInstance.dispose(); } catch (e) { } gridInstance = null; }
+                gridInstance = new DevExpress.ui.dxDataGrid(document.getElementById("exr_gridContainer"), {
+                    dataSource: rows || [],
+                    keyExpr: "id",
+                    height: "100%",
+                    showBorders: true,
+                    columnAutoWidth: true,
+                    allowColumnResizing: true,
+                    selection: { mode: "single" },
+                    hoverStateEnabled: true,
+                    filterRow: { visible: true, applyFilter: "auto" },
+                    paging: { pageSize: 50 },
+                    pager: { visible: true, allowedPageSizes: [50, 100, "all"], showPageSizeSelector: true, showInfo: true, showNavigationButtons: true },
+                    scrolling: { mode: "standard", showScrollbar: "always" },
+                    columns: [
+                        { dataField: "dateTime", caption: "Date Time", dataType: "date", format: "dd/MM/yyyy" },
+                        { dataField: "fromCurrencyID", caption: "From Curr." },
+                        { dataField: "toCurrencyID", caption: "To Curr." },
+                        { dataField: "buyRate", caption: "Buy Rate", dataType: "number", format: "#,##0.00" },
+                        { dataField: "sellRate", caption: "Sell Rate", dataType: "number", format: "#,##0.00" },
+                        { dataField: "exChangeRateMax", caption: "Buy Rate Max", dataType: "number", format: "#,##0.00" },
+                        { dataField: "denominationMax", caption: "Deno. Max", dataType: "number" },
+                        { dataField: "exChangeRateMedium", caption: "Buy Rate Medium", dataType: "number", format: "#,##0.00" },
+                        { dataField: "denominationMedium", caption: "Deno. Medium", dataType: "number" },
+                        { dataField: "exChangeRateMin", caption: "Buy Rate Min", dataType: "number", format: "#,##0.00" },
+                        { dataField: "denominationMin", caption: "Deno. Min", dataType: "number" },
+                        { dataField: "createBy", caption: "Create By" },
+                        { dataField: "createDate", caption: "Create Date", dataType: "datetime", format: dtFmt },
+                        { dataField: "updateBy", caption: "Update By" },
+                        { dataField: "updateDate", caption: "Update Date", dataType: "datetime", format: dtFmt }
+                    ],
+                    onSelectionChanged: function (e) {
+                        selectedRow = e.selectedRowsData.length ? e.selectedRowsData[0] : null;
+                    }
+                });
+            }).fail(function (xhr) {
+                if (xhr && xhr.status === 401) { sessionTimeout(); return; }
+                console.error("ExchangeRate load error:", xhr);
+                const m = (xhr && xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message
+                    : (xhr && xhr.status ? ("HTTP " + xhr.status) : (xhr && xhr.message ? xhr.message : String(xhr)));
+                showToast("Error", "Failed to load exchange rates: " + m, false);
+            });
         }
 
-        if (!confirm("Are you sure you want to delete this record?")) return;
+        // ---------- actions ----------
+        function onNew() {
+            clearForm();
+            setState("new");
+        }
 
-        $.post("/Cashiering/Delete", { id: selectedRowData.id }, function (res) {
-            if (res.deleted > 0) {
-                showToast("Success", "Deleted successfully", true);
-                $("#gridContainer").dxDataGrid("instance").refresh();
-                selectedRowData = null;
-            } else {
-                DevExpress.ui.notify("Delete failed!", "error", 2000);
+        function onEdit() {
+            if (!selectedRow || !selectedRow.id) {
+                showToast("Warning", "Please select a row first.", false);
+                return;
             }
-        }).fail(function (xhr) {
-            console.error("Delete error:", xhr.responseText);
-            DevExpress.ui.notify("Delete error!", "error", 2000);
-        });
-    });
+            const r = selectedRow;
+            editingId = Number(r.id);
+            if (window.UI && UI.setHiddenDate) UI.setHiddenDate("exr_date", r.dateTime);
+            $("#exr_from").val(r.fromCurrencyID || "");
+            $("#exr_to").val(r.toCurrencyID || masterCurrency);
+            $("#exr_buy").val(fmtDec(r.buyRate));
+            $("#exr_sell").val(fmtDec(r.sellRate));
+            $("#exr_rateMax").val(fmtDec(r.exChangeRateMax));
+            $("#exr_denoMax").val(fmtInt(r.denominationMax));
+            $("#exr_rateMed").val(fmtDec(r.exChangeRateMedium));
+            $("#exr_denoMed").val(fmtInt(r.denominationMedium));
+            $("#exr_rateMin").val(fmtDec(r.exChangeRateMin));
+            $("#exr_denoMin").val(fmtInt(r.denominationMin));
+            setState("edit");
+        }
 
-    // --- REUSED: Grid Configuration (Unchanged) ---
-    $(function () {
-        $("#gridContainer").dxDataGrid({
-            dataSource: new DevExpress.data.DataSource({
-                load: function () {
-                    return $.ajax({
-                        url: "/Cashiering/GetExchangeRate",
-                        type: "GET",
-                        dataType: "json"
-                    }).then(res => {
-                        console.log("ExchangeRates:", res);
-                        return res;
+        function onCancel() {
+            clearForm();
+            setState("idle");
+        }
+
+        function buildPayload() {
+            // Validate giống CheckForm của WinForms
+            const from = $("#exr_from").val();
+            const to = $("#exr_to").val();
+            if (!from) { showToast("Warning", "You must select currency for exchange !!!", false); $("#exr_from").focus(); return null; }
+            if (!to) { showToast("Warning", "You must select currency for exchange !!!", false); return null; }
+            if (from === to) { showToast("Warning", "From currency, to currency is the same !!!", false); return null; }
+
+            const nums = {
+                buy: parseNum($("#exr_buy").val()), sell: parseNum($("#exr_sell").val()),
+                rateMax: parseNum($("#exr_rateMax").val()), rateMed: parseNum($("#exr_rateMed").val()), rateMin: parseNum($("#exr_rateMin").val()),
+                denoMax: parseNum($("#exr_denoMax").val()), denoMed: parseNum($("#exr_denoMed").val()), denoMin: parseNum($("#exr_denoMin").val())
+            };
+            for (const k in nums) {
+                if (isNaN(nums[k])) { showToast("Warning", "Amount is not number.", false); return null; }
+            }
+            const date = getDateIso();
+            if (!date) { showToast("Warning", "Please select a date.", false); return null; }
+
+            return {
+                id: editingId,
+                dateTime: date,
+                fromCurrencyID: from,
+                toCurrencyID: to,
+                exChangeRate: nums.buy,
+                exChangeRateSell: nums.sell,
+                exChangeRateMax: nums.rateMax,
+                denominationMax: Math.trunc(nums.denoMax),
+                exChangeRateMedium: nums.rateMed,
+                denominationMedium: Math.trunc(nums.denoMed),
+                exChangeRateMin: nums.rateMin,
+                denominationMin: Math.trunc(nums.denoMin)
+            };
+        }
+
+        function onSave() {
+            const payload = buildPayload();
+            if (!payload) return;
+            $("#exr_btnSave").prop("disabled", true);
+            $.ajax({
+                url: "/Cashiering/SaveExchangeRate",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload),
+                headers: csrf()
+            }).done(function () {
+                showToast("Success", "Saved successfully.", true);
+                clearForm();
+                setState("idle");
+                loadGrid();
+            }).fail(function (xhr) {
+                $("#exr_btnSave").prop("disabled", false);
+                if (xhr && xhr.status === 401) { sessionTimeout(); return; }
+                const msg = (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) || "Cannot save.";
+                showToast("Error", msg, false);
+            });
+        }
+
+        function onDelete() {
+            if (!selectedRow || !selectedRow.id) {
+                showToast("Warning", "Please select a row first.", false);
+                return;
+            }
+            const id = selectedRow.id;
+            const doDelete = function () {
+                $.ajax({ url: "/Cashiering/Delete", type: "POST", data: { id: id }, headers: csrf() })
+                    .done(function (res) {
+                        if (res && res.deleted > 0) {
+                            showToast("Success", "Delete successful.", true);
+                            loadGrid();
+                        } else {
+                            showToast("Error", "Delete failed.", false);
+                        }
+                    })
+                    .fail(function (xhr) {
+                        if (xhr && xhr.status === 401) { sessionTimeout(); return; }
+                        const msg = (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) || "Cannot delete.";
+                        showToast("Error", msg, false);
                     });
-                }
-            }),
-            keyExpr: "ID",
-            showBorders: true,
-            height: "500px",
-            selection: { mode: "single" },
-            paging: { pageSize: 20 },
-            pager: {
-                showPageSizeSelector: true,
-                allowedPageSizes: [20, 50, 100],
-                showInfo: true
-            },
-            columnAutoWidth: false,   // BẮT BUỘC
-            filterRow: { visible: true },
-            columns: [
-                { dataField: "dateTime", caption: "Date Time", dataType: "datetime", format: "dd/MM/yyyy" },
-                { dataField: "fromCurrencyID", caption: "From Curr.", width: 80 },
-                { dataField: "toCurrencyID", caption: "To Curr.", width: 70 },
-                { dataField: "buyRate", caption: "Buy Rate", dataType: "number", format: "#,##0.00", width: 80 },
-                { dataField: "sellRate", caption: "Sell Rate", dataType: "number", format: "#,##0.00", width: 80 },
-                { dataField: "exChangeRateMax", caption: "Buy Rate Max", dataType: "number", format: "#,##0.00", width: 120 },
-                { dataField: "denominationMax", caption: "Deno. Max", dataType: "number", width: 80 },
-                { dataField: "exChangeRateMedium", caption: "Buy Rate Medium", dataType: "number", format: "#,##0.00", width: 120 },
-                { dataField: "denominationMedium", caption: "Deno. Medium", dataType: "number", width: 90 },
-                { dataField: "exChangeRateMin", caption: "Buy Rate Min", dataType: "number", format: "#,##0.00", width: 120 },
-                { dataField: "denominationMin", caption: "Deno. Min", dataType: "number", width: 80 },
-                { dataField: "createBy", caption: "Created By", width: 80 },
-                { dataField: "createDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy" },
-                { dataField: "updateBy", caption: "Updated By", width: 80 },
-                { dataField: "updateDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy" }
-            ],
-            scrolling: {
-                mode: "standard",
-                showScrollbar: "always",
-                scrollByContent: true
-            },
-            paging: {
-                pageSize: 50
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [50, 100, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            onSelectionChanged: function (e) {
-                if (e.selectedRowsData.length > 0) {
-                    selectedRowData = e.selectedRowsData[0];
-                    console.log("Selected Row:", selectedRowData);
-                } else {
-                    selectedRowData = null;
-                }
+            };
+            if (window.Swal) {
+                Swal.fire({ title: "Are you sure want delete?", icon: "question", showCancelButton: true, confirmButtonText: "Yes", cancelButtonText: "No" })
+                    .then(function (r) { if (r.isConfirmed) doDelete(); });
+            } else if (confirm("Are you sure want delete?")) {
+                doDelete();
             }
-        });
-    });
+        }
 
-    // --- REUSED: Excel Export (Unchanged) ---
-    $("#btnExportExcel").click(function () {
-        const grid = $("#gridContainer").dxDataGrid("instance");
-        const workbook = new ExcelJS.Workbook();
-        const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
-        const worksheet = workbook.addWorksheet("Sheet 1");
+        function onExcel() {
+            const grid = gridInstance;
+            if (!grid) return;
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "";
+            const ws = workbook.addWorksheet("Sheet 1");
 
-        worksheet.addRow([companyName]);
-        worksheet.mergeCells('A1:D1');
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
+            ws.addRow([companyName]);
+            ws.mergeCells("A1:D1");
+            ws.getRow(1).font = { bold: true };
+            ws.addRow(["", "", "", new Date().toLocaleString("vi-VN")]);
+            ws.getRow(2).alignment = { horizontal: "right" };
+            ws.addRow([]); ws.addRow([]);
+            const titleRow = ws.addRow(["Exchange Rates"]);
+            ws.mergeCells("A5:O5");
+            titleRow.font = { bold: true, size: 14 };
+            titleRow.alignment = { horizontal: "center" };
+            ws.addRow([]);
 
-        const now = new Date();
-        const exportDate = now.toLocaleString("vi-VN");
-        worksheet.addRow(['', '', '', exportDate]);
-        worksheet.mergeCells('D2:D2');
-        worksheet.getRow(2).alignment = { vertical: 'middle', horizontal: 'right' };
-
-        worksheet.addRow([]);
-        worksheet.addRow([]);
-
-        const reportRow = worksheet.addRow(['Exchange Rate']);
-        worksheet.mergeCells('A5:O5');
-        reportRow.font = { bold: true, size: 14 };
-        reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        worksheet.addRow([]);
-
-        DevExpress.excelExporter.exportDataGrid({
-            component: grid,
-            worksheet: worksheet,
-            autoFilterEnabled: true,
-            topLeftCell: { row: 7, column: 1 }
-        }).then(function () {
-            const lastRow = worksheet.lastRow.number + 2;
-            worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
-            worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-            worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
-            let fileName = "Exchange Rate.xlsx";
-
-            workbook.xlsx.writeBuffer().then(function (buffer) {
-                saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid, worksheet: ws, autoFilterEnabled: true, topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "Exchange Rates.xlsx");
+                });
             });
-        });
-    });
+        }
+
+        function bindEvents() {
+            $(document).off("click.exr");
+            $(document).on("click.exr", "#exr_btnNew", onNew);
+            $(document).on("click.exr", "#exr_btnEdit", onEdit);
+            $(document).on("click.exr", "#exr_btnCancel", onCancel);
+            $(document).on("click.exr", "#exr_btnSave", onSave);
+            $(document).on("click.exr", "#exr_btnDelete", onDelete);
+            $(document).on("click.exr", "#exr_btnExcel", onExcel);
+            // Close: dùng data-bs-dismiss="modal" trên nút (Bootstrap tự đóng popup)
+
+            // Định dạng số khi rời ô (giống Validating của WinForms: sai định dạng -> 0)
+            $(document).on("focusout.exr", "#exr_modalMain input[data-kind]", function () {
+                const n = parseNum(this.value);
+                const kind = this.getAttribute("data-kind");
+                if (isNaN(n)) { this.value = kind === "int" ? "0" : "0.00"; showToast("Warning", "Amount is not number.", false); return; }
+                this.value = kind === "int" ? fmtInt(n) : fmtDec(n);
+            });
+            $(document).on("focusin.exr", "#exr_modalMain input[data-kind]", function () { this.select(); });
+        }
+
+        function init() {
+            const el = document.getElementById("exr_modalMain");
+            if (!el) return;
+
+            $(el).off("shown.bs.modal.exr").on("shown.bs.modal.exr", async function () {
+                bindEvents();
+                if (typeof window.initDateInputs === "function") window.initDateInputs(el);
+                setState("idle");
+                clearForm();
+                try { await loadLookups(); } catch (e) { showToast("Error", "Failed to load currencies", false); }
+                await loadGrid();
+            });
+
+            $(el).off("hidden.bs.modal.exr").on("hidden.bs.modal.exr", function () {
+                $(document).off(".exr");
+                try { if (gridInstance) gridInstance.dispose(); gridInstance = null; } catch (e) { }
+            });
+        }
+
+        return { init: init };
+    })();
+
+    window.openModalExr = function () { /* modal đã được ModalManager mở */ };
+
+    $(document).ready(function () { exr_Module.init(); });
 </script>

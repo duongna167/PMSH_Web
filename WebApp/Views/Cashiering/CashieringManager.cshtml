@@ -1,126 +1,239 @@
 @using DevExpress.XtraReports.UI
 
+<style>
+    /* ===== Cashiering Manager (Guest In House Search): bố cục như WinForms frmReservationSearch ===== */
+    #ar_opening_cashier_modal .modal-dialog {
+        max-width: 97vw;
+        width: 97vw;
+        margin: 1.2vh auto;
+    }
+    #ar_opening_cashier_modal .modal-content { height: 96vh; display: flex; flex-direction: column; }
+    #ar_opening_cashier_modal .modal-body { display: flex; flex-direction: column; padding: 8px 12px; min-height: 0; flex: 1 1 0; position: relative; overflow: hidden; }
+
+    /* Thanh nút: 1 hàng, thứ tự như Win */
+    #ar_opening_cashier_modal .arc-toolbar { display: flex; flex-wrap: nowrap; gap: 4px; padding-bottom: 6px; }
+    #ar_opening_cashier_modal .arc-toolbar .mui-button {
+        flex: 1 1 0; min-width: 0; max-width: 120px; margin: 0; padding-left: 4px; padding-right: 4px; white-space: nowrap;
+    }
+
+    /* Nút Options là menu xổ xuống: cùng kích cỡ với các nút khác */
+    #ar_opening_cashier_modal .arc-toolbar .dropdown { flex: 1 1 0; min-width: 0; max-width: 120px; display: flex; }
+    #ar_opening_cashier_modal .arc-toolbar .dropdown .mui-button { max-width: none; width: 100%; }
+
+    /* Khối bộ lọc: gọn trong 3 hàng */
+    #ar_opening_cashier_modal .arc-filter { display: flex; align-items: flex-start; gap: 12px; flex-wrap: nowrap; }
+    #ar_opening_cashier_modal .arc-inputs {
+        display: grid; grid-auto-flow: column; grid-template-rows: repeat(3, auto);
+        grid-template-columns: repeat(4, max-content); column-gap: 10px; row-gap: 5px;
+    }
+    #ar_opening_cashier_modal .arc-col { display: flex; flex-direction: column; gap: 4px; }
+    #ar_opening_cashier_modal .arc-row { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+    #ar_opening_cashier_modal .arc-row > label { margin: 0; white-space: nowrap; min-width: 0; font-size: 13px; }
+    #ar_opening_cashier_modal .arc-row .form-control,
+    #ar_opening_cashier_modal .arc-row .form-select { width: 96px; }
+
+    #ar_opening_cashier_modal .arc-group {
+        border: 1px solid var(--bs-border-color, #bbb); border-radius: 4px;
+        padding: 9px 8px 6px; position: relative; margin: 6px 0 0;
+    }
+    #ar_opening_cashier_modal .arc-group > legend {
+        position: absolute; top: -11px; left: 8px; background: var(--bs-body-bg, #fff);
+        padding: 0 6px; margin: 0; width: auto; font-size: 13px; line-height: 20px;
+        display: flex; align-items: center; gap: 5px;
+    }
+    #ar_opening_cashier_modal .arc-group .arc-row > label { min-width: 30px; }
+    #ar_opening_cashier_modal .arc-filter > * { flex: 0 0 auto; }
+    #ar_opening_cashier_modal .arc-inputs .arc-row:nth-child(-n+3) > label { min-width: 44px; }
+    #ar_opening_cashier_modal .arc-inputs .arc-row:nth-child(n+4):nth-child(-n+6) > label { min-width: 66px; }
+    #ar_opening_cashier_modal .arc-inputs .arc-row:nth-child(n+7):nth-child(-n+9) > label { min-width: 52px; }
+    #ar_opening_cashier_modal .arc-inputs .arc-row:nth-child(10) > label { min-width: 34px; }
+    #ar_opening_cashier_modal .arc-radio { display: grid; grid-template-columns: repeat(2, max-content); column-gap: 14px; row-gap: 4px; }
+    #ar_opening_cashier_modal .arc-radio label { margin: 0; font-size: 13px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+    #ar_opening_cashier_modal [data-date-input] { width: 122px; position: relative; }
+    #ar_opening_cashier_modal [data-date-input] .date-ui { width: 100% !important; padding-right: 30px !important; }
+    #ar_opening_cashier_modal .arc-dateoff { opacity: .55; pointer-events: none; }
+
+    /* Lưới + chân trang */
+    #ar_opening_cashier_modal .arc-gridwrap { flex: 1 1 0; min-height: 0; margin-top: 8px; display: flex; flex-direction: column; }
+    #ar_opening_cashier_modal .arc-gridwrap > .mui-card { flex: 1 1 0; min-height: 0; margin: 0; }
+    #ar_cashiering_gridContainer { height: 100%; min-height: 120px; width: 100%; }
+    /* Hàng tổng cộng: thấp và chữ nhỏ để vừa số, nhường chỗ cho lưới */
+    #ar_cashiering_gridContainer .dx-datagrid-total-footer > .dx-datagrid-content .dx-datagrid-table .dx-row > td {
+        padding: 1px 4px !important; line-height: 16px; height: 20px;
+    }
+    #ar_cashiering_gridContainer .dx-datagrid-total-footer .dx-datagrid-summary-item { font-size: 11px; font-weight: 600; }
+    #ar_cashiering_gridContainer .dx-datagrid-total-footer .dx-datagrid-text-content { text-overflow: clip; }
+
+    /* Khung chi tiết phía dưới (comment | thông tin phòng | balance) + các tab */
+    #ar_opening_cashier_modal .arc-bottom { flex: 0 0 auto; margin-top: 6px; }
+    #ar_opening_cashier_modal .arc-detail { display: flex; gap: 14px; align-items: stretch; background: #e6e6e6; border: 1px solid #ccc; padding: 6px 8px; height: 84px; }
+    #ar_opening_cashier_modal .arc-comment { flex: 0 0 340px; resize: none; font-size: 12px; color: #8b1a3a; border: 1px solid #bbb; background: #fff; padding: 3px 5px; }
+    #ar_opening_cashier_modal .arc-info { flex: 0 0 360px; font-size: 13px; }
+    #ar_opening_cashier_modal .arc-info-title { font-weight: 700; margin-bottom: 8px; }
+    #ar_opening_cashier_modal .arc-info-dates { display: flex; gap: 28px; }
+    #ar_opening_cashier_modal .arc-bal { flex: 1 1 auto; font-size: 13px; }
+    #ar_opening_cashier_modal .arc-tabs { display: flex; gap: 2px; margin-top: 4px; height: 26px; overflow: hidden; }
+    #ar_opening_cashier_modal .arc-tab { border: 1px solid #d96a50; background: #ff7a5c; color: #fff; font-size: 12px; padding: 3px 14px; border-radius: 2px; }
+    #ar_opening_cashier_modal .arc-tab:disabled { opacity: .85; cursor: not-allowed; }
+
+    #ar_opening_cashier_modal .arc-footer { display: flex; justify-content: space-between; padding: 4px 6px 0; font-size: 13px; font-weight: 600; }
+</style>
+
 <div class="modal fade" id="ar_opening_cashier_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content modal-full-height">
-            <div class="modal-header bg-light py-2">
-                <h5 class="modal-title">Cashiering Manager</h5>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title">Guest In House Search</h5>
             </div>
 
-            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
-                <div class="py-2">
+            <div class="modal-body">
+
+                <!-- TOOLBAR (thứ tự như Win): Search, Clear, Check All, Group ADM, Resv, Options, Billing, C/O All, C/O Zero, Check Out, Excel, Close -->
+                <div class="arc-toolbar">
                     <button class="mui-button mui-button-new" id="ar_opening_btnSearch">Search</button>
                     <button class="mui-button mui-button-new" id="ar_opening_btnClear">Clear</button>
-                    <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                    <button class="mui-button mui-button-new" id="ar_opening_btnCheckAll">Check All</button>
+                    <button class="mui-button mui-button-new" id="ar_opening_btnGroupAdm">Group ADM</button>
+                    <button class="mui-button mui-button-new" id="ar_opening_btnResv">Resv</button>
+                    <div class="btn-group dropdown d-inline-block">
+                        <button class="mui-button mui-button-new dropdown-toggle" id="ar_opening_btnOptions" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">Options</button>
+                        <ul class="dropdown-menu" id="ar_opening_optionsMenu"></ul>
+                    </div>
+                    <button class="mui-button mui-button-new" id="ar_opening_btnBilling">Billing</button>
+                    <button class="mui-button mui-button-new" id="ar_opening_btnCoAll">C/O All</button>
+                    <button class="mui-button mui-button-new" id="ar_opening_btnCoZero">C/O Zero</button>
+                    <button class="mui-button mui-button-new" id="ar_opening_btnCheckOut">Check Out</button>
+                    <button class="mui-button mui-button-new" id="ar_opening_btnExcel">Excel</button>
+                    <button class="mui-button mui-button-edit" data-bs-dismiss="modal">Close</button>
                 </div>
 
-                <div class="mui-card p-2 bg-light border-0 shadow-sm d-flex flex-column flex-grow-1 overflow-hidden" id="ar_opening_filterPanel">
-                    <div class="row g-2 flex-shrink-0">
-                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
-                            <label class="small fw-bold">Room</label>
-                            <input type="text" class="form-control form-control-sm" id="ar_opening_room">
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
-                            <label class="small fw-bold">Conf. No</label>
-                            <input type="text" class="form-control form-control-sm" id="ar_opening_confirmationNo">
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
-                            <label class="small fw-bold">Name</label>
-                            <input type="text" class="form-control form-control-sm" id="ar_opening_name">
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
-                            <label class="small fw-bold">CRS No</label>
-                            <input type="text" class="form-control form-control-sm" id="ar_opening_crsNo">
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
-                            <label class="small fw-bold">Group</label>
-                            <input type="text" class="form-control form-control-sm" id="ar_opening_group">
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
-                            <label class="small fw-bold">Package</label>
-                            <input type="text" class="form-control form-control-sm" id="ar_opening_package">
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
-                            <label class="small fw-bold">Company</label>
-                            <input type="text" class="form-control form-control-sm" id="ar_opening_company">
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
-                            <label class="small fw-bold">Block</label>
-                            <input type="text" class="form-control form-control-sm" id="ar_opening_block">
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
-                            <label class="small fw-bold">Zone</label>
-                            <select class="form-select form-select-sm" id="ar_opening_zone" asp-items="ViewBag.cboZone"></select>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
-                            <label class="small fw-bold">Guest Type</label>
+                <!-- BỘ LỌC: gọn trong 3 hàng (ô nhập xếp theo cột, bên phải là Arrival / Departure / Guest Type) -->
+                <div class="arc-filter" id="ar_opening_filterPanel">
+
+                    <div class="arc-inputs">
+                        <!-- Cột 1 -->
+                        <div class="arc-row"><label for="ar_opening_room">Room</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_room"></div>
+                        <div class="arc-row"><label for="ar_opening_name">Name</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_name"></div>
+                        <div class="arc-row"><label for="ar_opening_group">Group</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_group"></div>
+                        <!-- Cột 2 -->
+                        <div class="arc-row"><label for="ar_opening_company">Company</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_company"></div>
+                        <div class="arc-row"><label for="ar_opening_block">Block</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_block"></div>
+                        <div class="arc-row"><label for="ar_opening_guestType">Guest.Type</label>
                             <select class="form-select form-select-sm" id="ar_opening_guestType">
-                                <option value="0" selected>All</option>
+                                <option value="0" selected>-- ALL --</option>
                                 <option value="1">Main Guest</option>
                                 <option value="2">Room Sharer</option>
-                            </select>
-                        </div>
-
-                        <div class="col-12 col-md-4 col-lg-3 col-xl-2">
-                            <label class="small fw-bold">Arrival From</label>
-                            <div class="input-group input-group-sm">
-                                <input type="date" class="form-control" id="ar_opening_arrivalForm" disabled>
-                                <div class="input-group-text"><input type="checkbox" id="ar_opening_chkArrivalForm"></div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-4 col-lg-3 col-xl-2">
-                            <label class="small fw-bold">Arrival To</label>
-                            <div class="input-group input-group-sm">
-                                <input type="date" class="form-control" id="ar_opening_arrivalTo" disabled>
-                                <div class="input-group-text"><input type="checkbox" id="ar_opening_chkArrivalTo"></div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-4 col-lg-3 col-xl-2">
-                            <label class="small fw-bold">Departure</label>
-                            <div class="input-group input-group-sm">
-                                <input type="date" class="form-control" id="ar_opening_departure" disabled>
-                                <div class="input-group-text"><input type="checkbox" id="ar_opening_chkDeparture"></div>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-xl-6 mt-1">
-                            <label class="small fw-bold d-block mb-1">Search Type</label>
-                            <div class="d-flex flex-wrap gap-3 p-1 bg-white border rounded">
-                                <div class="form-check form-check-inline mb-0 ms-2">
-                                    <input type="radio" class="me-1" name="ar_opening_searchType" value="0" checked id="st0">
-                                    <label class="form-check-label small" for="st0">In House</label>
-                                </div>
-                                <div class="form-check form-check-inline mb-0">
-                                    <input type="radio" class="me-1" name="ar_opening_searchType" value="1" id="st1">
-                                    <label class="form-check-label small" for="st1">CO</label>
-                                </div>
-                                <div class="form-check form-check-inline mb-0">
-                                    <input type="radio" class="me-1" name="ar_opening_searchType" value="3" id="st3">
-                                    <label class="form-check-label small" for="st3">Due Out</label>
-                                </div>
-                                <div class="form-check form-check-inline mb-0">
-                                    <input type="radio" class="me-1" name="ar_opening_searchType" value="4" id="st4">
-                                    <label class="form-check-label small" for="st4">CO Today</label>
-                                </div>
-                            </div>
-                        </div>
+                            </select></div>
+                        <!-- Cột 3 -->
+                        <div class="arc-row"><label for="ar_opening_confirmationNo">Conf.No</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_confirmationNo"></div>
+                        <div class="arc-row"><label for="ar_opening_crsNo">CRS.No</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_crsNo"></div>
+                        <div class="arc-row"><label for="ar_opening_package">Package</label>
+                            <input type="text" class="form-control form-control-sm" id="ar_opening_package"></div>
+                        <!-- Cột 4 -->
+                        <div class="arc-row"><label for="ar_opening_zone">Zone</label>
+                            <select class="form-select form-select-sm" id="ar_opening_zone" asp-items="ViewBag.cboZone"></select></div>
                     </div>
-                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1" style="min-height: 0;" ">
-                        <div id="ar_cashiering_gridContainer"></div>
-                        <div id="ar_cashiering_loading" style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
-                        z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
-                        height: 100%;display: flex;align-items: center;justify-content: center;">
+
+                    <!-- Arrival -->
+                    <fieldset class="arc-group">
+                        <legend><input type="checkbox" id="ar_opening_chkArrival"> <label for="ar_opening_chkArrival" style="margin:0;">Arrival</label></legend>
+                        <div class="arc-col">
+                            <div class="arc-row"><label>From</label>
+                                <div id="ar_opening_wrapArrFrom" class="arc-dateoff">
+                                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="ar_opening_arrivalForm">
+                                        <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                                    </div>
+                                    <input type="hidden" id="ar_opening_arrivalForm" name="ar_opening_arrivalForm" />
+                                </div></div>
+                            <div class="arc-row"><label>To</label>
+                                <div id="ar_opening_wrapArrTo" class="arc-dateoff">
+                                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="ar_opening_arrivalTo">
+                                        <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                                    </div>
+                                    <input type="hidden" id="ar_opening_arrivalTo" name="ar_opening_arrivalTo" />
+                                </div></div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Departure -->
+                    <fieldset class="arc-group">
+                        <legend><input type="checkbox" id="ar_opening_chkDeparture"> <label for="ar_opening_chkDeparture" style="margin:0;">Departure</label></legend>
+                        <div class="arc-row"><label>Date</label>
+                            <div id="ar_opening_wrapDep" class="arc-dateoff">
+                                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="ar_opening_departure">
+                                    <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                                </div>
+                                <input type="hidden" id="ar_opening_departure" name="ar_opening_departure" />
+                            </div></div>
+                    </fieldset>
+
+                    <!-- Guest Type (Search Type) -->
+                    <fieldset class="arc-group">
+                        <legend>Guest Type</legend>
+                        <div class="arc-radio">
+                            <label><input type="radio" name="ar_opening_searchType" value="0" checked> Guest in house</label>
+                            <label><input type="radio" name="ar_opening_searchType" value="1"> Checked out</label>
+                            <label><input type="radio" name="ar_opening_searchType" value="3"> Due Out</label>
+                            <label><input type="radio" name="ar_opening_searchType" value="2"> Checked Out Today</label>
+                            <label><input type="radio" name="ar_opening_searchType" value="4"> Check Out Today</label>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <!-- LƯỚI -->
+                <div class="arc-gridwrap">
+                    <div class="mui-card" style="position:relative;">
+                        <div id="ar_cashiering_gridContainer" class="gridContainer"></div>
+                        <div id="ar_cashiering_loading" style="position:absolute; inset:0; z-index:999; background:rgba(255,255,255,.55); backdrop-filter:blur(2px); display:flex; align-items:center; justify-content:center;">
                             <div class="spinner-border text-primary" role="status"></div>
                         </div>
                     </div>
+                    <div class="arc-footer">
+                        <span>Rows count : <span id="ar_opening_rowCount" style="color:#1a4fb4;">0</span></span>
+                        <span><span id="ar_opening_selCount">0</span> Selected.</span>
+                    </div>
                 </div>
+
+                <!-- KHUNG CHI TIẾT DÒNG ĐANG CHỌN (như phần dưới của Win) -->
+                <div class="arc-bottom">
+                    <div class="arc-detail">
+                        <textarea id="ar_opening_comment" class="arc-comment" readonly></textarea>
+                        <div class="arc-info">
+                            <div class="arc-info-title">Room[<span id="ar_opening_infoRoom"></span>] - <span id="ar_opening_infoName"></span></div>
+                            <div class="arc-info-dates">
+                                <span>Arrival : <span id="ar_opening_infoArr"></span></span>
+                                <span>Departure : <span id="ar_opening_infoDep"></span></span>
+                            </div>
+                        </div>
+                        <div class="arc-bal">
+                            <div>Balance(VND) : <span id="ar_opening_infoBalVnd"></span></div>
+                            <div class="mt-2">Balance(USD) : <span id="ar_opening_infoBalUsd" style="color:#1a4fb4;">0.00</span></div>
+                        </div>
+                    </div>
+                    <div class="arc-tabs" id="ar_opening_tabs">
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
 </div>
 
+<!-- Các popup đặt phòng dùng chung với Search Reservation (nạp khi bấm nút nghiệp vụ lần đầu) -->
+<div id="ar_opening_host"></div>
+
 <script>
     var ar_opening_cashier_Module = {
+        gridInstance: null,
+
         init: function () {
             this.initEvents();
             this.initDOMEvents();
@@ -136,108 +249,458 @@
         },
 
         initDOMEvents: function () {
+            this.initActions();
             // Button events
             $("#ar_opening_btnSearch").on("click", () => this.searchReservation());
             $("#ar_opening_btnClear").on("click", () => this.resetForm());
+            $("#ar_opening_btnCheckAll").on("click", () => this.checkAll());
+            $("#ar_opening_btnExcel").on("click", () => this.exportExcel());
 
-            // Checkbox date toggle
-            this.toggleDateInput('ar_opening_chkArrivalForm', 'ar_opening_arrivalForm');
-            this.toggleDateInput('ar_opening_chkArrivalTo', 'ar_opening_arrivalTo');
-            this.toggleDateInput('ar_opening_chkDeparture', 'ar_opening_departure');
-        },
-
-        toggleDateInput: function (checkboxId, inputId) {
-            $('#' + checkboxId).on('change', function () {
-                $('#' + inputId).prop('disabled', !this.checked);
+            // Arrival: 1 checkbox bật/tắt cả From và To (giống Win); Departure: 1 checkbox
+            $('#ar_opening_chkArrival').on('change', function () {
+                $('#ar_opening_wrapArrFrom, #ar_opening_wrapArrTo').toggleClass('arc-dateoff', !this.checked);
+            });
+            $('#ar_opening_chkDeparture').on('change', function () {
+                $('#ar_opening_wrapDep').toggleClass('arc-dateoff', !this.checked);
             });
         },
 
-        getBusinessDate: function () {
-            return $.ajax({
-                url: '/Reservation/GetBusinessDate',
+        // Giá trị ngày dạng yyyy-MM-dd từ ô ẩn của date input (chờ business date nếu chưa có)
+        getDate: async function (name) {
+            let v = $("#" + name).val() || "";
+            if (!v && typeof window.waitForBusinessDate === "function") {
+                try { v = await window.waitForBusinessDate(name, 5000); } catch (e) { v = ""; }
+            }
+            return v;
+        },
+
+        searchReservation: async function () {
+            $("#ar_cashiering_loading").show();
+
+            const arrFrom = await this.getDate('ar_opening_arrivalForm');
+            const arrTo = await this.getDate('ar_opening_arrivalTo');
+            const dep = await this.getDate('ar_opening_departure');
+            const chkArr = $('#ar_opening_chkArrival').is(':checked') ? 1 : 0;
+
+            $.ajax({
+                url: '/Cashiering/GuestInHouse',
                 type: 'get',
                 dataType: 'json',
+                data: {
+                    room: $('#ar_opening_room').val(),
+                    name: $('#ar_opening_name').val(),
+                    block: $('#ar_opening_block').val(),
+                    group: $('#ar_opening_group').val(),
+                    company: $('#ar_opening_company').val(),
+                    confirmationNo: $('#ar_opening_confirmationNo').val(),
+                    arrivalDate: arrFrom,
+                    arrivalTo: arrTo,
+                    departure: dep,
+                    crsNo: $('#ar_opening_crsNo').val(),
+                    package: $('#ar_opening_package').val(),
+                    guestName: $('#ar_opening_guestType').val(),
+                    zone: $('#ar_opening_zone').val(),
+                    typeSearch: $('input[name="ar_opening_searchType"]:checked').val(),
+                    chooseArrivalFrom: chkArr,
+                    chooseArrivalTo: chkArr,
+                    chooseDeparture: $('#ar_opening_chkDeparture').is(':checked') ? 1 : 0,
+                },
                 headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() },
                 success: (result) => {
-                    const date = result.split('T')[0];
-                    $('#ar_opening_arrivalForm, #ar_opening_arrivalTo, #ar_opening_departure').val(date);
+                    this.initializeGrid(result || []);
+                    $("#ar_cashiering_loading").hide();
+                },
+                error: (xhr) => {
+                    if (xhr.status == 401 && typeof sessionTimeout === "function") sessionTimeout();
+                    $("#ar_cashiering_loading").hide();
                 }
             });
         },
 
-        searchReservation: function () {
-            this.getBusinessDate().then(() => {
+        // Cột theo thứ tự Win: Rm, MG, Name, Balance, Balance(VND), R.Type, Arrival, Departure, A, C, C1, C2, Status, Rate,
+        // Holder, Group, Confirm.No, CRS.No, Pkg, Company, Agent, R.Code, Source, Market.
+        // Mỗi cột thử nhiều tên field khả dĩ (không phân biệt hoa thường). Các cột SP trả về mà chưa ghép được
+        // sẽ được thêm ở cuối lưới (trừ cột ID) để không mất dữ liệu; tên cột thật in ở Console (dòng "GuestInHouse columns").
+        buildColumns: function (data) {
+            const keys = data.length ? Object.keys(data[0]) : [];
+            console.log("GuestInHouse columns:", keys.join(", "));
+            const find = (cands) => keys.find(k => cands.some(c => c.toLowerCase() === k.toLowerCase()));
+            const truthy = (v) => v === true || /^(true|1|x|y)$/i.test(String(v == null ? "" : v).trim());
+            const spec = [
+                { c: ['Room', 'RoomNo', 'Rm'], cap: 'Rm', w: 70 },
+                { c: ['MG', 'MainGuest', 'IsMainGuest', 'IsMG'], cap: 'MG', w: 40, center: true, flag: true },
+                { c: ['Name', 'GuestName', 'FullName'], cap: 'Name', w: 200 },
+                { c: ['Balance', 'BalanceUSD'], cap: 'Balance', w: 90, num: '#,##0.00' },
+                { c: ['BalanceVND', 'Balance_VND'], cap: 'Balance(VND)', w: 110, num: '#,##0.00' },
+                { c: ['RoomType', 'RType', 'Type'], cap: 'R.Type', w: 70 },
+                { c: ['Arrival', 'ArrivalDate'], cap: 'Arrival', w: 90 },
+                { c: ['Departure', 'DepartureDate'], cap: 'Departure', w: 90 },
+                { c: ['Adults', 'Adult', 'NoOfAdults', 'Adl', 'A'], cap: 'A', w: 36, num: '#,##0' },
+                { c: ['Child', 'Children', 'C'], cap: 'C', w: 36, num: '#,##0' },
+                { c: ['Child1', 'C1'], cap: 'C1', w: 36, num: '#,##0' },
+                { c: ['Child2', 'C2'], cap: 'C2', w: 36, num: '#,##0' },
+                { c: ['Status', 'ReservationStatus'], cap: 'Status', w: 100 },
+                { c: ['Rate', 'Price'], cap: 'Rate', w: 100, num: '#,##0.00' },
+                { c: ['ReservationHolder', 'Holder'], cap: 'Holder', w: 160 },
+                { c: ['GroupCode', 'Group', 'GroupName'], cap: 'Group', w: 110 },
+                { c: ['ConfirmationNo', 'ConfirmNo'], cap: 'Confirm.No', w: 100 },
+                { c: ['CRSNo', 'CRS'], cap: 'CRS.No', w: 110 },
+                { c: ['Pkg', 'Package', 'Packages', 'PackageCode'], cap: 'Pkg', w: 90 },
+                { c: ['Company', 'CompanyName'], cap: 'Company', w: 130 },
+                { c: ['Agent', 'AgentName'], cap: 'Agent', w: 130 },
+                { c: ['RateCode', 'RCode', 'R.Code'], cap: 'R.Code', w: 80 },
+                { c: ['Source', 'SourceCode'], cap: 'Source', w: 80 },
+                { c: ['Market', 'MarketCode'], cap: 'Market', w: 90 }
+            ];
 
-                $("#ar_cashiering_loading").show();
-
-                $.ajax({
-                    url: '/Cashiering/GuestInHouse',
-                    type: 'get',
-                    dataType: 'json',
-                    data: {
-                        room: $('#ar_opening_room').val(),
-                        name: $('#ar_opening_name').val(),
-                        block: $('#ar_opening_block').val(),
-                        group: $('#ar_opening_group').val(),
-                        company: $('#ar_opening_company').val(),
-                        confirmationNo: $('#ar_opening_confirmationNo').val(),
-                        arrivalDate: $('#ar_opening_arrivalForm').val(),
-                        arrivalTo: $('#ar_opening_arrivalTo').val(),
-                        departure: $('#ar_opening_departure').val(),
-                        crsNo: $('#ar_opening_crsNo').val(),    
-                        package: $('#ar_opening_package').val(),
-                        guestName: $('#ar_opening_guestType').val(),
-                        zone: $('#ar_opening_zone').val(),
-                        typeSearch: $('input[name="ar_opening_searchType"]:checked').val(),
-                        chooseArrivalFrom: $('#ar_opening_chkArrivalForm').is(':checked') ? 1 : 0,
-                        chooseArrivalTo: $('#ar_opening_chkArrivalTo').is(':checked') ? 1 : 0,
-                        chooseDeparture: $('#ar_opening_chkDeparture').is(':checked') ? 1 : 0,
-                    },
-                    headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() },
-                    success: (result) => {
-                        this.initializeGrid(result);
-                        $("#ar_cashiering_loading").hide();
-                    },
-                    error: (xhr) => {
-                        if (xhr.status == 401 && typeof sessionTimeout === "function") sessionTimeout();
-                        $("#ar_cashiering_loading").hide();
-                    }
-                });
+            const cols = [];
+            const used = new Set();
+            spec.forEach(s => {
+                const f = find(s.c);
+                if (!f) return;
+                used.add(f);
+                const col = { dataField: f, caption: s.cap, width: s.w };
+                if (s.center) col.alignment = 'center';
+                if (s.flag) {
+                    // MG: hiện chữ X cho khách chính (giống Win)
+                    col.calculateCellValue = (r) => truthy(r[f]) ? 'X' : '';
+                    col.cssClass = 'fw-bold';
+                }
+                if (s.num) {
+                    // Giá trị server trả về là chuỗi → chuyển sang số để căn phải và định dạng
+                    col.dataType = 'number';
+                    col.alignment = 'right';
+                    col.format = s.num;
+                    col.calculateCellValue = (r) => {
+                        const n = parseFloat(String(r[f] == null ? '' : r[f]).replace(/,/g, ''));
+                        return isNaN(n) ? null : n;
+                    };
+                }
+                cols.push(col);
             });
+
+            // Fallback: SP không có cột nào khớp → hiện tất cả cột (ẩn cột kết thúc bằng ID)
+            if (cols.length < 4) return keys.map(k => ({ dataField: k, visible: !/id$/i.test(k) }));
+
+            // Các cột còn lại của SP (Select, RoomID, ReservationID, ReservationNo, ProfileIndividualID, BlockCode, Comment, Color)
+            // Win không hiện trên lưới nên không thêm vào.
+            return cols;
         },
 
         initializeGrid: function (data) {
-            $("#ar_cashiering_gridContainer").dxDataGrid({
+            const self = this;
+            self.rows = data;
+            self.currentRow = null;
+            if (self.gridInstance) { try { self.gridInstance.dispose(); } catch (e) { } self.gridInstance = null; }
+
+            $("#ar_opening_rowCount").text(data.length);
+            $("#ar_opening_selCount").text(0);
+            self.showDetail(null);
+
+            // Hàng tổng cộng ở cuối lưới (như Win): số phòng, Balance, Balance(VND), A, C, C1, C2, Rate
+            const gridCols = self.buildColumns(data);
+            const colOf = (cap) => gridCols.find(c => c.caption === cap);
+            const totalItems = [];
+            const roomCol = colOf('Rm');
+            let roomSet = null;
+            if (roomCol) totalItems.push({ column: roomCol.dataField, summaryType: 'custom', name: 'roomCnt', displayFormat: '{0}' });
+            [['Balance', '#,##0.00'], ['Balance(VND)', '#,##0'], ['A', '#,##0'], ['C', '#,##0'], ['C1', '#,##0'], ['C2', '#,##0'], ['Rate', '#,##0']].forEach(function (p) {
+                const c = colOf(p[0]);
+                if (c) totalItems.push({ column: c.dataField, summaryType: 'sum', displayFormat: '{0}', valueFormat: p[1] });
+            });
+
+            self.gridInstance = new DevExpress.ui.dxDataGrid(document.getElementById("ar_cashiering_gridContainer"), {
                 dataSource: data,
+                keyExpr: (data.length && Object.prototype.hasOwnProperty.call(data[0], "ReservationID")) ? "ReservationID" : undefined,
                 width: "100%",
                 height: "100%",
                 allowColumnResizing: true,
                 columnResizingMode: "widget",
-                columnAutoWidth: true,
                 showBorders: true,
-                scrolling: {
-                    mode: "standard",
-                    showScrollbar: "always",
-                    useNative: true
+                hoverStateEnabled: true,
+                // Cột "X" (ô tick chọn dòng) như Win
+                selection: { mode: "multiple", showCheckBoxesMode: "always", selectAllMode: "allPages" },
+                scrolling: { mode: "virtual", showScrollbar: "always" },
+                paging: { enabled: false },
+                filterRow: { visible: false },
+                columns: gridCols,
+                focusedRowEnabled: true,
+                summary: {
+                    totalItems: totalItems,
+                    calculateCustomSummary: function (o) {
+                        if (o.name !== 'roomCnt') return;
+                        if (o.summaryProcess === 'start') { roomSet = new Set(); }
+                        else if (o.summaryProcess === 'calculate') { const v = o.value; if (v) roomSet.add(v); }
+                        else if (o.summaryProcess === 'finalize') { o.totalValue = roomSet ? roomSet.size : 0; }
+                    }
                 },
-                paging: { pageSize: 25 },
-                pager: {
-                    visible: true,
-                    allowedPageSizes: [25, 50, 100],
-                    showPageSizeSelector: true,
-                    showInfo: true,
-                    showNavigationButtons: true
+                onFocusedRowChanged: function (e) { self.currentRow = e.row ? e.row.data : null; self.showDetail(self.currentRow); },
+                // Màu dòng theo cột Color của SP (số ARGB như Win: Color.FromArgb)
+                onRowPrepared: function (e) {
+                    if (e.rowType !== "data" || !e.data || !e.data.Color) return;
+                    const n = parseInt(e.data.Color, 10);
+                    if (isNaN(n)) return;
+                    const u = n >>> 0;
+                    e.rowElement.css("background-color", "rgb(" + ((u >> 16) & 255) + "," + ((u >> 8) & 255) + "," + (u & 255) + ")");
                 },
-                filterRow: { visible: true, applyFilter: "auto" },
+                onSelectionChanged: function (e) {
+                    $("#ar_opening_selCount").text(e.selectedRowKeys.length);
+                }
             });
+        },
+
+        // Tab động phía dưới (Shares / Routing / Package / Billing): mỗi reservation hiện số tab khác nhau
+        // (như ClassReservation.CreateButton của Win). Dùng số thứ tự yêu cầu để bỏ qua kết quả cũ khi đổi dòng nhanh.
+        _tabReq: 0,
+        loadTabs: function (reservationId) {
+            // Không xóa tab cũ ngay (tránh nhấp nháy); chỉ thay khi có kết quả mới
+            const $box = $('#ar_opening_tabs');
+            const req = ++this._tabReq;
+            if (!reservationId) { $box.empty(); return; }
+            $.ajax({
+                url: '/Cashiering/GuestInHouseButtons', type: 'get', dataType: 'json', data: { reservationId: reservationId }
+            }).done((r) => {
+                if (req !== this._tabReq) return;
+                const btns = [];
+                [['shares', 'Shares'], ['routing', 'Routing'], ['package', 'Package'], ['billing', 'Billing']].forEach(function (p) {
+                    if (r && r[p[0]]) btns.push($('<button type="button" class="arc-tab">').text(p[1]).attr('data-act', p[0])[0]);
+                });
+                $box.empty().append(btns);
+            });
+        },
+
+        // Khung chi tiết phía dưới: comment, phòng - tên khách, ngày đến/đi, balance của dòng đang chọn
+        showDetail: function (d) {
+            const num = (v, f) => { const n = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return isNaN(n) ? '' : n.toLocaleString('en-US', f); };
+            this.loadTabs(d ? d.ReservationID : 0);
+            $('#ar_opening_comment').val(d ? (d.Comment || '') : '');
+            $('#ar_opening_infoRoom').text(d ? (d.Room || '') : '');
+            $('#ar_opening_infoName').text(d ? (d.Name || '') : '');
+            $('#ar_opening_infoArr').text(d ? (d.Arrival || '') : '');
+            $('#ar_opening_infoDep').text(d ? (d.Departure || '') : '');
+            $('#ar_opening_infoBalVnd').text(d ? num(d.BalanceVND, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '');
+            $('#ar_opening_infoBalUsd').text(d ? (num(d.BalanceUSD, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00') : '0.00');
+        },
+
+        // Check All: chọn tất cả dòng, bấm lại thì bỏ chọn (giống nút Check All của Win)
+        checkAll: function () {
+            const g = this.gridInstance;
+            if (!g) return;
+            const total = g.getDataSource().totalCount();
+            if (g.getSelectedRowKeys().length >= total && total > 0) g.deselectAll();
+            else g.selectAll();
+        },
+
+        exportExcel: function () {
+            const grid = this.gridInstance;
+            if (!grid) return;
+            const workbook = new ExcelJS.Workbook();
+            const ws = workbook.addWorksheet("Sheet 1");
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid, worksheet: ws, autoFilterEnabled: true
+            }).then(function () {
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "Guest In House.xlsx");
+                });
+            });
+        },
+
+        // =====================================================================================================
+        //  Nút nghiệp vụ (Resv, Options, Billing, C/O All, C/O Zero, Check Out, Group ADM, các tab phía dưới):
+        //  dùng lại đúng các popup của màn Search Reservation, nạp từ /Reservation/ReservationOptionsHost.
+        // =====================================================================================================
+        rows: [],
+        currentRow: null,
+        _hostReady: null,
+
+        // Mã trạng thái đặt phòng theo tên hiển thị (fnGetRsvStatus)
+        statusCode: function (text) {
+            const map = { 'RESVED': 0, 'CHECKED IN': 1, 'CHECKED OUT': 2, 'CANCEL': 3, 'WAIT LIST': 4, 'DUE IN': 5, 'DUE OUT': 6, 'NO SHOW': 7, 'DAY USE': 8 };
+            const t = String(text || '').trim().toUpperCase();
+            return Object.prototype.hasOwnProperty.call(map, t) ? map[t] : NaN;
+        },
+
+        // dd/MM/yyyy -> yyyy-MM-ddT00:00:00 (dạng ngày các popup đặt phòng đang dùng)
+        isoDate: function (s) {
+            const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(s || ''));
+            return m ? (m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0') + 'T00:00:00') : (s || '');
+        },
+
+        // Dòng của lưới Guest In House -> dạng dòng của Search Reservation mà các popup đọc
+        toRsvRow: function (d) {
+            const arr = this.isoDate(d.Arrival), dep = this.isoDate(d.Departure);
+            let nights = 0;
+            if (arr && dep) nights = Math.max(0, Math.round((new Date(dep) - new Date(arr)) / 86400000));
+            return Object.assign({}, d, {
+                ID: d.ReservationID,
+                ReservationStatus: this.statusCode(d.Status),
+                Status: d.Status,
+                ConfirmationNo: d.ConfirmationNo,
+                Arrival: arr,
+                Departure: dep,
+                GuestName: d.Name,
+                RoomNo: d.Room,
+                RoomID: d.RoomID,
+                RoomType: d.RoomType,
+                RoomStatus: '',
+                ProfileIndividualID: d.ProfileIndividualID,
+                PriceNet: d.Rate,
+                NoOfNight: nights,
+                MG: d.MainGuest
+            });
+        },
+
+        // Dòng đang đứng; nếu chưa đứng ở dòng nào thì lấy dòng đầu tiên được tích
+        currentRsvRow: function () {
+            const d = this.currentRow || (this.gridInstance ? this.gridInstance.getSelectedRowsData()[0] : null);
+            return d ? this.toRsvRow(d) : null;
+        },
+
+        // Nạp các popup tùy chọn đặt phòng (một lần mỗi lần mở màn hình)
+        ensureHost: function () {
+            const self = this;
+            if (self._hostReady) return self._hostReady;
+
+            self._hostReady = new Promise(function (resolve, reject) {
+                // Màn Search Reservation đang mở sẵn các popup này thì dùng lại
+                if ($('#modalBilling').length && !$('#ar_opening_host #modalBilling').length) { resolve(); return; }
+
+                $('#ar_opening_host').load('/Reservation/ReservationOptionsHost', function (resp, st, xhr) {
+                    if (st === 'error') {
+                        self._hostReady = null;
+                        showToast('Error', xhr.status === 403 ? 'Access Denied' : 'Unable to load reservation options.', false);
+                        reject();
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+            return self._hostReady;
+        },
+
+        // Gán các biến trang mà các popup đọc (giống khi bấm một dòng ở Search Reservation)
+        applyRow: function (r) {
+            window.idReservation = parseInt(r.ID, 10) || 0;
+            window.statusID = r.ReservationStatus;
+            window.reservationStatus = r.ReservationStatus;
+            window.roomID = r.RoomID;
+            window.status = r.Status;
+            window.roomStatus = r.RoomStatus;
+            window.roomType = r.RoomType;
+            window.roomNo = r.RoomNo;
+            window.arivalDate = r.Arrival;
+            window.departureDate = r.Departure;
+            window.confirmationNo = r.ConfirmationNo;
+            window.lastname = r.GuestName;
+            window.profileID = r.ProfileIndividualID;
+            window.rateAmount = r.PriceNet;
+            window.night = r.NoOfNight;
+            window._currentReservationData = r;
+            window.listReservationByConfirmationNo = this.rows
+                .filter(x => x.ConfirmationNo === r.ConfirmationNo).map(x => this.toRsvRow(x));
+
+            // Đầu cửa sổ Billing
+            $('#rsvStatusBilling').text(r.Status);
+            $('#conNoBilling').text(r.ConfirmationNo);
+            $('#arivalBilling').text(r.Arrival ? String(r.Arrival).split('T')[0] : '');
+            $('#departureBilling').text(r.Departure ? String(r.Departure).split('T')[0] : '');
+            if (typeof window.setBillingHeaderInfo === 'function') window.setBillingHeaderInfo(r);
+            if (typeof window.GetBalanceVND === 'function') window.GetBalanceVND(window.idReservation);
+        },
+
+        // Chạy một chức năng của popup đặt phòng cho dòng đang đứng
+        runOption: function (fnName) {
+            const self = this;
+            const r = self.currentRsvRow();
+            if (!r) { showToast('Warning', 'Please select a row first!', false); return; }
+
+            self.ensureHost().then(function () {
+                self.applyRow(r);
+                if (typeof window[fnName] !== 'function') { showToast('Warning', 'This function is not available.', false); return; }
+                window[fnName]();
+            }).catch(function () { });
+        },
+
+        // C/O All (type 1) và C/O Zero (type 2): xử lý trên các dòng đã tích, không tích dòng nào thì trên toàn bộ danh sách
+        checkOutAll: function (type) {
+            const self = this;
+            const checked = self.gridInstance ? self.gridInstance.getSelectedRowsData() : [];
+            const src = checked.length ? checked : self.rows;
+            if (!src.length) { showToast('Warning', 'There is no data.', false); return; }
+
+            self.ensureHost().then(function () {
+                window.listData = src.map(d => self.toRsvRow(d));
+                window.reservationStatus = 6;   // popup lọc lại theo trạng thái DUE OUT của từng dòng
+                if (typeof window.openModalCheckOutAll !== 'function') { showToast('Warning', 'This function is not available.', false); return; }
+                window.openModalCheckOutAll(type);
+            }).catch(function () { });
+        },
+
+        // Resv: mở đặt phòng của dòng đang đứng
+        openReservation: function () {
+            const r = this.currentRsvRow();
+            if (!r) { showToast('Warning', 'Please select a row first!', false); return; }
+
+            const modal = $('#newReservationModal');
+            modal.find('.modal-body').html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-3">Loading reservation...</p></div>');
+            modal.modal('show');
+
+            $.ajax({
+                url: '/Reservation/EncryptId', type: 'POST', data: { id: r.ID },
+                success: function (response) {
+                    if (!response.success) { modal.modal('hide'); showToast('Error', 'Cannot open reservation.', false); return; }
+                    $.ajax({
+                        url: '/Reservation/NewReservation', type: 'GET', data: { key: response.encryptedId }, cache: false,
+                        success: function (html) {
+                            modal.find('.modal-body').html(html);
+                            if (typeof window.focusNewReservationFirstField === 'function') window.focusNewReservationFirstField();
+                        },
+                        error: function () { modal.find('.modal-body').html('<div class="alert alert-danger m-4">Unable to load reservation details.</div>'); }
+                    });
+                },
+                error: function () { modal.modal('hide'); showToast('Error', 'Server connection error.', false); }
+            });
+        },
+
+        // Các mục của nút Options (cùng danh sách chức năng của Search Reservation)
+        optionItems: [
+            ['Accompany', 'openModalAccompanying'], ['Add On', 'openModalAddOn'], ['Alerts', 'openModalAlerts'],
+            ['Changes', 'openModalChanges'], ['Dep/DXL', 'openModalDeposit'], ['Fixed Charges', 'openModalFixedCharges'],
+            ['Invoicing', 'openModalInvoicing'], ['Message', 'openModalMessage'], ['Packages', 'openModalPackage'],
+            ['Registration Card', 'openModalRegistrationCard'], ['Reinstate', 'openConfirmReinstate'], ['Room Move', 'openRoomMove'],
+            ['Routing', 'openModalRouting'], ['Share', 'openModalShare'], ['Split', 'openModalSplit'],
+            ['Traces', 'openModalTraces'], ['Wake up', 'openModalWakeupCall']
+        ],
+
+        initActions: function () {
+            const self = this;
+            window.rvhRefresh = () => self.searchReservation();
+
+            $("#ar_opening_btnResv").on("click", () => self.openReservation());
+            $("#ar_opening_btnBilling").on("click", () => self.runOption('openModalBilling'));
+            $("#ar_opening_btnGroupAdm").on("click", () => self.runOption('openGroupAdmin'));
+            $("#ar_opening_btnCheckOut").on("click", () => self.runOption('openModalCheckOut'));
+            $("#ar_opening_btnCoAll").on("click", () => self.checkOutAll(1));
+            $("#ar_opening_btnCoZero").on("click", () => self.checkOutAll(2));
+
+            const $menu = $("#ar_opening_optionsMenu").empty();
+            self.optionItems.forEach(function (it) {
+                $menu.append($('<li>').append($('<a class="dropdown-item" href="#">').text(it[0]).attr('data-fn', it[1])));
+            });
+            $menu.on("click", "a", function (e) { e.preventDefault(); self.runOption($(this).attr('data-fn')); });
+
+            // Tab phía dưới (Shares / Routing / Package / Billing) của dòng đang đứng
+            const tabFn = { shares: 'openModalShare', routing: 'openModalRouting', package: 'openModalPackage', billing: 'openModalBilling' };
+            $("#ar_opening_tabs").on("click", ".arc-tab", function () { self.runOption(tabFn[$(this).attr('data-act')]); });
         },
 
         resetForm: function () {
             // Clear inputs
-            $('#ar_opening_filterPanel input[type="text"]').val('');
+            $('#ar_opening_filterPanel input[type="text"]').not('.date-ui').val('');
             $('#ar_opening_filterPanel input[type="checkbox"]').prop('checked', false).trigger('change');
             $('#ar_opening_filterPanel select').prop('selectedIndex', 0);
-            $('#st0').prop('checked', true);
+            $('input[name="ar_opening_searchType"][value="0"]').prop('checked', true);
+            if (typeof window.reloadBusinessDate === "function") window.reloadBusinessDate();
             this.searchReservation();
         }
     };

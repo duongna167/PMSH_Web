@@ -1,0 +1,196 @@
+@* Export Data to .CSV - port từ WinForm frmProfileExport_C (spProfileExportCSV) *@
+
+<div class="modal fade" id="pro_csv_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content modal-full-height">
+            <div class="modal-header bg-light py-2">
+                <h5 class="modal-title">Export Data to .CSV</h5>
+            </div>
+
+            <div class="modal-body d-flex flex-column" style="height: calc(100vh - 120px);">
+                <div class="py-2">
+                    <button class="mui-button mui-button-search" id="pro_csv_view">Search</button>
+                    <button class="mui-button mui-button-export" id="pro_csv_csv">CSV</button>
+                    <button class="mui-button mui-button-export" id="pro_csv_excel">Excel</button>
+                    <button class="mui-button mui-button-export" id="pro_csv_xml">XML</button>
+                    <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
+
+                    <div class="d-flex gap-2 align-items-center py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            From Date
+                            <div data-date-input data-format="DD/MM/YYYY" data-name="pro_csv_fromDate">
+                                <input type="text" class="date-ui form-control form-control-sm" placeholder="From">
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2">
+                            To Date
+                            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="pro_csv_toDate">
+                                <input type="text" class="date-ui form-control form-control-sm" placeholder="To">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gridContainer mt-2 d-flex flex-column flex-grow-1 position-relative" style="min-height: 0;">
+                        <div id="pro_csv_gridContainer"></div>
+                        <div id="pro_csv_loading" style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
+                        z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
+                        height: 100%;display: none;align-items: center;justify-content: center;">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var pro_csv_Module = {
+        baseGridOptions: {
+            height: "100%",
+            width: "100%",
+            showBorders: true,
+            hoverStateEnabled: true,
+            wordWrapEnabled: true,
+            allowColumnResizing: true,
+            columnResizingMode: "widget",
+            columnAutoWidth: true,
+            selection: { mode: "single" },
+            scrolling: {
+                mode: "standard",
+                showScrollbar: "always",
+                useNative: true
+            },
+            paging: { pageSize: 20 },
+            pager: {
+                visible: true,
+                allowedPageSizes: [20, 50, 100],
+                showPageSizeSelector: true,
+                showInfo: true,
+                showNavigationButtons: true
+            },
+            filterRow: { visible: true, applyFilter: "auto" }
+        },
+
+        init: function () {
+            window.openModalProCsv = () => this.onOpen();
+
+            $("#pro_csv_view").on("click", () => this.reloadGrid());
+            $("#pro_csv_csv").on("click", () => this.exportToCSV());
+            $("#pro_csv_excel").on("click", () => this.exportToExcel());
+            $("#pro_csv_xml").on("click", () => this.exportToXML());
+        },
+
+        // Giống WinForm: To = business date, From = business date - 7 ngày
+        onOpen: function () {
+            const businessDate = (window.dateTimeSystem || "").split("T")[0];
+            if (businessDate) {
+                UI.setHiddenDate("pro_csv_toDate", businessDate);
+                UI.setHiddenDate("pro_csv_fromDate", UI.addDaysIso(businessDate, -7));
+            }
+            this.reloadGrid();
+        },
+
+        getFilter: function () {
+            return {
+                fromDate: $("#pro_csv_fromDate").val(),
+                toDate: $("#pro_csv_toDate").val()
+            };
+        },
+
+        validateFilter: function (f) {
+            if (!f.fromDate || !f.toDate) {
+                showToast("Warning", "Please select From Date and To Date", false);
+                return false;
+            }
+            if (f.fromDate > f.toDate) {
+                showToast("Warning", "From Date must be before To Date", false);
+                return false;
+            }
+            return true;
+        },
+
+        reloadGrid: function () {
+            const filter = this.getFilter();
+            if (!this.validateFilter(filter)) return;
+
+            $("#pro_csv_loading").css("display", "flex");
+            $.ajax({
+                url: '/Profile/SearchProfileExportCSV',
+                type: 'GET',
+                data: filter,
+                success: (data) => this.renderGrid(data),
+                error: () => showToast("Error", "Unable to load data", false),
+                complete: () => $("#pro_csv_loading").hide()
+            });
+        },
+
+        renderGrid: function (data) {
+            const options = $.extend(true, {}, this.baseGridOptions, {
+                dataSource: data,
+                columns: [
+                    { dataField: "Indexs", caption: "TT", width: 50 },
+                    { dataField: "HotelID", caption: "HotelID" },
+                    { dataField: "EmailAddress", caption: "Email Address" },
+                    { dataField: "FirstName", caption: "First Name" },
+                    { dataField: "LastName", caption: "Last Name" },
+                    { dataField: "ArrivalDate", caption: "Arrival" },
+                    { dataField: "DepartureDate", caption: "Departure" },
+                    { dataField: "Language", caption: "Language" }
+                ]
+            });
+            $("#pro_csv_gridContainer").dxDataGrid(options);
+        },
+
+        // Tải file .csv sinh từ server (UTF-8, ngày yyyy-MM-dd)
+        exportToCSV: function () {
+            const f = this.getFilter();
+            if (!this.validateFilter(f)) return;
+
+            $("#pro_csv_loading").css("display", "flex");
+            fetch(`/Profile/ExportCSV?fromDate=${f.fromDate}&toDate=${f.toDate}`)
+                .then(async (res) => {
+                    if (!res.ok) throw new Error(await res.text());
+                    const blob = await res.blob();
+                    saveAs(blob, `ProfileExport_${f.fromDate}_${f.toDate}.csv`);
+                })
+                .catch((err) => showToast("Warning", err.message || "Export failed", false))
+                .finally(() => $("#pro_csv_loading").hide());
+        },
+
+        exportToExcel: function () {
+            const $grid = $("#pro_csv_gridContainer");
+            if (!$grid.data("dxDataGrid")) {
+                showToast("Warning", "No data to export!", false);
+                return;
+            }
+            const grid = $grid.dxDataGrid("instance");
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true
+            }).then(function () {
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "ProfileExportCSV.xlsx");
+                });
+            });
+        },
+
+        exportToXML: function () {
+            const f = this.getFilter();
+            if (!this.validateFilter(f)) return;
+            window.location.href = `/Profile/ExportXML?fromDate=${f.fromDate}&toDate=${f.toDate}`;
+        }
+    };
+
+    $(document).ready(function () {
+        pro_csv_Module.init();
+    });
+</script>

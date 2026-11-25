@@ -1,0 +1,490 @@
+@* Electronic Invoice PMS - trang đầy đủ: tìm hóa đơn, Upload / Publish / Issue / Upload & Publish, xem nhật ký gọi nhà cung cấp.
+   Giao diện theo màn ElectronicInvoice của PMSH_Web; dữ liệu và nghiệp vụ chạy qua EInvoiceInvoiceController (module EInvoice). *@
+@{
+    ViewData["Title"] = "Electronic Invoice PMS";
+}
+
+<div class="text-center" style="font-size: 20px">Electronic Invoice PMS</div>
+
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+    <div class="mb-2 d-flex gap-2 align-items-center">
+        <button id="btnSearch" class="mui-button mui-button-search">Search</button>
+
+        <button id="btnSelect" class="mui-button mui-button-new">Select All</button>
+        <button id="btnUnselect" class="mui-button mui-button-delete">Unselect</button>
+
+        <div class="btn-group">
+            <button id="btnEInvoice" type="button" class="mui-button mui-button-new dropdown-toggle" data-bs-toggle="dropdown">E Invoice</button>
+            <ul class="dropdown-menu">
+                <li id="menuUploadPublish" style="display:none;"><a class="dropdown-item" href="#" id="btnUploadPublishInv" data-action="EInvoice_Issue">Upload and Publish Inv</a></li>
+                <li id="menuIssueInvoice" style="display:none;"><a class="dropdown-item" href="#" id="btnIssueInvoice" data-action="EInvoice_Issue">Issue Invoice</a></li>
+                <li id="menuUploadInvoice" style="display:none;"><a class="dropdown-item" href="#" id="btnUploadInv" data-action="EInvoice_Issue">Upload Inv</a></li>
+                <li id="menuPublishInvoice" style="display:none;"><a class="dropdown-item" href="#" id="btnPublishInv" data-action="EInvoice_Issue">Publish Inv</a></li>
+            </ul>
+        </div>
+
+        <button id="btnViewInvoiceLog" class="mui-button mui-button-view">View Log</button>
+        <button id="btnClose" class="mui-button mui-button-delete">Close</button>
+    </div>
+
+    <div class="property-row">
+        <label class="property-label">Property</label>
+        <select id="propertyId" class="property-select">
+            <option value="">-- Select Property --</option>
+        </select>
+    </div>
+
+    <div class="d-flex align-items-center gap-3 p-2">
+        <div class="d-flex flex-column w-100" style="gap:8px;">
+
+            <!-- ROW 1 -->
+            <div class="d-flex align-items-center flex-nowrap" style="gap:12px; overflow-x:auto;">
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <label class="form-label mb-0 text-nowrap">Name:</label>
+                    <input type="text" id="nameInput" class="form-control form-control-sm" style="width:180px;" />
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <label class="form-label mb-0 text-nowrap">Conf. No.:</label>
+                    <input type="text" id="confInput" class="form-control form-control-sm" style="width:180px;" />
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <label class="form-label mb-0 text-nowrap">Folio No.:</label>
+                    <input type="text" id="folioInput" class="form-control form-control-sm" style="width:120px;" />
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <label class="form-label mb-0 text-nowrap">Invoice serial:</label>
+                    <input type="text" id="serialInput" class="form-control form-control-sm" style="width:160px;" />
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <label class="form-label mb-0 text-nowrap">Invoice No.:</label>
+                    <input type="text" id="invoiceInput" class="form-control form-control-sm" style="width:140px;" />
+                </div>
+            </div>
+
+            <!-- ROW 2 -->
+            <div class="d-flex align-items-center flex-nowrap" style="gap:12px; overflow-x:auto;">
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <label for="fromDate" class="form-label mb-0 text-nowrap">Invoice date</label>
+                    <div data-date-input data-format="DD/MM/YYYY" data-name="fromDate">
+                        <input type="text" class="date-ui form-control form-control-sm" style="width:160px;" placeholder="dd/mm/yyyy" autocomplete="off" />
+                    </div>
+                    <span class="text-nowrap">to</span>
+                    <div data-date-input data-format="DD/MM/YYYY" data-name="toDate">
+                        <input type="text" class="date-ui form-control form-control-sm" style="width:160px;" placeholder="dd/mm/yyyy" autocomplete="off" />
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <label class="form-label mb-0 text-nowrap">Print:</label>
+                    <select id="printInput" class="form-select form-select-sm" style="width:180px;">
+                        <option value="0">Printed &amp; Unprinted</option>
+                        <option value="1">Printed only</option>
+                        <option value="2">Unprinted only</option>
+                    </select>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <label class="form-label mb-0 text-nowrap">Res. Type:</label>
+                    <select id="resTypeInput" class="form-select form-select-sm" style="width:140px;">
+                        <option value="-1">All</option>
+                        <option value="0">By Day</option>
+                        <option value="1">By Month</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mui-card mt-2">
+    <div id="gridElectronicInvoice" class="mt-2 gridContainer"></div>
+</div>
+
+<!-- ===== Popup nhật ký thực thi ===== -->
+<div class="modal fade" id="modalInvoiceLog" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog invoice-log-dialog" style="width:98vw !important;max-width:98vw !important;margin:1vh auto !important;">
+        <div class="modal-content" style="height:96vh;">
+            <div class="modal-header" style="background:#00806b;color:white;padding:6px 10px;">
+                <h5 class="modal-title">PMS Dynamic E-Invoice Execution Logs</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="invoice-log-filter">
+                    <div class="log-field"><label>FolioVAT ID</label><input id="logFolioVatId" class="form-control form-control-sm" /></div>
+                    <div class="log-field"><label>Action</label>
+                        <select id="logType" class="form-control form-control-sm">
+                            <option value="">All</option>
+                            <option value="UPLOAD_INVOICE">Upload</option>
+                            <option value="PUBLISH_INVOICE">Publish</option>
+                            <option value="ISSUE_INVOICE">Issue</option>
+                            <option value="ADJUST_INVOICE">Adjust</option>
+                            <option value="REPLACE_INVOICE">Replace</option>
+                            <option value="CANCEL_INVOICE">Cancel</option>
+                        </select></div>
+                    <div class="log-field"><label>Status</label>
+                        <select id="logStatus" class="form-control form-control-sm">
+                            <option value="">All</option><option value="1">Success</option><option value="0">Fail</option>
+                        </select></div>
+                    <div class="log-field"><label>From date</label>
+                        <div data-date-input data-format="DD/MM/YYYY" data-name="logFromDate">
+                            <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                        </div></div>
+                    <div class="log-field"><label>To date</label>
+                        <div data-date-input data-format="DD/MM/YYYY" data-name="logToDate">
+                            <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                        </div></div>
+                    <div class="log-button-group">
+                        <button id="btnSearchInvoiceLog" class="btn btn-success btn-sm">Search</button>
+                        <button id="btnClearInvoiceLog" class="btn btn-secondary btn-sm">Clear</button>
+                    </div>
+                </div>
+                <div id="gridInvoiceLog"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Dòng đang được chọn: nền xanh nhạt để người dùng nhận biết */
+    .dx-datagrid-rowsview .dx-row.dx-selection > td,
+    .dx-datagrid-rowsview .dx-row.dx-selection:hover > td,
+    .dx-datagrid-rowsview .dx-row.dx-selection.dx-row-alt > td { background-color: rgba(120, 120, 120, 0.15) !important; color: inherit !important; }
+
+    .mui-card { border: 1px solid #cfcfcf; background: #fff; padding: 6px; }
+    .gridContainer { border-top: 1px solid #ddd; }
+    .form-control-sm, .form-select-sm { height: 28px; padding: 2px 6px; font-size: 12px; }
+
+    .dx-datagrid .dx-command-select, .dx-datagrid .dx-command-column { padding: 0 6px !important; width: 36px !important; max-width: 36px !important; }
+    .dx-datagrid .dx-command-select .dx-checkbox, .dx-datagrid .dx-header-row .dx-checkbox, .dx-datagrid .dx-data-row td .dx-checkbox {
+        transform: scale(0.85) !important; margin: 0 !important; display: inline-block !important; vertical-align: middle !important;
+    }
+
+    .property-row { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 8px; }
+    .property-label { font-size: 12px; font-weight: 600; margin: 0; color: #333; }
+    .property-select { width: 45%; max-width: 400px; min-width: 350px; height: 28px; padding: 2px 8px; border: 1px solid #009b67; border-radius: 4px; font-size: 12px; background-color: #fff; }
+
+    #modalInvoiceLog .modal-body { padding: 10px 10px 6px 10px; overflow: hidden; display: flex; flex: 1 1 auto; min-height: 0; flex-direction: column; }
+    #gridInvoiceLog { flex: 1 1 auto; min-height: 0; }
+    .invoice-log-filter { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding-top: 6px; flex-wrap: nowrap; }
+    .log-field { display: flex; align-items: center; gap: 5px; }
+    .log-field label { margin-bottom: 0; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .log-field input, .log-field select { height: 25px; font-size: 12px; padding: 2px 6px; }
+    .log-field:nth-child(1) input { width: 130px; }
+    .log-button-group { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+    .log-button-group .btn { width: 58px; height: 28px; padding: 0; line-height: 28px; text-align: center; font-size: 12px; font-weight: 700; }
+
+    .invoice-log-detail { padding: 12px 16px 16px; background: #f7faf9; }
+    .invoice-log-detail-title { margin: 9px 0 5px; color: #006b59; font-size: 14px; font-weight: 700; }
+    .invoice-log-content { min-height: 42px; max-height: 250px; margin: 0; padding: 10px 12px; overflow: auto; border: 1px solid #d6dfdc; border-radius: 4px; background: #fff; color: #263238; font-family: Consolas, monospace; font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .invoice-log-success, .invoice-log-failed { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 12px; font-weight: 700; }
+    .invoice-log-success { background: #dff5e8; color: #08783f; }
+    .invoice-log-failed { background: #fde7e7; color: #b42318; }
+
+    .invoice-status-badge { display: inline-block; min-width: 82px; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; text-align: center; }
+    .invoice-status-not-upload { background: #eeeeee; color: #555555; }
+    .invoice-status-uploaded { background: #fff3cd; color: #856404; }
+    .invoice-status-published { background: #d4edda; color: #155724; }
+</style>
+
+<script>
+    (function () {
+        let grid = null, logGrid = null;
+
+        const csrf = () => ({ "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() });
+        const notify = (msg, type, ms) => DevExpress.ui.notify(msg, type || "info", ms || 2500);
+        const esc = s => $("<div>").text(s == null ? "" : String(s)).html();
+        const fmtNum = v => v == null || v === "" ? "" : Number(v).toLocaleString("en-US");
+        const ymd = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+
+        function errMsg(xhr, fallback) {
+            return xhr && xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.msg) || fallback;
+        }
+
+        // Chỉ chuẩn hóa nội dung hiển thị: "Upload" gốc của SP nghĩa là chưa upload
+        function normalizeStatus(value) {
+            const s = String(value || "").trim().toLocaleLowerCase("vi-VN");
+            if (s === "published" || s === "đã phát hành") return "Published";
+            if (s === "uploaded" || s === "đã upload" || s === "được cấp mã") return "Upload";
+            return "Not Upload";
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Grid hóa đơn
+        // ---------------------------------------------------------------------------------------
+        function initGrid(data) {
+            if (grid) { grid.option("dataSource", data); return; }
+
+            const num = { alignment: "right", customizeText: e => fmtNum(e.value) };
+
+            grid = $("#gridElectronicInvoice").dxDataGrid({
+                dataSource: data, keyExpr: "ID", height: 600, columnAutoWidth: true, allowColumnResizing: true,
+                showBorders: true, showRowLines: true,
+                selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                filterRow: { visible: false },
+                paging: { pageSize: 50 },
+                pager: { visible: true, showPageSizeSelector: true, allowedPageSizes: [20, 50, 100, "all"], showInfo: true, showNavigationButtons: true },
+                columns: [
+                    { dataField: "ConfirmationNo", caption: "Conf. No", width: 90 },
+                    { dataField: "RoomNo", caption: "Room No.", width: 80 },
+                    { dataField: "FormNo", caption: "Form No.", width: 90 },
+                    { dataField: "SerialNo", caption: "Serial No", width: 100 },
+                    { dataField: "InvoiceNo", caption: "Invoice No.", width: 110 },
+                    { dataField: "EInvoiceNo", caption: "E Invoice No", width: 120 },
+                    {
+                        dataField: "EStatus", caption: "E Status", width: 120,
+                        calculateCellValue: row => normalizeStatus(row.EStatus),
+                        cellTemplate: function (container, options) {
+                            const status = options.value;
+                            const css = status === "Published" ? "invoice-status-published" : status === "Upload" ? "invoice-status-uploaded" : "invoice-status-not-upload";
+                            $("<span>").addClass("invoice-status-badge " + css).text(status).appendTo(container);
+                        }
+                    },
+                    { dataField: "EReplaceInvNo", caption: "E Replace Inv No", width: 130 },
+                    { dataField: "VATDate", caption: "Invoice Date", dataType: "date", format: "dd/MM/yyyy", width: 90, alignment: "center" },
+                    { dataField: "AccountingCode", caption: "Code", width: 120 },
+                    { dataField: "Customer_Name", caption: "Guest", width: 220 },
+                    { dataField: "Customer_Company", caption: "Customer Company", width: 220 },
+                    { dataField: "Customer_Address", caption: "Customer Address", width: 260 },
+                    { dataField: "Customer_Tel", caption: "Tel", width: 120, alignment: "center" },
+                    { dataField: "Customer_Fax", caption: "Fax", width: 120 },
+                    { dataField: "Customer_TaxCode", caption: "Tax Code", width: 140 },
+                    { dataField: "CusEmail", caption: "Customer Email", width: 180 },
+                    { dataField: "CusSMS", caption: "Customer SMS", width: 140 },
+                    { dataField: "IsSummaryVAT", caption: "Summary Invoice", dataType: "boolean", width: 70 },
+                    { dataField: "CountPrint", caption: "Printed Count", width: 100, alignment: "center" },
+                    { dataField: "CountSend", caption: "Sent Count", width: 100, alignment: "center" },
+                    { dataField: "CreatedBy", caption: "Created By", width: 120 },
+                    { dataField: "CreatedDate", caption: "Created Date", dataType: "date", format: "dd/MM/yyyy", width: 90, alignment: "center" },
+                    { dataField: "UpdatedBy", caption: "Updated By", width: 120 },
+                    { dataField: "UpdatedDate", caption: "Updated Date", dataType: "date", format: "dd/MM/yyyy", width: 90, alignment: "center" },
+                    { dataField: "LicenseID", caption: "LicenseID", width: 100, alignment: "center" },
+                    Object.assign({ dataField: "Amount", caption: "Amount", width: 120 }, num),
+                    Object.assign({ dataField: "AmountVAT5", caption: "Tax 5%", width: 120 }, num),
+                    Object.assign({ dataField: "AmountVAT10", caption: "Tax 10%", width: 120 }, num),
+                    Object.assign({ dataField: "AmountIncludedTax", caption: "Amount Inc. Tax", width: 140 }, num),
+                    { dataField: "PaymentMethod", caption: "Payment Method", width: 120 },
+                    { dataField: "Note", caption: "Comment", width: 220 },
+                    { dataField: "SumVATTypeName", caption: "VAT Type", width: 140 },
+                    { dataField: "Customer_Code", caption: "Guest Code", width: 140 }
+                ],
+                summary: { totalItems: [
+                    { column: "Amount", summaryType: "sum", customizeText: e => fmtNum(e.value) },
+                    { column: "AmountIncludedTax", summaryType: "sum", customizeText: e => fmtNum(e.value) }
+                ] }
+            }).dxDataGrid("instance");
+        }
+
+        // Đọc ngày dạng yyyy-MM-dd: ưu tiên ô đang hiển thị (dd/MM/yyyy) vì ô ẩn chỉ cập nhật khi chọn xong ngày
+        function readDate(name) {
+            const shown = ($("[data-name='" + name + "'] .date-ui").val() || "").trim();
+            const m = shown.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (m) return m[3] + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0");
+            return $("#" + name).val() || "";
+        }
+
+        function search() {
+            const propertyID = $("#propertyId").val();
+            const fromDate = readDate("fromDate");
+            const toDate = readDate("toDate");
+
+            if (!propertyID) return notify("Please select property!", "warning");
+            if (!fromDate || !toDate) return notify("Please select From Date and To Date.", "warning");
+            if (fromDate > toDate) return notify("From Date cannot be greater than To Date.", "warning");
+
+            $("#btnSearch").prop("disabled", true).text("Loading...");
+            grid && grid.beginCustomLoading("Loading...");
+
+            $.get("/EInvoiceInvoice/InvoiceData", {
+                propertyID: propertyID, name: $("#nameInput").val(), confNo: $("#confInput").val(), folioNo: $("#folioInput").val(),
+                serial: $("#serialInput").val(), invoiceNo: $("#invoiceInput").val(), fromDate: fromDate, toDate: toDate,
+                print: $("#printInput").val(), resType: $("#resTypeInput").val()
+            }).done(function (res) {
+                initGrid(res.data || []);
+                grid.clearSelection();            }).fail(function (xhr) {
+                initGrid([]);
+                notify(errMsg(xhr, "Cannot load PMS invoices."), "error", 3500);
+            }).always(function () {
+                grid && grid.endCustomLoading();
+                $("#btnSearch").prop("disabled", false).text("Search");
+            });
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Property và các nghiệp vụ Provider hỗ trợ
+        // ---------------------------------------------------------------------------------------
+        function resetActionMenu() {
+            $("#menuIssueInvoice, #menuUploadPublish, #menuUploadInvoice, #menuPublishInvoice").hide();
+        }
+
+        function loadProviderActions(propertyId) {
+            resetActionMenu();
+            return $.get("/EInvoiceInvoice/ProviderActions", { propertyId: propertyId }).done(function (res) {
+                const codes = (res.data || []).map(x => String(x.ActionCode || "").toUpperCase());
+                const up = codes.includes("UPLOAD_INVOICE"), pub = codes.includes("PUBLISH_INVOICE");
+                $("#menuIssueInvoice").toggle(codes.includes("ISSUE_INVOICE"));
+                $("#menuUploadInvoice").toggle(up);
+                $("#menuPublishInvoice").toggle(pub);
+                $("#menuUploadPublish").toggle(up && pub);
+
+                // Ẩn mục nghiệp vụ nếu người dùng không có quyền EInvoice_Issue (server vẫn kiểm tra lại)
+                if (typeof window.hasFunctionRight === "function" && !window.hasFunctionRight("EInvoice_Issue"))
+                    resetActionMenu();
+            }).fail(function (xhr) { notify(errMsg(xhr, "Không thể tải chức năng nhà cung cấp."), "error", 4000); });
+        }
+
+        function loadProperties() {
+            $.get("/EInvoiceInvoice/AllowedProperties").done(function (res) {
+                const rows = res.data || [];
+                $("#propertyId").html('<option value="">-- Select Property --</option>' +
+                    rows.map(p => `<option value="${esc(p.ID)}">${esc(p.Code)} - ${esc(p.Name)}</option>`).join(""));
+                if (rows.length === 1) $("#propertyId").val(rows[0].ID).trigger("change");
+            }).fail(function () { notify("Cannot load property list", "error"); });
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Nghiệp vụ hàng loạt (Issue / Upload / Publish / Upload & Publish)
+        // ---------------------------------------------------------------------------------------
+        function runAction(actionCode, title) {
+            const propertyID = Number($("#propertyId").val()) || 0;
+            if (!propertyID) return notify("Vui lòng chọn Property.", "warning");
+
+            const ids = grid ? grid.getSelectedRowKeys().map(Number) : [];
+            if (!ids.length) return notify("Please select invoice!", "warning");
+
+            const run = function () {
+                $("#btnEInvoice").prop("disabled", true);
+                $.ajax({
+                    url: "/EInvoiceInvoice/ExecuteBatch", type: "POST", contentType: "application/json", headers: csrf(),
+                    data: JSON.stringify({ propertyID: propertyID, actionCode: actionCode, folioVatIds: ids, confirmSend: true })
+                }).done(function (res) { showResult(title, res); })
+                  .fail(function (xhr) {
+                      if (xhr.responseJSON && xhr.responseJSON.data) showResult(title, xhr.responseJSON);
+                      else notify(errMsg(xhr, title + " failed."), "error", 4000);
+                  })
+                  .always(function () { $("#btnEInvoice").prop("disabled", false); search(); });
+            };
+
+            const text = title + " " + ids.length + " selected invoice(s) to the e-invoice provider?";
+            if (window.Swal) {
+                Swal.fire({ title: text, icon: "question", showCancelButton: true, confirmButtonText: "Yes", cancelButtonText: "No" })
+                    .then(r => { if (r.isConfirmed) run(); });
+            } else if (confirm(text)) run();
+        }
+
+        function showResult(title, res) {
+            const list = (res.data && res.data.results) || [];
+            const html = list.map(r => "<div style='text-align:left;margin-bottom:4px'><b>" + esc(r.folioVATID) + "</b> "
+                + (r.success ? "<span style='color:#198754'>OK</span>" : "<span style='color:#dc3545'>FAILED</span>")
+                + " - " + esc(r.message) + "</div>").join("");
+            if (window.Swal) {
+                Swal.fire({ title: title, icon: res.success ? "success" : "warning", width: 720,
+                    html: "<div style='max-height:50vh;overflow:auto;font-size:13px'>" + (html || esc(res.message)) + "</div>" });
+            } else {
+                notify(res.message, res.success ? "success" : "error", 4000);
+            }
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Nhật ký thực thi
+        // ---------------------------------------------------------------------------------------
+        function loadLogs() {
+            $.get("/EInvoiceInvoice/LogData", {
+                propertyID: $("#propertyId").val(), folioVatId: $("#logFolioVatId").val(), logType: $("#logType").val(),
+                status: $("#logStatus").val(), fromDate: $("#logFromDate").val(), toDate: $("#logToDate").val()
+            }).done(function (res) { initLogGrid(res.data || []); })
+              .fail(function (xhr) { initLogGrid([]); notify(errMsg(xhr, "Load log failed!"), "error", 3000); });
+        }
+
+        function initLogGrid(data) {
+            if (logGrid) { logGrid.option("dataSource", data); return; }
+
+            logGrid = $("#gridInvoiceLog").dxDataGrid({
+                dataSource: data, keyExpr: "ID", showBorders: true, columnAutoWidth: false, columnMinWidth: 55, wordWrapEnabled: true,
+                rowAlternationEnabled: true, showColumnLines: true, showRowLines: true, height: "100%",
+                paging: { pageSize: 20 }, pager: { showPageSizeSelector: true, allowedPageSizes: [20, 50, 100], showInfo: true },
+                sorting: { mode: "none" },
+                // Request/response nguyên văn chỉ tải khi mở dòng, và chỉ người có quyền EInvoice_Config xem được
+                masterDetail: {
+                    enabled: true,
+                    template: function (container, options) {
+                        const detail = $("<div>").addClass("invoice-log-detail").text("Loading...").appendTo(container);
+                        $.get("/EInvoiceInvoice/LogDetail", { id: options.data.ID }).done(function (res) {
+                            const d = (res.data || [])[0] || {};
+                            detail.empty();
+                            [["Request URL", d.RequestUrl], ["Request Body (sent to provider)", d.RequestBody], ["Raw Response (returned by provider)", d.RawResponse]]
+                                .forEach(function (x) {
+                                    $("<div>").addClass("invoice-log-detail-title").text(x[0]).appendTo(detail);
+                                    $("<pre>").addClass("invoice-log-content").text(x[1] || "(empty)").appendTo(detail);
+                                });
+                        }).fail(function (xhr) { detail.text(xhr.status === 403 ? "You do not have permission to view request / response." : errMsg(xhr, "Cannot load detail.")); });
+                    }
+                },
+                columns: [
+                    { dataField: "ID", caption: "Log ID", width: 70, alignment: "center" },
+                    { dataField: "FolioVatId", caption: "FolioVAT ID", width: 90, alignment: "center" },
+                    { dataField: "LogDate", caption: "Log Date", dataType: "datetime", format: "dd/MM/yyyy HH:mm:ss", width: 150, alignment: "center" },
+                    { dataField: "ActionName", caption: "Action", width: 80, alignment: "center" },
+                    { dataField: "OperationCode", caption: "Operation", width: 165 },
+                    { dataField: "ProviderCodeText", caption: "Provider", width: 80, alignment: "center" },
+                    {
+                        dataField: "Status", caption: "Status", width: 80, alignment: "center",
+                        cellTemplate: function (container, options) {
+                            $("<span>").addClass(options.value === "Success" ? "invoice-log-success" : "invoice-log-failed").text(options.value || "").appendTo(container);
+                        }
+                    },
+                    { dataField: "HttpStatusCode", caption: "HTTP Status", width: 80, alignment: "center" },
+                    { dataField: "ProviderCode", caption: "Provider Code", width: 95, alignment: "center" },
+                    { dataField: "Message", caption: "Message / Error", minWidth: 210 },
+                    { dataField: "ElapsedMilliseconds", caption: "Elapsed (ms)", width: 90, alignment: "center" },
+                    { dataField: "CreatedBy", caption: "User", width: 90, alignment: "center" }
+                ]
+            }).dxDataGrid("instance");
+        }
+
+        function clearLogDates() {
+            $("#logFromDate, #logToDate").val("");
+            $('[data-name="logFromDate"] .date-ui, [data-name="logToDate"] .date-ui').val("");
+        }
+
+        // ---------------------------------------------------------------------------------------
+        //  Khởi tạo trang
+        // ---------------------------------------------------------------------------------------
+        $(function () {
+            window.initDateInputs(document);
+            const today = new Date();
+            UI.setHiddenDate("fromDate", ymd(today));
+            UI.setHiddenDate("toDate", ymd(today));
+
+            initGrid([]);
+            loadProperties();
+
+            $("#btnSearch").on("click", search);
+            $("#btnSelect").on("click", () => grid.selectAll());
+            $("#btnUnselect").on("click", () => grid.clearSelection());
+            $("#btnClose").on("click", () => { window.location.href = "/Home/Index"; });
+
+            $("#btnUploadPublishInv").on("click", e => { e.preventDefault(); runAction("UPLOAD_AND_PUBLISH", "Upload & Publish"); });
+            $("#btnIssueInvoice").on("click", e => { e.preventDefault(); runAction("ISSUE_INVOICE", "Issue"); });
+            $("#btnUploadInv").on("click", e => { e.preventDefault(); runAction("UPLOAD_INVOICE", "Upload"); });
+            $("#btnPublishInv").on("click", e => { e.preventDefault(); runAction("PUBLISH_INVOICE", "Publish"); });
+
+            $("#propertyId").on("change", function () {
+                resetActionMenu();
+                const id = Number($(this).val()) || 0;
+                if (!id) return;
+                loadProviderActions(id).always(search);
+            });
+
+            $("#btnViewInvoiceLog").on("click", function () {
+                if (!$("#propertyId").val()) return notify("Please select property first!", "warning", 3000);
+                clearLogDates();
+                $("#modalInvoiceLog").modal("show");
+                loadLogs();
+            });
+            $("#btnSearchInvoiceLog").on("click", loadLogs);
+            $("#btnClearInvoiceLog").on("click", function () {
+                $("#logFolioVatId, #logType, #logStatus").val("");
+                clearLogDates();
+                loadLogs();
+            });
+        });
+    })();
+</script>

@@ -9,6 +9,9 @@ using Cashiering.Services.Implements;
 using Cashiering.Services.Interfaces;
 using DevExpress.AspNetCore;
 using DevExpress.AspNetCore.Reporting;
+using EInvoice.Controllers;
+using EInvoice.Services.Implements;
+using EInvoice.Services.Interfaces;
 using FrontDesk.Controllers;
 using FrontDesk.Services.Implements;
 using FrontDesk.Services.Interfaces;
@@ -134,6 +137,10 @@ mvcBuilder.PartManager.ApplicationParts.Add(
 mvcBuilder.PartManager.ApplicationParts.Add(
     new AssemblyPart(typeof(UserGroupController).Assembly));
 
+// E-Invoice
+mvcBuilder.PartManager.ApplicationParts.Add(
+    new AssemblyPart(typeof(EInvoiceProviderController).Assembly));
+
 // Reservation Allotment
 mvcBuilder.PartManager.ApplicationParts.Add(
     new AssemblyPart(typeof(AllotmentController).Assembly));
@@ -173,6 +180,10 @@ builder.Services.AddSingleton<IInvoicingService, InvoicingService>();
 builder.Services.AddSingleton<ITransferTransactionService, TransferTransactionService>();
 builder.Services.AddSingleton<IRoomManagementService, RoomManagementService>();
 builder.Services.AddSingleton<IRoomRateService, RoomRateService>();
+builder.Services.AddSingleton<IRunNightAuditService, RunNightAuditService>();
+builder.Services.AddSingleton<IFixedChargeService, FixedChargeService>();
+builder.Services.AddSingleton<IMapTransactionService, MapTransactionService>();
+builder.Services.AddSingleton<IExportRevenueService, ExportRevenueService>();
 builder.Services.AddSingleton<IMiscellaneousService, MiscellaneousService>();
 builder.Services.AddSingleton<IAdministrationService, AdministrationService>();
 builder.Services.AddSingleton<IAdjustTransactionService, AdjustTransactionService>();
@@ -216,6 +227,14 @@ builder.Services.AddSingleton<IUsersManagementService, UsersManagementService>()
 builder.Services.AddSingleton<IPasswordHistoryService, PasswordHistoryService>();
 builder.Services.AddSingleton<IUserMappingService, UserMappingService>();
 builder.Services.AddSingleton<IFormAndFunctionService, FormAndFunctionService>();
+builder.Services.AddSingleton<IEInvoiceProviderService, EInvoiceProviderService>();
+builder.Services.AddSingleton<IEInvoicePropertyService, EInvoicePropertyService>();
+// Engine hóa đơn điện tử (dựng request, gọi nhà cung cấp, ghi log)
+builder.Services.AddSingleton<EInvoice.Runtime.DynamicProviderDocumentBuilder>();
+builder.Services.AddSingleton<EInvoice.Runtime.ProviderExecutionService>();
+builder.Services.AddSingleton<EInvoice.Runtime.PmsInvoiceContextBuilder>();
+builder.Services.AddSingleton<IEInvoiceRuntimeService, EInvoiceRuntimeService>();
+builder.Services.AddSingleton<IEInvoiceInvoiceService, EInvoiceInvoiceService>();
 
 builder.Services.AddSingleton<IAllotmentService, AllotmentService>();
 
@@ -268,12 +287,12 @@ if (!app.Environment.IsDevelopment())
 
 var env = builder.Environment;
 app.UseStaticFiles();
-if (app.Environment.IsDevelopment())
+var nodeModulesPath = Path.Combine(env.ContentRootPath, "node_modules");
+if (app.Environment.IsDevelopment() && Directory.Exists(nodeModulesPath))
 {
     app.UseStaticFiles(new StaticFileOptions
     {
-        FileProvider = new PhysicalFileProvider(
-            Path.Combine(env.ContentRootPath, "node_modules")),
+        FileProvider = new PhysicalFileProvider(nodeModulesPath),
         RequestPath = "/node_modules",
     });
 }

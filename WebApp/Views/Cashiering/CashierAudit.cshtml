@@ -10,19 +10,118 @@
     var trans = ViewBag.TransactionsList;
 }
 
+<style>
+    /* ===== Cashier Audit: bố cục như bản WinForms (Login Name/Shift.No | Date | Option) ===== */
+    #casA_modalMain .casA-toolbar {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 4px;
+        padding-bottom: 4px;
+    }
+    #casA_modalMain .casA-toolbar .mui-button {
+        flex: 0 0 110px;
+        min-width: 0;
+        margin: 0;
+        white-space: nowrap;
+    }
+    #casA_modalMain .casA-filter {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 12px;
+        margin-top: 6px;
+    }
+    #casA_modalMain .casA-left {
+        display: grid;
+        grid-template-columns: auto 230px;
+        column-gap: 8px;
+        row-gap: 6px;
+        align-items: center;
+    }
+    #casA_modalMain .casA-left > label {
+        margin: 0;
+        text-align: right;
+        white-space: nowrap;
+    }
+    #casA_modalMain .casA-left .ts-wrapper {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+    #casA_modalMain .casA-left .ts-control {
+        flex-wrap: nowrap !important;
+        overflow: hidden !important;
+    }
+    #casA_modalMain .casA-group {
+        border: 1px solid #b9b9b9;
+        border-radius: 3px;
+        padding: 2px 12px 6px 12px;
+        margin: 0;
+    }
+    #casA_modalMain .casA-group > legend {
+        float: none;
+        width: auto;
+        margin: 0;
+        padding: 0 4px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    #casA_modalMain .casA-dates {
+        display: grid;
+        grid-template-columns: auto 140px auto 140px;
+        column-gap: 8px;
+        align-items: center;
+        height: 62px;
+    }
+    #casA_modalMain .casA-dates > label {
+        margin: 0;
+        white-space: nowrap;
+    }
+    #casA_modalMain [data-date-input] {
+        width: 140px;
+        position: relative;
+    }
+    #casA_modalMain [data-date-input] .date-ui {
+        width: 100% !important;
+        padding-right: 30px !important; /* chừa chỗ cho biểu tượng lịch */
+    }
+    #casA_modalMain .casA-options {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        justify-content: center;
+        height: 62px;
+    }
+    #casA_modalMain .casA-options > div {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    #casA_modalMain .modal-body {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+    #casA_gridContainer {
+        height: calc(90vh - 180px);
+        min-height: 240px;
+        width: 100%;
+    }
+</style>
+
 <div class="modal fade" id="casA_modalMain" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-4by3 modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-4by3">
         <div class="modal-content">
 
             <div class="modal-header py-2">
-                <h5 class="modal-title" id="casA_modalTitle">Cashier Audit</h5>
+                <h5 class="modal-title" id="casA_modalTitle">Shift Audit Report</h5>
             </div>
 
             <div class="modal-body">
                 <div class="search-filter">
 
-                    <!-- ACTIONS -->
-                    <div>
+                    <!-- ACTIONS (cùng 1 hàng như WinForms) -->
+                    <div class="casA-toolbar">
                         <button id="casA_btnView" type="button" class="mui-button mui-button-new">View</button>
                         <button id="casA_btnDetail" type="button" class="mui-button mui-button-new">Detail</button>
                         <button id="casA_btnExportExcel" type="button" class="mui-button mui-button-new">Excel</button>
@@ -30,135 +129,78 @@
                     </div>
 
                     <!-- FILTER -->
-                    <div class="mt-1">
-                        <div class="row g-2 align-items-center">
+                    <div class="casA-filter">
 
-                            <!-- From Date -->
-                            <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label for="casA_fromDateUi"
-                                        class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4
-                                                fw-bold mb-0 text-nowrap text-md-end">
-                                        From Date:
-                                    </label>
+                        <!-- Login Name / Shift.No -->
+                        <div class="casA-left">
+                            <label for="casA_userName">Login Name</label>
+                            <select id="casA_userName" name="casA_userName" class="tomselect-custom" multiple>
+                                @foreach (var u in ViewBag.UsersList)
+                                {
+                                    <option value="@u.LoginName">@u.LoginName</option>
+                                }
+                            </select>
 
-                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
-                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="casA_fromDate">
-                                            <input id="casA_fromDateUi"
-                                                name="casA_fromDateUi"
-                                                type="text"
-                                                class="date-ui form-control form-control-sm"
-                                                placeholder="dd/mm/yyyy"
-                                                autocomplete="off" />
-                                        </div>
-                                        <input type="hidden" id="casA_fromDate" name="casA_fromDate" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- To Date -->
-                            <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label for="casA_toDateUi"
-                                        class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4
-                                                fw-bold mb-0 text-nowrap text-md-end">
-                                        To Date:
-                                    </label>
-
-                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
-                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="casA_toDate">
-                                            <input id="casA_toDateUi"
-                                                name="casA_toDateUi"
-                                                type="text"
-                                                class="date-ui form-control form-control-sm"
-                                                placeholder="dd/mm/yyyy"
-                                                autocomplete="off" />
-                                        </div>
-                                        <input type="hidden" id="casA_toDate" name="casA_toDate" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Login Name -->
-                            <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label for="casA_userName"
-                                        class="col-4 col-sm-4 col-md-5 col-lg-4 col-xl-4
-                                                fw-bold mb-0 text-nowrap text-md-end">
-                                        Login Name:
-                                    </label>
-
-                                    <div class="col-8 col-sm-8 col-md-7 col-lg-8 col-xl-8">
-                                        <select id="casA_userName"
-                                                name="casA_userName"
-                                                class="tomselect-custom w-100"
-                                                multiple>
-                                            @foreach (var u in ViewBag.UsersList)
-                                            {
-                                                <option value="@u.LoginName">@u.LoginName</option>
-                                            }
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Shift -->
-                            <div class="col-12 col-sm-6 col-md-3 col-lg-2 col-xl-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label for="casA_shiftID"
-                                        class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4
-                                                fw-bold mb-0 text-nowrap text-md-end">
-                                        Shift:
-                                    </label>
-
-                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
-                                        <input type="text"
-                                            id="casA_shiftID"
-                                            name="casA_shiftID"
-                                            class="form-control form-control-sm" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Option -->
-                            <div class="col-12">
-                                <div class="row g-1 align-items-center">
-                                    <label class="col-12 col-md-1 text-md-end mb-0 fw-bold text-nowrap">
-                                        Option:
-                                    </label>
-
-                                    <div class="col-12 col-md-10 d-flex flex-wrap gap-2">
-                                        <div class="form-check form-check-inline mb-0">
-                                            <input type="radio"
-                                                name="casA_optionFilter"
-                                                id="casA_allShift"
-                                                value="All"
-                                                checked>
-                                            <label class="form-check-label text-nowrap" for="casA_allShift">
-                                                All shift
-                                            </label>
-                                        </div>
-
-                                        <div class="form-check form-check-inline mb-0">
-                                            <input type="radio"
-                                                name="casA_optionFilter"
-                                                id="casA_onlyTransaction"
-                                                value="Only">
-                                            <label class="form-check-label text-nowrap" for="casA_onlyTransaction">
-                                                Only Transaction Posted
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
+                            <label for="casA_shiftID">Shift.No</label>
+                            <input type="text" id="casA_shiftID" name="casA_shiftID" class="form-control form-control-sm" />
                         </div>
+
+                        <!-- Date -->
+                        <fieldset class="casA-group">
+                            <legend>
+                                <input type="checkbox" id="casA_includeDate" checked />
+                                <label for="casA_includeDate" class="mb-0 ms-1">Include Date</label>
+                            </legend>
+                            <div class="casA-dates">
+                                <label for="casA_fromDateUi">From Date</label>
+                                <div>
+                                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="casA_fromDate">
+                                        <input id="casA_fromDateUi"
+                                               name="casA_fromDateUi"
+                                               type="text"
+                                               class="date-ui form-control form-control-sm"
+                                               placeholder="dd/mm/yyyy"
+                                               autocomplete="off" />
+                                    </div>
+                                    <input type="hidden" id="casA_fromDate" name="casA_fromDate" />
+                                </div>
+
+                                <label for="casA_toDateUi">To Date</label>
+                                <div>
+                                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="casA_toDate">
+                                        <input id="casA_toDateUi"
+                                               name="casA_toDateUi"
+                                               type="text"
+                                               class="date-ui form-control form-control-sm"
+                                               placeholder="dd/mm/yyyy"
+                                               autocomplete="off" />
+                                    </div>
+                                    <input type="hidden" id="casA_toDate" name="casA_toDate" />
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <!-- Option -->
+                        <fieldset class="casA-group">
+                            <legend>Option</legend>
+                            <div class="casA-options">
+                                <div>
+                                    <input type="radio" name="casA_optionFilter" id="casA_allShift" value="All" checked>
+                                    <label class="mb-0 text-nowrap" for="casA_allShift">All shift</label>
+                                </div>
+                                <div>
+                                    <input type="radio" name="casA_optionFilter" id="casA_onlyTransaction" value="Only">
+                                    <label class="mb-0 text-nowrap" for="casA_onlyTransaction">Only Transaction Posted</label>
+                                </div>
+                            </div>
+                        </fieldset>
+
                     </div>
                 </div>
-                
+
                 <!-- GRID -->
-                <div class="mui-card">
-                    <div id="casA_gridWrapper" class="mt-2" style="max-height: 500px;">
+                <div class="mui-card mt-2">
+                    <div id="casA_gridWrapper">
                         <div class="gridContainer" id="casA_gridContainer"></div>
                     </div>
                 </div>
@@ -390,20 +432,29 @@
             let fromDateISO = $(sel.fromHidden).val() || "";
             let toDateISO = $(sel.toHidden).val() || "";
 
+            const includeDate = $("#casA_includeDate").is(":checked");
+
             return {
                 userName: ($(sel.userName).val() || []).map(r => (r || "").replace("''", "'")).join("','") || "",
                 fromDate: fromDateISO,
                 toDate: toDateISO,
-                shiftID: $(sel.shiftID).val() || ""
+                shiftID: $(sel.shiftID).val() || "",
+                includeDate: includeDate
             };
         }
+
+        // Include Date: bỏ tick thì khóa 2 ô ngày và trả ra tất cả các ngày
+        $(document).off("change.casAinc", "#casA_includeDate").on("change.casAinc", "#casA_includeDate", function () {
+            const on = this.checked;
+            $("#casA_fromDateUi, #casA_toDateUi").prop("disabled", !on);
+        });
 
         async function view(isInitial) {
             $(sel.loading).show();
 
             const payload = getPayload(isInitial);
 
-            if (!payload.fromDate || !payload.toDate) {
+            if (payload.includeDate && (!payload.fromDate || !payload.toDate)) {
                 $(sel.loading).hide();
                 showToast("Warning", "Please select From/To date.", false);
                 return;
@@ -419,10 +470,18 @@
                     $(sel.loading).hide();
                 },
                 error: function (xhr, status, error) {
-                    console.error("Load error:", status, error);
+                    console.error("Load error:", xhr && xhr.status, status, error, xhr && xhr.responseText);
                     $(sel.loading).hide();
-                    showToast("Error", "Failed to load data.", false);
                     destroyMainGrid();
+                    if (xhr && xhr.status === 401) { sessionTimeout(); return; }
+
+                    // Hiện rõ lý do (mã lỗi + thông báo server) thay vì báo chung chung
+                    let detail = "";
+                    try {
+                        const j = xhr.responseJSON || JSON.parse(xhr.responseText);
+                        if (j && j.message) detail = j.message;
+                    } catch (e) { }
+                    showToast("Error", "Failed to load data. (HTTP " + (xhr ? xhr.status : "?") + (detail ? ": " + detail : "") + ")", false);
                 }
             });
         }
@@ -463,7 +522,7 @@
 
             $(sel.gridMain).dxDataGrid({
                 dataSource: data,
-                height: 500,
+                height: Math.max(240, Math.round(window.innerHeight * 0.9 - 180)), // cố định theo cao khung popup, tránh DevExtreme đo sai khi popup đang mở
                 width: "100%",
                 showBorders: true,
                 allowColumnResizing: true,

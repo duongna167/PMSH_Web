@@ -4,154 +4,125 @@
     var selectedReport = @ViewBag.ReportHeader;
 }
 
+<style>
+    /* ===== Exchange Currency Search: bố cục như bản WinForms ===== */
+    #exCu_modalMain .exCu-toolbar {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 4px;
+        padding-bottom: 4px;
+    }
+    #exCu_modalMain .exCu-toolbar .mui-button {
+        flex: 1 1 0;
+        min-width: 0;
+        margin: 0;
+        padding-left: 4px;
+        padding-right: 4px;
+        white-space: nowrap;
+    }
+    #exCu_modalMain .exCu-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+    #exCu_modalMain .exCu-row { display: flex; align-items: center; gap: 8px; }
+    #exCu_modalMain .exCu-row > label { margin: 0; white-space: nowrap; }
+    #exCu_modalMain .exCu-row > label:not(:first-child), #exCu_modalMain .exCu-row > .exCu-inc { margin-left: 12px; }
+    #exCu_modalMain [data-date-input] {
+        width: 140px;
+        position: relative;
+    }
+    #exCu_modalMain [data-date-input] .date-ui {
+        width: 100% !important;
+        padding-right: 30px !important; /* chừa chỗ cho biểu tượng lịch */
+    }
+    #exCu_modalMain .modal-body {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+    #exCu_gridContainer {
+        height: calc(90vh - 180px);
+        min-height: 240px;
+        width: 100%;
+    }
+</style>
+
 <div class="modal fade" id="exCu_modalMain" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-4by3 modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-4by3">
         <div class="modal-content">
 
             <div class="modal-header">
-                <h5 class="modal-title fw-bold text-primary" id="exCu_modalTitle">Exchange Currency</h5>
+                <h5 class="modal-title" id="exCu_modalTitle">Exchange Currency Search</h5>
             </div>
 
             <div class="modal-body">
 
                 <div class="search-filter">
-                    <!-- ACTIONS -->
-                    <div>
+                    <!-- ACTIONS (cùng 1 hàng, thứ tự như WinForms) -->
+                    <div class="exCu-toolbar">
                         <button id="exCu_btnView" type="button" class="mui-button mui-button-new">View</button>
-                        <button id="exCu_btnExportExcel" type="button" class="mui-button mui-button-new">Excel</button>
+                        <button id="exCu_btnRefresh" type="button" class="mui-button mui-button-new">Refresh</button>
+                        <button id="exCu_btnNew" type="button" class="mui-button mui-button-new">New</button>
+                        <button id="exCu_btnEdit" type="button" class="mui-button mui-button-edit">Edit</button>
+                        <button id="exCu_btnDelete" type="button" class="mui-button mui-button-delete">Delete</button>
                         <button id="exCu_btnPrintGrid" type="button" class="mui-button mui-button-new">Print</button>
-                        <button id="exCu_btnClose" type="button" class="mui-button mui-button-new">Close</button>
+                        <button id="exCu_btnInvoice" type="button" class="mui-button mui-button-card" title="In phiếu của giao dịch đang chọn (dùng mẫu phiếu hiện có)">Invoice</button>
+                        <button id="exCu_btnExportExcel" type="button" class="mui-button mui-button-new">Excel</button>
+                        <button id="exCu_btnClose" type="button" class="mui-button mui-button-edit">Close</button>
                     </div>
 
-                    <!-- FILTER -->
-                    <div class="mt-1">
-                        <div class="row g-2 align-items-center">
+                    <!-- BỘ LỌC: 2 dòng độc lập (không căn cột với nhau) -->
+                    <div class="exCu-rows">
 
-                            <!-- From -->
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-2 col-xl-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label for="exCu_fromDateUi"
-                                        class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 fw-bold mb-0 text-nowrap text-md-end">
-                                        From:
-                                    </label>
+                        <!-- Dòng 1 -->
+                        <div class="exCu-row">
+                            <label for="exCu_account">Account</label>
+                            <input type="text" id="exCu_account" name="exCu_account" class="form-control form-control-sm" style="width:200px;" />
 
-                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
-                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="exCu_fromDate">
-                                            <input id="exCu_fromDateUi"
-                                                name="exCu_fromDateUi"
-                                                type="text"
-                                                class="date-ui form-control form-control-sm"
-                                                placeholder="dd/mm/yyyy"
-                                                autocomplete="off" />
-                                        </div>
-                                        <input type="hidden" id="exCu_fromDate" name="exCu_fromDate" />
-                                    </div>
-                                </div>
-                            </div>
+                            <label for="exCu_roomNo">Room No</label>
+                            <input type="text" id="exCu_roomNo" name="exCu_roomNo" class="form-control form-control-sm" style="width:160px;" />
 
-                            <!-- To -->
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-2 col-xl-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label for="exCu_toDateUi"
-                                        class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 fw-bold mb-0 text-nowrap text-md-end">
-                                        To:
-                                    </label>
-
-                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
-                                        <div data-date-input data-format="DD/MM/YYYY" business-date data-name="exCu_toDate">
-                                            <input id="exCu_toDateUi"
-                                                name="exCu_toDateUi"
-                                                type="text"
-                                                class="date-ui form-control form-control-sm"
-                                                placeholder="dd/mm/yyyy"
-                                                autocomplete="off" />
-                                        </div>
-                                        <input type="hidden" id="exCu_toDate" name="exCu_toDate" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Account -->
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-2 col-xl-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label for="exCu_account"
-                                        class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 fw-bold mb-0 text-nowrap text-md-end">
-                                        Account:
-                                    </label>
-
-                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
-                                        <input type="text"
-                                            id="exCu_account"
-                                            name="exCu_account"
-                                            class="form-control form-control-sm" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Room -->
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-2 col-xl-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label for="exCu_roomNo"
-                                        class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 fw-bold mb-0 text-nowrap text-md-end">
-                                        Room:
-                                    </label>
-
-                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
-                                        <input type="text"
-                                            id="exCu_roomNo"
-                                            name="exCu_roomNo"
-                                            class="form-control form-control-sm" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- ID/Passport -->
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label for="exCu_passPort"
-                                        class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 fw-bold mb-0 text-nowrap text-md-end">
-                                        ID/Passport:
-                                    </label>
-
-                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
-                                        <input type="text"
-                                            id="exCu_passPort"
-                                            name="exCu_passPort"
-                                            class="form-control form-control-sm" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Include Delete -->
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label class="col-4 col-sm-4 col-md-3 col-lg-3 col-xl-3 fw-bold mb-0 text-nowrap text-md-end">
-                                        Include:
-                                    </label>
-
-                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
-                                        <div class="form-check d-flex align-items-center gap-1 mb-0">
-                                            <input
-                                                type="checkbox"
-                                                id="exCu_isDelete"
-                                                name="exCu_isDelete">
-                                            <label class="form-check-label fw-bold text-danger mb-0"
-                                                for="exCu_isDelete"
-                                                style="cursor:pointer;">
-                                                Include Delete
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
+                            <label for="exCu_passPort">ID or Passport No</label>
+                            <input type="text" id="exCu_passPort" name="exCu_passPort" class="form-control form-control-sm" style="width:200px;" />
                         </div>
+
+                        <!-- Dòng 2 -->
+                        <div class="exCu-row">
+                            <label for="exCu_fromDateUi">From Date</label>
+                            <div>
+                                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="exCu_fromDate">
+                                    <input id="exCu_fromDateUi"
+                                           name="exCu_fromDateUi"
+                                           type="text"
+                                           class="date-ui form-control form-control-sm"
+                                           placeholder="dd/mm/yyyy"
+                                           autocomplete="off" />
+                                </div>
+                                <input type="hidden" id="exCu_fromDate" name="exCu_fromDate" />
+                            </div>
+
+                            <label for="exCu_toDateUi">To Date</label>
+                            <div>
+                                <div data-date-input data-format="DD/MM/YYYY" business-date data-name="exCu_toDate">
+                                    <input id="exCu_toDateUi"
+                                           name="exCu_toDateUi"
+                                           type="text"
+                                           class="date-ui form-control form-control-sm"
+                                           placeholder="dd/mm/yyyy"
+                                           autocomplete="off" />
+                                </div>
+                                <input type="hidden" id="exCu_toDate" name="exCu_toDate" />
+                            </div>
+
+                            <div class="d-flex align-items-center gap-1 exCu-inc">
+                                <input type="checkbox" id="exCu_isDelete" name="exCu_isDelete">
+                                <label class="mb-0 text-danger" for="exCu_isDelete" style="cursor:pointer;">Include Delete</label>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
                 <!-- GRID -->
-                <div class="gridContainer flex-grow-1 bg-white position-relative" id="exCu_gridWrapper">
-                    <div id="exCu_gridContainer" style="height: 100%; width: 100%;"></div>
+                <div class="mui-card mt-2">
+                    <div id="exCu_gridContainer" class="gridContainer"></div>
                 </div>
 
                 <!-- LOADING -->
@@ -161,6 +132,156 @@
                             height: 100%;display: flex;align-items: center;justify-content: center;">
                     <div class="spinner-border text-primary"></div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ===== Form New/Edit giao dịch đổi tiền + popup chọn Profile ===== */
+    #exCu_formModal .exCu-ftoolbar,
+    #exCu_profileModal .exCu-ftoolbar {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 4px;
+        padding-bottom: 4px;
+    }
+    #exCu_formModal .exCu-ftoolbar .mui-button,
+    #exCu_profileModal .exCu-ftoolbar .mui-button {
+        flex: 0 0 110px;
+        min-width: 0;
+        margin: 0;
+        white-space: nowrap;
+    }
+    #exCu_formModal .exCu-frows,
+    #exCu_profileModal .exCu-frows {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 6px;
+    }
+    #exCu_formModal .exCu-frow,
+    #exCu_profileModal .exCu-frow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    #exCu_formModal .exCu-frow > label,
+    #exCu_profileModal .exCu-frow > label {
+        margin: 0;
+        white-space: nowrap;
+        min-width: 70px;
+    }
+    #exCu_formModal .exCu-frow > label:not(:first-child),
+    #exCu_profileModal .exCu-frow > label:not(:first-child) {
+        margin-left: 12px;
+        min-width: 0;
+    }
+    #exCu_formModal .modal-body,
+    #exCu_profileModal .modal-body {
+        display: flex;
+        flex-direction: column;
+    }
+    #exCu_fGridWrap {
+        height: calc(90vh - 330px);
+        min-height: 160px;
+        width: 100%;
+    }
+    #exCu_pGridWrap {
+        height: calc(90vh - 260px);
+        min-height: 160px;
+        width: 100%;
+    }
+</style>
+
+<!-- =========================
+     FORM: New / Edit giao dịch đổi tiền (frmExchangeCurrency)
+========================= -->
+<div class="modal fade" id="exCu_formModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-4by3">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="exCu_formTitle">Exchange Currency</h6>
+            </div>
+            <div class="modal-body">
+
+                <div class="exCu-ftoolbar">
+                    <button id="exCu_fBtnOk" type="button" class="mui-button mui-button-new">OK</button>
+                    <button id="exCu_fBtnSave" type="button" class="mui-button mui-button-new">Save</button>
+                    <button id="exCu_fBtnClose" type="button" class="mui-button mui-button-edit">Close</button>
+                </div>
+
+                <div class="exCu-frows">
+                    <div class="exCu-frow">
+                        <label for="exCu_fName">Name</label>
+                        <input type="text" id="exCu_fName" class="form-control form-control-sm" style="width:280px;" readonly />
+                        <button id="exCu_fBtnName" type="button" class="mui-button mui-button-new" style="flex:0 0 40px; min-width:40px; padding:0 6px;" title="Search profile">...</button>
+                        <button id="exCu_fBtnNameClear" type="button" class="mui-button mui-button-delete" style="flex:0 0 40px; min-width:40px; padding:0 6px;" title="Clear">X</button>
+
+                        <label for="exCu_fPassport">ID/Passport</label>
+                        <input type="text" id="exCu_fPassport" class="form-control form-control-sm" style="width:170px;" readonly />
+
+                        <label for="exCu_fRoomNo">Room No</label>
+                        <input type="text" id="exCu_fRoomNo" class="form-control form-control-sm" style="width:110px;" />
+                    </div>
+                    <div class="exCu-frow">
+                        <label for="exCu_fAddress">Address</label>
+                        <input type="text" id="exCu_fAddress" class="form-control form-control-sm" style="width:420px;" />
+
+                        <label for="exCu_fDesc">Description</label>
+                        <input type="text" id="exCu_fDesc" class="form-control form-control-sm" style="width:300px;" />
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 mt-2 mb-1">
+                    <button id="exCu_fBtnAddRow" type="button" class="mui-button mui-button-new" style="flex:0 0 110px;">Add Row</button>
+                    <button id="exCu_fBtnDelRow" type="button" class="mui-button mui-button-delete" style="flex:0 0 110px;">Delete Row</button>
+                    <div class="ms-auto fw-semibold">Total (<span id="exCu_fMaster"></span>): <span id="exCu_fTotal">0</span></div>
+                </div>
+
+                <div class="mui-card">
+                    <div id="exCu_fGridWrap"><div id="exCu_fGrid" class="gridContainer" style="height:100%;"></div></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================
+     POPUP: chọn Profile / Reservation (frmExchangeCurrencyProfileSearch)
+========================= -->
+<div class="modal fade" id="exCu_profileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-4by3">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Search Profile</h6>
+            </div>
+            <div class="modal-body">
+
+                <div class="exCu-ftoolbar">
+                    <button id="exCu_pBtnSearch" type="button" class="mui-button mui-button-new">Search</button>
+                    <button id="exCu_pBtnOk" type="button" class="mui-button mui-button-new">OK</button>
+                    <button id="exCu_pBtnClear" type="button" class="mui-button mui-button-edit">Clear</button>
+                    <button id="exCu_pBtnClose" type="button" class="mui-button mui-button-edit">Close</button>
+                </div>
+
+                <div class="exCu-frows">
+                    <div class="exCu-frow">
+                        <label for="exCu_pName">Guest Name</label>
+                        <input type="text" id="exCu_pName" class="form-control form-control-sm" style="width:240px;" />
+                        <label for="exCu_pRoom">Room No</label>
+                        <input type="text" id="exCu_pRoom" class="form-control form-control-sm" style="width:120px;" />
+                        <label for="exCu_pConf">Confirmation No</label>
+                        <input type="text" id="exCu_pConf" class="form-control form-control-sm" style="width:160px;" />
+                    </div>
+                </div>
+
+                <div class="mui-card mt-2">
+                    <div id="exCu_pGridWrap"><div id="exCu_pGrid" class="gridContainer" style="height:100%;"></div></div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -181,6 +302,11 @@
             btnExcel: "#exCu_btnExportExcel",
             btnPrint: "#exCu_btnPrintGrid",
             btnClose: "#exCu_btnClose",
+            btnRefresh: "#exCu_btnRefresh",
+            btnDelete: "#exCu_btnDelete",
+            btnNew: "#exCu_btnNew",
+            btnEdit: "#exCu_btnEdit",
+            btnInvoice: "#exCu_btnInvoice",
 
             loading: "#exCu_loadingSpinner",
 
@@ -219,6 +345,73 @@
             $(document).off("click.exCu", sel.btnView).on("click.exCu", sel.btnView, async function () {
                 await view(false);
             });
+
+            // Refresh: xóa điều kiện lọc, về ngày business date rồi tải lại
+            $(document).off("click.exCu", sel.btnRefresh).on("click.exCu", sel.btnRefresh, async function () {
+                $(sel.account).val("");
+                $(sel.roomNo).val("");
+                $(sel.passPort).val("");
+                $(sel.isDelete).prop("checked", false);
+                try { if (typeof window.reloadBusinessDate === "function") await window.reloadBusinessDate(); } catch { }
+                await ensureBusinessDate();
+                await view(false);
+            });
+
+            // Delete: xóa mềm giao dịch đang chọn (Status = 1), hỏi xác nhận trước
+            $(document).off("click.exCu", sel.btnDelete).on("click.exCu", sel.btnDelete, function () {
+                if (!selectedRow || !selectedRow.exchangeCurrencyID) {
+                    showToast("Warning", "Please select a row first.", false);
+                    return;
+                }
+                const id = selectedRow.exchangeCurrencyID;
+
+                const doDelete = function () {
+                    $(sel.loading).show();
+                    $.ajax({
+                        url: "/Cashiering/DeleteExchangeCurrency",
+                        type: "POST",
+                        data: { id: id },
+                        headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() }
+                    }).done(function (res) {
+                        $(sel.loading).hide();
+                        showToast("Success", (res && res.message) ? res.message : "Deleted successfully.", true);
+                        view(false);
+                    }).fail(function (xhr) {
+                        $(sel.loading).hide();
+                        if (xhr && xhr.status === 401) { sessionTimeout(); return; }
+                        const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : "Cannot delete.";
+                        showToast("Error", msg, false);
+                    });
+                };
+
+                if (window.Swal) {
+                    Swal.fire({ title: "Are you sure you want to delete this record?", icon: "question", showCancelButton: true, confirmButtonText: "OK", cancelButtonText: "Cancel" })
+                        .then(function (r) { if (r.isConfirmed) doDelete(); });
+                } else if (confirm("Are you sure you want to delete this record?")) {
+                    doDelete();
+                }
+            });
+
+            // New: mở form thêm mới (cần đang có ca thu ngân)
+            $(document).off("click.exCu", sel.btnNew).on("click.exCu", sel.btnNew, function () {
+                openForm(0);
+            });
+
+            // Edit: mở form sửa giao dịch đang chọn
+            $(document).off("click.exCu", sel.btnEdit).on("click.exCu", sel.btnEdit, function () {
+                if (!selectedRow || !selectedRow.exchangeCurrencyID) {
+                    showToast("Warning", "Please select a row first.", false);
+                    return;
+                }
+                openForm(Number(selectedRow.exchangeCurrencyID));
+            });
+
+            // Invoice: in phiếu của giao dịch đang chọn
+            $(document).off("click.exCu", sel.btnInvoice).on("click.exCu", sel.btnInvoice, function () {
+                printSelected();
+            });
+
+            bindFormEvents();
 
             $(document).off("click.exCu", sel.btnPrint).on("click.exCu", sel.btnPrint, function () {
                 printSelected();
@@ -327,7 +520,7 @@
             gridInstance = $(sel.grid).dxDataGrid({
                 dataSource: data,
                 showBorders: true,
-                height: "100%",
+                height: Math.max(240, Math.round(window.innerHeight * 0.9 - 180)), // cố định theo cao khung popup
                 width: "100%",
 
                 columnAutoWidth: true,
@@ -358,7 +551,7 @@
                     { dataField: "transactionDate", caption: "Trans. Date", dataType: "datetime", format: "dd/MM/yyyy", width: 110 },
 
                     { dataField: "account", caption: "Guest Name", width: 160 },
-                    { dataField: "passPort", caption: "PassPort", width: 120 },
+                    { dataField: "passPort", caption: "ID/Passport", width: 120 },
                     { dataField: "roomNo", caption: "Room No", width: 80 },
 
                     { dataField: "totalAmount", caption: "Total Amount", dataType: "number", format: "#,##0.00", width: 120, alignment: "right" },
@@ -387,13 +580,16 @@
                 showToast("Warning", "Please select 1 row before printing.", false);
                 return;
             }
+            printById(selectedRow.id);
+        }
 
+        function printById(id) {
             $(sel.loading).show();
 
             $.ajax({
                 url: '/Cashiering/ExchangeCurrencyPrint',
                 type: 'GET',
-                data: { id: selectedRow.id },
+                data: { id: id },
                 success: function (data) {
                     if (data && data.pdfBase64) {
                         const pdfWindow = window.open("");
@@ -460,6 +656,365 @@
                 workbook.xlsx.writeBuffer().then(function (buffer) {
                     saveAs(new Blob([buffer], { type: "application/octet-stream" }), "Exchange Currency.xlsx");
                 });
+            });
+        }
+
+        // =====================================================================
+        //  FORM New / Edit giao dịch đổi tiền (port từ frmExchangeCurrency của WinForms)
+        // =====================================================================
+        const F = { id: 0, profileId: 0, reservationId: 0, uid: 0, deleted: [], focusRow: null, rows: [], currencies: [], master: "", lookupsLoaded: false };
+        let fGrid = null;
+        let pGrid = null;
+
+        function getShiftId() {
+            const n = parseInt(localStorage.getItem("shiftID"), 10);
+            return isNaN(n) ? 0 : n;
+        }
+
+        function confirmBox(message, onOk) {
+            if (window.Swal) {
+                Swal.fire({ title: message, icon: "question", showCancelButton: true, confirmButtonText: "OK", cancelButtonText: "Cancel" })
+                    .then(function (r) { if (r.isConfirmed) onOk(); });
+            } else if (confirm(message)) {
+                onOk();
+            }
+        }
+
+        function ajaxMsg(xhr, fallback) {
+            try {
+                const j = xhr.responseJSON || JSON.parse(xhr.responseText);
+                if (j && j.message) return j.message;
+            } catch (e) { }
+            return fallback;
+        }
+
+        async function loadLookups() {
+            if (F.lookupsLoaded) return;
+            const res = await $.ajax({ url: "/Cashiering/ExchangeCurrencyLookups", type: "GET" });
+            F.currencies = res.currencies || [];
+            F.master = res.masterCurrency || "";
+            F.lookupsLoaded = true;
+        }
+
+        function newRow() {
+            return { uid: ++F.uid, id: 0, currency: "", denomination: 0, quantity: 0, amount: 0, exchangeRate: 0, amountInVND: 0 };
+        }
+
+        function resetForm() {
+            F.id = 0; F.profileId = 0; F.reservationId = 0; F.deleted = []; F.focusRow = null; F.rows = [];
+            $("#exCu_fName, #exCu_fPassport, #exCu_fRoomNo, #exCu_fAddress, #exCu_fDesc").val("");
+        }
+
+        function clearProfileFields() {
+            F.profileId = 0; F.reservationId = 0;
+            $("#exCu_fName, #exCu_fPassport, #exCu_fRoomNo, #exCu_fAddress, #exCu_fDesc").val("");
+        }
+
+        function updateTotal() {
+            const total = (F.rows || []).reduce(function (s, r) { return s + (Number(r.amountInVND) || 0); }, 0);
+            $("#exCu_fTotal").text(total.toLocaleString("en-US", { maximumFractionDigits: 2 }));
+        }
+
+        // Tính Amount = Denomination x Quantity; Exchange Rate lấy theo ngày/mệnh giá/loại tiền; Amount In VND = Amount x Rate
+        function recalcRow(nd, row) {
+            const d = Number(row.denomination) || 0, q = Number(row.quantity) || 0;
+            nd.amount = d * q;
+            if (!row.currency || d <= 0) {
+                nd.exchangeRate = 0; nd.amountInVND = 0;
+                return;
+            }
+            return $.ajax({ url: "/Cashiering/ExchangeCurrencyRate", type: "GET", data: { currency: row.currency, denomination: d } })
+                .then(function (r) {
+                    const rate = Number(r.rate) || 0;
+                    nd.exchangeRate = rate;
+                    nd.amountInVND = nd.amount * rate;
+                }, function () {
+                    nd.exchangeRate = 0; nd.amountInVND = 0;
+                });
+        }
+
+        function buildFormGrid() {
+            try { const inst = $("#exCu_fGrid").dxDataGrid("instance"); if (inst) inst.dispose(); } catch (e) { }
+            $("#exCu_fGrid").empty();
+
+            fGrid = $("#exCu_fGrid").dxDataGrid({
+                dataSource: F.rows,
+                keyExpr: "uid",
+                height: "100%",
+                width: "100%",
+                showBorders: true,
+                columnAutoWidth: true,
+                allowColumnResizing: true,
+                noDataText: "Click Add Row to add a currency",
+                editing: { mode: "cell", allowUpdating: true, selectTextOnEditStart: true, startEditAction: "click" },
+                paging: { enabled: false },
+                scrolling: { useNative: true },
+                columns: [
+                    {
+                        dataField: "currency", caption: "Currencies",
+                        lookup: { dataSource: F.currencies, valueExpr: "id", displayExpr: "id" },
+                        setCellValue: function (nd, v, cur) {
+                            nd.currency = v;
+                            return recalcRow(nd, Object.assign({}, cur, { currency: v }));
+                        }
+                    },
+                    {
+                        dataField: "denomination", caption: "Denomination", dataType: "number", format: "#,##0",
+                        setCellValue: function (nd, v, cur) {
+                            nd.denomination = v;
+                            return recalcRow(nd, Object.assign({}, cur, { denomination: v }));
+                        }
+                    },
+                    {
+                        dataField: "quantity", caption: "Quantity", dataType: "number", format: "#,##0",
+                        setCellValue: function (nd, v, cur) {
+                            nd.quantity = v;
+                            return recalcRow(nd, Object.assign({}, cur, { quantity: v }));
+                        }
+                    },
+                    { dataField: "amount", caption: "Amount", dataType: "number", format: "#,##0", allowEditing: false },
+                    { dataField: "exchangeRate", caption: "Exchange Rate", dataType: "number", format: "#,##0.####", allowEditing: false },
+                    { dataField: "amountInVND", caption: "Amount In VND", dataType: "number", format: "#,##0.##", allowEditing: false }
+                ],
+                onRowClick: function (e) { if (e.rowType === "data") F.focusRow = e.data; },
+                onRowUpdated: function () { updateTotal(); },
+                onContentReady: function () { updateTotal(); }
+            }).dxDataGrid("instance");
+            updateTotal();
+        }
+
+        async function openForm(id) {
+            if (!getShiftId()) {
+                showToast("Warning", "Please login to cashier shift first.", false);
+                return;
+            }
+            $(sel.loading).show();
+            try {
+                await loadLookups();
+                resetForm();
+
+                if (id > 0) {
+                    const res = await $.ajax({ url: "/Cashiering/ExchangeCurrencyEditData", type: "GET", data: { id: id } });
+                    const h = res.header || {};
+                    F.id = id;
+                    F.profileId = Number(h.profileID) || 0;
+                    F.reservationId = Number(h.reservationID) || 0;
+                    $("#exCu_fName").val(res.account || "");
+                    $("#exCu_fPassport").val(res.passPort || "");
+                    $("#exCu_fRoomNo").val(h.roomNo || "");
+                    $("#exCu_fAddress").val(h.address || "");
+                    $("#exCu_fDesc").val(h.description || "");
+                    F.rows = (res.lines || []).map(function (l) {
+                        const amount = Number(l.amount) || 0, rate = Number(l.exchangeRate) || 0;
+                        return { uid: ++F.uid, id: Number(l.id) || 0, currency: l.currency || "", denomination: Number(l.denomination) || 0,
+                                 quantity: Number(l.quantity) || 0, amount: amount, exchangeRate: rate, amountInVND: amount * rate };
+                    });
+                } else {
+                    F.rows = [newRow()];
+                }
+
+                $("#exCu_formTitle").text(id > 0 ? "Exchange Currency - Edit" : "Exchange Currency - New");
+                $("#exCu_fMaster").text(F.master);
+
+                const el = document.getElementById("exCu_formModal");
+                const modal = bootstrap.Modal.getOrCreateInstance(el, { backdrop: "static" });
+                $(el).off("shown.bs.modal.exCuF").one("shown.bs.modal.exCuF", buildFormGrid);
+                modal.show();
+            } catch (xhr) {
+                showToast("Error", ajaxMsg(xhr, "Cannot open the form."), false);
+            } finally {
+                $(sel.loading).hide();
+            }
+        }
+
+        async function saveForm(closeAfter) {
+            if (!fGrid) return;
+            try { await fGrid.saveEditData(); } catch (e) { }
+
+            // Kiểm tra giống checkVadil / checkRow của WinForms
+            if (!F.profileId || !$("#exCu_fName").val().trim()) {
+                showToast("Warning", "Profile not blank!", false); return;
+            }
+            const rows = F.rows || [];
+            if (!rows.length) { showToast("Warning", "Data null.Not Save.", false); return; }
+            for (let i = 0; i < rows.length; i++) {
+                const r = rows[i];
+                if (!r.currency) { showToast("Warning", "Currencies not blank.", false); return; }
+                if (!(Number(r.denomination) > 0)) { showToast("Warning", "Denomination >0", false); return; }
+                if (!(Number(r.quantity) > 0)) { showToast("Warning", "Quantity >0", false); return; }
+                if (!(Number(r.amount) > 0)) { showToast("Warning", "Amount >0", false); return; }
+                if (!(Number(r.exchangeRate) > 0)) { showToast("Warning", "Exchange Rate >0", false); return; }
+                if (!(Number(r.amountInVND) > 0)) { showToast("Warning", "Amount In VND >0", false); return; }
+            }
+
+            const dto = {
+                id: F.id,
+                profileID: F.profileId,
+                reservationID: F.reservationId,
+                roomNo: $("#exCu_fRoomNo").val() || "",
+                address: $("#exCu_fAddress").val() || "",
+                description: $("#exCu_fDesc").val() || "",
+                shiftID: getShiftId(),
+                lines: rows.map(function (r) {
+                    return { id: r.id || 0, currency: r.currency, denomination: Number(r.denomination) || 0, quantity: Number(r.quantity) || 0 };
+                }),
+                deletedLineIDs: F.deleted
+            };
+
+            $(sel.loading).show();
+            $.ajax({
+                url: "/Cashiering/SaveExchangeCurrency",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(dto),
+                headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() }
+            }).done(function (res) {
+                $(sel.loading).hide();
+                if (!res || !res.success) {
+                    showToast("Warning", (res && res.message) ? res.message : "Cannot save.", false);
+                    return;
+                }
+                showToast("Success", "Saved successfully. Invoice No: " + (res.invoiceNo || ""), true);
+
+                const afterPrint = function () {
+                    if (closeAfter) {
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById("exCu_formModal")).hide();
+                    } else {
+                        // Giống Win: sau Save form về trạng thái thêm mới
+                        resetForm();
+                        F.rows = [newRow()];
+                        buildFormGrid();
+                    }
+                    view(false);
+                };
+
+                // Giống Win: hỏi có in phiếu không (OK = in), xong thì đóng/dọn form
+                const msg = "You may want to print this MONEY EXCHANGE RECEIPT is not?";
+                if (window.Swal) {
+                    Swal.fire({ title: msg, icon: "question", showCancelButton: true, confirmButtonText: "OK", cancelButtonText: "Cancel" })
+                        .then(function (r) { if (r.isConfirmed) printById(res.id); afterPrint(); });
+                } else {
+                    if (confirm(msg)) printById(res.id);
+                    afterPrint();
+                }
+            }).fail(function (xhr) {
+                $(sel.loading).hide();
+                if (xhr && xhr.status === 401) { sessionTimeout(); return; }
+                showToast("Error", ajaxMsg(xhr, "Cannot save."), false);
+            });
+        }
+
+        // ----- Popup chọn Profile / Reservation -----
+        function pick(row, name) {
+            const k = Object.keys(row || {}).find(function (x) { return x.toLowerCase() === name.toLowerCase(); });
+            return k ? row[k] : null;
+        }
+
+        function openProfileSearch() {
+            const el = document.getElementById("exCu_profileModal");
+            $("#exCu_pName, #exCu_pRoom, #exCu_pConf").val("");
+            $(el).off("shown.bs.modal.exCuP").one("shown.bs.modal.exCuP", function () { searchProfile(); });
+            bootstrap.Modal.getOrCreateInstance(el, { backdrop: "static" }).show();
+        }
+
+        function searchProfile() {
+            $.ajax({
+                url: "/Cashiering/ExchangeCurrencyProfileSearch",
+                type: "GET",
+                // SearchType = 1: giá trị mặc định mà WinForms đang chọn
+                data: { guestName: $("#exCu_pName").val(), roomNo: $("#exCu_pRoom").val(), confirmationNo: $("#exCu_pConf").val(), searchType: 1 }
+            }).done(function (data) {
+                try { const inst = $("#exCu_pGrid").dxDataGrid("instance"); if (inst) inst.dispose(); } catch (e) { }
+                $("#exCu_pGrid").empty();
+                pGrid = $("#exCu_pGrid").dxDataGrid({
+                    dataSource: Array.isArray(data) ? data : [],
+                    height: "100%",
+                    width: "100%",
+                    showBorders: true,
+                    columnAutoWidth: true,
+                    allowColumnResizing: true,
+                    selection: { mode: "single" },
+                    hoverStateEnabled: true,
+                    filterRow: { visible: true, applyFilter: "auto" },
+                    paging: { pageSize: 50 },
+                    noDataText: "No data",
+                    customizeColumns: function (cols) {
+                        cols.forEach(function (c) {
+                            // Ẩn các cột ID kỹ thuật (ProfileID, ReservationID...)
+                            if (/id$/i.test(c.dataField || "")) c.visible = false;
+                        });
+                    },
+                    onRowDblClick: function (e) { chooseProfile(e.data); }
+                }).dxDataGrid("instance");
+            }).fail(function (xhr) {
+                showToast("Error", ajaxMsg(xhr, "Cannot search profile."), false);
+            });
+        }
+
+        function chooseProfile(row) {
+            if (!row) { showToast("Warning", "Please select a row first!", false); return; }
+            const profileId = Number(pick(row, "profileID")) || 0;
+            const rsvId = Number(pick(row, "reservationID")) || 0;
+            if (!profileId) { showToast("Warning", "Profile ID not found in the selected row.", false); return; }
+
+            $.ajax({ url: "/Cashiering/ExchangeCurrencyProfileInfo", type: "GET", data: { profileId: profileId, reservationId: rsvId } })
+                .done(function (p) {
+                    F.profileId = p.profileId;
+                    F.reservationId = p.reservationId;
+                    $("#exCu_fName").val(p.account || "");
+                    $("#exCu_fPassport").val(p.passPort || "");
+                    $("#exCu_fAddress").val(p.address || "");
+                    $("#exCu_fRoomNo").val(p.roomNo || "");
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById("exCu_profileModal")).hide();
+                })
+                .fail(function (xhr) { showToast("Error", ajaxMsg(xhr, "Cannot load profile."), false); });
+        }
+
+        function bindFormEvents() {
+            $(document).off("click.exCu", "#exCu_fBtnOk").on("click.exCu", "#exCu_fBtnOk", function () { saveForm(true); });
+            $(document).off("click.exCu", "#exCu_fBtnSave").on("click.exCu", "#exCu_fBtnSave", function () { saveForm(false); });
+            $(document).off("click.exCu", "#exCu_fBtnClose").on("click.exCu", "#exCu_fBtnClose", function () {
+                bootstrap.Modal.getOrCreateInstance(document.getElementById("exCu_formModal")).hide();
+                view(false);
+            });
+            $(document).off("click.exCu", "#exCu_fBtnName").on("click.exCu", "#exCu_fBtnName", openProfileSearch);
+            $(document).off("click.exCu", "#exCu_fBtnNameClear").on("click.exCu", "#exCu_fBtnNameClear", clearProfileFields);
+
+            $(document).off("click.exCu", "#exCu_fBtnAddRow").on("click.exCu", "#exCu_fBtnAddRow", function () {
+                if (!fGrid) return;
+                fGrid.getDataSource().store().insert(newRow()).then(function () { fGrid.refresh(); updateTotal(); });
+            });
+
+            $(document).off("click.exCu", "#exCu_fBtnDelRow").on("click.exCu", "#exCu_fBtnDelRow", function () {
+                const row = F.focusRow;
+                if (!fGrid || !row) { showToast("Warning", "Please select a row first!", false); return; }
+                const doRemove = function () {
+                    if (row.id > 0) F.deleted.push(row.id); // dòng đã lưu: xóa mềm khi bấm Save/OK
+                    fGrid.getDataSource().store().remove(row.uid).then(function () {
+                        F.focusRow = null;
+                        fGrid.refresh();
+                        updateTotal();
+                    });
+                };
+                if (row.id > 0) confirmBox("Are you sure you want to delete this row", doRemove);
+                else doRemove();
+            });
+
+            // Popup chọn profile
+            $(document).off("click.exCu", "#exCu_pBtnSearch").on("click.exCu", "#exCu_pBtnSearch", searchProfile);
+            $(document).off("click.exCu", "#exCu_pBtnOk").on("click.exCu", "#exCu_pBtnOk", function () {
+                let row = null;
+                try { const sr = $("#exCu_pGrid").dxDataGrid("instance").getSelectedRowsData(); row = sr && sr[0]; } catch (e) { }
+                chooseProfile(row);
+            });
+            $(document).off("click.exCu", "#exCu_pBtnClear").on("click.exCu", "#exCu_pBtnClear", function () {
+                $("#exCu_pName, #exCu_pRoom, #exCu_pConf").val("");
+            });
+            $(document).off("click.exCu", "#exCu_pBtnClose").on("click.exCu", "#exCu_pBtnClose", function () {
+                bootstrap.Modal.getOrCreateInstance(document.getElementById("exCu_profileModal")).hide();
+            });
+            $(document).off("keydown.exCu", "#exCu_pName, #exCu_pRoom, #exCu_pConf").on("keydown.exCu", "#exCu_pName, #exCu_pRoom, #exCu_pConf", function (e) {
+                if (e.key === "Enter") searchProfile();
             });
         }
 

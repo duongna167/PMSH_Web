@@ -1,0 +1,651 @@
+@using DevExpress.XtraReports.UI
+
+@{
+    ViewBag.Title = ViewBag.ReportHeader;
+    var listrt = ViewBag.RoomTypeList;
+    var listzone = ViewBag.ZoneList;
+    var hkpSectionlist = ViewBag.hkpSectionList;
+    var listatt = ViewBag.hkpAttendantList;
+    var listhkpFT = ViewBag.hkpFacilityTaskList;
+    string businessDateIso = ((DateTime)ViewBag.BusinessDate).ToString("yyyy-MM-dd");
+}
+
+<style>
+    /* ===== Turndown Management: bố cục như bản WinForms ===== */
+    #tdm_modal .tdm-toolbar {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 4px;
+        padding-bottom: 4px;
+    }
+    #tdm_modal .tdm-toolbar .mui-button {
+        flex: 0 0 110px;
+        min-width: 0;
+        margin: 0;
+        white-space: nowrap;
+    }
+    #tdm_modal .tdm-filter {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        column-gap: 28px;
+        row-gap: 8px;
+        margin-top: 6px;
+    }
+    #tdm_modal .tdm-group-title {
+        font-weight: 600;
+        margin-bottom: 2px;
+        white-space: nowrap;
+    }
+    #tdm_modal .tdm-checks {
+        display: grid;
+        grid-auto-flow: column;
+        grid-template-rows: repeat(3, 28px);
+        column-gap: 20px;
+        align-items: center;
+    }
+    #tdm_modal .tdm-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+    #tdm_modal .tdm-item label {
+        margin: 0;
+    }
+    #tdm_modal .tdm-box {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 1px solid #ccc;
+    }
+    #tdm_modal .tdm-adv {
+        display: grid;
+        grid-template-columns: auto 90px auto 90px;
+        column-gap: 8px;
+        row-gap: 4px;
+        align-items: center;
+    }
+    #tdm_modal .tdm-adv > label {
+        margin: 0;
+        text-align: right;
+        white-space: nowrap;
+    }
+    #tdm_modal .tdm-adv .tdm-span3 {
+        grid-column: 2 / 5;
+    }
+    #tdm_modal .tdm-adv .ts-wrapper {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    #tdm_modal .tdm-adv .ts-control {
+        flex-wrap: nowrap !important;
+        overflow: hidden !important;
+    }
+    #tdm_modal .tdm-adv .ts-control input {
+        flex: 1 1 20px !important;
+        min-width: 20px !important;
+    }
+    #tdm_modal .modal-body {
+        display: flex;
+        flex-direction: column;
+    }
+    #tdm_gridContainer {
+        height: calc(90vh - 270px);
+        min-height: 220px;
+        width: 100%;
+    }
+
+    .tdm-color-clean-uncheck { background-color: cyan; }
+    .tdm-color-dirty { background-color: red; }
+    .tdm-color-outoforder { background-color: lightgray; }
+    .tdm-color-pickup { background-color: yellow; }
+    .tdm-color-clean { background-color: lime; }
+    .tdm-color-outofservices { background-color: lightgray; }
+
+    #tdm_autoModal .tdm-auto-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        column-gap: 10px;
+        row-gap: 8px;
+        align-items: center;
+    }
+    #tdm_autoModal .tdm-auto-grid > label {
+        margin: 0;
+        text-align: right;
+        white-space: nowrap;
+    }
+</style>
+
+<!-- =========================
+     TURNDOWN MANAGEMENT (MAIN MODAL)
+========================= -->
+<div class="modal fade" id="tdm_modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-4by3">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h6 class="modal-title">Turndown Management</h6>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="search-filter">
+
+                    <!-- TOOLBAR (cùng 1 hàng, thứ tự như WinForms) -->
+                    <div class="tdm-toolbar">
+                        <button id="tdm_btnView" class="mui-button mui-button-new" type="button">View</button>
+                        <button id="tdm_btnCheckAll" class="mui-button mui-button-advance" type="button">Check All</button>
+                        <button id="tdm_btnResv" class="mui-button mui-button-search" type="button">Resv</button>
+                        <button id="tdm_btnAuto" class="mui-button mui-button-option" type="button">Auto</button>
+                        <button id="tdm_btnTsheet" class="mui-button mui-button-card" type="button">T.sheet</button>
+                        <button id="tdm_btnExcel" class="mui-button mui-button-new" type="button">Excel</button>
+                        <button class="mui-button mui-button-edit" type="button" data-bs-dismiss="modal">Close</button>
+                    </div>
+
+                    <div class="tdm-filter">
+
+                        <!-- Turndown Status -->
+                        <div>
+                            <div class="tdm-group-title">Turndown Status</div>
+                            <div class="tdm-checks" style="grid-template-rows: repeat(3, 28px);">
+                                <div class="tdm-item">
+                                    <input type="checkbox" id="tdm_required" name="tdm_turndown" value="1" checked>
+                                    <label for="tdm_required">Required</label>
+                                </div>
+                                <div class="tdm-item">
+                                    <input type="checkbox" id="tdm_notrequired" name="tdm_turndown" value="2">
+                                    <label for="tdm_notrequired">Not Required</label>
+                                </div>
+                                <div class="tdm-item">
+                                    <input type="checkbox" id="tdm_completed" name="tdm_turndown" value="3">
+                                    <label for="tdm_completed">Completed</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reservation Status -->
+                        <div>
+                            <div class="tdm-group-title">Reservation Status</div>
+                            <div class="tdm-checks">
+                                <div class="tdm-item">
+                                    <input type="checkbox" id="tdm_arrivals" name="tdm_reservation" value="5" checked>
+                                    <label for="tdm_arrivals">Arrivals</label>
+                                </div>
+                                <div class="tdm-item">
+                                    <input type="checkbox" id="tdm_arrived" value="1" checked>
+                                    <label for="tdm_arrived">Arrived</label>
+                                </div>
+                                <div class="tdm-item">
+                                    <input type="checkbox" id="tdm_stayover" name="tdm_reservation" value="1,6" checked>
+                                    <label for="tdm_stayover">Stay Over</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Room Status (2 cột x 3 hàng) -->
+                        <div>
+                            <div class="tdm-group-title">Room Status</div>
+                            <div class="tdm-checks">
+                                <div class="tdm-item">
+                                    <span class="tdm-box tdm-color-clean-uncheck"></span>
+                                    <input type="checkbox" id="tdm_cleanNon" name="tdm_room" value="1" checked>
+                                    <label for="tdm_cleanNon">Clean Non - Checked</label>
+                                </div>
+                                <div class="tdm-item">
+                                    <span class="tdm-box tdm-color-dirty"></span>
+                                    <input type="checkbox" id="tdm_dirty" name="tdm_room" value="2" checked>
+                                    <label for="tdm_dirty">Dirty</label>
+                                </div>
+                                <div class="tdm-item">
+                                    <span class="tdm-box tdm-color-clean"></span>
+                                    <input type="checkbox" id="tdm_clean" name="tdm_room" value="4" checked>
+                                    <label for="tdm_clean">Clean</label>
+                                </div>
+                                <div class="tdm-item">
+                                    <span class="tdm-box tdm-color-pickup"></span>
+                                    <input type="checkbox" id="tdm_pickup" name="tdm_room" value="3" checked>
+                                    <label for="tdm_pickup">Pickup</label>
+                                </div>
+                                <div class="tdm-item">
+                                    <span class="tdm-box tdm-color-outoforder"></span>
+                                    <input type="checkbox" id="tdm_ooo" name="tdm_room" value="5" checked>
+                                    <label for="tdm_ooo">Out of Order</label>
+                                </div>
+                                <div class="tdm-item">
+                                    <span class="tdm-box tdm-color-outofservices"></span>
+                                    <input type="checkbox" id="tdm_oos" name="tdm_room" value="6" checked>
+                                    <label for="tdm_oos">Out of Service</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Advance Search -->
+                        <div>
+                            <div class="tdm-group-title">Advance Search</div>
+                            <div class="tdm-adv">
+                                <label>From Room</label>
+                                <input type="text" id="tdm_fromRoom" class="form-control form-control-sm" />
+                                <label>To Room</label>
+                                <input type="text" id="tdm_toRoom" class="form-control form-control-sm" />
+
+                                <label>Room Type</label>
+                                <div class="tdm-span3">
+                                    <select data-single-choice id="tdm_roomType" class="tomselect-custom" multiple>
+                                        @foreach (var item in listrt)
+                                        {
+                                            <option value="@item.Code">@item.Code</option>
+                                        }
+                                    </select>
+                                </div>
+
+                                <label>Section</label>
+                                <div class="tdm-span3">
+                                    <select data-single-choice id="tdm_section" class="tomselect-custom" multiple>
+                                        @foreach (var item in hkpSectionlist)
+                                        {
+                                            <option value="@item.ID">@item.Code</option>
+                                        }
+                                    </select>
+                                </div>
+
+                                <label>Zone</label>
+                                <div class="tdm-span3">
+                                    <select data-single-choice id="tdm_zone" class="tomselect-custom" multiple>
+                                        @foreach (var item in listzone)
+                                        {
+                                            <option value="@item.Code">@item.Code</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- GRID -->
+                <div class="mui-card mt-2">
+                    <div id="tdm_gridContainer" class="gridContainer"></div>
+                </div>
+
+                <div id="tdm_loadingSpinner" style="display:none; position:absolute; inset:0; z-index:999;
+                     background: rgba(255,255,255,0.55); align-items:center; justify-content:center;">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- =========================
+     AUTO: Generating Turndown Tasksheets
+========================= -->
+<div class="modal fade" id="tdm_autoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:520px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Generating Turndown Tasksheets</h6>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex gap-2 mb-3">
+                    <button id="tdm_btnAutoOk" class="mui-button mui-button-new" type="button" style="flex:0 0 110px;">OK</button>
+                    <button class="mui-button mui-button-edit" type="button" data-bs-dismiss="modal" style="flex:0 0 110px;">Close</button>
+                </div>
+
+                <div class="tdm-auto-grid">
+                    <label>Task Date</label>
+                    <input type="date" id="tdm_taskdateauto" class="form-control form-control-sm" style="width:170px;"
+                           value="@businessDateIso" disabled />
+
+                    <label>Attendants</label>
+                    <div>
+                        <select id="tdm_attendantauto" class="tomselect-custom" multiple>
+                            @foreach (var item in listatt)
+                            {
+                                <option value="@item.ID">@item.Name</option>
+                            }
+                        </select>
+                    </div>
+
+                    <label>Max. Credits</label>
+                    <input type="text" id="tdm_maxcreditauto" class="form-control form-control-sm" style="width:170px;" value="0" />
+
+                    <label>Facility Task</label>
+                    <div>
+                        <select data-single-choice id="tdm_taskcodeauto" class="tomselect-custom" multiple>
+                            @foreach (var item in listhkpFT)
+                            {
+                                <option value="@item.ID">@item.Description</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- =========================
+     RESERVATION MODAL (mở từ nút Resv)
+========================= -->
+<div class="modal fade" id="newReservationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Reservation</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body"></div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    var tdm_Module = (function () {
+
+        let _selectedRows = [];
+        let _allChecked = false;
+        let _focusedRow = null; // dòng vừa bấm (giống _RsvID của WinForms)
+
+        function $id(id) { return $("#" + id); }
+        function showLoading() { $id("tdm_loadingSpinner").css("display", "flex"); }
+        function hideLoading() { $id("tdm_loadingSpinner").hide(); }
+
+        function checkedValues(name) {
+            return $("input[name='" + name + "']:checked").map(function () { return this.value; }).get();
+        }
+
+        function joinVal(id) {
+            const v = $id(id).val();
+            return Array.isArray(v) ? v.filter(x => x !== "").join(",") : (v || "");
+        }
+
+        function colorClass(statusName) {
+            switch ((statusName || "").trim().toLowerCase()) {
+                case "clean non-checked": return "tdm-color-clean-uncheck";
+                case "dirty": return "tdm-color-dirty";
+                case "pickup": return "tdm-color-pickup";
+                case "clean": return "tdm-color-clean";
+                case "out of order": return "tdm-color-outoforder";
+                case "out of services":
+                case "out of service": return "tdm-color-outofservices";
+                default: return "";
+            }
+        }
+
+        function buildGrid(data) {
+            try { const inst = $id("tdm_gridContainer").dxDataGrid("instance"); if (inst) inst.dispose(); } catch (e) { }
+            $id("tdm_gridContainer").empty();
+            _selectedRows = [];
+            _focusedRow = null;
+            _allChecked = false;
+            $id("tdm_btnCheckAll").text("Check All");
+
+            $id("tdm_gridContainer").dxDataGrid({
+                dataSource: data,
+                height: "100%",
+                width: "100%",
+                allowColumnResizing: true,
+                columnAutoWidth: true,
+                showBorders: true,
+                noDataText: "No data",
+                columns: [
+                    {
+                        dataField: "hkstatusID",
+                        caption: "C",
+                        width: 40,
+                        allowFiltering: false,
+                        cellTemplate: function (container, options) {
+                            $("<div>")
+                                .addClass("tdm-box " + colorClass(options.value))
+                                .css({ width: "18px", height: "18px" })
+                                .appendTo(container);
+                        }
+                    },
+                    { dataField: "roomNo", caption: "Room" },
+                    { dataField: "roomType", caption: "Ro. Type" },
+                    { dataField: "hkstatusID", caption: "Room Status" },
+                    { dataField: "vip", caption: "VIP" },
+                    { dataField: "nationanity", caption: "Nat" },
+                    { dataField: "guestName", caption: "Name", width: 260 },
+                    { dataField: "status", caption: "Status" },
+                    { dataField: "turndownStatus", caption: "Turndown Status" }
+                ],
+                paging: { pageSize: 25 },
+                scrolling: { useNative: true, showScrollbar: "always" },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [25, 50, "all"],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: { visible: true, applyFilter: "auto" },
+                selection: { mode: "multiple", showCheckBoxesMode: "always" },
+                onSelectionChanged: function (e) {
+                    _selectedRows = e.selectedRowsData || [];
+                },
+                onRowClick: function (e) {
+                    if (e.rowType === "data") _focusedRow = e.data;
+                },
+                onCellPrepared: function (e) {
+                    // Cột Room Status tô màu kín ô
+                    if (e.rowType === "data" && e.column && e.column.caption === "Room Status") {
+                        const cls = colorClass(e.value);
+                        if (cls) e.cellElement.addClass(cls);
+                    }
+                }
+            });
+        }
+
+        function loadData() {
+            showLoading();
+            $.ajax({
+                url: "/HouseKeeping/ViewTurnDown",
+                type: "GET",
+                traditional: true,
+                data: {
+                    roomTypead: joinVal("tdm_roomType"),
+                    sectionAd: joinVal("tdm_section"),
+                    zoneAd: joinVal("tdm_zone"),
+                    fromRoom: $id("tdm_fromRoom").val(),
+                    toRoom: $id("tdm_toRoom").val(),
+                    HKStatusID: checkedValues("tdm_room").join(","),
+                    ReservationStatus: checkedValues("tdm_reservation").join(","),
+                    arrived: $id("tdm_arrived").is(":checked") ? "1" : "",
+                    turndownStatus: checkedValues("tdm_turndown").join(",")
+                },
+                headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() }
+            })
+                .done(function (result) {
+                    hideLoading();
+                    if (!Array.isArray(result)) {
+                        alert("Cannot load data: " + (typeof result === "string" ? result : "invalid response."));
+                        return;
+                    }
+                    try { buildGrid(result); }
+                    catch (e) { console.error("TDM buildGrid error:", e); alert("Cannot render grid: " + e.message); }
+                })
+                .fail(function (xhr) {
+                    hideLoading();
+                    if (xhr && xhr.status === 401) { sessionTimeout(); return; }
+                    alert("Cannot load data: " + ((xhr && xhr.responseText) ? xhr.responseText : "server error."));
+                });
+        }
+
+        function openReservation(resvId) {
+            if (!resvId) { showToast("Warning", "Reservation ID not found.", false); return; }
+
+            const modal = $("#newReservationModal");
+            modal.find(".modal-body").html('<div class="text-center py-5"><div class="spinner-border"></div><p class="mt-3">Loading reservation...</p></div>');
+            modal.modal("show");
+
+            $.ajax({ url: "/Reservation/EncryptId", type: "POST", data: { id: resvId } })
+                .done(function (response) {
+                    if (!response || !response.success) { modal.modal("hide"); alert("EncryptId failed."); return; }
+                    $.ajax({ url: "/Reservation/NewReservation", type: "GET", data: { key: response.encryptedId }, cache: false })
+                        .done(function (html) { modal.find(".modal-body").html(html); })
+                        .fail(function () {
+                            modal.find(".modal-body").html('<div class="alert alert-danger m-4"><strong>Error!</strong> Cannot load reservation.</div>');
+                        });
+                })
+                .fail(function () { modal.modal("hide"); alert("Server connection error."); });
+        }
+
+        function exportExcel() {
+            const grid = $id("tdm_gridContainer").dxDataGrid("instance");
+            if (!grid) { showToast("Error", "The data is not yet available.", false); return; }
+
+            const reportName = "Turndown Management";
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Sheet 1");
+
+            worksheet.addRow(["Công ty Cổ phần Giải pháp Công nghệ CS-Solution"]);
+            worksheet.mergeCells("A1:E1");
+            worksheet.getRow(1).font = { bold: true };
+
+            worksheet.addRow(["", "", "", "", " " + new Date().toLocaleString("vi-VN")]);
+            worksheet.mergeCells("E2:H2");
+            worksheet.getRow(2).alignment = { vertical: "middle", horizontal: "right" };
+
+            worksheet.addRow([]);
+            worksheet.addRow([]);
+
+            const reportRow = worksheet.addRow(["", "", reportName]);
+            worksheet.mergeCells("C5:F5");
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { horizontal: "center" };
+            worksheet.addRow([]);
+
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 7, column: 1 }
+            }).then(function () {
+                const lastRow = worksheet.lastRow.number + 2;
+                worksheet.getCell("A" + lastRow).value = "--- END ---";
+                worksheet.mergeCells("A" + lastRow + ":F" + lastRow);
+                worksheet.getCell("A" + lastRow).alignment = { horizontal: "center" };
+                worksheet.getCell("A" + lastRow).font = { italic: true };
+
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), reportName + ".xlsx");
+                });
+            });
+        }
+
+        function runAuto() {
+            const userName = JSON.parse(localStorage.getItem("Loginname"));
+            const roomIDs = _selectedRows.map(r => r.roomID).join(",");
+
+            showLoading();
+            $.ajax({
+                url: "/HouseKeeping/AutoMakeupServiceRoom",
+                type: "POST",
+                traditional: true,
+                data: {
+                    taskdateauto: $id("tdm_taskdateauto").val(),
+                    taskcodeauto: joinVal("tdm_taskcodeauto"),
+                    attendantauto: joinVal("tdm_attendantauto"),
+                    maxcreditauto: $id("tdm_maxcreditauto").val(),
+                    userName: userName,
+                    roomIDs: roomIDs
+                },
+                headers: { "X-CSRF-TOKEN-HEADERNAME": $("input[name='__RequestVerificationToken']").val() }
+            })
+                .done(function (result) {
+                    hideLoading();
+                    if (result && result.success) {
+                        showToast("Success", result.message, true);
+                        bootstrap.Modal.getOrCreateInstance(document.getElementById("tdm_autoModal")).hide();
+                        const a = document.getElementById("tdm_attendantauto"), t = document.getElementById("tdm_taskcodeauto");
+                        if (a && a.tomselect) a.tomselect.clear();
+                        if (t && t.tomselect) t.tomselect.clear();
+                        $id("tdm_maxcreditauto").val("0");
+                        loadData();
+                    } else {
+                        showToast("Error", (result && result.message) ? result.message : (typeof result === "string" ? result : "Error"), false);
+                    }
+                })
+                .fail(function (xhr) {
+                    hideLoading();
+                    if (xhr && xhr.status === 401) { sessionTimeout(); return; }
+                    alert("Cannot generate turndown tasksheets.");
+                });
+        }
+
+        function bindEvents() {
+            $(document).off(".tdm");
+
+            $(document).on("click.tdm", "#tdm_btnView", loadData);
+
+            $(document).on("click.tdm", "#tdm_btnCheckAll", function () {
+                let grid = null;
+                try { grid = $id("tdm_gridContainer").dxDataGrid("instance"); } catch (e) { }
+                if (!grid) return;
+                if (!_allChecked) { grid.selectAll(); _allChecked = true; $(this).text("Uncheck All"); }
+                else { grid.deselectAll(); _allChecked = false; $(this).text("Check All"); }
+            });
+
+            $(document).on("click.tdm", "#tdm_btnResv", function () {
+                // Giống WinForms: lấy ReservationID của dòng đang đứng (vừa bấm); chưa bấm thì lấy dòng tick đầu tiên
+                const row = _focusedRow || _selectedRows[0];
+                if (!row || !row.reservationID) {
+                    showToast("Warning", "Please select a row first!", false);
+                    return;
+                }
+                openReservation(row.reservationID);
+            });
+
+            $(document).on("click.tdm", "#tdm_btnAuto", function () {
+                if (!_selectedRows.length) {
+                    showToast("Warning", "Please select a row first!", false);
+                    return;
+                }
+                bootstrap.Modal.getOrCreateInstance(document.getElementById("tdm_autoModal"), { backdrop: "static" }).show();
+            });
+
+            $(document).on("click.tdm", "#tdm_btnAutoOk", runAuto);
+
+            // T.sheet: mở màn Make up Service Room (Turn down Task sheet) cũ
+            $(document).on("click.tdm", "#tdm_btnTsheet", function () {
+                ModalManager.load("/HouseKeeping/TurndownTasksheet", "ttsr_modal", "openModalTTSR");
+            });
+
+            $(document).on("click.tdm", "#tdm_btnExcel", exportExcel);
+        }
+
+        function init() {
+            try { initTomSelect(["#tdm_roomType", "#tdm_section", "#tdm_zone", "#tdm_attendantauto", "#tdm_taskcodeauto"]); }
+            catch (e) { console.error("TDM initTomSelect error:", e); }
+
+            try { bindEvents(); }
+            catch (e) { console.error("TDM bindEvents error:", e); }
+
+            loadData();
+        }
+
+        function destroy() {
+            try { const inst = $id("tdm_gridContainer").dxDataGrid("instance"); if (inst) inst.dispose(); } catch (e) { }
+            $(document).off(".tdm");
+            _selectedRows = [];
+        }
+
+        return { init: init, destroy: destroy };
+    })();
+
+    // Hàm global để ModalManager gọi sau khi hiện modal
+    window.openModalTdm = function () {
+        tdm_Module.init();
+    };
+
+    $("#tdm_modal").on("hidden.bs.modal", function () {
+        tdm_Module.destroy();
+    });
+</script>
