@@ -60,7 +60,7 @@ namespace Miscellaneous.Controllers
 
         #region CardManagement
 
-        [RequireFunction("misc_CardManagement")]
+        [HttpGet, RequireFunction("misc_CardManagement")]
         public IActionResult CardManagement()
         {
             int baudRate = 9600;
@@ -70,169 +70,62 @@ namespace Miscellaneous.Controllers
             TagScannerHelper.Instance.ConnectFromSettings(_configuration, baudRate);
             return View();
         }
-        [HttpGet]
-        public IActionResult GetCardManagement()
+
+        [HttpGet, RequireFunction("misc_CardManagement")]
+        public IActionResult GetCardManagement() =>
+            CardAction(() => Json(CardRows(_iMiscellaneousService.Cards())));
+
+        // isNew = true: thêm thẻ (quét/nhập đủ mã), false: sửa loại thẻ và trạng thái
+        [HttpPost, ValidateAntiForgeryToken, RequireFunction("misc_CardManagement")]
+        public IActionResult SaveCard(string? id, int cardTypeId, int status, bool isNew)
         {
-            string sql = @"SELECT a.*, N'Card Hotel' AS CardType, 
-                    CASE 
-                        WHEN a.Status = 0 THEN N'Inactive' 
-                        WHEN a.Status = 1 THEN N'Active' 
-                        ELSE N'Other' 
-                    END AS StatusText 
-                    FROM Card a WITH (NOLOCK)";
+            id = id?.Trim() ?? "";
+            if (id.Length == 0) return CardError("ID cannot be blank!");
+            if (isNew && (id.Length != 8 || !id.All(char.IsAsciiDigit))) return CardError("Card ID must be 8 digits.");
+            if (cardTypeId != 0) return CardError("Card type is invalid.");
+            if (status is < 0 or > 2) return CardError("Status is invalid.");
 
-            var dt = _iMiscellaneousService.CardManagement(sql);
-
-            // Convert DataTable -> List<object>
-            var list = dt.AsEnumerable().Select(row => new {
-                ID = row["ID"],
-                CardType = row["CardType"],
-                CardTypeID = row["CardTypeID"],
-                CanSell = row["CanSell"],
-                Status = row["Status"],
-                StatusText = row["StatusText"],
-                CreatedBy = row["CreatedBy"],
-                CreatedDate = row["CreatedDate"],
-                UpdatedBy = row["UpdatedBy"],
-                UpdatedDate = row["UpdatedDate"]
-            }).ToList();
-
-            return Json(list);
-        }
-        //[HttpPost]
-        //public IActionResult SaveCard([FromBody] CardModel model)
-        //{
-        //    var listErrors = GetErrors(
-        //        Check(model == null, "general", "Invalid data."),
-        //        Check(string.IsNullOrWhiteSpace(model?.ID), "cardID", "Card ID is required.")
-        //    );
-
-        //    if (listErrors.Count > 0)
-        //    {
-        //        return Json(new { success = false, errors = listErrors });
-        //    }
-
-        //    try
-        //    {
-        //        var existedCards = CardBO.Instance.FindByAttribute("ID", model.ID);
-        //        bool isExist = existedCards != null && existedCards.Count > 0;
-
-        //        var businessDates = PropertyUtils.ConvertToList<BusinessDateModel>(
-        //            BusinessDateBO.Instance.FindAll()
-        //        );
-        //        DateTime businessDate = businessDates[0].BusinessDate;
-
-        //        // ================= INSERT =================
-        //        if (!isExist)
-        //        {
-        //            if (CardBO.Instance.IsDuplicateCardId(model.ID))
-        //            {
-        //                return Json(new
-        //                {
-        //                    success = false,
-        //                    message = $"Card ID already exists: [{model.ID}]"
-        //                });
-        //            }
-
-        //            model.CreatedDate = businessDate;
-        //            model.UpdatedDate = DateTime.Now;
-        //            string statusTextInsert = model.Status switch
-        //            {
-        //                1 => "Active",
-        //                0 => "Inactive",
-        //                _ => "Other"
-        //            };
-
-        //            CardBO.Instance.InsertCard(model);
-
-        //            return Json(new
-        //            {
-        //                success = true,
-        //                message = "Insert successfully!",
-        //                data = new
-        //                {
-        //                    id = model.ID,
-        //                    cardTypeID = model.CardTypeID,
-        //                    cardType = "Card Hotel",
-        //                    status = model.Status,
-        //                    statusText = statusTextInsert,
-        //                    createdBy = model.CreatedBy,
-        //                    createdDate = model.CreatedDate,
-        //                    updatedBy = model.UpdatedBy,
-        //                    updatedDate = model.UpdatedDate
-        //                }
-        //            });
-        //        }
-
-        //        // ================= UPDATE =================
-        //        var oldData = (CardModel)existedCards[0];
-
-        //        model.CreatedBy = oldData.CreatedBy;
-        //        model.CreatedDate = oldData.CreatedDate;
-        //        model.UpdatedDate = DateTime.Now;
-        //        string statusTextEdit = model.Status switch
-        //        {
-        //            1 => "Active",
-        //            0 => "Inactive",
-        //            _ => "Other"
-        //        };
-        //        CardBO.Instance.Update(model);
-
-        //        return Json(new
-        //        {
-        //            success = true,
-        //            message = "Update successfully!",
-        //            data = new
-        //            {
-        //                id = model.ID,
-        //                cardTypeID = model.CardTypeID,
-        //                cardType = "Card Hotel",
-        //                status = model.Status,
-        //                statusText = statusTextEdit,
-        //                createdBy = model.CreatedBy,
-        //                createdDate = model.CreatedDate,
-        //                updatedBy = model.UpdatedBy,
-        //                updatedDate = model.UpdatedDate
-        //            }
-        //        });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return Json(new { success = false, message = ex.Message });
-        //    }
-        //}
-
-
-        [HttpPost]
-        public IActionResult DeleteCard([FromBody] CardModel model)
-        {
-            var username = HttpContext.Session.GetString("LoginName") ?? "";
-
-            using (var conn = new SqlConnection(DBUtils.GetDBConnectionString()))
+            return CardAction(() =>
             {
-                conn.Open();
+                var userName = HttpContext.Session.GetString("LoginName") ?? "";
+                if (isNew && !_iMiscellaneousService.InsertCard(id, cardTypeId, status, userName))
+                    return CardError("This card already exists on the system.");
+                if (!isNew && !_iMiscellaneousService.UpdateCard(id, cardTypeId, status, userName))
+                    return CardError("Card ID does not exist.");
 
-                // Check xem Card có tồn tại chưa
-                string checkSql = "SELECT COUNT(*) FROM Card WHERE ID = @ID";
-                using (var checkCmd = new SqlCommand(checkSql, conn))
-                {
-                    checkCmd.Parameters.AddWithValue("@ID", model.ID);
-                    int count = (int)checkCmd.ExecuteScalar();
-                    if (count == 0)
-                    {
-                        return Json(new { success = false, message = "Card ID does not exist" });
-                    }
-                }
+                return Json(new { success = true, data = CardRows(_iMiscellaneousService.Cards(id)).FirstOrDefault() });
+            });
+        }
 
-                // Xóa bản ghi
-                string sql = "DELETE FROM Card WHERE ID = @ID";
-                using (var cmd = new SqlCommand(sql, conn))
-                {
-                    cmd.Parameters.AddWithValue("@ID", model.ID);
+        [HttpPost, ValidateAntiForgeryToken, RequireFunction("misc_CardManagement")]
+        public IActionResult DeleteCard(string? id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return CardError("Please select a card.");
+            return CardAction(() => _iMiscellaneousService.DeleteCard(id.Trim()) switch
+            {
+                CardDeleteResult.InUse => CardError("Card is used. Not delete!"),
+                CardDeleteResult.NotFound => CardError("Card ID does not exist."),
+                _ => Json(new { success = true })
+            });
+        }
 
-                    int rows = cmd.ExecuteNonQuery();
-                    return Ok(new { success = rows > 0, id = model.ID });
-                }
+        private static List<Dictionary<string, object?>> CardRows(DataTable table) =>
+            table.AsEnumerable().Select(row => table.Columns.Cast<DataColumn>().ToDictionary(
+                col => char.ToLowerInvariant(col.ColumnName[0]) + col.ColumnName[1..],
+                col => row[col] == DBNull.Value ? null : row[col])).ToList();
+
+        private IActionResult CardError(string message) => BadRequest(new { success = false, message });
+
+        private IActionResult CardAction(Func<IActionResult> action)
+        {
+            try
+            {
+                return action();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Card management failed");
+                return StatusCode(500, new { success = false, message = "Cannot process card. Please check the database configuration." });
             }
         }
         #endregion

@@ -1,0 +1,375 @@
+@{ ViewData["Title"] = "Meal Change Manager"; }
+<style>
+    #mmgt_page { width: 100%; margin: 4px 0 12px; font-size: 13px; }
+    .mmgt-body { display: flex; flex-direction: column; gap: 8px; }
+    #mmgt_page [hidden] { display: none !important; }
+    #mmgt_page label { margin: 0; white-space: nowrap; }
+    #mmgt_page .mui-card { margin: 0; padding: 8px; min-width: 0; }
+    .mmgt-card-title { display: flex; align-items: center; gap: 8px; padding-bottom: 5px; border-bottom: 2px solid #ececec; font-size: 14px; font-weight: 600; color: #000; }
+    .mmgt-card-title i { background: #027C75; color: #fff; padding: 4px; font-size: 12px; }
+    #mmgt_page .header { justify-content: center; margin-bottom: 6px; }
+    .mmgt-toolbar { display: flex; gap: 4px; flex-wrap: wrap; }
+    .mmgt-toolbar .mui-button { min-width: 80px; margin: 0; }
+    .mmgt-main { display: grid; grid-template-columns: minmax(0, 1fr) 60px minmax(0, 1fr); gap: 6px; }
+    .mmgt-main > .mui-card { display: flex; flex-direction: column; gap: 6px; }
+    .mmgt-top { min-height: 176px; flex-shrink: 0; }
+    .mmgt-search { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1.3fr); gap: 4px 8px; align-items: center; }
+    .mmgt-span { grid-column: 2 / -1; }
+    .mmgt-zone { min-width: 0; }
+    #mmgt_page .mmgt-check { display: inline-flex; align-items: center; gap: 5px; }
+    #mmgt_page .mmgt-check input, #mmgt_page .mmgt-dates > input { flex-shrink: 0; margin: 0; position: static; float: none; }
+    .mmgt-search > label { text-align: right; }
+    .mmgt-dates, .mmgt-line { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    #mmgt_page [data-date-input] { width: 125px; }
+    #mmgt_page .mmgt-dates { flex-wrap: nowrap; gap: 4px; }
+    #mmgt_page .mmgt-dates [data-date-input] { flex: 0 0 125px; }
+    .mmgt-change { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+    .mmgt-change select { width: 115px; }
+    .mmgt-grid { height: 300px; }
+    .mmgt-grid > div { height: 100%; }
+    /* Giảm đệm ngang để tiêu đề cột không bị cắt thành "..." */
+    #mmgt_page .dx-datagrid .dx-row > td { padding-left: 6px !important; padding-right: 6px !important; }
+    .mmgt-move { display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+    .mmgt-move button:nth-child(3) { margin-top: 24px; }
+    .mmgt-bottom { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 6px; }
+    .mmgt-guest { display: grid; grid-template-columns: 110px minmax(0, 1fr) minmax(0, 1fr); gap: 4px 8px; align-content: start; }
+    .mmgt-photo { grid-row: 1 / span 6; border: 1px solid #d1d5db; display: flex; align-items: center; justify-content: center; text-align: center; color: #666; }
+    .mmgt-wide { grid-column: 2 / span 2; }
+    #mmgt_history { height: 175px; }
+    @@media (max-width: 1199.98px) {
+        .mmgt-main { grid-template-columns: minmax(0, 1fr); }
+        .mmgt-move { flex-direction: row; }
+        .mmgt-move button { min-width: 60px; }
+        .mmgt-move button:nth-child(3) { margin: 0 0 0 24px; }
+        .mmgt-bottom { grid-template-columns: minmax(0, 1fr); }
+    }
+    @@media (max-width: 575.98px) {
+        .mmgt-search { grid-template-columns: auto minmax(0, 1fr); }
+        .mmgt-span { grid-column: auto; }
+    }
+</style>
+<div id="mmgt_page">
+    <div class="header">
+        <h3 id="content-title">Meal Management</h3>
+    </div>
+    <div class="mmgt-body">
+                @Html.AntiForgeryToken()
+                <div class="mmgt-toolbar mui-card">
+                    <button type="button" class="mui-button mui-button-search" id="mmgt_search">Search</button>
+                    <button type="button" class="mui-button mui-button-save" id="mmgt_ok" data-code="misc_MealChangeManagerOK">OK</button>
+                    <button type="button" class="mui-button mui-button-export" id="mmgt_detail">Details</button>
+                </div>
+
+                <div class="mmgt-main">
+                    <div class="mui-card">
+                        <div class="mmgt-card-title"><i class="fa-solid fa-sliders"></i> Info search</div>
+                        <div class="mmgt-top">
+                            <div class="mmgt-search">
+                                <label for="mmgt_confNo">Conf.No</label>
+                                <input id="mmgt_confNo" class="form-control form-control-sm mmgt-enter" maxlength="10">
+                                <label>Arr.From</label>
+                                <div class="mmgt-dates">
+                                    <div data-date-input data-format="DD/MM/YYYY" data-name="mmgt_arrFrom" data-default="@ViewBag.MealBusinessDate">
+                                        <input type="text" class="date-ui form-control form-control-sm" autocomplete="off">
+                                    </div>
+                                    <input type="checkbox" id="mmgt_useArrFrom" class="form-check-input" checked aria-label="Use Arr.From">
+                                </div>
+
+                                <label for="mmgt_roomNo">Room No</label>
+                                <input id="mmgt_roomNo" class="form-control form-control-sm mmgt-enter" maxlength="50">
+                                <label>Arr.To</label>
+                                <div class="mmgt-dates">
+                                    <div data-date-input data-format="DD/MM/YYYY" data-name="mmgt_arrTo" data-default="@ViewBag.MealBusinessDate">
+                                        <input type="text" class="date-ui form-control form-control-sm" autocomplete="off">
+                                    </div>
+                                    <input type="checkbox" id="mmgt_useArrTo" class="form-check-input" checked aria-label="Use Arr.To">
+                                </div>
+
+                                <label>Zone</label>
+                                <div class="mmgt-zone">
+                                    <select id="mmgt_zone" class="tomselect-custom" multiple>
+                                        @foreach (string code in ViewBag.ZoneCodes)
+                                        {
+                                            <option value="@code">@code</option>
+                                        }
+                                    </select>
+                                </div>
+                                <label for="mmgt_name">Name</label>
+                                <div class="mmgt-line flex-nowrap">
+                                    <input id="mmgt_name" class="form-control form-control-sm mmgt-enter" maxlength="100">
+                                    <label class="mmgt-check"><input type="checkbox" id="mmgt_sharer" class="form-check-input" checked> Room Sharer</label>
+                                </div>
+
+                                <label for="mmgt_cardId">Card ID</label>
+                                <input id="mmgt_cardId" class="form-control form-control-sm mmgt-enter" maxlength="20">
+                                <label for="mmgt_holder">Resv.Holder</label>
+                                <input id="mmgt_holder" class="form-control form-control-sm mmgt-enter" maxlength="200">
+
+                                <label for="mmgt_searchType">Search Type</label>
+                                <select id="mmgt_searchType" class="form-select form-select-sm mmgt-span">
+                                    <option value="0">General</option>
+                                    <option value="1">Guest In House</option>
+                                    <option value="2">Reservation</option>
+                                    <option value="3">Due In</option>
+                                    <option value="4">Checked In</option>
+                                    <option value="5">Due Out</option>
+                                    <option value="6">Checked Out</option>
+                                    <option value="7">Arrival &amp; Checked In Today</option>
+                                    <option value="8">Check Out Today</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mmgt-grid"><div id="mmgt_source"></div></div>
+                    </div>
+
+                    <div class="mmgt-move">
+                        <button type="button" class="btn btn-sm btn-light border" id="mmgt_add" title="Add selected">&gt;</button>
+                        <button type="button" class="btn btn-sm btn-light border" id="mmgt_addAll" title="Add all">&gt;&gt;</button>
+                        <button type="button" class="btn btn-sm btn-light border" id="mmgt_remove" title="Remove selected">&lt;</button>
+                        <button type="button" class="btn btn-sm btn-light border" id="mmgt_removeAll" title="Remove all">&lt;&lt;</button>
+                    </div>
+
+                    <div class="mui-card">
+                        <div class="mmgt-card-title"><i class="fa-solid fa-pen-to-square"></i> Info change</div>
+                        <div class="mmgt-top">
+                            <div class="mmgt-change">
+                                <div>
+                                    <label>From date</label>
+                                    <div data-date-input data-format="DD/MM/YYYY" data-name="mmgt_fromDate" data-default="@ViewBag.MealBusinessDate">
+                                        <input type="text" class="date-ui form-control form-control-sm" autocomplete="off">
+                                    </div>
+                                </div>
+                                <div data-show="0,3">
+                                    <label for="mmgt_fromMeal">From meal</label>
+                                    <select id="mmgt_fromMeal" class="form-select form-select-sm">
+                                        <option value="0">Breakfast</option><option value="1">Lunch</option><option value="2">Dinner</option>
+                                    </select>
+                                </div>
+                                <div class="pb-1" data-show="0,1,2"><i class="fas fa-arrow-right"></i></div>
+                                <div data-show="0,1,2">
+                                    <label>To date</label>
+                                    <div data-date-input data-format="DD/MM/YYYY" data-name="mmgt_toDate" data-default="@ViewBag.MealBusinessDate">
+                                        <input type="text" class="date-ui form-control form-control-sm" autocomplete="off">
+                                    </div>
+                                </div>
+                                <div data-show="0,1,2">
+                                    <label for="mmgt_toMeal" id="mmgt_toMealLabel">To meal</label>
+                                    <select id="mmgt_toMeal" class="form-select form-select-sm">
+                                        <option value="0">Breakfast</option><option value="1">Lunch</option><option value="2">Dinner</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <input id="mmgt_description" class="form-control form-control-sm my-2" aria-label="Description" maxlength="200">
+                            <div class="mmgt-line justify-content-between">
+                                <label class="mmgt-check"><input type="radio" name="mmgt_type" value="0" class="form-check-input" checked> Change meal</label>
+                                <label class="mmgt-check"><input type="radio" name="mmgt_type" value="1" class="form-check-input"> Add meal</label>
+                                <label class="mmgt-check"><input type="radio" name="mmgt_type" value="2" class="form-check-input"> Cancel meal</label>
+                                <label class="mmgt-check"><input type="radio" name="mmgt_type" value="3" class="form-check-input"> Lock meal</label>
+                            </div>
+                        </div>
+                        <div class="mmgt-grid"><div id="mmgt_target"></div></div>
+                    </div>
+                </div>
+
+                <div class="mmgt-bottom">
+                    <div class="mui-card">
+                        <div class="mmgt-card-title"><i class="fa-solid fa-user"></i> Info guest</div>
+                        <div class="mmgt-guest">
+                            <div class="mmgt-photo">No image data</div>
+                            <label for="mmgt_gConf">Conf.No</label>
+                            <label for="mmgt_gRoom">Room No.</label>
+                            <input id="mmgt_gConf" class="form-control form-control-sm" readonly>
+                            <input id="mmgt_gRoom" class="form-control form-control-sm" readonly>
+                            <input id="mmgt_gName" class="form-control form-control-sm mmgt-wide" readonly aria-label="Guest name">
+                            <label for="mmgt_gStay" class="mmgt-wide">Arrival/ Departure</label>
+                            <input id="mmgt_gStay" class="form-control form-control-sm mmgt-wide" readonly>
+                            <input id="mmgt_gMeal" class="form-control form-control-sm mmgt-wide" readonly aria-label="Meals used / total">
+                        </div>
+                    </div>
+                    <div class="mui-card">
+                        <div class="mmgt-card-title"><i class="fa-solid fa-clock-rotate-left"></i> History change detail</div>
+                        <div id="mmgt_history"></div>
+                    </div>
+                </div>
+    </div>
+</div>
+<script>
+    var mmgt_Module = (function () {
+        const root = '#mmgt_page';
+        let sourceGrid, targetGrid, historyGrid, searchRequest, infoRequest;
+        let targets = [], currentId = 0, processing = false;
+
+        const col = (field, caption, extra) => Object.assign({ dataField: field, caption: caption }, extra);
+        const date = (field, caption, extra) => col(field, caption, Object.assign({ dataType: 'date', format: 'dd/MM/yyyy', width: 105 }, extra));
+        const guestColumns = () => [
+            col('cardid', 'Card ID', { width: 90 }), col('confirmationno', 'Conf. No', { width: 85 }), col('mainguest', 'M', { width: 35 }),
+            col('nat', 'Nat', { width: 48 }), col('account', 'Guest Name', { width: 160 }), col('roomno', 'Ro. No', { width: 75 }),
+            date('arrivaldate', 'Arr.'), col('noofnight', 'N', { width: 38 }), date('departuredate', 'Dep.'),
+            col('packages', 'Pck', { width: 55 }), col('statustext', 'Status', { width: 90 })
+        ];
+
+        const notify = (title, message) => showToast(title, message, false);
+        const errorText = (xhr, fallback) => xhr.responseJSON?.message || xhr.responseJSON?.msg || fallback;
+        const value = name => $('#' + name).val();
+        const type = () => Number($(root + ' input[name="mmgt_type"]:checked').val());
+        const formatDate = v => v ? DevExpress.localization.formatDate(new Date(v), 'dd/MM/yyyy') : '';
+
+        function createGrid(selector, columns, options) {
+            return $(selector).dxDataGrid(Object.assign({
+                dataSource: [], columns: columns, height: '100%', showBorders: true, showRowLines: true,
+                allowColumnResizing: true, columnResizingMode: 'widget', paging: { enabled: false },
+                scrolling: { mode: 'virtual', showScrollbar: 'always' }, noDataText: ''
+            }, options)).dxDataGrid('instance');
+        }
+
+        function guestGrid(selector) {
+            return createGrid(selector, guestColumns(), {
+                keyExpr: 'reservationid',
+                selection: { mode: 'multiple', showCheckBoxesMode: 'none' },
+                summary: { totalItems: [{ column: 'account', summaryType: 'count', displayFormat: 'Count: {0}' }] },
+                onRowClick: e => { if (e.rowType === 'data') currentId = e.data.reservationid; },
+                onRowDblClick: e => { if (e.rowType === 'data') showGuest(e.data); }
+            });
+        }
+
+        function showGuest(guest) {
+            if (infoRequest) infoRequest.abort();
+            $('#mmgt_gConf').val(guest ? guest.confirmationno : '');
+            $('#mmgt_gRoom').val(guest ? guest.roomno : '');
+            $('#mmgt_gName').val(guest ? guest.account : '');
+            $('#mmgt_gStay').val(guest ? formatDate(guest.arrivaldate) + ' To ' + formatDate(guest.departuredate) : '');
+            $('#mmgt_gMeal').val('');
+            historyGrid.option('dataSource', []);
+            if (!guest) return;
+            infoRequest = $.get('/Miscellaneous/GetMealGuestInfo', { reservationId: guest.reservationid })
+                .done(data => { $('#mmgt_gMeal').val(data.meal); historyGrid.option('dataSource', data.history); })
+                .fail((xhr, status) => { if (status !== 'abort') notify('Error', errorText(xhr, 'Cannot load guest information.')); });
+        }
+
+        function search() {
+            if (searchRequest) searchRequest.abort();
+            currentId = 0;
+            sourceGrid.beginCustomLoading('Loading...');
+            searchRequest = $.get('/Miscellaneous/SearchMealGuests', {
+                confirmationNo: value('mmgt_confNo'), roomNo: value('mmgt_roomNo'), zone: ($('#mmgt_zone').val() || []).join(','),
+                guestName: value('mmgt_name'), rsvHolder: value('mmgt_holder'), cardID: value('mmgt_cardId'),
+                roomSharer: $('#mmgt_sharer').is(':checked'), searchType: value('mmgt_searchType'),
+                arrFrom: $('#mmgt_useArrFrom').is(':checked') ? value('mmgt_arrFrom') : '',
+                arrTo: $('#mmgt_useArrTo').is(':checked') ? value('mmgt_arrTo') : '',
+                // Không hiển thị lại những đặt phòng đã chọn sang lưới bên phải
+                excludeIds: targets.map(x => x.reservationid).join(',')
+            })
+                .done(rows => {
+                    sourceGrid.clearSelection();
+                    sourceGrid.option('dataSource', rows);
+                    showGuest(rows[0]);
+                })
+                .fail((xhr, status) => { if (status !== 'abort') notify('Error', errorText(xhr, 'Cannot search guests.')); })
+                .always(() => { if (sourceGrid) sourceGrid.endCustomLoading(); });
+        }
+
+        function setTargets(rows) {
+            targets = rows;
+            targetGrid.clearSelection();
+            targetGrid.option('dataSource', targets.slice());
+        }
+
+        function add(rows) {
+            if (!rows.length) return;
+            const existing = new Set(targets.map(x => x.reservationid));
+            setTargets(targets.concat(rows.filter(x => !existing.has(x.reservationid))));
+            search();
+        }
+
+        function remove(all) {
+            const selected = new Set(targetGrid.getSelectedRowKeys());
+            setTargets(all ? [] : targets.filter(x => !selected.has(x.reservationid)));
+        }
+
+        function changeType() {
+            const current = String(type());
+            $(root + ' [data-show]').each(function () { this.hidden = !this.dataset.show.split(',').includes(current); });
+            $('#mmgt_toMealLabel').text(current === '1' || current === '2' ? 'Meal' : 'To meal');
+        }
+
+        function toggleDate(name, enabled) {
+            $(root + ' [data-name="' + name + '"]').find('input, button').prop('disabled', !enabled);
+        }
+
+        function changeSearchType() {
+            const index = Number(value('mmgt_searchType'));
+            const useFrom = [0, 2, 6].includes(index), useTo = [0, 2].includes(index);
+            $('#mmgt_useArrFrom').prop('checked', useFrom); toggleDate('mmgt_arrFrom', useFrom);
+            $('#mmgt_useArrTo').prop('checked', useTo); toggleDate('mmgt_arrTo', useTo);
+        }
+
+        async function process() {
+            if (processing) return;
+            if (!targets.length) return notify('Warning', 'Please select a guest before');
+            const confirm = await Swal.fire({
+                icon: 'question', title: 'Are you sure you want to process meal for guests you choose?',
+                showCancelButton: true, confirmButtonText: 'Yes', cancelButtonText: 'No'
+            });
+            if (!confirm.isConfirmed) return;
+            processing = true;
+            $('#mmgt_ok').prop('disabled', true);
+            $.ajax({
+                url: '/Miscellaneous/ProcessMealChange', type: 'POST', traditional: true,
+                data: {
+                    type: type(), fromDate: value('mmgt_fromDate'), toDate: value('mmgt_toDate'),
+                    fromMeal: value('mmgt_fromMeal'), toMeal: value('mmgt_toMeal'), description: value('mmgt_description').trim(),
+                    reservationIds: targets.map(x => x.reservationid),
+                    __RequestVerificationToken: $(root + ' input[name="__RequestVerificationToken"]').val()
+                }
+            })
+                .done(res => {
+                    const skipped = res.skipped || [];
+                    Swal.fire({
+                        icon: skipped.length ? 'warning' : 'success',
+                        title: res.processed ? 'Process Successfully (' + res.processed + ')' : 'No guest was processed',
+                        text: skipped.length ? 'These guests were not processed:\n- ' + skipped.join('\n- ') : '',
+                        didOpen: popup => { const text = popup.querySelector('.swal2-html-container'); if (text) text.style.whiteSpace = 'pre-line'; }
+                    });
+                    if (!res.processed) return;
+                    setTargets([]);
+                    search();
+                })
+                .fail(xhr => Swal.fire({ icon: 'warning', title: 'Warning', text: errorText(xhr, 'Cannot process meal.') }))
+                .always(() => { processing = false; $('#mmgt_ok').prop('disabled', false); });
+        }
+
+        function init() {
+            if (sourceGrid) return;
+            window.initDateInputs(document.getElementById('mmgt_page'));
+            initTomSelect('#mmgt_zone');
+            sourceGrid = guestGrid('#mmgt_source');
+            targetGrid = guestGrid('#mmgt_target');
+            historyGrid = createGrid('#mmgt_history', [
+                col('frommeal', 'From meal'), date('fromdate', 'From date'), col('tomeal', 'To meal'), date('todate', 'To date'),
+                col('breakfast', 'BF', { width: 45 }), col('lunch', 'LN', { width: 45 }), col('dinner', 'DN', { width: 45 }),
+                col('type', 'Type', { width: 90 }), col('createdby', 'Created by'), date('createddate', 'Created date', { width: 100 })
+            ], { columnAutoWidth: true, height: 175 });
+
+            $(root).off('.mmgt')
+                .on('click.mmgt', '#mmgt_search', search)
+                .on('click.mmgt', '#mmgt_ok', process)
+                // frmMealDetails không có trong code mẫu nên chưa dựng được
+                .on('click.mmgt', '#mmgt_detail', () => notify('Warning', currentId ? 'Meal details screen is not available yet.' : 'Please select a guest before'))
+                .on('click.mmgt', '#mmgt_add', () => add(sourceGrid.getSelectedRowsData()))
+                .on('click.mmgt', '#mmgt_addAll', () => add(sourceGrid.getDataSource().items().slice()))
+                .on('click.mmgt', '#mmgt_remove', () => remove(false))
+                .on('click.mmgt', '#mmgt_removeAll', () => remove(true))
+                .on('change.mmgt', 'input[name="mmgt_type"]', changeType)
+                .on('change.mmgt', '#mmgt_searchType', changeSearchType)
+                .on('change.mmgt', '#mmgt_useArrFrom', function () { toggleDate('mmgt_arrFrom', this.checked); })
+                .on('change.mmgt', '#mmgt_useArrTo', function () { toggleDate('mmgt_arrTo', this.checked); })
+                // Đầu đọc thẻ gõ mã rồi gửi Enter nên tìm được luôn
+                .on('keydown.mmgt', '.mmgt-enter', e => { if (e.key === 'Enter') { e.preventDefault(); search(); } });
+
+            changeType();
+        }
+        return { init: init };
+    })();
+    // Chạy sau khi layout nạp xong site.js (initDateInputs)
+    $(function () { mmgt_Module.init(); });
+</script>

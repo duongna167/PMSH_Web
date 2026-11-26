@@ -8,9 +8,17 @@ using BaseBusiness.Model;
 
 namespace Miscellaneous.Services.Interfaces
 {
+    public enum CardDeleteResult { Deleted = 0, InUse = 1, NotFound = 2 }
+
     public interface IMiscellaneousService
     {
-        DataTable CardManagement(string sqlCommand);
+        DataTable Cards(string? id = null);
+        bool InsertCard(string id, int cardTypeId, int status, string userName);
+        bool UpdateCard(string id, int cardTypeId, int status, string userName);
+        CardDeleteResult DeleteCard(string id);
+        DataTable MealChangeHistory(int reservationId);
+        string MealSummary(int reservationId);
+        MealChangeResult ProcessMealChange(MealChangeRequest request, string userName);
         DataTable MealReport(DateTime fromDate, DateTime toDate, int type);
         DateTime GetMealBusinessDate();
         bool CancelReportedMeal(int id);

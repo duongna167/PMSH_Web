@@ -12,7 +12,7 @@ using Miscellaneous.Services.Interfaces;
 
 namespace Miscellaneous.Services.Implements
 {
-    public class MiscellaneousService : IMiscellaneousService
+    public partial class MiscellaneousService : IMiscellaneousService
     {
         public DateTime GetMealBusinessDate() => TextUtils.GetBusinessDate().Date;
 
@@ -28,18 +28,6 @@ namespace Miscellaneous.Services.Implements
             command.Parameters.Add("@ID", SqlDbType.Int).Value = id;
             connection.Open();
             return command.ExecuteNonQuery() > 0;
-        }
-
-        public DataTable CardManagement(string sqlCommand)
-        {
-            SqlParameter[] parameters = new SqlParameter[]
-            {
-                new SqlParameter("@sqlCommand", sqlCommand ?? "")
-            };
-
-            DataTable resultTable = DataTableHelper.getTableData("spSearchAllForTrans", parameters);
-
-            return resultTable;
         }
 
         public DataTable MealReport(DateTime fromDate, DateTime toDate, int type)
