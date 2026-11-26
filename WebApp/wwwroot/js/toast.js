@@ -166,7 +166,7 @@ const ToastUI = (function () {
         bsToast.show();
 
         // Đồng bộ thời gian Progress Bar và đóng Toast
-        const duration = 3000;
+        const duration = 2000;
 
         setTimeout(() => {
             $progress.css({

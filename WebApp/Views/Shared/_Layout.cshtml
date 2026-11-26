@@ -31,7 +31,7 @@
     <link href="~/css/assets/textarea.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/assets/button_small.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/assets/input_date.css" rel="stylesheet" />
-    <link href="~/css/assets/modal-ratio.css" rel="stylesheet" />
+    <link href="~/css/assets/modal-ratio.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/assets/date-bootstrap.css" rel="stylesheet" />
 
     @* css components *@    
@@ -1372,15 +1372,67 @@
               function stackedModals() {
                   return shownModals().sort(function (a, b) {
                       const d = modalZ(a) - modalZ(b);
-                      return d !== 0 ? d : 0;
+                      if (d !== 0) return d;
+                      if (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+                      if (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+                      return 0;
                   });
               }
 
-              function restoreAfterChildClose(parent) {
+              function higherThan(el) {
+                  return shownModals().filter(function (m) {
+                      if (m === el) return false;
+                      const d = modalZ(m) - modalZ(el);
+                      if (d > 0) return true;
+                      if (d < 0) return false;
+                      return !!(el.compareDocumentPosition(m) & Node.DOCUMENT_POSITION_FOLLOWING);
+                  });
+              }
+
+              function syncModalStack() {
+                  const rest = stackedModals();
+                  const backs = Array.from(document.querySelectorAll(".modal-backdrop"));
+                  if (!rest.length) {
+                      backs.forEach(function (b) { b.remove(); });
+                      document.body.classList.remove("modal-open");
+                      document.body.style.removeProperty("overflow");
+                      document.body.style.removeProperty("padding-right");
+                      document.querySelectorAll(".modal-blur").forEach(function (el) {
+                          el.classList.remove("modal-blur");
+                      });
+                      return;
+                  }
                   document.body.classList.add("modal-open");
-                  if (!parent || !parent.classList.contains("show")) return;
-                  $(parent).find(".modal-content").removeClass("modal-blur");
-                  parent.focus({ preventScroll: true });
+                  while (document.querySelectorAll(".modal-backdrop").length > rest.length) {
+                      const list = document.querySelectorAll(".modal-backdrop");
+                      list[list.length - 1].remove();
+                  }
+                  if (!document.querySelector(".modal-backdrop")) {
+                      const b = document.createElement("div");
+                      b.className = "modal-backdrop fade show";
+                      document.body.appendChild(b);
+                  }
+                  const top = rest[rest.length - 1];
+                  rest.forEach(function (m, i) {
+                      m.style.zIndex = String(1050 + (10 * i));
+                      const content = m.querySelector(".modal-content");
+                      if (content) content.classList.toggle("modal-blur", m !== top);
+                  });
+                  document.querySelectorAll(".modal-backdrop").forEach(function (b, i) {
+                      b.style.zIndex = String(1049 + (10 * i));
+                  });
+                  try { top.focus({ preventScroll: true }); } catch (err) { }
+              }
+
+              function lockModalConfig(el) {
+                  const inst = bootstrap.Modal.getInstance(el) || bootstrap.Modal.getOrCreateInstance(el, { backdrop: "static", keyboard: false });
+                  if (inst && inst._config) {
+                      inst._config.keyboard = false;
+                      inst._config.backdrop = "static";
+                  }
+                  el.setAttribute("data-bs-keyboard", "false");
+                  el.setAttribute("data-bs-backdrop", "static");
+                  return inst;
               }
 
               // Focus can still be on the parent when a child is opened programmatically.
@@ -1403,7 +1455,7 @@
                   if (!modals.length) return;
 
                   const top = modals[modals.length - 1];
-                  const instance = bootstrap.Modal.getInstance(top) || bootstrap.Modal.getOrCreateInstance(top, { backdrop: "static", keyboard: false });
+                  const instance = lockModalConfig(top);
                   if (!instance) return;
 
                   event.preventDefault();
@@ -1411,29 +1463,27 @@
                   event.stopImmediatePropagation();
                   handledStackEscape = true;
 
-                  const parent = modals.length >= 2 ? modals[modals.length - 2] : null;
-                  if (parent) {
-                      closingStackModal = top;
-                      $(top).off("hidden.bs.modal.stackEscape").one("hidden.bs.modal.stackEscape", function () {
-                          closingStackModal = null;
-                          restoreAfterChildClose(parent);
-                      });
-                  }
+                  closingStackModal = top;
+                  $(top).off("hidden.bs.modal.stackEscape").one("hidden.bs.modal.stackEscape", function () {
+                      closingStackModal = null;
+                      syncModalStack();
+                  });
                   instance.hide();
               }, true);
 
-              // Never hide a parent while a higher child dialog is still shown.
-              $(document).on("hide.bs.modal", ".modal", function (e) {
-                  const el = this;
-                  const higher = shownModals().filter(function (m) {
-                      return m !== el && modalZ(m) > modalZ(el);
-                  });
+              // Native capture: jQuery preventDefault does not cancel Bootstrap 5 hide.bs.modal.
+              document.addEventListener("hide.bs.modal", function (e) {
+                  const el = e.target;
+                  if (!(el instanceof Element) || !el.classList.contains("modal")) return;
+                  const higher = higherThan(el);
                   if (!higher.length) return;
                   e.preventDefault();
+                  e.stopPropagation();
                   const top = higher.sort(function (a, b) { return modalZ(a) - modalZ(b); }).pop();
+                  if (!top || top === closingStackModal) return;
                   const inst = bootstrap.Modal.getInstance(top);
-                  if (inst && top !== closingStackModal) inst.hide();
-              });
+                  if (inst) inst.hide();
+              }, true);
 
               $(document).on("input change", ".is-invalid, .tomselect-custom, [data-date-input] input", function () {
                   if (window.ValidationAdapter) window.ValidationAdapter.clearField(this);
@@ -1441,6 +1491,7 @@
 
               // Set z-index at show START (before animation) so modals never appear behind each other during fade-in
               $(document).on("show.bs.modal", ".modal", function () {
+                  lockModalConfig(this);
 
                   // CSS filter:blur() on a parent creates a new containing block for position:fixed children.
                   // Move any modal that is not a direct child of <body> to <body> so it is never
@@ -1465,29 +1516,14 @@
 
               });
 
-              // Blur effect + re-verify z-index after animation completes (managed modals only for blur)
-              $(document).on("shown.bs.modal", ".modal.managed-modal", function () {
-
-                  $('.modal.show .modal-content').removeClass('modal-blur');
-                  $('.modal.show').not(this).find('.modal-content').addClass('modal-blur');
-
+              $(document).on("shown.bs.modal", ".modal", function () {
+                  syncModalStack();
               });
 
               $(document).on("hidden.bs.modal", ".modal", function () {
-                  const rest = stackedModals();
-                  const backs = Array.from(document.querySelectorAll(".modal-backdrop"));
-                  backs.slice(rest.length).forEach(function (b) { b.remove(); });
-                  if (!rest.length) return;
-                  document.body.classList.add("modal-open");
-                  const top = rest[rest.length - 1];
-                  rest.forEach(function (m, i) {
-                      $(m).css("z-index", 1050 + (10 * i));
-                      $(m).find(".modal-content").toggleClass("modal-blur", m !== top);
-                  });
-                  document.querySelectorAll(".modal-backdrop").forEach(function (b, i) {
-                      b.style.zIndex = String(1049 + (10 * i));
-                  });
-                  top.focus({ preventScroll: true });
+                  syncModalStack();
+                  setTimeout(syncModalStack, 0);
+                  setTimeout(syncModalStack, 320);
               });
 
               $(document).on("hide.bs.modal", ".modal.managed-modal", function () {
@@ -1581,8 +1617,16 @@
                               if (modalEl.parentNode) modalEl.remove();
                               $container.remove();
 
-                              if ($('.modal.show').length > 0)
-                                  $('body').addClass('modal-open');
+                              document.querySelectorAll(".modal-backdrop").forEach(function (b) {
+                                  if (!document.querySelector(".modal.show")) b.remove();
+                              });
+                              if (document.querySelector(".modal.show"))
+                                  document.body.classList.add("modal-open");
+                              else {
+                                  document.body.classList.remove("modal-open");
+                                  document.body.style.removeProperty("overflow");
+                                  document.body.style.removeProperty("padding-right");
+                              }
 
                           });
 

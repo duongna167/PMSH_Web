@@ -49,23 +49,17 @@ namespace BaseBusiness.util
         {
             var item = PropertyUtils.ConvertToList<ConfigSystemModel>(
                 ConfigSystemBO.Instance.FindByAttribute("KeyName", keyName))?.FirstOrDefault();
-            if (item == null)
+            if (item != null)
+                return;
+
+            ConfigSystemBO.Instance.Insert(new ConfigSystemModel
             {
-                ConfigSystemBO.Instance.Insert(new ConfigSystemModel
-                {
-                    KeyName = keyName,
-                    KeyValue = keyValue,
-                    Desciption = description,
-                    CreateDate = DateTime.Now,
-                    UpdateDate = DateTime.Now
-                });
-            }
-            else
-            {
-                item.KeyValue = keyValue;
-                item.UpdateDate = DateTime.Now;
-                ConfigSystemBO.Instance.Update(item);
-            }
+                KeyName = keyName,
+                KeyValue = keyValue,
+                Desciption = description,
+                CreateDate = DateTime.Now,
+                UpdateDate = DateTime.Now
+            });
         }
     }
 }

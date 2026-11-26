@@ -1,0 +1,5 @@
+-- Do not run. This used to DROP the WinForm SPs.
+-- Web uses new procedures instead:
+--   Create_spRptIncurringDepositPaymentPlanWeb.sql
+--   Create_spRptIncurringDepositSummaryWeb.sql
+-- Old: spRptIncurringDepositPaymentPlan / spRptIncurringDepositSummary (unchanged).

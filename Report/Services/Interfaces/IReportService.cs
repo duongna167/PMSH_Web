@@ -62,7 +62,7 @@ namespace Report.Services.Interfaces
         DataTable BookingSummaryByStatusData(DateTime fromDate, DateTime toDate);
         DataTable VacantRoomData(string roomClass, string roomtype, string FromRoom, string ToRoom, string OrderByRoomNo, string OrderByHKPStatus, string OrderByFOStatus, string HKPStatus, string FOStatus, string IsGroupByRoomClass);
         DataTable SummarybyArticle(DateTime fromDate, DateTime toDate, string transaction, string article, string cashierNo, string roomClass, string room, string orderBy, string netDisp, int isShowDeleted);
-        DataTable ManagerReport(DateTime businessDate, string currency);
+        DataTable ManagerReport(DateTime businessDate, string currency, bool recalc);
         DataTable CashierSummary(DateTime dtpFromDate, string cboType); 
         DataTable ArrivalsDetailedData(DateTime fromDate, DateTime toDate, string roomClass, string roomtype, string market, string rateCode, string source, string vip, string viponlycheck, string noPost, int sortOrder,
             string pseudo, string checkedInToday, string cancellations, string zeroRateOnly, int disRoomSharer, int searchCriteria, int ckhArrivalDate);
@@ -122,6 +122,9 @@ namespace Report.Services.Interfaces
         DataTable ReportHolderLookup();
         DataTable FrequentFlyerData(DateTime fromDate, DateTime toDate, string status, string memberID, int isSortByCardName);
         DataTable PackageReportbyPersonData(DateTime fromDate, DateTime toDate);
+        DataTable ARTraceData(DateTime fromDate, DateTime toDate, string state);
+        DataTable ReservationWithDiscountData(DateTime fromDate, DateTime toDate, int dateType,
+            string rmClasses, string rmTypes, string rateIDs, string mkIDs, string srcIDs, string statuses, int sort);
         DataTable AgingbyTypeOnlyData(DateTime date, int accType, string sort);
         DataTable AgingSummaryByTypeData(DateTime date, string sort);
         DataTable ARAdjustmentData(DateTime fromDate, DateTime toDate);

@@ -39,14 +39,16 @@
         color: white;
     }
 
-    #gridContainer .dx-datagrid-rowsview .dx-selection {
-        background-color: #01579b !important; /* màu xanh ngọc */
-        color: white !important; /* chữ trắng */
+    #gridContainer .dx-datagrid-rowsview .dx-data-row.dx-selection > td,
+    #gridContainer .dx-datagrid-rowsview .dx-data-row.dx-row-focused > td,
+    #gridContainer .dx-datagrid-rowsview .dx-data-row.dx-state-hover > td {
+        background: #f5f5f5 !important;
+        color: #212529 !important;
     }
-
-        #gridContainer .dx-datagrid-rowsview .dx-selection * {
-            color: white !important;
-        }
+    #gridContainer .dx-datagrid-rowsview .dx-data-row.dx-selection *,
+    #gridContainer .dx-datagrid-rowsview .dx-data-row.dx-row-focused * {
+        color: #212529 !important;
+    }
 
     #gridContainer .dx-datagrid-headers .dx-header-row > td {
         padding: 5px !important;
@@ -126,7 +128,22 @@
     #gridContainer .dx-datagrid .dx-summary-row > td,
     #gridContainer .dx-datagrid .dx-total-footer td,
     #gridContainer .dx-datagrid .dx-footer-row td {
-        font-size: 11px !important;
+        font-size: 13px !important;
+    }
+
+    #gridContainer .dx-datagrid-rowsview .dx-row.dx-group-row td,
+    #gridContainer .dx-datagrid-rowsview .dx-row.dx-group-row.dx-selection td {
+        background: #eeeeee !important;
+        font-weight: 600;
+        color: #212529 !important;
+    }
+    #gridContainer .dx-datagrid-rowsview .dx-row.dx-group-row.dx-selection * {
+        color: #212529 !important;
+    }
+    #gridContainer .dx-datagrid-group-footer td {
+        font-weight: 600;
+        background: #f5f5f5 !important;
+        color: #212529 !important;
     }
 
     .report-bar {
@@ -179,7 +196,7 @@
             </div>
         </div>      
         <div class="d-flex align-items-center me-3">
-            <label class="me-2 mb-0">Reservation:</label>
+            <label class="me-2 mb-0">Type:</label>
             <select id="cboType" name="cboType" class="form-control form-control-sm w-auto">
                 <option value="0">Close Shift</option>
                 <option value="1">Open Shift</option>
@@ -231,11 +248,13 @@
               crossDomain: false,
                 headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                    console.log(result);
-                    initializReveunueByGrid(prepareRevenueData(result));
+                if (!Array.isArray(result)) {
+                    alert((result && result.error) ? result.error : "Không thể tải báo cáo.");
                     $("#loadingSpinner").hide();
+                    return;
+                }
+                initializReveunueByGrid(prepareCashierSummaryRows(result));
+                $("#loadingSpinner").hide();
             },
             error: function () {
                 alert("Không thể tải báo cáo.");
@@ -243,224 +262,70 @@
             }
         });
     });
-           function prepareRevenueData(data) {
-        const result = [];
-
-        // Gom theo user + loginTime (1 cashier shift)
-        const cashierGroups = {};
-        data.forEach(item => {
-            const key = `${item.userName}-${item.loginTime}`;
-            if (!cashierGroups[key]) cashierGroups[key] = [];
-            cashierGroups[key].push(item);
-        });
-
-        Object.entries(cashierGroups).forEach(([key, cashierItems]) => {
-            const first = cashierItems[0];
-
-            // Dòng đầu tiên hiện cashier info
-            const header = {
-                cashierNo: first.cashierNo,
-                userName: first.userName,
-                loginTime: first.loginTime,
-                logoutTime: first.logoutTime,
-                transactionCode: "",
-                description: "",
-                currencyID: "",
-                amount: "",
-                amountMaster: "",
-                cssClass: ""
-            };
-            result.push(header);
-
-            // Gom theo transactionCode bên trong nhóm cashier
-            const transactionGroups = {};
-            cashierItems.forEach(item => {
-                const tCode = item.transactionCode || "Unknown";
-                if (!transactionGroups[tCode]) transactionGroups[tCode] = [];
-                transactionGroups[tCode].push(item);
-            });
-
-            // Render từng nhóm transaction
-            Object.entries(transactionGroups).forEach(([code, items]) => {
-                items.forEach(i => {
-                    result.push({
-                        cashierNo: "",
-                        userName: "",
-                        loginTime: "",
-                        logoutTime: "",
-                        transactionCode: i.transactionCode,
-                        description: i.description,
-                        currencyID: i.currencyID,
-                        amount: i.amount,
-                        amountMaster: i.amountMaster,
-                        cssClass: ""
-                    });
-                });
-
-                // Subtotal theo transactionCode
-                result.push({
-                    cashierNo: "",
-                    userName: "",
-                    loginTime: "",
-                    logoutTime: "",
-                    transactionCode: "",
-                    description: "Transaction Code Total",
-                    currencyID: "",
-                    amount: sum(items, "amount"),
-                    amountMaster: sum(items, "amountMaster"),
-                    cssClass: "bold trn-total"
-                });
-            });
-
-            // Subtotal theo cashier
-            result.push({
-                cashierNo: "",
-                userName: "",
-                loginTime: "",
-                logoutTime: "",
-                transactionCode: "",
-                description: "Cashier Total",
-                currencyID: "",
-                amount: sum(cashierItems, "amount"),
-                amountMaster: sum(cashierItems, "amountMaster"),
-                 cssClass: "bold cashier-total"
-            });
-        });
-        const grandTotalRow = {
-                cashierNo: "",
-                userName: "",
-                loginTime: "",
-                logoutTime: "",
-                transactionCode: "",
-                description: "Grand Total",
-                currencyID: "",
-                amount: sum(data, "amount"),
-                amountMaster: sum(data, "amountMaster"),
-                 cssClass: "bold grandtotal"
-        };
-
-            result.push(grandTotalRow);
-            const summarytotal = {
-                cashierNo: "Summary Total",
-                userName: "",
-                loginTime: "",
-                logoutTime: "",
-                transactionCode: "",
-                description: "",
-                currencyID: "",
-                amount: "",
-                amountMaster: "",
-                 cssClass: "bold summarytotal"
-        };
-        result.push(summarytotal);
-
-        const summaryByTrn = {};
-        data.forEach(item => {
-            const code = item.transactionCode || "Unknown";
-            if (!summaryByTrn[code]) summaryByTrn[code] = [];
-            summaryByTrn[code].push(item);
-        });
-
-        Object.entries(summaryByTrn).forEach(([code, items]) => {
-            const description = items[0]?.description || "";
-            result.push({
-                cashierNo: "",
-                userName: "",
-                loginTime: "",
-                logoutTime: "",
-                transactionCode: `${code}`,
-                description: description,
-                currencyID: "VND",
-                amount: "",
-                amountMaster: "",
-                 cssClass: "bold summary-total"
-            });
-            result.push({
-                    cashierNo: "",
-                    userName: "",
-                    loginTime: "",
-                    logoutTime: "",
-                    transactionCode: "",
-                    description: "Transaction Code Total",
-                    currencyID: "",
-                    amount: sum(items, "amount"),
-                    amountMaster: sum(items, "amountMaster"),
-                     cssClass: "bold trn-total"
-                });
-        });
-        const grandTotalRoww = {
-                cashierNo: "",
-                userName: "",
-                loginTime: "",
-                logoutTime: "",
-                transactionCode: "",
-                description: "Grand Total",
-                currencyID: "",
-                amount: sum(data, "amount"),
-                amountMaster: sum(data, "amountMaster"),
-                 cssClass: "bold grandtotal"
-        };
-        result.push(grandTotalRoww);
-
-        return result;
+    function num(v) {
+        var n = Number(v);
+        return isFinite(n) ? n : 0;
     }
 
-    function sum(arr, field) {
-        return arr.reduce((total, item) => total + (item[field] || 0), 0);
+    function prepareCashierSummaryRows(data) {
+        return (data || []).map(function (x) {
+            var no = x.cashierNo || "";
+            var name = x.userName || "";
+            var code = x.transactionCode || "";
+            var desc = x.description || "";
+            return Object.assign({}, x, {
+                amount: num(x.amount),
+                amountMaster: num(x.amountMaster),
+                cashierGroup: "Cashier No: " + no
+            });
+        });
     }
 
     function initializReveunueByGrid(data) {
         const columnWidth = 180;
-        $("#gridContainer").dxDataGrid({
-        dataSource: data,         height: 500, allowColumnResizing: true,
-
+        function groupLabelTemplate() {
+            return function (container, options) {
+                $("<span>").text(options.value ?? "").appendTo(container);
+            };
+        }
+        pmshBindDxReportGrid("#gridContainer", {
+            dataSource: Array.isArray(data) ? data : [],
+            height: Math.max(360, window.innerHeight - 420),
+            allowColumnResizing: true,
+            loadPanel: { enabled: false },
+            headerFilter: { visible: false },
+            grouping: { autoExpandAll: true, allowCollapsing: true, contextMenuEnabled: false },
+            groupPanel: { visible: false },
             columns: [
-            { dataField: "cashierNo", caption: "Cashier No", width: columnWidth-40 },
-            { dataField: "userName", caption: "Name", width: columnWidth-80 },
-            { dataField: "loginTime", caption: "Open Start", width: 130, dataType: "date", format: "HH:mm" },
-            { dataField: "logoutTime", caption: "Stop", width: 130, dataType: "date", format: "HH:mm"},
-            { dataField: "transactionCode", caption: "Trn Code", width: columnWidth+ 50},
-            { dataField: "description", caption: "Description", width: columnWidth+50},
-            { dataField: "currencyID", caption: "Currency", width: columnWidth-70 },       
-            { dataField: "amount", caption: "Foreign Amount ", width:columnWidth-20, dataType: "number", format: "#,##0" },
-            { dataField: "exch", caption: "Exch Rate ", width:columnWidth-50, dataType: "number", format: "#,##0" },
-            { dataField: "amountMaster", caption: "Local Amount", width: columnWidth-20, dataType: "number", format: "#,##0"},
+                { dataField: "cashierGroup", caption: "Cashier No", groupIndex: 0, visible: false, groupCellTemplate: groupLabelTemplate() },
+                { dataField: "userName", caption: "Name", width: columnWidth - 40 },
+                { dataField: "loginTime", caption: "Open Start", width: 130, dataType: "date", format: "HH:mm" },
+                { dataField: "logoutTime", caption: "Stop", width: 130, dataType: "date", format: "HH:mm" },
+                { dataField: "transactionCode", caption: "Trans. Code", width: columnWidth - 20 },
+                { dataField: "description", caption: "Description", width: columnWidth + 50 },
+                { dataField: "amount", caption: "Foreign Amount", width: columnWidth, dataType: "number", format: "#,##0" },
+                { dataField: "exch", caption: "Exch Rate", width: columnWidth - 50, dataType: "number", format: "#,##0" },
+                { dataField: "amountMaster", caption: "Local Amount", width: columnWidth, dataType: "number", format: "#,##0" },
+                { dataField: "currencyID", caption: "Curr.", width: columnWidth - 80 }
+            ],
+            summary: {
+                groupItems: [
+                    { column: "userName", summaryType: "count", displayFormat: "Sub Total =", showInGroupFooter: true, alignByColumn: true },
+                    { column: "amount", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0", showInGroupFooter: true, alignByColumn: true },
+                    { column: "amountMaster", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0", showInGroupFooter: true, alignByColumn: true }
                 ],
-               rowPrepared: function (e) {
-                 if (e.rowType === "data" && e.data.cssClass) {
-                     e.rowElement.addClass(e.data.cssClass);
-                 }
-             },
-             
-              
-            paging: { pageSize: 25 },
-                  scrolling:  {
-                  
-                  useNative: true,
-                  showScrollbar: "always"
-    },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true,
+                totalItems: [
+                    { column: "userName", summaryType: "count", displayFormat: "Grand Total =" },
+                    { column: "amount", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0" },
+                    { column: "amountMaster", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0" }
+                ]
             },
-            selection: { mode: "multiple", showCheckBoxesMode: "none" },
-                filterRow: {
-         visible: true,
-        applyFilter: "auto"
-        },
-        headerFilter: {
-            visible: true
-        },
-             showBorders: true,
-             onRowPrepared: function (e) {
-         if (e.rowType === "data" && e.data && e.data.cssClass) {
-             $(e.rowElement).addClass(e.data.cssClass);
-         }
-     }
-                 
+            paging: { enabled: false },
+            pager: { visible: false },
+            selection: { mode: "none" },
+            focusedRowEnabled: false,
+            filterRow: { visible: true, applyFilter: "auto" },
+            showBorders: true
         });
     }
 

@@ -178,8 +178,8 @@
             <div class="d-flex flex-wrap gap-2">
    
                 <div class="form-check me-3">
-                    <input class="form-check-input" type="checkbox" id="notbalance" name="includeOptions" value="A" checked>
-                    <label class="form-check-label" for="net">Not balance</label>
+                    <input class="form-check-input" type="checkbox" id="notbalance" name="includeOptions" value="A">
+                    <label class="form-check-label" for="notbalance">Not balance</label>
                 </div>
               
 
@@ -259,17 +259,19 @@
                 toDate: $("#toDate").val(),
                   zone: $("#zone").val(),
                       cashier: $("#cashier").val(),
-                               notbalance: $("#notbalance").val(),
+                               notbalance: $("#notbalance").is(":checked") ? "A" : "",
             },
             traditional: true,
               crossDomain: false,
                 headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                     console.log(result);
-                        initializeIncurringDepositPaymentPlanGrid(result);
+                if (!Array.isArray(result)) {
+                    alert(typeof result === "string" ? result : "Không thể tải báo cáo.");
                     $("#loadingSpinner").hide();
+                    return;
+                }
+                initializeIncurringDepositPaymentPlanGrid(result);
+                $("#loadingSpinner").hide();
             },
             error: function () {
                 alert("Không thể tải báo cáo.");
@@ -283,8 +285,11 @@
     function initializeIncurringDepositPaymentPlanGrid(data) {
         const columnWidth = 180;
 
-        $("#gridContainer").dxDataGrid({
-           dataSource: data,         height: 500,
+        pmshBindDxReportGrid("#gridContainer", {
+           dataSource: Array.isArray(data) ? data : [],
+            height: 500,
+            loadPanel: { enabled: false },
+            headerFilter: { visible: false },
             allowColumnResizing: true,
             columns: [
                 { dataField: "lastName", caption: "Guest Name", width: columnWidth - 20  },
@@ -313,19 +318,9 @@
                             { column: "deposit", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0" },
                     ]
                 },
-            paging: { pageSize: 25 },
-            scrolling: {
-                  mode: "standard",
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
+            paging: { enabled: false },
+            pager: { visible: false },
             filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
             selection: { mode: "multiple", showCheckBoxesMode: "none" },
             showBorders: true,
              onRowPrepared: function (e) {

@@ -93,7 +93,7 @@
     #gridContainer .dx-datagrid-headers .dx-header-row > td {
         padding: 5px !important;
         height: 24px !important;
-        font-size: 12px !important;
+        font-size: 13px !important;
         line-height: 1.1 !important;
     }
  
@@ -259,11 +259,13 @@
               crossDomain: false,
                 headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                     console.log(result);
-                        initializeIncurringDepositReturnGrid(result);
+                if (!Array.isArray(result)) {
+                    alert(typeof result === "string" ? result : "Không thể tải báo cáo.");
                     $("#loadingSpinner").hide();
+                    return;
+                }
+                initializeIncurringDepositReturnGrid(result);
+                $("#loadingSpinner").hide();
             },
             error: function () {
                 alert("Không thể tải báo cáo.");
@@ -277,8 +279,11 @@
     function initializeIncurringDepositReturnGrid(data) {
         const columnWidth = 180;
 
-        $("#gridContainer").dxDataGrid({
-           dataSource: data,         height: 500,
+        pmshBindDxReportGrid("#gridContainer", {
+           dataSource: Array.isArray(data) ? data : [],
+            height: 500,
+            loadPanel: { enabled: false },
+            headerFilter: { visible: false },
             allowColumnResizing: true,
             columns: [
                 { dataField: "lastName", caption: "Guest Name", width: columnWidth - 20  },
@@ -295,8 +300,8 @@
 
                                { dataField: "userName", caption: "Cashier", width: columnWidth - 40 },
                             { dataField: "paymentMethod", caption: "Payment Method", width: columnWidth  },
-                           { dataField: "depositAmount", caption: "Deposit Amount", width: columnWidth - 40  , dataType: "number", format: "#,##0" },
-                     { dataField: "ProfitCenterCode", caption: "Note", width: columnWidth - 40 },
+                           { dataField: "returnAmount", caption: "Return Amount", width: columnWidth - 40  , dataType: "number", format: "#,##0" },
+                     { dataField: "profitCenterCode", caption: "Note", width: columnWidth - 40 },
 
             ],
                        summary: {
@@ -306,22 +311,12 @@
         summaryType: "custom",
         displayFormat: "Subtotal:"
     },
-                            { column: "depositAmount", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0" },
+                            { column: "returnAmount", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0" },
                     ]
                 },
-            paging: { pageSize: 25 },
-            scrolling: {
-                  mode: "standard",
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
+            paging: { enabled: false },
+            pager: { visible: false },
             filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
             selection: { mode: "multiple", showCheckBoxesMode: "none" },
             showBorders: true,
              onRowPrepared: function (e) {

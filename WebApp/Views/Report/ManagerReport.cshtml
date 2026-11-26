@@ -2,6 +2,7 @@
 @{
     ViewBag.Title = ViewBag.ReportHeader;
     var report = ViewBag.ReportName as XtraReport;
+    var currencyList = ViewBag.CurrencyList as IEnumerable<BaseBusiness.Model.CurrencyModel>;
 }
 
 <style>
@@ -73,25 +74,100 @@
         min-height: 30px; /* hoặc tùy theo chiều cao bạn muốn */
         font-size: 0.65rem;
     }
+    .mgr-grid {
+        display: grid;
+        grid-template-columns: 92px max-content 140px auto;
+        column-gap: 6px;
+        row-gap: 8px;
+        align-items: center;
+    }
+    .mgr-section {
+        font-weight: 700;
+        white-space: nowrap;
+        margin: 0;
+    }
+    .mgr-grid > label {
+        margin: 0;
+        white-space: nowrap;
+        justify-self: end;
+    }
+    .mgr-ctl,
+    .mgr-grid [data-date-input],
+    .mgr-grid select.form-control-sm {
+        width: 140px;
+        min-width: 140px;
+        max-width: 140px;
+        height: 28px;
+    }
+    .mgr-include {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 10px;
+        margin-left: 8px;
+    }
+    .mgr-check {
+        display: flex;
+        align-items: center;
+    }
+    .mgr-check .form-check-input {
+        margin: 0;
+    }
+    .mgr-check .form-check-label {
+        margin-left: 6px;
+        white-space: nowrap;
+    }
 </style>
-<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="text-center" id="reportTitle" style="font-size: 20px">@ViewBag.ReportTitle</div>
 
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-        <div class="d-flex align-items-center me-3">
-            <label class="me-2 mb-0">Date:</label>
- 
-            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="businessDate" style="min-width:140px;">
-                <input type="text" class="date-ui form-control form-control-sm"
-                       placeholder="dd/mm/yyyy" autocomplete="off" />
+    <div class="mgr-grid" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+        <span class="mgr-section">Date Range</span>
+        <label>Date:</label>
+        <div class="mgr-ctl" data-date-input business-date data-format="DD/MM/YYYY" data-name="businessDate">
+            <input type="text" class="date-ui form-control form-control-sm"
+                   placeholder="dd/mm/yyyy" autocomplete="off" />
+        </div>
+        <span></span>
+
+        <span class="mgr-section">Filter</span>
+        <label>View By:</label>
+        <select id="currency" name="currency" class="form-control form-control-sm">
+            @if (currencyList != null)
+            {
+                foreach (var item in currencyList)
+                {
+                    if (string.Equals(item.ID, "VND", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option value="@item.ID" selected>@item.ID</option>
+                    }
+                    else
+                    {
+                        <option value="@item.ID">@item.ID</option>
+                    }
+                }
+            }
+            else
+            {
+                <option value="VND" selected>VND</option>
+            }
+        </select>
+        <div class="mgr-include">
+            <span class="mgr-section">Include</span>
+            <div class="mgr-check">
+                <input class="form-check-input" type="checkbox" id="includeTax" checked>
+                <label class="form-check-label" for="includeTax">Tax</label>
             </div>
-        </div>  
-        <div style="display:none" >
-            <label class="me-2 mb-0">Reservation:</label>
-            <select id="currency" name="currency" class="form-control form-control-sm w-auto">
-                <option value="0">VND</option>
-                
-            </select>
+            <div class="mgr-check">
+                <input class="form-check-input" type="checkbox" id="includeLastYear">
+                <label class="form-check-label" for="includeLastYear">Last Year</label>
+            </div>
+            <div class="mgr-check">
+                <input class="form-check-input" type="checkbox" id="includeForecast">
+                <label class="form-check-label" for="includeForecast">Forecast</label>
+            </div>
+            <label style="margin: 0 6px 0 0; white-space: nowrap;">No.OfDays</label>
+            <input id="noOfDays" type="number" min="1" max="31" class="form-control form-control-sm" style="width:72px; height:28px;" disabled>
         </div>
     </div>
   
@@ -105,94 +181,107 @@
     </div>
 </div>
 <div class="mui-card">
-    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
+    <div id="gridWrapper" class="mt-2">
         <div class="gridContainer mt-2" id="gridContainer"></div>
     </div>
 </div>
 
-<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000; text-align:center;">
     <i class="fa-solid fa-spinner fa-spin"></i>
+    <div id="loadingSpinnerText" style="margin-top:8px; font-size:13px;">Đang tải…</div>
 </div>
 
 <script>
  
 
     $(document).ready(function () {
-           window.initDateInputs();
+        window.initDateInputs();
         document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
-    });
-
-    $('#btnPrint').click(function () {
-        $('#loadingSpinner').show();
-        $.ajax({
-            url: '/Report/ManagerReport',
-            type: 'GET',
-            headers: { "X-CSRF-TOKEN-HEADERNAME": $('input[name="__RequestVerificationToken"]').val() },
-            data: {
-                businessDate: $('#businessDate').val(),
-                currency: $('#currency').val()
-                
-            },
-            success: function (result) {
-                console.log(result);
-                initializeDataGrid(result);
-                $('#loadingSpinner').hide();
-            },
-            error: function () {
-                alert("Không thể tải báo cáo.");
-                $('#loadingSpinner').hide();
-            }
+        $("#includeForecast").on("change", function () {
+            var on = $(this).is(":checked");
+            $("#noOfDays").prop("disabled", !on);
+            if (on && !$("#noOfDays").val()) $("#noOfDays").val(5);
+            if (!on) $("#noOfDays").val("");
         });
     });
 
-        function initializeDataGrid(data) {
-        const selectedDateString = $('#businessDate').val();
-        const selectedDate = new Date(selectedDateString);
-        const thisYear = selectedDate.getFullYear();     // năm hiện tại
-        const lastYear = thisYear - 1;
-        const safeData = Array.isArray(data) ? data : [];
-        $('#gridContainer').dxDataGrid({
-        dataSource: safeData, height: 500, allowColumnResizing: true,
+    function managerDate() {
+        return $("#businessDate").val() || $("[data-name='businessDate'] .date-ui").val() || "";
+    }
+    function managerParams(recalc) {
+        return {
+            businessDate: managerDate(),
+            currency: $("#currency").val() || "VND",
+            recalc: recalc ? 1 : 0
+        };
+    }
+    function fetchManagerReport(recalc) {
+        return $.ajax({
+            url: "/Report/ManagerReport",
+            type: "GET",
+            timeout: recalc ? 360000 : 30000,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": $('input[name="__RequestVerificationToken"]').val() },
+            data: managerParams(recalc)
+        });
+    }
+    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+        $("#loadingSpinnerText").text("Đang tải…");
+        $("#loadingSpinner").show();
+        fetchManagerReport(false)
+            .then(function (preview) {
+                if (Array.isArray(preview) && preview.length) initializeDataGrid(preview);
+                $("#loadingSpinnerText").text("Đang tính theo ngày / View By đã chọn…");
+                return fetchManagerReport(true);
+            })
+            .then(function (result) {
+                if (!Array.isArray(result)) {
+                    alert((result && result.error) ? result.error : "Không thể tải báo cáo.");
+                    return;
+                }
+                initializeDataGrid(result);
+            })
+            .fail(function () {
+                alert("Không thể tải báo cáo.");
+            })
+            .always(function () {
+                $("#loadingSpinner").hide();
+            });
+    });
 
+    function managerGridHeight() {
+        var el = document.getElementById("gridContainer");
+        var top = el ? el.getBoundingClientRect().top : 260;
+        return Math.max(480, Math.floor(window.innerHeight - top - 12));
+    }
+    function initializeDataGrid(data) {
+        const money = { dataType: "number", format: "#,##0.00", width: 120 };
+        pmshBindDxReportGrid("#gridContainer", {
+            dataSource: Array.isArray(data) ? data : [],
+            height: managerGridHeight(),
+            allowColumnResizing: true,
+            loadPanel: { enabled: false },
+            headerFilter: { visible: false },
             columns: [
-            { dataField: "code", caption: "", width: 70 },
-            { dataField: "itemName", caption: "", width: 250 },
-            { dataField: "currentDay", caption: `${thisYear} DAY`, width: 150, dataType: "number", format: "#,##0" },
-            { dataField: "currentMonth", caption: `${thisYear} MONTH`, width: 150, dataType: "number", format: "#,##0"},
-            { dataField: "currentYear", caption: `${thisYear} YEAR`, width: 150, dataType: "number", format: "#,##0"},
-            { dataField: "lastDay", caption: `${lastYear} DAY`, width: 150, dataType: "number", format: "#,##0"},
-            { dataField: "lastMonth", caption: `${lastYear} MONTH`, width: 150, dataType: "number", format: "#,##0" },
-            { dataField: "lastYear", caption: `${lastYear} YEAR`, width: 150, dataType: "number", format: "#,##0" },
-        ],
-            paging: {
-                pageSize: 25
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, "all"],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            // scrolling: {
-            //     
-            //     useNative: true,
-            //     showScrollbar: "always"
-            // },
-            selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "none"
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            headerFilter: {
-                visible: true
-            },
+                { dataField: "code", caption: "", visible: false },
+                { dataField: "itemName", caption: "Name", minWidth: 280 },
+                Object.assign({ dataField: "currentDay", caption: "Curr. Day" }, money),
+                Object.assign({ dataField: "currentMonth", caption: "Curr. Month" }, money),
+                Object.assign({ dataField: "currentYear", caption: "Curr. Year" }, money),
+                Object.assign({ dataField: "lastDay", caption: "Last Day" }, money),
+                Object.assign({ dataField: "lastMonth", caption: "Last Month" }, money),
+                Object.assign({ dataField: "lastYear", caption: "Last Year" }, money)
+            ],
+            paging: { enabled: false },
+            pager: { visible: false },
+            selection: { mode: "none" },
+            filterRow: { visible: true, applyFilter: "auto" },
             showBorders: true
         });
     }
+    $(window).off("resize.managerReport").on("resize.managerReport", function () {
+        var grid = $("#gridContainer").data("dxDataGrid");
+        if (grid) grid.option("height", managerGridHeight());
+    });
 
 
 

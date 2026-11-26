@@ -24,7 +24,7 @@
                 <div class="search-filter">
                     <!-- Toolbar -->
                     <div>
-                        <button id="transSB_btnSearch" type="button" class="mui-button mui-button-search">Search</button>
+                        <button id="transSB_btnSearch" type="button" class="mui-button mui-button-search">View</button>
                         <button id="transSB_btnNew" type="button" class="mui-button mui-button-new">New</button>
                         <button id="transSB_btnEdit" type="button" class="mui-button mui-button-edit">Edit</button>
                         <button id="transSB_btnDelete" type="button" class="mui-button mui-button-delete">Delete</button>
@@ -38,7 +38,7 @@
                         <div class="col-12 col-sm-6 col-md-6 col-lg-3 ">
                             <div class="row g-1 align-items-center">
                                 <label for="transSB_transactionGroupID"
-                                    class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 col-form-label col-form-label-sm text-md-end mb-0 text-nowrap">
+                                    class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 col-form-label col-form-label-sm text-start mb-0 text-nowrap">
                                     Group
                                 </label>
                                 <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
@@ -54,7 +54,7 @@
                         <div class="col-12 col-sm-6 col-md-6 col-lg-3">
                             <div class="row g-1 align-items-center">
                                 <label for="transSB_code"
-                                    class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 col-form-label col-form-label-sm text-md-end mb-0 text-nowrap">
+                                    class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 col-form-label col-form-label-sm text-start mb-0 text-nowrap">
                                     Code
                                 </label>
                                 <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
@@ -70,7 +70,7 @@
                         <div class="col-12 col-lg-6 col-xl-6">
                             <div class="row g-1 align-items-center">
                                 <label for="transSB_description"
-                                    class="col-4 col-sm-4 col-md-2 col-lg-2 col-xl-2 col-form-label col-form-label-sm text-md-end mb-0 text-nowrap">
+                                    class="col-4 col-sm-4 col-md-2 col-lg-2 col-xl-2 col-form-label col-form-label-sm text-start mb-0 text-nowrap">
                                     Description
                                 </label>
                                 <div class="col-8 col-sm-8 col-md-10 col-lg-10 col-xl-10">
@@ -94,7 +94,7 @@
                 <div id="transSB_loadingSpinner" 
                     style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
                     z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
-                    height: 100%;display: flex;align-items: center;justify-content: center;">
+                    height: 100%;display: none;align-items: center;justify-content: center;">
                     <div class="spinner-border text-primary"></div>
                 </div>
 
@@ -107,7 +107,7 @@
      EDIT MODAL (modal-xl)
      ========================= -->
 <div class="modal fade" id="transSB_modalEdit" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-child-md">
         <div class="modal-content">
 
             <div class="modal-header">
@@ -127,7 +127,7 @@
 
                         <div class="col-12">
                             <div class="row g-2 align-items-center">
-                                <label class="col-md-3 col-form-label col-form-label-sm text-md-end"
+                                <label class="col-md-3 col-form-label col-form-label-sm text-start"
                                        for="transSB_codeAdd">Code</label>
                                 <div class="col-md-8">
                                     <input id="transSB_codeAdd" name="transSB_codeAdd" type="text" class="form-control form-control-sm" />
@@ -137,7 +137,7 @@
 
                         <div class="col-12">
                             <div class="row g-2 align-items-center">
-                                <label class="col-md-3 col-form-label col-form-label-sm text-md-end"
+                                <label class="col-md-3 col-form-label col-form-label-sm text-start"
                                        for="transSB_descriptionAdd">Description</label>
                                 <div class="col-md-8">
                                     <input id="transSB_descriptionAdd" name="transSB_descriptionAdd" type="text" class="form-control form-control-sm" />
@@ -147,7 +147,7 @@
 
                         <div class="col-12">
                             <div class="row g-2 align-items-center">
-                                <label class="col-md-3 col-form-label col-form-label-sm text-md-end"
+                                <label class="col-md-3 col-form-label col-form-label-sm text-start"
                                        for="transSB_transactionGroupIDAdd">Group Code</label>
                                 <div class="col-md-8">
                                     <select id="transSB_transactionGroupIDAdd" name="transSB_transactionGroupIDAdd" class="tomselect-custom"></select>
@@ -308,11 +308,12 @@
                     });
 
                     showLoading(false);
-                    search(); // preserve original behavior: search after loading groups
+                    search();
                 },
                 error: function (xhr) {
                     showLoading(false);
                     if (xhr && xhr.status === 401 && typeof sessionTimeout === "function") sessionTimeout();
+                    else search();
                 }
             });
         }
@@ -576,11 +577,13 @@
             const modalEl = document.querySelector(SEL.modalMain);
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
 
-            $(modalEl).one("shown.bs.modal", function () {
-                loadInforServicesAndInit(); // loads select options then searches
-            });
-
-            modal.show();
+            const run = function () { loadInforServicesAndInit(); };
+            if (modalEl.classList.contains("show")) {
+                run();
+            } else {
+                $(modalEl).off("shown.bs.modal.transSBOpen").one("shown.bs.modal.transSBOpen", run);
+                modal.show();
+            }
         }
 
         return { init, open };

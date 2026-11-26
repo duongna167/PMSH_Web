@@ -15,6 +15,18 @@ namespace Report.Services.Implements
 {
     public class ReportService : IReportService
     {
+        private DateTime _cachedBusinessDate;
+        private DateTime _cachedBusinessDateAtUtc;
+
+        private DateTime CurrentBusinessDate()
+        {
+            if (_cachedBusinessDate != default && (DateTime.UtcNow - _cachedBusinessDateAtUtc).TotalSeconds < 60)
+                return _cachedBusinessDate;
+            _cachedBusinessDate = TextUtils.GetBussinessDateTime().Date;
+            _cachedBusinessDateAtUtc = DateTime.UtcNow;
+            return _cachedBusinessDate;
+        }
+
         public DataTable GetBookingSourceData(DateTime fromDate, DateTime toDate)
         {
             SqlParameter[] param = new SqlParameter[]
@@ -127,7 +139,7 @@ namespace Report.Services.Implements
                 new SqlParameter("@Cancellations", cancellations),
                 new SqlParameter("@VIP", vip),
                 new SqlParameter("@SortOrder", sortOrder),
-                new SqlParameter("@BusinessDate", DateTime.Parse("2024-08-29 00:00:00")),
+                new SqlParameter("@BusinessDate", CurrentBusinessDate()),
                 new SqlParameter("@SearchCriteria", searchCriteria),
                 new SqlParameter("@CkhArrivalDate", ckhArrivalDate),
                 new SqlParameter("@ZeroRateOnly", zeroRateOnly),
@@ -158,7 +170,7 @@ namespace Report.Services.Implements
                 new SqlParameter("@Cancellations", cancellations),
                 new SqlParameter("@VIP", vip),
                 new SqlParameter("@SortOrder", sortOrder),
-                new SqlParameter("@BusinessDate", DateTime.Parse("2024-08-29 00:00:00")),
+                new SqlParameter("@BusinessDate", CurrentBusinessDate()),
                 new SqlParameter("@SearchCriteria", searchCriteria),
                 new SqlParameter("@CkhArrivalDate", ckhArrivalDate),
                 new SqlParameter("@ZeroRateOnly", zeroRateOnly),
@@ -326,11 +338,11 @@ namespace Report.Services.Implements
                   new SqlParameter("@ToDate", toDate),
                   new SqlParameter("@Zone", zone),
                   new SqlParameter("@Cashier", cashier),
-                  new SqlParameter("@TransCode", "8520"),
+                  new SqlParameter("@TransCode", "8508"),
 
             };
 
-            DataTable myTable = DataTableHelper.getTableData("spRptIncurringDepositCollection", param);
+            DataTable myTable = DataTableHelper.getTableData("spRptIncurringDepositCollectionWeb", param);
             return myTable;
         }
         public DataTable IncurringDepositReturnData(DateTime fromDate, DateTime toDate, string zone, string cashier)
@@ -341,11 +353,11 @@ namespace Report.Services.Implements
                   new SqlParameter("@ToDate", toDate),
                   new SqlParameter("@Zone", zone),
                   new SqlParameter("@Cashier", cashier),
-                  new SqlParameter("@TransCode", "8520"),
+                  new SqlParameter("@TransCode", "9406"),
 
             };
 
-            DataTable myTable = DataTableHelper.getTableData("spRptIncurringDepositReturn", param);
+            DataTable myTable = DataTableHelper.getTableData("spRptIncurringDepositReturnWeb", param);
             return myTable;
         }
         public DataTable IncurringDepositPaymentPlanData(DateTime fromDate, DateTime toDate, string zone, string cashier,string notbalance)
@@ -356,12 +368,12 @@ namespace Report.Services.Implements
                   new SqlParameter("@ToDate", toDate),
                   new SqlParameter("@Zone", zone),
                   new SqlParameter("@Cashier", cashier),
-                  new SqlParameter("@TransCode", "8520"),
+                  new SqlParameter("@TransCode", "8508,9406"),
                   new SqlParameter("@NotBalance", notbalance),
 
             };
 
-            DataTable myTable = DataTableHelper.getTableData("spRptIncurringDepositPaymentPlan", param);
+            DataTable myTable = DataTableHelper.getTableData("spRptIncurringDepositPaymentPlanWeb", param);
             return myTable;
         }
 
@@ -373,12 +385,12 @@ namespace Report.Services.Implements
                   new SqlParameter("@ToDate", toDate),
                   new SqlParameter("@Zone", zone),
                   new SqlParameter("@Cashier", cashier),
-                  new SqlParameter("@TransCode", "8520"),
+                  new SqlParameter("@TransCode", "8508,9406"),
                   new SqlParameter("@Type", type),
 
             };
 
-            DataTable myTable = DataTableHelper.getTableData("spRptIncurringDepositSummary", param);
+            DataTable myTable = DataTableHelper.getTableData("spRptIncurringDepositSummaryWeb", param);
             return myTable;
         }
         public DataTable TraceReportView(DateTime fromDate, DateTime toDate, int roomClass, int department, int status, int byAlphabetical, int byRoom, int byVip, int pseudoRoom, int reserved, int checkedIn, int dueout, int individual, int blockcode, int vipOnly)
@@ -409,8 +421,6 @@ namespace Report.Services.Implements
 
         public DataTable ArrivalsandCheckInTodayData(string roomClass, string roomtype, string paymethod, string vip, string viewBy, string pseudo, string chkviponly, int disRoomSharer, string nopost)
         {
-            List<BusinessDateModel> businessDateModel = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
-            var businessDate = businessDateModel[0].BusinessDate;
             SqlParameter[] param = new SqlParameter[]
             {
                    new SqlParameter("@RoomClass", roomClass),
@@ -420,7 +430,7 @@ namespace Report.Services.Implements
                    new SqlParameter("@SortOrder",viewBy),
                    new SqlParameter("@Pseudo", pseudo),
                    new SqlParameter("@ChkVIPOnly",chkviponly),
-                   new SqlParameter("@BusinessDate", businessDate.Date),
+                   new SqlParameter("@BusinessDate", CurrentBusinessDate()),
                    new SqlParameter("@DisRoomSharer", disRoomSharer),
                    new SqlParameter("@NoPost",nopost),
             };
@@ -1033,17 +1043,31 @@ namespace Report.Services.Implements
 
             return DataTableHelper.getTableData("spRptJournalByArticle", param);
         }
-        public DataTable ManagerReport(DateTime businessDate, string currency)
+        public DataTable ManagerReport(DateTime businessDate, string currency, bool recalc)
         {
-            // Chặn lỗi nếu ngày quá nhỏ
-            if (businessDate < new DateTime(2, 1, 1))
+            if (string.IsNullOrWhiteSpace(currency) || currency == "0") currency = "VND";
+            if (businessDate < new DateTime(1753, 1, 1))
             {
-                businessDate = new DateTime(2, 1, 1); // hoặc bạn có thể return empty DataTable nếu muốn
+                businessDate = DateTime.Today;
             }
 
-            DateTime currentBusinessDate = businessDate.AddDays(1);
+            if (!recalc)
+            {
+                try
+                {
+                    var cached = DataTableHelper.ExecuteQuery(
+                        "SELECT Code, ItemName, CurrentDay, CurrentMonth, CurrentYear, LastDay, LastMonth, LastYear FROM RptManagerReport ORDER BY Sequence, Code");
+                    if (cached != null && cached.Rows.Count > 0)
+                        return cached;
+                }
+                catch
+                {
+                }
+            }
+
+            DateTime currentBusinessDate = businessDate;
             DateTime lastBusinessDate = businessDate.AddYears(-1);
-            DateTime tomorrow = currentBusinessDate;
+            DateTime tomorrow = businessDate.AddDays(1);
             DateTime tomorrowLastYear = tomorrow.AddYears(-1);
             DateTime firstDateYear = new DateTime(businessDate.Year, 1, 1);
 
@@ -1782,6 +1806,42 @@ ORDER BY p.Account");
                 new SqlParameter("@ToDate", toDate)
             };
             return DataTableHelper.getTableData("spRptPackageReport_New", param);
+        }
+
+        public DataTable ARTraceData(DateTime fromDate, DateTime toDate, string state)
+        {
+            var st = string.IsNullOrWhiteSpace(state) ? "All" : state.Trim();
+            if (!st.Equals("Unresolved", StringComparison.OrdinalIgnoreCase)
+                && !st.Equals("Resolved", StringComparison.OrdinalIgnoreCase))
+                st = "All";
+            SqlParameter[] param = new SqlParameter[]
+            {
+                new SqlParameter("@fromDate", fromDate),
+                new SqlParameter("@toDate", toDate),
+                new SqlParameter("@state", st)
+            };
+            return DataTableHelper.getTableData("spRptARTrace", param);
+        }
+
+        public DataTable ReservationWithDiscountData(DateTime fromDate, DateTime toDate, int dateType,
+            string rmClasses, string rmTypes, string rateIDs, string mkIDs, string srcIDs, string statuses, int sort)
+        {
+            var dt = dateType is 1 or 2 ? dateType : 0;
+            var sortOrder = sort is >= 0 and <= 3 ? sort : 0;
+            SqlParameter[] param =
+            {
+                new SqlParameter("@fromDate", fromDate),
+                new SqlParameter("@toDate", toDate),
+                new SqlParameter("@dateType", dt),
+                new SqlParameter("@rmClasses", SqlDbType.VarChar, 100) { Value = rmClasses ?? "" },
+                new SqlParameter("@rmTypes", SqlDbType.VarChar, 100) { Value = rmTypes ?? "" },
+                new SqlParameter("@rateIDs", SqlDbType.VarChar, 100) { Value = rateIDs ?? "" },
+                new SqlParameter("@mkIDs", SqlDbType.VarChar, 100) { Value = mkIDs ?? "" },
+                new SqlParameter("@srcIDs", SqlDbType.VarChar, 100) { Value = srcIDs ?? "" },
+                new SqlParameter("@statuses", SqlDbType.VarChar, 100) { Value = statuses ?? "" },
+                new SqlParameter("@sort", sortOrder)
+            };
+            return DataTableHelper.getTableData("spRptReservationWithDiscount", param);
         }
 
         public DataTable AgingbyTypeOnlyData(DateTime date, int accType, string sort)

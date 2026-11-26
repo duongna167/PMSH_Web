@@ -216,7 +216,7 @@ ORDER BY a.LoginName",
             }),
             ("04 - End Of Day", new[]
             {
-                "rptCashierAudit", "rptCashierSummary", "rptCancellationJournal", "rptGuestTrialBalance",
+                "rptARTrace", "rptCashierAudit", "rptCashierSummary", "rptCancellationJournal", "rptGuestTrialBalance",
                 "rptRevenueReport", "rptRevenueSummary", "rptRevenueDetail", "rptRevenueSpa",
                 "rptManagerReport", "rptPostingJournalInvoicing", "rptDepositTransferAtCheckIn",
                 "rptTransferAccountReceivableReport", "rptReservationSummary", "rptReservationRateCheck",
@@ -240,7 +240,7 @@ ORDER BY a.LoginName",
                 "rptJournalByCashierAndArticle", "rptOccupancyByPerson", "rptOutOfOrderByPerson",
                 "rptRoomDiscrepancy", "rptSummaryByArticle", "rptVacantRoom"
             }),
-            ("08 - Orther Reports", new[]
+            ("08 - Other Reports", new[]
             {
                 "rptComplimentaryGuestReport", "rptGIHComplimentary", "rptGIHComplimentaryAndHouseUse",
                 "rptPaidOutReport", "rptRevenueBy", "rptHistoryAndForecast", "rptRevenuebyroom",
@@ -266,7 +266,7 @@ ORDER BY a.LoginName",
                 "rpt_Spr_AnnualRoomOccupancy", "rpt_Spr_TraceReport", "rpt_Spr_GuestStayReport",
                 "rpt_Spr_GuestStayOver", "rpt_Spr_FixchargeReport",
                 "rpt_OT_ProfileProductionStatistics", "rpt_Spr_BookingbyHolder", "rpt_Spr_ProfileUpdate",
-                "rpt_Spr_PackageReportbyPerson", "rpt_Spr_ReservationView", "rpt_Spr_ReportComments"
+                "rpt_Spr_PackageReportbyPerson", "rpt_Spr_ReservationView", "rptReservationWithDiscount", "rpt_Spr_ReportComments"
             })
         };
 

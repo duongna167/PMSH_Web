@@ -45,7 +45,18 @@
     .sticky-header label[class*="me-"] {
         margin-right: .5rem !important;
     }
-    .filter-panel {`r`n        font-size: 14px;
+    .filter-panel {
+        font-size: 14px;
+    }
+    #gridContainer .dx-datagrid-rowsview .dx-row.dx-group-row td {
+        background: #eeeeee !important;
+        font-weight: 600;
+        color: #212529 !important;
+    }
+    #gridContainer .dx-datagrid-group-footer td,
+    #gridContainer .dx-datagrid-total-footer td {
+        font-weight: 600;
+        background: #f5f5f5 !important;
     }
 
     .filter-row {
@@ -109,7 +120,7 @@
 </div>
 </div>
 <div class="mui-card">
-    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
+    <div id="gridWrapper" class="mt-2">
         <div class="gridContainer mt-2" id="gridContainer"></div>
     </div>
 </div>
@@ -124,27 +135,33 @@
               window.initDateInputs();
 
     });
+    function readPjiDate(name) {
+        const text = ($('[data-date-input][data-name="' + name + '"] .date-ui').val() || $("#" + name).val() || "").trim();
+        const m = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+        if (!m) return text;
+        let year = parseInt(m[3], 10);
+        if (year < 100) year += 2000;
+        return year + "-" + String(m[2]).padStart(2, "0") + "-" + String(m[1]).padStart(2, "0");
+    }
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
         $("#loadingSpinner").show();
         $.ajax({
             url: '/Report/PostingJournalInvoicing',
             type: 'GET',
             data: {
-                fromDate: $("#fromDate").val(),
-                toDate: $("#toDate").val(),
-                  
+                fromDate: readPjiDate("fromDate"),
+                toDate: readPjiDate("toDate")
             },
             traditional: true,
-              crossDomain: false,
-                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                     console.log(result);
-    const processedData = prepareRoomOccupancyData(result);
-    initializeRoomOccupancyGrid(processedData);
-
+                if (!Array.isArray(result)) {
+                    alert((result && result.error) ? result.error : "Không thể tải báo cáo.");
                     $("#loadingSpinner").hide();
+                    return;
+                }
+                initializeRoomOccupancyGrid(result);
+                $("#loadingSpinner").hide();
             },
             error: function () {
                 alert("Không thể tải báo cáo.");
@@ -152,101 +169,61 @@
             }
         });
     });
-            function prepareRoomOccupancyData(data) {
-            const groupedByCode = {};
-
-        // Nhóm theo 'code'
-        data.forEach(item => {
-            const key = item.transactionCode;
-            if (!groupedByCode[key]) groupedByCode[key] = [];
-            groupedByCode[key].push(item);
-        });
-
-        const finalData = [];
-
-        Object.entries(groupedByCode).forEach(([code, records]) => {
-            finalData.push(...records);
-
-            const totalRow = {
-                room: "",
-                folioNo: "",
-                transactionCode: `Total Code ${code} :`,
-                description: "",
-                debitUSD: sum(records, 'debitUSD'),
-                debitVND: sum(records, 'debitVND'),
-                transactionDate: "",
-                cashierNo: "",
-                cssClass: "custom",
-                isTotal: true
-            };
-
-            finalData.push(totalRow);
-        });
-
-        return finalData;
+    function pjiGridHeight() {
+        var el = document.getElementById("gridContainer");
+        var top = el ? el.getBoundingClientRect().top : 260;
+        return Math.max(480, Math.floor(window.innerHeight - top - 12));
     }
-
-
-    // Helper sum function
-    function sum(arr, field) {
-        return arr.reduce((total, item) => total + (item[field] || 0), 0);
-    }
-
-
-    // Helper functions
-    function sum(arr, field) {
-        return arr.reduce((total, item) => total + (item[field] || 0), 0);
-    }
-
-    function average(arr, field) {
-        const valid = arr.filter(x => x[field] != null);
-        if (valid.length === 0) return 0;
-        return valid.reduce((sum, x) => sum + x[field], 0) / valid.length;
-    }
-
-       function initializeRoomOccupancyGrid(data) {
-        const columnWidth = 250;
-        $("#gridContainer").dxDataGrid({
-    dataSource: data,         height: 500, allowColumnResizing: true,
+    function initializeRoomOccupancyGrid(data) {
+        const money = { dataType: "number", format: "#,##0.00", width: 120 };
+        pmshBindDxReportGrid("#gridContainer", {
+            dataSource: Array.isArray(data) ? data : [],
+            height: pjiGridHeight(),
+            allowColumnResizing: true,
+            loadPanel: { enabled: false },
+            headerFilter: { visible: false },
+            grouping: { autoExpandAll: true, allowCollapsing: true, contextMenuEnabled: false },
+            groupPanel: { visible: false },
             columns: [
-                { dataField: "room", caption: "Room", width: columnWidth - 50 },
-                { dataField: "folioNo", caption: "FolioNo", width: columnWidth - 40 },
-                { dataField: "transactionCode", caption: "Code", width: 130 },
-                { dataField: "description", caption: "Description", width: columnWidth + 70 },
-                { dataField: "debitUSD", caption: "USD", width: columnWidth - 40 },
-                { dataField: "debitVND", caption: "VND", width: 140, dataType: "number", format: "#,##0.00" },
-                { dataField: "transactionDate", caption: "Time", width: columnWidth - 70, dataType: "date", format: "HH:mm" },
-                { dataField: "cashierNo", caption: "Cashier", width: 100 },
+                {
+                    dataField: "transactionCode",
+                    caption: "Code",
+                    groupIndex: 0,
+                    width: 90,
+                    groupCellTemplate: function (container, options) {
+                        $("<span>").text("Code: " + (options.value || "")).appendTo(container);
+                    }
+                },
+                { dataField: "room", caption: "Room", width: 90 },
+                { dataField: "folioNo", caption: "Folio No", width: 100 },
+                { dataField: "description", caption: "Description", minWidth: 220 },
+                Object.assign({ dataField: "usd", caption: "USD" }, money),
+                Object.assign({ dataField: "vnd", caption: "VND" }, money),
+                { dataField: "transactionDate", caption: "Time", width: 90, dataType: "datetime", format: "HH:mm" },
+                { dataField: "cashierNo", caption: "Cashier", width: 90 }
             ],
-            paging: { pageSize: 25 },
-            // scrolling: {
-            //     
-            //     useNative: true,
-            //     showScrollbar: "always"
-            // },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true,
+            summary: {
+                groupItems: [
+                    { column: "usd", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0.00", showInGroupFooter: true, alignByColumn: true },
+                    { column: "vnd", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0.00", showInGroupFooter: true, alignByColumn: true }
+                ],
+                totalItems: [
+                    { column: "description", summaryType: "count", displayFormat: "Grand Total =" },
+                    { column: "usd", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0.00" },
+                    { column: "vnd", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0.00" }
+                ]
             },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            headerFilter: {
-                visible: true
-            },
-            selection: { mode: "multiple", showCheckBoxesMode: "none" },
-            showBorders: true,
-            onRowPrepared: function (e) {
-                if (e.rowType === "data" && e.data?.cssClass) {
-                    e.rowElement.addClass(e.data.cssClass);
-                }
-            }
+            paging: { enabled: false },
+            pager: { visible: false },
+            selection: { mode: "none" },
+            filterRow: { visible: true, applyFilter: "auto" },
+            showBorders: true
         });
     }
+    $(window).off("resize.postingJournalInv").on("resize.postingJournalInv", function () {
+        var grid = $("#gridContainer").data("dxDataGrid");
+        if (grid) grid.option("height", pjiGridHeight());
+    });
 
 
 
