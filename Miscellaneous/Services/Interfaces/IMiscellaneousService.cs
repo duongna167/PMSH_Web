@@ -16,6 +16,8 @@ namespace Miscellaneous.Services.Interfaces
         bool InsertCard(string id, int cardTypeId, int status, string userName);
         bool UpdateCard(string id, int cardTypeId, int status, string userName);
         CardDeleteResult DeleteCard(string id);
+        CardIssueResult IssueCards(IReadOnlyList<CardAssignment> items, int userId, string userName);
+        CardIssueResult CancelCards(IReadOnlyList<int> reservationIds, int userId, string userName);
         DataTable MealChangeHistory(int reservationId);
         string MealSummary(int reservationId);
         MealChangeResult ProcessMealChange(MealChangeRequest request, string userName);

@@ -4,6 +4,14 @@
     var zoneList = ViewBag.ZoneList;
 }
 
+<style>
+    /* Đệm ngang nhỏ để ngày trên tiêu đề cột đủ chỗ cạnh nút lọc */
+    #rcp_gridContainer .dx-datagrid-headers .dx-header-row > td {
+        padding-left: 3px !important;
+        padding-right: 3px !important;
+    }
+</style>
+
 <!-- ========================= -->
 <!-- RCP: Bootstrap 5 Modal -->
 <!-- ========================= -->
@@ -31,25 +39,27 @@
                     <div class="filter-panel d-flex align-items-center flex-nowrap gap-3 mt-2 mb-1">
 
                         <!-- Zone -->
-                        <div class="d-flex align-items-center zone-wrap">
+                        <div class="d-flex align-items-center">
                             <label class="me-2 mb-0">Zone:</label>
-                            <select data-single-choice id="rcp_zone" name="rcp_zone" class="tomselect-custom" multiple>
-                                @foreach (var item in zoneList)
-                                {
-                                    if (item == zoneList[0])
+                            <div style="width:200px;">
+                                <select data-single-choice id="rcp_zone" name="rcp_zone" class="tomselect-custom" multiple>
+                                    @foreach (var item in zoneList)
                                     {
-                                        <option value="@item.Code" selected>@item.Code</option>
+                                        if (item == zoneList[0])
+                                        {
+                                            <option value="@item.Code" selected>@item.Code</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@item.Code">@item.Code</option>
+                                        }
                                     }
-                                    else
-                                    {
-                                        <option value="@item.Code">@item.Code</option>
-                                    }
-                                }
-                            </select>
+                                </select>
+                            </div>
                         </div>
 
                         <!-- From -->
-                        <div class="d-flex align-items-center pb-2">
+                        <div class="d-flex align-items-center">
                             <label class="me-2 mb-0">From:</label>
                             <div class="date-wrap">
                                 <div class="clearable" style="width:140px;" data-date-input data-format="DD/MM/YYYY" data-name="rcp_fromDate">
@@ -59,7 +69,7 @@
                         </div>
 
                         <!-- To -->
-                        <div class="d-flex align-items-center pb-2">
+                        <div class="d-flex align-items-center">
                             <label class="me-2 mb-0">To:</label>
                             <div class="date-wrap">
                                 <div class="clearable" style="width:140px;" data-date-input data-format="DD/MM/YYYY" data-name="rcp_toDate">
@@ -271,30 +281,12 @@
         },
 
         initializeTomSelects: function () {
-            const selectors = ["#rcp_zone"];
+            const el = document.querySelector("#rcp_zone");
+            if (!el) return;
+            if (el.tomselect) el.tomselect.destroy();
 
-            for (const id of selectors) {
-                const el = document.querySelector(id);
-                if (!el) continue;
-
-                if (el.tomselect) el.tomselect.destroy();
-
-                // Zone là danh sách ngắn: chọn 1 (bỏ trống = tất cả). Thẻ select vẫn là multiple nên .val() trả về mảng.
-                const ts = new TomSelect(el, {
-                    plugins: ['clear_button'],
-                    create: false,
-                    maxItems: 1,
-                    allowEmptyOption: true,
-                    placeholder: 'All',
-                    persist: false,
-                    render: {
-                        option: function (data, escape) {
-                            return `<div>${escape(data.text)}</div>`;
-                        }
-                    }
-                });
-
-            }
+            // Dùng hàm chung như các màn khác (data-single-choice: chọn 1, bỏ trống = tất cả, .val() trả về mảng)
+            initTomSelect("#rcp_zone");
         },
 
         generateDateColumns: function (fromDate, toDate) {
@@ -314,7 +306,7 @@
 
                 columns.push({
                     dataField: dateStr,
-                    width: 70,
+                    width: 82,
                     dataType: "number",
                     format: {
                         type: "fixedPoint",
@@ -322,7 +314,8 @@
                     },
                     alignment: "center",
                     headerCellTemplate: function (container) {
-                        container.html(`<div style="white-space: normal; text-align:center; font-size:11px;">${captionHtml}</div>`);
+                        // nowrap: chỉ xuống dòng ở <br> (30-Oct / Thu / CW-44), không gãy giữa chừng
+                        container.html(`<div style="white-space: nowrap; text-align:center; font-size:11px;">${captionHtml}</div>`);
                     }
                 });
 

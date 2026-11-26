@@ -8,8 +8,8 @@
 
 <!-- Main Modal -->
 <div class="modal fade" id="rmAva_mainModal" tabindex="-1" aria-labelledby="rmAva_mainModalLabel" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-4by3 modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content modal-full-height">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
 
             <div class="modal-header">
                 <h5 class="modal-title" id="rmAva_mainModalLabel">Room Availability</h5>
@@ -20,6 +20,7 @@
                     <div>
                         <button id="rmAva_btnPrint" type="button" class="mui-button mui-button-new">View</button>
                         <button id="rmAva_btnExportExcel" type="button" class="mui-button mui-button-new">Excel</button>
+                        <button id="rmAva_btnAllotment" type="button" class="mui-button mui-button-new" data-code="resv_ReservationAllotmentReport">View Allotment</button>
                         <button id="rmAva_btnClose" type="button" data-bs-dismiss="modal" class="mui-button mui-button-new">Close</button>
                     </div>
 
@@ -154,6 +155,51 @@
     </div>
 </div>
 
+<!-- View Report By... (Go To Allotment bên WinForms) -->
+<div class="modal fade" id="rmAva_allotModal" tabindex="-1" aria-labelledby="rmAva_allotTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 600px;">
+        <div class="modal-content" style="height:auto !important; max-height:none !important;">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rmAva_allotTitle">View Report By...</h5>
+            </div>
+            <!-- Cao theo nội dung để không bị cắt mất dòng lựa chọn cuối -->
+            <div class="modal-body" style="overflow:visible; padding:12px 12px 20px;">
+                <div class="mb-3">
+                    <button type="button" class="mui-button mui-button-new" id="rmAva_allotOk">OK</button>
+                    <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 24px;">
+                    <label><input type="radio" name="rmAva_allotBy" value="allotType" checked> By Allotment Type</label>
+                    <label><input type="radio" name="rmAva_allotBy" value="profile"> By Profile</label>
+                    <label><input type="radio" name="rmAva_allotBy" value="roomType"> By Room Type</label>
+                    <label><input type="radio" name="rmAva_allotBy" value="roomTypeDetail"> By Room Type Detail</label>
+                    <label style="grid-column:1 / -1;"><input type="radio" name="rmAva_allotBy" value="typeDetail"> By Allotment Type Detail</label>
+                    <label style="grid-column:1 / -1;"><input type="radio" name="rmAva_allotBy" value="typeAndRoom"> By Allotment Type and Room Type</label>
+                    <label style="grid-column:1 / -1;"><input type="radio" name="rmAva_allotBy" value="groupAllotment"> By Allotment Type and Room Type Group By Allotment</label>
+                    <label style="grid-column:1 / -1;"><input type="radio" name="rmAva_allotBy" value="groupRoomType"> By Allotment Type and Room Type Group By Room Type</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="rmAva_allotResultModal" tabindex="-1" aria-labelledby="rmAva_allotResultTitle" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rmAva_allotResultTitle">Allotment</h5>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <button type="button" class="mui-button mui-button-new" id="rmAva_allotExcel">Excel</button>
+                    <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div id="rmAva_allotGrid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     var rmAva_Module = (() => {
         let rmAva_selectedRowData = null;
@@ -188,6 +234,14 @@
         function rmAva_bindEvents() {
 
             $(document)
+                .off("click.rmAvaAllot")
+                .on("click.rmAvaAllot", "#rmAva_btnAllotment", function () {
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById("rmAva_allotModal"), { backdrop: "static" }).show();
+                })
+                .on("click.rmAvaAllot", "#rmAva_allotOk", rmAva_loadAllotment)
+                .on("click.rmAvaAllot", "#rmAva_allotExcel", rmAva_exportAllotment);
+
+            $(document)
                 .off("click", rmAva_selectors.btnPrint)
                 .on("click", rmAva_selectors.btnPrint, function () {
                     rmAva_loadReport();
@@ -204,6 +258,127 @@
                 .on("click", "#rmAva_btnExportPdf", function () {
                     rmAva_exportPdf();
                 });
+        }
+
+        // ===== View Allotment: dùng lại dữ liệu của màn Allotment Report =====
+        const rmAva_allotViews = {
+            allotType: { title: "By Allotment Type", params: { byAllotmentType: 0 }, labels: ["AllotmentType"] },
+            roomType: { title: "By Room Type", params: { byAllotmentType: 1 }, labels: ["RoomType"] },
+            typeDetail: { title: "By Allotment Type Detail", params: { byAllotmentDetail: 1 }, labels: ["AllotmentType", "AllotmentCode", "AccountName"] },
+            typeAndRoom: { title: "By Allotment Type and Room Type", params: { byAllotmentandRoomType: 1 }, labels: ["RoomType"] },
+            groupAllotment: { title: "By Allotment Type and Room Type Group By Allotment", params: { byAllotmentandRoomTypeGroupbyAll: 1 }, labels: ["AllotmentCode", "AccountName", "RoomType"], group: "AccountName" },
+            groupRoomType: { title: "By Allotment Type and Room Type Group By Room Type", params: { byAllotmentandRoomTypeGroupbyRT: 1 }, labels: ["RoomType", "AllotmentCode", "AccountName"], group: "RoomType" },
+            profile: { title: "By Profile", params: { byProfile: 1 }, labels: ["ProfileCode", "Account", "Code"] },
+            roomTypeDetail: { title: "By Room Type Detail", params: { byRoomtypedetail: 1 }, labels: ["RoomType", "AllotmentCode", "AccountName"], group: "RoomType" }
+        };
+        const rmAva_labelCaptions = {
+            AllotmentType: "Allotment Type", RoomType: "Room Type", AllotmentCode: "Allotment Code",
+            AccountName: "Account Name", ProfileCode: "Profile Code", Account: "Account", Code: "Code"
+        };
+        let rmAva_allotRequest = null;
+
+        function rmAva_loadAllotment() {
+            const key = $("input[name='rmAva_allotBy']:checked").val();
+            const view = rmAva_allotViews[key];
+            const fromDate = $(rmAva_selectors.fromDate).val();
+            if (!fromDate) {
+                showToast("Warning", "Please select a From date.", false);
+                return;
+            }
+
+            // Dữ liệu đặt tên cột theo số ngày nên khoảng ngày không được có 2 ngày trùng số
+            const wanted = Number($(rmAva_selectors.displayOfDay).val()) || 30;
+            const cursor = new Date(fromDate + "T00:00:00"), seen = new Set();
+            while (seen.size <= wanted && !seen.has(cursor.getDate())) {
+                seen.add(cursor.getDate());
+                cursor.setDate(cursor.getDate() + 1);
+            }
+            const days = seen.size - 1;
+
+            bootstrap.Modal.getInstance(document.getElementById("rmAva_allotModal"))?.hide();
+            $("#rmAva_allotResultTitle").text("Allotment - " + view.title);
+
+            const resultModal = document.getElementById("rmAva_allotResultModal");
+            // Đóng bảng kết quả thì quay lại màn chọn "View Report By..."
+            $(resultModal).off("hidden.bs.modal.rmAva").one("hidden.bs.modal.rmAva", function () {
+                if (rmAva_allotRequest) rmAva_allotRequest.abort();
+                bootstrap.Modal.getOrCreateInstance(document.getElementById("rmAva_allotModal"), { backdrop: "static" }).show();
+            });
+            $(resultModal).off("shown.bs.modal.rmAva").one("shown.bs.modal.rmAva", function () {
+                const grid = rmAva_allotGrid(view, []);
+                grid.beginCustomLoading("Loading...");
+                if (rmAva_allotRequest) rmAva_allotRequest.abort();
+                rmAva_allotRequest = $.get("/Allotment/GetAllotmentReport", Object.assign({
+                    fromDate: fromDate, displayofday: days, allotmentType: 0,
+                    byAllotmentType: 2, byAllotmentDetail: 0, byAllotmentandRoomType: 0,
+                    byAllotmentandRoomTypeGroupbyAll: 0, byAllotmentandRoomTypeGroupbyRT: 0,
+                    byProfile: 0, byRoomtypedetail: 0
+                }, view.params))
+                    .done(function (data) {
+                        // Server trả về chuỗi hoặc object khi lỗi
+                        if (!Array.isArray(data)) {
+                            grid.endCustomLoading();
+                            showToast("Error", "Unable to load allotment data.", false);
+                            return;
+                        }
+                        rmAva_allotGrid(view, data, fromDate, days).endCustomLoading();
+                    })
+                    .fail(function (xhr, status) {
+                        if (status === "abort") return;
+                        grid.endCustomLoading();
+                        showToast("Error", "Unable to load allotment data.", false);
+                    });
+            });
+            bootstrap.Modal.getOrCreateInstance(resultModal, { backdrop: "static" }).show();
+        }
+
+        function rmAva_allotGrid(view, data, fromDate, days) {
+            const columns = view.labels.map(function (field) {
+                const column = { dataField: field, caption: rmAva_labelCaptions[field], width: field === "AccountName" ? 180 : 130, fixed: true };
+                if (view.group === field) column.groupIndex = 0;
+                return column;
+            });
+
+            if (fromDate) {
+                const date = new Date(fromDate + "T00:00:00");
+                for (let i = 0; i <= days; i++) {
+                    const field = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+                    const caption = String(date.getDate()).padStart(2, "0") + "-" + date.toLocaleString("en-US", { month: "short" })
+                        + "<br>" + date.toLocaleString("en-US", { weekday: "short" }) + "<br>CW" + rmAva_getWeekNumber(date);
+                    columns.push({
+                        dataField: field, caption: caption.replace(/<br>/g, " "), width: 70, alignment: "right",
+                        headerCellTemplate: function (container) {
+                            container.html(`<div style="white-space:nowrap; text-align:center; font-size:11px;">${caption}</div>`);
+                        }
+                    });
+                    date.setDate(date.getDate() + 1);
+                }
+            }
+
+            const $grid = $("#rmAva_allotGrid");
+            if ($grid.data("dxDataGrid")) $grid.dxDataGrid("dispose");
+            $grid.empty().addClass("gridContainer");
+            return $grid.dxDataGrid({
+                dataSource: data, columns: columns, height: "calc(100vh - 110px)", showBorders: true, showRowLines: true,
+                allowColumnResizing: true, columnResizingMode: "widget", paging: { enabled: false },
+                scrolling: { mode: "standard", showScrollbar: "always", useNative: true },
+                grouping: { autoExpandAll: true }, noDataText: "No data"
+            }).dxDataGrid("instance");
+        }
+
+        async function rmAva_exportAllotment() {
+            const grid = $("#rmAva_allotGrid").dxDataGrid("instance");
+            if (!grid || !grid.getDataSource()?.items().length) {
+                showToast("Warning", "No data to export.", false);
+                return;
+            }
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet("Allotment");
+            sheet.addRow([localStorage.getItem("CompanyName") || ""]);
+            sheet.addRow([$("#rmAva_allotResultTitle").text()]);
+            await DevExpress.excelExporter.exportDataGrid({ component: grid, worksheet: sheet, topLeftCell: { row: 4, column: 1 } });
+            const buffer = await workbook.xlsx.writeBuffer();
+            saveAs(new Blob([buffer], { type: "application/octet-stream" }), "Allotment.xlsx");
         }
 
         function rmAva_loadReport() {

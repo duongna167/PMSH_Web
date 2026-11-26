@@ -22,7 +22,8 @@ namespace HouseKeeping.Services.Implements
                  new SqlParameter("@ZoneCode", zone),
             };
 
-            DataTable myTable = DataTableHelper.getTableData("spRmgRoomControlPanelReport", param);
+            // Việt Anh - 26/11/2026: dùng bản _v2 (sql/spRmgRoomControlPanelReport_v2.sql) để tải nhanh hơn
+            DataTable myTable = DataTableHelper.getTableData("spRmgRoomControlPanelReport_v2", param);
             return myTable;
         }
 

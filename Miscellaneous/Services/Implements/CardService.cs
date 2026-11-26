@@ -9,7 +9,7 @@ namespace Miscellaneous.Services.Implements
     public partial class MiscellaneousService
     {
         private const string CardSelect = @"
-            SELECT ID, CardTypeID, N'Card Hotel' AS CardType, Status,
+            SELECT ID AS id, CardTypeID, N'Card Hotel' AS CardType, Status,
                    CASE Status WHEN 0 THEN N'Inactive' WHEN 1 THEN N'Active' ELSE N'Other' END AS StatusText,
                    CreatedBy, CreatedDate, UpdatedBy, UpdatedDate
             FROM dbo.Card WITH (NOLOCK)";

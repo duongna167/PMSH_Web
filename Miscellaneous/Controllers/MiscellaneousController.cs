@@ -240,188 +240,70 @@ namespace Miscellaneous.Controllers
         #endregion
 
         #region Guest Card
-        [HttpGet]
-        public IActionResult GetIssuingCardToGuests(string firstName, string confirmationNo, string crsNo, string roomNo, string zone, string guestName, string rsvHolder, string isShowRS, string isShowCard, DateTime arrFrom, DateTime arrTo, string status, string ci_Day, string co_Day, string findCardID, string reservationID)
-        {
-            try
-            {
 
-
-                DataTable dataTable = _iMiscellaneousService.IssuingCardToGuests(firstName, confirmationNo, crsNo, roomNo, zone, guestName, rsvHolder, isShowRS, isShowCard, arrFrom, arrTo, status, ci_Day, co_Day, findCardID, reservationID);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-
-                                  Check = !string.IsNullOrEmpty(d["Check"].ToString()) ? d["Check"] : "",
-                                  CardID = !string.IsNullOrEmpty(d["CardID"].ToString()) ? d["CardID"] : "",
-                                  ConfirmationNo = !string.IsNullOrEmpty(d["ConfirmationNo"].ToString()) ? d["ConfirmationNo"] : "",
-                                  MainGuest = !string.IsNullOrEmpty(d["MainGuest"].ToString()) ? d["MainGuest"] : "",
-                                  Nat = !string.IsNullOrEmpty(d["Nat"].ToString()) ? d["Nat"] : "",
-                                  Title = !string.IsNullOrEmpty(d["Title"].ToString()) ? d["Title"] : "",
-                                  Account = !string.IsNullOrEmpty(d["Account"].ToString()) ? d["Account"] : "",
-                                  DateOfBirth = !string.IsNullOrEmpty(d["DateOfBirth"].ToString()) ? d["DateOfBirth"] : "",
-                                  PassPort = !string.IsNullOrEmpty(d["PassPort"].ToString()) ? d["PassPort"] : "",
-                                  IdentityCard = !string.IsNullOrEmpty(d["IdentityCard"].ToString()) ? d["IdentityCard"] : "",
-                                  RoomNo = !string.IsNullOrEmpty(d["RoomNo"].ToString()) ? d["RoomNo"] : "",
-                                  RoomType = !string.IsNullOrEmpty(d["RoomType"].ToString()) ? d["RoomType"] : "",
-                                  ArrivalDate = !string.IsNullOrEmpty(d["ArrivalDate"].ToString()) ? d["ArrivalDate"] : "",
-                                  NoOfNight = !string.IsNullOrEmpty(d["NoOfNight"].ToString()) ? d["NoOfNight"] : "",
-                                  DepartureDate = !string.IsNullOrEmpty(d["DepartureDate"].ToString()) ? d["DepartureDate"] : "",
-                                  Package = !string.IsNullOrEmpty(d["Package"].ToString()) ? d["Package"] : "",
-                                  NoOfAdult = !string.IsNullOrEmpty(d["NoOfAdult"].ToString()) ? d["NoOfAdult"] : "",
-                                  NoOfChild = !string.IsNullOrEmpty(d["NoOfChild"].ToString()) ? d["NoOfChild"] : "",
-                                  NoOfChild1 = !string.IsNullOrEmpty(d["NoOfChild1"].ToString()) ? d["NoOfChild1"] : "",
-                                  NoOfChild2 = !string.IsNullOrEmpty(d["NoOfChild2"].ToString()) ? d["NoOfChild2"] : "",
-                                  StatusText = !string.IsNullOrEmpty(d["StatusText"].ToString()) ? d["StatusText"] : "",
-                                  ReservationHolder = !string.IsNullOrEmpty(d["ReservationHolder"].ToString()) ? d["ReservationHolder"] : "",
-                                  Address = !string.IsNullOrEmpty(d["Address"].ToString()) ? d["Address"] : "",
-                                  ProfileID = !string.IsNullOrEmpty(d["ProfileID"].ToString()) ? d["ProfileID"] : "",
-                                  ReservationID = !string.IsNullOrEmpty(d["ReservationID"].ToString()) ? d["ReservationID"] : "",
-                                  IsCard = !string.IsNullOrEmpty(d["IsCard"].ToString()) ? d["IsCard"] : "",
-                                  Status = !string.IsNullOrEmpty(d["Status"].ToString()) ? d["Status"] : "",
-                                  Packages = !string.IsNullOrEmpty(d["Packages"].ToString()) ? d["Packages"] : "",
-                                  Breakfast = !string.IsNullOrEmpty(d["Breakfast"].ToString()) ? d["Breakfast"] : "",
-                                  Lunch = !string.IsNullOrEmpty(d["Lunch"].ToString()) ? d["Lunch"] : "",
-                                  Dinner = !string.IsNullOrEmpty(d["Dinner"].ToString()) ? d["Dinner"] : "",
-                                  ShareRoom = !string.IsNullOrEmpty(d["ShareRoom"].ToString()) ? d["ShareRoom"] : "",
-                              }).ToList();
-                return Json(result);
-            }
-            catch (Exception ex)
-            {
-                return Json(ex.Message);
-            }
-            //  report.DataSource = dataTable;
-
-            // Không cần gán parameter
-            // report.RequestParameters = false;
-
-            // return PartialView("_ReportViewerPartial", report);
-        }
-        [RequireFunction("misc_LoadCardsforGuests")]
+        // Add card to guest (frmCardByReservation)
+        [HttpGet, RequireFunction("misc_LoadCardsforGuests")]
         public IActionResult IssuingCardToGuests()
         {
-            List<ZoneModel> listzo = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll());
-            ViewBag.ZoneList = listzo;
+            ViewBag.BusinessDate = _iMiscellaneousService.GetMealBusinessDate().ToString("yyyy-MM-dd");
+            ViewBag.ZoneCodes = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll())
+                .Select(z => z.Code).Where(c => !string.IsNullOrWhiteSpace(c)).OrderBy(c => c).ToList();
+
             int baudRate = 9600;
             TagScannerHelper.Instance.CodeReceived += MainForm_TagScanCodeReceived;
-      
+
             // Ensure connection from settings (will show message if missing)
             TagScannerHelper.Instance.ConnectFromSettings(_configuration, baudRate);
             return View();
-
         }
 
-        [HttpPost]
-        public IActionResult AddCard([FromBody] AddCardRequest request)
+        [HttpGet, RequireFunction("misc_LoadCardsforGuests")]
+        public IActionResult SearchCardGuests(string? firstName, string? confirmationNo, string? crsNo, string? roomNo, string? zone,
+            string? guestName, string? rsvHolder, string? cardID, bool roomSharer, bool showHasCard, DateTime? arrFrom, DateTime? arrTo, int searchType)
         {
-            var username = HttpContext.Session.GetString("LoginName") ?? "";
-            int userId = HttpContext.Session.GetInt32("UserID") ?? 0;
+            // Thứ tự giống cboSearchType bên WinForms
+            var status = searchType switch { 1 => "1,6", 2 => "0,5", 3 => "0", 4 => "1", 5 => "6", 6 => "2", _ => "" };
+            return CardAction(() => Json(_iMiscellaneousService.IssuingCardToGuests(
+                    firstName?.Trim()!, confirmationNo?.Trim()!, crsNo?.Trim()!, roomNo?.Trim()!, zone!, guestName?.Trim()!, rsvHolder?.Trim()!,
+                    roomSharer ? "" : "Y", showHasCard ? "" : "Y", arrFrom ?? DateTime.MinValue, arrTo ?? DateTime.MinValue, status,
+                    searchType == 7 ? "Y" : "", searchType == 8 ? "Y" : "", cardID?.Trim()!, "")
+                .AsEnumerable().Select(row => row.Table.Columns.Cast<DataColumn>().ToDictionary(
+                    col => col.ColumnName.ToLowerInvariant(),
+                    col => row[col] == DBNull.Value ? null : row[col])).ToList()));
+        }
 
-            using (var conn = new SqlConnection(DBUtils.GetDBConnectionString()))
+        [HttpGet, RequireFunction("misc_LoadCardsforGuests")]
+        public IActionResult CheckGuestCard(string? id) =>
+            CardAction(() => Json(new { exists = !string.IsNullOrWhiteSpace(id) && _iMiscellaneousService.Cards(id.Trim()).Rows.Count > 0 }));
+
+        [HttpPost, ValidateAntiForgeryToken, RequireFunction("misc_LoadCardsforGuestsAddCard")]
+        public IActionResult AddGuestCards(List<CardAssignment> items)
+        {
+            if (items == null || items.Count == 0) return CardError("You must be add card to guests!");
+            if (items.Any(x => x.ReservationId <= 0 || string.IsNullOrWhiteSpace(x.CardId))
+                || items.Select(x => x.CardId!.Trim()).Distinct().Count() != items.Count
+                || items.Select(x => x.ReservationId).Distinct().Count() != items.Count)
+                return CardError("Invalid card list.");
+
+            return CardAction(() =>
             {
-                conn.Open();
-                using (var tran = conn.BeginTransaction())
-                {
-                    try
-                    {
-                        var reservationID = request.Reservation.ID;
-                        var cardID = request.Reservation.CardId;
-
-                        // Kiểm tra cardID có tồn tại trong bảng Card không
-                        var checkCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.Card WHERE ID = @CardID", conn, tran);
-                        checkCmd.Parameters.AddWithValue("@CardID", cardID);
-                        int exists = (int)checkCmd.ExecuteScalar();
-
-                        if (exists == 0)
-                        {
-                            tran.Rollback();
-                            return BadRequest(new { message = "This CardID does not exist in the system, cannot be updated!" });
-                        }
-
-                        // Nếu tồn tại mới update Reservation và Card
-                        var cmd = new SqlCommand(@"
-                            UPDATE dbo.Reservation SET CardID = @CardID WHERE ID = @ReservationID;
-                            UPDATE dbo.Card SET CanSell = 0 WHERE ID = @CardID;
-
-                            INSERT INTO ActivityLog(TableName,ObjectID,UserID,UserName,ChangeDate,Change,OldValue,NewValue,Description)
-                            VALUES ('Reservation', @ReservationID, @UserID, @UserName, GETDATE(), 'CardID', '', @CardID, 'Add card');
-
-                            INSERT INTO Interface(KeyValue,Description,CreateDate)
-                            VALUES ('SCN', 'SCN|R#' + CAST(@ReservationID AS NVARCHAR(10)) + '|CA' + @CardID + '|SR' + CAST(@ReservationID AS NVARCHAR(10)) + '|', GETDATE());
-                        ", conn, tran);
-
-                        cmd.Parameters.AddWithValue("@ReservationID", reservationID);
-                        cmd.Parameters.AddWithValue("@CardID", cardID);
-                        cmd.Parameters.AddWithValue("@UserID", userId);
-                        cmd.Parameters.AddWithValue("@UserName", username);
-
-                        cmd.ExecuteNonQuery();
-                        tran.Commit();
-
-                        return Ok(new { message = "Card added successfully" });
-                    }
-                    catch (Exception ex)
-                    {
-                        tran.Rollback();
-                        return StatusCode(500, new { error = ex.Message });
-                    }
-                }
-            }
+                var result = _iMiscellaneousService.IssueCards(items, HttpContext.Session.GetInt32("UserID") ?? 0,
+                    HttpContext.Session.GetString("LoginName") ?? "");
+                return Json(new { success = true, processed = result.Processed, skipped = result.Skipped });
+            });
         }
 
-        public class AddCardRequest
+        [HttpPost, ValidateAntiForgeryToken, RequireFunction("misc_LoadCardsforGuestsCancelCard")]
+        public IActionResult CancelGuestCards(List<int> reservationIds)
         {
-            public ReservationModel Reservation { get; set; }
-            public CardModel Card { get; set; }
-        }
+            if (reservationIds == null || reservationIds.Count == 0) return CardError("Select guests to cancel!");
 
-        [HttpPost]
-        public IActionResult CancelCard([FromBody] AddCardRequest request)
-        {
-            var username = HttpContext.Session.GetString("LoginName") ?? "";
-            int userId = HttpContext.Session.GetInt32("UserID") ?? 0;
-
-            using (var conn = new SqlConnection(DBUtils.GetDBConnectionString()))
+            return CardAction(() =>
             {
-                conn.Open();
-                using (var tran = conn.BeginTransaction())
-                {
-                    try
-                    {
-                        var reservationID = request.Reservation.ID;
-                        var cardID = request.Reservation.CardId;
-
-                        // Nếu tồn tại mới update Reservation và Card
-                        var cmd = new SqlCommand(@"
-                            UPDATE dbo.Reservation SET CardID = '' WHERE ID = @ReservationID;
-                            UPDATE dbo.Card SET CanSell = 0 WHERE ID = @CardID;
-
-                            INSERT INTO ActivityLog(TableName,ObjectID,UserID,UserName,ChangeDate,Change,OldValue,NewValue,Description)
-
-                            VALUES ('Reservation', @ReservationID, @UserID, @UserName, GETDATE(), 'CardID', @CardID, '', 'Cancel card');
-
-                            INSERT INTO Interface(KeyValue,Description,CreateDate)
-                            VALUES ('SCN', 'SCN|R#' + CAST(@ReservationID AS NVARCHAR(10)) + '|CA' + @CardID + '|SR' + CAST(@ReservationID AS NVARCHAR(10)) + '|', GETDATE());
-                        ", conn, tran);
-
-                        cmd.Parameters.AddWithValue("@ReservationID", reservationID);
-                        cmd.Parameters.AddWithValue("@CardID", cardID);
-                        cmd.Parameters.AddWithValue("@UserID", userId);
-                        cmd.Parameters.AddWithValue("@UserName", username);
-
-                        cmd.ExecuteNonQuery();
-                        tran.Commit();
-
-                        return Ok(new { message = "Card cancel successfully" });
-                    }
-                    catch (Exception ex)
-                    {
-                        tran.Rollback();
-                        return StatusCode(500, new { error = ex.Message });
-                    }
-                }
-            }
+                var result = _iMiscellaneousService.CancelCards(reservationIds, HttpContext.Session.GetInt32("UserID") ?? 0,
+                    HttpContext.Session.GetString("LoginName") ?? "");
+                return Json(new { success = true, processed = result.Processed, skipped = result.Skipped });
+            });
         }
         #endregion
 

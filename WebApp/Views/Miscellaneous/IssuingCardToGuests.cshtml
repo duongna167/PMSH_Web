@@ -1,600 +1,342 @@
-﻿@using DevExpress.XtraReports.UI
-@{
-    var listzone = ViewBag.ZoneList;
-}
+﻿@{ ViewData["Title"] = "Issuing Card To Guests"; }
 <style>
-    .filter-box {
-        border: 1px solid #ced4da;
-        border-radius: 6px;
-        padding: 8px;
-        background: #fff;
+    #igc_page { width: 100%; margin: 4px 0 12px; font-size: 13px; }
+    #igc_page [hidden] { display: none !important; }
+    #igc_page .header { justify-content: center; margin-bottom: 6px; }
+    #igc_page .mui-card { margin: 0 0 8px; padding: 8px; min-width: 0; }
+    #igc_page label { margin: 0; white-space: nowrap; }
+    .igc-toolbar { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+    .igc-toolbar .mui-button { min-width: 80px; margin: 0; }
+    #igc_scan { width: 230px; margin-left: 24px; }
+    .igc-top { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 1.6fr) minmax(0, 2.8fr); gap: 8px; margin-bottom: 8px; }
+    .igc-top > .mui-card { margin: 0 !important; }
+    .igc-title { display: flex; align-items: center; gap: 8px; padding-bottom: 5px; margin-bottom: 8px; border-bottom: 2px solid #ececec; font-size: 14px; font-weight: 600; color: #000; }
+    .igc-title i { background: #027C75; color: #fff; padding: 4px; font-size: 12px; }
+    .igc-search { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1.8fr); gap: 4px 8px; align-items: center; }
+    .igc-search > label { text-align: right; }
+    .igc-line { display: flex; gap: 6px; align-items: center; min-width: 0; }
+    #igc_page .igc-check { display: inline-flex; align-items: center; gap: 5px; }
+    #igc_page .igc-check input, #igc_page .igc-line > input[type="checkbox"] { flex-shrink: 0; margin: 0; position: static; float: none; }
+    #igc_page [data-date-input] { flex: 0 0 125px; width: 125px; }
+    /* Chiều cao ô nhập: ô chữ và ngày 28, Search Type 25, riêng Zone 27 */
+    #igc_page input.form-control { height: 28px; min-height: 28px; padding-top: 0; padding-bottom: 0; }
+    #igc_page select.form-select { height: 25px; min-height: 25px; padding-top: 0; padding-bottom: 0; }
+    #igc_page .ts-wrapper .ts-control { height: 27px !important; min-height: 27px !important; max-height: 27px !important; }
+    #igc_page .ts-wrapper .ts-control .item { height: 22px !important; }
+    .igc-reader { color: #1d4ed8; font-style: italic; }
+    .igc-options { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; font-weight: 600; font-size: 14px; }
+    .igc-notes { margin: 0; padding-left: 18px; line-height: 2; }
+    .igc-notes em { color: #9f1239; }
+    #igc_page .dx-datagrid .dx-row > td { padding-left: 6px !important; padding-right: 6px !important; }
+    @@media (max-width: 1199.98px) {
+        .igc-top { grid-template-columns: minmax(0, 1fr); }
     }
-
-    .filter-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 6px 8px;
+    @@media (max-width: 575.98px) {
+        .igc-search { grid-template-columns: auto minmax(0, 1fr); }
+        #igc_scan { margin-left: 0; }
     }
-
-    .filter-item label {
-        font-size: 11px;
-        font-weight: 600;
-        margin-bottom: 2px;
-        display: block;
-        color: #555;
-    }
-
-    .filter-item input,
-    .filter-item select {
-        height: 28px;
-        font-size: 13px;
-    }
-
-    .filter-inline {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .filter-checks {
-        display: flex;
-        gap: 16px;
-        margin-top: 4px;
-        font-size: 13px;
-    }
-
-    /*css tomselect */
-
-    /* Wrapper select để khống chế chiều cao */
-    .filter-item .ts-wrapper {
-        width: 100%;
-    }
-
-    /* Khung TomSelect  */
-    .ts-control {
-        height: 28px !important;
-        min-height: 28px !important;
-        padding: 2px 6px !important;
-        font-size: 13px !important;
-        display: flex !important;
-        align-items: center !important;
-        flex-wrap: wrap !important;
-        overflow-x: hidden !important;
-        overflow-y: auto !important;
-    }
-
-        /* Thẻ Item đã chọn  */
-        .ts-control .item {
-            height: 20px !important;
-            padding: 0 6px !important;
-            margin: 2px 4px 2px 0 !important;
-            font-size: 12px !important;
-            line-height: 20px !important;
-            background: #f1f1f1 !important;
-            border: 1px solid #ddd !important;
-            border-radius: 3px !important;
-            display: inline-flex !important;
-            align-items: center !important;
-        }
-
-
-            /* Nút X xóa từng item (nếu dùng plugin remove_button) */
-            .ts-control .item .remove {
-                margin-left: 4px !important;
-                padding-left: 4px !important;
-                border-left: 1px solid #ccc !important;
-            }
-
-    /* Nút X xóa toàn bộ (Custom Clear Button) */
-    .tomselect-custom-wrapper {
-        position: relative !important;
-        width: 100%;
-    }
-
-    .clear-button {
-        position: absolute !important;
-        right: 8px !important;
-        top: 50% !important;
-        transform: translateY(-50%) !important;
-        cursor: pointer !important;
-        font-size: 1.1rem !important;
-        color: #bbb !important;
-        z-index: 10 !important;
-        background: none !important;
-        border: none !important;
-        padding: 0 5px !important;
-        transition: color 0.2s !important;
-    }
-
-    /* Đệm bên phải để text không đè lên nút Clear */
-    .ts-wrapper.tomselect-custom .ts-control {
-        padding-right: 28px !important;
-    }
-
-        .ts-control input {
-            height: 20px !important;
-            font-size: 12px !important;
-            padding-left: 2px !important;
-        }
-
-    /* Dropdown menu */
-    .ts-dropdown {
-        z-index: 1060 !important;
-        font-size: 13px !important;
-    }
-
-    /* Tùy chỉnh thanh cuộn nhỏ  */
-    .ts-control::-webkit-scrollbar {
-        width: 4px;
-    }
-
-    .ts-control::-webkit-scrollbar-thumb {
-        background: #ccc;
-        border-radius: 4px;
-    }
-    /*end css tomselect */
 </style>
-
-
-<div class="text-center" id="reportTitle" style="font-size: 20px">
-    Issuing Card To Guests
-</div>
-<!-- ================= BUTTONS ================= -->
-<div class="py-2 d-flex flex-wrap gap-2 align-items-center">
-    <button class="mui-button button-report-view" id="btnView">View</button>
-    <button class="mui-button button-report-view" id="btnOK">OK</button>
-    <button class="mui-button button-report-delete" id="btnCancelCard">Cancel Card</button>
-
-    <div class="d-flex align-items-center ms-auto">
-        <label class="filter-label">Input CardID</label>
-        <input id="cardID" name="cardID" class="form-control" style="width:180px">
+<div id="igc_page">
+    <div class="header">
+        <h3 id="content-title">Issuing Card To Guests</h3>
     </div>
-</div>
+    @Html.AntiForgeryToken()
 
-<!-- ================= FILTER AREA ================= -->
-<div class="row g-2">
+    <div class="igc-toolbar mui-card">
+        <button type="button" class="mui-button mui-button-search" id="igc_search">Search</button>
+        <button type="button" class="mui-button mui-button-view" id="igc_checkAll">Check All</button>
+        <button type="button" class="mui-button mui-button-save" id="igc_ok" data-code="misc_LoadCardsforGuestsAddCard">OK</button>
+        <button type="button" class="mui-button button-report-delete" id="igc_cancel" data-code="misc_LoadCardsforGuestsCancelCard">Cancel Card</button>
+        <input id="igc_scan" class="form-control form-control-sm" maxlength="8" inputmode="numeric" autocomplete="off" placeholder="Scan card here">
+    </div>
 
-    <!-- FILTER -->
-    <div class="col-md-8">
-        <div class="filter-box">
-            <div class="filter-grid">
-
-                <div class="filter-item">
-                    <label>Fst.Name</label>
-                    <input id="firstName" class="form-control">
+    <div class="igc-top">
+        <div class="mui-card">
+            <div class="igc-title"><i class="fa-solid fa-sliders"></i> Info search</div>
+            <div class="igc-search">
+                <label for="igc_firstName">Fst.Name</label>
+                <input id="igc_firstName" class="form-control form-control-sm igc-enter" maxlength="20">
+                <label>Arr.From</label>
+                <div class="igc-line">
+                    <div data-date-input data-format="DD/MM/YYYY" data-name="igc_arrFrom" data-default="@ViewBag.BusinessDate">
+                        <input type="text" class="date-ui form-control form-control-sm" autocomplete="off">
+                    </div>
+                    <input type="checkbox" id="igc_useArrFrom" class="form-check-input" checked aria-label="Use Arr.From">
+                    <label>Arr.To</label>
+                    <div data-date-input data-format="DD/MM/YYYY" data-name="igc_arrTo" data-default="@ViewBag.BusinessDate">
+                        <input type="text" class="date-ui form-control form-control-sm" autocomplete="off">
+                    </div>
+                    <input type="checkbox" id="igc_useArrTo" class="form-check-input" checked aria-label="Use Arr.To">
                 </div>
 
-                <div class="filter-item">
-                    <label>Conf.No</label>
-                    <input id="confNo" class="form-control">
+                <label for="igc_confNo">Conf.No</label>
+                <input id="igc_confNo" class="form-control form-control-sm igc-enter" maxlength="10">
+                <label for="igc_name">Name</label>
+                <div class="igc-line">
+                    <input id="igc_name" class="form-control form-control-sm igc-enter" maxlength="100">
+                    <label class="igc-check"><input type="checkbox" id="igc_sharer" class="form-check-input" checked> Room Sharer</label>
                 </div>
 
-                <div class="filter-item">
-                    <label>CRS/GC</label>
-                    <input id="crsNoorGC" class="form-control">
-                </div>
+                <label for="igc_crsNo">CRS No/GC</label>
+                <input id="igc_crsNo" class="form-control form-control-sm igc-enter" maxlength="25">
+                <label for="igc_holder">Resv.Holder</label>
+                <input id="igc_holder" class="form-control form-control-sm igc-enter" maxlength="200">
 
-                <div class="filter-item">
-                    <label>Room No</label>
-                    <input id="roomNo" class="form-control">
-                </div>
+                <label for="igc_roomNo">Room No</label>
+                <input id="igc_roomNo" class="form-control form-control-sm igc-enter" maxlength="50">
+                <label for="igc_searchType">Search Type</label>
+                <select id="igc_searchType" class="form-select form-select-sm">
+                    <option value="0">General</option>
+                    <option value="1">Guest In House</option>
+                    <option value="2">Reservation</option>
+                    <option value="3">Due In</option>
+                    <option value="4">Checked In</option>
+                    <option value="5">Due Out</option>
+                    <option value="6">Checked Out</option>
+                    <option value="7">Arrival &amp; Checked In Today</option>
+                    <option value="8">Check Out Today</option>
+                </select>
 
-                <div class="filter-item">
-                    <label>Zone</label>
-                    <select id="zone" name="zone" multiple>
-                        @foreach (var sg in ViewBag.ZoneList)
+                <label>Zone</label>
+                <div style="min-width:0">
+                    <select id="igc_zone" class="tomselect-custom" multiple>
+                        @foreach (string code in ViewBag.ZoneCodes)
                         {
-                            <option value="@sg.Code">@sg.Code</option>
+                            <option value="@code">@code</option>
                         }
                     </select>
                 </div>
+                <span></span>
+                <label class="igc-check"><input type="checkbox" id="igc_showHasCard" class="form-check-input" checked> Show more guest has card</label>
 
-                <div class="filter-item">
-                    <label>CardID</label>
-                    <input id="searchcardID" class="form-control">
-                </div>
-
-                <div class="filter-item">
-                    <label>Arr.From</label>
-                    <div class="filter-inline">
-                        <input type="date" id="fromDate" class="form-control">
-                        <input type="checkbox" id="chkfromDate" checked>
-                    </div>
-                </div>
-
-                <div class="filter-item">
-                    <label>Arr.To</label>
-                    <div class="filter-inline">
-                        <input type="date" id="toDate" class="form-control">
-                        <input type="checkbox" id="chktoDate" checked>
-                    </div>
-                </div>
-
-                <div class="filter-item">
-                    <label>Name</label>
-                    <input id="name" class="form-control">
-                </div>
-
-                <div class="filter-item">
-                    <label>Resv</label>
-                    <input id="resvHolder" class="form-control">
-                </div>
-
-                <div class="filter-item">
-                    <label>Type</label>
-                    <input id="searchType" class="form-control">
-                </div>
-
-            </div>
-
-            <div class="filter-checks">
-                <label><input type="checkbox" id="roomSharer" checked> Sharer</label>
-                <label><input type="checkbox" id="guesthascard" checked> Show guest has card</label>
-                <label><input type="checkbox" id="bycardIDfromCardReader"> Card reader</label>
+                <label for="igc_cardId">Card ID</label>
+                <input id="igc_cardId" class="form-control form-control-sm igc-enter" maxlength="8" inputmode="numeric">
+                <span></span>
+                <label class="igc-check igc-reader"><input type="checkbox" id="igc_byReader" class="form-check-input"> Search by card ID from Card reader. Click this checkbox</label>
             </div>
         </div>
-    </div>
 
+        <div class="mui-card">
+            <div class="igc-title"><i class="fa-solid fa-gear"></i> Options</div>
+            <div class="igc-options">
+                <label class="igc-check"><input type="checkbox" id="igc_addCard" class="form-check-input" checked> Add Card</label>
+                <label class="igc-check text-muted"><input type="checkbox" class="form-check-input" disabled> Cut Key</label>
+                <div>Count: <span id="igc_count">0</span></div>
+            </div>
+        </div>
 
-    <div class="col-md-2">
-        <div class="filter-box">
-            <label><input type="checkbox" id="addCard" checked> Add Card</label><br>
-            <label><input type="checkbox" id="cutKey" disabled> Cut Key</label>
+        <div class="mui-card">
+            <div class="igc-title"><i class="fa-solid fa-circle-info"></i> Notes</div>
+            <ol class="igc-notes">
+                <li>Select guest list to add card or cutkey</li>
+                <li>Insert card to card reader --&gt; Add card for guests</li>
+                <li>Options: Choose add card or cutkey or both</li>
+                <li>Click OK to confirm --&gt; Add card for guests<br><em>(After issuing, card will be used for meals)</em></li>
+            </ol>
         </div>
     </div>
 
-    <div class="col-md-2">
-        <div class="filter-box" style="font-size:12px">
-            <div>1. Select guest</div>
-            <div>2. Insert card</div>
-            <div>3. Choose option</div>
-            <div>4. Click OK</div>
-        </div>
-    </div>
-
-</div>
-
-
-<!-- ================= GRID ================= -->
-<div class="mui-card mt-3">
-    <div id="gridContainerRateCode" class="gridContainer"></div>
-</div>
-
-<!-- Loading Spinner -->
-<div id="loadingSpinnerRateCode" style="display: none; text-align: center; padding: 20px;">
-    <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
+    <div class="mui-card">
+        <div id="igc_grid" class="gridContainer"></div>
     </div>
 </div>
 
 <script>
-     const statusMap = {
-        "Done": 1,
-        "Pending": 2,
-        "Transferred": 3
-        };
+    var igc_Module = (function () {
+        const root = '#igc_page';
+        const CARD_ID_LENGTH = 8;
+        let grid, searchRequest, processing = false;
+        let rows = [], pending = 0, scanQueue = Promise.resolve();
 
-        // Map QualityType code -> ID
-        const qualityTypeMap = {
-            "NV": 1, // None Value
-            "V": 2  // Value
-        };
+        const col = (field, caption, width, extra) => Object.assign({ dataField: field, caption: caption, width: width }, extra);
+        const date = (field, caption) => col(field, caption, 90, { dataType: 'date', format: 'dd/MM/yy' });
+        const value = name => $('#' + name).val();
+        const checked = name => $('#' + name).is(':checked');
+        const notify = message => showToast('Warning', message, false);
+        const errorText = (xhr, fallback) => xhr.responseJSON?.message || xhr.responseJSON?.msg || fallback;
+        const ask = title => Swal.fire({ icon: 'question', title: title, showCancelButton: true, confirmButtonText: 'Yes', cancelButtonText: 'No' });
 
-
-
-    DevExpress.localization.locale("vi");
-    var selectedRowsData = [];
-
-      function formatDate(date) {
-            let year = date.getFullYear();
-            let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-            let day = date.getDate().toString().padStart(2, '0'); // Đảm bảo có 2 chữ số
-            return `${year}-${month}-${day}`;
+        function post(url, data) {
+            data.__RequestVerificationToken = $(root + ' input[name="__RequestVerificationToken"]').val();
+            return $.ajax({ url: url, type: 'POST', data: data, traditional: true });
         }
 
-      $(document).ready(function () {
-            // Khởi tạo kết nối tới SignalR Hub
-            const connection = new signalR.HubConnectionBuilder()
-                .withUrl("/tagScanHub")
-                .build();
+        function setCount(next) {
+            pending = next;
+            $('#igc_count').text(pending);
+        }
 
-            // Khi server gửi code RFID về
-            connection.on("ReceiveCode", function (code) {
-                console.log("Mã quét được:", code);
-
-                // Gán giá trị vào ô input
-                $("#cardID")
-                .val(code)
-                .trigger("change") // 🔥 Thêm dòng này để on("change") hoạt động
-                .addClass("border-success")
-                .fadeOut(100)
-        .fadeIn(100);
-
-          
-            });
-
-            // Bắt đầu kết nối
-            connection.start()
-                .then(function () {
-                    console.log("✅ Kết nối SignalR thành công!");
+        function search() {
+            if (searchRequest) searchRequest.abort();
+            grid.beginCustomLoading('Loading...');
+            searchRequest = $.get('/Miscellaneous/SearchCardGuests', {
+                firstName: value('igc_firstName'), confirmationNo: value('igc_confNo'), crsNo: value('igc_crsNo'),
+                roomNo: value('igc_roomNo'), zone: ($('#igc_zone').val() || []).join(','), guestName: value('igc_name'),
+                rsvHolder: value('igc_holder'), cardID: value('igc_cardId'), roomSharer: checked('igc_sharer'),
+                showHasCard: checked('igc_showHasCard'), searchType: value('igc_searchType'),
+                arrFrom: checked('igc_useArrFrom') ? value('igc_arrFrom') : '',
+                arrTo: checked('igc_useArrTo') ? value('igc_arrTo') : ''
+            })
+                .done(data => {
+                    rows = data;
+                    grid.clearSelection();
+                    grid.option('dataSource', rows);
+                    setCount(0);
+                    $('#igc_checkAll').text('Check All');
                 })
-                .catch(function (err) {
-                    console.error("❌ Lỗi kết nối SignalR:", err);
-                });
-
-                const today = new Date();
-                const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-                // Lấy ngày cuối cùng của tháng
-                const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-              // Định dạng theo local time
-                const formattedFirstDay = formatDate(firstDayOfMonth);
-                const formattedLastDay = formatDate(lastDayOfMonth);
-                console.log(formattedFirstDay); // Kiểm tra giá trị đúng chưa
-                console.log(formattedLastDay); // Kiểm tra giá trị đúng chưa
-                // Gán giá trị cho input date
-                document.getElementById('fromDate').value = formattedFirstDay;
-                document.getElementById('toDate').value = formattedLastDay;
-
-                    $("#fromDate").prop("disabled", !$("#chkfromDate").is(":checked"));
-                    $("#toDate").prop("disabled", !$("#chktoDate").is(":checked"));
-
-                    // Sự kiện change
-                    $("#chkfromDate").change(function () {
-                        if ($(this).is(":checked")) {
-                            $("#fromDate").prop("disabled", false);
-                            $("#fromDate").val(new Date().toISOString().split('T')[0]);
-                        } else {
-                            $("#fromDate").prop("disabled", true).val("");
-                        }
-                    });
-
-                    $("#chktoDate").change(function () {
-                        if ($(this).is(":checked")) {
-                            $("#toDate").prop("disabled", false);
-                            $("#toDate").val(new Date().toISOString().split('T')[0]);
-                        } else {
-                            $("#toDate").prop("disabled", true).val("");
-                        }
-                    });
-                     $("#cardID").on("change", function () {
-                        let value = $(this).val();
-
-                        // Kiểm tra nếu đủ 8 số và toàn là số
-                        if (value.length === 8 && /^\d+$/.test(value)) {
-                            insertCard(value);
-                        }
-                    });
-
-
-                initializeTomSelects();
-                reloadGrid();
-        });
-         function initializeTomSelects() {
-                const selectors = ["#zone"];
-
-            selectors.forEach(selector => {
-            const el = document.querySelector(selector);
-            if (el) {
-                 if (el.tomselect) el.tomselect.destroy();
-                    new TomSelect(el, {
-                        plugins: {
-                        'remove_button': { title: 'Deselect' },
-                        'dropdown_input': {},
-                        'clear_button': { title: 'Clear all' },
-                    },
-                    dropdownParent: 'body',
-                    create: false,
-                    maxItems: null,
-                    valueField: 'value',
-                    labelField: 'text',
-                    searchField: ['text'],
-                    placeholder: ' Enter or select options...',
-                    onClear: function() {
-                    const self = this;
-                    setTimeout(() => {
-                        self.close();
-                        self.blur();
-                    }, 10);
-                },
-                    render: {
-                        option: function(data, escape) {
-                            return `<div class="p-2"> ${escape(data.text)} </div>`;
-                        },
-                        item: function(data, escape) {
-                            return '<div title="' + escape(data.text) + '">' + escape(data.text) + '</div>';
-                        }
-                    }
-
-                });
-            }
-        });
+                .fail((xhr, status) => { if (status !== 'abort') notify(errorText(xhr, 'Cannot search guests.')); })
+                .always(() => grid.endCustomLoading());
         }
 
-              function loadGrid(data) {
-        $("#gridContainerRateCode").dxDataGrid({
-            dataSource: data,
-            height: 500,
-            width: "100%",
-            columnAutoWidth: true,
-            allowColumnResizing: true,
-            columnResizingMode: "widget",
-            selection: { mode: "multiple" },
-            columns: [        
-                { dataField: "cardID", caption: "CardID", width: "11%" },
-                { dataField: "confirmationNo", caption: "Conf.No", width: "11%" },
-
-                { dataField: "mainGuest", caption: "M", width: "11%" },
-                { dataField: "nat", caption: "Nat", width: "11%" },
-
-                { dataField: "title", caption: "Title", width:"11%" },
-                { dataField: "account", caption: "Guest Name", width: "11%" },
-
-                { dataField: "dateOfBirth", caption: "Date Of Birth", dataType: "date", format: "dd/MM/yyyy", width: "11%" },
-                { dataField: "passPort", caption: "Pass Port", width: "11%" },
-
-                { dataField: "identityCard", caption: "Identity Card", width: "11%" },
-                { dataField: "roomNo", caption: "Ro.No", width: "11%" },
-
-                { dataField: "roomType", caption: "Ro.Type", width: "11%" },
-                { dataField: "arrivalDate", caption: "Arr.Date", dataType: "date", format: "dd/MM/yyyy", width: "11%" },
-
-                { dataField: "noOfNight", caption: "N", width: "11%" },
-                { dataField: "departureDate", caption: "Dep.Date", dataType: "date", format: "dd/MM/yyyy", width: "11%" },
-
-                { dataField: "package", caption: "Package", width: "11%" },
-                { dataField: "noOfAdult", caption: "A", width: "11%" },
-
-                { dataField: "noOfChild", caption: "C", width: "11%" },
-                { dataField: "noOfChild1", caption: "C1", width: "11%" },
-
-                { dataField: "noOfChild2", caption: "C2", width: "11%" },
-                { dataField: "statusText", caption: "Status", width: "11%" },
-
-                { dataField: "reservationHolder", caption: "Reservation Holder", width: "11%" },
-                { dataField: "address", caption: "Address", width: "11%" },
-            ],
-            filterRow: { visible:true, applyFilter:"auto" },
-            paging: { pageSize:20 },
-            pager: {
-                visible:true,
-                allowedPageSizes:[20,50,'all'],
-                showPageSizeSelector:true,
-                showInfo:true,
-                showNavigationButtons:true
-            },
-            scrolling: { mode:"standard", showScrollbar:"always", scrollByContent:true },
-            onSelectionChanged: function(e){
-                selectedRowsData = e.selectedRowsData || [];
-                console.log("Selected Rows:", selectedRowsData);
-            }
-        });
-    }
-
-        // Reload grid với filter từ form
-        function reloadGrid() {
-            $("#loadingSpinnerRateCode").show();
-                    let fromDate = $("#chkfromDate").is(":checked") ? $("#fromDate").val() : null;
-                    let toDate   = $("#chktoDate").is(":checked") ? $("#toDate").val() : null;
-            $.ajax({
-                url: '/Miscellaneous/GetIssuingCardToGuests',
-                type: 'GET',
-                data: {
-                    firstName: $("#firstName").val(),
-                    confirmationNo: $("#confNo").val(),
-                    crsNo: $("#crsNoorGC").val(),
-                    roomNo: $("#roomNo").val(),
-                    zone: $("#zone").val(),
-                    guestName: $("#name").val(),
-                    rsvHolder: $("#resvHolder").val(),
-                    isShowRS: $("#roomSharer").is(":checked") ? "" : "Y",
-                    isShowCard: $("#guesthascard").is(":checked") ? "" : "Y",
-                    arrFrom:    fromDate,
-                    arrTo: toDate,
-                    status: $("#searchType").val(),
-                    findCardID: $("#cardID").val(),
-
-               },
-                success: function(data){
-                    console.log(data);
-                    loadGrid(data);
-                    $("#loadingSpinnerRateCode").hide();
-                },
-                error: function(xhr, status, error){
-                    alert("Không thể tải dữ liệu");
-                    $("#loadingSpinnerRateCode").hide();
-                }
-            });
-        }
-
-        // Nút view click
-        $("#btnView").click(function(){
-            reloadGrid();
-        });
-            // Hàm gọi AddCard API
-        function insertCard(cardID) {
-        if (!selectedRowsData || selectedRowsData.length === 0) {
-            showToast('Warning', 'Please select 1 guest from the list before adding a card!', false);
-            return;
-        }
-
-        const target = selectedRowsData[0]; // chỉ lấy row đầu tiên
-        const gridData = $("#gridContainerRateCode").dxDataGrid("instance").option("dataSource");
-        const exists = Array.isArray(gridData) && gridData.some(row => String(row.cardID) === String(cardID));
-        if (exists) {
-               showToast('Warning', 'This CardID already exists in the list. Please check again!', false);
- 
-            return;
-        }
-
-        const requestData = {
-            Reservation: {
-                ID: target.reservationID,
-                CardId: cardID
-            },
-        };
-
-        $("#loadingSpinnerRateCode").show();
-
-        $.ajax({
-            url: '/Miscellaneous/AddCard',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(requestData),
-            success: function(response) {
-                $("#loadingSpinnerRateCode").hide();
-                if (response && response.success) {
-                    // ✅ Khi thêm thành công
-                    $("#cardID").val('');
-                    reloadGrid();
-                } else {
-                    // ⚠️ Khi server trả về success = false nhưng không lỗi HTTP
-                    showToast("Error", response.message || "Có lỗi xảy ra khi thêm thẻ.", false);
-                }
-            },
-            error: function(xhr, status, error) {
-                $("#loadingSpinnerRateCode").hide();
-                showToast("Error", "Card added error!", false);
-            }
-        });
-    }
-
-            function CancelCard() {
-        if (!selectedRowsData || selectedRowsData.length === 0) {
-            alert("Vui lòng chọn ít nhất 1 guest trong danh sách trước khi hủy card!");
-            return;
-        }
-
-        $("#loadingSpinnerRateCode").show();
-
-        let requests = selectedRowsData.map(row => {
-            return $.ajax({
-                url: '/Miscellaneous/CancelCard',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    Reservation: {
-                        ID: row.reservationID,
-                        CardId: row.cardID
-                    }
+        // Gán thẻ cho khách đầu tiên được tích mà chưa có thẻ (AddCard bên WinForms)
+        function assignCard(cardId) {
+            return $.get('/Miscellaneous/CheckGuestCard', { id: cardId })
+                .then(res => {
+                    if (!res.exists) return notify(cardId + ': This card not already exists on the system.');
+                    if (rows.some(x => x.cardid === cardId)) return notify(cardId + ': This card already exists on the grid.');
+                    const selected = new Set(grid.getSelectedRowKeys());
+                    const guest = rows.find(x => selected.has(x.reservationid) && !x.cardid);
+                    if (!guest) return notify('Unable to add card to guests!');
+                    guest.cardid = cardId;
+                    setCount(pending + 1);
+                    grid.refresh();
                 })
+                .catch(xhr => notify(errorText(xhr, 'Cannot check card.')));
+        }
+
+        function receiveCard(code) {
+            code = String(code).trim();
+            if (checked('igc_byReader')) {
+                $('#igc_cardId').val(code);
+                search();
+                return;
+            }
+            // Xử lý lần lượt để quét liên tiếp vẫn gán đúng thứ tự
+            scanQueue = scanQueue.then(() => assignCard(code));
+        }
+
+        function showResult(res, successTitle) {
+            const skipped = res.skipped || [];
+            return Swal.fire({
+                icon: skipped.length ? 'warning' : 'success',
+                title: res.processed ? successTitle + ' (' + res.processed + ')' : 'No guest was processed',
+                text: skipped.length ? 'These guests were not processed:\n- ' + skipped.join('\n- ') : '',
+                didOpen: popup => { const text = popup.querySelector('.swal2-html-container'); if (text) text.style.whiteSpace = 'pre-line'; }
             });
-        });
+        }
 
-        $.when.apply($, requests).done(function () {
-            $("#loadingSpinnerRateCode").hide();
-            showToast("Success", "Card Canceled successfully!", true);
-            reloadGrid();
-        }).fail(function () {
-            $("#loadingSpinnerRateCode").hide();
-            showToast("Error", "Card Canceled error!", false);
-        });
-    }
+        function send(url, data, successTitle, button) {
+            processing = true;
+            $(button).prop('disabled', true);
+            post(url, data)
+                .done(res => {
+                    showResult(res, successTitle);
+                    $('#igc_cardId').val('');
+                    search();
+                })
+                .fail(xhr => Swal.fire({ icon: 'warning', title: 'Warning', text: errorText(xhr, 'Cannot process card.') }))
+                .always(() => { processing = false; $(button).prop('disabled', false); });
+        }
 
+        async function addCards() {
+            if (processing) return;
+            if (!pending) return notify('You must be add card to guests!');
+            if (!checked('igc_addCard')) return notify('Please choose options to continue!');
+            if (!(await ask('Are you sure you want to create account [card] for all guests you selected?')).isConfirmed) return;
 
-    $("#btnCancelCard").click(function() {
-        CancelCard();
-        reloadGrid();
-    });
+            // Chỉ lưu những thẻ vừa gán, chưa có trong database
+            const data = {};
+            rows.filter(x => x.cardid && !x.iscard).forEach((x, i) => {
+                data['items[' + i + '].reservationId'] = x.reservationid;
+                data['items[' + i + '].cardId'] = x.cardid;
+            });
+            send('/Miscellaneous/AddGuestCards', data, 'Add card Successfully', '#igc_ok');
+        }
 
+        async function cancelCards() {
+            if (processing) return;
+            const guests = grid.getSelectedRowsData().filter(x => x.iscard === 'Y');
+            if (!guests.length) return notify('Select guest existing card to cancel!');
+            if (!(await ask('Are you sure you want to cancel account [card] for all guests you selected?')).isConfirmed) return;
+            send('/Miscellaneous/CancelGuestCards', { reservationIds: guests.map(x => x.reservationid) }, 'Cancel card Successfully', '#igc_cancel');
+        }
 
+        function toggleCheckAll() {
+            const check = $('#igc_checkAll').text() === 'Check All';
+            if (check) grid.selectAll(); else grid.clearSelection();
+            $('#igc_checkAll').text(check ? 'Un Check' : 'Check All');
+        }
+
+        function toggleDate(name, enabled) {
+            $(root + ' [data-name="' + name + '"]').find('input, button').prop('disabled', !enabled);
+        }
+
+        function changeSearchType() {
+            const index = Number(value('igc_searchType'));
+            const useFrom = [0, 2, 6].includes(index), useTo = [0, 2].includes(index);
+            $('#igc_useArrFrom').prop('checked', useFrom); toggleDate('igc_arrFrom', useFrom);
+            $('#igc_useArrTo').prop('checked', useTo); toggleDate('igc_arrTo', useTo);
+            search();
+        }
+
+        // Đầu đọc thẻ gắn vào server gửi mã về qua SignalR
+        function listenCardReader() {
+            const connection = new signalR.HubConnectionBuilder().withUrl('/tagScanHub').build();
+            connection.on('ReceiveCode', receiveCard);
+            connection.start().catch(err => console.error('Card reader connection failed:', err));
+        }
+
+        function init() {
+            window.initDateInputs(document.getElementById('igc_page'));
+            initTomSelect('#igc_zone');
+            grid = $('#igc_grid').dxDataGrid({
+                dataSource: [], keyExpr: 'reservationid', height: 420,
+                showBorders: true, showRowLines: true, allowColumnResizing: true, columnResizingMode: 'widget',
+                paging: { enabled: false }, scrolling: { mode: 'virtual', showScrollbar: 'always' }, noDataText: '',
+                filterRow: { visible: true },
+                selection: { mode: 'multiple', showCheckBoxesMode: 'always', selectAllMode: 'allPages' },
+                columns: [
+                    col('cardid', 'Card ID', 100), col('confirmationno', 'Conf. No', 90), col('mainguest', 'M', 40),
+                    col('nat', 'Nat', 55), col('title', 'Title', 55), col('account', 'Guest Name', 180),
+                    col('dateofbirth', 'Date of Birth', 100), col('passport', 'Passport', 100), col('identitycard', 'Identity Card', 110),
+                    col('roomno', 'Ro. No', 80), col('roomtype', 'Ro. Type', 80), date('arrivaldate', 'Arr. Date'),
+                    col('noofnight', 'N', 40), date('departuredate', 'Dep. Date'), col('package', 'Package', 80),
+                    col('noofadult', 'A', 40), col('noofchild', 'C', 40), col('noofchild1', 'C1', 40), col('noofchild2', 'C2', 40),
+                    col('statustext', 'Status', 100), col('reservationholder', 'Reservation Holder', 180), col('address', 'Address', 200)
+                ],
+                summary: {
+                    totalItems: [
+                        { column: 'cardid', summaryType: 'count', displayFormat: '{0}' },
+                        { column: 'account', summaryType: 'count', displayFormat: '{0}' }
+                    ]
+                },
+                // Chữ đỏ: thẻ vừa gán, chưa lưu
+                onRowPrepared: e => { if (e.rowType === 'data' && e.data.cardid && !e.data.iscard) e.rowElement.css('color', 'red'); }
+            }).dxDataGrid('instance');
+
+            $('#igc_search').on('click', search);
+            $('#igc_checkAll').on('click', toggleCheckAll);
+            $('#igc_ok').on('click', addCards);
+            $('#igc_cancel').on('click', cancelCards);
+            $('#igc_searchType').on('change', changeSearchType);
+            $('#igc_useArrFrom').on('change', function () { toggleDate('igc_arrFrom', this.checked); });
+            $('#igc_useArrTo').on('change', function () { toggleDate('igc_arrTo', this.checked); });
+            $(root + ' .igc-enter').on('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); search(); } });
+            // Gõ/quét đủ mã vào ô trên cùng là gán thẻ
+            $('#igc_scan').on('input', function () {
+                const code = this.value.replace(/\D/g, '');
+                this.value = code;
+                if (code.length !== CARD_ID_LENGTH) return;
+                this.value = '';
+                receiveCard(code);
+            });
+
+            listenCardReader();
+            search();
+        }
+
+        return { init: init };
+    })();
+    // Chạy sau khi layout nạp xong site.js (initDateInputs)
+    $(function () { igc_Module.init(); });
 </script>
