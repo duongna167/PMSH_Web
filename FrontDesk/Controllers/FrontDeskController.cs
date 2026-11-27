@@ -27,7 +27,7 @@ using System.Collections;
 using DevExpress.XtraRichEdit.Import.Doc;
 namespace FrontDesk.Controllers
 {
-    public class FrontDeskController : Controller
+    public partial class FrontDeskController : Controller
     {
         private readonly IConfiguration _configuration;
         private readonly ILogger<FrontDeskController> _logger;

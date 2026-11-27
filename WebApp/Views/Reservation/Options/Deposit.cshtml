@@ -14,7 +14,7 @@
                         <button class="mui-button mui-button-save" onclick="openModalDepositPayment();">
                             Payment</button>
                         <button class="mui-button mui-button-save">Apply</button>
-                        <button class="mui-button mui-button-save" onclick="PrinReceipt();"> Receipct</button>
+                        <button class="mui-button mui-button-save" onclick="PrinReceipt();"> Receipt</button>
                         <button class="mui-button mui-button-close" onclick="closeModalDeposit()"> Close</button>
                     </div>
                 </div>
@@ -301,6 +301,52 @@
         return isNaN(n) ? 0 : n;
     }
 
+    // ===== Định dạng số tiền: dấu chấm (.) phân cách hàng nghìn, dấu phẩy (,) phần lẻ (tối đa 2 số, dùng cho USD) =====
+    function formatDepositMoney(value) {
+        const n = parseLocalizedNumber(value);
+        return n.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+
+    // Định dạng ngay khi gõ, giữ vị trí con trỏ
+    function formatDepositMoneyInput(el) {
+        const raw = el.value;
+        const caret = el.selectionStart == null ? raw.length : el.selectionStart;
+        const digitsBefore = raw.slice(0, caret).replace(/[^0-9,]/g, '').length;
+
+        let clean = raw.replace(/[^0-9,]/g, '');
+        const comma = clean.indexOf(',');
+        let intPart = comma >= 0 ? clean.slice(0, comma) : clean;
+        let decPart = comma >= 0 ? clean.slice(comma + 1).replace(/,/g, '').slice(0, 2) : null;
+        intPart = intPart.replace(/^0+(?=\d)/, '');
+        if (!intPart && decPart === null) { el.value = ''; return; }
+
+        const formatted = (intPart ? Number(intPart).toLocaleString('vi-VN') : '0') + (decPart !== null ? ',' + decPart : '');
+        el.value = formatted;
+
+        let pos = 0, count = 0;
+        while (pos < formatted.length && count < digitsBefore) {
+            if (/[0-9,]/.test(formatted[pos])) count++;
+            pos++;
+        }
+        try { el.setSelectionRange(pos, pos); } catch (e) { }
+    }
+
+    $(document).off('.depositMoney')
+        .on('input.depositMoney', '#amountDepositPayment, #amountDepositRequest', function () {
+            formatDepositMoneyInput(this);
+        })
+        .on('keypress.depositMoney', '#amountDepositPayment, #amountDepositRequest', function (e) {
+            const ch = String.fromCharCode(e.which || e.keyCode);
+            if (!/[0-9,]/.test(ch)) e.preventDefault();
+        })
+        .on('focus.depositMoney', '#amountDepositPayment, #amountDepositRequest', function () {
+            const el = this;
+            setTimeout(function () { try { el.select(); } catch (e) { } }, 0);
+        })
+        .on('blur.depositMoney', '#amountDepositPayment, #amountDepositRequest', function () {
+            this.value = formatDepositMoney(this.value);
+        });
+
     function openModalDeposit() {
         if (idReservation === 0) {
             showToast('Warning', 'Please choose booking', false);
@@ -574,7 +620,7 @@
                     $('[data-date-input][data-name="dueDateDepositRequest"] .date-ui, input[name="dueDateDepositRequest"]').prop('disabled', true);
                     $('#descriptionDepositRequest').prop('disabled', true);
                     $('#percentageDepositRequest').prop('disabled', true);
-                    $('#amountDepositRequest').val(result.amount);
+                    $('#amountDepositRequest').val(formatDepositMoney(result.amount));
                     let dueDate = new Date(getHiddenDateValue('dueDateDepositRequest')); // hidden ISO yyyy-MM-dd
                     if (result.daysBeforeArrival) {
                         dueDate.setDate(dueDate.getDate() - result.daysBeforeArrival); // Giảm số ngày
@@ -585,21 +631,21 @@
                     if (typeof UI !== 'undefined' && UI.setHiddenDate) {
                         UI.setHiddenDate('dueDateDepositRequest', dueDate.toISOString().split('T')[0]);
                     }
-                    $('#amountDepositRequest').val(result.amountValue);
+                    $('#amountDepositRequest').val(formatDepositMoney(result.amountValue));
                 }
                 else if (result.type == 1) {
                     $('#percentageDepositRequest').prop('disabled', true);
                     $('#amountDepositRequest').prop('disabled', true);
-                    var rate = parseFloat(rateAmount) * parseFloat(result.amountValue) / 100;
-                    $('#amountDepositRequest').val(rate);
+                    var rate = parseLocalizedNumber(rateAmount) * parseFloat(result.amountValue) / 100;
+                    $('#amountDepositRequest').val(formatDepositMoney(rate));
                     $('[data-date-input][data-name="dueDateDepositRequest"] .date-ui, input[name="dueDateDepositRequest"]').prop('disabled', true);
                     $('#descriptionDepositRequest').prop('disabled', true);
                 }
                 else {
                     $('#percentageDepositRequest').prop('disabled', true);
                     $('#amountDepositRequest').prop('disabled', true);
-                    var rate = parseFloat(rateAmount) * parseFloat(result.amountValue);
-                    $('#amountDepositRequest').val(rate);
+                    var rate = parseLocalizedNumber(rateAmount) * parseFloat(result.amountValue);
+                    $('#amountDepositRequest').val(formatDepositMoney(rate));
                     $('[data-date-input][data-name="dueDateDepositRequest"] .date-ui, input[name="dueDateDepositRequest"]').prop('disabled', true);
                     $('#descriptionDepositRequest').prop('disabled', true);
                 }
@@ -661,9 +707,40 @@
         });
 
     }
+    // Ghi Reference "DEPOSIT - Conf.No: xxx". Biến confirmationNo dùng chung trên trang có thể bị reset rỗng
+    // (vd form New Reservation reset biến khi mở / đóng) -> nếu rỗng thì lấy lại từ booking đang chọn.
+    function fillDepositPaymentReference() {
+        // set cho mọi ô trùng id (trang có thể chứa 2 bản Deposit: Search Reservation + New Reservation)
+        const setRef = function (conf) {
+            $('[id="referenceDepositPayment"]').val('DEPOSIT - Conf.No: ' + (conf || ''));
+        };
+        const current = (typeof confirmationNo !== 'undefined' && confirmationNo != null) ? String(confirmationNo).trim() : '';
+        if (current) {
+            setRef(current);
+            return;
+        }
+        setRef('');
+        const rid = parseInt(typeof idReservation !== 'undefined' ? idReservation : 0, 10) || 0;
+        if (rid <= 0) return;
+        $.ajax({
+            url: '/Reservation/GetReservationByID',
+            type: 'GET',
+            data: { ID: rid },
+            success: function (res) {
+                const conf = res && (res.confirmationNo || res.ConfirmationNo);
+                if (conf) {
+                    confirmationNo = String(conf);
+                    // chỉ ghi đè khi user chưa tự sửa ô Reference
+                    const $ref = $('[id="referenceDepositPayment"]');
+                    if (!$ref.val() || $ref.val().trim() === 'DEPOSIT - Conf.No:') setRef(conf);
+                }
+            }
+        });
+    }
+
     function openModalDepositPayment() {
         resetDepositPaymentSubmitState();
-        $('#referenceDepositPayment').val(`DEPOSIT - Conf.No: ${confirmationNo}`);
+        fillDepositPaymentReference();
         getTransactionPayment();
         const arrivalIso = parseReservationDateToIso(arivalDate) || window.dateSystem;
         if (arrivalIso && typeof UI !== 'undefined' && UI.setHiddenDate) {

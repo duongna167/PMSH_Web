@@ -58,7 +58,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddResponseCompression(options =>
 {
     options.EnableForHttps = true;
-    options.MimeTypes = new[] { "text/csv" }; // L?y t? appsettings.json n?u c?n
+    options.MimeTypes = new[] { "text/csv", "application/json" }; // L?y t? appsettings.json n?u c?n
 });
 
 var mvcBuilder = builder.Services.AddControllersWithViews();

@@ -1032,6 +1032,117 @@ namespace Reservation.Controllers
         #endregion
 
         #region Tạo booking __ Save reservation
+
+        /// <summary>
+        /// Đồng bộ tên khách trên booking vào Profile (tránh tên trong booking và profile khác nhau).
+        /// Tên dạng "Họ, Tên Đệm" (giống ô Name / form tạo profile): Account = cả chuỗi, LastName = phần trước dấu phẩy,
+        /// Firstname = từ đầu sau dấu phẩy, MiddleName = phần còn lại.
+        /// </summary>
+        private static void ApplyReservationNameToProfile(ProfileModel profile, string name)
+        {
+            name = (name ?? "").Trim();
+            if (profile == null || name.Length == 0 || name == (profile.Account ?? "").Trim())
+                return;
+
+            profile.Account = name;
+            int comma = name.IndexOf(',');
+            if (comma >= 0)
+            {
+                profile.LastName = name.Substring(0, comma).Trim();
+                string[] tokens = name.Substring(comma + 1).Trim()
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                profile.Firstname = tokens.Length > 0 ? tokens[0] : "";
+                profile.MiddleName = tokens.Length > 1 ? string.Join(" ", tokens.Skip(1)) : "";
+            }
+            else
+            {
+                profile.LastName = name;
+                profile.Firstname = "";
+                profile.MiddleName = "";
+            }
+            profile.FullAccount = $"{profile.LastName} {profile.MiddleName} {profile.Firstname}".Replace("  ", " ").Trim();
+        }
+
+        /// <summary>
+        /// Đọc số tiền từ form theo chuẩn của màn Reservation: dấu chấm (.) phân cách hàng nghìn, dấu phẩy (,) là phần thập phân.
+        /// Ví dụ "1.250.000" = 1250000, "120,5" = 120.5. Không phụ thuộc culture của server.
+        /// </summary>
+        private static decimal ParseReservationMoney(string? value)
+        {
+            string s = (value ?? "").Trim().Replace(" ", "").Replace(".", "").Replace(',', '.');
+            return decimal.TryParse(s, System.Globalization.NumberStyles.AllowLeadingSign | System.Globalization.NumberStyles.AllowDecimalPoint,
+                System.Globalization.CultureInfo.InvariantCulture, out decimal d) ? d : 0;
+        }
+
+        /// <summary>
+        /// Cập nhật tên Profile ngay khi rời ô Name trên form New/Edit Reservation (không chờ bấm Save).
+        /// Đồng thời đồng bộ tên trên các booking đang dùng profile này và ghi log Profile.
+        /// </summary>
+        [HttpPost]
+        public IActionResult UpdateProfileNameFromReservation(int profileId, string name, int userId, string userName)
+        {
+            try
+            {
+                name = (name ?? "").Trim();
+                if (profileId <= 0 || name.Length == 0)
+                    return Json(new { code = 1, msg = "Invalid profile or name." });
+
+                if (ProfileBO.Instance.FindByPrimaryKey(profileId) is not ProfileModel profile || profile.ID == 0)
+                    return Json(new { code = 1, msg = "Could not find profile" });
+                if (profile.Type != 0)
+                    return Json(new { code = 1, msg = "Only individual profiles can be renamed here." });
+
+                if (name == (profile.Account ?? "").Trim())
+                    return Json(new { code = 0, changed = false, firstName = profile.Firstname ?? "" });
+
+                ProfileModel oldData = (ProfileModel)profile.Clone();
+                ApplyReservationNameToProfile(profile, name);
+                profile.UserUpdateID = userId;
+                profile.UpdateDate = DateTime.Now;
+                ProfileBO.Instance.Update(profile);
+
+                try { BaseBusiness.util.ProfileSyncUtil.SyncIndividualNameToReservations(profile); } catch { }
+
+                var log = new ActivityLogModel
+                {
+                    TableName = "Profile",
+                    ObjectID = profile.ID,
+                    UserID = userId,
+                    UserName = userName ?? "",
+                    ChangeDate = DateTime.Now,
+                    Change = "Update",
+                    Description = "Update Profile name from Reservation"
+                };
+                TextUtils.FillValues(log, oldData, profile);
+                if (!string.IsNullOrEmpty(log.NewValue))
+                    ActivityLogBO.Instance.Insert(log);
+
+                return Json(new { code = 0, changed = true, firstName = profile.Firstname ?? "", msg = "Profile name updated." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { code = 1, msg = ex.Message });
+            }
+        }
+
+        /// <summary>Màu mặc định của ô Color trên form New Reservation (xanh) = "không tô màu".</summary>
+        private const string DefaultReservationColorHex = "#027C75";
+
+        /// <summary>
+        /// Đổi màu từ form (#RRGGBB) sang giá trị lưu DB (ARGB int). Rỗng / đen / màu mặc định -> "" (không tô màu dòng
+        /// trên grid Search Reservation), tránh mọi booking mới đều bị tô nền xanh.
+        /// </summary>
+        private static string ToReservationColor(string? hex)
+        {
+            hex = (hex ?? "").Trim();
+            if (hex.Length == 0
+                || hex.Equals("#000000", StringComparison.OrdinalIgnoreCase)
+                || hex.Equals(DefaultReservationColorHex, StringComparison.OrdinalIgnoreCase))
+                return "";
+            try { return ColorTranslator.FromHtml(hex).ToArgb().ToString(); }
+            catch { return ""; }
+        }
+
         [HttpPost]
         public ActionResult SaveReservation([FromForm] SaveReservationRequest req)
         {
@@ -1040,6 +1151,15 @@ namespace Reservation.Controllers
             {
                 req ??= new SaveReservationRequest();
                 string F(string? s) => s ?? "";
+
+                // Booking đã Check Out (Status = 2): chỉ xem, không cho sửa
+                if (int.TryParse(F(req.ReservationId), out int editRsvId) && editRsvId > 0)
+                {
+                    var existingRsv = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(editRsvId);
+                    if (existingRsv != null && existingRsv.Status == 2)
+                        return Json(new { code = 1, msg = "This reservation has been checked out and cannot be modified." });
+                }
+
                 pt.OpenConnection();
                 pt.BeginTransaction();
                 DateTime businessDate = TextUtils.GetBusinessDate();
@@ -1324,12 +1444,12 @@ namespace Reservation.Controllers
                     reservationModel.ConfirmationStatus = true;
                     reservationModel.VideoCheckOutStatus = false;
                     reservationModel.CRSNo = "";
-                    reservationModel.DiscountAmount = decimal.Parse(F(req.DiscountAmount));
-                    reservationModel.DiscountRate = decimal.Parse(F(req.DiscountRate));
+                    reservationModel.DiscountAmount = ParseReservationMoney(req.DiscountAmount);
+                    reservationModel.DiscountRate = ParseReservationMoney(req.DiscountRate);
                     reservationModel.DiscountReason = F(req.DiscountReason);
                     reservationModel.Comment = F(req.Comment);
                     reservationModel.BalanceUSD = 0;
-                    reservationModel.BalanceVND = decimal.Parse(F(req.RateAfter));
+                    reservationModel.BalanceVND = ParseReservationMoney(req.RateAfter);
                     reservationModel.ApprovalCode = "";
                     reservationModel.ApprovalAmount = 0;
                     reservationModel.SuiteWith = "";
@@ -1370,17 +1490,15 @@ namespace Reservation.Controllers
                         reservationModel.RateCodeId = int.Parse(F(req.RateCodeId));
                         reservationModel.RateCode = F(req.RateCode);
                     }
-                    reservationModel.Rate = decimal.Parse(F(req.RateAmount));
-                    reservationModel.RateAfterTax = decimal.Parse(F(req.RateAfter));
+                    reservationModel.Rate = ParseReservationMoney(req.RateAmount);
+                    reservationModel.RateAfterTax = ParseReservationMoney(req.RateAfter);
                     reservationModel.FixedRate = false;
-                    reservationModel.TotalAmount = decimal.Parse(F(req.RateAmount));
+                    reservationModel.TotalAmount = ParseReservationMoney(req.RateAmount);
                     reservationModel.CurrencyId = "VND";
                     reservationModel.Party = "";
                     reservationModel.PartyGuest = "";
                     reservationModel.IsPasserBy = false;
-                    string color = F(req.Color);
-                    //reservationModel.Color = F(req.Color);
-                    reservationModel.Color = "";
+                    reservationModel.Color = ToReservationColor(F(req.Color));
 
                     reservationModel.ARNo = "";
                     reservationModel.ItemInventory = itemInventoryRes;
@@ -1423,6 +1541,13 @@ namespace Reservation.Controllers
                     reservationModel.VoucherId = "";
                     int reservationID = Convert.ToInt32(ReservationBO.Instance.Insert(reservationModel));
                     reservationModel.ID = reservationID;
+                    // ShareRoom được đoán trước = GetTopID()+1; nếu ID thật khác (identity nhảy / tạo đồng thời)
+                    // thì ShareRoom trùng với booking khác → Split / Room Sharer lấy nhầm booking. Gán lại đúng ID.
+                    if (reservationModel.ShareRoom != reservationID)
+                    {
+                        reservationModel.ShareRoom = reservationID;
+                        ReservationBO.Instance.Update(reservationModel);
+                    }
                     #endregion
 
 
@@ -1459,7 +1584,14 @@ namespace Reservation.Controllers
                         reservationMaster.MainGuest = false;
                         reservationMaster.ShareRoom = reservationModel.ShareRoom + 1;
                         reservationMaster.Status = DateTime.Parse(F(req.Arrival)) == businessDate ? 5 : 0;
-                        ReservationBO.Instance.Insert(reservationMaster);
+                        int masterId = Convert.ToInt32(ReservationBO.Instance.Insert(reservationMaster));
+                        // ShareRoom của Master = chính ID của nó (không đoán trước) để không trùng nhóm booking khác
+                        if (masterId > 0 && reservationMaster.ShareRoom != masterId)
+                        {
+                            reservationMaster.ID = masterId;
+                            reservationMaster.ShareRoom = masterId;
+                            ReservationBO.Instance.Update(reservationMaster);
+                        }
                     }
                     #endregion
 
@@ -1552,6 +1684,7 @@ namespace Reservation.Controllers
                     profile.City = !string.IsNullOrEmpty(F(req.City)) ? F(req.City) : "";
                     profile.VIPID = !string.IsNullOrEmpty(F(req.VipId)) ? int.Parse(F(req.VipId)) : 0;
                     profile.CreditCard = !string.IsNullOrEmpty(F(req.MemberNo)) ? F(req.MemberNo) : "";
+                    ApplyReservationNameToProfile(profile, F(req.LastName));
                     ProfileBO.Instance.Update(profile);
                     #endregion
 
@@ -1789,12 +1922,12 @@ namespace Reservation.Controllers
                     reservationModel.ConfirmationStatus = true;
                     reservationModel.VideoCheckOutStatus = false;
                     reservationModel.CRSNo = "";
-                    reservationModel.DiscountAmount = decimal.Parse(F(req.DiscountAmount));
-                    reservationModel.DiscountRate = decimal.Parse(F(req.DiscountRate));
+                    reservationModel.DiscountAmount = ParseReservationMoney(req.DiscountAmount);
+                    reservationModel.DiscountRate = ParseReservationMoney(req.DiscountRate);
                     reservationModel.DiscountReason = F(req.DiscountReason);
                     reservationModel.Comment = F(req.Comment);
                     reservationModel.BalanceUSD = 0;
-                    reservationModel.BalanceVND = decimal.Parse(F(req.RateAfter));
+                    reservationModel.BalanceVND = ParseReservationMoney(req.RateAfter);
                     reservationModel.ApprovalCode = "";
                     reservationModel.ApprovalAmount = 0;
                     reservationModel.SuiteWith = "";
@@ -1839,25 +1972,15 @@ namespace Reservation.Controllers
                         reservationModel.RateCodeId = int.Parse(F(req.RateCodeId));
                         reservationModel.RateCode = F(req.RateCode);
                     }
-                    reservationModel.Rate = decimal.Parse(F(req.RateAmount));
-                    reservationModel.RateAfterTax = decimal.Parse(F(req.RateAfter));
+                    reservationModel.Rate = ParseReservationMoney(req.RateAmount);
+                    reservationModel.RateAfterTax = ParseReservationMoney(req.RateAfter);
                     reservationModel.FixedRate = false;
-                    reservationModel.TotalAmount = decimal.Parse(F(req.RateAmount));
+                    reservationModel.TotalAmount = ParseReservationMoney(req.RateAmount);
                     reservationModel.CurrencyId = "VND";
                     reservationModel.Party = "";
                     reservationModel.PartyGuest = "";
                     reservationModel.IsPasserBy = false;
-                    //reservationModel.Color = F(req.Color);
-                    string colorres = F(req.Color);
-                    if (!string.IsNullOrWhiteSpace(colorres) && colorres != "#000000")
-                    {
-                        System.Drawing.Color color = ColorTranslator.FromHtml(colorres);
-                        reservationModel.Color = color.ToArgb().ToString();
-                    }
-                    else
-                    {
-                        reservationModel.Color = ""; // hoặc "" tùy kiểu DB
-                    }
+                    reservationModel.Color = ToReservationColor(F(req.Color));
                     reservationModel.ARNo = "";
                     reservationModel.ItemInventory = F(req.ItemInventory);
                     reservationModel.Specials = F(req.Specials);
@@ -2000,6 +2123,7 @@ namespace Reservation.Controllers
                     profile.City = !string.IsNullOrEmpty(F(req.City)) ? F(req.City) : "";
                     profile.VIPID = !string.IsNullOrEmpty(F(req.VipId)) ? int.Parse(F(req.VipId)) : 0;
                     profile.CreditCard = !string.IsNullOrEmpty(F(req.MemberNo)) ? F(req.MemberNo) : "";
+                    ApplyReservationNameToProfile(profile, F(req.LastName));
                     ProfileBO.Instance.Update(profile);
                     #endregion
 
@@ -3048,14 +3172,16 @@ namespace Reservation.Controllers
                 var room = (RoomModel)RoomBO.Instance.FindByPrimaryKey(reservation.RoomId);
                 if (room != null)
                 {
-                    if (room.FOStatus == 1)
-                        return Json(new { code = 1, msg = $"Room {room.RoomNo} is Occupied." });
-
-                    // HKStatusID:  4 - Inspected, 1 - Clean
-                    if (room.HKStatusID != 4 && room.HKStatusID != 1)
-                    {
-                        return Json(new { code = 1, msg = $"Room {room.RoomNo} is not Clean/Inspected (Current HK: {room.HKStatusID})." });
-                    }
+                    // Occupied: kiểm tra khách in-house thật trên phòng (khác nhóm share), không tin riêng FOStatus
+                    // (FOStatus có thể còn = 1 sau khi Reinstate check-in; room sharer vào sau main guest vẫn hợp lệ).
+                    string sqlOcc = $@"SELECT COUNT(*) FROM Reservation WITH (NOLOCK)
+                                        WHERE RoomID = {reservation.RoomId} AND Status IN (1, 6) AND ID <> {reservation.ID}
+                                          AND (ISNULL(ShareRoom, 0) = 0 OR ISNULL(ShareRoom, 0) <> {reservation.ShareRoom})";
+                    DataTable dtOcc = TextUtils.Select(sqlOcc);
+                    int occupiedBy = dtOcc.Rows.Count > 0 ? Convert.ToInt32(dtOcc.Rows[0][0]) : 0;
+                    // Chỉ phòng VC (Vacant + HKStatusID 4 = Clean Checked) mới được check-in
+                    if (occupiedBy > 0 || room.HKStatusID != 4)
+                        return Json(new { code = 1, msg = "Please check room status, to make sure is clean or inspected" });
                 }
 
                 ReservationModel oldData = (ReservationModel)reservation.Clone();
@@ -3187,11 +3313,21 @@ namespace Reservation.Controllers
         }
 
         [HttpPost]
-        public ActionResult PrintRegistrationCard(int id)
+        public ActionResult PrintRegistrationCard(int id, int templateId = 0)
         {
             ProcessTransactions pt = new ProcessTransactions();
             try
             {
+                // Mẫu được chọn trên lưới (RegistrationCard.Name). Web hiện mới có mẫu tiếng Việt (V_...);
+                // mẫu English (E_...) / Russian (R_...) chưa được port từ WinForm → báo rõ, không in nhầm mẫu tiếng Việt.
+                if (templateId > 0)
+                {
+                    var tpl = (RegistrationCardModel)RegistrationCardBO.Instance.FindByPrimaryKey(templateId);
+                    string tplName = (tpl?.Name ?? "").Trim();
+                    if (tpl != null && !tplName.StartsWith("V_", StringComparison.OrdinalIgnoreCase))
+                        return Json(new { code = 1, msg = $"Template \"{tpl.Description}\" is not available on web yet." });
+                }
+
                 pt.OpenConnection();
                 pt.BeginTransaction();
                 string url = "";
@@ -3303,8 +3439,39 @@ namespace Reservation.Controllers
             try
             {
 
-                var result = ReservationFixedChargeBO.Instance.FindByAttribute("ReservationID", reservationID);
+                var list = PropertyUtils.ConvertToList<ReservationFixedChargeModel>(ReservationFixedChargeBO.Instance.FindByAttribute("ReservationID", reservationID));
                 ReservationModel reservation = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(reservationID);
+
+                // Tên user tạo / sửa (footer Create By / Update By như WinForm)
+                var userIds = list.SelectMany(x => new[] { x.UserInsertID, x.UserUpdateID }).Where(x => x > 0).Distinct().ToList();
+                var userNames = new Dictionary<int, string>();
+                if (userIds.Count > 0)
+                {
+                    var dtU = TextUtils.Select($"SELECT ID, LoginName FROM Users WITH (NOLOCK) WHERE ID IN ({string.Join(",", userIds)})");
+                    foreach (DataRow r in dtU.Rows) userNames[Convert.ToInt32(r["ID"])] = r["LoginName"]?.ToString() ?? "";
+                }
+                string U(int id) => userNames.TryGetValue(id, out var n) ? n : "";
+
+                var result = list.OrderBy(x => x.ID).Select(x => new
+                {
+                    id = x.ID,
+                    transactionCode = x.TransactionCode,
+                    description = x.Description,
+                    quantity = x.Quantity,
+                    amount = x.Amount,
+                    amountAfterTax = x.AmountAfterTax,
+                    currencyID = x.CurrencyID,
+                    postingRhythmID = x.PostingRhythmID,
+                    beginDate = x.BeginDate.ToString("yyyy-MM-dd"),
+                    endDate = x.EndDate.ToString("yyyy-MM-dd"),
+                    postingDate = x.PostingDate.Year > 1900 ? x.PostingDate.ToString("yyyy-MM-dd") : "",
+                    postingDay = x.PostingDay ?? "",
+                    articlesCode = x.ArticlesCode ?? "",
+                    createBy = U(x.UserInsertID),
+                    createDate = x.CreateDate.ToString("dd/MM/yyyy HH:mm"),
+                    updateBy = U(x.UserUpdateID),
+                    updateDate = x.UpdateDate.ToString("dd/MM/yyyy HH:mm")
+                }).ToList();
                 return Json(new
                 {
                     reservationFixedCharge = result,
@@ -3343,28 +3510,74 @@ namespace Reservation.Controllers
                 pt.OpenConnection();
                 pt.BeginTransaction();
                 List<BusinessDateModel> businessDate = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
-                TransactionsModel tran = (TransactionsModel)TransactionsBO.Instance.FindByAttribute("Code", Request.Form["transCode"].ToString())[0];
-                ReservationFixedChargeModel reservationFixedCharge = new ReservationFixedChargeModel();
-                reservationFixedCharge.ReservationID = int.Parse(Request.Form["rsvID"].ToString());
-                reservationFixedCharge.TransactionCode = Request.Form["transCode"].ToString();
-                reservationFixedCharge.ArticlesCode = "";
-                reservationFixedCharge.BeginDate = DateTime.Parse(Request.Form["beignDate"].ToString());
-                reservationFixedCharge.EndDate = DateTime.Parse(Request.Form["endDate"].ToString());
-                reservationFixedCharge.Quantity = int.Parse(Request.Form["quantity"].ToString());
-                reservationFixedCharge.Amount = decimal.Parse(Request.Form["amount"].ToString());
-                reservationFixedCharge.AmountAfterTax = decimal.Parse(Request.Form["net"].ToString());
-                reservationFixedCharge.CurrencyID = Request.Form["currency"].ToString();
-                reservationFixedCharge.PostingRhythmID = int.Parse(Request.Form["postingRhythmlID"].ToString());
-                reservationFixedCharge.PostingDate = businessDate[0].BusinessDate;
-                reservationFixedCharge.PostingDay = "";
-                reservationFixedCharge.ProfitCenterID = 0;
+                string transCode = Request.Form["transCode"].ToString();
+                if (string.IsNullOrWhiteSpace(transCode) || transCode == "0")
+                    return Json(new { code = 1, msg = "Please select a transcode." });
+                var trans = TransactionsBO.Instance.FindByAttribute("Code", transCode);
+                if (trans == null || trans.Count == 0) return Json(new { code = 1, msg = "Transaction not found" });
+                TransactionsModel tran = (TransactionsModel)trans[0];
+
+                int rsvId = int.Parse(Request.Form["rsvID"].ToString());
+                ReservationModel rsvFc = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(rsvId);
+                if (rsvFc == null || rsvFc.ID == 0) return Json(new { code = 1, msg = "Reservation not found" });
+                int.TryParse(Request.Form["id"].ToString(), out int fcId);
+                int.TryParse(Request.Form["userID"].ToString(), out int fcUserId);
+                int.TryParse(Request.Form["postingRhythmlID"].ToString(), out int rhythm);
+                if (rhythm < 1 || rhythm > 5) rhythm = 1;
+                int.TryParse(Request.Form["quantity"].ToString(), out int qty);
+                if (qty <= 0) return Json(new { code = 1, msg = "Quantity must be greater than 0" });
+
+                // Khoảng ngày theo Posting Rhythm (như dữ liệu WinForm):
+                // 1 Everyday / 3 Day: Begin–End nhập trên form; 2 Date: ngày chọn → +1;
+                // 4 At Check In: ngày đến → +1; 5 At Check Out: đêm cuối (ngày đi - 1) → ngày đi
+                DateTime begin, end;
+                DateTime ParseD(string key) => DateTime.Parse(Request.Form[key].ToString());
+                switch (rhythm)
+                {
+                    case 2: begin = ParseD("postDate").Date; end = begin.AddDays(1); break;
+                    case 4: begin = rsvFc.ArrivalDate.Date; end = begin.AddDays(1); break;
+                    case 5: end = rsvFc.DepartureDate.Date; begin = end > rsvFc.ArrivalDate.Date ? end.AddDays(-1) : end; break;
+                    default: begin = ParseD("beignDate").Date; end = ParseD("endDate").Date; break;
+                }
+                if (end < begin) return Json(new { code = 1, msg = "End Date must be on or after Begin Date" });
+
+                ReservationFixedChargeModel reservationFixedCharge;
+                if (fcId > 0)
+                {
+                    reservationFixedCharge = (ReservationFixedChargeModel)ReservationFixedChargeBO.Instance.FindByPrimaryKey(fcId);
+                    if (reservationFixedCharge == null || reservationFixedCharge.ID == 0)
+                        return Json(new { code = 1, msg = "Fixed charge not found" });
+                }
+                else
+                {
+                    reservationFixedCharge = new ReservationFixedChargeModel
+                    {
+                        ReservationID = rsvId,
+                        ArticlesCode = "",
+                        ProfitCenterID = 0,
+                        IsTaxInclude = false,
+                        UserInsertID = fcUserId,
+                        CreateDate = DateTime.Now
+                    };
+                }
+                reservationFixedCharge.TransactionCode = tran.Code;
                 reservationFixedCharge.Description = tran.Description;
-                reservationFixedCharge.IsTaxInclude = false;
-                reservationFixedCharge.UserInsertID = reservationFixedCharge.UserUpdateID = int.Parse(Request.Form["userID"].ToString());
-                reservationFixedCharge.UpdateDate = reservationFixedCharge.CreateDate = DateTime.Now;
-                ReservationFixedChargeBO.Instance.Insert(reservationFixedCharge);
+                reservationFixedCharge.BeginDate = begin;
+                reservationFixedCharge.EndDate = end;
+                reservationFixedCharge.Quantity = qty;
+                reservationFixedCharge.Amount = ParseReservationMoney(Request.Form["amount"].ToString());
+                reservationFixedCharge.AmountAfterTax = ParseReservationMoney(Request.Form["net"].ToString());
+                reservationFixedCharge.CurrencyID = string.IsNullOrWhiteSpace(Request.Form["currency"]) ? "VND" : Request.Form["currency"].ToString();
+                reservationFixedCharge.PostingRhythmID = rhythm;
+                reservationFixedCharge.PostingDate = rhythm == 1 || rhythm == 3 ? businessDate[0].BusinessDate : begin;
+                reservationFixedCharge.PostingDay = rhythm == 3 ? Request.Form["postingDay"].ToString() : "";
+                reservationFixedCharge.UserUpdateID = fcUserId;
+                reservationFixedCharge.UpdateDate = DateTime.Now;
+
+                if (fcId > 0) ReservationFixedChargeBO.Instance.Update(reservationFixedCharge);
+                else ReservationFixedChargeBO.Instance.Insert(reservationFixedCharge);
                 pt.CommitTransaction();
-                return Json(new { code = 0, msg = "New reservation fixed charge created successfully" });
+                return Json(new { code = 0, msg = fcId > 0 ? "Reservation fixed charge updated successfully" : "New reservation fixed charge created successfully" });
 
             }
             catch (Exception ex)
@@ -3376,6 +3589,22 @@ namespace Reservation.Controllers
             {
                 pt.CloseConnection();
 
+            }
+        }
+
+        [HttpPost]
+        public IActionResult DeleteReservationFixedCharge(int id)
+        {
+            try
+            {
+                var fc = (ReservationFixedChargeModel)ReservationFixedChargeBO.Instance.FindByPrimaryKey(id);
+                if (fc == null || fc.ID == 0) return Json(new { code = 1, msg = "Fixed charge not found" });
+                ReservationFixedChargeBO.Instance.Delete(id);
+                return Json(new { code = 0, msg = "Fixed charge was deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { code = 1, msg = ex.Message });
             }
         }
 
@@ -3749,6 +3978,27 @@ namespace Reservation.Controllers
             }
         }
 
+        /// <summary>
+        /// Tên khách trên phiếu thu. Reservation.LastName đã là tên đầy đủ dạng "Họ, Tên" (vd "Nguyễn Tiến, Hai"),
+        /// nên không ghép thêm FirstName (tránh "Nguyễn Tiến, Hai Hai"); bỏ dấu phẩy -> "Nguyễn Tiến Hai".
+        /// </summary>
+        private static string FormatReceiptGuestName(string? lastName, string? firstName)
+        {
+            string last = (lastName ?? "").Trim();
+            string first = (firstName ?? "").Trim();
+            int comma = last.IndexOf(',');
+            if (comma >= 0)
+            {
+                string family = last.Substring(0, comma).Trim();
+                string given = last.Substring(comma + 1).Trim();
+                return System.Text.RegularExpressions.Regex.Replace($"{family} {given}", @"\s+", " ").Trim();
+            }
+            // Chưa có tên riêng trong LastName -> ghép FirstName (nếu chưa có sẵn)
+            if (first.Length > 0 && !last.EndsWith(first, StringComparison.OrdinalIgnoreCase))
+                return $"{last} {first}".Trim();
+            return last;
+        }
+
         [HttpPost]
         public ActionResult PrintReceipt(int id, string userName)
         {
@@ -3763,8 +4013,10 @@ namespace Reservation.Controllers
 
                 XtraReport report = new Templates.DepositReceipt.Report1();
                 report.Parameters["Date"].Value = deposit.TransactionDate.ToString("dd/MM/yyyy");
-                report.Parameters["GuestName"].Value = $"{reservation.LastName} {reservation.FirstName}".Trim();
-                report.Parameters["PaymentMethod"].Value = deposit.Description.ToString();
+                report.Parameters["GuestName"].Value = FormatReceiptGuestName(reservation.LastName, reservation.FirstName);
+                // In trên 1 dòng: gộp các dòng xuống hàng (nếu có) thành dấu cách
+                report.Parameters["PaymentMethod"].Value = System.Text.RegularExpressions.Regex
+                    .Replace(deposit.Description?.ToString() ?? "", @"\s*[\r\n]+\s*", " ").Trim();
                 report.Parameters["ReceiptNo"].Value = deposit.ReceiptNo.ToString();
                 report.Parameters["ReceiptReason"].Value = $"Deposit Res.No {deposit.ReservationID}";
                 report.Parameters["RoomNo"].Value = reservation.RoomNo.ToString();
@@ -3811,35 +4063,144 @@ namespace Reservation.Controllers
             try
             {
 
-                DataTable myData = _iRoutingService.SearchRouting(reservationID, confirmationNo);
+                int.TryParse(reservationID, out int rid);
+                // Conf.No không gửi lên (biến client cũ) → lấy theo booking, tránh SP báo thiếu tham số
+                if (string.IsNullOrWhiteSpace(confirmationNo) && rid > 0)
+                {
+                    var rsv = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(rid);
+                    confirmationNo = rsv?.ConfirmationNo ?? "";
+                }
+                DataTable myData = _iRoutingService.SearchRouting(rid.ToString(), confirmationNo ?? "");
+
+                static string D(object v) => v == null || v == DBNull.Value ? "" : Convert.ToDateTime(v).ToString("dd/MM/yyyy");
+                static string S(object v) => v == null || v == DBNull.Value ? "" : v.ToString();
 
                 var result = (from d in myData.AsEnumerable()
-
                               select new
                               {
-                                  AccountName = d["AccountName"].ToString(),
-                                  TransactionCodes = d["TransactionCodes"].ToString(),
-                                  FromDate = Convert.ToDateTime(d["FromDate"]).ToString("dd/MM/yyyy"),
-                                  ToDate = Convert.ToDateTime(d["ToDate"]).ToString("dd/MM/yyyy"),
-                                  RoomNo = d["RoomNo"].ToString(),
-                                  ToFolioNo = d["ToFolioNo"].ToString(),
-                                  Limit = d["Limit"].ToString(),
-                                  IsMasterFolio = d["IsMasterFolio"].ToString(),
-                                  UserInsertID = d["UserInsertID"].ToString(),
-                                  CreateDate = Convert.ToDateTime(d["CreateDate"]).ToString("dd/MM/yyyy"),
-                                  UserUpdateID = d["UserUpdateID"].ToString(),
-                                  UpdateDate = Convert.ToDateTime(d["UpdateDate"]).ToString("dd/MM/yyyy"),
-                                  ID = d["ID"].ToString(),
-                                  ToReservationID = d["ToReservationID"].ToString(),
-
+                                  AccountName = S(d["AccountName"]),
+                                  TransactionCodes = S(d["TransactionCodes"]),
+                                  FromDate = D(d["FromDate"]),
+                                  ToDate = D(d["ToDate"]),
+                                  RoomNo = S(d["RoomNo"]),
+                                  ToFolioNo = S(d["ToFolioNo"]),
+                                  Limit = S(d["Limit"]),
+                                  IsMasterFolio = S(d["IsMasterFolio"]),
+                                  UserInsertID = S(d["UserInsertID"]),
+                                  CreateDate = D(d["CreateDate"]),
+                                  UserUpdateID = S(d["UserUpdateID"]),
+                                  UpdateDate = D(d["UpdateDate"]),
+                                  ID = S(d["ID"]),
+                                  ToReservationID = S(d["ToReservationID"]),
                               }).ToList();
 
                 return Json(result);
-
             }
             catch (Exception ex)
             {
-                return Json(ex.Message);
+                // Không trả string: dxDataGrid hiểu string là URL → hiện "Not Found"
+                Response.StatusCode = 500;
+                return Json(new { code = 1, msg = ex.Message });
+            }
+        }
+
+        /// <summary>Master Folio của Conf.No (booking ReservationNo = 0) cho mục Name khi chọn Master Folio.</summary>
+        [HttpGet]
+        public IActionResult GetRoutingMasters(int reservationID)
+        {
+            try
+            {
+                var rsv = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(reservationID);
+                var list = RoutingUtil.GetMasters(rsv?.ConfirmationNo ?? "");
+                return Json(list.Select(m => new { id = m.ReservationID, profileID = m.ProfileID, name = m.Name, address = m.Address }));
+            }
+            catch (Exception ex)
+            {
+                Response.StatusCode = 500;
+                return Json(new { code = 1, msg = ex.Message });
+            }
+        }
+
+        /// <summary>Địa chỉ profile (ô Address trên form Routing).</summary>
+        [HttpGet]
+        public IActionResult GetRoutingProfileAddress(int profileID)
+        {
+            try
+            {
+                var p = profileID > 0 ? (ProfileModel)ProfileBO.Instance.FindByPrimaryKey(profileID) : null;
+                return Json(new { address = p?.Address ?? "" });
+            }
+            catch
+            {
+                return Json(new { address = "" });
+            }
+        }
+
+        [HttpGet]
+        public IActionResult GetRoutingByID(int id)
+        {
+            try
+            {
+                RoutingModel r = (RoutingModel)RoutingBO.Instance.FindByPrimaryKey(id);
+                if (r == null || r.ID == 0) return Json(new { code = 1, msg = "Routing not found" });
+                return Json(new { code = 0, routing = r });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { code = 1, msg = ex.Message });
+            }
+        }
+
+        /// <summary>Port btnDelete_Click của WinForm frmRoutingInstructions.</summary>
+        [HttpPost]
+        public IActionResult DeleteRouting(int id, int fromReservationID, int userID, string userName)
+        {
+            try
+            {
+                RoutingModel r = (RoutingModel)RoutingBO.Instance.FindByPrimaryKey(id);
+                if (r == null || r.ID == 0) return Json(new { code = 1, msg = "Routing not found" });
+
+                var rsv = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(fromReservationID);
+                string conf = rsv?.ConfirmationNo ?? "";
+                string code = r.TransactionCodes ?? "";
+
+                void Log(int objectId) => ActivityLogBO.Instance.Insert(new ActivityLogModel
+                {
+                    TableName = "Reservation",
+                    UserID = userID,
+                    UserName = userName ?? "",
+                    ChangeDate = DateTime.Now,
+                    Change = "Routing",
+                    ObjectID = objectId,
+                    OldValue = code,
+                    NewValue = "",
+                    Description = "Delete"
+                });
+
+                if (r.ToFolioNo == -1 && conf != "")
+                {
+                    // Routing Master Folio áp dụng cho cả Conf.No → tắt nút Routing của booking nào chỉ còn routing này
+                    foreach (int rid in RoutingUtil.GetReservationIdsByConfirmation(conf))
+                    {
+                        if (RoutingUtil.CountRouting(rid, conf) == 1) RoutingUtil.SetRoutingFlag(rid, false);
+                        Log(rid);
+                    }
+                }
+                else
+                {
+                    Log(fromReservationID);
+                }
+
+                RoutingBO.Instance.Delete(id);
+
+                if (RoutingUtil.CountRouting(fromReservationID, conf) == 0)
+                    RoutingUtil.SetRoutingFlag(fromReservationID, false);
+
+                return Json(new { code = 0, msg = "Routing was deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { code = 1, msg = ex.Message });
             }
         }
 
@@ -3853,42 +4214,136 @@ namespace Reservation.Controllers
                 pt.OpenConnection();
                 pt.BeginTransaction();
                 List<BusinessDateModel> businessDate = PropertyUtils.ConvertToList<BusinessDateModel>(BusinessDateBO.Instance.FindAll());
-                if (string.IsNullOrEmpty(Request.Form["transactionCodes"].ToString()) || Request.Form["transactionCodes"].ToString() == "0")
+                string transCodeRouting = Request.Form["transactionCodes"].ToString();
+                if (string.IsNullOrEmpty(transCodeRouting) || transCodeRouting == "0")
                 {
                     return Json(new { code = 1, msg = "Please choose transaction" });
                 }
-                ReservationModel res = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(int.Parse(Request.Form["rsvID"].ToString()));
-                RoutingModel routing = new RoutingModel();
-                routing.Type = int.Parse(Request.Form["transactionRouting"].ToString());
-                routing.FromReservationID = int.Parse(Request.Form["rsvID"].ToString());
-                routing.ToReservationID = int.Parse(Request.Form["rsvID"].ToString());
-                routing.ToFolioNo = int.Parse(Request.Form["toFolioNo"].ToString());
-                routing.ToRoomID = int.Parse(Request.Form["toRoom"].ToString());
-                routing.ProfileID = res.ProfileIndividualId;
-                routing.AccountName = res.LastName;
-                routing.TransactionCodes = Request.Form["transactionCodes"].ToString() + ",";
-                routing.Limit = decimal.TryParse(Request.Form["limit"].ToString(), out decimal parsedLimit) ? parsedLimit : 0;
-                routing.Percents = 0;
-                routing.FromDate = DateTime.Parse(Request.Form["fromDate"].ToString());
-                routing.ToDate = DateTime.Parse(Request.Form["toDate"].ToString());
-                if (Request.Form["entireDate"].ToString() == "1")
-                {
-                    routing.EntireDate = true;
+                int rsvId = int.Parse(Request.Form["rsvID"].ToString());
+                int.TryParse(Request.Form["id"].ToString(), out int routingId);
+                int.TryParse(Request.Form["transactionRouting"].ToString(), out int routingType);
+                int.TryParse(Request.Form["toFolioNo"].ToString(), out int toFolioNo);
+                int.TryParse(Request.Form["toRoom"].ToString(), out int toReservationId);
+                int.TryParse(Request.Form["userID"].ToString(), out int routingUserId);
 
+                ReservationModel res = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(rsvId);
+                if (res == null || res.ID == 0) return Json(new { code = 1, msg = "Reservation not found" });
+
+                // Có ID → Edit (UPDATE), không tạo dòng mới
+                RoutingModel routing;
+                string oldCodes = "";
+                if (routingId > 0)
+                {
+                    routing = (RoutingModel)RoutingBO.Instance.FindByPrimaryKey(routingId);
+                    if (routing == null || routing.ID == 0) return Json(new { code = 1, msg = "Routing not found" });
+                    oldCodes = routing.TransactionCodes ?? "";
                 }
                 else
                 {
-                    routing.EntireDate = false;
-
+                    routing = new RoutingModel
+                    {
+                        FromReservationID = rsvId,
+                        ConfirmationNo = res.ConfirmationNo,
+                        UserInsertID = routingUserId,
+                        CreateDate = DateTime.Now,
+                        IsDefault = false,
+                        IsMasterFolio = false,
+                        Percents = 0
+                    };
                 }
-                routing.IsDefault = false;
-                routing.IsMasterFolio = false;
-                routing.ConfirmationNo = res.ConfirmationNo;
-                routing.UserInsertID = routing.UserUpdateID = int.Parse(Request.Form["userID"].ToString());
-                routing.UpdateDate = routing.CreateDate = DateTime.Now;
-                RoutingBO.Instance.Insert(routing);
+
+                // Type theo WinForm: 2 = Master Folio, 1 = Window, 0 = Room
+                routing.Type = routingType;
+                if (routingType == 2)
+                {
+                    // Master Folio: áp dụng cho cả Conf.No → chuyển sang booking Master (ReservationNo = 0)
+                    int.TryParse(Request.Form["masterID"].ToString(), out int masterId);
+                    var master = RoutingUtil.GetMasters(res.ConfirmationNo).Find(m => m.ReservationID == masterId);
+                    if (master == null) return Json(new { code = 1, msg = "Please choose master folio" });
+                    routing.FromReservationID = 0;
+                    routing.ToReservationID = master.ReservationID;
+                    routing.ToRoomID = 0;
+                    routing.ToFolioNo = -1;
+                    routing.IsMasterFolio = true;
+                    routing.ProfileID = master.ProfileID;
+                    routing.AccountName = master.Name;
+                    routing.ConfirmationNo = res.ConfirmationNo;
+                }
+                else if (routingType == 0)
+                {
+                    // Room: chuyển sang folio (window 1) của phòng (booking) được chọn
+                    if (toReservationId <= 0) return Json(new { code = 1, msg = "Please choose room" });
+                    ReservationModel toRes = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(toReservationId);
+                    if (toRes == null || toRes.ID == 0) return Json(new { code = 1, msg = "Room not found" });
+                    routing.FromReservationID = rsvId;
+                    routing.ToReservationID = toRes.ID;
+                    routing.ToRoomID = toRes.RoomId;
+                    routing.ToFolioNo = 1;
+                    routing.IsMasterFolio = false;
+                    routing.ProfileID = toRes.ProfileIndividualId;
+                    routing.AccountName = toRes.LastName;
+                }
+                else
+                {
+                    // Window: chuyển sang window khác của chính booking (Name có thể chọn profile khác)
+                    if (toFolioNo < 2) return Json(new { code = 1, msg = "Please choose window" });
+                    int.TryParse(Request.Form["profileID"].ToString(), out int winProfileId);
+                    string winName = Request.Form["accountName"].ToString();
+                    routing.FromReservationID = rsvId;
+                    routing.ToReservationID = rsvId;
+                    routing.ToRoomID = 0;
+                    routing.ToFolioNo = toFolioNo;
+                    routing.IsMasterFolio = false;
+                    routing.ProfileID = winProfileId > 0 ? winProfileId : res.ProfileIndividualId;
+                    routing.AccountName = !string.IsNullOrWhiteSpace(winName) ? winName.Trim() : res.LastName;
+                }
+                // Nhiều mã giao dịch, định dạng như WinForm: "1002, 1104, 2010, "
+                var codeList = transCodeRouting.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Where(c => c != "0").Distinct().ToList();
+                if (codeList.Count == 0) return Json(new { code = 1, msg = "Please choose transaction" });
+                routing.TransactionCodes = string.Join(", ", codeList) + ", ";
+                string limitText = (Request.Form["limit"].ToString() ?? "").Trim().Replace(".", "").Replace(",", ".");
+                routing.Limit = decimal.TryParse(limitText, System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out decimal parsedLimit) ? parsedLimit : 0;
+                routing.EntireDate = Request.Form["entireDate"].ToString() == "1";
+                if (routing.EntireDate)
+                {
+                    routing.FromDate = res.ArrivalDate.Date;
+                    routing.ToDate = res.DepartureDate.Date;
+                }
+                else
+                {
+                    routing.FromDate = DateTime.Parse(Request.Form["fromDate"].ToString());
+                    routing.ToDate = DateTime.Parse(Request.Form["toDate"].ToString());
+                    if (routing.ToDate < routing.FromDate)
+                        return Json(new { code = 1, msg = "End date must be after begin date" });
+                }
+                routing.UserUpdateID = routingUserId;
+                routing.UpdateDate = DateTime.Now;
+
+                if (routingId > 0) RoutingBO.Instance.Update(routing);
+                else RoutingBO.Instance.Insert(routing);
+
+                // Nút Routing sáng trên booking (WinForm: ReservationOptions.Routing = 1)
+                RoutingUtil.SetRoutingFlag(rsvId, true);
+                if (routingType == 2)
+                    foreach (int confRsvId in RoutingUtil.GetReservationIdsByConfirmation(res.ConfirmationNo))
+                        RoutingUtil.SetRoutingFlag(confRsvId, true);
+
+                ActivityLogBO.Instance.Insert(new ActivityLogModel
+                {
+                    TableName = "Reservation",
+                    UserID = routingUserId,
+                    UserName = Request.Form["userName"].ToString(),
+                    ChangeDate = DateTime.Now,
+                    Change = "Routing",
+                    ObjectID = rsvId,
+                    OldValue = oldCodes,
+                    NewValue = routing.TransactionCodes,
+                    Description = routingId > 0 ? "Update" : "New"
+                });
                 pt.CommitTransaction();
-                return Json(new { code = 0, msg = "Routing transaction was created successfully" });
+                return Json(new { code = 0, msg = routingId > 0 ? "Routing transaction was updated successfully" : "Routing transaction was created successfully" });
 
             }
             catch (Exception ex)
@@ -3920,11 +4375,11 @@ namespace Reservation.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> SearchRoomRouting()
+        public async Task<IActionResult> SearchRoomRouting(int reservationID = 0)
         {
             try
             {
-                string sqlCommand = "SELECT dbo.Reservation.RoomID, dbo.Room.RoomNo, dbo.Reservation.FirstName, dbo.Reservation.LastName, dbo.Reservation.ArrivalDate,   dbo.Reservation.DepartureDate, dbo.Reservation.ID  FROM dbo.Reservation WITH (NOLOCK) INNER JOIN dbo.Room WITH (NOLOCK) ON dbo.Reservation.RoomID = dbo.Room.ID  WHERE (dbo.Reservation.Status =1 OR dbo.Reservation.Status =6) And  MainGuest = 1  And Reservation.ID <> 56802 And dbo.Room.RoomNo like '%'";
+                string sqlCommand = "SELECT dbo.Reservation.RoomID, dbo.Room.RoomNo, dbo.Reservation.FirstName, dbo.Reservation.LastName, dbo.Reservation.ArrivalDate,   dbo.Reservation.DepartureDate, dbo.Reservation.ID  FROM dbo.Reservation WITH (NOLOCK) INNER JOIN dbo.Room WITH (NOLOCK) ON dbo.Reservation.RoomID = dbo.Room.ID  WHERE (dbo.Reservation.Status =1 OR dbo.Reservation.Status =6) And  MainGuest = 1  And Reservation.ID <> " + reservationID + " ORDER BY dbo.Room.RoomNo";
                 DataTable myData = _iRoutingService.SearchAllForTrans(sqlCommand);
 
                 var result = (from d in myData.AsEnumerable()
@@ -4405,11 +4860,33 @@ namespace Reservation.Controllers
 
                 var data = _iMessageService.SearchMessage(Name, ReservationHolder, ConfirmationNo, CRSNo, RoomNo, Zone, Status, Receive, Print);
 
+                // Ngày theo định dạng dd/MM/yyyy (CreateDate/UpdateDate kèm giờ), năm <= 1900 coi như trống
+                static string FormatMessageCell(DataRow row, DataColumn col)
+                {
+                    var v = row[col];
+                    if (v == null || v == DBNull.Value) return "";
+                    if (v is DateTime dt)
+                    {
+                        if (dt.Year <= 1900) return "";
+                        bool withTime = col.ColumnName == "CreateDate" || col.ColumnName == "UpdateDate";
+                        return dt.ToString(withTime ? "dd/MM/yyyy HH:mm" : "dd/MM/yyyy");
+                    }
+                    // Received / Printed / TextMessage: SP trả "dd.MM.yyyy HH:mm:ss" → đổi sang dd/MM/yyyy HH:mm
+                    if (col.ColumnName == "Received" || col.ColumnName == "Printed" || col.ColumnName == "TextMessage")
+                    {
+                        var s = v.ToString();
+                        if (DateTime.TryParseExact(s, "dd.MM.yyyy HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var p))
+                            return p.ToString("dd/MM/yyyy HH:mm");
+                        return s;
+                    }
+                    return v.ToString();
+                }
+
                 var result = (from d in data.AsEnumerable()
                               select d.Table.Columns.Cast<DataColumn>()
                                   .ToDictionary(
                                       col => col.ColumnName,
-                                      col => d[col.ColumnName]?.ToString()
+                                      col => FormatMessageCell(d, col)
                                   )).ToList();
                 return Json(result);
             }
@@ -4465,23 +4942,31 @@ namespace Reservation.Controllers
                 var dataRoomDetail = _iShareService.ShareRoomDetail(reservationID);
                 var dataReservationDetail = _iShareService.ShareReservationDetail(reservationID, reservation.ShareRoom);
 
+                // Ngày dd/MM/yyyy, năm <= 1900 coi như trống
+                static string FormatShareCell(object v)
+                {
+                    if (v == null || v == DBNull.Value) return "";
+                    if (v is DateTime dt) return dt.Year <= 1900 ? "" : dt.ToString("dd/MM/yyyy");
+                    return v.ToString();
+                }
+
                 var resultRateDetail = (from d in dataRateDetail.AsEnumerable()
                                         select d.Table.Columns.Cast<DataColumn>()
                                             .ToDictionary(
                                                 col => col.ColumnName,
-                                                col => d[col.ColumnName]?.ToString()
+                                                col => FormatShareCell(d[col])
                                             )).ToList();
                 var resultRoomDetail = (from d in dataRoomDetail.AsEnumerable()
                                         select d.Table.Columns.Cast<DataColumn>()
                                             .ToDictionary(
                                                 col => col.ColumnName,
-                                                col => d[col.ColumnName]?.ToString()
+                                                col => FormatShareCell(d[col])
                                             )).ToList();
                 var resultReservationDetail = (from d in dataReservationDetail.AsEnumerable()
                                                select d.Table.Columns.Cast<DataColumn>()
                                                    .ToDictionary(
                                                        col => col.ColumnName,
-                                                       col => d[col.ColumnName]?.ToString()
+                                                       col => FormatShareCell(d[col])
                                                    )).ToList();
                 return Json(new
                 {
@@ -4489,7 +4974,8 @@ namespace Reservation.Controllers
                     msg = "Succesfully",
                     resultRateDetail = resultRateDetail,
                     resultRoomDetail = resultRoomDetail,
-                    resultReservationDetail = resultReservationDetail
+                    resultReservationDetail = resultReservationDetail,
+                    confirmationNo = reservation.ConfirmationNo
                 });
             }
             catch (Exception ex)
@@ -4603,6 +5089,15 @@ namespace Reservation.Controllers
                     reservation.UserUpdateId = userId;
                     ReservationBO.Instance.Update(reservation);
                     #endregion
+                    // Main guest hủy check-in → phòng về Vacant nếu không còn khách in-house nào khác
+                    // (giống CancelReservationService: UpdateRoomFrontOfficeStatus(roomId, 0, 0)); trước đây phòng bị kẹt OC.
+                    if (reservation.MainGuest && reservation.RoomId > 0)
+                    {
+                        DataTable dtIn = TextUtils.Select($@"SELECT COUNT(*) FROM Reservation WITH (NOLOCK)
+                                                             WHERE RoomID = {reservation.RoomId} AND Status IN (1, 6) AND ID <> {reservation.ID}");
+                        if (dtIn.Rows.Count > 0 && Convert.ToInt32(dtIn.Rows[0][0]) == 0)
+                            pt.UpdateCommand($"UPDATE Room WITH (ROWLOCK) SET FOStatus = 0, HKFOStatus = 0 WHERE ID = {reservation.RoomId}");
+                    }
                     #region insert log actitvity
                     ActivityLogModel activityLogModel = new ActivityLogModel();
                     activityLogModel.TableName = "Reservation";
@@ -4879,8 +5374,8 @@ namespace Reservation.Controllers
                 {
                     return Json(new
                     {
-                        code = 0,
-                        msg = "No reservations were split successfully.",
+                        code = 1,
+                        msg = errorMessages.Count > 0 ? string.Join("; ", errorMessages) : "No reservations were split successfully.",
                         successReservationIds = successIds,
                         errors = errorMessages
                     });
@@ -5300,18 +5795,67 @@ namespace Reservation.Controllers
 
                 var data = _iReservationService.SearchTrace(departmentID ?? "", resolved ?? "", date, name ?? "", reservationID);
 
+                // Ngày theo định dạng chuẩn: From/To Date = dd/MM/yyyy; ngày tạo / sửa / resolve = dd/MM/yyyy HH:mm
+                static string Fmt(DataColumn col, object v)
+                {
+                    if (v == null || v == DBNull.Value) return "";
+                    if (v is DateTime dt)
+                    {
+                        if (dt.Year <= 1900) return "";
+                        bool dateOnly = col.ColumnName.Equals("FromDate", StringComparison.OrdinalIgnoreCase)
+                                     || col.ColumnName.Equals("ToDate", StringComparison.OrdinalIgnoreCase);
+                        return dt.ToString(dateOnly ? "dd/MM/yyyy" : "dd/MM/yyyy HH:mm");
+                    }
+                    return v.ToString();
+                }
                 var result = (from d in data.AsEnumerable()
                               select d.Table.Columns.Cast<DataColumn>()
-                                  //.Where(col => col.ColumnName != "AllotmentStageID" && col.ColumnName != "flag" && col.ColumnName != "Total")
                                   .ToDictionary(
                                       col => col.ColumnName,
-                                      col => d[col.ColumnName]?.ToString()
+                                      col => Fmt(col, d[col.ColumnName])
                                   )).ToList();
                 return Json(result);
             }
             catch (Exception ex)
             {
                 return Json(ex.Message);
+            }
+        }
+
+        /// <summary>Lưới khách trên màn New Trace (giống WinForm): booking hiện tại + room sharer cùng phòng.</summary>
+        [HttpGet]
+        public IActionResult GetTraceGuests(int reservationID)
+        {
+            try
+            {
+                var dt = TextUtils.Select($@"
+                    SELECT r.ID, r.LastName, ISNULL(r.RoomNo, '') AS RoomNo, r.ArrivalDate, r.DepartureDate, r.Status,
+                           CASE WHEN r.ID = {reservationID} THEN 0 ELSE 1 END AS Ord
+                      FROM Reservation r WITH (NOLOCK)
+                     WHERE r.ID = {reservationID}
+                        OR (r.ShareRoom > 0 AND r.ShareRoom = (SELECT ShareRoom FROM Reservation WITH (NOLOCK) WHERE ID = {reservationID})
+                            AND r.Status NOT IN (3, 7))
+                     ORDER BY Ord, r.ID");
+                string StatusText(int s) => s switch
+                {
+                    0 => "RESERVED", 1 => "CHECKED IN", 2 => "CHECKED OUT", 3 => "CANCEL", 4 => "WAITLIST",
+                    5 => "DUE IN", 6 => "DUE OUT", 7 => "NO SHOW", 8 => "DAY USE", _ => s.ToString()
+                };
+                var rows = dt.AsEnumerable().Select(d => new
+                {
+                    id = Convert.ToInt32(d["ID"]),
+                    name = d["LastName"]?.ToString() ?? "",
+                    roomNo = d["RoomNo"]?.ToString() ?? "",
+                    arrival = d["ArrivalDate"] == DBNull.Value ? "" : Convert.ToDateTime(d["ArrivalDate"]).ToString("yyyy-MM-dd"),
+                    departure = d["DepartureDate"] == DBNull.Value ? "" : Convert.ToDateTime(d["DepartureDate"]).ToString("yyyy-MM-dd"),
+                    status = StatusText(d["Status"] == DBNull.Value ? 0 : Convert.ToInt32(d["Status"]))
+                }).ToList();
+                return Json(rows);
+            }
+            catch (Exception ex)
+            {
+                Response.StatusCode = 500;
+                return Json(new { code = 1, msg = ex.Message });
             }
         }
 
@@ -5334,34 +5878,59 @@ namespace Reservation.Controllers
                     return Json(new { code = 1, msg = $"Trace text cant not be blank" });
 
                 }
-                ReservationTracesModel trace = new ReservationTracesModel();
-                trace.FromDate = DateTime.Parse(Request.Form["fromDate"].ToString());
-                trace.ToDate = DateTime.Parse(Request.Form["toDate"].ToString());
-                trace.TracesTime = Request.Form["time"].ToString();
-                trace.DepartmentID = int.Parse(Request.Form["department"].ToString());
-                trace.Resolved = 0;
-                trace.TracesText = Request.Form["traceText"].ToString();
-                trace.ProfileID = int.Parse(Request.Form["profileID"].ToString());
-                trace.ReservationID = int.Parse(Request.Form["reservationID"].ToString());
-                trace.UserInsertID = trace.UserUpdateID = int.Parse(Request.Form["userID"].ToString());
-                trace.CreateDate = trace.UpdateDate = DateTime.Now;
-                trace.ResolvedBy = "";
-                trace.IsDelete = false;
-                long id = ReservationTracesBO.Instance.Insert(trace);
+                DateTime fromDate = DateTime.Parse(Request.Form["fromDate"].ToString());
+                DateTime toDate = DateTime.Parse(Request.Form["toDate"].ToString());
+                if (toDate.Date < fromDate.Date)
+                    return Json(new { code = 1, msg = "To Date must be on or after From Date" });
 
-                ActivityLogModel activityLog = new ActivityLogModel();
-                activityLog.TableName = "Reservation";
-                activityLog.UserID = int.Parse(Request.Form["userID"].ToString());
-                activityLog.UserName = Request.Form["userName"].ToString();
-                activityLog.ChangeDate = DateTime.Now;
-                activityLog.Change = "ReservationTraces";
-                activityLog.ObjectID = (int)id;
-                activityLog.OldValue = "";
-                activityLog.NewValue = $"[FromDate]{trace.FromDate},[ToDate]{trace.ToDate},[TraceTime]{trace.TracesTime},[DepartmentID]{trace.DepartmentID},[TraceText]{trace.TracesText},[Resolved]{trace.Resolved}";
-                activityLog.Description = "";
-                ActivityLogBO.Instance.Insert(activityLog);
+                // Các booking được chọn trên lưới (WinForm: chọn khách để tạo trace); không có thì dùng booking hiện tại
+                var rsvIds = Request.Form["reservationIDs"].ToString()
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(s => int.TryParse(s, out int v) ? v : 0).Where(v => v > 0).Distinct().ToList();
+                if (rsvIds.Count == 0 && int.TryParse(Request.Form["reservationID"].ToString(), out int oneRsv) && oneRsv > 0)
+                    rsvIds.Add(oneRsv);
+                if (rsvIds.Count == 0)
+                    return Json(new { code = 1, msg = "Please choose guest" });
+
+                int.TryParse(Request.Form["userID"].ToString(), out int traceUserId);
+                int created = 0;
+                foreach (int rid in rsvIds)
+                {
+                    var rsv = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(rid);
+                    if (rsv == null || rsv.ID == 0) continue;
+
+                    ReservationTracesModel trace = new ReservationTracesModel();
+                    trace.FromDate = fromDate;
+                    trace.ToDate = toDate;
+                    trace.TracesTime = Request.Form["time"].ToString();
+                    trace.DepartmentID = int.Parse(Request.Form["department"].ToString());
+                    trace.Resolved = 0;
+                    trace.TracesText = Request.Form["traceText"].ToString();
+                    // Profile lấy theo booking (không tin profileID client gửi — có thể là của dòng chọn trước)
+                    trace.ProfileID = rsv.ProfileIndividualId;
+                    trace.ReservationID = rsv.ID;
+                    trace.UserInsertID = trace.UserUpdateID = traceUserId;
+                    trace.CreateDate = trace.UpdateDate = DateTime.Now;
+                    trace.ResolvedBy = "";
+                    trace.IsDelete = false;
+                    long id = ReservationTracesBO.Instance.Insert(trace);
+
+                    ActivityLogModel activityLog = new ActivityLogModel();
+                    activityLog.TableName = "Reservation";
+                    activityLog.UserID = traceUserId;
+                    activityLog.UserName = Request.Form["userName"].ToString();
+                    activityLog.ChangeDate = DateTime.Now;
+                    activityLog.Change = "ReservationTraces";
+                    activityLog.ObjectID = (int)id;
+                    activityLog.OldValue = "";
+                    activityLog.NewValue = $"[FromDate]{trace.FromDate},[ToDate]{trace.ToDate},[TraceTime]{trace.TracesTime},[DepartmentID]{trace.DepartmentID},[TraceText]{trace.TracesText},[Resolved]{trace.Resolved}";
+                    activityLog.Description = "";
+                    ActivityLogBO.Instance.Insert(activityLog);
+                    created++;
+                }
                 pt.CommitTransaction();
-                return Json(new { code = 0, msg = $"Trace was created successfully" });
+                if (created == 0) return Json(new { code = 1, msg = "Reservation not found" });
+                return Json(new { code = 0, msg = created > 1 ? $"{created} traces were created successfully" : "Trace was created successfully" });
 
             }
             catch (Exception ex)
@@ -5481,26 +6050,66 @@ namespace Reservation.Controllers
                     return Json(new { code = 1, msg = $"Please chose code alert" });
 
                 }
+                int.TryParse(Request.Form["userID"].ToString(), out int alertUserId);
+                int.TryParse(Request.Form["warningDay"].ToString(), out int alertWarningDay);
+                int.TryParse(Request.Form["actice"].ToString(), out int alertActive);
+                int.TryParse(Request.Form["id"].ToString(), out int alertEditId);
+                bool includeRoomsharer = Request.Form["includeRoomsharer"].ToString() == "1";
+
+                // Có ID → sửa alert cũ (UPDATE), không tạo dòng mới
+                if (alertEditId > 0)
+                {
+                    ReservationAlertsModel old = (ReservationAlertsModel)ReservationAlertsBO.Instance.FindByPrimaryKey(alertEditId);
+                    if (old == null || old.ID == 0)
+                        return Json(new { code = 1, msg = "Alert not found" });
+
+                    string oldValue = $"[Code]{old.Code},[Area]{old.Area},[Description]{old.Description},[WarningDay]{old.WarningDay},[IsActive]{old.IsActive},";
+                    old.Code = Request.Form["code"].ToString();
+                    old.Description = Request.Form["description"].ToString();
+                    old.Area = Request.Form["area"].ToString();
+                    old.WarningDay = alertWarningDay;
+                    old.IsActive = alertActive == 1 ? 1 : 0;
+                    old.UserUpdateID = alertUserId;
+                    old.UpdateDate = DateTime.Now;
+                    ReservationAlertsBO.Instance.Update(old);
+
+                    // Alert gốc: đồng bộ sang các bản chép ở roomsharer; tick Include Roomsharer thì chép thêm cho sharer chưa có
+                    if (old.OriginAlertID == 0 || old.OriginAlertID == old.ID)
+                    {
+                        ReservationAlertUtil.UpdateCopies(old.ID);
+                        if (includeRoomsharer) ReservationAlertUtil.CopyToRoomSharers(old.ID);
+                    }
+
+                    ActivityLogBO.Instance.Insert(new ActivityLogModel
+                    {
+                        TableName = "Reservation",
+                        UserID = alertUserId,
+                        UserName = Request.Form["userName"].ToString(),
+                        ChangeDate = DateTime.Now,
+                        Change = "ReservationAlerts",
+                        ObjectID = old.ID,
+                        OldValue = oldValue,
+                        NewValue = $"[Code]{old.Code},[Area]{old.Area},[Description]{old.Description},[WarningDay]{old.WarningDay},[IsActive]{old.IsActive},",
+                        Description = "Update alert"
+                    });
+                    pt.CommitTransaction();
+                    return Json(new { code = 0, msg = "Alert was updated successfully" });
+                }
+
                 ReservationAlertsModel alert = new ReservationAlertsModel();
                 alert.ReservationID = int.Parse(Request.Form["reservationID"].ToString());
                 alert.Code = Request.Form["code"].ToString();
                 alert.Description = Request.Form["description"].ToString();
                 alert.Area = Request.Form["area"].ToString();
-                alert.UserInsertID = alert.UserUpdateID = int.Parse(Request.Form["userID"].ToString());
+                alert.UserInsertID = alert.UserUpdateID = alertUserId;
                 alert.CreateDate = alert.UpdateDate = DateTime.Now;
-                alert.WarningDay = int.Parse(Request.Form["warningDay"].ToString());
-                if (int.Parse(Request.Form["actice"].ToString()) == 1)
-                {
-                    alert.IsActive = 1;
-                }
-                else
-                {
-                    alert.IsActive = 0;
-                }
+                alert.WarningDay = alertWarningDay;
+                alert.IsActive = alertActive == 1 ? 1 : 0;
                 long id = ReservationAlertsBO.Instance.Insert(alert);
                 ReservationAlertsModel alertUpdate = (ReservationAlertsModel)ReservationAlertsBO.Instance.FindByPrimaryKey((int)id);
                 alertUpdate.OriginAlertID = (int)id;
                 ReservationAlertsBO.Instance.Update(alertUpdate);
+                if (includeRoomsharer) ReservationAlertUtil.CopyToRoomSharers((int)id);
 
                 ActivityLogModel activityLog = new ActivityLogModel();
                 activityLog.TableName = "Reservation";
@@ -5525,6 +6134,58 @@ namespace Reservation.Controllers
             {
                 pt.CloseConnection();
 
+            }
+        }
+
+        [HttpGet]
+        public IActionResult GetAlertByID(int id)
+        {
+            try
+            {
+                ReservationAlertsModel alert = (ReservationAlertsModel)ReservationAlertsBO.Instance.FindByPrimaryKey(id);
+                if (alert == null || alert.ID == 0)
+                    return Json(new { code = 1, msg = "Alert not found" });
+                bool isOrigin = alert.OriginAlertID == 0 || alert.OriginAlertID == alert.ID;
+                bool includeRoomsharer = isOrigin && ReservationAlertUtil.HasCopies(alert.ID);
+                return Json(new { code = 0, alert, includeRoomsharer });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { code = 1, msg = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public IActionResult DeleteAlert(int id, int userID, string userName)
+        {
+            try
+            {
+                ReservationAlertsModel alert = (ReservationAlertsModel)ReservationAlertsBO.Instance.FindByPrimaryKey(id);
+                if (alert == null || alert.ID == 0)
+                    return Json(new { code = 1, msg = "Alert not found" });
+
+                ReservationAlertsBO.Instance.Delete(id);
+                // Xóa alert gốc thì xóa luôn các bản đã chép sang roomsharer
+                if (alert.OriginAlertID == 0 || alert.OriginAlertID == alert.ID)
+                    ReservationAlertUtil.DeleteCopies(id);
+
+                ActivityLogBO.Instance.Insert(new ActivityLogModel
+                {
+                    TableName = "Reservation",
+                    UserID = userID,
+                    UserName = userName ?? "",
+                    ChangeDate = DateTime.Now,
+                    Change = "ReservationAlerts",
+                    ObjectID = id,
+                    OldValue = $"[Code]{alert.Code},[Area]{alert.Area},[Description]{alert.Description},",
+                    NewValue = "",
+                    Description = "Delete alert"
+                });
+                return Json(new { code = 0, msg = "Alert was deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { code = 1, msg = ex.Message });
             }
         }
         #endregion

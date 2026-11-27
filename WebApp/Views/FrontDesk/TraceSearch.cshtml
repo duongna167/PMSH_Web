@@ -1,0 +1,376 @@
+@{
+    var departments = ViewBag.Departments as IEnumerable<BaseBusiness.Model.DepartmentModel> ?? Enumerable.Empty<BaseBusiness.Model.DepartmentModel>();
+}
+<!-- Search Trace — port WinForm frmTraceSearch (mode 0: tất cả trace). Prefix trs_ -->
+<style>
+    #trs_modal .trs-filter { display: grid; grid-template-columns: 80px 240px 50px 150px 24px; gap: 6px 8px; align-items: center; padding: 6px 4px; }
+    #trs_modal .trs-filter label { margin: 0; text-align: right; font-size: 12px; }
+    #trs_modal .trs-filter .trs-chk { display: flex; gap: 16px; align-items: center; grid-column: 4 / span 2; font-size: 12px; }
+    #trs_modal .trs-filter .trs-chk label { text-align: left; display: flex; gap: 4px; align-items: center; }
+    #trs_modal .trs-dept { grid-column: 2 / span 1; }
+    #trs_modal .trs-info { display: flex; gap: 8px; align-items: center; padding: 6px 4px; font-size: 12px; flex-wrap: wrap; }
+    #trs_modal .trs-info label { margin: 0; color: #555; }
+    #trs_modal .trs-info input { width: 110px; height: 24px; font-size: 12px; padding: 0 6px; background: #f3f3f3; }
+    #trs_modal #trs_content { width: 100%; height: 90px; resize: none; font-size: 12px; background: #fafafa; }
+    #trs_modal .mui-card { min-height: 0; }
+    #trs_grid { flex: 1 1 auto; height: 100%; min-height: 0; }
+    /* Dòng đang đứng / dòng được tick: xám như các màn khác (không dùng xanh mặc định của DevExtreme) */
+    #trs_grid .dx-datagrid-rowsview .dx-row-focused > td,
+    #trs_grid .dx-datagrid-rowsview .dx-row-focused.dx-data-row > td:not(.dx-focused),
+    #trs_grid .dx-datagrid-rowsview .dx-selection > td { background-color: #bcbcbc !important; color: #000 !important; }
+    #trs_grid .dx-datagrid-rowsview .dx-row-focused * { color: #000 !important; }
+    #trs_grid .dx-datagrid-focus-overlay { display: none !important; }
+    #trs_edit_modal .modal-dialog { max-width: 560px; }
+    #trs_edit_modal .trs-row { display: grid; grid-template-columns: 90px 1fr; gap: 6px 8px; align-items: center; margin-bottom: 6px; }
+    #trs_edit_modal .trs-dates { display: grid; grid-template-columns: 90px 130px 60px 130px 40px 90px; gap: 6px; align-items: center; margin-bottom: 6px; }
+    #trs_edit_modal label { margin: 0; text-align: right; font-size: 12px; }
+    #trs_edit_modal #trs_e_text { width: 100%; min-height: 120px; resize: vertical; }
+</style>
+
+<div class="modal fade" id="trs_modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-4by3">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title">Search Trace</h5>
+            </div>
+            <div class="modal-body">
+                <div class="search-filter">
+                    <div>
+                        <button type="button" class="mui-button mui-button-new" id="trs_btnSearch">Search</button>
+                        <button type="button" class="mui-button mui-button-new" id="trs_btnCheckAll">Check All</button>
+                        <button type="button" class="mui-button mui-button-new" id="trs_btnResv">Resv</button>
+                        <button type="button" class="mui-button mui-button-new" id="trs_btnNew">New</button>
+                        <button type="button" class="mui-button mui-button-new" id="trs_btnEdit">Edit</button>
+                        <button type="button" class="mui-button mui-button-new" id="trs_btnDelete">Delete</button>
+                        <button type="button" class="mui-button mui-button-new" id="trs_btnResolve">Resolve</button>
+                        <button type="button" class="mui-button mui-button-new" id="trs_btnReport">Report</button>
+                        <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                    </div>
+                    <div class="trs-filter">
+                        <label for="trs_name">Name</label>
+                        <input id="trs_name" type="text" class="form-control form-control-sm" />
+                        <label>Date</label>
+                        <div data-date-input data-format="DD/MM/YYYY" data-name="trs_date" business-date>
+                            <input type="text" class="date-ui form-control form-control-sm" autocomplete="off" />
+                        </div>
+                        <input type="checkbox" id="trs_useDate" checked />
+
+                        <label for="trs_department">Department</label>
+                        <div class="trs-dept">
+                            <select id="trs_department" class="tomselect-custom w-100" multiple placeholder="">
+                                @foreach (var d in departments)
+                                {
+                                    <option value="@d.ID">@d.Code</option>
+                                }
+                            </select>
+                        </div>
+                        <span></span>
+                        <div class="trs-chk">
+                            <label><input type="checkbox" id="trs_chkResolved" checked /> Resolved</label>
+                            <label><input type="checkbox" id="trs_chkUnResolved" checked /> UnResolved</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mui-card">
+                    <div id="trs_grid" class="gridContainer"></div>
+                </div>
+
+                <div class="trs-info">
+                    <label>Arrival</label><input id="trs_arrival" class="form-control" readonly />
+                    <label>Departure</label><input id="trs_departure" class="form-control" readonly />
+                    <label>Room</label><input id="trs_room" class="form-control" readonly />
+                    <label>Status</label><input id="trs_status" class="form-control" readonly />
+                </div>
+                <textarea id="trs_content" class="form-control" readonly></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New / Edit Trace -->
+<div class="modal fade" id="trs_edit_modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="trs_e_title">Traces</h5>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <button type="button" class="mui-button mui-button-new" id="trs_e_btnOK">OK</button>
+                    <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div class="trs-dates">
+                    <label>From Date</label>
+                    <div data-date-input data-format="DD/MM/YYYY" data-name="trs_e_from">
+                        <input type="text" class="date-ui form-control form-control-sm" autocomplete="off" />
+                    </div>
+                    <label>To Date</label>
+                    <div data-date-input data-format="DD/MM/YYYY" data-name="trs_e_to">
+                        <input type="text" class="date-ui form-control form-control-sm" autocomplete="off" />
+                    </div>
+                    <label for="trs_e_time">Time</label>
+                    <input id="trs_e_time" type="time" class="form-control form-control-sm" value="00:00" />
+                </div>
+                <div class="trs-row">
+                    <label for="trs_e_dept">Department</label>
+                    <select id="trs_e_dept" class="form-select form-select-sm">
+                        <option value=""></option>
+                        @foreach (var d in departments)
+                        {
+                            <option value="@d.ID">@d.Code</option>
+                        }
+                    </select>
+                </div>
+                <div class="trs-row">
+                    <label for="trs_e_text">Trace Text</label>
+                    <textarea id="trs_e_text" class="form-control form-control-sm" maxlength="2000"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var trs_Module = {
+        grid: null,
+        focused: null,     // dòng trace đang đứng
+        reservationID: 0,  // booking của trace đang đứng (WinForm: ReservationID)
+        editID: 0,
+        allChecked: false,
+
+        init: function () {
+            if (typeof window.initDateInputs === 'function') {
+                window.initDateInputs(document.getElementById('trs_modal'));
+                window.initDateInputs(document.getElementById('trs_edit_modal'));
+            }
+            if (typeof initTomSelect === 'function') initTomSelect('#trs_department');
+            this.bindEvents();
+            this.renderGrid([]);
+            const self = this;
+            const start = function () { self.search(); };
+            if (typeof waitForBusinessDate === 'function') waitForBusinessDate('trs_date', 5000).then(start).catch(start);
+            else setTimeout(start, 300);
+        },
+
+        destroy: function () {
+            try { if (this.grid) this.grid.dispose(); } catch (e) { }
+            $('#trs_grid').empty();
+            this.grid = null; this.focused = null; this.reservationID = 0; this.allChecked = false;
+        },
+
+        dateVal: function (name) { return ($('input[type="hidden"][name="' + name + '"]').val() || '').split('T')[0]; },
+
+        // WinForm chkResolve / chkUnResolve: cả hai hoặc không cái nào → "", chỉ Resolved → "1", chỉ UnResolved → "0"
+        resolvedParam: function () {
+            const r = $('#trs_chkResolved').is(':checked'), u = $('#trs_chkUnResolved').is(':checked');
+            if (r && !u) return '1';
+            if (u && !r) return '0';
+            return '';
+        },
+
+        search: function () {
+            const self = this;
+            $.ajax({
+                url: '/FrontDesk/TraceSearchData', type: 'GET',
+                data: {
+                    name: $('#trs_name').val(),
+                    resolved: self.resolvedParam(),
+                    departmentIds: ($('#trs_department').val() || []).join(','),
+                    useDate: $('#trs_useDate').is(':checked') ? 1 : 0,
+                    date: self.dateVal('trs_date')
+                },
+                success: function (rows) { self.renderGrid(Array.isArray(rows) ? rows : []); },
+                error: function (xhr) {
+                    if (xhr.status == 401) { sessionTimeout(); return; }
+                    showToast('Error', (xhr.responseJSON && xhr.responseJSON.msg) || 'Cannot load traces.', false);
+                }
+            });
+        },
+
+        renderGrid: function (data) {
+            const self = this;
+            self.allChecked = false;
+            $('#trs_btnCheckAll').text('Check All');
+            $('#trs_grid').dxDataGrid({
+                dataSource: data,
+                keyExpr: 'ID',
+                height: '100%',
+                showBorders: true,
+                columnAutoWidth: true,
+                allowColumnResizing: true,
+                columnResizingMode: 'widget',
+                focusedRowEnabled: true,
+                selection: { mode: 'multiple', showCheckBoxesMode: 'always', selectAllMode: 'allPages' },
+                paging: { enabled: false },
+                scrolling: { mode: 'virtual', showScrollbar: 'always' },
+                columns: [
+                    { dataField: 'Account', caption: 'Name' },
+                    { dataField: 'RoomNo', caption: 'Room No' },
+                    { dataField: 'ConfirmationNo', caption: 'Confirm.No' },
+                    { dataField: 'FromDate', caption: 'From Date' },
+                    { dataField: 'ToDate', caption: 'To Date' },
+                    { dataField: 'TracesTime', caption: 'Time' },
+                    { dataField: 'Department', caption: 'Department' },
+                    { dataField: 'Rsv', caption: 'Resolved' },
+                    { dataField: 'RsvDate', caption: 'Resolved Date' },
+                    { dataField: 'ResolvedBy', caption: 'Resolved By' },
+                    { dataField: 'Status', caption: 'Status' },
+                    { dataField: 'CreateBy', caption: 'CreateBy' },
+                    { dataField: 'CreateDate', caption: 'Create On' },
+                    { dataField: 'UpdateBy', caption: 'UpdateBy' },
+                    { dataField: 'UpdateDate', caption: 'Update On' }
+                ],
+                summary: { totalItems: [{ column: 'Account', summaryType: 'count', displayFormat: '{0}' }] },
+                onFocusedRowChanged: function (e) { self.showDetail(e.row ? e.row.data : null); },
+                onContentReady: function (e) {
+                    if (data.length && e.component.option('focusedRowIndex') < 0) e.component.option('focusedRowIndex', 0);
+                    if (!data.length) self.showDetail(null);
+                }
+            });
+            self.grid = $('#trs_grid').dxDataGrid('instance');
+        },
+
+        // WinForm grdGrid_Click: nội dung + thông tin booking
+        showDetail: function (row) {
+            const self = this;
+            self.focused = row;
+            self.reservationID = 0;
+            $('#trs_arrival, #trs_departure, #trs_room, #trs_status, #trs_content').val('');
+            if (!row || !row.ID) return;
+            $.get('/FrontDesk/TraceSearchDetail', { id: row.ID }, function (d) {
+                if (!d || d.code !== 0 || !self.focused || self.focused.ID !== row.ID) return;
+                self.reservationID = d.reservationID || 0;
+                $('#trs_arrival').val(d.arrival); $('#trs_departure').val(d.departure);
+                $('#trs_room').val(d.room); $('#trs_status').val(d.status);
+                $('#trs_content').val(d.text);
+            });
+        },
+
+        checkAll: function () {
+            if (!this.grid) return;
+            this.allChecked = !this.allChecked;
+            if (this.allChecked) this.grid.selectAll(); else this.grid.deselectAll();
+            $('#trs_btnCheckAll').text(this.allChecked ? 'Un Check' : 'Check All');
+        },
+
+        openResv: function () {
+            if (!this.reservationID) { showToast('Warning', 'Please select a trace first!', false); return; }
+            const modal = $('#newReservationModal');
+            modal.find('.modal-body').html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-3">Loading reservation...</p></div>');
+            modal.modal('show');
+            $.post('/Reservation/EncryptId', { id: this.reservationID }, function (response) {
+                if (!response.success) { modal.modal('hide'); showToast('Error', 'Cannot open reservation.', false); return; }
+                $.ajax({
+                    url: '/Reservation/NewReservation', type: 'GET', data: { key: response.encryptedId }, cache: false,
+                    success: function (html) { modal.find('.modal-body').html(html); },
+                    error: function () { modal.find('.modal-body').html('<div class="alert alert-danger m-4">Unable to load reservation details.</div>'); }
+                });
+            }).fail(function () { modal.modal('hide'); showToast('Error', 'Server connection error.', false); });
+        },
+
+        openEdit: function (isNew) {
+            const self = this;
+            if (isNew) {
+                // WinForm New: tạo trace cho booking của dòng đang đứng
+                if (!self.reservationID) { showToast('Warning', 'Please select a reservation (trace row) first!', false); return; }
+                self.editID = 0;
+                $('#trs_e_title').text('Traces');
+                const biz = (typeof dateSystem !== 'undefined' && dateSystem) ? String(dateSystem).split('T')[0] : '';
+                UI.setHiddenDate('trs_e_from', biz); UI.setHiddenDate('trs_e_to', biz);
+                $('#trs_e_time').val('00:00'); $('#trs_e_dept').val(''); $('#trs_e_text').val('');
+                $('#trs_edit_modal').modal('show');
+                return;
+            }
+            if (!self.focused || !self.focused.ID) { showToast('Warning', 'Please select a trace first!', false); return; }
+            $.get('/FrontDesk/TraceSearchDetail', { id: self.focused.ID }, function (d) {
+                if (!d || d.code !== 0) { showToast('Error', (d && d.msg) || 'Trace not found', false); return; }
+                self.editID = d.id;
+                $('#trs_e_title').text('Edit Traces');
+                UI.setHiddenDate('trs_e_from', d.fromDate); UI.setHiddenDate('trs_e_to', d.toDate);
+                $('#trs_e_time').val(d.time || '00:00'); $('#trs_e_dept').val(String(d.departmentID || '')); $('#trs_e_text').val(d.text);
+                $('#trs_edit_modal').modal('show');
+            });
+        },
+
+        save: function () {
+            const self = this;
+            $.post('/FrontDesk/TraceSearchSave', {
+                id: self.editID,
+                reservationID: self.reservationID,
+                fromDate: self.dateVal('trs_e_from'),
+                toDate: self.dateVal('trs_e_to'),
+                time: $('#trs_e_time').val() || '00:00',
+                departmentID: $('#trs_e_dept').val() || 0,
+                text: $('#trs_e_text').val()
+            }, function (r) {
+                if (r.code === 0) {
+                    showToast('Success', r.msg, true);
+                    $('#trs_edit_modal').modal('hide');
+                    self.search();
+                    if (typeof loadNotificationCount === 'function') loadNotificationCount();
+                } else showToast('Error', r.msg, false);
+            }).fail(function (xhr) { if (xhr.status == 401) sessionTimeout(); });
+        },
+
+        remove: function () {
+            const self = this;
+            if (!self.focused || !self.focused.ID) { showToast('Warning', 'Please select a trace first!', false); return; }
+            if (!confirm('Are you sure you want to Delete this Traces?')) return;
+            $.post('/FrontDesk/TraceSearchDelete', { id: self.focused.ID }, function (r) {
+                if (r.code === 0) { showToast('Success', r.msg, true); self.search(); if (typeof loadNotificationCount === 'function') loadNotificationCount(); }
+                else showToast('Error', r.msg, false);
+            });
+        },
+
+        // WinForm btnResolve: nhiều dòng → chỉ khi tick UnResolved, lấy các dòng được tick; một dòng → resolve luôn dòng đó
+        resolve: function () {
+            const self = this;
+            if (!self.grid) return;
+            const rows = self.grid.getDataSource() ? self.grid.getDataSource().items() : [];
+            let ids = [];
+            if (rows.length > 1) {
+                if (!$('#trs_chkUnResolved').is(':checked')) { showToast('Warning', 'Please tick UnResolved to resolve multiple traces.', false); return; }
+                ids = self.grid.getSelectedRowsData().map(function (r) { return r.ID; });
+                if (!ids.length) { showToast('Warning', 'Please check at least 1 trace.', false); return; }
+                if (!confirm('Are you sure you want to Resolve this Traces?')) return;
+            } else if (rows.length === 1) {
+                ids = [rows[0].ID];
+            } else return;
+            $.ajax({
+                url: '/FrontDesk/TraceSearchResolve', type: 'POST', traditional: true, data: { ids: ids },
+                success: function (r) {
+                    if (r.code === 0) { showToast('Success', r.msg, true); self.search(); if (typeof loadNotificationCount === 'function') loadNotificationCount(); }
+                    else showToast('Error', r.msg, false);
+                }
+            });
+        },
+
+        bindEvents: function () {
+            const self = this;
+            $('#trs_btnSearch').off('click').on('click', function () { self.search(); });
+            $('#trs_btnCheckAll').off('click').on('click', function () { self.checkAll(); });
+            $('#trs_btnResv').off('click').on('click', function () { self.openResv(); });
+            $('#trs_btnNew').off('click').on('click', function () { self.openEdit(true); });
+            $('#trs_btnEdit').off('click').on('click', function () { self.openEdit(false); });
+            $('#trs_btnDelete').off('click').on('click', function () { self.remove(); });
+            $('#trs_btnResolve').off('click').on('click', function () { self.resolve(); });
+            $('#trs_btnReport').off('click').on('click', function () { window.open('/Report/TraceReport', '_blank'); });
+            $('#trs_e_btnOK').off('click').on('click', function () { self.save(); });
+            $('#trs_name').off('keypress').on('keypress', function (e) { if (e.which === 13) self.search(); });
+            // WinForm chkCheckDate: bỏ tick thì khóa ô ngày
+            $('#trs_useDate').off('change').on('change', function () {
+                $('[data-name="trs_date"] .date-ui').prop('disabled', !this.checked);
+            });
+        }
+    };
+
+    window.openModalTRS = function () {
+        trs_Module.init();
+        $('#trs_modal').modal('show');
+    };
+
+    $(document).off('hidden.bs.modal.trs_cleanup').on('hidden.bs.modal.trs_cleanup', '#trs_modal', function () {
+        trs_Module.destroy();
+    });
+</script>

@@ -1,166 +1,142 @@
-<!-- Modal share-->
-<div class="modal fade modal-xl" id="modalShare" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+<!-- Modal share (theo WinForm "Share Confirmation No") -->
+<style>
+    #modalShare .modal-body { max-height: calc(100vh - 120px); overflow: hidden; display: flex; flex-direction: column; }
+    #modalShare .shr-section { display: grid; grid-template-columns: 180px 1fr; gap: 10px; margin: 6px 4px; padding: 6px 8px; border: 1px solid #dee2e6; border-radius: 6px; background: #f6f7f9; }
+    #modalShare .shr-section.full { grid-template-columns: 1fr; }
+    #modalShare .shr-title { color: #9F0010; font-weight: 600; }
+    #modalShare #gridContainerRoomDetail, #modalShare #gridContainerRateDetail { height: 110px; }
+    #modalShare #gridContainerReservationDetail { height: calc(100vh - 520px); min-height: 160px; }
+    #modalShare .dx-datagrid-headers td, #modalShare .dx-data-row td { padding: 6px 10px !important; white-space: nowrap; }
+</style>
+<div class="modal fade modal-xl" id="modalShare" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="shareModalTitle" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-
             <div class="modal-header">
-                <h5 class="modal-title" id="staticBackdropLabel">Share Information</h5>
-               @*  <button type="button" class="btn-close" onclick="closeModalShare()"></button> *@
+                <h5 class="modal-title" id="shareModalTitle">Share Confirmation No:</h5>
             </div>
             <div class="modal-body">
                 <div class="py-2">
-                    <button class="mui-button mui-button-search" > Search</button>
-                    <button class="mui-button mui-button-clear"> Clear</button>
-                    <button class="mui-button mui-button-new" onclick="closeModalShare()">Close</button>
+                    <button type="button" class="mui-button mui-button-search" onclick="openShareReservation()">Resv</button>
+                    <button type="button" class="mui-button mui-button-new" onclick="closeModalShare()">OK</button>
+                    <button type="button" class="mui-button mui-button-close" onclick="closeModalShare()">Close</button>
                 </div>
-                <div class="row bg-light border rounded mt-2 mb-2" style="margin:0 4px;justify-content:space-between">
-                    <div class="col-md-3" style="color:#9F0010"><b>Room Details</b></div>
-                    <div class="col-md-8">
-                        <div id="gridContainerRoomDetail" class="mb-2 mt-2 gridContainer"></div>
-
-                    </div>
+                <div class="shr-section">
+                    <div class="shr-title">Room Details</div>
+                    <div id="gridContainerRoomDetail" class="gridContainer"></div>
                 </div>
-                <div class="row bg-light border rounded mt-2 mb-2" style="margin:0 4px;justify-content:space-between">
-                    <div class="col-md-3" style="color:#9F0010"><b>Nightly Rate Details</b></div>
-                    <div class="col-md-8">
-                        <div id="gridContainerRateDetail" class="mt-2 mb-2 gridContainer"></div>
-
-                    </div>
+                <div class="shr-section">
+                    <div class="shr-title">Nightly Rate Details</div>
+                    <div id="gridContainerRateDetail" class="gridContainer"></div>
                 </div>
-                <div class="row bg-light border rounded mt-2 mb-2" style="margin:0 4px;justify-content:space-between">
-                    <div class="col-md-12" style="color:#9F0010"><b>Share Reservation Details</b></div>
-                    <div class="col-md-12">
-                        <div id="gridContainerReservationDetail" class="mt-2 mb-2 gridContainer"></div>
-
-                    </div>
+                <div class="shr-section full">
+                    <div class="shr-title">Share Reservation Details</div>
+                    <div id="gridContainerReservationDetail" class="gridContainer"></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 <script>
-    function openModalShare(){
+    function openModalShare() {
         if (idReservation === 0) {
             showToast('Warning', 'Please choose booking', false);
             return;
         }
+        $('#shareModalTitle').text('Share Confirmation No:');
         $('#modalShare').modal('show');
         searchShare();
-
     }
-    function closeModalShare(){
+    function closeModalShare() {
         $('#modalShare').modal('hide');
-
     }
     function searchShare() {
         $.ajax({
             url: '/Reservation/SearchShare',
             type: 'get',
             dataType: 'json',
-            data:{
-               reservationID : idReservation
-
-            },
+            data: { reservationID: idReservation },
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                initializeDataGridShareReservationDetail(result.resultReservationDetail);
-                initializeDataGridShareRoomDetail(result.resultRoomDetail);
-                initializeDataGridShareRateDetail(result.resultRateDetail);
+                if (!result || result.code != 0) {
+                    showToast('Warning', (result && result.msg) || 'Can not load share information', false);
+                    return;
+                }
+                $('#shareModalTitle').text('Share Confirmation No:' + (result.confirmationNo || ''));
+                initializeDataGridShareRoomDetail(result.resultRoomDetail || []);
+                initializeDataGridShareRateDetail(result.resultRateDetail || []);
+                initializeDataGridShareReservationDetail(result.resultReservationDetail || []);
             },
-            error: function (xhr, statusText, err) {
-
+            error: function (xhr) {
+                if (xhr.status == 401) sessionTimeout();
             }
         });
     }
-    function initializeDataGridShareRateDetail(data) {
-        $("#gridContainerRateDetail").dxDataGrid({
+    function shareMoney(v) {
+        var n = Number(v);
+        return isNaN(n) ? (v || '') : n.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+    // Lưới nhỏ: không pager / filter, cuộn bên trong lưới
+    function shareGridOptions(data, columns, extra) {
+        return $.extend({
             dataSource: data,
-            columnMinWidth: 90,
-            paging: { pageSize: 15 },
-            scrolling: {
-                rowRenderingMode: 'virtual',
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [15, 20, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true,
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            scrolling: {
-                mode: 'virtual',
-                showScrollbar: 'always',
-                useNative: false,
-            },
-            selection: {
-                mode: "single"
-            },
-
-        });
+            columns: columns,
+            showBorders: true,
+            showColumnLines: true,
+            allowColumnResizing: true,
+            columnAutoWidth: false,
+            wordWrapEnabled: false,
+            height: '100%',
+            paging: { enabled: false },
+            pager: { visible: false },
+            filterRow: { visible: false },
+            scrolling: { mode: 'standard', showScrollbar: 'always', useNative: false },
+            selection: { mode: 'single' },
+            noDataText: '',
+            onContentReady: function (e) {
+                if (e.component.getSelectedRowKeys().length === 0 && e.component.totalCount() > 0) e.component.selectRowsByIndexes([0]);
+            }
+        }, extra || {});
     }
     function initializeDataGridShareRoomDetail(data) {
-        $("#gridContainerRoomDetail").dxDataGrid({
-            dataSource: data,
-            columnMinWidth: 90,
-            paging: { pageSize: 15 },
-            scrolling: {
-                rowRenderingMode: 'virtual',
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [15, 20, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true,
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            scrolling: {
-                mode: 'virtual',
-                showScrollbar: 'always',
-                useNative: false,
-            },
-            selection: {
-                mode: "single"
-            },
-
-        });
+        $("#gridContainerRoomDetail").dxDataGrid(shareGridOptions(data, [
+            { dataField: 'Room', caption: 'Room', width: 120 },
+            { dataField: 'RoomType', caption: 'Room Type', width: 150 },
+            { dataField: 'OccupiedFrom', caption: 'Occupied From', width: 140 },
+            { dataField: 'OccupiedTo', caption: 'Occupied To' }
+        ]));
+    }
+    function initializeDataGridShareRateDetail(data) {
+        $("#gridContainerRateDetail").dxDataGrid(shareGridOptions(data, [
+            { dataField: 'NightlyRate', caption: 'Nightly Rate', width: 180, alignment: 'right', calculateCellValue: function (r) { return shareMoney(r.NightlyRate); } },
+            { dataField: 'Currency', caption: 'Currency', width: 90 },
+            { dataField: 'EffectiveFrom', caption: 'Effective From', width: 140 },
+            { dataField: 'EffectiveTo', caption: 'Effective To' }
+        ]));
     }
     function initializeDataGridShareReservationDetail(data) {
-        $("#gridContainerReservationDetail").dxDataGrid({
-            dataSource: data,
-            columnMinWidth: 90,
-            paging: { pageSize: 15 },
-            scrolling: {
-                rowRenderingMode: 'virtual',
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [15, 20, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true,
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            scrolling: {
-                mode: 'virtual',
-                showScrollbar: 'always',
-                useNative: false,
-            },
-            selection: {
-                mode: "single"
-            },
-
-        });
+        $("#gridContainerReservationDetail").dxDataGrid(shareGridOptions(data, [
+            { dataField: 'MG', caption: 'MG', width: 50, alignment: 'center' },
+            { dataField: 'Name', caption: 'Name', width: 220 },
+            { dataField: 'Arrival', caption: 'Arrival', width: 105 },
+            { dataField: 'Departure', caption: 'Departure', width: 105 },
+            { dataField: 'Status', caption: 'Status', width: 110 },
+            { dataField: 'Adults', caption: 'Adul', width: 60, alignment: 'right' },
+            { dataField: 'NoOfChild', caption: 'Chil', width: 60, alignment: 'right' },
+            { dataField: 'NoOfChild1', caption: 'Chil', width: 60, alignment: 'right' },
+            { dataField: 'NoOfChild2', caption: 'Chil', width: 60, alignment: 'right' },
+            { dataField: 'RateCode', caption: 'Rate Code', width: 120 },
+            { dataField: 'Rate', caption: 'Rate', width: 130, alignment: 'right', calculateCellValue: function (r) { return shareMoney(r.Rate); } },
+            { dataField: 'CurrencyID', caption: 'Currency', width: 90 }
+        ], { keyExpr: 'ID', onRowDblClick: function () { openShareReservation(); } }));
+    }
+    // Resv: mở form reservation của dòng đang chọn trong Share Reservation Details
+    function openShareReservation() {
+        var g = $("#gridContainerReservationDetail").dxDataGrid('instance');
+        var row = g ? g.getSelectedRowsData()[0] : null;
+        if (!row) { showToast('Warning', 'Please choose booking', false); return; }
+        closeModalShare();
+        idReservation = parseInt(row.ID, 10) || idReservation;
+        editBooking();
     }
 </script>

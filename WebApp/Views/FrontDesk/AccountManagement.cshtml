@@ -1,0 +1,274 @@
+<!-- Accounts — port WinForm frmAccounts (tạo Account / Posting Master cho khách). Prefix acm_ -->
+<style>
+    #acm_modal .modal-dialog { max-width: 400px; }
+    #acm_modal .acm-box { border: 1px solid #dee2e6; border-radius: 4px; padding: 8px 10px; margin-top: 8px; background: #fafbfc; }
+    #acm_modal .acm-row { display: grid; grid-template-columns: 90px 1fr; gap: 4px 6px; align-items: center; margin-bottom: 5px; }
+    #acm_modal .acm-row > label { margin: 0; text-align: right; font-size: 12px; font-weight: 600; }
+    #acm_modal .acm-row > label.acm-sub { font-weight: 400; }
+    #acm_modal .acm-row input[type=text] { height: 24px; font-size: 12px; padding: 0 6px; }
+    /* Nút chọn nằm trong ô, sát mép phải */
+    #acm_modal .acm-field { position: relative; }
+    #acm_modal .acm-field input[type=text] { padding-right: 26px; }
+    #acm_modal .acm-pick { position: absolute; right: 3px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; padding: 0;
+                           border: none; background: transparent; color: #555; font-size: 11px; line-height: 20px; cursor: pointer; }
+    #acm_modal .acm-pick:hover:not(:disabled) { color: #009444; }
+    #acm_modal .acm-pick:disabled { color: #bbb; cursor: default; }
+    #acm_modal .acm-date { max-width: 130px; }
+    #acm_pick_modal .modal-dialog { max-width: 560px; }
+    #acm_pick_grid { height: 340px; }
+    #acm_pick_grid .dx-datagrid-rowsview .dx-row-focused > td,
+    #acm_pick_grid .dx-datagrid-rowsview .dx-row-focused.dx-data-row > td:not(.dx-focused) { background-color: #bcbcbc !important; color: #000 !important; }
+    #acm_pick_grid .dx-datagrid-rowsview .dx-row-focused * { color: #000 !important; }
+    #acm_pick_grid .dx-datagrid-focus-overlay { display: none !important; }
+</style>
+
+<div class="modal fade" id="acm_modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title">Accounts</h5>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <button type="button" class="mui-button mui-button-new" id="acm_btnOK">OK</button>
+                    <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="acm-box">
+                    <div class="acm-row">
+                        <label for="acm_lastName">Name</label>
+                        <div class="acm-field">
+                            <input type="text" id="acm_lastName" class="form-control" />
+                            <button type="button" class="acm-pick" data-pick="profile" title="Search profile"><i class="fa-solid fa-arrow-down"></i></button>
+                        </div>
+                    </div>
+                    <div class="acm-row">
+                        <label for="acm_firstName" class="acm-sub">First Name</label>
+                        <input type="text" id="acm_firstName" class="form-control" readonly />
+                    </div>
+                </div>
+
+                <div class="acm-box">
+                    <div class="acm-row">
+                        <label>Date From</label>
+                        <div class="acm-date" data-date-input data-format="DD/MM/YYYY" data-name="acm_fromDate" business-date>
+                            <input type="text" class="date-ui form-control form-control-sm" autocomplete="off" />
+                        </div>
+                    </div>
+                    <div class="acm-row">
+                        <label>Date To</label>
+                        <div class="acm-date" data-date-input data-format="DD/MM/YYYY" data-name="acm_toDate" business-date>
+                            <input type="text" class="date-ui form-control form-control-sm" autocomplete="off" />
+                        </div>
+                    </div>
+                    <div class="acm-row">
+                        <label>Room Type</label>
+                        <div class="acm-field">
+                            <input type="text" id="acm_roomType" class="form-control" readonly />
+                            <button type="button" class="acm-pick" data-pick="roomtype"><i class="fa-solid fa-arrow-down"></i></button>
+                        </div>
+                    </div>
+                    <div class="acm-row">
+                        <label>Room</label>
+                        <div class="acm-field">
+                            <input type="text" id="acm_room" class="form-control" readonly />
+                            <button type="button" class="acm-pick" data-pick="room"><i class="fa-solid fa-arrow-down"></i></button>
+                        </div>
+                    </div>
+                    <div class="acm-row">
+                        <label>Rate Code</label>
+                        <div class="acm-field">
+                            <input type="text" id="acm_rateCode" class="form-control" readonly />
+                            <button type="button" class="acm-pick" disabled><i class="fa-solid fa-arrow-down"></i></button>
+                        </div>
+                    </div>
+                    <div class="acm-row">
+                        <label>Market Code</label>
+                        <div class="acm-field">
+                            <input type="text" id="acm_market" class="form-control" readonly />
+                            <button type="button" class="acm-pick" data-pick="market"><i class="fa-solid fa-arrow-down"></i></button>
+                        </div>
+                    </div>
+                    <div class="acm-row">
+                        <label>Source Code</label>
+                        <div class="acm-field">
+                            <input type="text" id="acm_source" class="form-control" readonly />
+                            <button type="button" class="acm-pick" data-pick="source"><i class="fa-solid fa-arrow-down"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hộp chọn dùng chung (Profile / Room Type / Room / Market / Source) -->
+<div class="modal fade" id="acm_pick_modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="acm_pick_title">Search</h5>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex gap-2 mb-2">
+                    <input type="text" id="acm_pick_q" class="form-control form-control-sm" placeholder="Search..." />
+                    <button type="button" class="mui-button mui-button-new" id="acm_pick_btnSearch">Search</button>
+                    <button type="button" class="mui-button mui-button-new" id="acm_pick_btnOK">OK</button>
+                    <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div id="acm_pick_grid" class="gridContainer"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var acm_Module = {
+        state: {},
+        pickKind: '',
+
+        init: function () {
+            if (typeof window.initDateInputs === 'function') window.initDateInputs(document.getElementById('acm_modal'));
+            this.clear();
+            this.bindEvents();
+        },
+
+        dateVal: function (name) { return ($('input[type="hidden"][name="' + name + '"]').val() || '').split('T')[0]; },
+
+        // WinForm ClearForm
+        clear: function () {
+            this.state = { profileID: 0, roomTypeID: 0, roomType: '', roomID: 0, roomNo: '', marketID: 0, market: '', sourceID: 0, source: '' };
+            $('#acm_lastName, #acm_firstName, #acm_roomType, #acm_room, #acm_rateCode, #acm_market, #acm_source').val('');
+            const biz = (typeof dateSystem !== 'undefined' && dateSystem) ? String(dateSystem).split('T')[0] : '';
+            if (biz && window.UI && UI.setHiddenDate) { UI.setHiddenDate('acm_fromDate', biz); UI.setHiddenDate('acm_toDate', biz); }
+        },
+
+        columnsFor: function (kind) {
+            if (kind === 'profile') return [
+                { dataField: 'Code', caption: 'Code', width: 80 },
+                { dataField: 'Account', caption: 'Name' },
+                { dataField: 'Firstname', caption: 'First Name', width: 110 },
+                { dataField: 'TypeName', caption: 'Type', width: 80 }
+            ];
+            if (kind === 'room') return [
+                { dataField: 'RoomNo', caption: 'Room', width: 80 },
+                { dataField: 'RoomType', caption: 'Room Type', width: 90 },
+                { dataField: 'HKStatus', caption: 'HK' },
+                { dataField: 'FO', caption: 'FO' },
+                { dataField: 'Floor', caption: 'Floor', width: 60 }
+            ];
+            return [{ dataField: 'Code', caption: 'Code', width: 120 }, { dataField: 'Name', caption: 'Name' }];
+        },
+
+        openPick: function (kind) {
+            const titles = { profile: 'Search Profile', roomtype: 'Search RoomType', room: 'Search Room', market: 'Search Market', source: 'Search Source' };
+            this.pickKind = kind;
+            $('#acm_pick_title').text(titles[kind] || 'Search');
+            $('#acm_pick_q').val(kind === 'profile' ? $('#acm_lastName').val() : '');
+            $('#acm_pick_modal').modal('show');
+            this.loadPick();
+        },
+
+        loadPick: function () {
+            const self = this, kind = self.pickKind, q = $('#acm_pick_q').val() || '';
+            let req;
+            if (kind === 'room') {
+                // WinForm frmRoomAvailableSearch: phòng trống theo Room Type + khoảng ngày
+                req = $.get('/Reservation/GetAllRooms', {
+                    fromDate: self.dateVal('acm_fromDate'), ToDate: self.dateVal('acm_toDate'),
+                    floor: '', roomTypeID: self.state.roomTypeID > 0 ? String(self.state.roomTypeID) : '',
+                    smoking: '', foStatus: '', hkStatus: '', isDummy: '', roomNo: ''
+                });
+            } else {
+                req = $.get('/FrontDesk/AccountLookup', { kind: kind, q: q });
+            }
+            req.done(function (rows) {
+                // Server lỗi thì trả về chuỗi thông báo thay vì danh sách
+                if (!Array.isArray(rows)) {
+                    if (typeof rows === 'string' && rows) showToast('Error', rows, false);
+                    rows = [];
+                }
+                if (kind !== 'profile' && q) {
+                    const k = q.toLowerCase();
+                    rows = rows.filter(function (r) { return Object.values(r).some(function (v) { return v != null && String(v).toLowerCase().indexOf(k) >= 0; }); });
+                }
+                $('#acm_pick_grid').dxDataGrid({
+                    dataSource: rows,
+                    keyExpr: kind === 'room' ? 'RoomID' : 'ID',
+                    height: 340,
+                    showBorders: true,
+                    columnAutoWidth: false,
+                    focusedRowEnabled: true,
+                    focusedRowIndex: rows.length ? 0 : -1,
+                    paging: { enabled: false },
+                    scrolling: { mode: 'virtual' },
+                    columns: self.columnsFor(kind),
+                    onRowDblClick: function () { self.choose(); }
+                });
+            }).fail(function (xhr) { if (xhr.status == 401) sessionTimeout(); else showToast('Error', 'Cannot load data.', false); });
+        },
+
+        choose: function () {
+            const g = $('#acm_pick_grid').dxDataGrid('instance');
+            const idx = g ? g.option('focusedRowIndex') : -1;
+            const r = idx >= 0 ? g.getVisibleRows()[idx] : null;
+            if (!r) return;
+            const d = r.data, s = this.state;
+            switch (this.pickKind) {
+                case 'profile':
+                    s.profileID = d.ID; $('#acm_lastName').val(d.Account); $('#acm_firstName').val(d.Firstname); break;
+                case 'roomtype':
+                    s.roomTypeID = d.ID; s.roomType = d.Code; $('#acm_roomType').val(d.Code); break;
+                case 'room':
+                    // WinForm RoomSearch_Close: lấy luôn Room Type của phòng
+                    s.roomID = parseInt(d.RoomID, 10) || 0; s.roomNo = d.RoomNo; $('#acm_room').val(d.RoomNo);
+                    if (parseInt(d.RoomTypeID, 10) > 0) { s.roomTypeID = parseInt(d.RoomTypeID, 10); s.roomType = d.RoomType; $('#acm_roomType').val(d.RoomType); }
+                    break;
+                case 'market':
+                    s.marketID = d.ID; s.market = d.Code; $('#acm_market').val(d.Code); break;
+                case 'source':
+                    s.sourceID = d.ID; s.source = d.Code; $('#acm_source').val(d.Code); break;
+            }
+            $('#acm_pick_modal').modal('hide');
+        },
+
+        save: function () {
+            const self = this, s = self.state;
+            $.ajax({
+                url: '/FrontDesk/AccountSave', type: 'POST', contentType: 'application/json',
+                data: JSON.stringify({
+                    profileID: s.profileID,
+                    fromDate: self.dateVal('acm_fromDate'), toDate: self.dateVal('acm_toDate'),
+                    roomTypeID: s.roomTypeID, roomType: s.roomType,
+                    roomID: s.roomID, roomNo: s.roomNo,
+                    marketID: s.marketID, market: s.market,
+                    sourceID: s.sourceID, source: s.source
+                }),
+                success: function (r) {
+                    if (r.code === 0) {
+                        showToast('Success', r.msg + (r.confirmationNo ? ' (Conf.No ' + r.confirmationNo + ')' : ''), true);
+                        self.clear();
+                    } else showToast('Warning', r.msg, false);
+                },
+                error: function (xhr) { if (xhr.status == 401) sessionTimeout(); else showToast('Error', 'Cannot save account.', false); }
+            });
+        },
+
+        bindEvents: function () {
+            const self = this;
+            $('#acm_btnOK').off('click').on('click', function () { self.save(); });
+            $('#acm_modal .acm-pick[data-pick]').off('click').on('click', function () { self.openPick($(this).data('pick')); });
+            $('#acm_lastName').off('keypress').on('keypress', function (e) { if (e.which === 13) self.openPick('profile'); });
+            // Gõ lại tên → phải chọn lại profile
+            $('#acm_lastName').off('input').on('input', function () { self.state.profileID = 0; $('#acm_firstName').val(''); });
+            $('#acm_pick_btnSearch').off('click').on('click', function () { self.loadPick(); });
+            $('#acm_pick_q').off('keypress').on('keypress', function (e) { if (e.which === 13) self.loadPick(); });
+            $('#acm_pick_btnOK').off('click').on('click', function () { self.choose(); });
+        }
+    };
+
+    window.openModalACM = function () {
+        acm_Module.init();
+        $('#acm_modal').modal('show');
+    };
+</script>

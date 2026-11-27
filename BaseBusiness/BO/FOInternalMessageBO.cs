@@ -257,9 +257,12 @@ SELECT
     ISNULL(d.Name, N'') AS Department,
     ISNULL(t.TracesTime, N'') AS TracesTime,
     ISNULL(CONVERT(NVARCHAR(MAX), t.TracesText), N'') AS TracesText,
+    -- Tên khách = tên hiển thị đầy đủ (Reservation.LastName / Profile.Account dạng Họ, Tên);
+    -- trước đây ghép LastName + Firstname nên bị lặp chữ.
+    -- Trace gắn booking: ưu tiên tên trên booking (dòng cũ có thể lưu nhầm ProfileID của khách khác)
     LTRIM(RTRIM(COALESCE(
-        NULLIF(LTRIM(RTRIM(ISNULL(p.LastName, N'') + N' ' + ISNULL(p.Firstname, N''))), N''),
-        NULLIF(LTRIM(RTRIM(ISNULL(rsv.LastName, N'') + N' ' + ISNULL(rsv.FirstName, N''))), N''),
+        NULLIF(LTRIM(RTRIM(ISNULL(rsv.LastName, N''))), N''),
+        NULLIF(LTRIM(RTRIM(ISNULL(p.Account, N''))), N''),
         N''
     ))) AS GuestName,
     t.ReservationID,

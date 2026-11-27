@@ -466,6 +466,7 @@ namespace Profile.Controllers
             try
             {
                 DataTable myData = ProfileBO.GetAllProfile(code, account, firstName, keyWord, city, type, showSaleInCharge);
+                var cityMap = Profile.Commons.Helpers.CityNameHelper.GetCityMap();
 
                 var result = (from d in myData.AsEnumerable()
                               select new
@@ -477,7 +478,7 @@ namespace Profile.Controllers
                                   PassPort = !string.IsNullOrEmpty(d["PassPort"].ToString()) ? d["PassPort"] : "",
                                   IdentityCard = !string.IsNullOrEmpty(d["IdentityCard"].ToString()) ? d["IdentityCard"] : "",
                                   Address = !string.IsNullOrEmpty(d["Address"].ToString()) ? d["Address"] : "",
-                                  City = !string.IsNullOrEmpty(d["City"].ToString()) ? d["City"] : "",
+                                  City = Profile.Commons.Helpers.CityNameHelper.Resolve(cityMap, d["City"]),
                                   Nationality = !string.IsNullOrEmpty(d["Nationality"].ToString()) ? d["Nationality"] : "",
                                   HandPhone = !string.IsNullOrEmpty(d["HandPhone"].ToString()) ? d["HandPhone"] : "",
                                   Telephone = !string.IsNullOrEmpty(d["Telephone"].ToString()) ? d["Telephone"] : "",
@@ -536,6 +537,7 @@ namespace Profile.Controllers
             try
             {
                 (DataTable myData, int totalCount) = ProfileBO.GetAllProfileTest(code, account, firstName, keyWord, city, type, showSaleInCharge, skip, take);
+                var cityMap = Profile.Commons.Helpers.CityNameHelper.GetCityMap();
                 var result = (from d in myData.AsEnumerable()
                               select new
                               {
@@ -546,7 +548,7 @@ namespace Profile.Controllers
                                   PassPort = !string.IsNullOrEmpty(d["PassPort"].ToString()) ? d["PassPort"] : "",
                                   IdentityCard = !string.IsNullOrEmpty(d["IdentityCard"].ToString()) ? d["IdentityCard"] : "",
                                   Address = !string.IsNullOrEmpty(d["Address"].ToString()) ? d["Address"] : "",
-                                  City = !string.IsNullOrEmpty(d["City"].ToString()) ? d["City"] : "",
+                                  City = Profile.Commons.Helpers.CityNameHelper.Resolve(cityMap, d["City"]),
                                   Nationality = !string.IsNullOrEmpty(d["Nationality"].ToString()) ? d["Nationality"] : "",
                                   HandPhone = !string.IsNullOrEmpty(d["HandPhone"].ToString()) ? d["HandPhone"] : "",
                                   Telephone = !string.IsNullOrEmpty(d["Telephone"].ToString()) ? d["Telephone"] : "",
@@ -971,7 +973,11 @@ namespace Profile.Controllers
                 if (isNew)
                     ProfileBO.Instance.Insert(profile);
                 else
+                {
                     ProfileBO.Instance.Update(profile);
+                    // Đồng bộ tên khách sang các booking đang dùng profile này
+                    try { BaseBusiness.util.ProfileSyncUtil.SyncIndividualNameToReservations(profile); } catch { }
+                }
                 return Json(new
                 {
                     code = 0,
@@ -991,6 +997,7 @@ namespace Profile.Controllers
             try
             {
                 (DataTable data, int totalCount) = ProfileBO.GetAllProfile2(code, account, firstName, keyWord, city, type, showSaleInCharge, page, pageSize);
+                var cityMap = Profile.Commons.Helpers.CityNameHelper.GetCityMap();
                 var result = (from d in data.AsEnumerable()
                               select new
                               {
@@ -1001,7 +1008,7 @@ namespace Profile.Controllers
                                   PassPort = d["PassPort"]?.ToString() ?? "",
                                   IdentityCard = d["IdentityCard"]?.ToString() ?? "",
                                   Address = d["Address"]?.ToString() ?? "",
-                                  City = d["City"]?.ToString() ?? "",
+                                  City = Profile.Commons.Helpers.CityNameHelper.Resolve(cityMap, d["City"]),
                                   Nationality = d["Nationality"]?.ToString() ?? "",
                                   HandPhone = d["HandPhone"]?.ToString() ?? "",
                                   Telephone = d["Telephone"]?.ToString() ?? "",
@@ -1281,6 +1288,27 @@ namespace Profile.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        // History > Summary (WinForm: frmProfileSummaryHistory)
+        [HttpGet]
+        public IActionResult SearchProfileSummaryHistory(string profileID, string confirmationNo)
+        {
+            try
+            {
+                var data = _iProfileService.SearchProfileSummaryHistory(profileID, confirmationNo);
+
+                var result = data.AsEnumerable()
+                    .Select(row => data.Columns.Cast<DataColumn>().ToDictionary(
+                        col => col.ColumnName,
+                        col => row[col] == DBNull.Value ? null : row[col]))
+                    .ToList();
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
         #endregion
 
         #region Profile Membership
@@ -1387,7 +1415,17 @@ namespace Profile.Controllers
                 {
                     return Json(new { code = 1, msg = "Card No  is required" });
                 }
-                ProfileMemberCardModel membership = new ProfileMemberCardModel();
+                // Có ID → sửa bản ghi cũ (UPDATE), không được tạo dòng mới
+                int.TryParse(Request.Form["ID"].ToString(), out int membershipId);
+                ProfileMemberCardModel membership = null;
+                if (membershipId > 0)
+                {
+                    membership = (ProfileMemberCardModel)ProfileMemberCardBO.Instance.FindByPrimaryKey(membershipId);
+                    if (membership == null || membership.ID == 0)
+                        return Json(new { code = 1, msg = "Membership not found" });
+                }
+                bool isUpdate = membership != null;
+                if (!isUpdate) membership = new ProfileMemberCardModel();
                 membership.ProfileID = profileID;
                 membership.MemberNo = Request.Form["memberNo"].ToString();
                 membership.MemberTypeID = int.Parse(Request.Form["memberTypeID"].ToString());
@@ -1398,6 +1436,13 @@ namespace Profile.Controllers
                 membership.InActive = int.Parse(Request.Form["inactive"].ToString()) == 1 ? true : false;
                 membership.IsDeleted = false;
                 membership.Sequence = !string.IsNullOrEmpty(Request.Form["sequence"].ToString()) ? int.Parse(Request.Form["sequence"].ToString()) : 0;
+                if (isUpdate)
+                {
+                    membership.UpdatedDate = DateTime.Now;
+                    membership.UpdatedBy = Request.Form["userName"].ToString();
+                    ProfileMemberCardBO.Instance.Update(membership);
+                    return Json(new { code = 0, msg = "Membership was updated successfully" });
+                }
                 membership.CreatedDate = membership.UpdatedDate = DateTime.Now;
                 membership.CreatedBy = membership.UpdatedBy = Request.Form["userName"].ToString();
                 ProfileMemberCardBO.Instance.Insert(membership);
@@ -1998,6 +2043,8 @@ namespace Profile.Controllers
                     model.UserInsertID = oldData.UserInsertID;
                     model.UpdateDate = DateTime.Now;
                     ProfileBO.Instance.Update(model);
+                    // Đồng bộ tên khách sang các booking đang dùng profile này
+                    try { BaseBusiness.util.ProfileSyncUtil.SyncIndividualNameToReservations(model); } catch { }
                     #region Insert log activity for update profile
                     var propertyChanges = TextUtils.GetModelPropertyChanges(oldData, model);
                     foreach (var (propName, oldVal, newVal) in propertyChanges)

@@ -2461,13 +2461,27 @@ namespace Billing.Controllers
                 // Gọi dịch vụ với date đã xử lý
                 var data = _invoicingService.SearchFolio(guestStatus, folioStatus, folioType, name, room, folioNo, confirmationNo, parsedDate?.ToString() ?? "");
 
-                var result = (from d in data.AsEnumerable()
-                              select d.Table.Columns.Cast<DataColumn>()
-                                  .ToDictionary(
-                                      col => col.ColumnName,
-                                      col => d[col.ColumnName]?.ToString()
-                                  )).ToList();
-                return Json(result);
+                // Trả về dạng gọn { columns, rows } (tên cột chỉ gửi 1 lần, số giữ kiểu số)
+                // để giảm dung lượng JSON khi có hàng trăm nghìn folio.
+                var columns = data.Columns.Cast<DataColumn>().ToArray();
+                var numericCols = columns.Select(c =>
+                    c.DataType == typeof(decimal) || c.DataType == typeof(double) || c.DataType == typeof(float) ||
+                    c.DataType == typeof(int) || c.DataType == typeof(long) || c.DataType == typeof(short) ||
+                    c.DataType == typeof(byte)).ToArray();
+
+                var rows = new List<object[]>(data.Rows.Count);
+                foreach (DataRow r in data.Rows)
+                {
+                    var values = new object[columns.Length];
+                    for (int i = 0; i < columns.Length; i++)
+                    {
+                        object v = r[i];
+                        values[i] = v == DBNull.Value ? null : (numericCols[i] ? v : v.ToString());
+                    }
+                    rows.Add(values);
+                }
+
+                return Json(new { columns = columns.Select(c => c.ColumnName), rows });
             }
             catch (Exception ex)
             {

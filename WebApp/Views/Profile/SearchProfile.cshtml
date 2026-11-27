@@ -148,11 +148,34 @@
                 <div class="py-2">
                     @* <button class="mui-button mui-button-new">Attach</button> *@
                     @* <button class="mui-button mui-button-new">Detach</button> *@
+                    @* Thứ tự nút theo WinForm frmProfileHistoryStayInfo: Summary, Resv., View Folio, Excel, Close *@
+                    <button class="mui-button mui-button-new" id="pro_search_btnHistorySummary">Summary</button>
+                    <button class="mui-button mui-button-new" id="pro_search_btnHistoryResv">Resv.</button>
+                    <button class="mui-button mui-button-new" id="pro_search_btnHistoryFolio">View Folio</button>
                     <button class="mui-button mui-button-new" id="pro_search_excel_history">Excel</button>
                     <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                 </div>
                 <div class="gridContainer mt-2 flex-grow-1 d-flex flex-column position-relative" style="min-height: 0;">
                     <div id="pro_search_gridContainerHistory"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* History > Summary (WinForm: frmProfileSummaryHistory) *@
+<div class="modal fade managed-modal" id="pro_search_modalHistorySummary" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">History Summary</h5>
+            </div>
+            <div class="modal-body d-flex flex-column" style="height: 60vh;">
+                <div class="py-2">
+                    <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div class="gridContainer mt-2 flex-grow-1 d-flex flex-column position-relative" style="min-height: 0;">
+                    <div id="pro_search_gridContainerHistorySummary"></div>
                 </div>
             </div>
         </div>
@@ -205,6 +228,9 @@
             $("#pro_search_btnProfileUpdate").off("click").on("click", () => self.openProfileUpdateModal());
             $("#pro_search_btnMerge").off("click").on("click", () => self.openConfirmMerge());
             $("#pro_search_excel_history").off("click").on("click", () => self.exportToExcelHistory());
+            $("#pro_search_btnHistorySummary").off("click").on("click", () => self.openHistorySummary());
+            $("#pro_search_btnHistoryResv").off("click").on("click", () => self.openHistoryReservation());
+            $("#pro_search_btnHistoryFolio").off("click").on("click", () => self.openHistoryFolio());
 
             $("#pro_search_txtType").on("change", function () {
                 self.getAllProfiles();
@@ -632,6 +658,10 @@
                 return; 
             }
 
+            // Dòng đang chọn trong History (giống ReservationID / _ConfirmNo của WinForm)
+            self.histReservationID = 0;
+            self.histConfirmNo = "";
+
             $('#pro_search_modalHistory').modal('show');
 
             $.ajax({
@@ -942,6 +972,10 @@
                 }
             ];
 
+            // Grid được dùng lại giữa các lần xem -> cho phép tự chọn dòng đầu lại
+            const existingHistGrid = $("#pro_search_gridContainerHistory").data("dxDataGrid");
+            if (existingHistGrid) existingHistGrid._histInitSelected = false;
+
             $("#pro_search_gridContainerHistory").dxDataGrid({
                 dataSource: data,
                 height: '100%',
@@ -957,14 +991,231 @@
                     showInfo: true,
                     showNavigationButtons: true,
                 },
-                scrolling: {    
+                scrolling: {
                     mode: "standard",
                     showScrollbar: "always"
+                },
+                selection: { mode: "single" },
+                // Giống WinForm: mặc định lấy dòng đầu tiên
+                onContentReady: function (e) {
+                    if (!e.component._histInitSelected && e.component.totalCount() > 0) {
+                        e.component._histInitSelected = true;
+                        e.component.selectRowsByIndexes([0]);
+                    }
+                },
+                onSelectionChanged: function (e) {
+                    const row = e.selectedRowsData[0];
+                    if (!row) return;
+                    if (isIndividual) {
+                        self.histReservationID = parseInt(row.pReservationID, 10) || 0;
+                        self.histConfirmNo = "";
+                    } else {
+                        self.histReservationID = 0;
+                        self.histConfirmNo = row._ConfirmationNo != null ? String(row._ConfirmationNo) : "";
+                    }
                 },
                 onRowDblClick: function(e) {
                     if (isIndividual && e.data.pReservationID) {
                         console.log("History clicked: ");
                     }
+                }
+            });
+        },
+
+        // ===== History > Summary (WinForm: frmProfileSummaryHistory) =====
+        openHistorySummary: function () {
+            const self = this;
+            // Individual: ConfirmationNo = ""; Company/Agent/...: theo dòng đang chọn
+            const confirmationNo = (self.profileType == 0) ? "" : (self.histConfirmNo || "");
+
+            $('#pro_search_modalHistorySummary').modal('show');
+
+            $.ajax({
+                url: '/Profile/SearchProfileSummaryHistory',
+                data: { profileID: self.profileID, confirmationNo: confirmationNo },
+                loadingGrid: "#pro_search_gridContainerHistorySummary",
+                success: function (result) {
+                    self.renderHistorySummaryGrid(Array.isArray(result) ? result : []);
+                },
+                error: function (xhr) {
+                    showToast("Error", xhr.responseText || "Unable to load history summary", false);
+                }
+            });
+        },
+
+        renderHistorySummaryGrid: function (data) {
+            const money = { type: "fixedPoint", precision: 2 };
+            $("#pro_search_gridContainerHistorySummary").dxDataGrid({
+                dataSource: data,
+                height: '100%',
+                allowColumnResizing: true,
+                columnAutoWidth: true,
+                showBorders: false,
+                paging: { enabled: false },
+                scrolling: { mode: "standard", showScrollbar: "always" },
+                columns: [
+                    { dataField: "Year", caption: "Year", alignment: "center" },
+                    { dataField: "Month", caption: "Month", alignment: "center" },
+                    { dataField: "RoomNight", caption: "Room Nights" },
+                    { dataField: "ArrivalRoom", caption: "Arrival Rooms" },
+                    { dataField: "CancelRoom", caption: "Cancel Rooms" },
+                    { dataField: "NoShowRooms", caption: "No Show Rooms" },
+                    { dataField: "DayUseRooms", caption: "Day Use Rooms" },
+                    { dataField: "AverageDailyRevenue", caption: "A.D Revenue", dataType: "number", format: money },
+                    { dataField: "TotalRevenue", caption: "Total Revenue", dataType: "number", format: money },
+                    { dataField: "RoomRevenue", caption: "Room Rev", dataType: "number", format: money },
+                    { dataField: "FBRevenue", caption: "F&B Revenue", dataType: "number", format: money },
+                    { dataField: "ExtraRevenue", caption: "Extra Revenue", dataType: "number", format: money },
+                    { dataField: "NonRevenue", caption: "Non Revenue", dataType: "number", format: money },
+                    { dataField: "ReservationNights", caption: "Res. Nights" },
+                    { dataField: "ReservationArrivals", caption: "Res. Arrivals" },
+                    { dataField: "NoShowReservation", caption: "No Show Res" },
+                    { dataField: "DayUseReservation", caption: "Day Use Res" }
+                ]
+            });
+        },
+
+        // ===== History > Resv. (WinForm: mở frmReservation của dòng đang chọn) =====
+        openHistoryReservation: function () {
+            const rid = this.histReservationID;
+            if (!rid) {
+                showToast("Warning", "Please select a reservation", false);
+                return;
+            }
+
+            const modal = $('#newReservationModal');
+            modal.find('.modal-body').html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-3">Loading reservation...</p></div>');
+            modal.modal('show');
+
+            $.ajax({
+                url: '/Reservation/EncryptId', type: 'POST', data: { id: rid },
+                success: function (response) {
+                    if (!response || !response.success) {
+                        modal.modal('hide');
+                        showToast('Error', 'Cannot open reservation.', false);
+                        return;
+                    }
+                    $.ajax({
+                        url: '/Reservation/NewReservation', type: 'GET', data: { key: response.encryptedId }, cache: false,
+                        success: function (html) {
+                            modal.find('.modal-body').html(html);
+                            if (typeof window.focusNewReservationFirstField === 'function') window.focusNewReservationFirstField();
+                        },
+                        error: function () {
+                            modal.find('.modal-body').html('<div class="alert alert-danger m-4">Unable to load reservation details.</div>');
+                        }
+                    });
+                },
+                error: function () {
+                    modal.modal('hide');
+                    showToast('Error', 'Server connection error.', false);
+                }
+            });
+        },
+
+        // ===== History > View Folio (WinForm: frmCshBillingManagement của dòng đang chọn) =====
+        // Dùng lại popup Billing của Search Reservation (nạp từ /Reservation/ReservationOptionsHost),
+        // giống cách màn Guest In House (Cashiering) đang làm.
+        ensureReservationHost: function () {
+            const self = this;
+            if (self._rvhReady) return self._rvhReady;
+
+            self._rvhReady = new Promise(function (resolve, reject) {
+                // Trang hiện tại đã có sẵn popup Billing (vd. Search Reservation) thì dùng lại
+                if ($('#modalBilling').length) { resolve(); return; }
+
+                // Nạp 1 lần cho cả trang, đặt ngoài modal Search Profile để không bị xóa khi đóng
+                let $host = $('#pro_search_rvhHost');
+                if (!$host.length) $host = $('<div id="pro_search_rvhHost"></div>').appendTo('body');
+
+                $host.load('/Reservation/ReservationOptionsHost', function (resp, st, xhr) {
+                    if (st === 'error') {
+                        self._rvhReady = null;
+                        showToast('Error', xhr.status === 403 ? 'Access Denied' : 'Unable to load billing.', false);
+                        reject();
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+            return self._rvhReady;
+        },
+
+        openHistoryFolio: function () {
+            const self = this;
+            const rid = self.histReservationID;
+            if (!rid) {
+                showToast("Warning", "Please select a reservation", false);
+                return;
+            }
+
+            $.ajax({
+                url: '/Reservation/GetReservationByID', type: 'GET', dataType: 'json', data: { ID: rid },
+                success: function (res) {
+                    if (!res || typeof res !== 'object') {
+                        showToast('Error', 'Cannot load reservation.', false);
+                        return;
+                    }
+                    self.ensureReservationHost().then(function () {
+                        const statusText = ['RESVED', 'CHECKED IN', 'CHECKED OUT', 'CANCEL', 'WAIT LIST',
+                            'DUE IN', 'DUE OUT', 'NO SHOW', 'DAY USE'][res.status] || '';
+                        const arrival = res.arrivalDate || '';
+                        const departure = res.departureDate || '';
+                        const guestName = res.lastName || '';
+                        const row = {
+                            ID: rid,
+                            ReservationStatus: res.status,
+                            Status: statusText,
+                            ConfirmationNo: res.confirmationNo,
+                            Arrival: arrival,
+                            Departure: departure,
+                            GuestName: guestName,
+                            LastName: guestName,
+                            RoomNo: res.roomNo,
+                            RoomID: res.roomId,
+                            RoomType: res.roomType,
+                            ProfileIndividualID: res.profileIndividualId,
+                            PriceNet: res.rate,
+                            NoOfNight: res.noOfNight,
+                            GroupName: res.groupName,
+                            CompanyName: res.companyName
+                        };
+
+                        // Biến trang mà popup Billing đọc (giống khi chọn 1 dòng ở Search Reservation)
+                        window.idReservation = rid;
+                        window.statusID = res.status;
+                        window.reservationStatus = res.status;
+                        window.roomID = res.roomId;
+                        window.status = statusText;
+                        window.roomStatus = '';
+                        window.roomType = res.roomType;
+                        window.roomNo = res.roomNo;
+                        window.arivalDate = arrival;
+                        window.departureDate = departure;
+                        window.confirmationNo = res.confirmationNo;
+                        window.lastname = guestName;
+                        window.profileID = res.profileIndividualId;
+                        window.rateAmount = res.rate;
+                        window.night = res.noOfNight;
+                        window._currentReservationData = row;
+                        window.listReservationByConfirmationNo = [row];
+
+                        $('#rsvStatusBilling').text(statusText);
+                        $('#conNoBilling').text(res.confirmationNo || '');
+                        $('#arivalBilling').text(arrival ? String(arrival).split('T')[0] : '');
+                        $('#departureBilling').text(departure ? String(departure).split('T')[0] : '');
+                        if (typeof window.setBillingHeaderInfo === 'function') window.setBillingHeaderInfo(row);
+                        if (typeof window.GetBalanceVND === 'function') window.GetBalanceVND(rid);
+
+                        if (typeof window.openModalBilling !== 'function') {
+                            showToast('Warning', 'This function is not available.', false);
+                            return;
+                        }
+                        window.openModalBilling();
+                    }).catch(function () { });
+                },
+                error: function () {
+                    showToast('Error', 'Cannot load reservation.', false);
                 }
             });
         },
@@ -996,50 +1247,25 @@
                 return;
             }
             const workbook = new ExcelJS.Workbook();
-            const companyName = localStorage.getItem("CompanyName") || "Tên công ty chưa xác định";
             const worksheet = workbook.addWorksheet("Sheet 1");
 
-            // === Dòng 1: Tên công ty (merge theo 4 cột) ===
-            worksheet.addRow([companyName]);
-            worksheet.mergeCells('A1:D1');
-            worksheet.getRow(1).font = { bold: true };
-            worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'left' };
-
-            // === Dòng 2: Ngày giờ xuất (Sửa lỗi hiển thị ở đây) ===
-            const now = new Date();
-            const exportDateStr = "Export Date: " + now.toLocaleString("vi-VN");
-            const row2 = worksheet.getRow(2);
-            row2.getCell(1).value = exportDateStr; // Gán vào ô đầu tiên của vùng merge (A2)
-            worksheet.mergeCells('A2:D2');
-            row2.alignment = { vertical: 'middle', horizontal: 'left' };
-            row2.font = { italic: true };
-
-            // === Dòng 3–4: trống
-            worksheet.addRow([]);
-            worksheet.addRow([]);
-
-            // === Dòng 5: Tiêu đề báo cáo (ở giữa) ===
+            // PRO014: không xuất tên công ty / ngày xuất - chỉ tiêu đề + dữ liệu
+            // === Dòng 1: Tiêu đề báo cáo ===
             const reportRow = worksheet.addRow(['Profile History']);
-            worksheet.mergeCells('A5:I5');
+            worksheet.mergeCells('A1:I1');
             reportRow.font = { bold: true, size: 14 };
             reportRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-            // === Dòng 6: trống
+            // === Dòng 2: trống
             worksheet.addRow([]);
 
-            // === Xuất dữ liệu grid bắt đầu từ dòng 7 ===
+            // === Xuất dữ liệu grid bắt đầu từ dòng 3 ===
             DevExpress.excelExporter.exportDataGrid({
                 component: grid,
                 worksheet: worksheet,
                 autoFilterEnabled: true,
-                topLeftCell: { row: 7, column: 1 }
+                topLeftCell: { row: 3, column: 1 }
             }).then(function () {
-                // Footer (sau cùng)
-                const lastRow = worksheet.lastRow.number + 2;
-                worksheet.mergeCells(`A${lastRow}:D${lastRow}`);
-                worksheet.getCell(`A${lastRow}`).alignment = { horizontal: 'center' };
-                worksheet.getCell(`A${lastRow}`).font = { italic: true };
-
                 // Ghi file
                 let fileName = "ProfileHistory.xlsx";
                 workbook.xlsx.writeBuffer().then(function (buffer) {

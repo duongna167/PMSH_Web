@@ -8,9 +8,10 @@
             <div class="modal-body">
                 <div>
 
-                    <button class="mui-button mui-button-new" onclick="openModalNewRouting();"> New</button>
-
-                    <button class="mui-button mui-button-new" onclick="closeModalRouting();"> Close</button>
+                    <button type="button" class="mui-button mui-button-new" onclick="openModalNewRouting();">New</button>
+                    <button type="button" class="mui-button mui-button-edit" onclick="openModalEditRouting();" id="btnEditRouting">Edit</button>
+                    <button type="button" class="mui-button mui-button-delete" onclick="deleteRouting();" id="btnDeleteRouting">Delete</button>
+                    <button type="button" class="mui-button mui-button-new" onclick="closeModalRouting();">Close</button>
                 </div>
                 <div class="mui-divider"></div>
 
@@ -23,94 +24,90 @@
     </div>
 </div>
 
-<!-- Modal new-->
-<div class="modal fade modal" id="modalNewRouting" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+<!-- Modal Routing (New / Edit) — bố cục theo WinForm frmRouting:
+     Master Folio : Transaction, Limit, Name (Master), Address, Window (---Master Folio---)
+     Window       : Transaction, Limit, Name (profile, chọn được), Address, Window (2..8)
+     Room         : Room, Transaction, Limit, Name (khách của phòng) -->
+<style>
+    #modalNewRouting .modal-dialog { max-width: 620px; }
+    #modalNewRouting .rt-section { padding: 10px 14px; border-bottom: 1px solid #dee2e6; }
+    #modalNewRouting .rt-section:last-child { border-bottom: 0; }
+    #modalNewRouting .rt-radios { display: flex; justify-content: space-between; }
+    #modalNewRouting .rt-radio { display: flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; }
+    #modalNewRouting .rt-radio input { margin: 0; width: 15px; height: 15px; }
+    #modalNewRouting .rt-dates { display: grid; grid-template-columns: 1fr auto 150px; gap: 6px 10px; align-items: center; }
+    #modalNewRouting .rt-row { display: grid; grid-template-columns: 90px 1fr; gap: 10px; align-items: center; margin-bottom: 6px; }
+    #modalNewRouting .rt-row > label { text-align: right; margin: 0; min-width: 0; }
+    #modalNewRouting .rt-field { display: flex; gap: 4px; align-items: center; min-width: 0; }
+    #modalNewRouting .rt-field > input, #modalNewRouting .rt-field > select, #modalNewRouting .rt-field > .ts-wrapper { flex: 1 1 auto; min-width: 0; }
+    #modalNewRouting .rt-short { max-width: 140px; }
+    #modalNewRouting .rt-window { max-width: 170px; }
+    #modalNewRouting .rt-lookup { flex: 0 0 30px; height: 28px; padding: 0; }
+    #modalNewRouting input:disabled, #modalNewRouting select:disabled, #modalNewRouting input[readonly] { background: #eef1f5; }
+</style>
+<div class="modal fade modal" id="modalNewRouting" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="routingFormTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
 
             <div class="modal-header">
-                <h5 class="modal-title" id="staticBackdropLabel">Routing</h5>
-            @*     <button type="button" class="btn-close" onclick="closeModalNewRouting()"></button> *@
+                <h5 class="modal-title" id="routingFormTitle">Routing</h5>
             </div>
             <div class="modal-body">
-                <div>
-                    <button class="mui-button mui-button-search" onclick="SaveRouting();"><i class="fa-solid fa-file-circle-check"></i> OK</button>
-                    <button class="mui-button mui-button-clear" onclick="closeModalNewRouting();">Close</button>
-
+                <div class="mb-2">
+                    <button type="button" class="mui-button mui-button-search" onclick="SaveRouting();"><i class="fa-solid fa-file-circle-check"></i> OK</button>
+                    <button type="button" class="mui-button mui-button-clear" onclick="closeModalNewRouting();">Close</button>
+                    <input type="hidden" id="routingEditID" value="0" />
+                    <input type="hidden" id="routingProfileID" value="0" />
                 </div>
 
-                <div class="mt-2 row bg-light border rounded" style="margin:0 1px">
-                    <div class="row">
-                        <div class="radio-group col-md-4">
-                            <input type="radio" id="everydayTypeRouting" name="typeRouting" checked value="0">
-                            <label for="everydayTypeRouting" style="text-align:left">Master Folio</label>
-                        </div>
-                        <div class="radio-group col-md-4 ">
-                            <input type="radio" id="dateTypeRouting" name="typeRouting" style="flex:0" value="1">
-                            <label for="dateTypeRouting" style="text-align:left">Window</label>
-                        </div>
-                        <div class="radio-group col-md-4 ">
-                            <input type="radio" id="dayTypeRouting" name="typeRouting" style="flex:0" value="2">
-                            <label for="dayTypeRouting" style="text-align:left">Room</label>
-                        </div>
+                <div class="bg-light border rounded">
+                    <!-- Loại routing: value = Routing.Type như WinForm (2 Master Folio, 1 Window, 0 Room) -->
+                    <div class="rt-section rt-radios">
+                        <label class="rt-radio"><input type="radio" id="rtTypeMaster" name="typeRouting" value="2"> Master Folio</label>
+                        <label class="rt-radio"><input type="radio" id="rtTypeWindow" name="typeRouting" value="1"> Window</label>
+                        <label class="rt-radio"><input type="radio" id="rtTypeRoom" name="typeRouting" value="0"> Room</label>
                     </div>
-                    <div class="mui-divider"></div>
-                    <div class="row">
-                        <div class="col-md-6 row">
-                            <div class="radio-group col-md-12">
-                                <input type="radio" id="entireStay" name="dayRouting" checked value="1">
-                                <label for="entireStay" style="text-align:left">Entire Stay</label>
-                            </div>
-                            <div class="radio-group col-md-12 ">
-                                <input type="radio" id="otherDate" name="dayRouting" style="flex:0" value="0">
-                                <label for="otherDate" style="text-align:left">Other Date</label>
-                            </div>
-                        </div>
-                        <div class="col-md-6 row">
-                            <div class="mb-2">
-                                <label class="col-md-2" style="text-align:left;min-width:0">BeginDate</label>
-                                <input type="date" class="col-md-10" id="beginDateRouting">
-                            </div>
-                            <div class="mb-2">
-                                <label  class="col-md-2" style="text-align:left;min-width:0">EndDate</label>
-                                <input type="date" class="col-md-10" id="endDateRouting">
-                            </div>
-                        </div>
+
+                    <div class="rt-section rt-dates">
+                        <label class="rt-radio"><input type="radio" id="entireStay" name="dayRouting" value="1" checked> Entire Stay</label>
+                        <label class="m-0 text-end">Begin Date</label>
+                        <input type="date" id="beginDateRouting">
+                        <label class="rt-radio"><input type="radio" id="otherDate" name="dayRouting" value="0"> Other Dates</label>
+                        <label class="m-0 text-end">End Date</label>
+                        <input type="date" id="endDateRouting">
                     </div>
-                    <div class="mui-divider"></div>
-                    <div class="row">
-                        <div class="col-md-12 mb-2 row">
-                            <label for="input1" class="form-label col-md-2" style="min-width:0;text-align:left">Room</label>
-                            <select type="text" class="col-md-10" id="roomRouting" disabled></select>
+
+                    <div class="rt-section">
+                        <div class="rt-row" data-rt="room">
+                            <label for="roomRouting">Room</label>
+                            <div class="rt-field"><select id="roomRouting"></select></div>
                         </div>
-                        <div class="col-md-12 mb-2 row">
-                            <label for="input1" class="form-label col-md-2" style="min-width:0;text-align:left">Transaction</label>
-                            <select type="text" class="col-md-10" id="transactionRouting" asp-items="ViewBag.cboTransaction" ></select>
+                        <div class="rt-row" data-rt="master window room">
+                            <label for="transactionRouting">Transaction</label>
+                            <div class="rt-field"><select id="transactionRouting" multiple asp-items="ViewBag.cboTransaction"></select></div>
                         </div>
-                        <div class="col-md-6 mb-2 row">
-                            <label for="input1" class="form-label col-md-4" style="min-width:0;text-align:left">Limit</label>
-                            <input type="text" class="col-md-8" id="limitRouting" value="0">
+                        <div class="rt-row" data-rt="master window room">
+                            <label for="limitRouting">Limit</label>
+                            <div class="rt-field"><input type="text" class="rt-short" id="limitRouting" value="0" inputmode="numeric"></div>
                         </div>
-                        <div class="col-md-12 mb-2 row">
-                            <label for="input1" class="form-label col-md-2" style="min-width:0;text-align:left">Name</label>
-                            <input type="text" class="col-md-10" id="nameRouting" disabled>
+                        <div class="rt-row" data-rt="master">
+                            <label for="masterRouting">Name</label>
+                            <div class="rt-field"><select id="masterRouting"></select></div>
                         </div>
-                        <div class="col-md-12 mb-2 row">
-                            <label for="input1" class="form-label col-md-2" style="min-width:0;text-align:left">Address</label>
-                            <input type="text" class="col-md-10" id="addressRouting" disabled>
+                        <div class="rt-row" data-rt="window room">
+                            <label for="nameRouting">Name</label>
+                            <div class="rt-field">
+                                <input type="text" id="nameRouting" readonly>
+                                <button type="button" class="mui-button rt-lookup" id="btnRoutingProfile" data-rt="window" onclick="openRoutingProfileSearch();" data-tooltip="Choose profile"><i class="fa-solid fa-arrow-down text-dark"></i></button>
+                            </div>
                         </div>
-                        <div class="col-md-12 mb-2 row">
-                            <label for="input1" style="min-width:0;text-align:left">Window</label>
-                            <select type="text" id="windowRouting">
-                                <option value="1" selected>--Master Folio--</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                            </select>
+                        <div class="rt-row" data-rt="master window">
+                            <label for="addressRouting">Address</label>
+                            <div class="rt-field"><input type="text" id="addressRouting" readonly></div>
+                        </div>
+                        <div class="rt-row" data-rt="master window">
+                            <label for="windowRouting">Window</label>
+                            <div class="rt-field"><select id="windowRouting" class="rt-window"></select></div>
                         </div>
                     </div>
                 </div>
@@ -119,89 +116,97 @@
     </div>
 </div>
 <script>
-    function openModalRouting(){
-        if (idReservation === 0) {
+    // ===== Routing Instructions (port WinForm frmRoutingInstructions + frmRouting) =====
+    // Partial nạp cùng SearchReservation → chỉ dùng var / function ở top-level.
+    var routingCtx = { rsvId: 0, confNo: '', name: '', profileId: 0, arrival: '', departure: '' };
+    var routingMasters = [];
+
+    function routingToIsoDate(v) {
+        if (!v) return '';
+        var m = moment(String(v), [moment.ISO_8601, 'DD/MM/YYYY HH:mm', 'DD/MM/YYYY', 'MM/DD/YYYY'], true);
+        if (!m.isValid()) m = moment(String(v));
+        return m.isValid() ? m.format('YYYY-MM-DD') : '';
+    }
+    function routingUser() {
+        var userName = '', userID = 0;
+        try { userName = JSON.parse(localStorage.getItem("Loginname")) || ''; } catch (e) { userName = localStorage.getItem("Loginname") || ''; }
+        try { userID = JSON.parse(localStorage.getItem("userID")) || 0; } catch (e) { userID = 0; }
+        return { userName: userName, userID: userID };
+    }
+
+    function openModalRouting() {
+        var rid = parseInt(idReservation, 10) || 0;
+        if (!rid) {
             showToast('Warning', 'Please choose booking', false);
             return;
         }
-         let formattedDate = arivalDate.split(" ")[0].split("/").reverse().join("-"); // Chuyển thành 2024-08-30
-        $('#beginDateRouting').val(formattedDate);
-          let formattedDate2 = arivalDate.split(" ")[0].split("/").reverse().join("-"); // Chuyển thành 2024-08-30
-        $('#endDateRouting').val(formattedDate2);
-        GetRoutingByReservationID(idReservation,confirmationNo);
-                    searchRoomRouting();
-
+        routingCtx = { rsvId: rid, confNo: '', name: '', profileId: 0, arrival: '', departure: '' };
+        routingMasters = [];
+        setRoutingRowButtons(false);
         $('#modalRouting').modal('show');
+
+        // Thông tin booking lấy từ server (biến toàn cục trên trang có thể cũ)
+        $.ajax({
+            url: '/Reservation/GetReservationByID',
+            type: 'GET',
+            data: { ID: rid },
+            success: function (r) {
+                if (r && typeof r === 'object') {
+                    routingCtx.confNo = r.confirmationNo || r.ConfirmationNo || '';
+                    routingCtx.name = r.lastName || r.LastName || '';
+                    routingCtx.profileId = r.profileIndividualId || r.ProfileIndividualId || 0;
+                    routingCtx.arrival = routingToIsoDate(r.arrivalDate || r.ArrivalDate);
+                    routingCtx.departure = routingToIsoDate(r.departureDate || r.DepartureDate);
+                }
+            },
+            complete: function () {
+                GetRoutingByReservationID();
+            }
+        });
+        searchRoomRouting();
+        loadRoutingMasters();
     }
-    function closeModalRouting(){
+    function closeModalRouting() {
         $('#modalRouting').modal('hide');
     }
-    function openModalNewRouting() {
-        searchReservationMaster();
-        clearFormAddRouting();
-
-        if (reservationMaster == 0) {
-            console.log('a');
-            $('#windowRouting').prop('disabled', true);
-            $('#everydayTypeRouting').prop('disabled', true);
-
-            $('#everydayTypeRouting').prop('checked', false);
-            $('#dateTypeRouting').prop('checked', true); 
-        } else {
-            console.log('b');
-            $('#windowRouting').prop('disabled', false);
-            $('#everydayTypeRouting').prop('disabled', true);
-
-            $('#everydayTypeRouting').prop('checked', true); 
-        }
-
-        $('#modalNewRouting').modal('show');
+    function setRoutingRowButtons(show) {
+        $('#btnEditRouting, #btnDeleteRouting').prop('disabled', !show);
     }
-    function closeModalNewRouting(){
-        clearFormAddRouting();
-        $('#modalNewRouting').modal('hide');
-    }
-    function GetRoutingByReservationID(id,confirmationNo) {
+
+    function GetRoutingByReservationID() {
         $.ajax({
             url: '/Reservation/SearchRouting',
             type: 'get',
             dataType: 'json',
-            data: {
-                reservationID: id,
-                confirmationNo: confirmationNo,
-            },
-            crossDomain: false,
+            data: { reservationID: routingCtx.rsvId, confirmationNo: routingCtx.confNo || '' },
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                initializeDataGridRouting(result);
+                initializeDataGridRouting(Array.isArray(result) ? result : []);
             },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
+            error: function (xhr) {
+                if (xhr.status == 401) { sessionTimeout(); return; }
+                initializeDataGridRouting([]);
+                showToast('Error', (xhr.responseJSON && xhr.responseJSON.msg) || ('Cannot load routing (HTTP ' + xhr.status + ').'), false);
             }
         });
     }
     function initializeDataGridRouting(data) {
-        var columnWidth = 150;
         $("#gridContainerRouting").dxDataGrid({
-
-        dataSource: data, allowColumnResizing: true,
+            dataSource: data,
+            keyExpr: 'id',
+            allowColumnResizing: true,
             columns: [
-                { dataField: "rsqID", caption: "ID",  visible: false},
-                { dataField: "accountName", caption: "Route To Name"},
-                { dataField: "transactionCodes", caption: "Routing Instructions"},
-                { dataField: "fromDate", caption: "Begin Date"},
-                { dataField: "toDate", caption: "End Date"},
-                { dataField: "roomNo", caption: "RoomNo"},
-                { dataField: "toFolioNo", caption: "Window"},
-                { dataField: "limit", caption: "Limit"},
- 
+                { dataField: "id", caption: "ID", visible: false },
+                { dataField: "accountName", caption: "Route To Name" },
+                { dataField: "transactionCodes", caption: "Routing Instructions" },
+                { dataField: "fromDate", caption: "Begin Date" },
+                { dataField: "toDate", caption: "End Date" },
+                { dataField: "roomNo", caption: "RoomNo" },
+                { dataField: "toFolioNo", caption: "Window" },
+                { dataField: "limit", caption: "Limit" },
+                { dataField: "isMasterFolio", caption: "Master Folio" }
             ],
             paging: { pageSize: 15 },
-            scrolling: {
-                rowRenderingMode: 'virtual',
-            },
             pager: {
                 visible: true,
                 allowedPageSizes: [15, 20, 'all'],
@@ -209,126 +214,317 @@
                 showInfo: true,
                 showNavigationButtons: true,
             },
-            filterRow: {
-                    visible: true,
-                    applyFilter: "auto"
+            filterRow: { visible: true, applyFilter: "auto" },
+            selection: { mode: "single" },
+            // WinForm: có dữ liệu thì chọn sẵn dòng đầu
+            onContentReady: function (e) {
+                var grid = e.component;
+                if (data.length > 0 && grid.getSelectedRowKeys().length === 0) {
+                    grid.selectRows([data[0].id], false);
+                }
+                setRoutingRowButtons(grid.getSelectedRowKeys().length > 0);
             },
-            selection: {
-                mode: "single"
+            onSelectionChanged: function (e) {
+                setRoutingRowButtons(e.selectedRowKeys.length > 0);
             },
-            onRowClick: function(e) {
+            onRowDblClick: function () { openModalEditRouting(); }
+        });
+    }
+    function getSelectedRouting() {
+        var grid = $("#gridContainerRouting").dxDataGrid("instance");
+        var rows = grid ? grid.getSelectedRowsData() : [];
+        return rows && rows.length ? rows[0] : null;
+    }
+
+    // ----- Transaction: chọn nhiều mã (WinForm lưu "1002, 1104, 2010, ") -----
+    function routingTransTS() {
+        var el = document.getElementById('transactionRouting');
+        if (!el) return null;
+        if (!el.tomselect && typeof initTomSelect === 'function') {
+            $(el).find('option[value="0"], option[value=""]').remove();
+            initTomSelect('#transactionRouting', { maxItems: null });
+        }
+        return el.tomselect || null;
+    }
+    function setRoutingTransactions(codes) {
+        var ts = routingTransTS();
+        if (ts) { ts.clear(true); ts.setValue(codes, true); }
+        else $('#transactionRouting').val(codes);
+    }
+    function getRoutingTransactions() {
+        var ts = routingTransTS();
+        var v = ts ? ts.getValue() : $('#transactionRouting').val();
+        return (Array.isArray(v) ? v : String(v || '').split(',')).map(function (x) { return String(x).trim(); }).filter(function (x) { return x && x !== '0'; });
+    }
+
+    // ----- Hiển thị theo loại (giống 3 màn WinForm) -----
+    function routingType() {
+        return String($('input[name="typeRouting"]:checked').val() || '1');
+    }
+    function fillRoutingWindowOptions(type) {
+        var $w = $('#windowRouting').empty();
+        if (type === '2') {
+            $w.append($('<option>').val('-1').text('---Master Folio---'));
+            $w.prop('disabled', true);
+        } else {
+            for (var i = 2; i <= 8; i++) $w.append($('<option>').val(String(i)).text(String(i)));
+            $w.prop('disabled', false);
+        }
+    }
+    function applyRoutingTypeUI(keepValues) {
+        var type = routingType();
+        var key = type === '2' ? 'master' : (type === '0' ? 'room' : 'window');
+        $('#modalNewRouting [data-rt]').each(function () {
+            var show = (' ' + $(this).attr('data-rt') + ' ').indexOf(' ' + key + ' ') >= 0;
+            $(this).toggle(show);
+        });
+        var curWindow = $('#windowRouting').val();
+        fillRoutingWindowOptions(type);
+        if (keepValues && type !== '2' && curWindow > 1) $('#windowRouting').val(curWindow);
+
+        if (key === 'master') {
+            var m = routingMasters.find(function (x) { return String(x.id) === String($('#masterRouting').val()); }) || routingMasters[0];
+            $('#addressRouting').val(m ? (m.address || '') : '');
+        } else if (key === 'room') {
+            updateRoutingNameFromRoom();
+        } else if (!keepValues) {
+            $('#routingProfileID').val(routingCtx.profileId || 0);
+            $('#nameRouting').val(routingCtx.name);
+            loadRoutingAddress(routingCtx.profileId);
+        }
+    }
+    function applyRoutingDateUI() {
+        var entire = $('input[name="dayRouting"]:checked').val() == 1;
+        $('#beginDateRouting, #endDateRouting').prop('disabled', entire);
+        if (entire) {
+            $('#beginDateRouting').val(routingCtx.arrival);
+            $('#endDateRouting').val(routingCtx.departure);
+        }
+    }
+    function updateRoutingNameFromRoom() {
+        var $opt = $('#roomRouting option:selected');
+        $('#nameRouting').val($('#roomRouting').val() != 0 ? ($opt.data('name') || '') : '');
+    }
+    function loadRoutingAddress(profileId) {
+        $('#addressRouting').val('');
+        if (!profileId) return;
+        $.get('/Reservation/GetRoutingProfileAddress', { profileID: profileId }, function (r) {
+            $('#addressRouting').val((r && r.address) || '');
+        });
+    }
+    // Window: chọn profile khác để chuyển sang (nút mũi tên cạnh Name như WinForm)
+    function openRoutingProfileSearch() {
+        if (typeof openProSearch !== 'function') return;
+        openProSearch(function (p) {
+            if (!p) return;
+            $('#routingProfileID').val(p.id || p.ID || 0);
+            $('#nameRouting').val(p.account || p.Account || '');
+            loadRoutingAddress(p.id || p.ID || 0);
+        });
+    }
+
+    function clearFormAddRouting() {
+        $('#routingEditID').val('0');
+        // Có Master thì mặc định Master Folio (như WinForm), không có thì Window
+        $('#rtTypeMaster').prop('disabled', routingMasters.length === 0);
+        $(routingMasters.length ? '#rtTypeMaster' : '#rtTypeWindow').prop('checked', true);
+        $('#entireStay').prop('checked', true);
+        $('#roomRouting').val('0');
+        $('#masterRouting').val(routingMasters.length ? String(routingMasters[0].id) : '');
+        setRoutingTransactions([]);
+        $('#limitRouting').val('0');
+        applyRoutingTypeUI(false);
+        applyRoutingDateUI();
+    }
+    function openModalNewRouting() {
+        if (!routingCtx.rsvId) { showToast('Warning', 'Please choose booking', false); return; }
+        clearFormAddRouting();
+        $('#routingFormTitle').text('New Routing');
+        $('#modalNewRouting').modal('show');
+    }
+    function openModalEditRouting() {
+        var row = getSelectedRouting();
+        var id = row ? (parseInt(row.id, 10) || 0) : 0;
+        if (!id) { showToast('Warning', 'Please select a routing.', false); return; }
+        $.ajax({
+            url: '/Reservation/GetRoutingByID',
+            type: 'GET',
+            data: { id: id },
+            success: function (res) {
+                if (!res || res.code != 0) { showToast('Error', (res && res.msg) || 'Cannot load routing.', false); return; }
+                var r = res.routing || {};
+                clearFormAddRouting();
+                $('#routingEditID').val(id);
+                var type = String(r.isMasterFolio || r.toFolioNo == -1 ? 2 : (parseInt(r.type, 10) === 0 ? 0 : 1));
+                $('input[name="typeRouting"][value="' + type + '"]').prop('disabled', false).prop('checked', true);
+                if (type === '2') {
+                    var mid = String(r.toReservationID || '');
+                    if (mid && !$('#masterRouting option[value="' + mid + '"]').length) {
+                        $('#masterRouting').append($('<option>').val(mid).text(r.accountName || mid));
+                    }
+                    $('#masterRouting').val(mid);
+                } else if (type === '0') {
+                    var toRid = String(r.toReservationID || 0);
+                    if (!$('#roomRouting option[value="' + toRid + '"]').length) {
+                        $('#roomRouting').append($('<option>').val(toRid).text(r.accountName || toRid).data('name', r.accountName || ''));
+                    }
+                    $('#roomRouting').val(toRid);
+                } else {
+                    $('#routingProfileID').val(r.profileID || 0);
+                    $('#nameRouting').val(r.accountName || '');
+                    loadRoutingAddress(r.profileID || 0);
+                }
+                applyRoutingTypeUI(true);
+                if (type === '1' && r.toFolioNo > 1) $('#windowRouting').val(String(r.toFolioNo));
+
+                $(r.entireDate ? '#entireStay' : '#otherDate').prop('checked', true);
+                applyRoutingDateUI();
+                if (!r.entireDate) {
+                    $('#beginDateRouting').val(routingToIsoDate(r.fromDate));
+                    $('#endDateRouting').val(routingToIsoDate(r.toDate));
+                }
+                setRoutingTransactions(String(r.transactionCodes || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean));
+                $('#limitRouting').val(formatRoutingMoney(r.limit || 0));
+                $('#routingFormTitle').text('Edit Routing');
+                $('#modalNewRouting').modal('show');
+            },
+            error: function (xhr) {
+                if (xhr.status == 401) { sessionTimeout(); return; }
+                showToast('Error', 'Cannot load routing (HTTP ' + xhr.status + ').', false);
+            }
+        });
+    }
+    function closeModalNewRouting() {
+        $('#modalNewRouting').modal('hide');
+    }
+
+    // ----- Delete (WinForm btnDelete_Click) -----
+    function deleteRouting() {
+        var row = getSelectedRouting();
+        var id = row ? (parseInt(row.id, 10) || 0) : 0;
+        if (!id) return;
+        if (!confirm('Are you sure you want to delete this Routing?')) return;
+        var u = routingUser();
+        $.ajax({
+            url: '/Reservation/DeleteRouting',
+            type: 'POST',
+            data: { id: id, fromReservationID: routingCtx.rsvId, userID: u.userID, userName: u.userName },
+            success: function (res) {
+                if (res && res.code == 0) {
+                    showToast('Success', res.msg, true);
+                    GetRoutingByReservationID();
+                } else {
+                    showToast('Error', (res && res.msg) || 'Cannot delete routing.', false);
+                }
+            },
+            error: function (xhr) {
+                if (xhr.status == 401) { sessionTimeout(); return; }
+                showToast('Error', 'Cannot delete routing (HTTP ' + xhr.status + ').', false);
             }
         });
     }
 
+    // ----- Save (New / Edit) -----
+    function formatRoutingMoney(v) {
+        var n = typeof v === 'number' ? v : parseFloat(String(v || '').replace(/\./g, '').replace(',', '.'));
+        return isFinite(n) ? n.toLocaleString('vi-VN', { maximumFractionDigits: 2 }) : '0';
+    }
     function SaveRouting() {
-        const userID = JSON.parse(localStorage.getItem("userID"));
+        var u = routingUser();
+        var type = routingType();
+        var codes = getRoutingTransactions();
+        if (!codes.length) { showToast('Warning', 'Please choose transaction', false); return; }
+        if (type === '0' && !(parseInt($('#roomRouting').val(), 10) > 0)) { showToast('Warning', 'Please choose room', false); return; }
+        if (type === '2' && !$('#masterRouting').val()) { showToast('Warning', 'Please choose master folio', false); return; }
+
         var formData = new FormData();
-        formData.append('rsvID', idReservation);
-        formData.append('transactionRouting',  $('input[name="typeRouting"]:checked').val());
-        formData.append('toFolioNo', $('#windowRouting').val());
-        formData.append('toRoom', $('#roomRouting').val());
-        formData.append('transactionCodes',  $('#transactionRouting').val());
+        formData.append('id', parseInt($('#routingEditID').val(), 10) || 0);
+        formData.append('rsvID', routingCtx.rsvId);
+        formData.append('transactionRouting', type);
+        formData.append('toFolioNo', $('#windowRouting').val() || 0);
+        formData.append('toRoom', type === '0' ? ($('#roomRouting').val() || 0) : 0);
+        formData.append('masterID', type === '2' ? ($('#masterRouting').val() || 0) : 0);
+        formData.append('profileID', $('#routingProfileID').val() || 0);
+        formData.append('accountName', $('#nameRouting').val() || '');
+        formData.append('transactionCodes', codes.join(','));
         formData.append('fromDate', $('#beginDateRouting').val());
         formData.append('toDate', $('#endDateRouting').val());
         formData.append('limit', $('#limitRouting').val());
-
-        formData.append('entireDate', $('input[name="typeRouting"]:checked').val());
-        formData.append('userID',userID);
+        formData.append('entireDate', $('input[name="dayRouting"]:checked').val());
+        formData.append('userID', u.userID);
+        formData.append('userName', u.userName);
 
         $.ajax({
             url: '/Reservation/SaveRouting',
             type: 'POST',
             processData: false,
             contentType: false,
-            // headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             data: formData,
             success: function (data) {
                 if (data.code == 0) {
-                    GetRoutingByReservationID(idReservation,confirmationNo);
+                    showToast("Success", data.msg, true);
                     closeModalNewRouting();
+                    GetRoutingByReservationID(idReservation,confirmationNo);
                 } else {
                     showToast('Error', data.msg, false);
                 }
-
             },
-            error: function (xhr, statusText, err) {
-
+            error: function (xhr) {
+                if (xhr.status == 401) { sessionTimeout(); return; }
+                showToast('Error', 'Cannot save routing (HTTP ' + xhr.status + ').', false);
             }
         });
+    }
 
-    }
-    function clearFormAddRouting(){
-        $('#roomRouting').val(0);
-        $('#nameRouting').val(lastname);
-        $('#windowRouting').val(1);
-        const tomselectInstance = $('#transactionRouting')[0].tomselect;
-        tomselectInstance.setValue('0');
-        $('#limitRouting').val('0');
-        const parsedDate = moment(arivalDate, ['DD/MM/YYYY', 'MM/DD/YYYY']); // Hỗ trợ cả hai định dạng
-        const formattedDate = parsedDate.format('YYYY-MM-DD'); // Chuyển thành yyyy-mm-d        
-        $('#beginDateRouting').val(formattedDate);
-        const parsedDate2 = moment(departureDate, ['DD/MM/YYYY', 'MM/DD/YYYY']); // Hỗ trợ cả hai định dạng
-        const formattedDate2 = parsedDate2.format('YYYY-MM-DD'); // Chuyển thành yyyy-mm-d
-        $('#endDateRouting').val(formattedDate2);
-    }
-    function searchRoomRouting(){
+    function searchRoomRouting() {
         $.ajax({
             url: '/Reservation/SearchRoomRouting',
             type: 'get',
             dataType: 'json',
-
-            crossDomain: false,
+            data: { reservationID: routingCtx.rsvId },
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                console.log(result);
-                $('#roomRouting').empty();
-                var html = `<option value="0" selected>Select room </option>`;
-                if(result.length > 0){
-                    for(var i = 0;i<result.length;i++){
-                        html += `<option value="${result[i].id}">${result[i].lastName}</option>`
-                    }
-                }
-                $('#roomRouting').append(html);
+                var $sel = $('#roomRouting').empty();
+                $sel.append($('<option>').val('0').text('Select room'));
+                (Array.isArray(result) ? result : []).forEach(function (x) {
+                    $sel.append($('<option>').val(x.id).text((x.roomNo || '') + ' ' + (x.lastName || '')).data('name', x.lastName || ''));
+                });
             },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
+            error: function (xhr) {
+                if (xhr.status == 401) sessionTimeout();
             }
         });
     }
-    $('input[name="typeRouting"]').on('change', function() {
-        let selectedValue = $('input[name="typeRouting"]:checked').val();
-        if(selectedValue == 2){
-            $('#roomRouting').prop('disabled', false);
-            $('#amountDepositRequest').prop('disabled', false);
-            $('#amountDepositRequest').prop('disabled', false);
-        }
-        else{
-            $('#roomRouting').prop('disabled', true);
-
-        }
-    });
-    var reservationMaster = 0;
-    function searchReservationMaster(){
+    // Master Folio của Conf.No (booking ReservationNo = 0) — có Master thì mới tick được Master Folio
+    function loadRoutingMasters() {
         $.ajax({
-            url: '/Reservation/SearchReservationMaster',
+            url: '/Reservation/GetRoutingMasters',
             type: 'get',
             dataType: 'json',
-            data:{
-                reservationID : idReservation
-            },
-            crossDomain: false,
-            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            data: { reservationID: routingCtx.rsvId },
             success: function (result) {
-                reservationMaster= result;
+                routingMasters = Array.isArray(result) ? result : [];
+                var $sel = $('#masterRouting').empty();
+                routingMasters.forEach(function (m) {
+                    $sel.append($('<option>').val(m.id).text(m.name || ('Master ' + m.id)));
+                });
+                $sel.prop('disabled', routingMasters.length <= 1);
             },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
+            error: function (xhr) {
+                routingMasters = [];
+                if (xhr.status == 401) sessionTimeout();
             }
         });
     }
+
+    $(document).off('.routing')
+        .on('change.routing', 'input[name="typeRouting"]', function () { applyRoutingTypeUI(false); })
+        .on('change.routing', 'input[name="dayRouting"]', applyRoutingDateUI)
+        .on('change.routing', '#roomRouting', updateRoutingNameFromRoom)
+        .on('change.routing', '#masterRouting', function () { applyRoutingTypeUI(true); })
+        .on('input.routing', '#limitRouting', function () {
+            var digits = this.value.replace(/[^0-9]/g, '');
+            this.value = digits ? Number(digits).toLocaleString('vi-VN') : '';
+        })
+        .on('blur.routing', '#limitRouting', function () { if (!this.value.trim()) this.value = '0'; });
 </script>
