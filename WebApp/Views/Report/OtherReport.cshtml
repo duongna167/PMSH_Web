@@ -512,6 +512,26 @@
         min-width: 0 !important;
     }
 
+    #reportContainer .dx-datagrid .dx-datagrid-headers .dx-header-row > td,
+    #reportContainer .dx-datagrid .dx-datagrid-rowsview .dx-row > td,
+    #reportContainer .dx-datagrid .dx-datagrid-total-footer td,
+    #reportContainer .dx-datagrid .dx-datagrid-group-footer td,
+    #reportContainer .dx-datagrid .dx-summary-row > td,
+    #reportContainer .dx-datagrid .dx-datagrid-filter-row td,
+    #reportContainer .dx-datagrid .dx-datagrid-filter-row .dx-texteditor-input {
+        font-size: 13px !important;
+    }
+
+    #reportContainer .dx-datagrid .dx-datagrid-total-footer td,
+    #reportContainer .dx-datagrid .dx-datagrid-group-footer td {
+        overflow: visible !important;
+    }
+    #reportContainer .dx-datagrid .dx-datagrid-summary-item {
+        overflow: visible !important;
+        text-overflow: clip !important;
+        white-space: nowrap !important;
+    }
+
     #reportContainer .form-check {
         display: inline-flex;
         align-items: center;
@@ -605,6 +625,7 @@
         </div>
         <hr class="mui-divider" />
         <ul id="report-list" class="list-group list-group-flush  report-list-scrollable" style="display: none;">
+            <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="ARTrace" data-code="rptARTrace" data-title="AR Trace">AR Trace</a></li>
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="CancellationJournal" data-code="rptCancellationJournal" data-title="Cancellation Journal">Cancellation Journal</a></li>
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="CashierAudit" data-code="rptCashierAudit" data-title="Cashier Audit">Cashier Audit</a></li>
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="CashierSummary" data-code="rptCashierSummary" data-title="Cashier Summary">Cashier Summary</a></li>
@@ -800,7 +821,7 @@
         </ul>
 
         <div class="filter-header fw-bold" id="header-other" style="font-size: 14px;">
-            <span>08 - Orther Reports</span>
+            <span>08 - Other Reports</span>
             <i id="icon-other" class="fas fa-chevron-right"></i>
         </div>
         <hr class="mui-divider" />
@@ -868,6 +889,7 @@
             <li class="list-group-item"><a style="color:black" id="ReservationStatistics" class="text-decoration-none report-link" data-report="ReservationStatistics" data-code="rptReservationStatistic" data-title="Reservation Statistics">Reservation Statistics</a></li>
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="ReservationSummaryReport" data-code="rpt_Spr_ReservationSummaryReport" data-title="Reservation Summary Report">Reservation Summary Report</a></li>
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="ReservationView" data-code="rpt_Spr_ReservationView" data-title="Reservation View">Reservation View</a></li>
+            <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="ReservationWithDiscount" data-code="rptReservationWithDiscount" data-title="Reservation With Discount">Reservation With Discount</a></li>
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="RoomOccupancy" data-code="rptRoomOccupancy" data-title="Room Occupancy">Room Occupancy</a></li>
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="SaleinChargeActivity" data-code="rpt_Spr_SaleInChargeActivity" data-title="Sale in Charge Activity">Sale in Charge Activity</a></li>
             <li class="list-group-item"><a style="color:black" class="text-decoration-none report-link" data-report="SaleinChargeReport" data-code="rpt_Spr_SaleInChargeReport" data-title="Sale in Charge Report">Sale in Charge Report</a></li>
@@ -1254,8 +1276,14 @@
         probe.style.cssText = 'position:absolute;left:-9999px;top:0;white-space:nowrap;visibility:hidden;font:' + cs.font + ';';
         document.body.appendChild(probe);
         var max = 0;
-        for (var i = 0; i < select.options.length; i++) {
+        var n = select.options.length;
+        var step = n > 40 ? Math.ceil(n / 20) : 1;
+        for (var i = 0; i < n; i += step) {
             probe.textContent = select.options[i].text || '';
+            if (probe.offsetWidth > max) max = probe.offsetWidth;
+        }
+        if (select.selectedIndex >= 0) {
+            probe.textContent = select.options[select.selectedIndex].text || '';
             if (probe.offsetWidth > max) max = probe.offsetWidth;
         }
         probe.remove();
@@ -1305,14 +1333,6 @@
                 document.querySelector('.report-page > .function_wrapper').scrollTop = 0;
                 layoutReportFilters(document.getElementById('reportContainer'));
                 pinReportMenuScroll();
-                requestAnimationFrame(function () {
-                    layoutReportFilters(document.getElementById('reportContainer'));
-                    pinReportMenuScroll();
-                });
-                setTimeout(function () {
-                    layoutReportFilters(document.getElementById('reportContainer'));
-                    pinReportMenuScroll();
-                }, 50);
             },
             error: function () {
                 alert('Lỗi khi tải báo cáo!');

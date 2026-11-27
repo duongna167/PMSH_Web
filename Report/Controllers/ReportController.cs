@@ -1187,175 +1187,130 @@ namespace Report.Controllers
         }
 
         [HttpGet]
-        public IActionResult IncurringDepositCollectionData(DateTime fromDate, DateTime toDate, string zone, string cashier)
+        public IActionResult IncurringDepositCollectionData(string fromDate, string toDate, string zone, string cashier)
         {
-            //XtraReport report = new OneSPMSh.Report.GuestStayReport();
             try
             {
-                cashier = cashier ?? "";
-                zone = zone ?? "";
-                DataTable dataTable = _iReportService.IncurringDepositCollectionData(fromDate, toDate, zone, cashier);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  LastName = d["LastName"]?.ToString(),
-                                  RoomNo = d["RoomNo"]?.ToString(),
-                                  InvoiceNo = d["InvoiceNo"]?.ToString(),
-                                  ArrivalDate = d["ArrivalDate"]?.ToString(),
-                                  DepartureDate = d["DepartureDate"]?.ToString(),
-                                  NoOfNight = d["NoOfNight"]?.ToString(),
-                                  CurrencyID = d["CurrencyID"]?.ToString(),
-                                  PaymentMethod = d["PaymentMethod"]?.ToString(),
-                                  TransactionDate = d["TransactionDate"]?.ToString(),
-                                  DepositAmount = d["DepositAmount"]?.ToString(),
-                                  ReturnAmount = d["ReturnAmount"]?.ToString(),
-                                  ConfirmationNo = d["ConfirmationNo"]?.ToString(),
-                                  UserName = d["UserName"]?.ToString(),
-                                  UserID = d["UserID"]?.ToString(),
-                                  ProfitCenterCode = d["ProfitCenterCode"]?.ToString()
-                              }).ToList();
-
-
-                return Json(result);
+                DataTable dataTable = _iReportService.IncurringDepositCollectionData(
+                    ParseReportDate(fromDate), ParseReportDate(toDate), zone ?? "", cashier ?? "");
+                return Json(MapIncurringDepositTxnRows(dataTable));
             }
             catch (Exception ex)
             {
                 return Json(ex.Message);
             }
-            // report.DataSource = dataTable;
-
-            // Không cần gán parameter
-            //report.RequestParameters = false;
-
-            //     return PartialView("_ReportViewerPartial", report);
-        }
-        [HttpGet]
-        public IActionResult IncurringDepositReturnData(DateTime fromDate, DateTime toDate, string zone, string cashier)
-        {
-            //XtraReport report = new OneSPMSh.Report.GuestStayReport();
-            try
-            {
-                cashier = cashier ?? "";
-                zone = zone ?? "";
-                DataTable dataTable = _iReportService.IncurringDepositReturnData(fromDate, toDate, zone, cashier);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  LastName = d["LastName"]?.ToString(),
-                                  RoomNo = d["RoomNo"]?.ToString(),
-                                  InvoiceNo = d["InvoiceNo"]?.ToString(),
-                                  ArrivalDate = d["ArrivalDate"]?.ToString(),
-                                  DepartureDate = d["DepartureDate"]?.ToString(),
-                                  NoOfNight = d["NoOfNight"]?.ToString(),
-                                  CurrencyID = d["CurrencyID"]?.ToString(),
-                                  PaymentMethod = d["PaymentMethod"]?.ToString(),
-                                  TransactionDate = d["TransactionDate"]?.ToString(),
-                                  DepositAmount = d["DepositAmount"]?.ToString(),
-                                  ReturnAmount = d["ReturnAmount"]?.ToString(),
-                                  ConfirmationNo = d["ConfirmationNo"]?.ToString(),
-                                  UserName = d["UserName"]?.ToString(),
-                                  UserID = d["UserID"]?.ToString(),
-                                  ProfitCenterCode = d["ProfitCenterCode"]?.ToString()
-                              }).ToList();
-
-
-                return Json(result);
-            }
-            catch (Exception ex)
-            {
-                return Json(ex.Message);
-            }
-            // report.DataSource = dataTable;
-
-            // Không cần gán parameter
-            //report.RequestParameters = false;
-
-            //     return PartialView("_ReportViewerPartial", report);
         }
 
         [HttpGet]
-        public IActionResult IncurringDepositPaymentPlanData(DateTime fromDate, DateTime toDate, string zone, string cashier,string notbalance)
+        public IActionResult IncurringDepositReturnData(string fromDate, string toDate, string zone, string cashier)
         {
-            //XtraReport report = new OneSPMSh.Report.GuestStayReport();
             try
             {
-                cashier = cashier ?? "";
-                zone = zone ?? "";
-                notbalance = notbalance ?? "";
-                DataTable dataTable = _iReportService.IncurringDepositPaymentPlanData(fromDate, toDate, zone, cashier, notbalance);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  LastName = d["LastName"]?.ToString(),
-                                  RoomNo = d["RoomNo"]?.ToString(),
-                                  InvoiceNo = d["InvoiceNo"]?.ToString(),
-                                  ArrivalDate = d["ArrivalDate"]?.ToString(),
-                                  DepartureDate = d["DepartureDate"]?.ToString(),
-                                  NoOfNight = d["NoOfNight"]?.ToString(),
-                                  CurrencyID = d["CurrencyID"]?.ToString(),
-                                  PaymentMethod = d["PaymentMethod"]?.ToString(),
-                                  TransactionDate = d["TransactionDate"]?.ToString(),
-                                  DepositAmount = d["DepositAmount"]?.ToString(),
-                                  ReturnAmount = d["ReturnAmount"]?.ToString(),
-                                  ConfirmationNo = d["ConfirmationNo"]?.ToString(),
-                                  UserName = d["UserName"]?.ToString(),
-                                  UserID = d["UserID"]?.ToString(),
-                                  ProfitCenterCode = d["ProfitCenterCode"]?.ToString()
-                              }).ToList();
-
-
-                return Json(result);
+                DataTable dataTable = _iReportService.IncurringDepositReturnData(
+                    ParseReportDate(fromDate), ParseReportDate(toDate), zone ?? "", cashier ?? "");
+                return Json(MapIncurringDepositTxnRows(dataTable));
             }
             catch (Exception ex)
             {
                 return Json(ex.Message);
             }
-            // report.DataSource = dataTable;
-
-            // Không cần gán parameter
-            //report.RequestParameters = false;
-
-            //     return PartialView("_ReportViewerPartial", report);
         }
+
         [HttpGet]
-        public IActionResult IncurringDepositSummaryData(DateTime fromDate, DateTime toDate, string zone, string cashier, string type)
+        public IActionResult IncurringDepositPaymentPlanData(string fromDate, string toDate, string zone, string cashier, string notbalance)
         {
-            //XtraReport report = new OneSPMSh.Report.GuestStayReport();
             try
             {
-                cashier = cashier ?? "";
-                zone = zone ?? "";
-                type = type ?? "0";
-                DataTable dataTable = _iReportService.IncurringDepositSummaryData(fromDate, toDate, zone, cashier, type);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  LastName = d["LastName"]?.ToString() ?? "",
-                                  RoomNo = d["RoomNo"]?.ToString() ?? "",
-                                  ConfirmationNo = d["ConfirmationNo"]?.ToString() ?? "",
-                                  FolioNo = d["FolioNo"]?.ToString() ?? "",
-                                  ArrivalDate = d["ArrivalDate"]?.ToString() ?? "",
-                                  DepartureDate = d["DepartureDate"]?.ToString() ?? "",
-                                  NoOfNight = d["NoOfNight"]?.ToString() ?? "",
-                                  CurrencyID = d["CurrencyID"]?.ToString() ?? "",
-                                  Deposit = d["Deposit"]?.ToString() ?? "",
-                                  Return = d["Return"]?.ToString() ?? "",
-                                  Balance = d["Balance"]?.ToString() ?? ""
-                              }).ToList();
-
-
-                return Json(result);
+                DataTable dataTable = _iReportService.IncurringDepositPaymentPlanData(
+                    ParseReportDate(fromDate), ParseReportDate(toDate), zone ?? "", cashier ?? "", notbalance ?? "");
+                return Json(MapIncurringDepositBalanceRows(dataTable));
             }
             catch (Exception ex)
             {
                 return Json(ex.Message);
             }
-            // report.DataSource = dataTable;
+        }
 
-            // Không cần gán parameter
-            //report.RequestParameters = false;
+        [HttpGet]
+        public IActionResult IncurringDepositSummaryData(string fromDate, string toDate, string zone, string cashier, string type)
+        {
+            try
+            {
+                DataTable dataTable = _iReportService.IncurringDepositSummaryData(
+                    ParseReportDate(fromDate), ParseReportDate(toDate), zone ?? "", cashier ?? "",
+                    string.IsNullOrWhiteSpace(type) ? "0" : type);
+                return Json(MapIncurringDepositBalanceRows(dataTable));
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
 
-            //     return PartialView("_ReportViewerPartial", report);
+        private static List<Dictionary<string, object>> MapIncurringDepositTxnRows(DataTable table)
+        {
+            if (table == null || table.Rows.Count == 0)
+                return new List<Dictionary<string, object>>();
+            var result = new List<Dictionary<string, object>>(table.Rows.Count);
+            var depCol = FirstExisting(table.Rows[0], "DepositAmount", "Deposit");
+            var retCol = FirstExisting(table.Rows[0], "ReturnAmount", "Return");
+            foreach (DataRow d in table.Rows)
+            {
+                result.Add(new Dictionary<string, object>(12)
+                {
+                    ["lastName"] = ColStr(d, "LastName"),
+                    ["roomNo"] = ColStr(d, "RoomNo"),
+                    ["invoiceNo"] = FirstCol(d, "InvoiceNo", "FolioNo"),
+                    ["arrivalDate"] = FirstCol(d, "ArrivalDate"),
+                    ["departureDate"] = FirstCol(d, "DepartureDate"),
+                    ["noOfNight"] = ColDec(d, "NoOfNight"),
+                    ["currencyID"] = ColStr(d, "CurrencyID"),
+                    ["paymentMethod"] = ColStr(d, "PaymentMethod"),
+                    ["transactionDate"] = FirstCol(d, "TransactionDate"),
+                    ["depositAmount"] = ColDec(d, depCol),
+                    ["returnAmount"] = ColDec(d, retCol),
+                    ["confirmationNo"] = ColStr(d, "ConfirmationNo"),
+                    ["userName"] = ColStr(d, "UserName"),
+                    ["profitCenterCode"] = ColStr(d, "ProfitCenterCode")
+                });
+            }
+            return result;
+        }
+
+        private static List<Dictionary<string, object>> MapIncurringDepositBalanceRows(DataTable table)
+        {
+            var result = new List<Dictionary<string, object>>();
+            if (table == null) return result;
+            foreach (DataRow d in table.Rows)
+            {
+                var deposit = ColDec(d, FirstExisting(d, "Deposit", "DepositAmount"));
+                var returned = ColDec(d, FirstExisting(d, "Return", "ReturnAmount"));
+                var balance = d.Table.Columns.Contains("Balance")
+                    ? ColDec(d, "Balance")
+                    : deposit - returned;
+                result.Add(new Dictionary<string, object>
+                {
+                    ["lastName"] = ColStr(d, "LastName"),
+                    ["roomNo"] = ColStr(d, "RoomNo"),
+                    ["confirmationNo"] = ColStr(d, "ConfirmationNo"),
+                    ["folioNo"] = FirstCol(d, "FolioNo", "InvoiceNo"),
+                    ["invoiceNo"] = FirstCol(d, "InvoiceNo", "FolioNo"),
+                    ["arrivalDate"] = FirstCol(d, "ArrivalDate"),
+                    ["departureDate"] = FirstCol(d, "DepartureDate"),
+                    ["noOfNight"] = ColDec(d, "NoOfNight"),
+                    ["currencyID"] = ColStr(d, "CurrencyID"),
+                    ["paymentMethod"] = ColStr(d, "PaymentMethod"),
+                    ["transactionDate"] = FirstCol(d, "TransactionDate"),
+                    ["deposit"] = deposit,
+                    ["return"] = returned,
+                    ["balance"] = balance,
+                    ["depositAmount"] = deposit,
+                    ["returnAmount"] = returned,
+                    ["userName"] = ColStr(d, "UserName"),
+                    ["profitCenterCode"] = ColStr(d, "ProfitCenterCode")
+                });
+            }
+            return result;
         }
 
         [HttpGet]
@@ -1413,46 +1368,56 @@ namespace Report.Controllers
         }
 
         [HttpGet]
-        public IActionResult NoShowReportData(DateTime fromDate, DateTime toDate, int roomClass,string zone )
+        public IActionResult NoShowReportData(string fromDate, string toDate, int roomClass, string zone)
         {
             zone = zone ?? "";
-            //XtraReport report = new OneSPMSh.Report.GuestStayReport();
             try
             {
-                DataTable dataTable = _iReportService.NoShowReportData(fromDate, toDate, roomClass, zone);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  RoomNo = !string.IsNullOrEmpty(d["RoomNo"].ToString()) ? d["RoomNo"] : "",
-                                  ConfirmationNo = !string.IsNullOrEmpty(d["ConfirmationNo"].ToString()) ? d["ConfirmationNo"] : "",
-                                  LastName = !string.IsNullOrEmpty(d["LastName"].ToString()) ? d["LastName"] : "",
-                                  ArrivalDate = !string.IsNullOrEmpty(d["ArrivalDate"].ToString()) ? d["ArrivalDate"] : "",
-                                  DepartureDate = !string.IsNullOrEmpty(d["DepartureDate"].ToString()) ? d["DepartureDate"] : "",
-                                  Company = !string.IsNullOrEmpty(d["Company"].ToString()) ? d["Company"] : "",
-                                  Agent = !string.IsNullOrEmpty(d["Agent"].ToString()) ? d["Agent"] : "",
-                                  Source = !string.IsNullOrEmpty(d["Source"].ToString()) ? d["Source"] : "",
-                                  RoomType = !string.IsNullOrEmpty(d["RoomType"].ToString()) ? d["RoomType"] : "",
-                                  BusinessBlockCode = !string.IsNullOrEmpty(d["BusinessBlockCode"].ToString()) ? d["BusinessBlockCode"] : "",
-                                  MarketCode = !string.IsNullOrEmpty(d["MarketCode"].ToString()) ? d["MarketCode"] : "",
-
-                                  PaymentMethod = !string.IsNullOrEmpty(d["PaymentMethod"].ToString()) ? d["PaymentMethod"] : "",
-                                  ReservationTypeCode = !string.IsNullOrEmpty(d["ReservationTypeCode"].ToString()) ? d["ReservationTypeCode"] : "",
-                                  CreditCardNo = !string.IsNullOrEmpty(d["CreditCardNo"].ToString()) ? d["CreditCardNo"] : "",
-                                  RateCode = !string.IsNullOrEmpty(d["RateCode"].ToString()) ? d["RateCode"] : "",
-                                  ExpirationDate = !string.IsNullOrEmpty(d["ExpirationDate"].ToString()) ? d["ExpirationDate"] : "",
-                                  RateAmount = !string.IsNullOrEmpty(d["RateAmount"].ToString()) ? d["RateAmount"] : "",
-
-                                  NoOfRoom = !string.IsNullOrEmpty(d["NoOfRoom"].ToString()) ? d["NoOfRoom"] : "",
-                                  NoOfNight = !string.IsNullOrEmpty(d["NoOfNight"].ToString()) ? d["NoOfNight"] : "",
-                                  TotalAmount = !string.IsNullOrEmpty(d["TotalAmount"].ToString()) ? d["TotalAmount"] : "",
-                                  DepositPaid = !string.IsNullOrEmpty(d["DepositPaid"].ToString()) ? d["DepositPaid"] : "",
-
-                              }).ToList();
+                DataTable dataTable = _iReportService.NoShowReportData(ParseReportDate(fromDate), ParseReportDate(toDate), roomClass, zone);
+                if (dataTable == null) return Json(Array.Empty<object>());
+                var result = new List<Dictionary<string, object>>(dataTable.Rows.Count);
+                foreach (DataRow d in dataTable.Rows)
+                {
+                    var last = ColStr(d, "LastName");
+                    var first = FirstCol(d, "FirstName", "First Name");
+                    var guest = string.IsNullOrWhiteSpace(first) ? last
+                        : (string.IsNullOrWhiteSpace(last) ? first : last + ", " + first);
+                    var company = ColStr(d, "Company");
+                    var agent = ColStr(d, "Agent");
+                    var source = ColStr(d, "Source");
+                    var companySrc = company;
+                    if (!string.IsNullOrWhiteSpace(agent) && !string.Equals(agent, company, StringComparison.OrdinalIgnoreCase))
+                        companySrc = string.IsNullOrWhiteSpace(companySrc) ? agent : companySrc + " / " + agent;
+                    if (!string.IsNullOrWhiteSpace(source) && !string.Equals(source, company, StringComparison.OrdinalIgnoreCase) && !string.Equals(source, agent, StringComparison.OrdinalIgnoreCase))
+                        companySrc = string.IsNullOrWhiteSpace(companySrc) ? source : companySrc + " / " + source;
+                    result.Add(new Dictionary<string, object>
+                    {
+                        ["confirmationNo"] = ColStr(d, "ConfirmationNo"),
+                        ["roomNo"] = ColStr(d, "RoomNo"),
+                        ["guestName"] = guest,
+                        ["companySource"] = companySrc,
+                        ["arrivalDate"] = FirstCol(d, "ArrivalDate"),
+                        ["departureDate"] = FirstCol(d, "DepartureDate"),
+                        ["roomType"] = ColStr(d, "RoomType"),
+                        ["businessBlockCode"] = ColStr(d, "BusinessBlockCode"),
+                        ["marketCode"] = ColStr(d, "MarketCode"),
+                        ["paymentMethod"] = ColStr(d, "PaymentMethod"),
+                        ["reservationTypeCode"] = ColStr(d, "ReservationTypeCode"),
+                        ["creditCardNo"] = ColStr(d, "CreditCardNo"),
+                        ["rateCode"] = ColStr(d, "RateCode"),
+                        ["expirationDate"] = FirstCol(d, "ExpirationDate"),
+                        ["rateAmount"] = ColDec(d, "RateAmount"),
+                        ["noOfRoom"] = ColDec(d, "NoOfRoom"),
+                        ["noOfNight"] = ColDec(d, "NoOfNight"),
+                        ["totalAmount"] = ColDec(d, "TotalAmount"),
+                        ["depositPaid"] = ColDec(d, "DepositPaid"),
+                    });
+                }
                 return Json(result);
             }
             catch (Exception ex)
             {
-                return Json(ex.Message);
+                return Json(new Dictionary<string, object> { ["error"] = ex.Message });
             }
             // report.DataSource = dataTable;
 
@@ -1528,57 +1493,74 @@ namespace Report.Controllers
         }
 
         [HttpGet]
-        public IActionResult ReservationSummaryData(DateTime fromDate, DateTime toDate, string roomType,string zone,string viewBy,string market)
+        public IActionResult ReservationSummaryData(string fromDate, string toDate, string roomType, string zone, string viewBy, string market)
         {
-            //XtraReport report = new OneSPMSh.Report.GuestStayReport();
             try
             {
-                zone = zone ?? "";
-                roomType = roomType ?? "";
-                market = market ?? "";
-                DataTable dataTable = _iReportService.ReservationSummaryData(fromDate, toDate, roomType, zone, viewBy, market);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  RsvSummaryDate = !string.IsNullOrEmpty(d["RsvSummaryDate"].ToString()) ? d["RsvSummaryDate"] : "",
-                                  WeekDate = !string.IsNullOrEmpty(d["WeekDate"].ToString()) ? d["WeekDate"] : "",
-                                  TotalOccRms = !string.IsNullOrEmpty(d["TotalOccRms"].ToString()) ? d["TotalOccRms"] : "",
-                                  IndRms = !string.IsNullOrEmpty(d["IndRms"].ToString()) ? d["IndRms"] : "",
-                                  BlkRmsPU = !string.IsNullOrEmpty(d["BlkRmsPU"].ToString()) ? d["BlkRmsPU"] : "",
-                                  BlkRmsNotPU = !string.IsNullOrEmpty(d["BlkRmsNotPU"].ToString()) ? d["BlkRmsNotPU"] : "",
-                                  TotalAvailable = !string.IsNullOrEmpty(d["TotalAvailable"].ToString()) ? d["TotalAvailable"] : "",
-                                  OccPer = !string.IsNullOrEmpty(d["OccPer"].ToString()) ? d["OccPer"] : "",
-                                  RoomRevenue = !string.IsNullOrEmpty(d["RoomRevenue"].ToString()) ? d["RoomRevenue"] : "",
-                                  GrpRevenue = !string.IsNullOrEmpty(d["GrpRevenue"].ToString()) ? d["GrpRevenue"] : "",
-                                  IndRevenue = !string.IsNullOrEmpty(d["IndRevenue"].ToString()) ? d["IndRevenue"] : "",
+                zone = (zone ?? "").Trim();
+                roomType = (roomType ?? "").Trim();
+                market = (market ?? "").Trim();
+                if (string.IsNullOrWhiteSpace(viewBy) || viewBy == "0") viewBy = "VND";
+                if (string.IsNullOrWhiteSpace(zone))
+                    zone = JoinCsvCodes(
+                        PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll())
+                            .Where(z => z != null && !z.Inactive && !string.IsNullOrWhiteSpace(z.Code))
+                            .Select(z => z.Code), 30);
+                if (string.IsNullOrWhiteSpace(roomType))
+                    roomType = JoinCsvCodes(
+                        PropertyUtils.ConvertToList<RoomTypeModel>(RoomTypeBO.Instance.FindAll())
+                            .Where(r => r != null && r.InActive == 0 && !string.IsNullOrWhiteSpace(r.Code))
+                            .Select(r => r.Code), 8000);
+                if (string.IsNullOrWhiteSpace(market))
+                    market = JoinCsvCodes(
+                        PropertyUtils.ConvertToList<MarketModel>(MarketBO.Instance.FindAll())
+                            .Where(m => m != null && !m.Inactive && !string.IsNullOrWhiteSpace(m.Code))
+                            .Select(m => m.Code), 8000);
 
-                                  AvrRate = !string.IsNullOrEmpty(d["AvrRate"].ToString()) ? d["AvrRate"] : "",
-                                  ArrRms = !string.IsNullOrEmpty(d["ArrRms"].ToString()) ? d["ArrRms"] : "",
-                                  BlkArrRms = d.Table.Columns.Contains("BlkArrRms") && !string.IsNullOrEmpty(d["BlkArrRms"].ToString()) ? d["BlkArrRms"] : "",
-                                  CHArrRms = !string.IsNullOrEmpty(d["CHArrRms"].ToString()) ? d["CHArrRms"] : "",
-                                  DepRms = !string.IsNullOrEmpty(d["DepRms"].ToString()) ? d["DepRms"] : "",
-                                  BlkDepRms = !string.IsNullOrEmpty(d["BlkDepRms"].ToString()) ? d["BlkDepRms"] : "",
-                                  CHDepRms = !string.IsNullOrEmpty(d["CHDepRms"].ToString()) ? d["CHDepRms"] : "",
+                DataTable dataTable = _iReportService.ReservationSummaryData(
+                    ParseReportDate(fromDate), ParseReportDate(toDate), roomType, zone, viewBy, market);
+                if (dataTable == null) return Json(Array.Empty<object>());
 
-                                  OOORms = !string.IsNullOrEmpty(d["OOORms"].ToString()) ? d["OOORms"] : "",
-                                  Adl = !string.IsNullOrEmpty(d["Adl"].ToString()) ? d["Adl"] : "",
-                                  Chl = !string.IsNullOrEmpty(d["Chl"].ToString()) ? d["Chl"] : "",
-                                  Chl1 = !string.IsNullOrEmpty(d["Chl1"].ToString()) ? d["Chl1"] : "",
-
-
-                                  Chl2 = !string.IsNullOrEmpty(d["Chl2"].ToString()) ? d["Chl2"] : "",
-                                  TotPer = !string.IsNullOrEmpty(d["TotPer"].ToString()) ? d["TotPer"] : "",
-                                  ArrPrs = !string.IsNullOrEmpty(d["ArrPrs"].ToString()) ? d["ArrPrs"] : "",
-                                  DepPrs = !string.IsNullOrEmpty(d["DepPrs"].ToString()) ? d["DepPrs"] : "",
-                                  MonthDisplay = !string.IsNullOrEmpty(d["MonthDisplay"].ToString()) ? d["MonthDisplay"] : "",
-                                  MonthGroup = !string.IsNullOrEmpty(d["MonthGroup"].ToString()) ? d["MonthGroup"] : "",
-
-                              }).ToList();
+                var result = new List<Dictionary<string, object>>(dataTable.Rows.Count);
+                foreach (DataRow d in dataTable.Rows)
+                {
+                    result.Add(new Dictionary<string, object>
+                    {
+                        ["rsvSummaryDate"] = d.Table.Columns.Contains("RsvSummaryDate") ? d["RsvSummaryDate"] : "",
+                        ["weekDate"] = ColStr(d, "WeekDate"),
+                        ["totalOccRms"] = ColDec(d, "TotalOccRms"),
+                        ["indRms"] = ColDec(d, "IndRms"),
+                        ["blkRmsPU"] = ColDec(d, "BlkRmsPU"),
+                        ["blkRmsNotPU"] = ColDec(d, "BlkRmsNotPU"),
+                        ["totalAvailable"] = ColDec(d, "TotalAvailable"),
+                        ["occPer"] = ColDec(d, "OccPer"),
+                        ["roomRevenue"] = ColDec(d, "RoomRevenue"),
+                        ["grpRevenue"] = ColDec(d, "GrpRevenue"),
+                        ["indRevenue"] = ColDec(d, "IndRevenue"),
+                        ["avrRate"] = ColDec(d, "AvrRate"),
+                        ["arrRms"] = ColDec(d, "ArrRms"),
+                        ["blkArrRms"] = ColDec(d, "BlkArrRms"),
+                        ["charrRms"] = ColDec(d, "CHArrRms"),
+                        ["depRms"] = ColDec(d, "DepRms"),
+                        ["blkDepRms"] = ColDec(d, "BlkDepRms"),
+                        ["chdepRms"] = ColDec(d, "CHDepRms"),
+                        ["oOORms"] = ColDec(d, "OOORms"),
+                        ["adl"] = ColDec(d, "Adl"),
+                        ["chl"] = ColDec(d, "Chl"),
+                        ["chl1"] = ColDec(d, "Chl1"),
+                        ["chl2"] = ColDec(d, "Chl2"),
+                        ["totPer"] = ColDec(d, "TotPer"),
+                        ["arrPrs"] = ColDec(d, "ArrPrs"),
+                        ["depPrs"] = ColDec(d, "DepPrs"),
+                        ["monthDisplay"] = ColStr(d, "MonthDisplay"),
+                        ["monthGroup"] = ColStr(d, "MonthGroup"),
+                    });
+                }
                 return Json(result);
             }
             catch (Exception ex)
             {
-                return Json(ex.Message);
+                return Json(new Dictionary<string, object> { ["error"] = ex.Message });
             }
             // report.DataSource = dataTable;
 
@@ -2363,31 +2345,38 @@ namespace Report.Controllers
             }
         }
         [HttpGet]
-        public IActionResult PostingJournalInvoicing(DateTime fromDate, DateTime toDate)
+        public IActionResult PostingJournalInvoicing(string fromDate, string toDate)
         {
-            //XtraReport report = new OneSPMSh.Report.GuestStayReport();
             try
             {
-                DataTable dataTable = _iReportService.PostingJournalInvoicing(fromDate, toDate);
-                var result = (from d in dataTable.AsEnumerable()
-                              select new
-                              {
-                                  Room = !string.IsNullOrEmpty(d["Room"].ToString()) ? d["Room"] : "",
-                                  FolioNo = !string.IsNullOrEmpty(d["FolioNo"].ToString()) ? d["FolioNo"] : "",
-                                  TransactionCode = !string.IsNullOrEmpty(d["TransactionCode"].ToString()) ? d["TransactionCode"] : "",
-                                  Description = !string.IsNullOrEmpty(d["Description"].ToString()) ? d["Description"] : "",
-                                  DebitUSD = !string.IsNullOrEmpty(d["DebitUSD"].ToString()) ? d["DebitUSD"] : "",
-                                  DebitVND = !string.IsNullOrEmpty(d["DebitVND"].ToString()) ? d["DebitVND"] : "",
-                                  TransactionDate = !string.IsNullOrEmpty(d["TransactionDate"].ToString()) ? d["TransactionDate"] : "",
-                                  CashierNo = !string.IsNullOrEmpty(d["CashierNo"].ToString()) ? d["CashierNo"] : "",                                
-                              }).ToList();
-
-                Console.WriteLine("So dong: " + result.Count);
+                DataTable dataTable = _iReportService.PostingJournalInvoicing(ParseReportDate(fromDate), ParseReportDate(toDate));
+                if (dataTable == null) return Json(Array.Empty<object>());
+                var result = new List<Dictionary<string, object>>(dataTable.Rows.Count);
+                foreach (DataRow d in dataTable.Rows)
+                {
+                    object timeVal = "";
+                    var timeCol = FirstExisting(d, "Time", "TransactionDate");
+                    if (!string.IsNullOrEmpty(timeCol) && d[timeCol] != DBNull.Value && d[timeCol] is DateTime tdt)
+                        timeVal = tdt;
+                    else
+                        timeVal = FirstCol(d, "Time", "TransactionDate");
+                    result.Add(new Dictionary<string, object>
+                    {
+                        ["room"] = FirstCol(d, "Room", "RoomNo"),
+                        ["folioNo"] = FirstCol(d, "FolioNo", "FolioID", "Folio"),
+                        ["transactionCode"] = FirstCol(d, "TransactionCode", "Code"),
+                        ["description"] = ColStr(d, "Description"),
+                        ["usd"] = ColDec(d, "DebitUSD") + ColDec(d, "CreditUSD"),
+                        ["vnd"] = ColDec(d, "DebitVND") + ColDec(d, "CreditVND"),
+                        ["transactionDate"] = timeVal,
+                        ["cashierNo"] = FirstCol(d, "CashierNo", "Cashier"),
+                    });
+                }
                 return Json(result);
             }
             catch (Exception ex)
             {
-                return Json(ex.Message);
+                return Json(new Dictionary<string, object> { ["error"] = ex.Message });
             }
             // report.DataSource = dataTable;
 
@@ -2523,9 +2512,13 @@ namespace Report.Controllers
         {
             try
             {
-                var statuses = (status ?? "").Split(',', StringSplitOptions.TrimEntries).Distinct().ToArray();
-                if (statuses.Any(code => code.Length != 1 || code[0] < '0' || code[0] > '8'))
-                    return BadRequest("Select at least one valid reservation status.");
+                var statuses = (status ?? "")
+                    .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                    .Where(code => code.Length == 1 && code[0] >= '0' && code[0] <= '8')
+                    .Distinct()
+                    .ToArray();
+                if (statuses.Length == 0)
+                    statuses = new[] { "0", "1", "2", "3", "4", "5", "6", "7", "8" };
 
                 var loadStatus = (string code) =>
                 {
@@ -3065,28 +3058,33 @@ namespace Report.Controllers
         }
 
         [HttpGet]
-        public IActionResult ManagerReport(DateTime businessDate, string currency)
+        public IActionResult ManagerReport(string businessDate, string currency, int recalc = 0)
         {
             try
             {
-                DataTable dt = _iReportService.ManagerReport(businessDate, currency);
-                var result = (from d in dt.AsEnumerable()
-                              select new
-                              {
-                                  Code = !string.IsNullOrEmpty(d["Code"].ToString()) ? d["Code"] : "",
-                                  ItemName = !string.IsNullOrEmpty(d["ItemName"].ToString()) ? d["ItemName"] : "",
-                                  CurrentDay = !string.IsNullOrEmpty(d["CurrentDay"].ToString()) ? d["CurrentDay"] : "",
-                                  CurrentMonth = !string.IsNullOrEmpty(d["CurrentMonth"].ToString()) ? d["CurrentMonth"] : "",
-                                  CurrentYear = !string.IsNullOrEmpty(d["CurrentYear"].ToString()) ? d["CurrentYear"] : "",
-                                  LastDay = !string.IsNullOrEmpty(d["LastDay"].ToString()) ? d["LastDay"] : "",
-                                  LastMonth = !string.IsNullOrEmpty(d["LastMonth"].ToString()) ? d["LastMonth"] : "",
-                                  LastYear = !string.IsNullOrEmpty(d["LastYear"].ToString()) ? d["LastYear"] : "",                                
-                              }).ToList();
+                if (string.IsNullOrWhiteSpace(currency) || currency == "0") currency = "VND";
+                DataTable dt = _iReportService.ManagerReport(ParseReportDate(businessDate), currency, recalc == 1);
+                if (dt == null) return Json(Array.Empty<object>());
+                var result = new List<Dictionary<string, object>>(dt.Rows.Count);
+                foreach (DataRow d in dt.Rows)
+                {
+                    result.Add(new Dictionary<string, object>
+                    {
+                        ["code"] = ColStr(d, "Code"),
+                        ["itemName"] = ColStr(d, "ItemName"),
+                        ["currentDay"] = ColDec(d, "CurrentDay"),
+                        ["currentMonth"] = ColDec(d, "CurrentMonth"),
+                        ["currentYear"] = ColDec(d, "CurrentYear"),
+                        ["lastDay"] = ColDec(d, "LastDay"),
+                        ["lastMonth"] = ColDec(d, "LastMonth"),
+                        ["lastYear"] = ColDec(d, "LastYear"),
+                    });
+                }
                 return Json(result);
             }
             catch (Exception ex)
             {
-                return Json(new { error = ex.Message });
+                return Json(new Dictionary<string, object> { ["error"] = ex.Message });
             }
         }
         [HttpGet]
@@ -3095,26 +3093,33 @@ namespace Report.Controllers
             try
             {
                 DataTable dt = _iReportService.CashierSummary(dtpFromDate, cboType);
-                var result = (from d in dt.AsEnumerable()
-                              select new
-                              {
-                                  CashierNo = !string.IsNullOrEmpty(d["CashierNo"].ToString()) ? d["CashierNo"] : "",
-                                  UserName = !string.IsNullOrEmpty(d["UserName"].ToString()) ? d["UserName"] : "",
-                                  LoginTime = !string.IsNullOrEmpty(d["LoginTime"].ToString()) ? d["LoginTime"] : "",
-                                  LogoutTime = !string.IsNullOrEmpty(d["LogoutTime"].ToString()) ? d["LogoutTime"] : "",
-                                  TransactionCode = !string.IsNullOrEmpty(d["TransactionCode"].ToString()) ? d["TransactionCode"] : "",
-                                  Description = !string.IsNullOrEmpty(d["Description"].ToString()) ? d["Description"] : "",
-                                  CurrencyID = !string.IsNullOrEmpty(d["CurrencyID"].ToString()) ? d["CurrencyID"] : "",
-                                  Amount = !string.IsNullOrEmpty(d["Amount"].ToString()) ? d["Amount"] : "",
-                                  AmountMaster = !string.IsNullOrEmpty(d["AmountMaster"].ToString()) ? d["AmountMaster"] : "",
-                              }).ToList();
+                if (dt == null) return Json(Array.Empty<object>());
+                var result = new List<Dictionary<string, object>>(dt.Rows.Count);
+                foreach (DataRow d in dt.Rows)
+                {
+                    var cashierNo = ColStr(d, "CashierNo");
+                    result.Add(new Dictionary<string, object>
+                    {
+                        ["cashierGroup"] = cashierNo,
+                        ["cashierNo"] = cashierNo,
+                        ["userName"] = ColStr(d, "UserName"),
+                        ["loginTime"] = FirstCol(d, "LoginTime"),
+                        ["logoutTime"] = FirstCol(d, "LogoutTime"),
+                        ["transactionCode"] = ColStr(d, "TransactionCode"),
+                        ["description"] = ColStr(d, "Description"),
+                        ["currencyID"] = ColStr(d, "CurrencyID"),
+                        ["amount"] = ColDec(d, "Amount"),
+                        ["exch"] = ColDec(d, FirstExisting(d, "Exch", "ExchangeRate", "ExchRate")),
+                        ["amountMaster"] = ColDec(d, "AmountMaster"),
+                    });
+                }
                 return Json(result);
             }
             catch (Exception ex)
             {
-                return Json(new { error = ex.Message });
-            }            
+                return Json(new Dictionary<string, object> { ["error"] = ex.Message });
             }
+        }
         [HttpGet]
         public IActionResult DailyRevenueReportNew(string dateView)
         {
@@ -3177,31 +3182,37 @@ namespace Report.Controllers
 
       
         [HttpGet]
-        public IActionResult CashierAudit(DateTime date, string cashierList, string transactionCodeList, string type)
+        public IActionResult CashierAudit(string date, string cashierList, string transactionCodeList, string type,
+            string user, string transactions)
         {
             try
             {
-                cashierList = cashierList ?? "";
-                transactionCodeList = transactionCodeList ?? "";
-                DataTable dt = _iReportService.CashierAudit(date, cashierList, transactionCodeList, type);
-                var result = (from d in dt.AsEnumerable()
-                              select new
-                              {
-                                  Pay = !string.IsNullOrEmpty(d["*"].ToString()) ? d["*"] : "",
-                                  ConfirmationNo = !string.IsNullOrEmpty(d["ConfirmationNo"].ToString()) ? d["ConfirmationNo"] : "",
-                                  UserName = !string.IsNullOrEmpty(d["UserName"].ToString()) ? d["UserName"] : "",
-                                  FolioID = !string.IsNullOrEmpty(d["FolioID"].ToString()) ? d["FolioID"] : "",
-                                  RoomNo = !string.IsNullOrEmpty(d["RoomNo"].ToString()) ? d["RoomNo"] : "",
-                                  Account = !string.IsNullOrEmpty(d["Account"].ToString()) ? d["Account"] : "",
-                                  Reference = !string.IsNullOrEmpty(d["Reference"].ToString()) ? d["Reference"] : "",
-                                  Supplement = !string.IsNullOrEmpty(d["Supplement"].ToString()) ? d["Supplement"] : "",
-                                  TransactionDate = !string.IsNullOrEmpty(d["TransactionDate"].ToString()) ? d["TransactionDate"] : "",
-                                  TransactionCode = !string.IsNullOrEmpty(d["TransactionCode"].ToString()) ? d["TransactionCode"] : "",
-                                  Description = !string.IsNullOrEmpty(d["Description"].ToString()) ? d["Description"] : "",
-                                  Amount = !string.IsNullOrEmpty(d["Amount"].ToString()) ? d["Amount"] : "",
-                                  CurrencyID = !string.IsNullOrEmpty(d["CurrencyID"].ToString()) ? d["CurrencyID"] : "",
-                                  CashierNo = !string.IsNullOrEmpty(d["CashierNo"].ToString()) ? d["CashierNo"] : "",
-                              }).ToList();
+                cashierList = string.IsNullOrWhiteSpace(cashierList) ? (user ?? "") : cashierList;
+                transactionCodeList = string.IsNullOrWhiteSpace(transactionCodeList) ? (transactions ?? "") : transactionCodeList;
+                type = string.IsNullOrWhiteSpace(type) ? "0" : type;
+                DataTable dt = _iReportService.CashierAudit(ParseReportDate(date), cashierList, transactionCodeList, type);
+                if (dt == null) return Json(Array.Empty<object>());
+                var result = new List<Dictionary<string, object>>(dt.Rows.Count);
+                foreach (DataRow d in dt.Rows)
+                {
+                    result.Add(new Dictionary<string, object>
+                    {
+                        ["pay"] = ColStr(d, "*"),
+                        ["confirmationNo"] = ColStr(d, "ConfirmationNo"),
+                        ["userName"] = ColStr(d, "UserName"),
+                        ["folioID"] = ColStr(d, "FolioID"),
+                        ["roomNo"] = ColStr(d, "RoomNo"),
+                        ["account"] = ColStr(d, "Account"),
+                        ["reference"] = ColStr(d, "Reference"),
+                        ["supplement"] = ColStr(d, "Supplement"),
+                        ["transactionDate"] = FirstCol(d, "TransactionDate"),
+                        ["transactionCode"] = ColStr(d, "TransactionCode"),
+                        ["description"] = ColStr(d, "Description"),
+                        ["amount"] = ColDec(d, "Amount"),
+                        ["currencyID"] = ColStr(d, "CurrencyID"),
+                        ["cashierNo"] = ColStr(d, "CashierNo"),
+                    });
+                }
                 return Json(result);
             }
             catch (Exception ex)
@@ -3292,41 +3303,37 @@ namespace Report.Controllers
             }
         }
         [HttpGet]
-        public IActionResult GuestTrialBalance(DateTime date, int isRouting, int isCheckOut, string roomTypeId)
+        public IActionResult GuestTrialBalance(string date, int isRouting, int isCheckOut, string roomTypeId)
         {
-
             try
             {
-                var data = _iReportService.GuestTrialBalance(date, isRouting, isCheckOut, roomTypeId);
-                var result = (from d in data.AsEnumerable()
-                              select new
-                              {
-                                  Reservation = !string.IsNullOrEmpty(d["Reservation"].ToString()) ? d["Reservation"] : "",
-                                  AccountName = !string.IsNullOrEmpty(d["AccountName"].ToString()) ? d["AccountName"] : "",
-                                  ReservationNo = !string.IsNullOrEmpty(d["ReservationNo"].ToString()) ? d["ReservationNo"] : "",
-                                  IsPasserBy = !string.IsNullOrEmpty(d["IsPasserBy"].ToString()) ? d["IsPasserBy"] : "",
-                                  RoomTypeID = !string.IsNullOrEmpty(d["RoomTypeID"].ToString()) ? d["RoomTypeID"] : "",
-                                  ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"] : "",
-                                  ArrivalDate = !string.IsNullOrEmpty(d["ArrivalDate"].ToString()) ? d["ArrivalDate"] : "",
-                                  DepartureDate = !string.IsNullOrEmpty(d["DepartureDate"].ToString()) ? d["DepartureDate"] : "",
-                                  Status = !string.IsNullOrEmpty(d["Status"].ToString()) ? d["Status"] : "",
-                                  OpenBalance = !string.IsNullOrEmpty(d["OpenBalance"].ToString()) ? d["OpenBalance"] : "",
-                                  Debit = !string.IsNullOrEmpty(d["Debit"].ToString()) ? d["Debit"] : "",
-                                  DebitTranfer = !string.IsNullOrEmpty(d["DebitTranfer"].ToString()) ? d["DebitTranfer"] : "",
-                                  Credit = !string.IsNullOrEmpty(d["Credit"].ToString()) ? d["Credit"] : "",
-                                  CreditTranfer = !string.IsNullOrEmpty(d["CreditTranfer"].ToString()) ? d["CreditTranfer"] : "",
-                                  CloseBalance = !string.IsNullOrEmpty(d["CloseBalance"].ToString()) ? d["CloseBalance"] : "",
-                                  Currency = !string.IsNullOrEmpty(d["Currency"].ToString()) ? d["Currency"] : "",
-                                  Room = !string.IsNullOrEmpty(d["Room"].ToString()) ? d["Room"] : "",
-                                  FolioID = !string.IsNullOrEmpty(d["FolioID"].ToString()) ? d["FolioID"] : "",
-
-                              }).ToList();
-
+                var data = _iReportService.GuestTrialBalance(ParseReportDate(date), isRouting, isCheckOut, roomTypeId ?? "");
+                if (data == null) return Json(Array.Empty<object>());
+                var result = new List<Dictionary<string, object>>(data.Rows.Count);
+                foreach (DataRow d in data.Rows)
+                {
+                    result.Add(new Dictionary<string, object>
+                    {
+                        ["reservation"] = ColStr(d, "Reservation"),
+                        ["accountName"] = ColStr(d, "AccountName"),
+                        ["arrivalDate"] = FirstCol(d, "ArrivalDate"),
+                        ["departureDate"] = FirstCol(d, "DepartureDate"),
+                        ["status"] = ColStr(d, "Status"),
+                        ["openBalance"] = ColDec(d, "OpenBalance"),
+                        ["debit"] = ColDec(d, "Debit"),
+                        ["debitTranfer"] = ColDec(d, "DebitTranfer"),
+                        ["credit"] = ColDec(d, "Credit"),
+                        ["creditTranfer"] = ColDec(d, "CreditTranfer"),
+                        ["closeBalance"] = ColDec(d, "CloseBalance"),
+                        ["currency"] = ColStr(d, "Currency"),
+                        ["room"] = ColStr(d, "Room"),
+                        ["folioID"] = ColStr(d, "FolioID"),
+                    });
+                }
                 return Json(result);
             }
             catch (Exception ex)
             {
-
                 return Json(new { error = ex.Message });
             }
         }
@@ -3717,6 +3724,22 @@ namespace Report.Controllers
             return Convert.ToString(d[col]) ?? "";
         }
 
+        private static string ColDateTime(DataRow d, string col)
+        {
+            if (d == null || d.Table == null || string.IsNullOrEmpty(col) || !d.Table.Columns.Contains(col) || d[col] == DBNull.Value) return "";
+            if (d[col] is DateTime dt)
+            {
+                if (dt.Year <= 1900) return "";
+                return dt.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
+            }
+            if (DateTime.TryParse(Convert.ToString(d[col]), out var parsed))
+            {
+                if (parsed.Year <= 1900) return "";
+                return parsed.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
+            }
+            return Convert.ToString(d[col]) ?? "";
+        }
+
         private static string FirstExisting(DataRow d, params string[] cols)
         {
             if (d?.Table == null || cols == null) return "";
@@ -3726,6 +3749,37 @@ namespace Report.Controllers
         }
 
         private static string FirstCol(DataRow d, params string[] cols) => ColStr(d, FirstExisting(d, cols));
+
+        private static string CsvIds(string raw, int maxLen = 100)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "";
+            var parts = raw.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(p => p.Trim())
+                .Where(p => p.Length > 0 && p.All(char.IsDigit));
+            var sb = new StringBuilder();
+            foreach (var p in parts)
+            {
+                var next = sb.Length == 0 ? p : "," + p;
+                if (sb.Length + next.Length > maxLen) break;
+                sb.Append(next);
+            }
+            return sb.ToString();
+        }
+
+        private static string JoinCsvCodes(IEnumerable<string> codes, int maxLen)
+        {
+            if (codes == null) return "";
+            var sb = new StringBuilder();
+            foreach (var raw in codes)
+            {
+                var p = (raw ?? "").Trim();
+                if (p.Length == 0) continue;
+                var next = sb.Length == 0 ? p : "," + p;
+                if (sb.Length + next.Length > maxLen) break;
+                sb.Append(next);
+            }
+            return sb.ToString();
+        }
 
         private static DateTime ParseReportDate(string raw)
         {
@@ -4104,6 +4158,88 @@ namespace Report.Controllers
             }
         }
 
+        [HttpGet]
+        [RequireFunction("rptARTrace")]
+        public IActionResult ARTraceData(string fromDate, string toDate, string state)
+        {
+            try
+            {
+                var st = string.IsNullOrWhiteSpace(state) ? "All" : state.Trim();
+                DataTable dataTable = _iReportService.ARTraceData(ParseReportDate(fromDate), ParseReportDate(toDate), st);
+                var result = new List<Dictionary<string, object>>();
+                if (dataTable != null)
+                {
+                    foreach (DataRow d in dataTable.Rows)
+                    {
+                        result.Add(new Dictionary<string, object>
+                        {
+                            ["accountName"] = FirstCol(d, "Account Name", "AccountName"),
+                            ["acctNo"] = FirstCol(d, "Acct. No", "Acct No", "AccountNo"),
+                            ["time"] = ColDateTime(d, FirstExisting(d, "Time", "TraceAt")),
+                            ["resolvedAt"] = ColDateTime(d, FirstExisting(d, "Resolved At", "ResolvedAt")),
+                            ["resolvedBy"] = FirstCol(d, "Resolved By", "ResolvedBy"),
+                            ["createdBy"] = FirstCol(d, "Created By", "CreatedBy")
+                        });
+                    }
+                }
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+
+        [HttpGet]
+        [RequireFunction("rptReservationWithDiscount")]
+        public IActionResult ReservationWithDiscountData(string fromDate, string toDate, int dateType,
+            string rmClasses, string rmTypes, string rateIDs, string mkIDs, string srcIDs, string statuses, int sort)
+        {
+            try
+            {
+                DataTable dataTable = _iReportService.ReservationWithDiscountData(
+                    ParseReportDate(fromDate),
+                    ParseReportDate(toDate),
+                    dateType,
+                    CsvIds(rmClasses),
+                    CsvIds(rmTypes),
+                    CsvIds(rateIDs),
+                    CsvIds(mkIDs),
+                    CsvIds(srcIDs),
+                    CsvIds(statuses),
+                    sort);
+                var result = new List<Dictionary<string, object>>();
+                if (dataTable != null)
+                {
+                    foreach (DataRow d in dataTable.Rows)
+                    {
+                        result.Add(new Dictionary<string, object>
+                        {
+                            ["name"] = FirstCol(d, "Name", "LastName"),
+                            ["arrival"] = ColDate(d, FirstExisting(d, "Arrival", "ArrivalDate")),
+                            ["departure"] = ColDate(d, FirstExisting(d, "Departure", "DepartureDate")),
+                            ["confNo"] = FirstCol(d, "Conf. No.", "Conf. No", "ConfirmationNo", "ConfNo"),
+                            ["rms"] = ColDec(d, FirstExisting(d, "Rms.", "Rms", "NoOfRoom", "Rooms")),
+                            ["rmNo"] = FirstCol(d, "Rm No.", "Rm No", "RoomNo", "Room Number"),
+                            ["rmType"] = FirstCol(d, "Rm Type", "Room Type", "RoomType", "RoomTypeCode"),
+                            ["rateCode"] = FirstCol(d, "Rate Code", "RateCode"),
+                            ["cur"] = FirstCol(d, "Cur.", "Cur", "Currency", "CurrencyCode"),
+                            ["originalRate"] = ColDec(d, FirstExisting(d, "Original Rate", "OriginalRate")),
+                            ["discountAmt"] = ColDec(d, FirstExisting(d, "Discount Amt.", "Discount Amt", "DiscountAmt")),
+                            ["discountPct"] = ColDec(d, FirstExisting(d, "Discount %", "Discount%", "DiscountPct", "DiscountPercent")),
+                            ["discountRate"] = ColDec(d, FirstExisting(d, "Discount Rate", "DiscountRate")),
+                            ["discountReason"] = FirstCol(d, "Discount Reason", "DiscountReason", "Reason")
+                        });
+                    }
+                }
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex.Message);
+            }
+        }
+
         private static readonly TimeSpan LookupCacheTtl = TimeSpan.FromMinutes(15);
 
         private List<T> CachedLookup<T>(string key, Func<List<T>> factory)
@@ -4122,7 +4258,13 @@ namespace Report.Controllers
                 switch (key)
                 {
                     case "zone":
-                        ViewBag.ZoneList = CachedLookup("rpt:zone", () => PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll()));
+                        ViewBag.ZoneList = CachedLookup("rpt:zone:v2", () =>
+                            PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll())
+                                .Where(z => z != null && !z.Inactive && !string.IsNullOrWhiteSpace(z.Code))
+                                .GroupBy(z => z.Code, StringComparer.OrdinalIgnoreCase)
+                                .Select(g => g.First())
+                                .OrderBy(z => z.Code, StringComparer.OrdinalIgnoreCase)
+                                .ToList());
                         break;
                     case "roomType":
                         ViewBag.RoomTypeList = CachedLookup("rpt:roomType", () => PropertyUtils.ConvertToList<RoomTypeModel>(RoomTypeBO.Instance.FindAll()));
@@ -4303,6 +4445,9 @@ namespace Report.Controllers
                 case "GuestTrialBalance":
                     BindLookups("roomClass", "roomType");
                     break;
+                case "ManagerReport":
+                    BindLookups("currency");
+                    break;
                 case "Transportation":
                     BindLookups("transport");
                     break;
@@ -4394,6 +4539,11 @@ namespace Report.Controllers
                     BindLookups("memberCat", "memberType");
                     break;
                 case "PackageReportbyPerson":
+                    break;
+                case "ARTrace":
+                    break;
+                case "ReservationWithDiscount":
+                    BindLookups("roomClass", "roomType", "rateCode", "market", "source");
                     break;
                 case "ReservationView":
                     BindLookups("nationality", "city", "country");

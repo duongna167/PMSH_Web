@@ -112,7 +112,15 @@
                 {
                     foreach (var item in zoneList)
                     {
-                        <option value="@item.Code">@item.Code</option>
+                        var isA2 = string.Equals((string)item.Code, "A2", StringComparison.OrdinalIgnoreCase);
+                        if (isA2)
+                        {
+                            <option value="@item.Code" selected>@item.Code</option>
+                        }
+                        else
+                        {
+                            <option value="@item.Code">@item.Code</option>
+                        }
                     }
                 }
             </select>
@@ -149,7 +157,7 @@
                     foreach (var item in currList)
                     {
                         var cid = (string)item.ID;
-                        if (string.Equals(cid, "USD", StringComparison.OrdinalIgnoreCase))
+                        if (string.Equals(cid, "VND", StringComparison.OrdinalIgnoreCase))
                         {
                             <option value="@cid" selected>@cid</option>
                         }
@@ -161,8 +169,8 @@
                 }
                 else
                 {
-                    <option value="USD" selected>USD</option>
-                    <option value="VND">VND</option>
+                    <option value="VND" selected>VND</option>
+                    <option value="USD">USD</option>
                 }
             </select>
         </div>
@@ -180,34 +188,61 @@
 </div>
 <script>
  
+    function rsvReadDate(name) {
+        const iso = ($('input[type=hidden][name="' + name + '"]').val() || '').trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+        const text = ($('[data-date-input][data-name="' + name + '"] .date-ui').val() || '').trim();
+        const m = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+        if (!m) return '';
+        let year = parseInt(m[3], 10);
+        if (year < 100) year += 2000;
+        return year + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[1]).padStart(2, '0');
+    }
+
     $(document).ready(function () {
          document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
                   window.initDateInputs();
-
-
+        var $zone = $("#zone");
+        if ($zone.length && !$zone.find("option:selected").filter(function () { return this.value; }).length) {
+            var $a2 = $zone.find("option").filter(function () { return /^\s*A2$/i.test($(this).text()); }).first();
+            if ($a2.length) $zone.val($a2.val());
+        }
+        var $cur = $("#viewBy");
+        if ($cur.length) {
+            var $vnd = $cur.find("option").filter(function () { return /^vnd$/i.test($(this).val() || $(this).text()); }).first();
+            if ($vnd.length) $cur.val($vnd.val());
+        }
     });
        
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+        const fromDate = rsvReadDate('fromDate');
+        const toDate = rsvReadDate('toDate');
+        if (!fromDate || !toDate) {
+            showToast('Warning', 'Nhập From Date và To Date đúng dạng DD/MM/YYYY.', false);
+            return;
+        }
         $("#loadingSpinner").show();
         $.ajax({
             url: '/Report/ReservationSummaryData',
             type: 'GET',
             data: {
-                fromDate: $("#fromDate").val(),
-                toDate: $("#toDate").val(),
+                fromDate: fromDate,
+                toDate: toDate,
                 roomType: ($("#roomType").val() || ""),
                 zone: ($("#zone").val() || "") ,
                 market: ($("#market").val() || "") ,
-                viewBy: $("#viewBy").val(),
+                viewBy: $("#viewBy").val() || "VND",
             },
             traditional: true,
               crossDomain: false,
                 headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                     console.log(result);
-    const processedData = prepareReservationSummaryData(result);
+                if (!Array.isArray(result)) {
+                    showToast("Warning", (result && result.error) ? result.error : "Không thể tải báo cáo.", false);
+                    $("#loadingSpinner").hide();
+                    return;
+                }
+                const processedData = prepareReservationSummaryData(result);
                 initializReservationSummaryGrid(processedData);
                     $("#loadingSpinner").hide();
             },
@@ -328,6 +363,7 @@
                         return dd + "/" + mm + "/" + yy;
                     }
                 },
+                { dataField: "weekDate", caption: "DOW", width: columnWidth - 80 },
                 { dataField: "totalOccRms", caption: "Total Occ.R", width: columnWidth - 60, dataType: "number", format: "#,##0" },
                     { dataField: "indRms", caption: "Ind Rm", width: columnWidth - 60, dataType: "number", format: "#,##0" },
                     { dataField: "blkRmsPU", caption: "Grp Rm", width: columnWidth - 60, dataType: "number", format: "#,##0" },
@@ -396,7 +432,7 @@
 ,
             paging: { pageSize: 25 },
             scrolling: {
-                useNative: true,
+                useNative: false,
                 showScrollbar: "always"
             },
             pager: {

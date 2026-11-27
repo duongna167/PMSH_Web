@@ -49,7 +49,7 @@
     #gridContainer .dx-datagrid-headers .dx-header-row > td {
         padding: 5px !important;
         height: 24px !important;
-        font-size: 12px !important;
+        font-size: 13px !important;
         line-height: 1.1 !important;
     }
 
@@ -57,7 +57,7 @@
     #gridContainer .dx-datagrid .dx-summary-row > td,
     #gridContainer .dx-datagrid .dx-total-footer td,
     #gridContainer .dx-datagrid .dx-footer-row td {
-        font-size: 11px !important;
+        font-size: 13px !important;
     }
 
     .sticky-header .form-control-sm {
@@ -116,7 +116,7 @@
     #gridContainer .dx-datagrid-headers .dx-header-row > td {
         padding: 5px !important;
         height: 24px !important;
-        font-size: 12px !important;
+        font-size: 13px !important;
         line-height: 1.1 !important;
     }
 
@@ -124,7 +124,7 @@
     #gridContainer .dx-datagrid .dx-summary-row > td,
     #gridContainer .dx-datagrid .dx-total-footer td,
     #gridContainer .dx-datagrid .dx-footer-row td {
-        font-size: 11px !important;
+        font-size: 13px !important;
     }
 
     .report-bar {
@@ -211,8 +211,8 @@
             <div class="d-flex flex-wrap gap-2">
 
                 <div class="form-check me-3">
-                    <input class="form-check-input" type="checkbox" id="type" name="includeOptions" value="1" checked>
-                    <label class="form-check-label" for="net">Guest in House</label>
+                    <input class="form-check-input" type="checkbox" id="type" name="includeOptions" value="1">
+                    <label class="form-check-label" for="type">Guest in House</label>
                 </div>
 
 
@@ -292,17 +292,19 @@
                 toDate: $("#toDate").val(),
                   zone: $("#zone").val(),
                       cashier: $("#cashier").val(),
-                               type: $("#type").val(),
+                               type: $("#type").is(":checked") ? "1" : "0",
             },
             traditional: true,
               crossDomain: false,
                 headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                     console.log(result);
-                        initializeIncurringDepositSummaryGrid(result);
+                if (!Array.isArray(result)) {
+                    alert(typeof result === "string" ? result : "Không thể tải báo cáo.");
                     $("#loadingSpinner").hide();
+                    return;
+                }
+                initializeIncurringDepositSummaryGrid(result);
+                $("#loadingSpinner").hide();
             },
             error: function () {
                 alert("Không thể tải báo cáo.");
@@ -316,8 +318,11 @@
     function initializeIncurringDepositSummaryGrid(data) {
         const columnWidth = 180;
 
-        $("#gridContainer").dxDataGrid({
-           dataSource: data,         height: 500,
+        pmshBindDxReportGrid("#gridContainer", {
+           dataSource: Array.isArray(data) ? data : [],
+            height: 500,
+            loadPanel: { enabled: false },
+            headerFilter: { visible: false },
             allowColumnResizing: true,
                    columns: [
                 { dataField: "lastName", caption: "Guest Name", width: columnWidth - 20  },
@@ -335,7 +340,7 @@
                                { dataField: "userName", caption: "Cashier", width: columnWidth - 40 },
                             { dataField: "paymentMethod", caption: "Payment Method", width: columnWidth  },
                            { dataField: "depositAmount", caption: "Deposit", width: columnWidth - 40  , dataType: "number", format: "#,##0" },
-                     { dataField: "ProfitCenterCode", caption: "Note", width: columnWidth - 40 },
+                     { dataField: "profitCenterCode", caption: "Note", width: columnWidth - 40 },
 
             ],
                        summary: {
@@ -348,19 +353,9 @@
                             { column: "depositAmount", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0" },
                     ]
                 },
-            paging: { pageSize: 25 },
-            scrolling: {
-                  mode: "standard",
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
+            paging: { enabled: false },
+            pager: { visible: false },
             filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
             selection: { mode: "multiple", showCheckBoxesMode: "none" },
             showBorders: true,
              onRowPrepared: function (e) {

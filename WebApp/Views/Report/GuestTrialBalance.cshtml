@@ -48,7 +48,23 @@
         margin-right: .5rem !important;
     }
 
-   
+    #gridContainer .dx-datagrid-rowsview .dx-row.dx-group-row td {
+        background: #eeeeee !important;
+        font-weight: 600;
+        color: #212529 !important;
+    }
+    #gridContainer .dx-datagrid-group-footer td {
+        font-weight: 600;
+        background: #f5f5f5 !important;
+    }
+    #gridContainer .dx-datagrid-headers {
+        overflow: hidden !important;
+    }
+    #gridContainer .dx-datagrid-headers .dx-scrollbar-vertical,
+    #gridContainer .dx-datagrid-headers .dx-datagrid-content::after {
+        display: none !important;
+    }
+
     .report-bar {
         position: relative;
         margin-bottom: 1rem; /* = mb-3 của bạn */
@@ -83,7 +99,7 @@
         }
 
 </style>
-<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="text-center" id="reportTitle" style="font-size: 20px">@ViewBag.ReportTitle</div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
     <div class="d-flex flex-wrap align-items-center gap-2 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
         <!-- From Date -->
@@ -97,15 +113,6 @@
 
 
    
-            <div class="d-flex align-items-center me-2">
-                <label class="me-2 mb-0"></label>
-                <input class="form-check-input" type="checkbox" id="isRouting" name="isRouting" checked>
-                <label class="form-check-label ms-1" for="isRouting">All Rooms</label>
-            
-            
-            </div>
-
-           
             <div class="d-flex align-items-center ">
                 <label class="me-2 mb-0 nowrap-label">Room Class:</label>
                 <select id="roomClass" name="roomClass" class="form-control form-control-sm report-dd">
@@ -135,7 +142,7 @@
         <div class="d-flex align-items-center me-2">
             <label class="me-2 mb-0">Include:</label>
             <input class="form-check-input" type="checkbox" id="isCheckOut" name="isCheckOut" checked>
-            <label class="form-check-label ms-1" for="isCheckOut">Checked Out</label>
+            <label class="form-check-label" for="isCheckOut" style="margin-left: 10px;">Checked Out</label>
         </div>
 
         </div>
@@ -155,7 +162,7 @@
 
 <div class="mui-card">
     @*   <div style="font-size: 20px;" class="mt-1" id="reportTitle"></div> *@
-    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
+    <div id="gridWrapper" class="mt-2">
         <div class="gridContainer mt-2" id="gridContainer"></div>
     </div>
 </div>
@@ -165,13 +172,8 @@
 <script>
    
     $(document).ready(function () {
-
-               window.initDateInputs();
-          
-            toggleRoomSelectors(); // ✅ Gọi khi trang vừa load
-            $("#isRouting").on("change", toggleRoomSelectors);
-
-
+        document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
+        window.initDateInputs();
     });
         
 
@@ -183,19 +185,22 @@
             type: 'GET',
             data: {
                 date: $("#date").val(),
-                roomClass: ($("#roomClass").val() || []).join(','),
-                roomTypeId: ($("#roomTypeId").val() || []).join(','),
+                roomClass: $("#roomClass").val() || "",
+                roomTypeId: $("#roomTypeId").val() || "",
                 isCheckOut: $("#isCheckOut").is(":checked") ? 1 : 0,
-                isRouting: $("#isRouting").is(":checked") ? 1 : 0
+                isRouting: (!$("#roomClass").val() && !$("#roomTypeId").val()) ? 1 : 0
 
             },
             traditional: true,
               crossDomain: false,
                 headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
                 success: function (result) {
-                console.log("Result from server:", result);
-                const prepared = prepareReservationData(result);
-                initializReveunueByGrid(prepared);     
+                if (!Array.isArray(result)) {
+                    alert((result && result.error) ? result.error : "Không thể tải báo cáo.");
+                    $("#loadingSpinner").hide();
+                    return;
+                }
+                initializReveunueByGrid(result);
                 $("#loadingSpinner").hide();
             },
 
@@ -205,134 +210,77 @@
             }
         });
     });
-        function toggleRoomSelectors() {
-        const isAllRooms = $("#isRouting").is(":checked");   // true = ALL
-        $("#roomClass").prop("disabled", isAllRooms);        // khóa/mở Room Class
-        $("#roomTypeId").prop("disabled", isAllRooms);       // khóa/mở Room Type
-        // Nếu dùng TomSelect: cũng disable instance để không bấm được
-        for (const id of ["#roomClass", "#roomTypeId"]) {
-            const ts = $(id)[0].tomselect;
-            if (ts) ts.disable();        // luôn disable trước
-            if (!isAllRooms && ts) ts.enable();   // mở lại nếu cần
-        }
+    function guestTrialGridHeight() {
+        var el = document.getElementById("gridContainer");
+        var top = el ? el.getBoundingClientRect().top : 260;
+        return Math.max(480, Math.floor(window.innerHeight - top - 12));
     }
-
-            function prepareReservationData(data) {
-        const grouped = {};
-        const result = [];
-
-        // Nhóm dữ liệu theo reservation
-        data.forEach(item => {
-            const reservation = item.reservation || "Unknown Reservation";
-            if (!grouped[reservation]) grouped[reservation] = [];
-            grouped[reservation].push(item);
-        });
-
-        // Duyệt từng nhóm reservation
-        Object.entries(grouped).forEach(([reservation, items]) => {
-            // Header nhóm reservation
-            result.push({
-                isGroupHeader: true,
-                folioID: reservation,
-                cssClass: "bold group-header"
-            });
-
-            // Dòng dữ liệu chi tiết
-            result.push(...items.map(x => ({
-                ...x,
-                isGroupHeader: false,
-                isSubtotal: false,
-                isGrandTotal: false
-            })));
-
-            // Tính subtotal
-            result.push({
-                isSubtotal: true,
-                departureDate:"Total",
-                debit: sum(items, "debit"),
-                credit: sum(items, "credit"),
-                openBalance: sum(items, "openBalance"),
-                closeBalance: sum(items, "closeBalance"),
-                debitTranfer: sum(items, "debitTranfer"),
-                creditTranfer: sum(items, "creditTranfer"),
-                currency:"VND",
-                cssClass: "bold group-total"
-            });
-        });
-
-        // Grand Total
-        result.push({
-            isGrandTotal: true,          
-            departureDate:"Grand Total",
-            debit: sum(data, "debit"),
-            credit: sum(data, "credit"),
-            openBalance: sum(data, "openBalance"),
-            closeBalance: sum(data, "closeBalance"),
-            debitTranfer: sum(data, "debitTranfer"),
-            creditTranfer: sum(data, "creditTranfer"),
-            currency:"VND",
-            cssClass: "bold grandtotal"
-        });
-
-        return result;
-    }
-
-    function sum(arr, field) {
-        return arr.reduce((total, item) => total + (item[field] || 0), 0);
-    }
-
-
-
     function initializReveunueByGrid(data) {
         const columnWidth = 180;
-        $("#gridContainer").dxDataGrid({
-       dataSource: data,         height: 500, allowColumnResizing: true,
+        const money = { dataType: "number", format: "#,##0", width: columnWidth - 50 };
+        pmshBindDxReportGrid("#gridContainer", {
+            dataSource: Array.isArray(data) ? data : [],
+            height: guestTrialGridHeight(),
+            allowColumnResizing: true,
+            loadPanel: { enabled: false },
+            headerFilter: { visible: false },
+            grouping: { autoExpandAll: true, allowCollapsing: true, contextMenuEnabled: false },
+            groupPanel: { visible: false },
             columns: [
-
-            { dataField: "folioID", caption: "Folio", width: columnWidth-50 },
-            { dataField: "room", caption: "Ro.", width: columnWidth-70 },
-            { dataField: "accountName", caption: "Name", width:columnWidth+90},
-            { dataField: "arrivalDate", caption: "Arr.", width: columnWidth-50 },
-            { dataField: "departureDate", caption: "Dep.", width: columnWidth-50 },
-            { dataField: "openBalance", caption: "Open Balance", width: columnWidth-50, dataType: "number", format: "#,##0"},
-            { dataField: "debit", caption: "Debit", width:columnWidth-50, dataType: "number", format: "#,##0" },
-            { dataField: "debitTranfer", caption: "DebitTranfer", width: columnWidth-50, dataType: "number", format: "#,##0"},
-            { dataField: "credit", caption: "Credit", width: columnWidth-50, dataType: "number", format: "#,##0" },
-            { dataField: "creditTranfer", caption: "CreditTranfer", width: columnWidth-50, dataType: "number", format: "#,##0" },
-            { dataField: "closeBalance", caption: "Close Balance", width: columnWidth-50, dataType: "number", format: "#,##0"},
-            { dataField: "currency", caption: "Curr.", width: columnWidth-70},
-            { dataField: "status", caption: "Rsv. Status", width: columnWidth-50},
+                {
+                    dataField: "reservation",
+                    caption: "Reservation",
+                    groupIndex: 0,
+                    visible: false,
+                    groupCellTemplate: function (container, options) {
+                        $("<span>").text(options.value || "").appendTo(container);
+                    }
+                },
+                { dataField: "folioID", caption: "Folio", width: columnWidth - 50 },
+                { dataField: "room", caption: "Ro.", width: columnWidth - 70 },
+                { dataField: "accountName", caption: "Name", width: columnWidth + 90 },
+                { dataField: "arrivalDate", caption: "Arr.", width: columnWidth - 50, dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "departureDate", caption: "Dep.", width: columnWidth - 50, dataType: "date", format: "dd/MM/yyyy" },
+                Object.assign({ dataField: "openBalance", caption: "Open Balance" }, money),
+                Object.assign({ dataField: "debit", caption: "Debit" }, money),
+                Object.assign({ dataField: "debitTranfer", caption: "DebitTranfer" }, money),
+                Object.assign({ dataField: "credit", caption: "Credit" }, money),
+                Object.assign({ dataField: "creditTranfer", caption: "CreditTranfer" }, money),
+                Object.assign({ dataField: "closeBalance", caption: "Close Balance" }, money),
+                { dataField: "currency", caption: "Curr.", width: columnWidth - 70 },
+                { dataField: "status", caption: "Rsv. Status", width: columnWidth - 50 }
             ],
-        paging: { pageSize: 25 },
-    //     scrolling:  {
-    //     mode: 'virtual',
-    //     useNative: true,
-    //     showScrollbar: "always"
-    // },
-        pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true,
-        },
-        selection: { mode: "multiple", showCheckBoxesMode: "none" },
-        filterRow: {
-        visible: true,
-        applyFilter: "auto"
-    },
-         headerFilter: {
-        visible: true
-    },
-            showBorders: true,
-            onRowPrepared: function (e) {
-        if (e.rowType === "data" && e.data && e.data.cssClass) {
-            $(e.rowElement).addClass(e.data.cssClass);
-        }
-    }
-
+            summary: {
+                groupItems: [
+                    { column: "accountName", summaryType: "count", displayFormat: "Sub Total =", showInGroupFooter: true, alignByColumn: true },
+                    { column: "openBalance", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0", showInGroupFooter: true, alignByColumn: true },
+                    { column: "debit", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0", showInGroupFooter: true, alignByColumn: true },
+                    { column: "debitTranfer", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0", showInGroupFooter: true, alignByColumn: true },
+                    { column: "credit", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0", showInGroupFooter: true, alignByColumn: true },
+                    { column: "creditTranfer", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0", showInGroupFooter: true, alignByColumn: true },
+                    { column: "closeBalance", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0", showInGroupFooter: true, alignByColumn: true }
+                ],
+                totalItems: [
+                    { column: "accountName", summaryType: "count", displayFormat: "Grand Total =" },
+                    { column: "openBalance", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0" },
+                    { column: "debit", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0" },
+                    { column: "debitTranfer", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0" },
+                    { column: "credit", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0" },
+                    { column: "creditTranfer", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0" },
+                    { column: "closeBalance", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0" }
+                ]
+            },
+            paging: { enabled: false },
+            pager: { visible: false },
+            selection: { mode: "none" },
+            filterRow: { visible: true, applyFilter: "auto" },
+            showBorders: true
         });
     }
+    $(window).off("resize.guestTrialBalance").on("resize.guestTrialBalance", function () {
+        var grid = $("#gridContainer").data("dxDataGrid");
+        if (grid) grid.option("height", guestTrialGridHeight());
+    });
 
 
 

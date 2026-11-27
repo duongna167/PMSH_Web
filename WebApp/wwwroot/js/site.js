@@ -880,3 +880,23 @@ window.applyPopupRights = function (code, selectors) {
     }, true);
     window.addEventListener('resize', closePmshSelectMenu);
 })();
+
+window.pmshBindDxReportGrid = function (selector, options) {
+    var $el = $(selector);
+    if ($el.data("dxDataGrid")) {
+        try { $el.dxDataGrid("dispose"); } catch (e) { }
+        $el.empty();
+    }
+    var cols = options && options.columns;
+    var hasGroup = !!(options && options.grouping) ||
+        (cols && cols.some(function (c) { return c && c.groupIndex != null; }));
+    var defaults = {
+        renderAsync: true,
+        twoWayBindingEnabled: false,
+        headerFilter: { visible: false },
+        scrolling: hasGroup
+            ? { mode: "standard", useNative: false, showScrollbar: "onHover", columnRenderingMode: "virtual" }
+            : { mode: "virtual", useNative: false, showScrollbar: "onHover", rowRenderingMode: "virtual", columnRenderingMode: "virtual" }
+    };
+    $el.dxDataGrid($.extend(true, {}, defaults, options));
+};
