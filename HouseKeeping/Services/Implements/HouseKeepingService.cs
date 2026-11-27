@@ -11,7 +11,7 @@ using System.Security.Policy;
 
 namespace HouseKeeping.Services.Implements
 {
-    public class HouseKeepingService : IHouseKeepingService
+    public partial class HouseKeepingService : IHouseKeepingService
     {
         public DataTable RoomControlPanelData(DateTime fromDate, DateTime toDate, string zone)
         {
@@ -37,7 +37,7 @@ namespace HouseKeeping.Services.Implements
 
             };
 
-            DataTable myTable = DataTableHelper.getTableData("spRmgRoomFacilityForecastReport", param);
+            DataTable myTable = DataTableHelper.getTableData("spRmgRoomFacilityForecastReport_v2", param);
             return myTable;
         }
         public DataTable GuestServiceStatusData(int servicestatsu, string room, string roomStatus, string zone)

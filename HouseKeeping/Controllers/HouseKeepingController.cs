@@ -64,7 +64,7 @@ namespace HouseKeeping.Controllers
         {
             try
             {
-                zone = FormatIdList(zone);
+                zone = ZoneListOrAll(zone);
                 DataTable dataTable = _iHouseKeepingService.RoomControlPanelData(fromDate, toDate, zone);
 
                 // Tạo danh sách các ngày trong khoảng fromDate -> toDate
@@ -130,7 +130,7 @@ namespace HouseKeeping.Controllers
         {
             try
             {
-                zone = FormatIdList(zone);
+                zone = ZoneListOrAll(zone);
                 DataTable dataTable = _iHouseKeepingService.RoomFacilityForecastData(fromDate, toDate, zone);
 
                 // Tạo danh sách các ngày trong khoảng fromDate -> toDate
@@ -3244,6 +3244,18 @@ namespace HouseKeeping.Controllers
                 }
             }
             _SectionID = _ListSection.Split(',');
+        }
+
+        // Ô Zone để trống ("All"): stored procedure lọc ZoneCode IN (...) nên phải truyền đủ tất cả zone
+        private string ZoneListOrAll(string zone)
+        {
+            if (!string.IsNullOrWhiteSpace(zone))
+                return FormatIdList(zone);
+
+            var codes = PropertyUtils.ConvertToList<ZoneModel>(ZoneBO.Instance.FindAll())
+                                     .Select(z => z.Code)
+                                     .Where(code => !string.IsNullOrWhiteSpace(code));
+            return FormatIdList(string.Join(",", codes));
         }
 
         private string FormatIdList(string ids)

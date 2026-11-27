@@ -20,6 +20,9 @@
                     <div>
                         <button id="rmAva_btnPrint" type="button" class="mui-button mui-button-new">View</button>
                         <button id="rmAva_btnExportExcel" type="button" class="mui-button mui-button-new">Excel</button>
+                        <button id="rmAva_btnDetail" type="button" class="mui-button mui-button-new">Detail</button>
+                        <button id="rmAva_btnColor" type="button" class="mui-button mui-button-new">Color</button>
+                        <button id="rmAva_btnText" type="button" class="mui-button mui-button-new">Text</button>
                         <button id="rmAva_btnAllotment" type="button" class="mui-button mui-button-new" data-code="resv_ReservationAllotmentReport">View Allotment</button>
                         <button id="rmAva_btnClose" type="button" data-bs-dismiss="modal" class="mui-button mui-button-new">Close</button>
                     </div>
@@ -155,6 +158,74 @@
     </div>
 </div>
 
+<style>
+    /* Ô đang chọn để xem Detail */
+    #rmAva_gridContainer td.rmAva-picked { outline: 2px solid #027C75; outline-offset: -2px; background-color: #d9f2ef !important; }
+</style>
+
+<!-- Room Available Resvs Detail -->
+<div class="modal fade" id="rmAva_detailModal" tabindex="-1" aria-labelledby="rmAva_detailTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="height:auto !important; max-height:none !important;">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rmAva_detailTitle">Room Available Resvs Detail</h5>
+            </div>
+            <div class="modal-body" style="overflow:visible; padding:12px;">
+                <div class="mb-2">
+                    <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div id="rmAva_detailGrid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Room Availability Color / Text: dùng chung một hộp thoại -->
+<div class="modal fade" id="rmAva_noteModal" tabindex="-1" aria-labelledby="rmAva_noteTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 640px;">
+        <div class="modal-content" style="height:auto !important; max-height:none !important;">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rmAva_noteTitle">Room Availability Color</h5>
+            </div>
+            <div class="modal-body" style="overflow:visible; padding:12px;">
+                @Html.AntiForgeryToken()
+                <div class="mb-2">
+                    <button type="button" class="mui-button mui-button-new" id="rmAva_noteSave">Save</button>
+                    <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                    <label class="d-flex align-items-center gap-2 mb-0 text-nowrap">From Date
+                        <input type="date" id="rmAva_noteFrom" class="form-control form-control-sm" style="width:150px;">
+                    </label>
+                    <label class="d-flex align-items-center gap-2 mb-0 text-nowrap">To Date
+                        <input type="date" id="rmAva_noteTo" class="form-control form-control-sm" style="width:150px;">
+                    </label>
+                    <div class="d-flex align-items-center gap-2" data-note="color">
+                        <span>Color</span>
+                        <input type="color" id="rmAva_noteColor" class="form-control form-control-color form-control-sm" value="#00ff00" aria-label="Color">
+                        <label class="mb-0 text-nowrap"><input type="checkbox" id="rmAva_noteNoColor"> No color</label>
+                    </div>
+                </div>
+                <!-- value theo DayOfWeek: 0 = Sunday -->
+                <div class="d-flex flex-wrap justify-content-center gap-3 mb-2" id="rmAva_noteDays">
+                    <label class="mb-0"><input type="checkbox" value="1" checked> Mon</label>
+                    <label class="mb-0"><input type="checkbox" value="2" checked> Tue</label>
+                    <label class="mb-0"><input type="checkbox" value="3" checked> Wed</label>
+                    <label class="mb-0"><input type="checkbox" value="4" checked> Thur</label>
+                    <label class="mb-0"><input type="checkbox" value="5" checked> Fri</label>
+                    <label class="mb-0"><input type="checkbox" value="6" checked> Sat</label>
+                    <label class="mb-0"><input type="checkbox" value="0" checked> Sun</label>
+                </div>
+                <div class="d-flex gap-2 mb-2" data-note="text">
+                    <label for="rmAva_noteDescription" class="mb-0">Description</label>
+                    <textarea id="rmAva_noteDescription" class="form-control form-control-sm" rows="2" maxlength="200"></textarea>
+                </div>
+                <div id="rmAva_noteGrid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- View Report By... (Go To Allotment bên WinForms) -->
 <div class="modal fade" id="rmAva_allotModal" tabindex="-1" aria-labelledby="rmAva_allotTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 600px;">
@@ -234,6 +305,14 @@
         function rmAva_bindEvents() {
 
             $(document)
+                .off("click.rmAvaNote change.rmAvaNote")
+                .on("click.rmAvaNote", "#rmAva_btnDetail", rmAva_openDetail)
+                .on("click.rmAvaNote", "#rmAva_btnColor", () => rmAva_openNote("color"))
+                .on("click.rmAvaNote", "#rmAva_btnText", () => rmAva_openNote("text"))
+                .on("click.rmAvaNote", "#rmAva_noteSave", rmAva_saveNote)
+                .on("change.rmAvaNote", "#rmAva_noteFrom, #rmAva_noteTo", rmAva_loadNoteList);
+
+            $(document)
                 .off("click.rmAvaAllot")
                 .on("click.rmAvaAllot", "#rmAva_btnAllotment", function () {
                     bootstrap.Modal.getOrCreateInstance(document.getElementById("rmAva_allotModal"), { backdrop: "static" }).show();
@@ -258,6 +337,181 @@
                 .on("click", "#rmAva_btnExportPdf", function () {
                     rmAva_exportPdf();
                 });
+        }
+
+        // ===== Set Color / Set Text theo ngày (hiện trên tiêu đề cột ngày) =====
+        let rmAva_notes = {};          // 'yyyy-MM-dd' -> { color, description }
+        let rmAva_range = null;        // khoảng ngày đang hiển thị trên bảng
+        let rmAva_noteType = "color";
+
+        function rmAva_isoDate(date) {
+            return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+        }
+
+        function rmAva_fetchNotes(fromDate, toDate) {
+            return $.get("/HouseKeeping/GetRoomAvailabilityNotes", { fromDate: fromDate, toDate: toDate });
+        }
+
+        // Một ngày có thể có nhiều dòng (dữ liệu cũ): lấy giá trị khác rỗng sau cùng
+        function rmAva_setNotes(list) {
+            rmAva_notes = {};
+            (list || []).forEach(function (item) {
+                const note = rmAva_notes[item.date] || (rmAva_notes[item.date] = {});
+                if (item.color) note.color = item.color;
+                if (item.description) note.description = item.description;
+            });
+        }
+
+        // Tải lại màu/ghi chú rồi vẽ lại tiêu đề, không tải lại số liệu
+        function rmAva_refreshNotes() {
+            if (!rmAva_range) return;
+            rmAva_fetchNotes(rmAva_range.from, rmAva_range.to).done(function (list) {
+                rmAva_setNotes(list);
+                $(rmAva_selectors.grid).dxDataGrid("instance")?.repaint();
+            });
+        }
+
+        function rmAva_openNote(type) {
+            rmAva_noteType = type;
+            $("#rmAva_noteTitle").text(type === "color" ? "Room Availability Color" : "Room Availability Text");
+            $("#rmAva_noteModal [data-note]").each(function () {
+                // d-flex của Bootstrap dùng !important nên phải đổi class thay vì .hide()
+                const visible = this.dataset.note === type;
+                $(this).toggleClass("d-flex", visible).toggleClass("d-none", !visible);
+            });
+            const fromDate = $(rmAva_selectors.fromDate).val();
+            $("#rmAva_noteFrom, #rmAva_noteTo").val(fromDate);
+            $("#rmAva_noteDescription").val("");
+            $("#rmAva_noteNoColor").prop("checked", false);
+            $("#rmAva_noteDays input").prop("checked", true);
+
+            const modal = document.getElementById("rmAva_noteModal");
+            $(modal).off("shown.bs.modal.rmAva").one("shown.bs.modal.rmAva", rmAva_loadNoteList);
+            bootstrap.Modal.getOrCreateInstance(modal, { backdrop: "static" }).show();
+        }
+
+        function rmAva_loadNoteList() {
+            const fromDate = $("#rmAva_noteFrom").val(), toDate = $("#rmAva_noteTo").val();
+            const show = function (rows) {
+                $("#rmAva_noteGrid").addClass("gridContainer").dxDataGrid({
+                    dataSource: rows, height: 260, showBorders: true, showRowLines: true, noDataText: "",
+                    paging: { enabled: false }, selection: { mode: "single" },
+                    columns: [
+                        { dataField: "date", caption: "Date", dataType: "date", format: "dd/MM/yy", width: 100 },
+                        { dataField: "description", caption: "Description" },
+                        { dataField: "dayOfWeek", caption: "Day Of Week", width: 110 },
+                        {
+                            dataField: "color", caption: "Color", width: 70,
+                            cellTemplate: function (container, options) {
+                                if (options.value) container.css("background-color", options.value);
+                            }
+                        }
+                    ],
+                    // Bấm vào một dòng để sửa lại đúng ngày đó
+                    onRowClick: function (e) {
+                        if (e.rowType !== "data") return;
+                        $("#rmAva_noteFrom, #rmAva_noteTo").val(e.data.date);
+                        $("#rmAva_noteDescription").val(e.data.description || "");
+                        if (e.data.color) $("#rmAva_noteColor").val(e.data.color);
+                    }
+                });
+            };
+            if (!fromDate || !toDate || toDate < fromDate) return show([]);
+            rmAva_fetchNotes(fromDate, toDate)
+                .done(list => show(list.filter(x => x.color || x.description)))
+                .fail(() => { show([]); showToast("Error", "Cannot load color and text.", false); });
+        }
+
+        function rmAva_saveNote() {
+            const button = $("#rmAva_noteSave").prop("disabled", true);
+            $.ajax({
+                url: "/HouseKeeping/SaveRoomAvailabilityNotes", type: "POST", traditional: true,
+                data: {
+                    type: rmAva_noteType,
+                    fromDate: $("#rmAva_noteFrom").val(),
+                    toDate: $("#rmAva_noteTo").val(),
+                    weekdays: $("#rmAva_noteDays input:checked").map(function () { return this.value; }).get(),
+                    color: $("#rmAva_noteNoColor").is(":checked") ? "" : $("#rmAva_noteColor").val(),
+                    description: $("#rmAva_noteDescription").val(),
+                    __RequestVerificationToken: $("#rmAva_noteModal input[name='__RequestVerificationToken']").val()
+                }
+            })
+                .done(function () {
+                    showToast("Success", "Saved successfully!", true);
+                    rmAva_loadNoteList();
+                    rmAva_refreshNotes();
+                })
+                .fail(function (xhr) {
+                    showToast("Warning", xhr.responseJSON?.message || xhr.responseJSON?.msg || "Cannot save.", false);
+                })
+                .always(() => button.prop("disabled", false));
+        }
+
+        // Tô màu và ghi chú lên tiêu đề cột của ngày
+        function rmAva_paintHeader(e) {
+            if (e.rowType !== "header" || !e.column.isoDate) return;
+            const note = rmAva_notes[e.column.isoDate];
+            const cell = e.cellElement[0];
+            if (note?.color) {
+                const rgb = parseInt(note.color.slice(1), 16);
+                const dark = ((rgb >> 16) * 299 + ((rgb >> 8) & 255) * 587 + (rgb & 255) * 114) / 1000 < 128;
+                cell.style.setProperty("background-color", note.color, "important");
+                cell.style.setProperty("color", dark ? "#fff" : "#000", "important");
+            }
+            if (note?.description) {
+                cell.title = note.description;
+                $(cell).find(".rmAva-note").text(note.description);
+            }
+        }
+
+        // ===== Detail: các booking của loại phòng (dòng) trong ngày (cột) đang chọn =====
+        let rmAva_picked = null;       // { roomType, date }
+
+        function rmAva_pickCell(e) {
+            if (e.rowType !== "data" || !e.column.isoDate) return;
+            rmAva_picked = { roomType: e.data.roomType, date: e.column.isoDate };
+            $(rmAva_selectors.grid).find("td.rmAva-picked").removeClass("rmAva-picked");
+            $(e.cellElement).addClass("rmAva-picked");
+        }
+
+        function rmAva_openDetail() {
+            if (!rmAva_picked) {
+                showToast("Warning", "Please select a cell: a room type row and a date column.", false);
+                return;
+            }
+            const picked = rmAva_picked;
+            const button = $("#rmAva_btnDetail").prop("disabled", true);
+            $.get("/HouseKeeping/GetRoomAvailabilityDetail", { roomTypeCode: picked.roomType, date: picked.date })
+                .done(function (rows) {
+                    const day = picked.date.split("-").reverse().join("/");
+                    $("#rmAva_detailTitle").text("Room Available Resvs Detail - " + picked.roomType + " - " + day);
+                    const modal = document.getElementById("rmAva_detailModal");
+                    $(modal).off("shown.bs.modal.rmAva").one("shown.bs.modal.rmAva", function () {
+                        const dateColumn = (field, caption) => ({ dataField: field, caption: caption, dataType: "date", format: "dd/MM/yyyy", width: 100 });
+                        $("#rmAva_detailGrid").addClass("gridContainer").dxDataGrid({
+                            dataSource: rows, height: "60vh", showBorders: true, showRowLines: true, noDataText: "No data",
+                            allowColumnResizing: true, columnResizingMode: "widget",
+                            paging: { enabled: false }, selection: { mode: "single" },
+                            columns: [
+                                { dataField: "index", caption: "Index", width: 60, alignment: "center" },
+                                { dataField: "confirmationNo", caption: "Conf. No", width: 100 },
+                                { dataField: "crsNo", caption: "CRSNo", width: 100 },
+                                { dataField: "type", caption: "Type", width: 120 },
+                                { dataField: "room", caption: "Room", width: 90 },
+                                { dataField: "noOfRoom", caption: "N.Rms", width: 70, alignment: "center" },
+                                { dataField: "profile", caption: "Profile", minWidth: 180 },
+                                dateColumn("fromDate", "From Date"),
+                                dateColumn("toDate", "To Date")
+                            ],
+                            summary: { totalItems: [{ name: "total", column: "noOfRoom", summaryType: "sum", showInColumn: "profile", alignment: "left", displayFormat: "Total Rooms: {0}" }] }
+                        });
+                    });
+                    bootstrap.Modal.getOrCreateInstance(modal, { backdrop: "static" }).show();
+                })
+                .fail(function (xhr) {
+                    showToast("Warning", xhr.responseJSON?.message || xhr.responseJSON?.msg || "Cannot load detail.", false);
+                })
+                .always(() => button.prop("disabled", false));
         }
 
         // ===== View Allotment: dùng lại dữ liệu của màn Allotment Report =====
@@ -412,8 +666,15 @@
                     "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val()
                 },
                 success: function (rmAva_result) {
-                    
-                    rmAva_initializeReservationSummaryGrid(rmAva_result.data, rmAva_result.fromDate, rmAva_result.toDate);
+                    rmAva_range = {
+                        from: rmAva_isoDate(new Date(rmAva_result.fromDate)),
+                        to: rmAva_isoDate(new Date(rmAva_result.toDate))
+                    };
+                    // Lỗi tải màu/ghi chú không được chặn bảng số liệu
+                    rmAva_fetchNotes(rmAva_range.from, rmAva_range.to)
+                        .done(rmAva_setNotes)
+                        .fail(() => rmAva_setNotes([]))
+                        .always(() => rmAva_initializeReservationSummaryGrid(rmAva_result.data, rmAva_result.fromDate, rmAva_result.toDate));
                 },
                 error: function () {
                     alert("Không th? t?i báo cáo.");
@@ -438,6 +699,7 @@
 
                 rmAva_columns.push({
                     dataField: `date${rmAva_index}`,
+                    isoDate: rmAva_isoDate(rmAva_start),
                     width: 50,
                     alignment: "right",
                     // dataType: "number",
@@ -490,7 +752,8 @@
                     },
                     headerCellTemplate: function (rmAva_container) {
                         rmAva_container.html(
-                            `<div style="white-space: normal; text-align:center; font-size:11px;">${rmAva_captionHtml}</div>`
+                            `<div style="white-space: normal; text-align:center; font-size:11px;">${rmAva_captionHtml}`
+                            + `<div class="rmAva-note" style="max-width:44px; margin:0 auto; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;"></div></div>`
                         );
                     }
                 });
@@ -568,6 +831,17 @@
                 headerFilter: { visible: true },
                 selection: { mode: "multiple", showCheckBoxesMode: "none" },
                 showBorders: true,
+                onCellPrepared: rmAva_paintHeader,
+                onCellClick: rmAva_pickCell,
+                onCellDblClick: function (e) {
+                    if (e.rowType !== "data" || !e.column.isoDate) return;
+                    rmAva_pickCell(e);
+                    rmAva_openDetail();
+                },
+                // Tải lại bảng hoặc đổi trang thì ô đã chọn không còn
+                onContentReady: function () {
+                    if (!$(rmAva_selectors.grid).find("td.rmAva-picked").length) rmAva_picked = null;
+                },
                 onRowPrepared: function (rmAva_e) {
                     if (rmAva_e.rowType === "data") {
                         if (rmAva_e.data.roomType === "Allotment") {
