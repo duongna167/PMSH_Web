@@ -246,6 +246,7 @@ function focusElement($el) {
 
             this.initCalendar();
             this.setupResponsive(); //
+            this.bindTyping();
 
             // LOGIC TỰ ĐỘNG CHÈN NGÀY
             if (this.isBusinessDate) {
@@ -255,6 +256,66 @@ function focusElement($el) {
             } else if (this.defaultISO) {
                 this.setISO(this.defaultISO);
             }
+        }
+
+        // Ngày gõ tay phải được ghi vào input hidden (giá trị thật gửi đi), không chỉ khi chọn trên lịch.
+        // Chỉ xử lý khi rời ô hoặc bấm Enter, và chỉ khi người dùng thực sự gõ/dán.
+        // Không dùng sự kiện "input" vì thư viện lịch cũng tự phát sự kiện này.
+        bindTyping() {
+            if (!this.format.startsWith('dd')) return;
+            let typed = false;
+            const commit = () => {
+                if (!typed) return;
+                typed = false;
+                this.commitTyped();
+            };
+            this.$ui
+                .on('paste cut drop', () => { typed = true; })
+                .on('pick.datepicker', () => { typed = false; })
+                .on('blur', commit)
+                .on('keydown', (e) => {
+                    if (e.key === 'Enter') commit();
+                    // Phím ký tự, Backspace, Delete; bàn phím điện thoại báo "Unidentified"
+                    else if ((e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey)
+                        || e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Unidentified') typed = true;
+                });
+        }
+
+        commitTyped() {
+            const text = String(this.$ui.val() || '').trim();
+            if (!text) {
+                if (this.$hidden.val()) this.$hidden.val('').trigger('change');
+                return;
+            }
+
+            const iso = DateInput.parseTyped(text);
+            const current = this.$hidden.val();
+            if (iso && iso !== current) {
+                this.setISO(iso);
+                return;
+            }
+
+            // Gõ đúng ngày cũ thì chỉ định dạng lại; gõ sai thì trả lại ngày cũ
+            const parts = (current || '').split('-').map(Number);
+            if (parts.length === 3) this.$ui.datepicker('setDate', new Date(parts[0], parts[1] - 1, parts[2]));
+            else this.$ui.val('');
+        }
+
+        // dd/mm/yyyy, dd/mm/yy hoặc ddmmyyyy -> yyyy-mm-dd; không hợp lệ trả về null
+        static parseTyped(text) {
+            const match = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4}|\d{2})$/.exec(text) || /^(\d{2})(\d{2})(\d{4})$/.exec(text);
+            if (!match) return null;
+
+            const day = Number(match[1]);
+            const month = Number(match[2]);
+            const year = match[3].length === 2 ? 2000 + Number(match[3]) : Number(match[3]);
+            // SQL Server datetime không nhận năm trước 1753
+            if (year < 1753) return null;
+
+            const date = new Date(year, month - 1, day);
+            if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+
+            return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         }
 
         initCalendar() {

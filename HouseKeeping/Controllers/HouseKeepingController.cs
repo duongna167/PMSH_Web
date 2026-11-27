@@ -1820,13 +1820,13 @@ namespace HouseKeeping.Controllers
                               select new
                               {
                                   ID = !string.IsNullOrEmpty(d["ID"].ToString()) ? d["ID"].ToString() : "",
-                                  AttendantDate = d["AttendantDate"] == DBNull.Value ? "" : Convert.ToDateTime(d["AttendantDate"]).ToString("dd/MM/yyyy"),
+                                  AttendantDate = d["AttendantDate"] == DBNull.Value ? "" : Convert.ToDateTime(d["AttendantDate"]).ToString("yyyy-MM-dd"),
                                   AttendantID = d["AttendantID"]?.ToString() ?? "",
                                   Points = d["Points"]?.ToString() ?? "",
                                   CreatedBy = d["CreatedBy"]?.ToString() ?? "",
-                                  CreatedDate = d["CreatedDate"] == DBNull.Value ? "" : Convert.ToDateTime(d["CreatedDate"]).ToString("dd/MM/yyyy"),
+                                  CreatedDate = d["CreatedDate"] == DBNull.Value ? "" : Convert.ToDateTime(d["CreatedDate"]).ToString("yyyy-MM-dd"),
                                   UpdatedBy = d["UpdatedBy"]?.ToString() ?? "",
-                                  UpdatedDate = d["UpdatedDate"] == DBNull.Value ? "" : Convert.ToDateTime(d["UpdatedDate"]).ToString("dd/MM/yyyy"),
+                                  UpdatedDate = d["UpdatedDate"] == DBNull.Value ? "" : Convert.ToDateTime(d["UpdatedDate"]).ToString("yyyy-MM-dd"),
                               }).ToList();
 
                 return Json(result);

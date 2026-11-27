@@ -42,7 +42,13 @@ namespace BaseBusiness.BO
 
             if (!string.IsNullOrWhiteSpace(attendant))
             {
-                query += $" AND AttendantID IN ({attendant})";
+                // Chỉ ghép các số hợp lệ vào câu lệnh (chặn SQL injection)
+                var ids = attendant.Split(',')
+                                   .Select(value => int.TryParse(value.Trim(), out var id) ? id : (int?)null)
+                                   .Where(id => id.HasValue)
+                                   .Select(id => id!.Value)
+                                   .ToList();
+                query += ids.Count > 0 ? $" AND AttendantID IN ({string.Join(",", ids)})" : " AND 1 = 0";
             }
 
             return instance.GetList<hkpAttendantPointModel>(query);
