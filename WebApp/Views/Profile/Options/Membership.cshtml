@@ -448,11 +448,11 @@
                     var el = document.querySelector('#op_membership_memberTypeAdd');
                     if (el && el.tomselect && typeof loadDataToTomSelect === 'function') {
                         loadDataToTomSelect('#op_membership_memberTypeAdd', '/Profile/GetMemberType', op_membership_memberTypeMap, function () {
-                            if (mtId) {
-                                setTomSelectValue('#op_membership_memberTypeAdd', mtId);
-                            }
+                            self.applyMemberType(mtId);
                             fillRest();
                         });
+                        // Popup hiện xong mới gán lại lần nữa (tránh bị reset/khởi tạo lại sau khi đã set)
+                        $('#modalNewMembership').one('shown.bs.modal', function () { self.applyMemberType(mtId); });
                     } else {
                         $('#op_membership_memberTypeAdd').val(mtId);
                         fillRest();
@@ -460,6 +460,30 @@
                 },
                 error: function () {
                     alert('Error retrieving membership data.');
+                }
+            });
+        },
+
+        /** Gán Type cho TomSelect; nếu option chưa có trong danh sách thì lấy theo ID rồi thêm vào. */
+        applyMemberType: function (mtId) {
+            mtId = mtId != null ? String(mtId) : '';
+            if (!mtId || mtId === '0') return;
+            var el = document.querySelector('#modalNewMembership #op_membership_memberTypeAdd') || document.querySelector('#op_membership_memberTypeAdd');
+            var ts = el && el.tomselect;
+            if (!ts) { $(el).val(mtId); return; }
+            if (String(ts.getValue() || '') === mtId) return;
+            if (ts.options[mtId]) {
+                ts.setValue(mtId, true);
+                return;
+            }
+            $.ajax({
+                url: '/Profile/GetMemberTypeByID',
+                type: 'GET',
+                data: { id: mtId },
+                success: function (t) {
+                    if (!t) return;
+                    ts.addOption(op_membership_memberTypeMap(t));
+                    ts.setValue(mtId, true);
                 }
             });
         },
@@ -526,7 +550,8 @@
             formData.append('profileID', self.profileID);
             formData.append('userName', userName);
             formData.append('memberNo', $('#op_membership_cardNumberAdd').val());
-            formData.append('memberTypeID', $('#op_membership_memberTypeAdd').val());
+            var typeEl = document.querySelector('#op_membership_memberTypeAdd');
+            formData.append('memberTypeID', (typeEl && typeEl.tomselect ? typeEl.tomselect.getValue() : $('#op_membership_memberTypeAdd').val()) || '');
             formData.append('description', $('#op_membership_descriptionAdd').val());
             formData.append('expiry', $('#op_membership_expireDateAdd').val());
             formData.append('sequence', $("#op_membership_sequenceAdd").val());

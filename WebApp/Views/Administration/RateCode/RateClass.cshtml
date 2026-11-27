@@ -1,9 +1,37 @@
 @using DevExpress.XtraReports.UI
 
-@{
-    var selectedReport = @ViewBag.ReportHeader;
-}
-
+<style>
+    #rtClass_loadingSpinner.rtClass-loading {
+        display: none;
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.45);
+        pointer-events: none;
+    }
+    #rtClass_loadingSpinner.rtClass-loading.is-on {
+        display: flex;
+    }
+    .rtClass-filter {
+        margin-left: 0;
+    }
+    .rtClass-filter-item label {
+        margin: 0;
+        font-size: 14px;
+        white-space: nowrap;
+        line-height: 28px;
+    }
+    .rtClass-filter-item input.form-control {
+        width: 160px;
+        height: 28px;
+    }
+    .rtClass-filter-item input[type="checkbox"] {
+        margin: 0;
+        flex-shrink: 0;
+    }
+</style>
 <div class="modal fade" id="rtClass_modalMain" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg-4by3 modal-dialog-centered ">
         <div class="modal-content">
@@ -25,75 +53,36 @@
                         <button id="rtClass_btnClose" type="button" class="mui-button mui-button-new ms-auto">Close</button>
                     </div>
 
-                    <!-- FILTER (Bootstrap 5 ERP-style: dense, nested rows, right-aligned labels, compact spacing) -->
-                    <div class="mt-1">
-                        <div class="row g-2 align-items-center">
-
-                            <!-- Code -->
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 col-xl-3">
-                                <div class="row g-1 align-items-center">
-                                    <label for="rtClass_codeInput"
-                                        class="col-4 col-sm-4 col-md-4 col-lg-3 col-xl-3 col-form-label col-form-label-sm text-md-end mb-0 text-nowrap">
-                                        Code
-                                    </label>
-                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
-                                        <input type="text"
-                                            id="rtClass_codeInput"
-                                            name="rtClass_codeInput"
-                                            class="form-control form-control-sm" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Name -->
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 col-xl-3">
-                                <div class="row g-1 align-items-center">
-                                    <label for="rtClass_nameInput"
-                                        class="col-4 col-sm-4 col-md-4 col-lg-4 col-xl-4 col-form-label col-form-label-sm text-md-end mb-0 text-nowrap">
-                                        Name
-                                    </label>
-                                    <div class="col-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
-                                        <input type="text"
-                                            id="rtClass_nameInput"
-                                            name="rtClass_nameInput"
-                                            class="form-control form-control-sm" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Show Inactive -->
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 col-xl-3">
-                                <div class="row g-1 align-items-center">
-                                    <label for="rtClass_chkShowInactive"
-                                        class="col-4 col-sm-4 col-md-6 col-lg-4 col-xl-4 col-form-label col-form-label-sm text-md-end mb-0 text-nowrap">
-                                        Show Inactive
-                                    </label>
-                                    <div class="col-8 col-sm-8 col-md-6 col-lg-8 col-xl-8">
-                                        <div class="form-check mb-0 d-flex align-items-center gap-2">
-                                            <input class="ms-2"
-                                                type="checkbox"
-                                                id="rtClass_chkShowInactive"
-                                                name="rtClass_chkShowInactive">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
+                    <div class="rtClass-filter mt-1">
+                        <div class="rtClass-filter-item">
+                            <label for="rtClass_codeInput">Code</label>
+                            <input type="text"
+                                id="rtClass_codeInput"
+                                name="rtClass_codeInput"
+                                class="form-control form-control-sm" />
+                        </div>
+                        <div class="rtClass-filter-item">
+                            <label for="rtClass_nameInput">Name</label>
+                            <input type="text"
+                                id="rtClass_nameInput"
+                                name="rtClass_nameInput"
+                                class="form-control form-control-sm" />
+                        </div>
+                        <div class="rtClass-filter-item">
+                            <label for="rtClass_chkShowInactive">Show Inactive</label>
+                            <input type="checkbox"
+                                id="rtClass_chkShowInactive"
+                                name="rtClass_chkShowInactive">
                         </div>
                     </div>
                 </div>
 
                 <!-- GRID -->
-                <div class="mui-card">
+                <div class="mui-card position-relative">
                     <div id="rtClass_gridContainer" class="gridContainer"></div>
-                </div>
-
-                <!-- LOADING -->
-                <div id="rtClass_loadingSpinner"
-                    style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);
-                    z-index: 999;background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(2px);width: 100%;
-                    height: 100%;display: none;align-items: center;justify-content: center;">
-                    <div class="spinner-border text-primary"></div>
+                    <div id="rtClass_loadingSpinner" class="rtClass-loading">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
                 </div>
 
             </div>
@@ -103,7 +92,7 @@
 
 <!-- UPSERT MODAL (XL per requirement) -->
 <div class="modal fade" id="rtClass_modalUpsert" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-child-md">
         <div class="modal-content">
 
             <div class="modal-header">
@@ -122,28 +111,13 @@
 
                     <div class="row g-2">
 
-                        <div class="col-12 col-lg-6">
+                        <div class="col-12">
                             <div class="row g-1 align-items-center">
-                                <label for="rtClass_code" class="col-md-4 col-form-label col-form-label-sm text-md-end">
+                                <label for="rtClass_code" class="col-md-2 col-form-label col-form-label-sm text-start">
                                     Code <span class="text-danger">*</span>
                                 </label>
-                                <div class="col-md-8">
+                                <div class="col-md-10">
                                     <input type="text" id="rtClass_code" name="code" class="form-control form-control-sm" />
-                                    <div class="invalid-feedback"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-lg-6">
-                            <div class="row g-1 align-items-center">
-                                <label for="rtClass_inactive" class="col-md-4 col-form-label col-form-label-sm text-md-end">
-                                    Inactive
-                                </label>
-                                <div class="col-md-8">
-                                    <div class="form-check mb-0">
-                                        <input type="checkbox" id="rtClass_inactive" name="inactive" class="form-check-input mt-0" />
-                                        <label class="form-check-label text-danger" for="rtClass_inactive">Yes</label>
-                                    </div>
                                     <div class="invalid-feedback"></div>
                                 </div>
                             </div>
@@ -151,7 +125,7 @@
 
                         <div class="col-12">
                             <div class="row g-1 align-items-center">
-                                <label for="rtClass_name" class="col-md-2 col-form-label col-form-label-sm text-md-end">
+                                <label for="rtClass_name" class="col-md-2 col-form-label col-form-label-sm text-start">
                                     Name <span class="text-danger">*</span>
                                 </label>
                                 <div class="col-md-10">
@@ -161,9 +135,20 @@
                             </div>
                         </div>
 
+
+                        <div class="col-12">
+                            <div class="row g-1 align-items-center">
+                                <label for="rtClass_inactive" class="col-md-2 col-form-label col-form-label-sm text-start">Inactive</label>
+                                <div class="col-md-10">
+                                    <div class="d-flex align-items-center" style="min-height: 28px;">
+                                        <input type="checkbox" id="rtClass_inactive" name="inactive" class="m-0" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="col-12">
                             <div class="row g-1 align-items-start">
-                                <label for="rtClass_description" class="col-md-2 col-form-label col-form-label-sm text-md-end">
+                                <label for="rtClass_description" class="col-md-2 col-form-label col-form-label-sm text-start">
                                     Description
                                 </label>
                                 <div class="col-md-10">
@@ -221,15 +206,9 @@
             btnSave: "#rtClass_btnSave"
         };
 
-        function initModal(el) {
-            const existing = bootstrap.Modal.getInstance(el);
-            if (existing) existing.dispose();
-            return new bootstrap.Modal(el, { backdrop: "static", keyboard: false });
-        }
-
         function init() {
-            mainModal = initModal(document.querySelector(sel.modalMain));
-            upsertModal = initModal(document.querySelector(sel.modalUpsert));
+            mainModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modalMain), { backdrop: "static", keyboard: false });
+            upsertModal = bootstrap.Modal.getOrCreateInstance(document.querySelector(sel.modalUpsert), { backdrop: "static", keyboard: false });
 
             $(sel.modalMain).off("shown.bs.modal.rtClass").on("shown.bs.modal.rtClass", function () {
                 bindEvents();
@@ -249,7 +228,9 @@
         }
 
         function open() {
-            mainModal.show();
+            init();
+            if (!document.querySelector(sel.modalMain)?.classList.contains("show"))
+                mainModal.show();
         }
 
         function bindEvents() {
@@ -313,7 +294,7 @@
         }
 
         function showLoading(on) {
-            if (on) $(sel.loading).show(); else $(sel.loading).hide();
+            $(sel.loading).toggleClass("is-on", !!on);
         }
 
         function getFilterPayload() {
@@ -395,16 +376,13 @@
                     {
                         dataField: "inactive",
                         caption: "Inactive",
-                        width: 80,
+                        width: 70,
                         alignment: "center",
+                        allowFiltering: false,
                         cellTemplate: function (container, options) {
-                            $("<div>")
-                                .dxCheckBox({ value: options.value == 1, readOnly: true })
-                                .css({
-                                    display: "inline-flex",
-                                    transform: "scale(0.85)",
-                                    margin: "0 auto"
-                                })
+                            $("<input>", { type: "checkbox", disabled: true })
+                                .prop("checked", options.value == 1 || options.value === true)
+                                .css({ margin: "0", verticalAlign: "middle", pointerEvents: "none" })
                                 .appendTo(container);
                         }
                     },
@@ -586,12 +564,11 @@
 
     // Option A global entry
     window.openModalRtClass = function () {
+        rtClass_Module.init();
         rtClass_Module.open();
     };
 
     $(document).ready(function () {
         rtClass_Module.init();
-        // Auto-open if needed:
-        // window.openModalRtClass();
     });
 </script>

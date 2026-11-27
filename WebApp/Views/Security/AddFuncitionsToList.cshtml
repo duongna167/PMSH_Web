@@ -1,8 +1,3 @@
-@using System.Linq
-@{
-    var listfromandfuc = ViewBag.FormAndFunctionGroupList as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
-    var listfromandfucData = ViewBag.FormAndFunctionDataGroupList as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
-}
 
 <style>
     #shortcutModal .fn-filter-row {
@@ -60,7 +55,19 @@
         font-weight: 700 !important;
         color: #000 !important;
     }
-    #popupNewGrid .fn-form-row {
+    #shortcutModal #gridContainerAddfu .dx-treelist-rowsview .dx-selection,
+    #shortcutModal #gridContainerAddfu .dx-treelist-rowsview .dx-selection > td,
+    #shortcutModal #gridContainerAddfu .dx-treelist-rowsview .dx-row-focused,
+    #shortcutModal #gridContainerAddfu .dx-treelist-rowsview .dx-row-focused > td {
+        background-color: #e8e8e8 !important;
+        color: #000 !important;
+    }
+    #shortcutModal #gridContainerAddfu .dx-treelist-rowsview .dx-selection *,
+    #shortcutModal #gridContainerAddfu .dx-treelist-rowsview .dx-row-focused * {
+        color: #000 !important;
+    }
+    #popupNewGrid .fn-form-row,
+    #fnGrp_itemModal .fn-form-row {
         display: flex;
         flex-direction: row;
         align-items: center;
@@ -76,38 +83,24 @@
         text-align: left;
         white-space: nowrap;
     }
-    #popupNewGrid .fn-form-row > label {
-        width: auto;
-        flex: 0 0 auto;
-    }
-    #fnGrp_itemModal .fn-form-row > label {
-        width: auto;
-        flex: 0 0 auto;
-    }
+    #popupNewGrid .fn-form-row > .fn-form-ctl,
     #fnGrp_itemModal .fn-form-row > .fn-form-ctl {
-        flex: 0 0 200px;
-        width: 200px;
+        flex: 0 1 220px;
+        min-width: 0;
     }
-    #fnGrp_itemModal .fn-form-row > .fn-form-ctl .form-control,
-    #fnGrp_itemModal .fn-form-row > .fn-form-ctl .form-select,
-    #fnGrp_itemModal .ts-wrapper {
-        width: 100%;
+    #popupNewGrid .fn-form-row.fn-form-wide > .fn-form-ctl {
+        flex: 1 1 260px;
     }
-    #popupNewGrid .fn-form-row > .fn-form-ctl {
-        flex: 0 0 220px;
-        width: 220px;
+    #popupNewGrid #groupnewName {
+        background-color: #e9ecef;
+        color: #6c757d;
+        pointer-events: none;
     }
     #popupNewGrid .fn-form-row > .fn-form-ctl .form-control,
-    #popupNewGrid .fn-form-row > .fn-form-ctl .form-select {
+    #popupNewGrid .fn-form-row > .fn-form-ctl .form-select,
+    #fnGrp_itemModal .fn-form-row > .fn-form-ctl .form-control,
+    #fnGrp_itemModal .fn-form-row > .fn-form-ctl .form-select {
         width: 100%;
-    }
-    #fnGrp_itemModal .fn-form-row {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 4px;
-        margin-bottom: 8px;
     }
     #fnGrp_modal .fn-filter-row {
         display: flex;
@@ -139,7 +132,7 @@
     <div class="modal-dialog modal-xl modal-4by3 modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content modal-full-height">
             <div class="modal-header">
-                <h5 class="modal-title">Add Functions To List</h5>
+                <h5 class="modal-title">Function List</h5>
             </div>
             <div class="modal-body">
                 <div class="sticky-header bg-white p-2 shadow-sm z-3">
@@ -158,7 +151,7 @@
                             <input type="text" id="codetag" class="form-control form-control-sm" autocomplete="off">
                         </div>
                         <div class="fn-filter-item">
-                            <label for="namerights">Name rights</label>
+                            <label for="namerights">Function</label>
                             <input type="text" id="namerights" class="form-control form-control-sm" autocomplete="off">
                         </div>
                         <div class="fn-filter-item rights-type-row">
@@ -191,7 +184,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header py-2">
-                <h5 class="modal-title">Function / Data right</h5>
+                <h5 class="modal-title">Function / Data</h5>
             </div>
             <div class="modal-body p-3">
                 <div class="d-flex justify-content-start mb-3 gap-2 pt-2">
@@ -203,34 +196,25 @@
                     <label for="codetagnew">Code Tag</label>
                     <div class="fn-form-ctl"><input type="text" id="codetagnew" class="form-control form-control-sm"></div>
                 </div>
-                <div class="fn-form-row">
-                    <label for="namerightnew">Name rights</label>
+                <div class="fn-form-row fn-form-wide">
+                    <label for="namerightnew">Function</label>
                     <div class="fn-form-ctl"><input type="text" id="namerightnew" class="form-control form-control-sm"></div>
                 </div>
-                <div class="fn-form-row">
+                <div class="fn-form-row fn-form-wide">
                     <label for="descriptionnew">Description</label>
                     <div class="fn-form-ctl"><input type="text" id="descriptionnew" class="form-control form-control-sm"></div>
                 </div>
                 <div class="fn-form-row">
-                    <label for="groupnew">Group</label>
+                    <label for="groupnewName">Group</label>
                     <div class="fn-form-ctl">
-                        <select id="groupnew" class="form-select form-select-sm">
-                            <option value=""></option>
-                            @foreach (var item in listfromandfuc)
-                            {
-                                <option value="@item.ID" data-kind="fn">@item.Name</option>
-                            }
-                            @foreach (var item in listfromandfucData)
-                            {
-                                <option value="@item.ID" data-kind="data">@item.Name</option>
-                            }
-                        </select>
+                        <input type="hidden" id="groupnew" />
+                        <input type="text" id="groupnewName" class="form-control form-control-sm" readonly tabindex="-1">
                     </div>
                 </div>
                 <div class="fn-form-row">
-                    <label for="chkHide">Is Hide</label>
+                    <label for="chkDisplay">Display</label>
                     <div class="fn-form-ctl">
-                        <input class="form-check-input" type="checkbox" id="chkHide">
+                        <input class="form-check-input" type="checkbox" id="chkDisplay" checked>
                     </div>
                 </div>
             </div>
@@ -242,7 +226,7 @@
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content modal-full-height">
             <div class="modal-header py-2">
-                <h5 class="modal-title" id="fnGrp_title">Function Groups</h5>
+                <h5 class="modal-title" id="fnGrp_title">Function Group</h5>
             </div>
             <div class="modal-body">
                 <div class="pt-3 pb-2">
@@ -254,7 +238,7 @@
                 </div>
                 <div class="fn-filter-row pb-2">
                     <div class="fn-filter-item">
-                        <label for="fnGrp_name">Name</label>
+                        <label for="fnGrp_name" id="fnGrp_nameLabel">Function</label>
                         <input type="text" id="fnGrp_name" class="form-control form-control-sm">
                     </div>
                     <div class="fn-filter-item">
@@ -295,20 +279,24 @@
                     <div class="fn-form-ctl"><input type="text" id="fnGrp_codeNew" class="form-control form-control-sm"></div>
                 </div>
                 <div class="fn-form-row">
-                    <label for="fnGrp_nameNew">Name</label>
+                    <label for="fnGrp_nameNew" id="fnGrp_nameNewLabel">Function</label>
                     <div class="fn-form-ctl"><input type="text" id="fnGrp_nameNew" class="form-control form-control-sm"></div>
                 </div>
                 <div class="fn-form-row">
                     <label for="fnGrp_parentNew">Parent</label>
-                    <div class="fn-form-ctl"><select id="fnGrp_parentNew" class="form-select form-select-sm"></select></div>
+                    <div class="fn-form-ctl">
+                        <select id="fnGrp_parentNew" class="form-select form-select-sm" data-pmsh-select-down>
+                            <option value="0">None</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="fn-form-row">
                     <label for="fnGrp_descNew">Description</label>
                     <div class="fn-form-ctl"><input type="text" id="fnGrp_descNew" class="form-control form-control-sm"></div>
                 </div>
                 <div class="fn-form-row">
-                    <label for="fnGrp_hideNew">Is Hide</label>
-                    <div class="fn-form-ctl"><input class="form-check-input" type="checkbox" id="fnGrp_hideNew"></div>
+                    <label for="fnGrp_hideNew">Display</label>
+                    <div class="fn-form-ctl"><input class="form-check-input" type="checkbox" id="fnGrp_hideNew" checked></div>
                 </div>
             </div>
         </div>
@@ -329,15 +317,15 @@
         selectedRowData: null,
         groupRows: [],
         selectedGroup: null,
-        groupSelect: null,
 
         init: function () {
             const self = this;
+            self.resetState();
             $("#codetag, #namerights").val("");
             $("#functionsRights").prop("checked", true);
-            self.filterGroupOptions();
             self.loadData();
             self.bindEvents();
+            document.addEventListener("keydown", self.handleChildEscape, true);
             if (window.applyPopupRights) {
                 window.applyPopupRights("usr_Functions", {
                     new: "#btnNewTheKeyboard",
@@ -348,11 +336,45 @@
             }
         },
 
+        resetState: function () {
+            this.selectedRowData = null;
+            this.selectedGroup = null;
+            this.groupRows = [];
+            this.clearForm();
+            const $grid = $("#gridContainerAddfu");
+            if ($grid.data("dxTreeList")) {
+                try { $grid.dxTreeList("instance").clearSelection(); } catch (e) { }
+            }
+        },
+
         destroy: function () {
+            this.resetState();
             $("#codetag, #namerights").val("");
             $("#functionsRights").prop("checked", true);
-            this.destroyGroupSelect();
             $(document).off(".aff");
+            document.removeEventListener("keydown", this.handleChildEscape, true);
+            $("#fnGrp_itemModal, #fnGrp_modal, #popupNewGrid").each(function () {
+                bootstrap.Modal.getInstance(this)?.dispose();
+            }).remove();
+        },
+
+        handleChildEscape: function (event) {
+            if (event.key !== "Escape" || event.isComposing || event.defaultPrevented) return;
+            if ($(".cc-overlay, .swal2-container:visible").length) return;
+
+            const topModal = Array.from(document.querySelectorAll(".modal.show")).reduce((top, modal) => {
+                return !top || Number(getComputedStyle(modal).zIndex) >= Number(getComputedStyle(top).zIndex)
+                    ? modal : top;
+            }, null);
+            if (!topModal) return;
+            const isChild = topModal.matches("#fnGrp_itemModal, #fnGrp_modal, #popupNewGrid");
+            if (!isChild && !(event.repeat && topModal.id === "shortcutModal")) return;
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            if (event.repeat) return;
+
+            bootstrap.Modal.getInstance(topModal)?.hide();
         },
 
         rightsType: function () {
@@ -379,9 +401,7 @@
             });
 
             $("#btnNewTheKeyboard").off("click").on("click", function () {
-                self.clearForm();
-                self.filterGroupOptions();
-                $("#popupNewGrid").modal("show");
+                self.openNew();
             });
 
             $("#btnEditAppoin").off("click").on("click", function () {
@@ -401,16 +421,12 @@
             });
 
             $(document).off("change.aff", "input[name=rightsType]").on("change.aff", "input[name=rightsType]", function () {
-                self.filterGroupOptions();
                 self.loadData();
             });
 
-            $("#popupNewGrid").off("shown.bs.modal.aff").on("shown.bs.modal.aff", function () {
-                self.initGroupSelect();
-            });
             $("#popupNewGrid").off("hidden.bs.modal.aff").on("hidden.bs.modal.aff", function () {
-                self.destroyGroupSelect();
-                if ($("#shortcutModal").hasClass("show")) $("body").addClass("modal-open");
+                self.clearForm();
+                self.restoreParentModal("#shortcutModal");
             });
 
             $(document).off("click.aff", "#fnGrp_btnSearch").on("click.aff", "#fnGrp_btnSearch", function () {
@@ -435,59 +451,119 @@
                 if (e.key === "Enter") { e.preventDefault(); self.loadGroupGrid(); }
             });
             $("#fnGrp_modal").off("hidden.bs.modal.aff").on("hidden.bs.modal.aff", function () {
-                if ($("#shortcutModal").hasClass("show")) $("body").addClass("modal-open");
-                self.filterGroupOptions();
+                self.selectedGroup = null;
+                self.restoreParentModal("#shortcutModal");
             });
             $("#fnGrp_itemModal").off("hidden.bs.modal.aff").on("hidden.bs.modal.aff", function () {
-                if ($("#fnGrp_modal").hasClass("show")) $("body").addClass("modal-open");
+                $("#fnGrp_id").val(0);
+                $("#fnGrp_codeNew, #fnGrp_nameNew, #fnGrp_descNew").val("");
+                $("#fnGrp_hideNew").prop("checked", true);
+                self.restoreParentModal("#fnGrp_modal");
             });
         },
-        filterGroupOptions: function () {
-            const isData = this.rightsType() === 1;
-            $("#groupnew option").each(function () {
-                const kind = $(this).data("kind");
-                if (!kind) {
-                    $(this).prop("disabled", false);
-                    return;
+        restoreParentModal: function (selector) {
+            const parent = document.querySelector(selector + ".show");
+            if (!parent) return;
+            document.body.classList.add("modal-open");
+            parent.focus();
+        },
+        selectTreeKey: function (tree, key) {
+            if (!tree || key == null) return;
+            const node = tree.getNodeByKey(key);
+            if (!node || !node.data) return;
+            this.selectedRowData = node.data;
+            tree.option("focusedRowKey", key);
+            tree.selectRows([key], false);
+        },
+
+        groupIdFromTreeRow: function (row) {
+            if (!row) return 0;
+            const raw = parseInt(row.id, 10);
+            if (!raw) return 0;
+            return Math.abs(raw);
+        },
+
+        rowParentId: function (row, node) {
+            if (node && node.level > 0 && node.parent && node.parent.data)
+                return parseInt(node.parent.data.id, 10) || 0;
+            return parseInt(row && (row.parentID ?? row.parentId), 10) || 0;
+        },
+
+        rowGroupParentId: function (row) {
+            if (!row) return 0;
+            return parseInt(row.parentID ?? row.parentId ?? row.ParentID, 10) || 0;
+        },
+
+        normalizeTreeRows: function (data) {
+            return (data || []).map(function (r) {
+                var id = r.id != null ? r.id : r.ID;
+                var parentID = r.parentID != null ? r.parentID : (r.ParentID != null ? r.ParentID : (r.parentId != null ? r.parentId : 0));
+                return {
+                    id: id,
+                    parentID: parentID,
+                    name: r.name != null ? r.name : (r.Name || ""),
+                    code: r.code != null ? r.code : (r.Code || ""),
+                    isHide: r.isHide != null ? r.isHide : r.IsHide,
+                    createdBy: r.createdBy != null ? r.createdBy : r.CreatedBy,
+                    createdDate: r.createdDate != null ? r.createdDate : r.CreatedDate,
+                    updatedBy: r.updatedBy != null ? r.updatedBy : r.UpdatedBy,
+                    updatedDate: r.updatedDate != null ? r.updatedDate : r.UpdatedDate
+                };
+            });
+        },
+
+        /** Nhóm gắn function: level > 0 (vd Profile Config), không phải module gốc (Profile, System). */
+        isFunctionGroupTarget: function (groupRow, groupNode) {
+            if (groupNode && typeof groupNode.level === "number")
+                return groupNode.level > 0;
+            return groupRow && this.rowGroupParentId(groupRow) !== 0;
+        },
+
+        resolveSelectedGroup: function (row) {
+            if (!row) return null;
+            const tree = $("#gridContainerAddfu").dxTreeList("instance");
+            const node = tree ? tree.getNodeByKey(row.id) : null;
+            const isLeaf = this.isLeafRow(row) && !(node && node.hasChildren);
+
+            let groupRow = row;
+            let groupNode = node;
+            if (isLeaf) {
+                if (node && node.parent && node.parent.data) {
+                    groupRow = node.parent.data;
+                    groupNode = node.parent;
+                } else {
+                    const pid = this.rowParentId(row, node);
+                    if (!pid) return null;
+                    const parentNode = tree ? tree.getNodeByKey(pid) : null;
+                    groupRow = (parentNode && parentNode.data) || null;
+                    groupNode = parentNode;
+                    if (!groupRow) return null;
                 }
-                $(this).prop("disabled", isData ? kind !== "data" : kind !== "fn");
-            });
+            }
+
+            const id = this.groupIdFromTreeRow(groupRow);
+            if (!id) return null;
+            if (!this.isFunctionGroupTarget(groupRow, groupNode)) return null;
+            const gname = groupRow.name != null ? groupRow.name : (groupRow.Name || "");
+            return { id: id, name: gname };
         },
-        destroyGroupSelect: function () {
-            const el = document.getElementById("groupnew");
-            if (el && el.tomselect) el.tomselect.destroy();
-            this.groupSelect = null;
+
+        openNew: function () {
+            const group = this.resolveSelectedGroup(this.selectedRowData);
+            if (!group) {
+                showToast("Warning", "Please select a function.", false);
+                return;
+            }
+            this.clearForm();
+            $("#groupnew").val(group.id);
+            $("#groupnewName").val(group.name);
+            $("#chkDisplay").prop("checked", true);
+            $("#popupNewGrid").modal("show");
         },
-        bindDropSelect: function (el) {
-            if (!el || typeof TomSelect === "undefined") return;
-            if (el.tomselect) el.tomselect.destroy();
-            new TomSelect(el, {
-                allowEmptyOption: true,
-                maxItems: 1,
-                controlInput: null,
-                dropdownParent: "body",
-                onDropdownOpen: function () {
-                    const dd = this.dropdown;
-                    const rect = this.wrapper.getBoundingClientRect();
-                    const host = document.getElementById("shortcutModal");
-                    const hostBottom = host ? host.getBoundingClientRect().bottom : window.innerHeight;
-                    const space = Math.max(96, Math.min(220, hostBottom - rect.bottom - 12));
-                    dd.classList.remove("dropup");
-                    dd.style.position = "fixed";
-                    dd.style.left = rect.left + "px";
-                    dd.style.top = (rect.bottom + 2) + "px";
-                    dd.style.width = rect.width + "px";
-                    dd.style.maxHeight = space + "px";
-                    dd.style.zIndex = "1085";
-                    const content = dd.querySelector(".ts-dropdown-content");
-                    if (content) content.style.maxHeight = space + "px";
-                }
-            });
-        },
-        initGroupSelect: function () {
-            this.destroyGroupSelect();
-            this.filterGroupOptions();
-            this.bindDropSelect(document.getElementById("groupnew"));
+
+        setGroupDisplay: function (groupId, groupName) {
+            $("#groupnew").val(groupId || "");
+            $("#groupnewName").val(groupName || "");
         },
         loadData: function () {
             const self = this;
@@ -516,8 +592,10 @@
         },
         initializeGrid: function (data) {
             const self = this;
+            self.selectedRowData = null;
+            const rows = self.normalizeTreeRows(data);
             $("#gridContainerAddfu").dxTreeList({
-                dataSource: data,
+                dataSource: rows,
                 keyExpr: "id",
                 parentIdExpr: "parentID",
                 rootValue: 0,
@@ -526,21 +604,40 @@
                 columnAutoWidth: true,
                 autoExpandAll: false,
                 columns: [
-                    { dataField: "name", caption: "Name Rights", width: "28%" },
+                    { dataField: "name", caption: "Function", width: "28%" },
                     { dataField: "code", caption: "Code Tag", width: "18%" },
-                    booleanColumn("isHide", "Hide", "8%"),
-                    { dataField: "createdBy", caption: "Created By", width: 90 },
-                    { dataField: "createdDate", caption: "Cre.Date", width: 90, dataType: "date", format: "dd/MM/yyyy" },
-                    { dataField: "updatedBy", caption: "Updated By", width: 90 },
-                    { dataField: "updatedDate", caption: "Upd.Date", width: 90, dataType: "date", format: "dd/MM/yyyy" }
+                    booleanColumn("isHide", "Display", 95, true),
+                    { dataField: "createdBy", caption: "Created By", width: 110 },
+                    { dataField: "createdDate", caption: "Cre.Date", width: 118, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "updatedBy", caption: "Updated By", width: 110 },
+                    { dataField: "updatedDate", caption: "Upd.Date", width: 118, dataType: "date", format: "dd/MM/yyyy" }
                 ],
                 selection: { mode: "single" },
+                focusedRowEnabled: true,
+                autoNavigateToFocusedRow: true,
+                keyboardNavigation: { enabled: true },
                 filterRow: { visible: true },
                 headerFilter: { visible: true },
                 paging: { enabled: false },
                 scrolling: { mode: "standard" },
                 onRowClick: function (e) {
-                    self.selectedRowData = e.data;
+                    self.selectedRowData = e.data || null;
+                },
+                onFocusedRowChanged: function (e) {
+                    const key = e.component.option("focusedRowKey");
+                    const data = e.row && e.row.data;
+                    if (!data || key == null) return;
+                    self.selectedRowData = data;
+                    e.component.selectRows([key], false);
+                },
+                onRowExpanding: function (e) {
+                    self.selectTreeKey(e.component, e.key);
+                },
+                onRowCollapsing: function (e) {
+                    self.selectTreeKey(e.component, e.key);
+                },
+                onSelectionChanged: function (e) {
+                    self.selectedRowData = (e.selectedRowsData && e.selectedRowsData[0]) || null;
                 },
                 onRowPrepared: function (e) {
                     if (e.rowType === "data" && e.node.hasChildren) {
@@ -554,11 +651,11 @@
         editSelected: function () {
             const self = this;
             if (!self.selectedRowData) {
-                showToast('Warning', 'Vui lòng chọn một dòng trước khi chỉnh sửa.', false);
+                showToast('Warning', 'Please select a function.', false);
                 return;
             }
             if (!self.isLeafRow(self.selectedRowData)) {
-                showToast('Warning', 'Only leaf rights can be edited (for example Profile New). Parent groups cannot be edited here. Use Group.', false);
+                showToast('Warning', 'Please select a function.', false);
                 return;
             }
 
@@ -597,15 +694,21 @@
         },
 
         populateForm: function (data, rightsType) {
-            this.filterGroupOptions();
             $("#txtid").val(data.id || "");
             $("#codetagnew").val(data.code || "");
             $("#namerightnew").val(data.name || "");
             $("#descriptionnew").val(data.description || data.name || "");
-            $("#chkHide").prop("checked", data.isHide === true);
+            $("#chkDisplay").prop("checked", !data.isHide);
 
             const groupId = rightsType == "1" ? (data.formAndFunctionDataGroupID || "") : (data.formAndFunctionGroupID || "");
-            $("#groupnew").val(groupId);
+            let groupName = "";
+            const tree = $("#gridContainerAddfu").dxTreeList("instance");
+            if (tree && this.selectedRowData) {
+                const node = tree.getNodeByKey(this.selectedRowData.id);
+                if (node && node.parent && node.parent.data)
+                    groupName = node.parent.data.name || "";
+            }
+            this.setGroupDisplay(groupId, groupName);
         },
 
         clearForm: function () {
@@ -613,13 +716,17 @@
             $("#codetagnew").val("");
             $("#namerightnew").val("");
             $("#descriptionnew").val("");
-            $("#groupnew").val("");
-            $("#chkHide").prop("checked", false);
+            this.setGroupDisplay("", "");
+            $("#chkDisplay").prop("checked", true);
         },
 
         saveForm: function () {
             const self = this;
             const rightsType = $('input[name="rightsType"]:checked').val();
+            if (!$("#txtid").val() && !$("#groupnew").val()) {
+                showToast("Warning", "Please select a function.", false);
+                return;
+            }
 
             const data = {
                 ID: $("#txtid").val(),
@@ -628,7 +735,7 @@
                 descriptionnew: $("#descriptionnew").val(),
                 mappingLinkWeb: "",
                 groupnew: $("#groupnew").val(),
-                isHide: $('#chkHide').is(':checked') ? 1 : 0,
+                isHide: $('#chkDisplay').is(':checked') ? 0 : 1,
                 isShift: 0,
                 isCtrl: 0,
                 isAlt: 0,
@@ -660,38 +767,26 @@
         },
 
         openGroupModal: function () {
-            $("#fnGrp_title").text(this.rightsType() === 1 ? "Data Groups" : "Function Groups");
+            const nameCap = this.rightsType() === 1 ? "Data" : "Function";
+            $("#fnGrp_title").text(this.rightsType() === 1 ? "Data Group" : "Function Group");
+            $("#fnGrp_nameLabel, #fnGrp_nameNewLabel").text(nameCap);
             $("#fnGrp_name, #fnGrp_code, #fnGrp_desc").val("");
             this.selectedGroup = null;
             $("#fnGrp_modal").modal("show");
             this.loadGroupGrid();
         },
 
-        syncMainGroupOptions: function () {
-            const isData = this.rightsType() === 1;
-            const kind = isData ? "data" : "fn";
-            const $sel = $("#groupnew");
-            const el = $sel[0];
-            if (el && el.tomselect) el.tomselect.destroy();
-            $sel.find("option[data-kind='" + kind + "']").remove();
-            (this.groupRows || []).forEach(function (g) {
-                $sel.append($("<option>").val(g.id).attr("data-kind", kind).text(g.name || ""));
-            });
-            this.filterGroupOptions();
-            this.bindDropSelect(el);
-        },
+        syncMainGroupOptions: function () { },
 
-        fillParentSelect: function ($sel, selectedId, skipId, allText) {
-            const el = $sel[0];
-            if (el && el.tomselect) el.tomselect.destroy();
-            const html = ['<option value="0">' + (allText || "None") + "</option>"];
-            (this.groupRows || []).forEach(function (g) {
-                if (skipId && g.id === skipId) return;
-                html.push('<option value="' + g.id + '">' + $("<div>").text(g.name || "").html() + "</option>");
+        fillParentSelect: function ($sel, selectedId, placeholder = "All", skipId = 0) {
+            const rows = [{ id: 0, name: placeholder }, ...this.groupRows];
+            $sel.empty();
+            rows.forEach(function (group) {
+                if (skipId && Number(group.id) === Number(skipId)) return;
+                $sel.append(new Option(group.name || "", group.id));
             });
-            $sel.html(html.join(""));
-            if (selectedId) $sel.val(String(selectedId));
-            if ($sel.attr("id") === "fnGrp_parentNew") this.bindDropSelect(el);
+            $sel.val(String(selectedId));
+            if ($sel.val() === null) $sel.val("0");
         },
 
         applyGroupFilter: function (rows) {
@@ -720,7 +815,7 @@
                         return;
                     }
                     self.groupRows = data || [];
-                    self.fillParentSelect($("#fnGrp_parent"), parseInt($("#fnGrp_parent").val(), 10) || 0, 0, "All");
+                    self.fillParentSelect($("#fnGrp_parent"), parseInt($("#fnGrp_parent").val(), 10) || 0);
                     self.syncMainGroupOptions();
                     self.renderGroupGrid(self.applyGroupFilter(self.groupRows));
                 },
@@ -733,8 +828,9 @@
         renderGroupGrid: function (data) {
             const self = this;
             const $el = $("#fnGrp_grid");
+            const nameCap = this.rightsType() === 1 ? "Data" : "Function";
             const cols = [
-                { dataField: "name", caption: "Name", width: 240 },
+                { dataField: "name", caption: nameCap, width: 240 },
                 { dataField: "code", caption: "Code", width: 140 },
                 { dataField: "description", caption: "Description", minWidth: 180 },
                 { dataField: "createdBy", caption: "Created By", width: 90 },
@@ -744,6 +840,7 @@
             ];
             if ($el.data("dxTreeList")) {
                 const live = $el.dxTreeList("instance");
+                live.columnOption("name", "caption", nameCap);
                 live.option("dataSource", data || []);
                 live.clearSelection();
                 self.selectedGroup = null;
@@ -772,8 +869,8 @@
             if (isNew) {
                 $("#fnGrp_id").val(0);
                 $("#fnGrp_codeNew, #fnGrp_nameNew, #fnGrp_descNew").val("");
-                $("#fnGrp_hideNew").prop("checked", false);
-                self.fillParentSelect($("#fnGrp_parentNew"), self.selectedGroup ? self.selectedGroup.id : 0, 0, "None");
+                $("#fnGrp_hideNew").prop("checked", true);
+                self.fillParentSelect($("#fnGrp_parentNew"), self.selectedGroup ? self.selectedGroup.id : 0, "None");
                 $("#fnGrp_itemTitle").text("New Group");
                 $("#fnGrp_itemModal").modal("show");
                 return;
@@ -791,8 +888,8 @@
                 $("#fnGrp_codeNew").val(item.code || "");
                 $("#fnGrp_nameNew").val(item.name || "");
                 $("#fnGrp_descNew").val(item.description || "");
-                $("#fnGrp_hideNew").prop("checked", item.isHide === true);
-                self.fillParentSelect($("#fnGrp_parentNew"), item.parentId || 0, item.id, "None");
+                $("#fnGrp_hideNew").prop("checked", !item.isHide);
+                self.fillParentSelect($("#fnGrp_parentNew"), item.parentId || 0, "None", item.id);
                 $("#fnGrp_itemTitle").text("Edit Group");
                 $("#fnGrp_itemModal").modal("show");
             }).fail(function () {
@@ -811,7 +908,7 @@
                     name: $("#fnGrp_nameNew").val(),
                     description: $("#fnGrp_descNew").val(),
                     parentId: $("#fnGrp_parentNew").val() || 0,
-                    isHide: $("#fnGrp_hideNew").is(":checked") ? 1 : 0,
+                    isHide: $("#fnGrp_hideNew").is(":checked") ? 0 : 1,
                     isDataRight: self.rightsType()
                 },
                 success: function (res) {
@@ -859,11 +956,11 @@
         deleteSelected: function () {
             const self = this;
             if (!self.selectedRowData) {
-                showToast('Warning', 'Vui lòng chọn một dòng trước khi xóa.', false);
+                showToast('Warning', 'Please select a function.', false);
                 return;
             }
             if (!self.isLeafRow(self.selectedRowData)) {
-                showToast('Warning', 'Only leaf rights can be deleted. Parent groups cannot be deleted here. Use Group.', false);
+                showToast('Warning', 'Please select a function.', false);
                 return;
             }
 
@@ -939,7 +1036,7 @@
         }
     }
 
-    function booleanColumn(field, caption, width) {
+    function booleanColumn(field, caption, width, invert) {
         return {
             dataField: field,
             caption: caption,
@@ -948,7 +1045,7 @@
             cellTemplate: function (container, options) {
                 $("<div>")
                     .dxCheckBox({
-                        value: options.value,
+                        value: invert ? !options.value : !!options.value,
                         readOnly: true
                     })
                     .css({

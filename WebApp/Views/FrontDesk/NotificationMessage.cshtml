@@ -1,0 +1,128 @@
+<style>
+    #nfm_modal .mui-card { min-height: 0; }
+    #nfm_grid { flex: 1 1 auto; height: 100%; min-height: 0; }
+    #nfm_detail_modal .nfm-detail-row { margin-bottom: 12px; font-size: 16px; line-height: 1.4; }
+    #nfm_detail_modal .nfm-detail-row label { font-weight: 600; margin-right: 8px; }
+    #nfm_detail_text { white-space: pre-wrap; word-break: break-word; min-height: 120px; margin-top: 6px; }
+    #nfm_detail_modal .modal-dialog { max-width: 640px; width: 92vw; }
+    #nfm_detail_modal .modal-content { min-height: 360px; }
+    #nfm_grid .nfm-done { opacity: 0.45; }
+</style>
+<div class="modal fade" id="nfm_modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg-4by3 modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Message</h5>
+            </div>
+            <div class="modal-body">
+                <div class="search-filter">
+                    <div>
+                        <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+                <div class="mui-card">
+                    <div id="nfm_grid" class="gridContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="nfm_detail_modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Message</h5>
+            </div>
+            <div class="modal-body">
+                <div class="search-filter">
+                    <div>
+                        <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+                <div class="nfm-detail-row"><label>From:</label><span id="nfm_detail_from"></span></div>
+                <div class="nfm-detail-row"><label>Received Date:</label><span id="nfm_detail_received"></span></div>
+                <div class="nfm-detail-row"><label>Message:</label><div id="nfm_detail_text"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function nfm_fmtReceived(v) {
+        if (!v) return "";
+        var d = new Date(v);
+        if (isNaN(d.getTime())) return "";
+        var p = function (n) { return String(n).padStart(2, "0"); };
+        return p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+    }
+    function nfm_mark(id) {
+        $.post("/Notification/MarkReceived", { id: id }, function (res) {
+            if (!res || res.code !== 0) {
+                if (window.showToast) showToast("Error", (res && res.msg) || "Update failed.", false);
+                nfm_load();
+                return;
+            }
+            nfm_load();
+            if (typeof loadNotificationCount === "function") loadNotificationCount();
+        });
+    }
+    function nfm_load() {
+        $.get("/Notification/MessageData", function (result) {
+            if (typeof result === "string") {
+                if (window.showToast) showToast("Error", result, false);
+                return;
+            }
+            $("#nfm_grid").dxDataGrid({
+                dataSource: result || [],
+                height: "100%",
+                keyExpr: "id",
+                paging: { enabled: false },
+                pager: { visible: false },
+                scrolling: { mode: "standard", showScrollbar: "always" },
+                hoverStateEnabled: true,
+                columns: [
+                    { dataField: "fromName", caption: "From", width: 160 },
+                    { dataField: "message", caption: "Message", minWidth: 180 },
+                    {
+                        dataField: "isRead",
+                        caption: "Read",
+                        width: 70,
+                        alignment: "center",
+                        allowSorting: false,
+                        cellTemplate: function (container, options) {
+                            $("<input type='checkbox'>")
+                                .prop("checked", !!options.value)
+                                .prop("disabled", true)
+                                .css("pointer-events", "none")
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: "receivedDate",
+                        caption: "Received Date",
+                        dataType: "datetime",
+                        format: "dd/MM/yyyy HH:mm",
+                        width: 160
+                    }
+                ],
+                onRowPrepared: function (e) {
+                    if (e.rowType === "data" && e.data && e.data.isRead)
+                        e.rowElement.addClass("nfm-done");
+                },
+                onRowClick: function (e) {
+                    var row = e.data || {};
+                    $("#nfm_detail_from").text(row.fromName || "");
+                    $("#nfm_detail_received").text(nfm_fmtReceived(row.receivedDate || row.sentDate) || "");
+                    $("#nfm_detail_text").text(row.message || "");
+                    $("#nfm_detail_modal").modal("show");
+                    if (row.id && !row.isRead) nfm_mark(row.id);
+                },
+                showBorders: true
+            });
+            var grid = $("#nfm_grid").dxDataGrid("instance");
+            if (grid) grid.updateDimensions();
+        });
+    }
+    window.openModalNotificationMessage = function () {
+        nfm_load();
+    };
+</script>

@@ -77,7 +77,11 @@ namespace Profile.Services.Implements
 
                 // 4️⃣ Save
                 if (dto.ID > 0)
+                {
                     ProfileBO.Instance.Update(profile);
+                    // Đồng bộ tên khách sang các booking đang dùng profile này
+                    try { BaseBusiness.util.ProfileSyncUtil.SyncIndividualNameToReservations(profile); } catch { }
+                }
                 else
                     ProfileBO.Instance.Insert(profile);
 

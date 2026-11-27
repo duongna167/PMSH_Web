@@ -1,6 +1,16 @@
 @using Microsoft.Extensions.Options
 @using static BaseBusiness.Global
 @inject IOptions<ContactInfo> ContactConfig
+@inject IConfiguration Configuration
+@{
+    var propertyAllowedLoginNames = Configuration
+        .GetSection("PropertyAccess:AllowedLoginNames")
+        .Get<string[]>() ?? Array.Empty<string>();
+    var currentLoginName = Context.Session.GetString("LoginName");
+    var canAccessProperty = !string.IsNullOrWhiteSpace(currentLoginName)
+        && propertyAllowedLoginNames.Any(loginName =>
+            string.Equals(loginName?.Trim(), currentLoginName.Trim(), StringComparison.OrdinalIgnoreCase));
+}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -22,7 +32,7 @@
     <link href="~/css/assets/textarea.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/assets/button_small.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/assets/input_date.css" rel="stylesheet" />
-    <link href="~/css/assets/modal-ratio.css" rel="stylesheet" />
+    <link href="~/css/assets/modal-ratio.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/css/assets/date-bootstrap.css" rel="stylesheet" />
 
     @* css components *@    
@@ -170,7 +180,11 @@
                     </div>
 
                     <div id="notificationDropdown" class="notification-dropdown" style="display:none;">
-                        <ul id="notificationList"></ul>
+                        <ul id="notificationList">
+                            <li class="notif-kind" data-kind="birthday">Birthday (<span id="notif_birthdayCount">0</span>)</li>
+                            <li class="notif-kind" data-kind="message">Message (<span id="notif_messageCount">0</span>)</li>
+                            <li class="notif-kind" data-kind="trace">Trace (<span id="notif_traceCount">0</span>)</li>
+                        </ul>
                     </div>
                 </div>
 
@@ -219,7 +233,6 @@
                             <a class="nav-link" asp-controller="Reservation"
                                asp-action="SearchReservation">RESERVATION</a>
                             <div class="dropdown-menu-custom">
-                                <a href="javascript:void(0);" onclick="openRoomAvailability()" data-action="rmg_RoomAvailibility">Room Availability</a>
                                 @*              <a asp-area="" asp-controller="Reservation" asp-action="NewReservation">New reservation</a> *@
                                 <a href="javascript:void(0);" class="open-new-reservation-modal" data-action="resv_ReservationNew">New Reservation</a>
                                 <a asp-area="" asp-controller="Reservation" asp-action="SearchReservation" data-action="resv_ReservationSearch">
@@ -272,13 +285,16 @@
                                 @*     <a asp-area="" asp-controller="Home" asp-action="">Arrivals</a>
                                 <a asp-area="" asp-controller="Home" asp-action="">Guest in House</a>
                                 <a asp-area="" asp-controller="Home" asp-action="">Walk in</a> *@
+                                <a href="javascript:void(0);" onclick="openFDKTraceSearch()">Trace Search</a>
+                                <a href="/Reservation/SearchReservation?type=arrivals" data-action="resv_ReservationSearch">Arrivals</a>
+                                <a href="/Reservation/SearchReservation?type=checkedOutToday" data-action="resv_ReservationSearch">Check Out Today</a>
+                                <a href="/Reservation/SearchReservation?type=guestInHouse" data-action="resv_ReservationSearch">Guest In House</a>
                                 <a asp-area="" asp-controller="FrontDesk" asp-action="WakeUpCall" data-action="fo_WakeUpCall">Wake Up Calls</a>
                                 <a href="javascript:void(0);" onclick="openFDKRoomAssignment()" data-action="resv_ReservationAsignRoom">Room Assignment</a>
                                 <a href="javascript:void(0);" onclick="openFDKTlpB()" data-action="fo_TelephoneBook">Telephone Book</a>
-                                @*     <a asp-area="" asp-controller="Home" asp-action="">Account Management (FolioDummy) </a>
-                                <a asp-area="" asp-controller="Home" asp-action="">Hotel door lock</a>
+                                <a href="javascript:void(0);" onclick="openFDKAccountManagement()">Account Management</a>
+                                @*  <a asp-area="" asp-controller="Home" asp-action="">Hotel door lock</a>
                                 <a asp-area="" asp-controller="Home" asp-action="">Guest card</a>
-                                <a asp-area="" asp-controller="Home" asp-action="">Report of Staying</a>
                                 <a asp-area="" asp-controller="Home" asp-action="">Recalculate Revenue </a> *@
                                 <a href="javascript:void(0);" onclick="openPostingToRoom()" data-action="tool_PostingRoom">Posting To Room</a>
 
@@ -286,12 +302,19 @@
                                 <a href="javascript:void(0);" onclick="openLostAndFound()" data-action="hkp_LostAndFound">Lost And Found</a>
                                 <a href="javascript:void(0);" onclick="openPFOS()" data-action="admin_ProcessFOStatus">Process FO Status</a>
                                 <a href="javascript:void(0);" onclick="openDialingInformation()" data-action="fo_DialingInformation"> Dialing Information</a>
+                                <a href="javascript:void(0);" onclick="openCreateMessage()" data-action="fo_CreateMessage_web">Create Message</a>
+                                <a href="javascript:void(0);" onclick="openFDKReportOfStaying(1)">Report of staying - form1</a>
+                                <a href="javascript:void(0);" onclick="openFDKReportOfStaying(2)">Report of staying - form2</a>
+                                <a href="javascript:void(0);" onclick="openFDKReportOfStaying(3)">Report of staying - form3</a>
+                                <a href="javascript:void(0);" onclick="openFDKReportOfStaying(4)">Report of staying - form4</a>
+                                <a href="javascript:void(0);" onclick="openFDKReportOfStaying(5)">Report of staying - form5</a>
 
                             </div>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#">ROOM MANAGEMENT</a>
                             <div class="dropdown-menu-custom">
+                                <a href="javascript:void(0);" onclick="openRoomAvailability()" data-action="rmg_RoomAvailibility">Room Availability</a>
                                 <a asp-area="" asp-controller="HouseKeeping" asp-action="HouseStatus" data-action="rmg_HouseStatus">House Status</a>
 
                                 <a href="javascript:void(0);" onclick="openRoomControlPanel()" data-action="rmg_RoomControlPanel">Room Control Panel</a>
@@ -423,6 +446,7 @@
                             <div class="dropdown-menu-custom">
                                 <a href="javascript:void(0);" onclick="openHKPRmRate()" data-action="tool_RoomRate">Room Rate</a>
                                 @*<a asp-area="" asp-controller="Report" asp-action="OtherReportChart">Fixed Charge</a> *@
+                                <a asp-area="" asp-controller="Report" asp-action="OtherReport" asp-route-name="RecalculateRoomRevenue" data-action="tool_RecanculateRoomRevenue" data-code="tool_RecanculateRoomRevenue">Recalculate Room Revenue</a>
                                 <a href="javascript:void(0);" onclick="openFixedCharge()" data-action="tool_FixedCharge">Fixed Charge</a>
                                 <a href="javascript:void(0);" onclick="openMapTransaction()" data-action="tool_MapTransactionCode">Map Transaction Code</a>
                                 <a href="javascript:void(0);" onclick="openPostingRoom()" data-action="tool_PostingRoom">Posting Room</a>
@@ -590,16 +614,19 @@
                                     </div>
                                 </div> *@
 
-                                <div class="dropdown-submenu">
-                                    <a class="dropdown-submenu-toggle">
-                                        Property
-                                    </a>
-                                    <div class="dropdown-submenu-content">
-                                        <a href="javascript:void(0);" onclick="openPropertyType()" data-action="admin_ICP_PropertyType">Property Type</a>
-                                        <a href="javascript:void(0);" onclick="openProperty()" data-action="admin_ICP_Property">Property</a>
-                                        <a href="javascript:void(0);" onclick="openPropertyPermission()" data-action="admin_ICP_PropertyPermission">Property Permission</a>
+                                @if (canAccessProperty)
+                                {
+                                    <div class="dropdown-submenu">
+                                        <a class="dropdown-submenu-toggle">
+                                            Property
+                                        </a>
+                                        <div class="dropdown-submenu-content">
+                                            <a href="javascript:void(0);" onclick="openPropertyType()" data-action="admin_ICP_PropertyType">Property Type</a>
+                                            <a href="javascript:void(0);" onclick="openProperty()" data-action="admin_ICP_Property">Property</a>
+                                            <a href="javascript:void(0);" onclick="openPropertyPermission()" data-action="admin_ICP_PropertyPermission">Property Permission</a>
+                                        </div>
                                     </div>
-                                </div>
+                                }
 
 
 
@@ -610,8 +637,9 @@
                             <a class="nav-link" href="#">SECURITY</a>
                             <div class="dropdown-menu-custom">
                                 <a href="javascript:void(0);" onclick="openUserGroup()" data-action="Sec_UserGroup_View">User of group</a>
-                                <a href="javascript:void(0);" onclick="openAddFuncitionsToList()" data-action="usr_Functions">Add Functions To List</a>
+                                <a href="javascript:void(0);" onclick="openAddFuncitionsToList()" data-action="usr_Functions">Function List</a>
                                 <a href="javascript:void(0);" onclick="openUsersManagement()" data-action="UsersManagement_web">Users Management</a>
+                                <a href="javascript:void(0);" onclick="openPasswordHistory()" data-action="usr_PasswordHistory">Password History</a>
                                 <a href="javascript:void(0);" onclick="openUserMapping()" data-action="usr_UserRight">User mapping</a>
                                 <a href="javascript:void(0);" onclick="openUserMappingByGroup()" data-action="usr_GroupUserRight">User mapping by group</a>
                                 @*  <a asp-area="" asp-controller="Home" asp-action="">User management</a>
@@ -879,54 +907,52 @@
         });
     });
 
-    function showNotification() {
-        $("#loadingSpinner").show();
-
+    function applyNotificationSummary(data) {
+        var b = (data && data.birthdayCount) || 0;
+        var m = (data && data.messageCount) || 0;
+        var t = (data && data.traceCount) || 0;
+        var total = (data && data.total) || (b + m + t);
+        $("#notif_birthdayCount").text(b);
+        $("#notif_messageCount").text(m);
+        $("#notif_traceCount").text(t);
+        var $badge = $(".notification-badge");
+        if (total > 0) $badge.text(total).show();
+        else $badge.hide();
+    }
+    function loadNotificationCount() {
         $.ajax({
-            url: '/Profile/ShowNotification',
-            type: 'GET',
-            success: function (result) {
-
-                let html = "";
-
-                if (result && result.length > 0) {
-                    result.forEach(function (item) {
-                        html += `
-                            <li>
-                                🎂 <strong>${item.Firstname}</strong><br/>
-                                <small>Today's Birthday</small>
-                            </li>`;
-                    });
-                } else {
-                    html = `<li>Không có sinh nhật hôm nay</li>`;
-                }
-
-                $("#notificationList").html(html);
-                $("#notificationDropdown").toggle();
-            },
-            error: function () {
-                alert("Không thể tải thông báo sinh nhật.");
-            },
-            complete: function () {
-                $("#loadingSpinner").hide();
-            }
+            url: "/Notification/Summary",
+            type: "GET",
+            success: applyNotificationSummary
         });
     }
-    function loadBirthdayCount() {
-        $.ajax({
-            url: '/Profile/ShowNotification',
-            type: 'GET',
-            success: function (result) {
-                let count = result ? result.length : 0;
-                const $badge = $(".notification-badge");
-
-                if (count > 0) {
-                    $badge.text(count).show();
-                } else {
-                    $badge.hide();
-                }
-            }
-        });
+    function showNotification() {
+        loadNotificationCount();
+        $("#notificationDropdown").toggle();
+    }
+    $(document).off("click.notifKind", "#notificationList .notif-kind").on("click.notifKind", "#notificationList .notif-kind", function (e) {
+        e.stopPropagation();
+        $("#notificationDropdown").hide();
+        var kind = $(this).data("kind");
+        if (kind === "birthday") {
+            ModalManager.load("/Notification/Birthday", "nfb_modal", "openModalNotificationBirthday");
+        } else if (kind === "message") {
+            ModalManager.load("/Notification/MessageList", "nfm_modal", "openModalNotificationMessage");
+        } else if (kind === "trace") {
+            ModalManager.load("/Notification/TraceList", "nft_modal", "openModalNotificationTrace");
+        }
+    });
+    $(document).on("click", function (e) {
+        if (!$(e.target).closest(".notification-wrapper").length) {
+            $("#notificationDropdown").hide();
+        }
+    });
+    function openCreateMessage() {
+        ModalManager.load(
+            "/Notification/CreateMessage",
+            "foim_modal",
+            "openModalCreateMessage"
+        );
     }
 
     let isFormLoaded = false;
@@ -1032,7 +1058,7 @@
             window.currentAjaxGridId = null;
         });
 
-        loadBirthdayCount();
+        loadNotificationCount();
         //     // Khi đóng modal → có thể reset nếu cần
         // $('#newReservationModal').on('hidden.bs.modal', function () {
         //     const modal = $(this);
@@ -1259,6 +1285,9 @@
             const code = el.getAttribute("data-code") || el.getAttribute("data-action");
             if (!code) return;
             if (typeof window.hasFunctionRight === "function" && window.hasFunctionRight(code)) return;
+            if (code === "rpt_ReportByChart_web"
+                && typeof window.hasFunctionRight === "function"
+                && window.hasFunctionRight("rpt_ViewReport")) return;
             if (el.closest(".navbar-nav")) {
                 el.style.display = "none";
                 el.setAttribute("data-no-right", "1");
@@ -1312,8 +1341,10 @@
             const action = (pathSegments[pathSegments.length - 1] || "").toLowerCase();
             if (controller === "home" || action === "index") return;
 
-            const here = window.location.pathname.replace(/\/+$/, "").toLowerCase();
-            const match = Array.from(document.querySelectorAll("a[data-action][href]")).find(function (a) {
+            const hereUrl = new URL(window.location.href);
+            const here = hereUrl.pathname.replace(/\/+$/, "").toLowerCase();
+            const hereName = (hereUrl.searchParams.get("name") || "").toLowerCase();
+            const matches = Array.from(document.querySelectorAll("a[data-action][href]")).filter(function (a) {
                 const href = a.getAttribute("href") || "";
                 if (!href || href.toLowerCase().indexOf("javascript:") === 0) return false;
                 try {
@@ -1322,6 +1353,18 @@
                     return false;
                 }
             });
+            let match = null;
+            if (hereName) {
+                match = matches.find(function (a) {
+                    try {
+                        const url = new URL(a.getAttribute("href"), window.location.origin);
+                        return (url.searchParams.get("name") || "").toLowerCase() === hereName;
+                    } catch (err) {
+                        return false;
+                    }
+                });
+            }
+            if (!match) match = matches[0];
             if (!match) return;
             const code = match.getAttribute("data-action");
             if (typeof window.hasFunctionRight === "function" && window.hasFunctionRight(code)) return;
@@ -1347,12 +1390,140 @@
 
           initGlobalEvents: function() {
 
+              function modalZ(el) {
+                  if (!el) return 0;
+                  const inline = parseInt(el.style.zIndex, 10);
+                  if (!isNaN(inline) && inline > 0) return inline;
+                  return parseInt(getComputedStyle(el).zIndex, 10) || 0;
+              }
+
+              function shownModals() {
+                  return Array.from(document.querySelectorAll(".modal.show"));
+              }
+
+              function stackedModals() {
+                  return shownModals().sort(function (a, b) {
+                      const d = modalZ(a) - modalZ(b);
+                      if (d !== 0) return d;
+                      if (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+                      if (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+                      return 0;
+                  });
+              }
+
+              function higherThan(el) {
+                  return shownModals().filter(function (m) {
+                      if (m === el) return false;
+                      const d = modalZ(m) - modalZ(el);
+                      if (d > 0) return true;
+                      if (d < 0) return false;
+                      return !!(el.compareDocumentPosition(m) & Node.DOCUMENT_POSITION_FOLLOWING);
+                  });
+              }
+
+              function syncModalStack() {
+                  const rest = stackedModals();
+                  const backs = Array.from(document.querySelectorAll(".modal-backdrop"));
+                  if (!rest.length) {
+                      backs.forEach(function (b) { b.remove(); });
+                      document.body.classList.remove("modal-open");
+                      document.body.style.removeProperty("overflow");
+                      document.body.style.removeProperty("padding-right");
+                      document.querySelectorAll(".modal-blur").forEach(function (el) {
+                          el.classList.remove("modal-blur");
+                      });
+                      return;
+                  }
+                  document.body.classList.add("modal-open");
+                  while (document.querySelectorAll(".modal-backdrop").length > rest.length) {
+                      const list = document.querySelectorAll(".modal-backdrop");
+                      list[list.length - 1].remove();
+                  }
+                  if (!document.querySelector(".modal-backdrop")) {
+                      const b = document.createElement("div");
+                      b.className = "modal-backdrop fade show";
+                      document.body.appendChild(b);
+                  }
+                  const top = rest[rest.length - 1];
+                  rest.forEach(function (m, i) {
+                      m.style.zIndex = String(1050 + (10 * i));
+                      const content = m.querySelector(".modal-content");
+                      if (content) content.classList.toggle("modal-blur", m !== top);
+                  });
+                  document.querySelectorAll(".modal-backdrop").forEach(function (b, i) {
+                      b.style.zIndex = String(1049 + (10 * i));
+                  });
+                  try { top.focus({ preventScroll: true }); } catch (err) { }
+              }
+
+              function lockModalConfig(el) {
+                  const inst = bootstrap.Modal.getInstance(el) || bootstrap.Modal.getOrCreateInstance(el, { backdrop: "static", keyboard: false });
+                  if (inst && inst._config) {
+                      inst._config.keyboard = false;
+                      inst._config.backdrop = "static";
+                  }
+                  el.setAttribute("data-bs-keyboard", "false");
+                  el.setAttribute("data-bs-backdrop", "static");
+                  return inst;
+              }
+
+              // Focus can still be on the parent when a child is opened programmatically.
+              // Handle the stack before Bootstrap handles Escape on the focused modal.
+              let handledStackEscape = false;
+              let closingStackModal = null;
+              document.addEventListener("keydown", function (event) {
+                  if (event.key !== "Escape" || event.isComposing) return;
+                  if (closingStackModal || (event.repeat && handledStackEscape)) {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      event.stopImmediatePropagation();
+                      return;
+                  }
+                  handledStackEscape = false;
+                  if ($(".cc-overlay:visible, .swal2-container:visible, .pmsh-select-menu:visible").length) return;
+                  if ($(event.target).closest(".dx-overlay-content, .ts-dropdown, .ts-wrapper.dropdown-active").length) return;
+
+                  const modals = stackedModals();
+                  if (!modals.length) return;
+
+                  const top = modals[modals.length - 1];
+                  const instance = lockModalConfig(top);
+                  if (!instance) return;
+
+                  event.preventDefault();
+                  event.stopPropagation();
+                  event.stopImmediatePropagation();
+                  handledStackEscape = true;
+
+                  closingStackModal = top;
+                  $(top).off("hidden.bs.modal.stackEscape").one("hidden.bs.modal.stackEscape", function () {
+                      closingStackModal = null;
+                      syncModalStack();
+                  });
+                  instance.hide();
+              }, true);
+
+              // Native capture: jQuery preventDefault does not cancel Bootstrap 5 hide.bs.modal.
+              document.addEventListener("hide.bs.modal", function (e) {
+                  const el = e.target;
+                  if (!(el instanceof Element) || !el.classList.contains("modal")) return;
+                  const higher = higherThan(el);
+                  if (!higher.length) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const top = higher.sort(function (a, b) { return modalZ(a) - modalZ(b); }).pop();
+                  if (!top || top === closingStackModal) return;
+                  const inst = bootstrap.Modal.getInstance(top);
+                  if (inst) inst.hide();
+              }, true);
+
               $(document).on("input change", ".is-invalid, .tomselect-custom, [data-date-input] input", function () {
                   if (window.ValidationAdapter) window.ValidationAdapter.clearField(this);
               });
 
               // Set z-index at show START (before animation) so modals never appear behind each other during fade-in
               $(document).on("show.bs.modal", ".modal", function () {
+                  lockModalConfig(this);
 
                   // CSS filter:blur() on a parent creates a new containing block for position:fixed children.
                   // Move any modal that is not a direct child of <body> to <body> so it is never
@@ -1377,16 +1548,14 @@
 
               });
 
-              // Blur effect + re-verify z-index after animation completes (managed modals only for blur)
-              $(document).on("shown.bs.modal", ".modal.managed-modal", function () {
-
-                  $('.modal.show .modal-content').removeClass('modal-blur');
-                  $('.modal.show').not(this).find('.modal-content').addClass('modal-blur');
-
+              $(document).on("shown.bs.modal", ".modal", function () {
+                  syncModalStack();
               });
 
-              $(document).on("hidden.bs.modal", ".modal.managed-modal", function () {
-                  $('.modal.show').last().find('.modal-content').removeClass('modal-blur');
+              $(document).on("hidden.bs.modal", ".modal", function () {
+                  syncModalStack();
+                  setTimeout(syncModalStack, 0);
+                  setTimeout(syncModalStack, 320);
               });
 
               $(document).on("hide.bs.modal", ".modal.managed-modal", function () {
@@ -1457,10 +1626,12 @@
 
                       if (showModal) {
 
-                          const modal = new bootstrap.Modal(modalEl,{
+                          const modal = bootstrap.Modal.getOrCreateInstance(modalEl,{
                               backdrop:'static',
-                              keyboard:true
+                              keyboard:false
                           });
+
+                          const hostedModals = $container.find(".modal").get();
 
                           $(modalEl).one("hidden.bs.modal", () => {
 
@@ -1468,12 +1639,26 @@
                               // Modal đã bị chuyển ra <body> nên phải xóa riêng, không chỉ xóa container
                               $ownedModals.each(function () {
                                   if (this !== modalEl) bootstrap.Modal.getInstance(this)?.dispose();
+                                  if (this.parentNode) this.remove();
                               });
-                              $ownedModals.remove();
+                              hostedModals.forEach(function (el) {
+                                  const inst = bootstrap.Modal.getInstance(el);
+                                  if (inst) inst.dispose();
+                                  if (el.parentNode) el.remove();
+                              });
+                              if (modalEl.parentNode) modalEl.remove();
                               $container.remove();
 
-                              if ($('.modal.show').length > 0)
-                                  $('body').addClass('modal-open');
+                              document.querySelectorAll(".modal-backdrop").forEach(function (b) {
+                                  if (!document.querySelector(".modal.show")) b.remove();
+                              });
+                              if (document.querySelector(".modal.show"))
+                                  document.body.classList.add("modal-open");
+                              else {
+                                  document.body.classList.remove("modal-open");
+                                  document.body.style.removeProperty("overflow");
+                                  document.body.style.removeProperty("padding-right");
+                              }
 
                           });
 
@@ -1598,6 +1783,15 @@
               "ras_roomAssign",
               "openModalRAS"
           );
+      }
+      function openFDKTraceSearch() {
+          ModalManager.load("/FrontDesk/TraceSearch", "trs_modal", "openModalTRS");
+      }
+      function openFDKAccountManagement() {
+          ModalManager.load("/FrontDesk/AccountManagement", "acm_modal", "openModalACM");
+      }
+      function openFDKReportOfStaying(form) {
+          ModalManager.load("/FrontDesk/ReportOfStaying?form=" + form, "ros_modal", "openModalROS");
       }
       function openFDKTlpB() {
           ModalManager.load(
@@ -1965,6 +2159,14 @@
               "/UsersManagement/UsersManagement",
               "ousm_modal",
               "openModalOusm"
+          );
+      }
+
+      function openPasswordHistory() {
+          ModalManager.load(
+              "/PasswordHistory/PasswordHistory",
+              "pwdh_modal",
+              "openModalPasswordHistory"
           );
       }
 

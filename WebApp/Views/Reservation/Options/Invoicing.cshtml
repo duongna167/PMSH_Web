@@ -18,6 +18,75 @@
         position: relative;
         min-height: 200px;
     }
+
+    /* ===== Filter Invoicing: label + input/select cùng chiều cao, liền khối ===== */
+    .inv-filter {
+        background: #f8faf9 !important;
+        border: 1px solid #e3ebe7 !important;
+        border-radius: 8px;
+        padding: 10px 12px !important;
+    }
+    .inv-filter .input-group {
+        flex-wrap: nowrap;
+        align-items: stretch;
+        height: 32px;
+        margin: 0;
+    }
+    .inv-filter .input-group > .input-group-text,
+    .inv-filter .input-group > .form-control,
+    .inv-filter .input-group > .form-select {
+        height: 32px !important;
+        min-height: 32px !important;
+        margin: 0 !important;
+        font-size: 13px;
+        line-height: 1.2;
+        box-sizing: border-box;
+        border: 1px solid #ced4da;
+    }
+    .inv-filter .input-group > .input-group-text {
+        flex: 0 0 96px;
+        width: 96px !important;
+        justify-content: flex-start !important;
+        padding: 0 10px;
+        background: #e9f3ee;
+        color: #2f5d4a;
+        font-weight: 600;
+        border-right: 0;
+        border-radius: 6px 0 0 6px !important;
+        white-space: nowrap;
+    }
+    .inv-filter .input-group > .form-control,
+    .inv-filter .input-group > .form-select {
+        flex: 1 1 auto;
+        width: 1%;
+        padding: 0 10px;
+        background-color: #fff;
+        border-radius: 0 6px 6px 0 !important;
+        box-shadow: none;
+    }
+    .inv-filter .input-group > .form-select {
+        padding-right: 28px;
+        background-position: right 8px center;
+    }
+    .inv-filter .input-group > .form-control:focus,
+    .inv-filter .input-group > .form-select:focus {
+        border-color: #63af90;
+        box-shadow: 0 0 0 2px rgba(99, 175, 144, .2);
+        position: relative;
+        z-index: 2;
+    }
+    .inv-filter .input-group > .form-control:disabled {
+        background-color: #f1f3f5;
+        color: #6c757d;
+    }
+    .inv-filter .input-group-text .form-check-input {
+        margin: 0 !important;
+        cursor: pointer;
+    }
+    .inv-filter .input-group-text label {
+        margin: 0 0 0 6px !important;
+        cursor: pointer;
+    }
 </style>
 <!-- Modal invoicing-->
 <div class="modal fade modal-xl" id="modalInvoicing" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabelBilling" aria-hidden="true">
@@ -26,17 +95,19 @@
             <div class="modal-header">
                 <h5 class="modal-title" >Invoicing</h5>
             </div>
-            <div class="modal-body"">
+            <div class="modal-body">
                 <div class="d-flex justify-content-between align-items-center mb-2 border-bottom">
                     <div class="action-buttons py-2">
                         <button class="mui-button mui-button-search" onclick="searchFolioInvoicing();">View</button>
+                        <button class="mui-button mui-button-view" onclick="openBillingFromInvoicing(true);">Billing</button>
+                        <button class="mui-button mui-button-view" onclick="openFolioOptionFromInvoicing();">Folio</button>
                         <button class="mui-button mui-button-export" onclick="exportInvoicing();">Excel</button>
                         <button data-bs-dismiss="modal" class="mui-button mui-button-close">Close</button>
 
                     </div>
                 </div>
 
-                <div class="card bg-light border-0 p-2 mb-2">
+                <div class="card inv-filter mb-2">
                     <div class="row g-2">
                         <div class="col-md-3">
                             <div class="input-group input-group-sm">
@@ -97,7 +168,7 @@
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text justify-content-center" style="width: 90px;">
                                     <input class="form-check-input mt-0" type="checkbox" id="checkBoxInvoicing">
-                                    <label class="ms-2 mb-0">Date</label>
+                                    <label class="ms-2 mb-0" for="checkBoxInvoicing">Date</label>
                                 </span>
                                 <input type="date" id="dateInvoicing" class="form-control">
                             </div>
@@ -117,6 +188,8 @@
     </div>
 </div>
 
+@await Html.PartialAsync("Billing/FolioOption")
+
 <script>
     $(document).ready(function () {
         $('#dateInvoicing').prop('disabled', !$('#checkBoxInvoicing').is(':checked'));
@@ -126,7 +199,7 @@
             $('#dateInvoicing').prop('disabled', !isChecked);
 
             if (!isChecked) {
-                 $('#dateInvoicing').val('2025-10-25');
+                 $('#dateInvoicing').val(getInvoicingDefaultDate());
             }
         });
 
@@ -148,15 +221,158 @@
                 showNavigationButtons: true
             },
             scrolling: { mode: "standard", showScrollbar: "always" },
-            showBorders: true
-
+            showBorders: true,
+            customizeColumns: customizeInvoicingColumns,
+            onRowDblClick: function () { openBillingFromInvoicing(true); }
         });
-        
+
     });
 
+    // Các cột số tiền: hiển thị có dấu ngăn cách hàng nghìn, canh phải
+    var INVOICING_MONEY_COLUMNS = ['BalanceVND', 'BalanceUSD', 'AmountBeforeTax', 'Tax', 'AmountAfterTax'];
+    var INVOICING_INT_COLUMNS = ['CountTransaction'];
+
+    function formatInvoicingMoney(value) {
+        if (value === null || value === undefined || value === '') return '';
+        const n = Number(value);
+        if (isNaN(n)) return value;
+        // vi-VN: dấu chấm (.) phân cách hàng nghìn, dấu phẩy (,) phần lẻ - thống nhất với màn Reservation
+        return n.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+
+    function customizeInvoicingColumns(columns) {
+        columns.forEach(function (col) {
+            if (INVOICING_MONEY_COLUMNS.indexOf(col.dataField) >= 0) {
+                col.dataType = 'number';
+                col.alignment = 'right';
+                col.customizeText = function (info) { return formatInvoicingMoney(info.value); };
+            } else if (INVOICING_INT_COLUMNS.indexOf(col.dataField) >= 0) {
+                col.dataType = 'number';
+                col.alignment = 'right';
+            }
+        });
+    }
+
+    // API trả về { columns: [...], rows: [[...], ...] } → dựng lại mảng object cho grid
+    function mapInvoicingResult(result) {
+        if (Array.isArray(result)) return result;
+        if (!result || !result.columns || !result.rows) return [];
+        const cols = result.columns;
+        const moneyIdx = cols.map(function (c, i) {
+            return (INVOICING_MONEY_COLUMNS.indexOf(c) >= 0 || INVOICING_INT_COLUMNS.indexOf(c) >= 0) ? i : -1;
+        }).filter(function (i) { return i >= 0; });
+        const rows = result.rows;
+        const data = new Array(rows.length);
+        for (let r = 0; r < rows.length; r++) {
+            const src = rows[r];
+            const obj = {};
+            for (let c = 0; c < cols.length; c++) obj[cols[c]] = src[c];
+            // Nếu SP trả số dạng chuỗi thì ép về số để sort/filter/format đúng
+            for (let k = 0; k < moneyIdx.length; k++) {
+                const v = src[moneyIdx[k]];
+                if (typeof v === 'string' && v !== '') {
+                    const n = parseFloat(v.replace(',', '.'));
+                    if (!isNaN(n)) obj[cols[moneyIdx[k]]] = n;
+                }
+            }
+            data[r] = obj;
+        }
+        return data;
+    }
+
+    function getInvoicingDefaultDate() {
+        try {
+            const bd = JSON.parse(localStorage.getItem('businessDate') || 'null');
+            if (bd) {
+                // hỗ trợ "dd/MM/yyyy..." hoặc "yyyy-MM-dd..."
+                const m = String(bd).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+                if (m) return m[3] + '-' + m[2] + '-' + m[1];
+                const iso = String(bd).match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (iso) return iso[0];
+            }
+        } catch (e) { }
+        const d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    function getSelectedInvoicingRow() {
+        const grid = $("#gridContainerInvoicing").dxDataGrid("instance");
+        return grid ? grid.getSelectedRowsData()[0] : null;
+    }
+
+    /**
+     * Billing: tương đương frmCshFolioOpen(FolioID) bên WinForm — mở Billing của booking
+     *          và chọn sẵn đúng cửa sổ folio đang chọn (focusFolio = true).
+     * Folio  : tương đương frmCshFolioOption(FolioID) — xem openFolioOptionFromInvoicing().
+     */
+    function openBillingFromInvoicing(focusFolio) {
+        const row = getSelectedInvoicingRow();
+        if (!row) {
+            showToast('Warning', 'Please choose a folio', false);
+            return;
+        }
+        const rid = parseInt(row.ReservationID, 10) || 0;
+        if (rid <= 0) {
+            showToast('Warning', 'This folio has no reservation (Passer By).', false);
+            return;
+        }
+        const folioId = parseInt(row.FolioID || row.FolioNo, 10) || 0;
+
+        $.ajax({
+            url: '/Reservation/GetReservationByID',
+            type: 'GET',
+            dataType: 'json',
+            data: { ID: rid },
+            success: function (res) {
+                if (!res || typeof res !== 'object') {
+                    showToast('Error', 'Cannot load reservation.', false);
+                    return;
+                }
+                const resvStatusText = ['Reservation', 'Checked In', 'Checked Out', 'Cancel', 'Waitlist',
+                    'Due In', 'Due Out', 'No Show', 'Day Use'][res.status] || '';
+
+                // Gán biến toàn cục mà màn Billing đang dùng
+                idReservation = rid;
+                reservationStatus = res.status;
+                statusID = res.status;
+                roomNo = res.roomNo || row.RoomNo || '';
+                lastname = row.FolioName || [res.lastName, res.firstName].filter(Boolean).join(', ');
+                confirmationNo = res.confirmationNo || row.ConfirmationNo || '';
+                arivalDate = row.ArrivalDate || '';
+                departureDate = row.DepartureDate || '';
+                _currentReservationData = {
+                    ID: rid, GuestName: lastname, RoomNo: roomNo, ConfirmationNo: confirmationNo,
+                    GroupName: res.groupName, GroupCode: res.groupCode, CompanyName: res.companyName
+                };
+
+                $('#rsvStatusBilling').text(resvStatusText);
+                $('#conNoBilling').text(confirmationNo);
+                $('#arivalBilling').text(arivalDate ? arivalDate.split(' ')[0] : '');
+                $('#departureBilling').text(departureDate ? departureDate.split(' ')[0] : '');
+
+                openModalBilling();
+                if (focusFolio && folioId > 0 && typeof getFolioNo === 'function') {
+                    getFolioNo(folioId);
+                }
+            },
+            error: function () {
+                showToast('Error', 'Cannot load reservation.', false);
+            }
+        });
+    }
+
+    /** Folio: mở form Folio Option (chọn kiểu in) cho folio đang chọn — như btnFolio_Click bên WinForm. */
+    function openFolioOptionFromInvoicing() {
+        const row = getSelectedInvoicingRow();
+        if (!row) {
+            showToast('Warning', 'Please choose a folio', false);
+            return;
+        }
+        openModalFolioOption(row.FolioID || row.FolioNo);
+    }
+
     function openModalInvoicing(){
-        
-        $('#dateInvoicing').val('2025-10-25');
+        $('#dateInvoicing').val(getInvoicingDefaultDate());
         searchFolioInvoicing();
         $('#modalInvoicing').modal('show');
     }
@@ -202,8 +418,12 @@
                 $("#loadingSpinnerInvoicing").hide();
                 $("#gridContainerInvoicing").css("opacity", "1");
 
+                if (result && result.error) {
+                    showToast('Error', result.error, false);
+                    return;
+                }
                 const grid = $("#gridContainerInvoicing").dxDataGrid("instance");
-                grid.option("dataSource", result);
+                grid.option("dataSource", mapInvoicingResult(result));
             },
             error: function (xhr) {
                 $("#loadingSpinnerInvoicing").hide();

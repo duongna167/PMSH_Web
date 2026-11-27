@@ -33,6 +33,7 @@
             this.profileType = profileType || 0;
 
             this.initDOMEvents();
+            this.renderGrid([]);
             this.loadData();
         },
 
@@ -50,15 +51,17 @@
             $.ajax({
                 url: '/Profile/SearchProfileFuture',
                 type: 'GET',
+                loadingGrid: '#op_future_gridContainerSearchFuture',
                 data: {
                     profileID: self.profileID,
                     profileType: self.profileType
                 },
                 success: function (data) {
-                    self.renderGrid(data);
+                    self.renderGrid(Array.isArray(data) ? data : []);
                 },
                 error: function () {
-                    alert('Error retrieving Future data.');
+                    self.renderGrid([]);
+                    showToast("Error", "Cannot load future reservations.", false);
                 }
             });
         },
@@ -106,6 +109,7 @@
                     { dataField: "UpdateOn", caption: "Update On", dataType: "date", format: "dd/MM/yyyy", width: 110 }
                 ],
                 paging: { pageSize: 15 },
+                noDataText: "No future reservation",
                 pager: {
                     visible: true,
                     allowedPageSizes: [15, 20, 'all'],

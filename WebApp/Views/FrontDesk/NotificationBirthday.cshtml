@@ -1,0 +1,53 @@
+<style>
+    #nfb_modal .mui-card { min-height: 0; }
+    #nfb_grid { flex: 1 1 auto; height: 100%; min-height: 0; }
+</style>
+<div class="modal fade" id="nfb_modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg-4by3 modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Birthday</h5>
+            </div>
+            <div class="modal-body">
+                <div class="search-filter">
+                    <div>
+                        <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+                <div class="mui-card">
+                    <div id="nfb_grid" class="gridContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    window.openModalNotificationBirthday = function () {
+        $.get("/Notification/BirthdayData", function (result) {
+            if (typeof result === "string") {
+                if (window.showToast) showToast("Error", result, false);
+                return;
+            }
+            var $grid = $("#nfb_grid");
+            if ($grid.data("dxDataGrid")) {
+                $grid.dxDataGrid("dispose");
+                $grid.empty();
+            }
+            $grid.dxDataGrid({
+                dataSource: result || [],
+                height: "100%",
+                paging: { enabled: false },
+                pager: { visible: false },
+                scrolling: { mode: "standard", showScrollbar: "always" },
+                columns: [
+                    { dataField: "name", caption: "Name", minWidth: 180 },
+                    { dataField: "dateOfBirth", caption: "Date of Birth", dataType: "date", format: "dd/MM/yyyy", width: 140 },
+                    { dataField: "nationality", caption: "Nationality", minWidth: 140 }
+                ],
+                showBorders: true
+            });
+            var grid = $grid.dxDataGrid("instance");
+            if (grid) grid.updateDimensions();
+        });
+    };
+</script>

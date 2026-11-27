@@ -24,12 +24,17 @@ const ToastUI = (function () {
         const style = document.createElement("style");
         style.id = "minimal-toast-style";
         style.innerHTML = `
-            /* Container cố định ở góc trên bên phải */
-            .toast-container {
-                z-index: 9999;
+            .pmsh-msg-center {
+                z-index: 20000;
                 position: fixed;
-                top: 20px;
-                right: 20px;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                pointer-events: none;
+            }
+            .pmsh-msg-center .minimal-toast {
+                pointer-events: auto;
             }
 
             .minimal-toast {
@@ -104,8 +109,12 @@ const ToastUI = (function () {
     }
 
     function show(title, message, isSuccess) {
-        if ($('.toast-container').length === 0) {
-            $('body').append('<div class="toast-container"></div>');
+        const rawTitle = String(title ?? "").trim();
+        if (isSuccess === true || /^success$/i.test(rawTitle)) return;
+        if (!message) return;
+
+        if ($('.pmsh-msg-center').length === 0) {
+            $('body').append('<div class="pmsh-msg-center"></div>');
         }
 
         // --- BỔ SUNG: KIỂM TRA TRÙNG LẶP (ANTI-SPAM) ---
@@ -127,7 +136,6 @@ const ToastUI = (function () {
         // ----------------------------------------------
 
         const toastId = 'toast_' + Date.now();
-        const rawTitle = String(title ?? "").trim();
         const isWarningToast = /^warning$/i.test(rawTitle);
         const typeClass = isWarningToast ? "toast-warning" : (isSuccess ? "toast-success" : "toast-danger");
         const headerTitle = isWarningToast ? "Warning" : rawTitle;
@@ -145,7 +153,7 @@ const ToastUI = (function () {
             </div>
         `;
 
-        $('.toast-container').append(toastHtml);
+        $('.pmsh-msg-center').append(toastHtml);
         const $toastEl = $('#' + toastId);
         const bsToast = new bootstrap.Toast($toastEl[0], { autohide: false });
 
@@ -158,7 +166,7 @@ const ToastUI = (function () {
         bsToast.show();
 
         // Đồng bộ thời gian Progress Bar và đóng Toast
-        const duration = 3000;
+        const duration = 2000;
 
         setTimeout(() => {
             $progress.css({

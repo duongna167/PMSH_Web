@@ -47,16 +47,14 @@
         }
 
     .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
+        padding:  2px 8px;
+        height: 28px;
     }
 
     .sticky-header label[class*="me-"] {
         margin-right: .5rem !important;
     }
-
-    .filter-panel {
-        font-size: 12px;
+    .filter-panel {`r`n        font-size: 14px;
     }
 
     .filter-row {
@@ -82,19 +80,19 @@
     .filter-panel .ts-control {
         font-size: 12px;
         padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
+        height: 28px;
     }
 
     .sticky-header label,
     .sticky-header .form-control-sm {
-        font-size: 0.75rem;
+        font-size: 14px;
         line-height: 1.2;
     }
 
 
     .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
+        padding:  2px 8px;
+        height: 28px;
     }
 
     .sticky-header label[class*="me-"] {
@@ -104,7 +102,7 @@
     #gridContainer .dx-datagrid-headers .dx-header-row > td {
         padding: 5px !important;
         height: 24px !important;
-        font-size: 12px !important;
+        font-size: 13px !important;
         line-height: 1.1 !important;
     }
 
@@ -112,7 +110,7 @@
     #gridContainer .dx-datagrid .dx-summary-row > td,
     #gridContainer .dx-datagrid .dx-total-footer td,
     #gridContainer .dx-datagrid .dx-footer-row td {
-        font-size: 11px !important;
+        font-size: 13px !important;
     }
     /* Giảm chiều cao filter row */
     #gridContainer .dx-datagrid-filter-row {
@@ -128,7 +126,7 @@
         #gridContainer .dx-datagrid-filter-row .dx-texteditor-input {
             height: 24px !important;
             padding: 2px 6px !important;
-            font-size: 11px !important;
+            font-size: 13px !important;
             line-height: 1.1 !important;
         }
 
@@ -172,8 +170,6 @@
         }
 
 </style>
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
 <div class="text-center" id="reportTitle" style="font-size: 20px"></div>
 
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
@@ -181,7 +177,7 @@
         <!-- From Date -->
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">From Date:</label>
-            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="fromDate" style="min-width:140px;">
                 <input type="text" class="date-ui form-control form-control-sm"
                        placeholder="dd/mm/yyyy" autocomplete="off" />
             </div>
@@ -189,7 +185,7 @@
 
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">To Date:</label>
-            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="toDate">
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="toDate" style="min-width:140px;">
                 <input type="text" class="date-ui form-control form-control-sm"
                        placeholder="dd/mm/yyyy" autocomplete="off" />
             </div>
@@ -199,7 +195,8 @@
 
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">Cashier :</label>
-            <select id="cashier" name="cashier" class="tomselect-custom" style="width :100px" multiple>
+            <select id="cashier" name="cashier" class="form-control form-control-sm report-dd">
+                        <option value="">--All--</option>
           
                 @foreach (var item in listcsl)
                 {
@@ -209,7 +206,8 @@
         </div>
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">Zone:</label>
-            <select id="zone" name="zone" class="tomselect-custom" style="width :100px" multiple>
+            <select id="zone" name="zone" class="form-control form-control-sm report-dd">
+                        <option value="">--All--</option>
 
                 @foreach (var item in zoneList)
                 {
@@ -233,7 +231,7 @@
 </div>
 
 <div class="mui-card">
-    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
+    <div id="gridWrapper" class="mt-2">
         <div class="gridContainer mt-2" id="gridContainer"></div>
     </div>
 </div>
@@ -247,7 +245,6 @@
     $(document).ready(function () {
          document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
              window.initDateInputs();
-          initializeTomSelects();
 
     });
     function initializeTomSelects() {
@@ -297,11 +294,13 @@
               crossDomain: false,
                 headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                     console.log(result);
-                        initializeIncurringDepositCollectionGrid(result);
+                if (!Array.isArray(result)) {
+                    alert(typeof result === "string" ? result : "Không thể tải báo cáo.");
                     $("#loadingSpinner").hide();
+                    return;
+                }
+                initializeIncurringDepositCollectionGrid(result);
+                $("#loadingSpinner").hide();
             },
             error: function () {
                 alert("Không thể tải báo cáo.");
@@ -314,9 +313,11 @@
 
     function initializeIncurringDepositCollectionGrid(data) {
         const columnWidth = 180;
-
-        $("#gridContainer").dxDataGrid({
-           dataSource: data,         height: "auto",
+        pmshBindDxReportGrid("#gridContainer", {
+           dataSource: Array.isArray(data) ? data : [],
+            height: 500,
+            loadPanel: { enabled: false },
+            headerFilter: { visible: false },
             allowColumnResizing: true,
             columns: [
                 { dataField: "lastName", caption: "Guest Name", width: columnWidth - 20  },
@@ -334,7 +335,7 @@
                                { dataField: "userName", caption: "Cashier", width: columnWidth - 40 },
                             { dataField: "paymentMethod", caption: "Payment Method", width: columnWidth  },
                            { dataField: "depositAmount", caption: "Deposit Amount", width: columnWidth - 40  , dataType: "number", format: "#,##0" },
-                     { dataField: "ProfitCenterCode", caption: "Note", width: columnWidth - 40 },
+                     { dataField: "profitCenterCode", caption: "Note", width: columnWidth - 40 },
 
             ],
                        summary: {
@@ -347,19 +348,9 @@
                             { column: "depositAmount", summaryType: "sum", displayFormat: "{0}", valueFormat: "#,##0" },
                     ]
                 },
-            paging: { pageSize: 25 },
-            scrolling: {
-                  mode: "standard",
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
+            paging: { enabled: false },
+            pager: { visible: false },
             filterRow: { visible: true, applyFilter: "auto" },
-            headerFilter: { visible: true },
             selection: { mode: "multiple", showCheckBoxesMode: "none" },
             showBorders: true,
              onRowPrepared: function (e) {

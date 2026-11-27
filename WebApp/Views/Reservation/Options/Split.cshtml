@@ -34,7 +34,7 @@
                         <button class="mui-button mui-button-new" id="splitAllBtn"
                             onclick="splitAllReservation();">Split
                             All</button>
-                        <button class="mui-button mui-button-new" onclick="splitSpecialReservation();">Split
+                        <button class="mui-button mui-button-new" id="splitSpecialBtn" onclick="splitSpecialReservation();">Split
                             Special</button>
                         <button class="mui-button mui-button-new" id="splitAllSpecialBtn"
                             onclick="splitAllSpecialReservation();">Split All Special</button>
@@ -123,11 +123,41 @@
     }
 
     function openModalSplit() {
-
-        listReservationSplitID = listReservationByConfirmationNo.map(x => x.ID);
-        initializeDataGridSplit(listReservationByConfirmationNo);
+        if (typeof syncReservationSelectionFromGrid === 'function') syncReservationSelectionFromGrid();
+        if (!idReservation || idReservation == 0) {
+            showToast('Warning', 'Please choose booking', false);
+            return;
+        }
+        // Cột Rms: dòng từ Search Reservation dùng NoOfRoom (số phòng của booking, như WinForm)
+        var rows = (listReservationByConfirmationNo || []).map(function (x) {
+            return Object.assign({}, x, { Rms: (x.Rms !== undefined && x.Rms !== null && x.Rms !== '') ? x.Rms : x.NoOfRoom });
+        });
+        listReservationSplitID = rows.map(x => x.ID);
+        initializeDataGridSplit(rows);
         UI.toggleButtons(allButtons, true);
         $('#modalSplit').modal('show');
+
+        // Chọn sẵn booking đang chọn ở màn ngoài → tự bật Split / Split All / Split All Special
+        var current = rows.find(function (x) { return String(x.ID) === String(idReservation); }) || rows[0];
+        if (current) {
+            var grid = $('#gridContainerSplit').dxDataGrid('instance');
+            if (grid) grid.selectRows([current], false);
+            applySplitSelection(current);
+        }
+    }
+
+    // Bật / tắt nút theo dòng chọn: nhiều phòng → Split, Split All, Split Special, Split All Special;
+    // 1 phòng → chỉ Split Special (tạo room sharer)
+    function applySplitSelection(row) {
+        idReservationSplit = row.ID;
+        confirmationNoToResList = row.ConfirmationNo;
+        noOfRoomSplit = Number(row.Rms ?? row.NoOfRoom ?? 0);
+        UI.toggleButtons(allButtons, true);
+        if (noOfRoomSplit > 1) {
+            UI.toggleButtons(splitButtons, false);
+        } else if (noOfRoomSplit === 1) {
+            UI.toggleButtons(['splitSpecialBtn'], false);
+        }
     }
 
     function closseModalSplit() {
@@ -159,7 +189,10 @@
 
     }
     function splitSpecialReservation() {
-        openConfirmSplit('You are about to create room sharer? Do you want to continue?');
+        // WinForm _btnSplitSpecial_Click: nhiều phòng → tách + tạo RS; 1 phòng → tạo RS
+        openConfirmSplit(noOfRoomSplit > 1
+            ? 'You are about to split this reservation and create room sharer or accompany. Do you want to continue?'
+            : 'You are about to create room sharer. Do you want to continue?');
         type = 3;
     }
     function splitAllSpecialReservation() {
@@ -280,16 +313,18 @@
         formData.append('userID', userID);
 
         $.ajax({
-            url: '/Reservation/SplitAllRoomShare',
+            // Split Special = SplitSpecialReservation (WinForm): 1 phòng → tạo room sharer, đã đủ người thì báo
+            // "RoomSharer exceed number person." (trước đây gọi nhầm SplitAllRoomShare → luôn báo thành công)
+            url: '/Reservation/SplitSpecialReservation',
             type: 'POST',
             processData: false,
             contentType: false,
             data: formData,
             success: function (data) {
                 closeConfirmSplit();
-                closseModalSplit();
-                searchReservation();
                 if (data.code == 0) {
+                    closseModalSplit();
+                    searchReservation();
                     showToast('Success', data.msg, true);
                 } else {
                     showToast('Error', data.msg, false);
@@ -407,18 +442,7 @@
                 mode: "single"
             },
             onRowClick: function (e) {
-                idReservationSplit = e.data.ID;
-                confirmationNoToResList = e.data.ConfirmationNo;
-                noOfRoomSplit = Number(e.data.Rms ?? e.data.NoOfRoom ?? 0);
-
-                // reset trước
-                UI.toggleButtons(allButtons, true);
-
-                if (noOfRoomSplit > 1) {
-                    UI.toggleButtons(splitButtons, false);
-                } else if (noOfRoomSplit === 1) {
-                    UI.toggleButtons(['splitSpecialBtn'], false);
-                }
+                applySplitSelection(e.data);
             },
             columns: columns
         });

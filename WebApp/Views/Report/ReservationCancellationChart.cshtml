@@ -46,18 +46,59 @@
 
     .sticky-header label,
     .sticky-header .form-control-sm {
-        font-size: 0.75rem;
+        font-size: 14px;
         line-height: 1.2;
+    }
+
+    .sticky-header label {
+        white-space: nowrap;
     }
 
 
     .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
+        padding:  2px 8px;
+        height: 28px;
     }
 
     .sticky-header label[class*="me-"] {
         margin-right: .5rem !important;
+    }
+
+    .chart-filter-row {
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .chart-filter-row > * {
+        flex-shrink: 0;
+    }
+
+    .sticky-header .form-check {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px;
+        margin: 0 8px 0 4px !important;
+        min-height: 0 !important;
+        padding-left: 0 !important;
+    }
+
+    .sticky-header .form-check-input {
+        margin: 0 !important;
+        position: static !important;
+        float: none !important;
+    }
+
+    .sticky-header .form-check-label {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .sticky-header select {
+        width: auto !important;
+        min-width: 108px;
+        padding-right: 28px !important;
+        white-space: nowrap;
     }
 
     #gridContainer .dx-datagrid-headers .dx-header-row > td {
@@ -70,17 +111,17 @@
     .tomselect-custom {
         width: 200px;
         min-height: 30px; /* hoặc tùy theo chiều cao bạn muốn */
-        font-size: 0.75rem !important;
+        font-size: 14px !important;
     }
 
         .tomselect-custom + .ts-dropdown .option {
-            font-size: 0.75rem !important;
+            font-size: 14px !important;
             padding: 4px 4px !important;
         }
 
     /* Nhỏ input khi đã khởi tạo TomSelect */
     .ts-wrapper.single .ts-control {
-        font-size: 0.75rem !important;
+        font-size: 14px !important;
         min-height: 30px !important;
         padding: 4px 4px !important;
     }
@@ -93,7 +134,10 @@
 </style>
 <div class="text-center" id="reportTitle" style="font-size: 20px"></div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+    <div class="mb-1">
+        <button  id="btnPrint" class="mui-button mui-button-new">View</button>
+    </div>
+    <div class="d-flex align-items-center gap-2 mb-1 chart-filter-row" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
         <label class="me-2 mb-0 fw-bold me-1">Date Range:</label>
         <div class="d-flex align-items-center me-1">
             <label id="fromDateLabel" class="me-2 mb-0">From Arrival Date:</label>
@@ -106,19 +150,21 @@
         <label class="me-2 mb-0 fw-bold me-1">Filter:</label>
         <div class="d-flex align-items-center me-1">
             <label class="me-2 mb-0">Cancel Reason:</label>
-            <select id="commnet" name="commnet" class="tomselect-custom" multiple>
-                <option value=""></option>
+            <select id="commnet" name="commnet" class="form-control form-control-sm report-dd">
+                <option value="">--All--</option>
                 @foreach (var item in comList)
                 {
-                    if (item == comList[0])
+                    if (item == null) { continue; }
+                    if (string.IsNullOrWhiteSpace(item.Code) && string.IsNullOrWhiteSpace(item.Description)) { continue; }
+                    string reasonLabel = (item.Code ?? "").Trim();
+                    if (!string.IsNullOrWhiteSpace(item.Description))
                     {
-                        <option value="@item.Code" selected>@item.Code - @item.Description</option>
+                        reasonLabel = string.IsNullOrWhiteSpace(reasonLabel)
+                            ? item.Description.Trim()
+                            : reasonLabel + " - " + item.Description.Trim();
                     }
-                    else
-                    {
-                        <option value="@item.Code">@item.Code - @item.Description</option>
-                    }
-                 
+                    if (string.IsNullOrWhiteSpace(reasonLabel)) { continue; }
+                    <option value="@item.Code">@reasonLabel</option>
                 }
             </select>
         </div>
@@ -149,13 +195,9 @@
         </div>
  *@
     </div>
-
-    <div class="">
-        <button  id="btnPrint" class="mui-button mui-button-new">View</button>      
-    </div>
 </div>
-<div class="mui-card chart-container">
-    <div id="monthlyBar" class="chart-fixed-size"></div>
+<div class="mui-card report-chart-card">
+    <div id="monthlyBar" class="report-chart-body"></div>
 </div>
 
 <div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
@@ -206,7 +248,6 @@
    
 
         getBusinessDate();
-        initializeTomSelects();
     });
       function initializeTomSelects() {
         const selectors = ["#commnet"];
@@ -242,13 +283,9 @@
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-
-                 const fromDateStr = result.split('T')[0];
+                const fromDateStr = result.split('T')[0];
                 $('#fromDate').val(fromDateStr);
-               $('#toDate').val(fromDateStr);
-            
-
-
+                $('#toDate').val(fromDateStr);
             },
             error: function (xhr, statusText, err) {
                 if (xhr.status == 401) {

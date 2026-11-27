@@ -15,54 +15,56 @@
         margin: 0px 8px;
     }
 
-    .chart-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-wrap: wrap;
-        padding: 20px;
-    }
-
-    .chart-fixed-size {
-        width: 700px;
-        height: 520px;
-    }
-
     .sticky-header label,
     .sticky-header .form-control-sm {
-        font-size: 0.75rem;
+        font-size: 14px;
         line-height: 1.2;
     }
 
+    .sticky-header label {
+        white-space: nowrap;
+    }
 
     .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
+        padding: 2px 8px;
+        height: 28px;
     }
 
     .sticky-header label[class*="me-"] {
         margin-right: .5rem !important;
     }
 
+    .chart-filter-row {
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+    }
+
+    .sticky-header select {
+        width: auto !important;
+        min-width: 108px;
+        padding-right: 28px !important;
+        white-space: nowrap;
+    }
+
 </style>
 
 <div class="text-center" id="reportTitle" style="font-size: 20px"></div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+    <div class="mb-1">
+        <button id="btnView" class="mui-button mui-button-new" >
+             View
+        </button>
+    </div>
+    <div class="d-flex align-items-center gap-2 mb-1 chart-filter-row" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">Month:</label>
             <input type="month" id="monthPicker" class="form-control form-control-sm w-auto" />
         </div>
     </div>
-    <div class="">
-        <button id="btnView" class="mui-button mui-button-new" >
-             View
-        </button>
-    </div>
 </div>
 
-<div class="mui-card chart-container">
-    <div id="highchartPie" class="chart-fixed-size"></div>
+<div class="mui-card report-chart-card">
+    <div id="highchartPie" class="report-chart-body" style="height:520px;"></div>
 </div>
 
 <div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
@@ -90,16 +92,10 @@
                 "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val()
             },
             success: function (result) {
-                // result ví dụ: 2026-01-19T00:00:00
                 var businessDate = new Date(result);
-
                 var year = businessDate.getFullYear();
-                var month = String(businessDate.getMonth() + 1).padStart(2, '0'); // 01–12
-
-                // Định dạng YYYY-MM
-                var monthYearStr = year + '-' + month;
-
-                $('#monthPicker').val(monthYearStr);
+                var month = String(businessDate.getMonth() + 1).padStart(2, '0');
+                $('#monthPicker').val(year + '-' + month);
             },
             error: function (xhr) {
                 if (xhr.status === 401) {

@@ -156,7 +156,10 @@ ORDER BY a.LoginName",
             var leafTable = isDataRight ? "FormAndFunctionData" : "FormAndFunction";
             var groupFk = isDataRight ? "FormAndFunctionDataGroupID" : "FormAndFunctionGroupID";
             var groups = DataTableHelper.ExecuteQuery($"SELECT ID, Name, ParentID FROM {groupTable} WITH (NOLOCK) WHERE ISNULL(IsHide,0)=0 ORDER BY Code, ID");
-            var leaves = DataTableHelper.ExecuteQuery($"SELECT ID, Name, {groupFk} AS GroupID FROM {leafTable} WITH (NOLOCK) WHERE ISNULL(IsHide,0)=0 ORDER BY Name, ID");
+            var leafSql = isDataRight
+                ? $"SELECT ID, Name, {groupFk} AS GroupID, CAST('' AS nvarchar(100)) AS Code FROM {leafTable} WITH (NOLOCK) WHERE ISNULL(IsHide,0)=0 ORDER BY Name, ID"
+                : $"SELECT ID, Name, {groupFk} AS GroupID, ISNULL(Code,'') AS Code FROM {leafTable} WITH (NOLOCK) WHERE ISNULL(IsHide,0)=0 ORDER BY Name, ID";
+            var leaves = DataTableHelper.ExecuteQuery(leafSql);
             var items = new List<RightNode>();
             foreach (DataRow g in groups.Rows)
             {
@@ -170,17 +173,137 @@ ORDER BY a.LoginName",
                     isLeaf = false
                 });
             }
+            var leafCodes = new Dictionary<int, string>();
             foreach (DataRow f in leaves.Rows)
             {
+                var id = SecurityRow.CellInt(f, "ID");
+                leafCodes[id] = SecurityRow.Cell(f, "Code");
                 items.Add(new RightNode
                 {
-                    id = SecurityRow.CellInt(f, "ID"),
+                    id = id,
                     parentId = -SecurityRow.CellInt(f, "GroupID"),
                     name = SecurityRow.Cell(f, "Name"),
                     isLeaf = true
                 });
             }
+            if (!isDataRight)
+                ApplyWebReportFolders(items, leafCodes);
             return items;
+        }
+
+        // Nhóm 012_5 Report Management (ID 74) trên DB là một list phẳng.
+        // Cây quyền web tách đúng các nhóm của View Report. Code tag và FormAndFunctionGroupID không đổi.
+        private const int WebReportGroupId = 74;
+
+        private static (string Name, string[] Codes)[] WebReportFolders() => new (string, string[])[]
+        {
+            ("01 - Account Receivable", new[]
+            {
+                "rptAgingbyTypeOnly", "rptAgingSummaryByType", "rptAgingSummaryofAllAcounts", "rptARAdjustment",
+                "rptARAgingSummaryofAllTypes", "rptARCollectionStatistics", "rptARCreditBalance",
+                "rptARCreditCardTransfer", "rptARCreditLimit", "rptARLedger", "rptARPayments",
+                "rptARTransferReport", "rptARDetailedAging"
+            }),
+            ("02 - Arrival & Departure", new[]
+            {
+                "rptArrivalAndCheckInToDay", "rptArrivalDetailed", "rptArrivalDetailedGroupByHolder",
+                "rptDepartureIndividualAndGroup", "rptDepartureReport", "rptDepartureExtended"
+            }),
+            ("03 - Cashiering", new[]
+            {
+                "rptDialingInfomation", "rptIncurringDepositCollection", "rptIncurringDepositPaymentPlan",
+                "rptIncurringDepositReturn", "rptIncurringDepositSummary"
+            }),
+            ("04 - End Of Day", new[]
+            {
+                "rptARTrace", "rptCashierAudit", "rptCashierSummary", "rptCancellationJournal", "rptGuestTrialBalance",
+                "rptRevenueReport", "rptRevenueSummary", "rptRevenueDetail", "rptRevenueSpa",
+                "rptManagerReport", "rptPostingJournalInvoicing", "rptDepositTransferAtCheckIn",
+                "rptTransferAccountReceivableReport", "rptReservationSummary", "rptReservationRateCheck",
+                "rptRoomOccupancyStatistic", "rptNationalStatistic", "rptNoShowReport",
+                "tool_RecanculateRoomRevenue"
+            }),
+            ("05 - Financial", new[]
+            {
+                "rptTrialBalance", "rpt_Acc_DailyRevenueReportNew", "rpt_Acc_DailyRevenueReport(V2)",
+                "rpt_Acc_GroupBalance"
+            }),
+            ("06 - Guest In House", new[]
+            {
+                "rptGuestBirthDay", "rptGIHByCompany", "rptGIHByGroup", "rptGIHByRoom",
+                "rptGIHCashPaymentMethod", "rptGIHSpecialRequests", "rptMessagesGIHDueArrival",
+                "rptRoomMoves", "rptGuestInHouseComplimentaryAndHouseUse", "rptGuestLedger"
+            }),
+            ("07 - HouseKeeping", new[]
+            {
+                "rptArticleByRoom", "rptDailyMinibarReport", "rptHouseKeepingStatus",
+                "rptJournalByCashierAndArticle", "rptOccupancyByPerson", "rptOutOfOrderByPerson",
+                "rptRoomDiscrepancy", "rptSummaryByArticle", "rptVacantRoom"
+            }),
+            ("08 - Other Reports", new[]
+            {
+                "rptComplimentaryGuestReport", "rptGIHComplimentary", "rptGIHComplimentaryAndHouseUse",
+                "rptPaidOutReport", "rptRevenueBy", "rptHistoryAndForecast", "rptRevenuebyroom",
+                "rptDailyPickupReport"
+            }),
+            ("09 - Profile & Statistics", new[]
+            {
+                "rptProfileAddress", "rptProfileProductivity", "rptRoomStatistic",
+                "rptRoomTypeStatistic", "rpt_Acc_NationalityStatistics"
+            }),
+            ("10 - Sales & Reservation", new[]
+            {
+                "rptAlerts", "rptDepositActivity", "rptReservationByCompany", "rptReservationPreblocked",
+                "rptReservationRateCheck",
+                "rptReservationStatistic", "rptReservationCancellation", "rptRoomOccupancy", "rptTransportation",
+                "rptMarketSegmentDetail", "rptDepositLedger", "rpt_Spr_ReservationSummaryReport",
+                "rpt_Spr_RateCodeReport", "rpt_OT_RatecodebyDate", "rpt_OT_OTAsMonthly", "rpt_OT_TAProduction",
+                "rpt_Spr_SaleInChargeReport", "rpt_Spr_SaleInChargeActivity", "rpt_Spr_GuestMarketReport",
+                "rpt_Spr_ProductActivity", "rptFreeUpgradeReport", "rpt_Spr_GroupReservationReport",
+                "rpt_Spr_FFPAndotherCards",
+                "rpt_Spr_BlackListReport", "rpt_Spr_DepositRequestlogReport", "rptBookingSource",
+                "rptDailyBreakfastDetail", "rptBookingSummaryByStatus", "rpt_Spr_LeadTimeReport",
+                "rpt_Spr_AnnualRoomOccupancy", "rpt_Spr_TraceReport", "rpt_Spr_GuestStayReport",
+                "rpt_Spr_GuestStayOver", "rpt_Spr_FixchargeReport",
+                "rpt_OT_ProfileProductionStatistics", "rpt_Spr_BookingbyHolder", "rpt_Spr_ProfileUpdate",
+                "rpt_Spr_PackageReportbyPerson", "rpt_Spr_ReservationView", "rptReservationWithDiscount", "rpt_Spr_ReportComments"
+            })
+        };
+
+        private static void ApplyWebReportFolders(List<RightNode> items, Dictionary<int, string> leafCodes)
+        {
+            var codeToFolder = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var folders = new List<RightNode>();
+            var seq = 0;
+            foreach (var folder in WebReportFolders())
+            {
+                var folderId = -91001 - seq;
+                seq++;
+                folders.Add(new RightNode
+                {
+                    id = folderId,
+                    parentId = -WebReportGroupId,
+                    name = folder.Name,
+                    isLeaf = false
+                });
+                foreach (var code in folder.Codes)
+                    codeToFolder[code] = folderId;
+            }
+
+            var used = new HashSet<int>();
+            foreach (var node in items)
+            {
+                if (!node.isLeaf)
+                    continue;
+                if (!leafCodes.TryGetValue(node.id, out var code) || string.IsNullOrWhiteSpace(code))
+                    continue;
+                if (codeToFolder.TryGetValue(code, out var folderId))
+                {
+                    node.parentId = folderId;
+                    used.Add(folderId);
+                }
+            }
+            items.AddRange(folders.Where(f => used.Contains(f.id)));
         }
 
         private static string DisplayGroupName(string name)

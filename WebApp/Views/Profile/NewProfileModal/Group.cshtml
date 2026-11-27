@@ -313,7 +313,6 @@
 
             const loadTasks = [
                 loadDataToTomSelect("#gro_txtLanguage", "/Profile/GetAllLanguage", mapCode),
-                loadDataToTomSelect("#gro_txtCity", "/Profile/GetAllCity", mapCode),
                 loadDataToTomSelect("#gro_txtCountry", "/Profile/GetAllCountry", mapCode),
 
                 loadDataToTomSelect("#gro_txtCurrency", "/Profile/GetAllCurrency",(item) => {
@@ -349,6 +348,7 @@
                 })
             ];
 
+            self.cityCountry = bindCitySelectToCountry("#gro_txtCountry", "#gro_txtCity");
             Promise.all(loadTasks);
         },
 
@@ -493,11 +493,16 @@
             $("#gro_txtAddress").val(data.address || "");
             $("#gro_txtHomeAddress").val(data.homeAddress || "");
 
-            setTS("#gro_txtCity", data.city);
-
             $("#gro_txtPostalCode").val(data.postalCode || "");
 
-            setTS("#gro_txtCountry", data.countryID);
+            const countryTs = getTomSelect("#gro_txtCountry");
+            if (countryTs) {
+                countryTs._suspendCityReload = true;
+                countryTs.setValue(data.countryID || "", true);
+                countryTs._suspendCityReload = false;
+            }
+            if (this.cityCountry) this.cityCountry.load(data.countryID, data.city);
+            else setTS("#gro_txtCity", data.city);
             setTS("#gro_txtState", data.stateID);
 
             $("#gro_txtContact").val(data.acctContact || "");

@@ -3,9 +3,51 @@
     .form-control:not([readonly]):not(:disabled) {
         background: white !important;
     }
+    /* Booking đã Check Out: toàn bộ form chỉ xem (xám) */
+    .rsv-readonly input:disabled, .rsv-readonly select:disabled, .rsv-readonly textarea:disabled,
+    #modalMoreFields.rsv-readonly input:disabled, #modalMoreFields.rsv-readonly select:disabled, #modalMoreFields.rsv-readonly textarea:disabled {
+        background-color: #e9ecef !important;
+        color: #495057;
+        cursor: not-allowed;
+    }
+    .rsv-readonly button:disabled { opacity: .5; cursor: not-allowed; }
 
     .rate-currency-row .row {
         align-items: center;
+    }
+
+    /* Cặp ô chỉ nhập số (Nights/No.Room, Adults/C, C1/C2, RN/Curr): ô nhỏ, ô thứ 2 canh phải thẳng hàng các ô khác */
+    .rsv-num-pair {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+        overflow: hidden; /* không bao giờ tràn sang cột bên cạnh */
+    }
+
+    /* Ô số co giãn trong khoảng 34px - 56px tùy độ rộng màn hình */
+    .rsv-num-pair .rsv-num {
+        flex: 0 1 56px;
+        width: 56px;
+        min-width: 34px;
+        text-align: right;
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+
+    .rsv-num-pair .rsv-cur {
+        flex: 0 1 72px;
+        width: 72px;
+        min-width: 52px;
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+
+    .rsv-num-pair > label {
+        flex: 0 0 auto;
+        margin: 0 0 0 auto;
+        padding-left: 4px;
+        white-space: nowrap;
     }
 
     .new-reservation-layout {
@@ -159,32 +201,74 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: .25rem .75rem;
-        margin-top: .4rem !important;
-        margin-bottom: .35rem;
+        margin: .4rem 0 .35rem !important;
+    }
+
+    /* Bỏ width 50% / padding của col-6 bên trong grid để nhãn không bị ép xuống dòng */
+    .new-reservation-checks > [class*='col-'] {
+        width: auto;
+        max-width: none;
+        padding: 0;
+        min-width: 0;
     }
 
     .new-reservation-checks .form-check {
         display: flex;
         align-items: center;
-        gap: .25rem;
+        gap: .35rem;
         min-height: 24px;
         margin: 0;
+        padding-left: 0;
     }
 
     .new-reservation-checks .form-check-label {
         font-size: .82rem;
         line-height: 1.1;
         color: #4b5563;
+        white-space: nowrap;
+        cursor: pointer;
     }
 
     .new-reservation-checks input[type='checkbox'] {
+        flex: 0 0 auto;
         width: 14px;
         height: 14px;
         margin: 0;
+        float: none;
     }
 
     .specials-section-new-reservation {
         min-height: 80px;
+    }
+
+    .form-group-new-reservation {
+        margin-bottom: 8px;
+    }
+
+    .reservation-panel-bottom > .row.g-1 {
+        align-items: flex-start;
+        row-gap: 0;
+    }
+
+    .reservation-panel-bottom .row.g-1 > [class*='col-'] > div {
+        margin-bottom: 8px;
+    }
+
+    .reservation-panel-bottom .row.g-1 > [class*='col-'] .col-form-label {
+        padding-top: .2rem;
+        padding-bottom: .2rem;
+        line-height: 1.2;
+    }
+
+    .nr-child-lbl {
+        flex: 0 0 auto;
+        width: auto !important;
+        min-width: 1.25rem;
+        padding-left: 8px !important;
+        padding-right: 6px !important;
+        overflow: visible;
+        white-space: nowrap;
+        text-align: left !important;
     }
 </style>
 <div>
@@ -194,7 +278,7 @@
 
                 <!-- ACTION TOP -->
                 <div class="mt-2">
-                    <button class="mui-button mui-button-new" onclick="OkReservation(0)">Save</button>
+                    <button class="mui-button mui-button-new" onclick="OkReservation(0)" id="btnSaveReservation">Save</button>
                     <button class="mui-button mui-button-new" onclick="openModalOption();" id="btnOption">
                         Option
                     </button>
@@ -311,7 +395,7 @@
                                                 <div class="form-group-new-reservation col-12">
                                                     <div class="input-with-button row g-0 align-items-start">
                                                         <label class="col-md-4 col-form-label text-start pe-0"
-                                                               for="txtPassport">Pass port</label>
+                                                               for="txtPassport">Passport</label>
                                                         <div class="col-md-7">
                                                             <input type="text" id="txtPassport" class="form-control" />
                                                         </div>
@@ -366,7 +450,7 @@
                                                             <input value="2" id="adults" class="form-control"
                                                                    style="text-align:right" />
                                                         </div>
-                                                        <label class="col-1 col-form-label text-center pe-0"
+                                                        <label class="col-form-label nr-child-lbl"
                                                                for="c">C</label>
                                                         <div class="col-3">
                                                             <input value="0" id="c" class="form-control"
@@ -449,7 +533,7 @@
                                                     <div class="row g-0 align-items-center">
                                                         <label class="col-4 col-form-label text-start pe-0"
                                                                for="departure">Departure</label>
-                                                        <div class="col-7">
+                                                        <div class="col-8">
                                                             <div data-date-input data-format="DD/MM/YYYY" business-date
                                                                  data-name="departure">
                                                                 <input type="text" class="date-ui form-control"
@@ -458,23 +542,6 @@
                                                             </div>
                                                             <span style="font-size:12px;color:#c53030;display:none"
                                                                   id="departure-day"></span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <!-- C1 / C2 -->
-                                                <div class="">
-                                                    <div class="row g-0 align-items-center">
-                                                        <label class="col-4 col-form-label text-start pe-0"
-                                                               for="c1">C1</label>
-                                                        <div class="col-3">
-                                                            <input value="0" id="c1" class="form-control"
-                                                                   style="text-align:right" />
-                                                        </div>
-                                                        <label class="col-1 col-form-label text-center pe-0"
-                                                               for="c2">C2</label>
-                                                        <div class="col-3">
-                                                            <input value="0" id="c2" class="form-control"
-                                                                   style="text-align:right" />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -489,12 +556,29 @@
                                                         </div>
                                                     </div>
                                                 </div>
+                                                <!-- C1 / C2 -->
+                                                <div class="">
+                                                    <div class="row g-0 align-items-center">
+                                                        <label class="col-4 col-form-label text-start pe-0"
+                                                               for="c1">C1</label>
+                                                        <div class="col-3">
+                                                            <input value="0" id="c1" class="form-control"
+                                                                   style="text-align:right" />
+                                                        </div>
+                                                        <label class="col-form-label nr-child-lbl"
+                                                               for="c2">C2</label>
+                                                        <div class="col-3">
+                                                            <input value="0" id="c2" class="form-control"
+                                                                   style="text-align:right" />
+                                                        </div>
+                                                    </div>
+                                                </div>
                                                 <!-- RTC -->
                                                 <div class="">
                                                     <div class="row g-0 align-items-center">
                                                         <label class="col-4 col-form-label text-start pe-0"
                                                                for="txtRTC">RTC</label>
-                                                        <div class="col-7">
+                                                        <div class="col-8">
                                                             <select id="txtRTC" class="form-control"
                                                                     asp-items="ViewBag.cboRoomType"></select>
                                                         </div>
@@ -505,7 +589,7 @@
                                                     <div class="row g-0 align-items-center">
                                                         <label class="col-4 col-form-label text-start pe-0"
                                                                for="txtRateCode">R.Code</label>
-                                                        <div class="col-7">
+                                                        <div class="col-8">
                                                             <div class="d-flex align-items-center">
                                                                 <input id="txtRateCodeID" readonly
                                                                        style="display:none" />
@@ -527,7 +611,7 @@
                                                     <div class="row g-0 align-items-center">
                                                         <label class="col-4 col-form-label text-start pe-0"
                                                                for="txtRateCurrency">Curr</label>
-                                                        <div class="col-7">
+                                                        <div class="col-8">
                                                             <select id="txtRateCurrency" class="form-control"
                                                                     asp-items="ViewBag.cboCurrency"></select>
                                                         </div>
@@ -538,7 +622,7 @@
                                                     <div class="row g-0 align-items-center">
                                                         <label class="col-4 col-form-label text-start pe-0"
                                                                for="txtNetAmount">Net</label>
-                                                        <div class="col-7">
+                                                        <div class="col-8">
                                                             <input type="text" id="txtNetAmount" value="0"
                                                                    class="form-control" style="text-align:right" />
                                                         </div>
@@ -669,7 +753,7 @@
                                                 <div class="form-group-new-reservation col-12 col-xl-6 ">
                                                     <div class="input-with-button row g-0 align-items-start">
                                                         <label class="col-md-4 col-form-label text-start pe-0"
-                                                               for="txtPrefRoom">Prf.Room</label>
+                                                               for="txtPrefRoom">Pref.Room</label>
                                                         <div class="col-md-7">
                                                             <input type="text" id="txtPrefRoom" class="form-control" disabled />
                                                         </div>
@@ -1183,12 +1267,15 @@
                                                 </div>
 
                                                 <!-- Comments -->
-                                                <div class="row mt-3">
-                                                    <div class="col-12">
-                                                        <label for="txtComment">Comments</label>
-                                                        <textarea rows="3"
-                                                                  class="form-control specials-section-new-reservation"
-                                                                  id="txtComment"></textarea>
+                                                <div class="form-group-new-reservation col-12">
+                                                    <div class="input-with-button row g-0 align-items-start">
+                                                        <label class="col-md-3 col-form-label text-start pe-0"
+                                                               for="txtComment">Comments</label>
+                                                        <div class="col-md-9">
+                                                            <textarea rows="3"
+                                                                      class="form-control specials-section-new-reservation"
+                                                                      id="txtComment"></textarea>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1285,10 +1372,10 @@
 </div>
 
 <div class="modal fade" id="modalOption" tabindex="-1" aria-labelledby="transactionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content" style="border: 1px solid #bcbcbc">
             <div class="modal-header">
-                <h5 class="modal-title">Modal Options</h5>
+                <h5 class="modal-title">Reservation Options</h5>
                 <button type="button" class="btn-close" aria-label="Close" onclick="closeModalOption();"></button>
             </div>
 
@@ -1316,14 +1403,14 @@
                         Grp
                         Admin
                     </a>
-                    <a href="#" data-function="export" class="font-semibold col-md-4 ">Export</a>
+                    <a href="#" data-function="export" onclick="if (typeof exportExcel === 'function') exportExcel(); return false;" class="font-semibold col-md-4 ">Export</a>
                     <a href="#" onclick="openModalSplit();" class="font-semibold col-md-4 ">Split</a>
                     <a href="#" onclick="openModalAccompanying();" class="font-semibold col-md-4 ">Accompany</a>
                     <a href="#" onclick="openModalAddOn();" class="font-semibold col-md-4 ">Add On</a>
-                    <a href="#" class="font-semibold col-md-4 ">Alerts</a>
+                    <a href="#" onclick="openModalAlerts(); return false;" class="font-semibold col-md-4 ">Alerts</a>
                     <a href="#" onclick="openModalBilling();" class="font-semibold col-md-4 ">Billing</a>
                     <a onclick="openModalInvoicing();" class="font-semibold col-md-4 ">Invoicing</a>
-                    <a href="#" class="font-semibold col-md-4 ">Change</a>
+                    <a href="#" onclick="openModalChanges(); return false;" class="font-semibold col-md-4 ">Change</a>
                     <a href="#" onclick="openModalShare();" class="font-semibold col-md-4 ">Share</a>
                     <a href="#" onclick="openModalDeposit();" class="font-semibold col-md-4 ">Dep/DXL</a>
                     <a href="#" onclick="openModalFixedCharges();" class="font-semibold col-md-4 ">FixedCharges</a>
@@ -1336,7 +1423,6 @@
                     <a href="#" onclick="openModalWaitList();" class="font-semibold col-md-4 ">WaitList</a>
                     <a href="#" onclick="openVisibleColumns();" class="font-semibold col-md-4 ">Columns</a>
                     <a href="#" onclick="openModalWakeupCall();" class="font-semibold col-md-4 ">Wake up Call</a>
-
                 </div>
             </div>
         </div>
@@ -1431,102 +1517,182 @@
             }
             return true;
         }
-        [0, 80, 220].forEach(function (delay) {
-            window.setTimeout(attempt, delay);
+        // Popup Bootstrap đang mở (fade) sẽ tự lấy focus về khung modal, các ajax load dữ liệu cũng có thể làm mất focus
+        // -> thử lại vài lần, nhưng chỉ khi user chưa tự bấm vào ô khác.
+        let first = true;
+        [0, 80, 220, 450, 800].forEach(function (delay) {
+            window.setTimeout(function () {
+                const active = document.activeElement;
+                const userBusy = !first && active && active.id !== 'txtName'
+                    && /^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName);
+                first = false;
+                if (!userBusy && (!active || active.id !== 'txtName')) attempt();
+            }, delay);
         });
     }
     window.focusNewReservationFirstField = focusNewReservationFirstField;
 
+    // Đóng popup New Reservation sau khi đã đổi tên Profile -> tải lại grid để hiện tên mới ngay
+    $(document).off('hidden.bs.modal.rsvNameSync', '#newReservationModal')
+        .on('hidden.bs.modal.rsvNameSync', '#newReservationModal', function () {
+            if (!window.__rsvProfileNameChanged) return;
+            window.__rsvProfileNameChanged = false;
+            if (typeof window.searchReservation === 'function') {
+                try { window.searchReservation(); } catch (e) { }
+            }
+        });
+
+    // Mỗi lần popup New Reservation mở xong -> focus vào ô Name
+    $(document).off('shown.bs.modal.focusName', '#newReservationModal')
+        .on('shown.bs.modal.focusName', '#newReservationModal', function () {
+            focusNewReservationFirstField();
+        });
+
+    // Cho phép sửa tên khách cả khi sửa booking; khi lưu, tên mới được cập nhật lại vào Profile
     function setReservationNameInputMode(isEditMode) {
         const $nameInput = $('#txtName');
         if (!$nameInput.length) {
             return;
         }
 
-        $nameInput.prop('readonly', !!isEditMode);
-        $nameInput.attr('aria-readonly', isEditMode ? 'true' : 'false');
+        $nameInput.prop('readonly', false);
+        $nameInput.attr('aria-readonly', 'false');
+    }
+
+    /**
+     * Thứ tự Tab theo luồng nhập booking của lễ tân:
+     * 1. Thông tin khách (cột trái trên) -> 2. Thông tin cá nhân (cột giữa trên)
+     * -> 3. Lưu trú, phòng, giá (cột trái dưới) -> 4. Thông tin booking (cột giữa dưới)
+     * -> 5. Nguồn khách, công ty, ghi chú (cột phải).
+     * Ô bị khóa (disabled) hoặc chỉ đọc mà không có nút tìm kiếm sẽ được bỏ qua.
+     */
+    // Dùng var (không dùng const): script này được nạp lại mỗi lần mở popup, const khai báo lại sẽ báo lỗi và làm hỏng cả form
+    var NEW_RESERVATION_TAB_ORDER = [
+        // 1. Khách
+        '#txtName', '#txtFirstName', '#txtIdentityCard', '#txtEmail', '#txtTitle', '#txtPhone', '#txtPassport',
+        // 2. Thông tin cá nhân
+        '#txtAddress', '[data-name="txtDob"] .date-ui', '#txtMemberType', '#txtCardNo', '#txtNationality', '#txtVIP', '#txtCity',
+        // 3. Lưu trú - phòng - giá
+        '#arrivalShow', '#nights', '#departureShow', '#txtRN', '#numRooms',
+        '#adults', '#c', '#c1', '#c2',
+        '#txtRoomType', '#txtRTC', '#roomSelect', '#txtRateCode',
+        '#txtRateCurrency', '#txtRateAmount', '#txtNetAmount',
+        '#txtDiscountAmount', '#txtDiscountPercent',
+        // 4. Booking
+        '#txtPackage', '#txtAllotment', '#txtResType', '#txtMarket',
+        '#txtPersonInCharge', '#txtPayment', '#txtCRSNo', '#txtBooker', '#txtETA', '#txtETD',
+        // 5. Nguồn khách - công ty - khác
+        '#txtAgent', '#txtCompany', '#txtContact', '#txtContactPhone', '#txtReason',
+        '#txtPreference', '#txtPromotion', '#txtSource', '#txtItemInventory', '#txtColor',
+        '#txtPrintRate', '#txtVideoCheckout', '#txtNoPost', '#txtConfirmation',
+        '#txtComment'
+    ];
+
+    // Ô chỉ đọc có nút tìm kiếm bên cạnh (Agent, Company, Room, Rate Code...) -> trả về nút đó
+    function getNewReservationLookupButton($el) {
+        return $el.parent().find('button').not('.btn-clear').filter(function () {
+            const onclick = $(this).attr('onclick') || '';
+            return onclick.indexOf('clear') !== 0;
+        }).first();
+    }
+
+    function isNewReservationTabStop(el) {
+        const $el = $(el);
+        if (!$el.length || !$el.is(':visible') || $el.prop('disabled')) return false;
+        if ($el.prop('readonly')) {
+            const $btn = getNewReservationLookupButton($el);
+            return $btn.length > 0 && !$btn.prop('disabled');
+        }
+        return true;
+    }
+
+    function getNewReservationTabElements() {
+        const list = [];
+        NEW_RESERVATION_TAB_ORDER.forEach(function (selector) {
+            $(selector).each(function () { list.push(this); });
+        });
+        return list;
     }
 
     function applyNewReservationTabOrder() {
         $('.btn-search-icon, .btn-clear').attr('tabindex', '-1');
-
-        const selectors = [
-            '#txtName',
-            '#txtAddress',
-            '#txtAgent',
-            '#txtFirstName',
-            '#txtTitle',
-            '[data-name="txtDob"] .date-ui',
-            '#txtCompany',
-            '#txtPhone',
-            '#txtNationality',
-            '#txtContact',
-            '#txtEmail',
-            '#txtCity',
-            '#txtContactPhone',
-            '#txtIdentityCard',
-            '#txtMemberType',
-            '#txtReason',
-            '#txtPassport',
-            '#txtCardNo',
-            '#txtPrefRoom',
-            '#arrivalShow',
-            '#txtResType',
-            '#txtPreference',
-            '#nights',
-            '#txtMarket',
-            '#txtPromotion',
-            '#departureShow',
-            '#txtSource',
-            '#txtItemInventory',
-            '#adults',
-            '#c',
-            '#c1',
-            '#c2',
-            '#txtPersonInCharge',
-            '#txtFolioBalanceDisplay',
-            '#numRooms',
-            '#txtPayment',
-            '#txtColor',
-            '#txtRoomType',
-            '#txtCRSNo',
-            '#txtPrintRate',
-            '#txtRTC',
-            '#txtBooker',
-            '#txtNoPost',
-            '#roomSelect',
-            '#txtETA',
-            '#txtVideoCheckout',
-            '#txtRN',
-            '#txtETD',
-            '#txtConfirmation',
-            '#txtRateCode',
-            '#txtRateAmount',
-            '#txtRateCurrency',
-            '#txtNetAmount',
-            '#txtPackage',
-            '#txtAllotment',
-            '#txtDiscountAmount',
-            '#txtDiscountPercent',
-            '#txtComment'
-        ];
-
         let index = 1;
-        selectors.forEach(function (selector) {
-            $(selector).each(function () {
-                if ($(this).is(':visible')) {
-                    $(this).attr('tabindex', index++);
-                }
-            });
+        getNewReservationTabElements().forEach(function (el) {
+            $(el).attr('tabindex', index++);
         });
     }
+
+    // Tự điều hướng Tab / Shift+Tab theo NEW_RESERVATION_TAB_ORDER (bỏ qua ô khóa tại thời điểm bấm)
+    $(document).off('keydown.rsvTab').on('keydown.rsvTab', function (ev) {
+        if (ev.key !== 'Tab' || ev.ctrlKey || ev.altKey) return;
+        const list = getNewReservationTabElements();
+        const current = list.indexOf(document.activeElement);
+        if (current < 0) return;
+        const step = ev.shiftKey ? -1 : 1;
+        for (let i = current + step; i >= 0 && i < list.length; i += step) {
+            if (isNewReservationTabStop(list[i])) {
+                ev.preventDefault();
+                list[i].focus();
+                if (typeof list[i].select === 'function' && /^(text|number|email|tel)$/.test(list[i].type || '')) {
+                    try { list[i].select(); } catch (e) { }
+                }
+                return;
+            }
+        }
+    });
+    // Enter / F2 trên ô tìm kiếm chỉ đọc (Agent, Company, Contact, Room, Rate Code, Allotment) -> mở popup tìm
+    $(document).off('keydown.rsvLookup').on('keydown.rsvLookup', '#txtAgent, #txtCompany, #txtContact, #roomSelect, #txtRateCode, #txtAllotment', function (ev) {
+        if (ev.key !== 'Enter' && ev.key !== 'F2') return;
+        if (!$(this).prop('readonly')) return;
+        const $btn = getNewReservationLookupButton($(this));
+        if ($btn.length && !$btn.prop('disabled')) {
+            ev.preventDefault();
+            $btn.trigger('click');
+        }
+    });
 
     function openModalOption() {
         $('#modalOption').modal('show');
     }
+
+    /** Booking đã Check Out: khóa mọi ô nhập / nút chọn (profile, agent, room, rate...) trên form và More Fields. */
+    function lockCheckedOutReservation() {
+        $('#partial-content, #modalMoreFields').addClass('rsv-readonly');
+        // Form chính: mọi ô nhập + nút chọn (mũi tên profile / agent / room / rate...)
+        $('#partial-content').find('input, select, textarea, button').not('[type=hidden]').prop('disabled', true);
+        // More Fields: khóa ô nhập + nút Clear, vẫn để OK / Close để đóng popup
+        $('#modalMoreFields .modal-body').find('input, select, textarea').not('[type=hidden]').prop('disabled', true);
+        $('#modalMoreFields .modal-body button').each(function () {
+            if (/clear/i.test(this.textContent)) this.disabled = true;
+        });
+        // TomSelect (nếu có)
+        $('#partial-content select, #modalMoreFields select').each(function () { if (this.tomselect) this.tomselect.disable(); });
+        $('#btnClear').hide();
+    }
     function closeModalOption() {
         $('#modalOption').modal('hide');
     }
+    // Bấm 1 chức năng trong Reservation Options → đóng popup Options trước (như menu),
+    // để popup chức năng (Alerts, Routing, ...) không bị popup Options đè / giữ focus.
+    // Capture phase: chạy TRƯỚC onclick của link để popup mới mở sau khi Options đã bắt đầu đóng.
+    (function () {
+        var box = document.getElementById('functionAndOption');
+        if (!box || box.dataset.closeOnPick === '1') return;
+        box.dataset.closeOnPick = '1';
+        box.addEventListener('click', function (e) {
+            var link = e.target.closest('a');
+            if (!link || !box.contains(link)) return;
+            if (link.style.pointerEvents === 'none' || link.classList.contains('disabled')) return;
+            var el = document.getElementById('modalOption');
+            var inst = el && window.bootstrap ? bootstrap.Modal.getInstance(el) : null;
+            if (inst) inst.hide();
+            else $('#modalOption').modal('hide');
+        }, true);
+        // Options đóng khi các popup khác (New Reservation, Alerts...) còn mở → giữ lại class modal-open cho body
+        $('#modalOption').off('hidden.bs.modal.keepOpen').on('hidden.bs.modal.keepOpen', function () {
+            if ($('.modal.show').length > 0) $('body').addClass('modal-open');
+        });
+    })();
     var checkEdit = false;
 
     $(document).ready(async function () {
@@ -1560,7 +1726,16 @@
             }
             $('#btnOption').show();
             $('#btnClear').hide();
+            // Booking đã Check Out (Status = 2): chỉ cho xem — ẩn Save, khóa toàn bộ ô nhập (màu xám), không cho chọn profile
+            $('#btnSaveReservation').toggle(Number(result.status) !== 2);
+            if (Number(result.status) === 2) {
+                lockCheckedOutReservation();
+                // Một số ô được bật lại bất đồng bộ trong lúc nạp (room, rate, tên...) → khóa lại thêm vài lần
+                setTimeout(lockCheckedOutReservation, 300);
+                setTimeout(lockCheckedOutReservation, 1000);
+            }
         } else {
+            $('#btnSaveReservation').show();
             // Booking mới: luôn ép idReservation = 0 (không dùng biến global còn sót từ grid / lần trước).
             idReservation = 0;
             checkEdit = false;
@@ -1707,9 +1882,9 @@
         $("#txtRateCurrency").val(result.currencyId || "VND");
         let amount = result.rate; // Giả sử result.rate là 4409171
         // vi-VN: thousands '.', decimal ',' (as requested)
-        let formattedAmount = amount.toLocaleString('vi-VN');
+        let formattedAmount = formatReservationMoney(amount);
         let amountNet = result.rateAfterTax; // Giả sử result.rate là 4409171
-        let formattedNet = amountNet.toLocaleString('vi-VN');
+        let formattedNet = formatReservationMoney(amountNet);
          let nights = parseInt(result.noOfNight || 0);
         $("#txtRateAmount").val(formattedAmount); // Kết quả: 4,409,171
         $("#txtNetAmount").val(formattedNet);
@@ -1719,16 +1894,27 @@
         let totalNet = amountNet * nights;
 
         // gán total
-        $('#txtTotal').val(total.toLocaleString('vi-VN'));
-        $('#txtTotalNet').val(totalNet.toLocaleString('vi-VN'));
-        // $("#txtColor").val(result.color);
-        if (result.color) {
-            // Hiển thị dạng HEX để trình duyệt hiểu
+        $('#txtTotal').val(formatReservationMoney(total));
+        $('#txtTotalNet').val(formatReservationMoney(totalNet));
 
-            $("#txtColor").val(intToHexColor(result.color));
-        } else {
-            $("#txtColor").val("");
+        // Nạp lại giảm giá đã lưu (Disc. / Disc.%) và tính lại Rate/Net sau giảm + Total
+        const savedDiscAmount = parseFloat(result.discountAmount ?? result.DiscountAmount ?? 0) || 0;
+        const savedDiscRate = parseFloat(result.discountRate ?? result.DiscountRate ?? 0) || 0;
+        $('#txtDiscountAmount').val(formatReservationMoney(savedDiscAmount));
+        $('#txtDiscountPercent').val(savedDiscRate ? String(Math.round(savedDiscRate * 100) / 100).replace('.', ',') : '0');
+        if (savedDiscAmount > 0 || savedDiscRate > 0) {
+            // Hiện ngay Net sau giảm (cùng công thức server), sau đó lấy Rate sau giảm chính xác từ server
+            const netAfterDisc = Math.round((parseFloat(amountNet) || 0) * (1 - savedDiscRate / 100) - savedDiscAmount);
+            $('#txtNetAfterDiscount').val(formatReservationMoney(netAfterDisc));
+            $('#txtTotalNet').val(formatReservationMoney(netAfterDisc * nights));
+            calculateNetDiscount($('#arrival').val(), $('#departure').val(), 0, $('#txtRoomType').val(), 'VND', 0, nights,
+                Math.round(parseFloat(amountNet) || 0), '', savedDiscRate, savedDiscAmount);
         }
+        // $("#txtColor").val(result.color);
+        // Booking chưa chọn màu (rỗng / 0 / đen) -> hiện màu mặc định xanh giống lúc tạo mới.
+        // Khi lưu, màu mặc định được server hiểu là "không tô màu".
+        const colorHex = result.color ? intToHexColor(result.color) : '';
+        $("#txtColor").val(colorHex && colorHex !== '#000000' ? colorHex : '#027c75');
 
         // $("#txtItemInventory").val('');
         // $("#txtPreference").val();
@@ -2127,8 +2313,8 @@
              const total = rateAfterDiscount * day;
              const totalNet = netAfterDiscount * day;
 
-             $('#txtTotal').val(total.toLocaleString('vi-VN'));
-             $('#txtTotalNet').val(totalNet.toLocaleString('vi-VN'));
+             $('#txtTotal').val(formatReservationMoney(total));
+             $('#txtTotalNet').val(formatReservationMoney(totalNet));
             Promise.resolve().then(updateDates);
 
             // recalculateReservationAmounts();
@@ -2333,9 +2519,9 @@
             data: requestData,
             success: function (result) {
                 console.log(result);
-                $('#txtNetAmount').val(parseFloat(result.priceAfter || 0).toLocaleString('vi-VN'));
-                $('#txtRateAfterDiscount').val(parseFloat(result.priceDiscount || 0).toLocaleString('vi-VN'));
-                 $('#txtNetAfterDiscount').val(parseFloat(result.priceAfterDiscount || 0).toLocaleString('vi-VN'));
+                $('#txtNetAmount').val(formatReservationMoney(parseFloat(result.priceAfter || 0)));
+                $('#txtRateAfterDiscount').val(formatReservationMoney(parseFloat(result.priceDiscount || 0)));
+                 $('#txtNetAfterDiscount').val(formatReservationMoney(parseFloat(result.priceAfterDiscount || 0)));
                 // $('#txtTotal').val((parseFloat(result.priceDiscount || 0) * (parseInt(day, 10) || 1)).toLocaleString('vi-VN'));
                 // $('#txtTotalNet').val((parseFloat(result.priceAfterDiscount || 0) * (parseInt(day, 10) || 1)).toLocaleString('vi-VN'));
                              // lấy lại value từ input (loại dấu ,)
@@ -2347,8 +2533,8 @@
                      const total = rateAfterDiscount * day;
                      const totalNet = netAfterDiscount * day;
 
-                     $('#txtTotal').val(total.toLocaleString('vi-VN'));
-                     $('#txtTotalNet').val(totalNet.toLocaleString('vi-VN'));
+                     $('#txtTotal').val(formatReservationMoney(total));
+                     $('#txtTotalNet').val(formatReservationMoney(totalNet));
             },
             error: function (xhr, status, error) {
                 console.error('[calculateNet] ERROR', {
@@ -2384,13 +2570,17 @@
              success: function (result) {
                  console.log(result);
                  $('#txtRateAfterDiscount').val(
-                    parseFloat(result.amount || 0).toLocaleString('vi-VN')
+                    formatReservationMoney(parseFloat(result.amount || 0))
                 );
 
                 $('#txtNetAfterDiscount').val(
-                    parseFloat(result.amountNet || 0).toLocaleString('vi-VN')
+                    formatReservationMoney(parseFloat(result.amountNet || 0))
                 );
- 
+                // Total = giá sau giảm × số đêm
+                const discNights = parseInt($('#nights').val(), 10) || 0;
+                $('#txtTotal').val(formatReservationMoney((parseFloat(result.amount || 0)) * discNights));
+                $('#txtTotalNet').val(formatReservationMoney((parseFloat(result.amountNet || 0)) * discNights));
+
              },
              error: function (xhr, status, error) {
                  console.error('[calculateNet] ERROR', {
@@ -2425,15 +2615,15 @@
                 discountAmount: discountAmount
             },
             success: function (result) {
-                 $('#txtNetAmount').val(parseFloat(result.priceAfter || 0).toLocaleString('vi-VN'));
+                 $('#txtNetAmount').val(formatReservationMoney(parseFloat(result.priceAfter || 0)));
 
                 var valueRateAfter = parseFloat(result.priceDiscount);
                 valueRateAfterFloat = Math.round(valueRateAfter).toLocaleString('vi-VN', {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 0
                 });
-                  $('#txtRateAmount').val(valueRateAfter.toLocaleString('vi-VN'));
-                   $('#txtTotal').val((valueRateAfter* day).toLocaleString('vi-VN'));
+                  $('#txtRateAmount').val(formatReservationMoney(valueRateAfter));
+                   $('#txtTotal').val(formatReservationMoney(valueRateAfter* day));
 
                 $('#txtRateAfterDiscount').val(valueRateAfterFloat);
                 var valueNetAfter = parseFloat(result.priceAfterDiscount);
@@ -2441,8 +2631,8 @@
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 0
                 });
-                  $('#txtNetAfterDiscount').val(valueNetAfter.toLocaleString('vi-VN'));
-                   $('#txtTotalNet').val((valueNetAfter* day).toLocaleString('vi-VN'));
+                  $('#txtNetAfterDiscount').val(formatReservationMoney(valueNetAfter));
+                   $('#txtTotalNet').val(formatReservationMoney(valueNetAfter* day));
 
             },
             error: function (xhr, statusText, err) {
@@ -2450,29 +2640,60 @@
             }
         });
     }
-    $('#txtRateAmount').on('input', function () {
-        let value = $(this).val();
+    // ===== Định dạng tiền thống nhất: dấu chấm (.) phân cách hàng nghìn, dấu phẩy (,) phần thập phân =====
+    // Áp dụng cho Rate+, Net, Disc. (Disc.% chỉ là số phần trăm, không phân cách).
+    function formatReservationMoney(value) {
+        const n = typeof value === 'number' ? value : parseReservationMoney(value);
+        if (!isFinite(n)) return '0';
+        return n.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+    function parseReservationMoney(text) {
+        if (typeof text === 'number') return text;
+        const s = String(text == null ? '' : text).trim().replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+        const n = parseFloat(s);
+        return isNaN(n) ? 0 : n;
+    }
+    window.formatReservationMoney = formatReservationMoney;
+    window.parseReservationMoney = parseReservationMoney;
 
-        // Loại bỏ tất cả ký tự không phải số
-        value = value.replace(/[^0-9]/g, '');
-
-        // Định dạng thành tiền với dấu phẩy
-        if (value) {
-            // Sử dụng toLocaleString để định dạng số
-            let formattedValue = parseInt(value).toLocaleString('vi-VN');
-            // Thay dấu chấm thành dấu phẩy
-            formattedValue = formattedValue.replace(/\./g, '.');
-            $(this).val(formattedValue);
-        } else {
-            // Nếu không có giá trị, đặt lại input thành rỗng
-            $(this).val('');
+    // Khi gõ: chỉ nhận số, tự chèn dấu chấm hàng nghìn và giữ vị trí con trỏ
+    $('#txtRateAmount, #txtNetAmount, #txtDiscountAmount').on('input', function () {
+        const el = this;
+        const raw = el.value;
+        const caret = el.selectionStart || raw.length;
+        const digitsBeforeCaret = raw.slice(0, caret).replace(/[^0-9]/g, '').length;
+        const digits = raw.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
+        if (!digits) { el.value = ''; return; }
+        const formatted = parseInt(digits, 10).toLocaleString('vi-VN');
+        el.value = formatted;
+        // đặt lại con trỏ sau đúng số chữ số đã gõ
+        let pos = 0, count = 0;
+        while (pos < formatted.length && count < digitsBeforeCaret) {
+            if (/[0-9]/.test(formatted[pos])) count++;
+            pos++;
         }
+        try { el.setSelectionRange(pos, pos); } catch (e) { }
     }).on('keypress', function (event) {
-        // Chỉ cho phép nhập các ký tự số (0-9)
-        let charCode = event.which || event.keyCode;
-        if (charCode < 48 || charCode > 57) {
-            event.preventDefault();
-        }
+        const charCode = event.which || event.keyCode;
+        if (charCode < 48 || charCode > 57) event.preventDefault();
+    }).on('focus', function () {
+        const el = this;
+        setTimeout(function () { try { el.select(); } catch (e) { } }, 0);
+    });
+
+    // Disc.%: số nguyên 0 - 100, không phân cách hàng nghìn
+    $('#txtDiscountPercent').on('input', function () {
+        let digits = this.value.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
+        if (digits && parseInt(digits, 10) > 100) digits = '100';
+        this.value = digits;
+    }).on('keypress', function (event) {
+        const charCode = event.which || event.keyCode;
+        if (charCode < 48 || charCode > 57) event.preventDefault();
+    });
+
+    // Rời ô mà để trống -> trả về 0 để luôn hiển thị đúng định dạng
+    $('#txtRateAmount, #txtNetAmount, #txtDiscountAmount, #txtDiscountPercent').on('blur.moneyFormat', function () {
+        if (!String(this.value).trim()) this.value = '0';
     });
     $('#txtRateAmount').blur(function () {
         let value = $(this).val();
@@ -2485,30 +2706,6 @@
          calculateNet($('#arrival').val(), $('#departure').val(), 0, $('#txtRoomType').val(), 'VND', 0, day, cleanValue, '', cleanValueDiscountPercent, cleanValueDiscountAmount);
     });
 
-    $('#txtNetAmount').on('input', function () {
-        let value = $(this).val();
-
-        // Loại bỏ tất cả ký tự không phải số
-        value = value.replace(/[^0-9]/g, '');
-
-        // Định dạng thành tiền với dấu phẩy
-        if (value) {
-            // Sử dụng toLocaleString để định dạng số
-            let formattedValue = parseInt(value).toLocaleString('vi-VN');
-            // Thay dấu chấm thành dấu phẩy
-            formattedValue = formattedValue.replace(/\./g, ',');
-            $(this).val(formattedValue);
-        } else {
-            // Nếu không có giá trị, đặt lại input thành rỗng
-            $(this).val('');
-        }
-    }).on('keypress', function (event) {
-        // Chỉ cho phép nhập các ký tự số (0-9)
-        let charCode = event.which || event.keyCode;
-        if (charCode < 48 || charCode > 57) {
-            event.preventDefault();
-        }
-    });
     $('#txtNetAmount').blur(function () {
         let value = $(this).val();
         let cleanValue = value.replace(/[^0-9]/g, '');
@@ -2519,42 +2716,6 @@
            let day =  $("#nights").val()
         calculateNetReverse($('#arrival').val(), $('#departure').val(), 0,
              $('#txtRoomType').val(), 'VND', 0, day, cleanValue, '', cleanValueDiscountPercent, cleanValueDiscountAmount);
-    });
-    $('#txtDiscountAmount').on('input', function () {
-        let value = $(this).val();
-
-        value = value.replace(/[^0-9]/g, '');
-
-        if (value) {
-            let formattedValue = parseInt(value).toLocaleString('vi-VN');
-            formattedValue = formattedValue.replace(/\./g, ',');
-            $(this).val(formattedValue);
-        } else {
-            $(this).val('');
-        }
-    }).on('keypress', function (event) {
-        let charCode = event.which || event.keyCode;
-        if (charCode < 48 || charCode > 57) {
-            event.preventDefault();
-        }
-    });
-    $('#txtDiscountPercent').on('input', function () {
-        let value = $(this).val();
-
-        value = value.replace(/[^0-9]/g, '');
-
-        if (value) {
-            let formattedValue = parseInt(value).toLocaleString('vi-VN');
-            formattedValue = formattedValue.replace(/\./g, ',');
-            $(this).val(formattedValue);
-        } else {
-            $(this).val('');
-        }
-    }).on('keypress', function (event) {
-        let charCode = event.which || event.keyCode;
-        if (charCode < 48 || charCode > 57) {
-            event.preventDefault();
-        }
     });
     $('#txtDiscountAmount').blur(function () {
          let value = $('#txtNetAmount').val();
@@ -2683,6 +2844,11 @@
     }
 
    function OkReservation(type) {
+        // Booking đã Check Out không được sửa
+        if (checkEdit && Number(reservationStatus) === 2) {
+            showToast('Warning', 'This reservation has been checked out and cannot be modified.', false);
+            return;
+        }
         if (!validateReservationBeforeSave()) return;
 
         let WalkIn = "0";
@@ -3023,6 +3189,44 @@
     $('#txtName').on('blur', function () {
         const txtIDNewPF = $("#txtID").val();
         if(txtIDNewPF != "0" && txtIDNewPF != ""){
+            // Đã có profile: rời ô Name -> cập nhật tên Profile ngay (không chờ Save)
+            const editedName = $(this).val().trim();
+            const commaIdx = editedName.indexOf(',');
+            if (commaIdx >= 0) {
+                const firstToken = editedName.substring(commaIdx + 1).trim().split(/\s+/)[0] || '';
+                $('#txtFirstName').val(firstToken);
+            }
+            if (!editedName) return;
+            const $nameInput = $(this);
+            // Tránh gọi lại khi tên không đổi so với lần cập nhật trước
+            if ($nameInput.data('lastSyncedName') === txtIDNewPF + '|' + editedName) return;
+            let userIdSync = 0, userNameSync = '';
+            try { userIdSync = JSON.parse(localStorage.getItem('userID')) || 0; } catch (e) { }
+            try { userNameSync = JSON.parse(localStorage.getItem('Loginname')) || ''; } catch (e) { }
+            $.ajax({
+                url: '/Reservation/UpdateProfileNameFromReservation',
+                type: 'POST',
+                data: { profileId: txtIDNewPF, name: editedName, userId: userIdSync, userName: userNameSync },
+                success: function (res) {
+                    if (!res || res.code !== 0) {
+                        if (typeof showToast === 'function') showToast('Error', (res && res.msg) || 'Cannot update profile name.', false);
+                        return;
+                    }
+                    $nameInput.data('lastSyncedName', txtIDNewPF + '|' + editedName);
+                    // Đánh dấu để khi đóng popup thì tải lại grid Search Reservation (hiện tên mới)
+                    if (res.changed) window.__rsvProfileNameChanged = true;
+                    if (res.firstName != null) $('#txtFirstName').val(res.firstName);
+                    if (res.changed && typeof showToast === 'function') showToast('Success', res.msg || 'Profile name updated.', true);
+                },
+                error: function (xhr) {
+                    // Báo rõ mã lỗi để dễ xử lý: 404 = server chưa có API mới (chưa deploy bản build mới), 401 = hết phiên đăng nhập
+                    let msg = 'Cannot update profile name';
+                    if (xhr && xhr.status === 404) msg += ' (API not found - please deploy the latest build).';
+                    else if (xhr && xhr.status === 401) msg += ' (session expired, please login again).';
+                    else if (xhr && xhr.status) msg += ' (HTTP ' + xhr.status + ').';
+                    if (typeof showToast === 'function') showToast('Error', msg, false);
+                }
+            });
             return;
         }
         var input = $(this).val().trim();

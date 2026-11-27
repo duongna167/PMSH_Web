@@ -1,4 +1,4 @@
-﻿@using DevExpress.XtraReports.UI
+@using DevExpress.XtraReports.UI
 @*
     For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 *@
@@ -39,6 +39,15 @@
         color: white;
     }
 
+    #gridContainer .dx-datagrid-total-footer td {
+        overflow: visible !important;
+    }
+    #gridContainer .dx-datagrid-total-footer .dx-datagrid-summary-item {
+        white-space: nowrap !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+    }
+
     #gridContainer .dx-datagrid-rowsview .dx-selection {
         background-color: #01579b !important;
         /* màu xanh ngọc */
@@ -51,8 +60,8 @@
     }
 
     .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
+        padding:  2px 8px;
+        height: 28px;
     }
 
     .sticky-header label[class*="me-"] {
@@ -69,7 +78,7 @@
     .sticky-header input[type="date"].form-control-sm {
         font-size: 12px !important;
         /* đúng 12 px */
-        height: calc(1.1em + .2rem + 2px);
+        height: 28px;
         /* giữ cùng chiều cao */
     }
 
@@ -104,64 +113,101 @@
         padding-left: 8px !important;
         /* hoặc bất kỳ giá trị nào bạn muốn */
     }
+
+    .act-filter-grid {
+        display: grid;
+        grid-template-columns: max-content minmax(140px, 1fr) max-content minmax(140px, 1fr) max-content minmax(140px, 1fr);
+        column-gap: 8px;
+        row-gap: 8px;
+        align-items: center;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    .act-filter-grid > label {
+        margin-right: 0 !important;
+        margin-bottom: 0;
+        white-space: nowrap;
+    }
+    .act-filter-grid select,
+    .act-filter-grid [data-date-input] {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+    }
+    .act-filter-grid .span-checks {
+        grid-column: 2 / -1;
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        column-gap: 12px;
+        align-items: center;
+        min-width: 0;
+    }
+    #reportContainer .act-filter-grid .form-check,
+    .act-filter-grid .form-check {
+        padding-left: 0 !important;
+        margin: 0 !important;
+        min-height: 0;
+        min-width: 0;
+        white-space: nowrap;
+        display: flex !important;
+        align-items: center;
+        gap: 6px;
+    }
+    #reportContainer .act-filter-grid .span-checks > .form-check:first-child,
+    .act-filter-grid .span-checks > .form-check:first-child {
+        margin-left: 0 !important;
+    }
+    #reportContainer .act-filter-grid .form-check-input,
+    .act-filter-grid .form-check-input {
+        margin: 0 !important;
+        float: none !important;
+        position: static !important;
+    }
+    .act-filter-grid .form-check-label {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+    }
 </style>
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
 <div class="text-center" id="reportTitle" style="font-size: 20px"></div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-1"
-        style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
-        <!-- RoomClass -->
-        <div class="d-flex align-items-center me-3">
-            <label class="me-2 mb-0">Room Class:</label>
-            <select id="roomClass" name="roomClass" class="tomselect-custom" style="width: 80px;" multiple>
+    <div class="mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+        <div class="act-filter-grid">
+            <label>Room Class:</label>
+            <select id="roomClass" name="roomClass" class="form-control form-control-sm report-dd">
+                <option value="">--All--</option>
                 @foreach (var item in roomclassList)
                 {
                     <option value="@item.Code">@item.Code</option>
                 }
             </select>
-        </div>
-
-        <!-- RoomType -->
-        <div class="d-flex align-items-center me-3">
-            <label class="me-2 mb-0">Room Type:</label>
-            <select id="roomtype" name="roomtype" class="tomselect-custom" style="width: 80px;" multiple>
+            <label>Room Type:</label>
+            <select id="roomtype" name="roomtype" class="form-control form-control-sm report-dd">
+                <option value="">--All--</option>
                 @foreach (var item in rtList)
                 {
                     <option value="@item.Code">@item.Code</option>
                 }
             </select>
-        </div>
-
-        <!-- Pay Method -->
-        <div class="d-flex align-items-center me-3">
-            <label class="me-2 mb-0 ">Pay Method:</label>
-            <select id="paymethod" name="paymethod" class="tomselect-custom" multiple>
+            <label>Pay Method:</label>
+            <select id="paymethod" name="paymethod" class="form-control form-control-sm report-dd">
+                <option value="">--All--</option>
                 @foreach (var item in arList)
                 {
                     <option value="@item.TransactionCode">@item.Description</option>
                 }
             </select>
-        </div>
 
-        <!-- Include -->
-        <div class="d-flex flex-column me-3">
-
-            <div class="d-flex align-items-center flex-wrap gap-2">
-                <label class="fw-bold mb-1">Include:</label>
-                <div class="form-check d-flex align-items-center me-3">
+            <label class="fw-bold">Include:</label>
+            <div class="span-checks">
+                <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="pseudo" name="includeOptions" value="1">
-                    <label class="form-check-label ms-2" for="pseudo">Pseudo Rooms</label>
+                    <label class="form-check-label" for="pseudo">Pseudo Rooms</label>
                 </div>
-
-                <div class="d-flex align-items-center me-3" id="vipContainer">
-                    <div class="form-check me-2 mb-0">
-                        <input class="form-check-input include-option" type="checkbox" id="viponlycheck"
-                            name="viponlycheck">
-                        <label class="form-check-label" for="viponlycheck">Vip Only</label>
-                    </div>
-                    <select id="vip" name="vip" class="form-control form-control-sm w-auto"
-                        style="width: 100px; display: none;">
+                <div class="form-check" id="vipContainer">
+                    <input class="form-check-input include-option" type="checkbox" id="viponlycheck" name="viponlycheck">
+                    <label class="form-check-label" for="viponlycheck">Vip Only</label>
+                    <select id="vip" name="vip" class="form-control form-control-sm" style="width: 100px; display: none;">
                         <option value=""></option>
                         @foreach (var item in vipList)
                         {
@@ -169,51 +215,38 @@
                         }
                     </select>
                 </div>
-
-                <div class="form-check d-flex align-items-center me-3">
+                <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="sharenames" name="includeOptions" value="1">
-                    <label class="form-check-label ms-2" for="sharenames">Share Names</label>
+                    <label class="form-check-label" for="sharenames">Share Names</label>
                 </div>
-
-                <div class="form-check d-flex align-items-center me-3">
+                <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="accompanying" name="includeOptions" value="1">
-                    <label class="form-check-label ms-2" for="accompanying">Accompanying Names</label>
+                    <label class="form-check-label" for="accompanying">Accompanying Names</label>
                 </div>
-
-                <div class="form-check d-flex align-items-center me-3">
-                    <input class="form-check-input" type="checkbox" id="disRoomSharer" name="includeOptions" value="1"
-                        checked>
-                    <label class="form-check-label ms-2" for="disRoomSharer">Display Room Sharer</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="disRoomSharer" name="includeOptions" value="1" checked>
+                    <label class="form-check-label" for="disRoomSharer">Display Room Sharer</label>
                 </div>
             </div>
-        </div>
 
-        <!-- Display -->
-        <div class="d-flex flex-column me-3">
-
-            <div class="d-flex align-items-center flex-wrap gap-2">
-                <label class="fw-bold mb-1">Display:</label>
-                <div class="form-check d-flex align-items-center me-3">
+            <label class="fw-bold">Display:</label>
+            <div class="span-checks">
+                <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="printpate" name="includeOptions" checked>
-                    <label class="form-check-label ms-2" for="printpate">Print Rate</label>
+                    <label class="form-check-label" for="printpate">Print Rate</label>
                 </div>
-
-                <div class="form-check d-flex align-items-center me-3">
+                <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="nopost" name="includeOptions">
-                    <label class="form-check-label ms-2" for="nopost">No Post</label>
+                    <label class="form-check-label" for="nopost">No Post</label>
                 </div>
-
-                <div class="form-check d-flex align-items-center me-3">
+                <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="commnets" name="includeOptions">
-                    <label class="form-check-label ms-2" for="commnets">Comments</label>
+                    <label class="form-check-label" for="commnets">Comments</label>
                 </div>
             </div>
-        </div>
 
-        <!-- Sort Order -->
-        <div class="d-flex align-items-center">
-            <label class=" ms-2 me-2 mb-0 fw-bold">Sort Order:</label>
-            <select id="viewBy" name="viewBy" class="form-control sort-select w-auto">
+            <label class="fw-bold">Sort Order:</label>
+            <select id="viewBy" name="viewBy" class="form-control form-control-sm report-dd">
                 <option value="0">Alphabetical</option>
                 <option value="1">Room No</option>
                 <option value="2">Reservation Status</option>
@@ -276,7 +309,6 @@
         // Gán giá trị cho input date
         // document.getElementById('fromDate').value = formattedFirstDay;
         // document.getElementById('toDate').value = formattedLastDay;
-        initializeTomSelects();
 
 
     });
@@ -312,9 +344,9 @@
             url: '/Report/ArrivalsandCheckInTodayData',
             type: 'GET',
             data: {
-                roomClass: $("#roomClass").val().map(r => r.replace("''")).join("','") + "",
-                roomtype: $("#roomtype").val().map(r => r.replace("''")).join("','") + "",
-                paymethod: $("#paymethod").val().map(r => r.replace("''")).join("','") + "",
+                roomClass: ($("#roomClass").val() || ""),
+                roomtype: ($("#roomtype").val() || ""),
+                paymethod: ($("#paymethod").val() || ""),
                 vip: $("#vip").val(),
                 viewBy: $("#viewBy").val(),
                 pseudo: $("#pseudo").is(":checked") ? "1" : "",
@@ -328,7 +360,6 @@
             success: function (result) {
                 // $("#reportViewerContainer").html(result);
                 // $("#loadingSpinner").hide();
-                console.log(result);
                 initializArrivalsandCheckInTodayGrid(result);
                 $("#loadingSpinner").hide();
             },
@@ -345,7 +376,7 @@
 
         const columnWidth = 180;
 
-        $("#gridContainer").dxDataGrid({
+        pmshBindDxReportGrid("#gridContainer", {
             dataSource: data,
             height: 500,
             allowColumnResizing: true,
@@ -408,28 +439,12 @@
                 { dataField: "currencyID", caption: "Curr.", width: columnWidth - 70 }
             ],
 
-            paging: { pageSize: 25 },
-
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
-
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
+            paging: { enabled: false },
+            pager: { visible: false },
 
             filterRow: {
                 visible: true,
                 applyFilter: "auto"
-            },
-
-            headerFilter: {
-                visible: true
             },
 
             selection: {
@@ -443,9 +458,9 @@
                         column: "roomNo",
                         summaryType: "custom",
                         name: "roomNo",
+                        showInColumn: "name",
                         displayFormat: "Total Arrived Room: {0}"
                     },
-                    { column: "roomClassCode", summaryType: "sum", valueFormat: "#,##0" },
                     { column: "roomType", summaryType: "custom", displayFormat: "Total" },
                     { column: "noOfAdult", summaryType: "sum", valueFormat: "#,##0" },
                     { column: "noOfChild", summaryType: "sum", valueFormat: "#,##0" },

@@ -13,39 +13,30 @@
 
                 </div>
                 <div class="row" style="margin:0 10px;justify-content:space-between">
-                    <div class="row col-md-6 row bg-light border rounded" >
+                    <style>
+                        /* Info: 2 cột, mọi ô cùng chiều rộng / chiều cao; Zone hiển thị đủ chữ */
+                        #modalMessage .msg-info { display: grid; grid-template-columns: 70px 1fr 70px 1fr; gap: 6px 10px; align-items: center; padding: 4px 6px 8px; }
+                        #modalMessage .msg-info > label { margin: 0; min-width: 0; text-align: right; }
+                        #modalMessage .msg-info input, #modalMessage .msg-info select { width: 100%; height: 30px; min-width: 0; font-size: 13px; line-height: 1.4; padding: 2px 8px; box-sizing: border-box; }
+                        #modalMessage .msg-info select { padding-right: 24px; text-overflow: ellipsis; }
+                    </style>
+                    <div class="col-md-6 bg-light border rounded">
                         <label style="text-align:left">Info</label>
+                        <div class="msg-info">
+                            <label for="confirmationNoMessage">Conf.No</label>
+                            <input id="confirmationNoMessage" class="form-control form-control-sm">
+                            <label for="zoneMessage">Zone</label>
+                            <select id="zoneMessage" class="form-select form-select-sm" asp-items="ViewBag.cboZone"></select>
 
-                        <div class="col-md-6 row">
-                            <div class="col-md-12 row">
-                                <label class="form-label col-md-4" style="text-align:left">Conf.No</label>
-                                <input id="confirmationNoMessage" class="col-md-8" style="width:100%">
+                            <label for="crsNoMessage">CRS No</label>
+                            <input id="crsNoMessage" class="form-control form-control-sm">
+                            <label for="nameMessage">Name</label>
+                            <input id="nameMessage" class="form-control form-control-sm">
 
-                            </div>
-                            <div class="col-md-12 row">
-                                <label class="form-label col-md-4" style="text-align:left">CRS No</label>
-                                <input id="crsNoMessage" class="col-md-8">
-                            </div>
-                            <div class="col-md-12 row">
-                                <label class="form-label col-md-4" style="text-align:left">Room No</label>
-                                <input id="roomNoMessage" class="col-md-8">
-                            </div>
-                        </div>
-                        <div class="col-md-6 row">
-                            <div class="col-md-12 row">
-                                <label class="form-label col-md-4" style="text-align:left">Zone</label>
-                                <select id="zoneMessage" class="form-select col-md-8" asp-items="ViewBag.cboZone">
-
-                                </select>
-                            </div>
-                            <div class="col-md-12 row">
-                                <label class="form-label col-md-4" style="text-align:left">Name</label>
-                                <input id="nameMessage" class="col-md-8">
-                            </div>
-                            <div class="col-md-12 row">
-                                <label class="form-label col-md-4" style="text-align:left">R.Holder</label>
-                                <input id="holderMessage" class="col-md-8">
-                            </div>
+                            <label for="roomNoMessage">Room No</label>
+                            <input id="roomNoMessage" class="form-control form-control-sm">
+                            <label for="holderMessage">R.Holder</label>
+                            <input id="holderMessage" class="form-control form-control-sm">
                         </div>
                     </div>
                     <div class="row col-md-2 row bg-light border rounded" >
@@ -105,9 +96,27 @@
                         </div>
                     </div>
                 </div>
-                <div class="rs-content-box row" style="gap:0">
-
+                <style>
+                    /* Thông tin dòng đang chọn (WinForm để dưới lưới, web đưa lên trên) */
+                    #modalMessage .msg-detail { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; margin: 10px 10px 0; padding: 8px 10px; background: #f6f7f9; border: 1px solid #dee2e6; border-radius: 6px; }
+                    #modalMessage .msg-detail > div { display: flex; align-items: center; gap: 8px; }
+                    #modalMessage .msg-detail label { margin: 0; white-space: nowrap; }
+                    #modalMessage .msg-detail input { width: 150px; height: 30px; font-size: 13px; padding: 2px 8px; }
+                    #modalMessage .msg-detail input#msgDetailStatus { width: 200px; }
+                    #modalMessage #gridContainerMessage { height: 360px; }
+                    #modalMessage #msgDetailText { width: 100%; height: 60px; resize: vertical; background: #e9ecef; }
+                </style>
+                <div class="rs-content-box row" style="gap:0;margin:0 10px">
                     <div id="gridContainerMessage" class="mt-2 gridContainer"></div>
+                </div>
+                <div class="msg-detail">
+                    <div><label for="msgDetailArrival">Arrival</label><input id="msgDetailArrival" class="form-control form-control-sm" readonly></div>
+                    <div><label for="msgDetailDeparture">Departure</label><input id="msgDetailDeparture" class="form-control form-control-sm" readonly></div>
+                    <div><label for="msgDetailRoomNo">Room No</label><input id="msgDetailRoomNo" class="form-control form-control-sm" readonly></div>
+                    <div><label for="msgDetailStatus">Status</label><input id="msgDetailStatus" class="form-control form-control-sm" readonly></div>
+                </div>
+                <div style="margin:8px 10px 0">
+                    <textarea id="msgDetailText" class="form-control form-control-sm" readonly></textarea>
                 </div>
             </div>
         </div>
@@ -134,7 +143,8 @@
         const crsNo = $('#crsNoMessage').val() ?? '';
         const roomNo = $('#roomNoMessage').val() ?? '';
         const zone = $('#zoneMessage').val() ?? '';
-        const checkboxValue = $('#printMessageView').is(':checked') ? '1' : '0';
+        // Checkbox "Printed" không có id (name = printMessageView) → trước đây luôn gửi 0
+        const checkboxValue = $('input[name="printMessageView"]').is(':checked') ? '1' : '0';
 
         $.ajax({
             url: '/Reservation/SearchMessage',
@@ -165,29 +175,55 @@
             }
         });
     }
+    function showMessageDetail(row) {
+        row = row || {};
+        $('#msgDetailArrival').val(row.ArrivalDate || '');
+        $('#msgDetailDeparture').val(row.DepartureDate || '');
+        $('#msgDetailRoomNo').val(row.RoomNo || '');
+        $('#msgDetailStatus').val(row.Status || '');
+        $('#msgDetailText').val(row.Message || '');
+    }
     function initializeDataGridSearchMessage(data) {
+        if (!Array.isArray(data)) data = [];
+        showMessageDetail(null);
         $("#gridContainerMessage").dxDataGrid({
             dataSource: data,
-            paging: { pageSize: 15 },
-            columnMinWidth: 90,
-            scrolling: {
-                rowRenderingMode: 'virtual',
+            keyExpr: 'ID',
+            // Cột theo WinForm Message Search
+            columns: [
+                { dataField: 'Date', caption: 'Date', width: 105 },
+                { dataField: 'CreateTime', caption: 'Time', width: 85 },
+                { dataField: 'Nationality', caption: 'Nat', width: 70 },
+                { dataField: 'GuestName', caption: 'Name', width: 200 },
+                { dataField: 'Received', caption: 'Received', width: 140 },
+                { dataField: 'Printed', caption: 'Printed', width: 140 },
+                { dataField: 'TextMessage', caption: 'Text Message', width: 140 },
+                { dataField: 'Message', caption: 'Message', width: 280 },
+                { dataField: 'RoomNo', caption: 'Room', width: 80 },
+                { dataField: 'RoomType', caption: 'Ro.Type', width: 90 },
+                { dataField: 'ArrivalDate', caption: 'Arr.', width: 105 },
+                { dataField: 'DepartureDate', caption: 'Dep', width: 105 },
+                { dataField: 'Status', caption: 'Status', width: 100 },
+                { dataField: 'GroupCode', caption: 'Group Code', width: 110 },
+                { dataField: 'ReservationHolder', caption: 'ReservationHolder', width: 220 },
+                { dataField: 'ReceiveBy', caption: 'Receive By', width: 110 },
+                { dataField: 'CreateBy', caption: 'Create By', width: 110 },
+                { dataField: 'CreateDate', caption: 'Create Date', width: 140 },
+                { dataField: 'UpdateBy', caption: 'Update By', width: 110 },
+                { dataField: 'UpdateDate', caption: 'Update Date', width: 140 }
+            ],
+            allowColumnResizing: true,
+            onSelectionChanged: function (e) { showMessageDetail(e.selectedRowsData[0]); },
+            onContentReady: function (e) {
+                if (e.component.getSelectedRowKeys().length === 0 && e.component.totalCount() > 0) e.component.selectRowsByIndexes([0]);
             },
+            paging: { pageSize: 15 },
             pager: {
                 visible: true,
                 allowedPageSizes: [15, 20, 'all'],
                 showPageSizeSelector: true,
                 showInfo: true,
                 showNavigationButtons: true,
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            scrolling: {
-                mode: 'virtual',
-                showScrollbar: 'always',
-                useNative: false,
             },
             selection: {
                 mode: "single"

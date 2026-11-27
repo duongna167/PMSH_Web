@@ -50,7 +50,7 @@ DECLARE @cfgId INT = (SELECT TOP 1 ID FROM FormAndFunctionGroup WITH (NOLOCK) WH
 DECLARE @fn TABLE (Code NVARCHAR(200), Name NVARCHAR(200), Description NVARCHAR(200));
 INSERT INTO @fn (Code, Name, Description) VALUES
     (N'Sec_UserGroup_View', N'User of group', N'User of group'),
-    (N'usr_Functions', N'Add Functions To List', N'Add Functions To List'),
+    (N'usr_Functions', N'Function List', N'Function List'),
     (N'UsersManagement_web', N'Users Management', N'Users Management'),
     (N'usr_UserRight', N'User mapping', N'User mapping'),
     (N'usr_GroupUserRight', N'User mapping by group', N'User mapping by group');

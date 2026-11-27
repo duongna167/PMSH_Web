@@ -58,6 +58,24 @@ namespace Profile.Services.Implements
                 throw new Exception($"ERROR: {ex.Message}", ex);
             }
         }
+        public DataTable SearchProfileSummaryHistory(string profileID, string confirmationNo)
+        {
+            try
+            {
+                SqlParameter[] param = new SqlParameter[]
+                {
+                    new SqlParameter("@ProfileID", profileID ?? ""),
+                    new SqlParameter("@ConfirmationNo", confirmationNo ?? "")
+                };
+
+                return DataTableHelper.getTableData("spProfileSummaryHistory", param);
+            }
+            catch (SqlException ex)
+            {
+                throw new Exception($"ERROR: {ex.Message}", ex);
+            }
+        }
+
         public DataTable ExportXML(DateTime fromDate, DateTime toDate)
         {
             try

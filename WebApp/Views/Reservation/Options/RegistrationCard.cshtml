@@ -80,19 +80,28 @@
             selection: {
                 mode: "single" 
             },
-            onRowClick: function(e) {
-                console.log(e.data);
+            onContentReady: function (e) {
+                // chọn sẵn mẫu đầu tiên (Vietnamese) như WinForm
+                if (e.component.getSelectedRowKeys().length === 0 && e.component.totalCount() > 0) e.component.selectRowsByIndexes([0]);
             }
         });
     }
     function PrinRegistrationCard() {
+        var grid = $("#gridContainerRegistrationCard").dxDataGrid("instance");
+        var sel = grid ? grid.getSelectedRowsData()[0] : null;
+        if (!sel) { showToast('Warning', 'Please select a registration card template.', false); return; }
         $.ajax({
             url: '/Reservation/PrintRegistrationCard',
             type: 'POST',
             data:{
-                id: idReservation
+                id: idReservation,
+                templateId: sel.id || sel.ID || 0
             },
             success: function (data) {
+                if (data && typeof data === 'object') {
+                    showToast(data.code == 0 ? 'Success' : 'Warning', data.msg || 'Cannot print registration card.', data.code == 0);
+                    return;
+                }
                 try {
                     // Nếu data có prefix, tách ra phần base64
                     let base64String = data;

@@ -44,32 +44,37 @@
 
     .sticky-header label,
     .sticky-header .form-control-sm {
-        font-size: 0.75rem;
+        font-size: 14px;
         line-height: 1.2;
     }
 
 
     .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
+        padding:  2px 8px;
+        height: 28px;
     }
 
     .sticky-header label[class*="me-"] {
         margin-right: .5rem !important;
     }
- 
- 
-
+    #gridContainer .dx-datagrid-rowsview .dx-row.dx-group-row td {
+        background: #eeeeee !important;
+        font-weight: 600;
+        color: #212529 !important;
+    }
+    #gridContainer .dx-datagrid-group-footer td,
+    #gridContainer .dx-datagrid-total-footer td {
+        font-weight: 600;
+        background: #f5f5f5 !important;
+    }
 </style>
-<link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
 <div class="text-center" id="reportTitle" style="font-size: 20px">NationalStatistics</div>
 <div class="sticky-header bg-white p-2 shadow-sm z-3">
     <div class="d-flex flex-wrap align-items-center gap-2 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
         <!-- From Date -->
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">From Date:</label>
-            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="fromDate" style="min-width:140px;">
                 <input type="text" class="date-ui form-control form-control-sm"
                        placeholder="dd/mm/yyyy" autocomplete="off" />
             </div>
@@ -78,34 +83,39 @@
         <!-- To Date -->
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">To Date:</label>
-            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="toDate">
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="toDate" style="min-width:140px;">
                 <input type="text" class="date-ui form-control form-control-sm"
                        placeholder="dd/mm/yyyy" autocomplete="off" />
             </div>
         </div>
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">Zone:</label>
-            <select id="zone" name="zone" class="tomselect-custom" multiple>
-                @foreach (var item in zoneList)
+            <select id="zone" name="zone" class="form-control form-control-sm report-dd">
+                <option value="0">--All--</option>
+                @if (zoneList != null)
                 {
-                    if (item == zoneList[0])
+                    foreach (var item in zoneList)
                     {
-                        <option value="@item.ID" selected>@item.Code</option>
+                        var isA2 = string.Equals(item.Code, "A2", StringComparison.OrdinalIgnoreCase)
+                            || (!string.IsNullOrEmpty(item.Name) && item.Name.StartsWith("A2", StringComparison.OrdinalIgnoreCase));
+                        var label = !string.IsNullOrWhiteSpace(item.Code) ? item.Code : item.Name;
+                        if (isA2)
+                        {
+                            <option value="@item.ID" selected>@label</option>
+                        }
+                        else
+                        {
+                            <option value="@item.ID">@label</option>
+                        }
                     }
-                    else
-                    {
-                        <option value="@item.ID">@item.Code</option>
-                    }
-             
                 }
             </select>
-
         </div>
 
 
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">View by:</label>
-            <select id="sortOrder" name="sortOrder" class="form-control form-control-sm w-auto">
+            <select id="sortOrder" name="sortOrder" class="form-control form-control-sm w-auto" style="padding-right: 1.75rem;">
                 <option value="0">Stayover by Person</option>
                 <option value="1">Stayover by Room</option>
                 <option value="2">Arrival by Room</option>
@@ -122,7 +132,7 @@
 
 <div class="mui-card">
 @*     <div style="font-size: 20px;" class="mt-1" id="reportTitle"></div> *@
-    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
+    <div id="gridWrapper" class="mt-2">
         <div class="gridContainer mt-2" id="gridContainer"></div>
     </div>
 </div>
@@ -130,24 +140,66 @@
     <i class="fa-solid fa-spinner fa-spin"></i>
 </div>
 <script>
-    
+    function localTodayIso() {
+        const n = new Date();
+        const p = (v) => String(v).padStart(2, '0');
+        return n.getFullYear() + '-' + p(n.getMonth() + 1) + '-' + p(n.getDate());
+    }
 
-    $(document).ready(function () {
-         document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
-            window.initDateInputs();
-           initTomSelect(".tomselect-custom");
+    function reportDateScope() {
+        const $box = $('#reportContainer');
+        return $box.find('[data-name="fromDate"]').length ? $box : $(document);
+    }
 
+    function setReportDate(name, iso) {
+        const $wrap = reportDateScope().find('[data-date-input][data-name="' + name + '"]');
+        const inst = $wrap.data('dateInput');
+        if (inst && typeof inst.setISO === 'function') inst.setISO(iso);
+    }
 
+    function readReportDate(name) {
+        const text = (reportDateScope().find('[data-date-input][data-name="' + name + '"] .date-ui').val() || '').trim();
+        const m = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+        if (!m) return '';
+        let year = parseInt(m[3], 10);
+        if (year < 100) year += 2000;
+        return year + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[1]).padStart(2, '0');
+    }
+
+    $(document).ready(async function () {
+        const title = document.getElementById("reportTitle");
+        if (title) title.innerText = '@ViewBag.ReportTitle';
+        if (window.businessDateReady) {
+            try { await window.businessDateReady; } catch (e) { }
+        }
+        window.initDateInputs(reportDateScope()[0]);
+        var $zone = $("#zone");
+        if ($zone.length && !$zone.find("option:selected").filter(function () { return this.value && this.value !== "0"; }).length) {
+            var $a2 = $zone.find("option").filter(function () {
+                return /^\s*A2(\b|$)/i.test($(this).text());
+            }).first();
+            if ($a2.length) $zone.val($a2.val());
+        }
     });
    
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+        const fromDate = readReportDate('fromDate');
+        const toDate = readReportDate('toDate');
+        if (!fromDate || !toDate) {
+            showToast('Warning', 'Nhập From Date và To Date đúng dạng DD/MM/YYYY.', false);
+            return;
+        }
+        if (fromDate > toDate) {
+            showToast('Warning', 'From Date phải nhỏ hơn hoặc bằng To Date.', false);
+            return;
+        }
         $("#loadingSpinner").show();
         $.ajax({
             url: '/Report/NationalStatisticsData',
             type: 'GET',
             data: {
-                fromDate: $("#fromDate").val(),
-                toDate: $("#toDate").val(),
+                fromDate: fromDate,
+                toDate: toDate,
                    zone: $("#zone").val(),
                    viewby: $("#sortOrder").val(),
             },
@@ -155,13 +207,13 @@
               crossDomain: false,
                 headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                     console.log(result);
-    const processedData = prepareNationalStatistics(result);
-    initializeRoomOccupancyGrid(processedData);
-
+                if (!Array.isArray(result)) {
+                    alert((result && result.error) ? result.error : "Không thể tải báo cáo.");
                     $("#loadingSpinner").hide();
+                    return;
+                }
+                initializeRoomOccupancyGrid(result);
+                $("#loadingSpinner").hide();
             },
             error: function () {
                 alert("Không thể tải báo cáo.");
@@ -169,149 +221,87 @@
             }
         });
     });
-       function prepareNationalStatistics(data) {
-        const groupedData = {};
-
-        // Gộp dữ liệu theo MonthArrival và YearArrival
-        data.forEach(item => {
-            const key = `${item.monthArrival}_${item.yearArrival}`;
-            if (!groupedData[key]) groupedData[key] = [];
-            groupedData[key].push(item);
+    function nationalGridHeight() {
+        var el = document.getElementById("gridContainer");
+        var top = el ? el.getBoundingClientRect().top : 260;
+        return Math.max(480, Math.floor(window.innerHeight - top - 12));
+    }
+    function roundPct(n) {
+        return Math.round((Number(n) || 0) * 100) / 100;
+    }
+    function initializeRoomOccupancyGrid(data) {
+        data = (Array.isArray(data) ? data : []).map(function (row) {
+            var r = Object.assign({}, row);
+            r.percentage = roundPct(r.percentage);
+            return r;
         });
-
-        const finalData = [];
-
-        Object.entries(groupedData).forEach(([key, records]) => {
-            const [month, year] = key.split("_");
-
-            // Thêm dòng tiêu đề cho từng nhóm
-            finalData.push({
-                national: `Stayover for Month: ${month}/${year}`,
-                 isTitle: true ,
-    cssClass: "custom"
-            });
-
-            // Thêm các dòng chi tiết
-            finalData.push(...records);
-
-            // Thêm dòng tổng
-            const totalRow = {
-                national: "TOTAL",
-                monthArrival: month,
-                yearArrival: year,
-                cssClass: "custom",
+        const dayCols = Array.from({ length: 31 }, (_, i) => "zone" + (i + 1));
+        const money = { dataType: "number", format: "#,##0", width: 48 };
+        const sumCols = dayCols.concat(["sum1", "percentage"]).map(function (field) {
+            return {
+                column: field,
+                summaryType: "sum",
+                displayFormat: "{0}",
+                valueFormat: field === "percentage" ? "#,##0.00" : "#,##0",
+                showInGroupFooter: true,
+                alignByColumn: true
             };
-
-            for (let i = 1; i <= 31; i++) {
-                const zoneKey = `zone${i}`;
-                totalRow[zoneKey] = sum(records, zoneKey);
-            }
-                totalRow.sum1 = sum(records, "sum1");
-
-    // 👉 Trung bình percentage
-           totalRow.percentage = sum(records, "percentage");
-            totalRow.isTotal = true;
-            finalData.push(totalRow);
         });
-
-        return finalData;
-    }
-
-
-    // Helper functions
-    function sum(arr, field) {
-        return arr.reduce((total, item) => total + Number(item[field] || 0), 0);
-    }
-
-    function average(arr, field) {
-        const valid = arr.filter(x => x[field] != null);
-        if (valid.length === 0) return 0;
-        return valid.reduce((sum, x) => sum + x[field], 0) / valid.length;
-    }
-
-      function initializeRoomOccupancyGrid(data) {
-        const columnWidth = 180;
-
-        const numericZoneColumns = Array.from({ length: 31 }, (_, i) => `zone${i + 1}`);
-        const numericSummaryColumns = [...numericZoneColumns, "sum1"];
-
-        $("#gridContainer").dxDataGrid({
-           dataSource: data,        height: 500,
+        pmshBindDxReportGrid("#gridContainer", {
+            dataSource: Array.isArray(data) ? data : [],
+            height: nationalGridHeight(),
             allowColumnResizing: true,
+            loadPanel: { enabled: false },
+            headerFilter: { visible: false },
+            grouping: { autoExpandAll: true, allowCollapsing: true, contextMenuEnabled: false },
+            groupPanel: { visible: false },
             columns: [
-                { dataField: "national", caption: "National", width: columnWidth },
-                ...numericZoneColumns.map(zone => ({
-                    dataField: zone,
-                    caption: zone.replace("zone", ""),
-                    width: columnWidth - 100,
-                    dataType: "number",
-                    format: "#,##0"
-                })),
-                { dataField: "sum1", caption: "Sum", width: columnWidth - 100, dataType: "number", format: "#,##0" },
-                { dataField: "percentage", caption: "%", width: columnWidth - 100, dataType: "number", format: "#,##0" }
+                {
+                    dataField: "yearArrival",
+                    caption: "Year",
+                    groupIndex: 0,
+                    visible: false,
+                    groupCellTemplate: function (container, options) {
+                        $("<span>").text("Year: " + (options.value || "")).appendTo(container);
+                    }
+                },
+                {
+                    dataField: "monthArrival",
+                    caption: "Month",
+                    groupIndex: 1,
+                    visible: false,
+                    groupCellTemplate: function (container, options) {
+                        $("<span>").text("Month: " + (options.value || "")).appendTo(container);
+                    }
+                },
+                { dataField: "national", caption: "National", minWidth: 180 },
+                ...dayCols.map(function (zone, i) {
+                    return Object.assign({ dataField: zone, caption: String(i + 1) }, money);
+                }),
+                { dataField: "sum1", caption: "Sum", width: 64, dataType: "number", format: "#,##0" },
+                { dataField: "percentage", caption: "%", width: 64, dataType: "number", format: "#,##0.00" }
             ],
             summary: {
+                groupItems: [
+                    { column: "national", summaryType: "count", displayFormat: "Total", showInGroupFooter: true, alignByColumn: true }
+                ].concat(sumCols),
                 totalItems: [
-                    {
-                        name: "labelSummary",
-                        showInColumn: "national",
-                        summaryType: "custom",
-                        displayFormat: "Total"
-                    },
-                    ...numericSummaryColumns.map(field => ({
-                        name: `${field}Summary`,
-                        showInColumn: field,
-                        summaryType: "custom",
-                        displayFormat: "{0}",
-                        valueFormat: "#,##0"
-                    }))
-                ],
-                calculateCustomSummary: function (e) {
-                    const isCustomRow = row => row?.cssClass === "custom" || row?.isTotal === true;
-
-                    if (e.summaryProcess === "start") {
-                        e.totalValue = 0;
-                    } else if (e.summaryProcess === "calculate") {
-                        const row = e.value;
-                        if (!isCustomRow(row)) return;
-
-                        const field = e.name.replace("Summary", "");
-                        const value = parseFloat(row[field]) || 0;
-                        e.totalValue += value;
-                    }
-                }
+                    { column: "national", summaryType: "count", displayFormat: "Grand Total =" }
+                ].concat(sumCols.map(function (s) {
+                    return { column: s.column, summaryType: "sum", displayFormat: "{0}", valueFormat: s.valueFormat };
+                }))
             },
-            paging: { pageSize: 25 },
-            scrolling: {
-                useNative: true,
-                showScrollbar: "always"
-            },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true
-            },
-            filterRow: {
-                visible: true,
-                applyFilter: "auto"
-            },
-            headerFilter: {
-                visible: true
-            },
-            selection: {
-                mode: "multiple",
-                showCheckBoxesMode: "none"
-            },
-            showBorders: true,
-            onRowPrepared: function (e) {
-                if (e.rowType === "data" && e.data?.cssClass) {
-                    e.rowElement.addClass(e.data.cssClass);
-                }
-            }
+            paging: { enabled: false },
+            pager: { visible: false },
+            selection: { mode: "none" },
+            filterRow: { visible: true, applyFilter: "auto" },
+            showBorders: true
         });
     }
+    $(window).off("resize.nationalStatistics").on("resize.nationalStatistics", function () {
+        var grid = $("#gridContainer").data("dxDataGrid");
+        if (grid) grid.option("height", nationalGridHeight());
+    });
 
 
 

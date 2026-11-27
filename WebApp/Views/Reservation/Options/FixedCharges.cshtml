@@ -1,189 +1,239 @@
 ﻿
-<div class="modal fade modal-xl" id="modalFixedCharges" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+<!-- Fixed Charge List (WinForm: New / Edit / Delete / Refresh / EB-TA / EB-IND / CS-TA / CS-IND / Close) -->
+<style>
+    #modalFixedCharges .fc-footer { display: flex; flex-wrap: wrap; gap: 4px 28px; padding: 6px 4px 0; font-size: 12px; color: #027c75; }
+    #modalFixedCharges .fc-footer b { color: #333; font-weight: 500; }
+
+    /* Popup Fixed Charge (New / Edit) — bố cục theo WinForm */
+    #modalFixedChargeForm .modal-dialog { max-width: 640px; }
+    #modalFixedChargeForm .fc-box { background: #f6f7f9; border: 1px solid #dee2e6; border-radius: 6px; }
+    #modalFixedChargeForm .fc-sec { padding: 10px 14px; border-bottom: 1px solid #dee2e6; }
+    #modalFixedChargeForm .fc-sec:last-child { border-bottom: 0; }
+    #modalFixedChargeForm label { margin: 0; min-width: 0; }
+    #modalFixedChargeForm .fc-lbl { text-align: right; font-weight: 500; }
+    #modalFixedChargeForm .fc-head { display: grid; grid-template-columns: 70px 1fr; gap: 8px 10px; align-items: center; }
+    #modalFixedChargeForm .fc-stay { display: grid; grid-template-columns: 70px 130px 50px 60px 80px 130px; gap: 8px 10px; align-items: center; margin-top: 8px; }
+    #modalFixedChargeForm .fc-rhythm { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+    #modalFixedChargeForm .fc-radio { display: flex; align-items: center; gap: 8px; }
+    #modalFixedChargeForm .fc-radio > input[type=radio] { margin: 0; width: 15px; height: 15px; flex: 0 0 auto; }
+    #modalFixedChargeForm .fc-radio > span { width: 70px; }
+    #modalFixedChargeForm .fc-radio > div, #modalFixedChargeForm .fc-radio > input[type=text] { width: 140px; }
+    #modalFixedChargeForm .fc-body { display: grid; grid-template-columns: 1fr 1.25fr; gap: 10px 20px; }
+    #modalFixedChargeForm .fc-grid { display: grid; grid-template-columns: 80px 1fr; gap: 8px 10px; align-items: center; }
+    #modalFixedChargeForm .fc-inline { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    #modalFixedChargeForm .fc-inline > .ts-wrapper, #modalFixedChargeForm .fc-inline > select { flex: 1 1 auto; min-width: 0; }
+    #modalFixedChargeForm .fc-num { max-width: 140px; text-align: right; }
+    #modalFixedChargeForm .fc-desc { font-size: 12px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #modalFixedChargeForm input:disabled, #modalFixedChargeForm input[readonly] { background: #e9ecef; }
+    /* Ô ngày cùng độ dài, vừa đủ dd/mm/yyyy + icon lịch */
+    #modalFixedChargeForm [data-date-input] { width: 150px; max-width: 150px; }
+    #modalFixedChargeForm .fc-stay input { max-width: 130px; }
+</style>
+<div class="modal fade modal-xl" id="modalFixedCharges" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="fcListTitle" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-
             <div class="modal-header">
-                <h5 class="modal-title" id="staticBackdropLabel">Fixed charges information</h5>
+                <h5 class="modal-title" id="fcListTitle">Fixed Charge List</h5>
                 <button type="button" class="btn-close" onclick="closeModalFixedCbarges()"></button>
             </div>
             <div class="modal-body">
                 <div>
-                    <button class="mui-button mui-button-add" onclick="openNewFixedCharges();"> New</button>
-                    <button class="mui-button mui-button-edit"> Edit</button>
-                    <button class="mui-button mui-button-delete">Delete</button>
-                    <button class="mui-button mui-button-clear">Refresh</button>
-                    <button class="mui-button mui-button-export" onclick="AddReservationFixedChargeDefault('fc1');"> EB-TA</button>
-                    <button class="mui-button mui-button-export" onclick="AddReservationFixedChargeDefault('fc2');"> EB-IND</button>
-                    <button class="mui-button mui-button-export" onclick="AddReservationFixedChargeDefault('fc3');"> CS-TA</button>
-                    <button class="mui-button mui-button-export" onclick="AddReservationFixedChargeDefault('fc4');"> CS-IND</button>
-                    <button class="mui-button mui-button-close" onclick="closeModalFixedCbarges();"> Close</button>
+                    <button type="button" class="mui-button mui-button-add" onclick="openNewFixedCharges();">New</button>
+                    <button type="button" class="mui-button mui-button-edit" id="btnEditFixedCharge" onclick="openEditFixedCharges();">Edit</button>
+                    <button type="button" class="mui-button mui-button-delete" id="btnDeleteFixedCharge" onclick="deleteFixedCharge();">Delete</button>
+                    <button type="button" class="mui-button mui-button-clear" onclick="GetFixedChargesByReservationID(idReservation);">Refresh</button>
+                    <button type="button" class="mui-button mui-button-export" onclick="AddReservationFixedChargeDefault('fc1');">EB-TA</button>
+                    <button type="button" class="mui-button mui-button-export" onclick="AddReservationFixedChargeDefault('fc2');">EB-IND</button>
+                    <button type="button" class="mui-button mui-button-export" onclick="AddReservationFixedChargeDefault('fc3');">CS-TA</button>
+                    <button type="button" class="mui-button mui-button-export" onclick="AddReservationFixedChargeDefault('fc4');">CS-IND</button>
+                    <button type="button" class="mui-button mui-button-close" onclick="closeModalFixedCbarges();">Close</button>
                 </div>
                 <div class="mui-divider"></div>
-                <div class="bg-light border rounded" style="display:none;padding: 0 12px 12px 12px" id="filterFixedChargeWrapper">
-                    <div class="row">
-                        <div class="col-md-5 mb-2 row">
-                            <label for="input1" class="form-label col-md-2" style="min-width:0;text-align:left">Name</label>
-                            <input type="text" class="form-control col-md-10" id="nameProfileFixedcharge" disabled>
-                        </div>
-                        <div class="col-md-2 mb-2 row">
-
-                            <label for="input1" class="form-label col-md-5" style="min-width:0;text-align:left">Arrival</label>
-                            <input type="text" class="form-control col-md-5" id="arrivalProfileFixedCharge" disabled>
-                        </div>
-                        <div class="col-md-2 mb-2 row">
-                            <label for="input1" class="form-label col-md-5" style="min-width:0;text-align:left">Departure</label>
-                            <input type="text" class="form-control col-md-5" id="departureFixedCharge" disabled>
-                        </div>
-                        <div class="col-md-2 mb-2 row">
-                            <label for="input1" class="form-label col-md-4" style="min-width:0;text-align:left">Nights</label>
-                            <input type="text" class="form-control col-md-8" id="nightFixedCharge" disabled>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="radio-group col-md-2">
-                            <input type="radio" id="everyday" name="optionFixedCharge" checked value="1">
-                            <label for="everyday" style="text-align:left">Everyday</label>
-                        </div>
-                        <div class="radio-group col-md-2 row">
-                            <input type="radio" id="date" name="optionFixedCharge" class="col-md-1" style="flex:0" value="2">
-                            <label for="date" style="text-align:left;min-width:0px" class="col-md-3">Date</label>
-                            <input type="date" id="dateInput"  class="col-md-7" disabled>
-                        </div>
-                        <div class="radio-group col-md-2 row">
-                            <input type="radio" id="day" name="optionFixedCharge" class="col-md-1" style="flex:0" value="3">
-                            <label for="day" style="text-align:left;min-width:0px" class="col-md-3">Day</label>
-                            <input type="date" id="dayInput" class="col-md-7" disabled>
-                        </div>
-                        <div class="radio-group col-md-2">
-                            <input type="radio" id="atCheckIn" name="optionFixedCharge" value="4">
-                            <label for="atCheckIn" style="text-align:left">At Check In</label>
-                        </div>
-                        <div class="radio-group col-md-2">
-                            <input type="radio" id="atCheckOut" name="optionFixedCharge" value="5">
-                            <label for="atCheckOut" style="text-align:left">At Check Out</label>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4 row">
-                            <div class="col-md-12 mb-2 row">
-                                <label for="input1" class="form-label col-md-5" style="min-width:0;text-align:left">Begin Date</label>
-                                <input type="date" class="form-control col-md-7" id="beginDateFixedCharge" alt="">
-                            </div>
-                            <div class="col-md-12 mb-2 row">
-                                <label for="input1" class="form-label col-md-5" style="min-width:0;text-align:left">Nights</label>
-                                <input type="text" class="form-control col-md-7" id="nightFixedChargeAdd" disabled>
-                            </div>
-                            <div class="col-md-12 mb-2 row">
-                                <label for="input1" class="form-label col-md-5" style="min-width:0;text-align:left">End Date</label>
-                                <input type="date" class="form-control col-md-7" id="endDateFixedCharge">
-                            </div>
-                        </div>
-                        <div class="col-md-8 row">
-                            <div class="col-md-6 mb-2 row">
-                                <label for="input1" class="form-label col-md-5" style="min-width:0;text-align:left">Trans. Code</label>
-                                <select type="text" class="form-control col-md-7" id="transCodeFixedCharge" asp-items="ViewBag.cboTransaction"></select>
-
-                            </div>
-                            <div class="col-md-2 mb-2 row">
-                                <label for="input1" class="form-label col-md-7" style="min-width:0;text-align:left">Quantity</label>
-                                <input type="text" class="form-control col-md-5" id="quantityFixedCharge" value="1">
-                            </div>
-                            <div class="col-md-6 mb-2 row">
-                                <label for="input1" class="form-label col-md-5" style="min-width:0;text-align:left">Price</label>
-                                <input type="text" class="form-control col-md-7" id="priceFixedCharge" value="0">
-                            </div>
-                            <div class="col-md-4 mb-2 row">
-                                <label for="input1" class="form-label col-md-5" style="min-width:0;text-align:left">++net</label>
-                                <input type="text" class="form-control col-md-7" id="netFixedCharge" value="0">
-                            </div>
-                            <div class="col-md-3 mb-2 row">
-                                <label for="input1" class="form-label col-md-5" style="min-width:0;text-align:left">Currency</label>
-                                <input type="text" class="form-control col-md-7" id="currencyFixedChargeAdd" disabled value="VND">
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <button class="mui-button mui-button-save" onclick="SaveReservationFixedCharge();"> Save</button>
-                        <button class="mui-button mui-button-cancel" onclick="cancelFixedCharges();">Cancel</button>
-                    </div>
-                </div>
                 <div class="mui-card mt-2">
                     <div id="gridContainerFixedCharge" class="mt-2 gridContainer"></div>
+                </div>
+                <div class="fc-footer">
+                    <span>Create By : <b id="fcCreateBy"></b></span>
+                    <span>On : <b id="fcCreateOn"></b></span>
+                    <span>Update By : <b id="fcUpdateBy"></b></span>
+                    <span>On : <b id="fcUpdateOn"></b></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Popup Fixed Charge (New / Edit) -->
+<div class="modal fade" id="modalFixedChargeForm" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="fcFormTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border:1px solid #bcbcbc">
+            <div class="modal-header">
+                <h5 class="modal-title" id="fcFormTitle">Fixed Charge</h5>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <button type="button" class="mui-button mui-button-add" onclick="resetFixedChargeForm(true);">New</button>
+                    <button type="button" class="mui-button mui-button-save" onclick="SaveReservationFixedCharge(true);">OK</button>
+                    <button type="button" class="mui-button mui-button-save" onclick="SaveReservationFixedCharge(false);">Save</button>
+                    <button type="button" class="mui-button mui-button-close" onclick="closeFixedChargeForm();">Close</button>
+                    <input type="hidden" id="fcEditID" value="0" />
+                </div>
+
+                <div class="fc-box">
+                    <!-- Thông tin khách -->
+                    <div class="fc-sec">
+                        <div class="fc-head">
+                            <label class="fc-lbl">Name</label>
+                            <input type="text" class="form-control form-control-sm" id="nameProfileFixedcharge" readonly>
+                        </div>
+                        <div class="fc-stay">
+                            <label class="fc-lbl">Arrival</label>
+                            <input type="text" class="form-control form-control-sm" id="arrivalProfileFixedCharge" readonly>
+                            <label class="fc-lbl">Night</label>
+                            <input type="text" class="form-control form-control-sm text-end" id="nightFixedCharge" readonly>
+                            <label class="fc-lbl">Departure</label>
+                            <input type="text" class="form-control form-control-sm" id="departureFixedCharge" readonly>
+                        </div>
+                    </div>
+
+                    <!-- Posting rhythm: 1 Everyday, 2 Date, 3 Day, 4 At Check In, 5 At Check Out -->
+                    <div class="fc-sec fc-rhythm">
+                        <div>
+                            <label class="fc-radio mb-2"><input type="radio" id="everyday" name="optionFixedCharge" value="1" checked><span>Everyday</span></label>
+                            <label class="fc-radio mb-2">
+                                <input type="radio" id="date" name="optionFixedCharge" value="2"><span>Date</span>
+                                <div data-date-input data-name="fcPostDate">
+                                    <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy">
+                                </div>
+                            </label>
+                            <label class="fc-radio">
+                                <input type="radio" id="day" name="optionFixedCharge" value="3"><span>Day</span>
+                                <input type="text" class="form-control form-control-sm" id="dayInput">
+                            </label>
+                        </div>
+                        <div>
+                            <label class="fc-radio mb-2"><input type="radio" id="atCheckIn" name="optionFixedCharge" value="4"><span style="width:auto">At Check In</span></label>
+                            <label class="fc-radio"><input type="radio" id="atCheckOut" name="optionFixedCharge" value="5"><span style="width:auto">At Check Out</span></label>
+                        </div>
+                    </div>
+
+                    <!-- Ngày + giao dịch -->
+                    <div class="fc-sec fc-body">
+                        <div class="fc-grid">
+                            <label class="fc-lbl">Begin Date</label>
+                            <div data-date-input data-name="fcBeginDate">
+                                <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy">
+                            </div>
+                            <label class="fc-lbl">Night</label>
+                            <input type="text" class="form-control form-control-sm text-end" id="nightFixedChargeAdd" style="max-width:70px" readonly>
+                            <label class="fc-lbl">End Date</label>
+                            <div data-date-input data-name="fcEndDate">
+                                <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy">
+                            </div>
+                        </div>
+                        <div class="fc-grid">
+                            <label class="fc-lbl" for="transCodeFixedCharge">Tran.Code</label>
+                            <div class="fc-inline"><select id="transCodeFixedCharge" asp-items="ViewBag.cboTransaction"></select></div>
+                            <label class="fc-lbl" for="quantityFixedCharge">Quantity</label>
+                            <input type="text" class="form-control form-control-sm fc-num" id="quantityFixedCharge" value="1" inputmode="numeric" style="max-width:70px">
+                            <label class="fc-lbl" for="priceFixedCharge">Price</label>
+                            <div class="fc-inline"><input type="text" class="form-control form-control-sm fc-num" id="priceFixedCharge" value="0" inputmode="numeric"><span>++</span></div>
+                            <span></span>
+                            <div class="fc-inline"><input type="text" class="form-control form-control-sm fc-num" id="netFixedCharge" value="0" readonly><span>net</span></div>
+                            <label class="fc-lbl" for="currencyFixedChargeAdd">Currency</label>
+                            <select class="form-select form-select-sm" id="currencyFixedChargeAdd" style="max-width:140px">
+                                <option value="VND" selected>VND</option>
+                                <option value="USD">USD</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 <script>
-    function openModalFixedCharges(){
-        if (idReservation === 0) {
+    // Partial nạp cùng SearchReservation → chỉ dùng var / function ở top-level.
+    var fcReservation = null;
+    var fcRows = [];
+
+    function fcDate(name) { return $('input[type="hidden"][name="' + name + '"]').val() || ''; }
+    function fcSetDate(name, iso) {
+        if (iso) { if (window.UI && UI.setHiddenDate) UI.setHiddenDate(name, iso); return; }
+        var $w = $('[data-date-input][data-name="' + name + '"]');   // rỗng → xoá ngày cũ
+        $w.find('input[type="hidden"]').val(''); $w.find('.date-ui').val('');
+    }
+    function fcDmy(iso) { return iso ? moment(iso).format('DD/MM/YYYY') : ''; }
+    function fcMoney(v) { var n = typeof v === 'number' ? v : parseFloat(v); return isFinite(n) ? n.toLocaleString('vi-VN', { maximumFractionDigits: 2 }) : '0'; }
+    function fcParseMoney(t) { var n = parseFloat(String(t || '').replace(/\./g, '').replace(',', '.')); return isFinite(n) ? n : 0; }
+    function fcUser() {
+        var id = 0; try { id = JSON.parse(localStorage.getItem("userID")) || 0; } catch (e) { }
+        return id;
+    }
+
+    function openModalFixedCharges() {
+        if (!idReservation || idReservation == 0) {
             showToast('Warning', 'Please choose booking', false);
             return;
         }
-
+        if (typeof window.initDateInputs === 'function') window.initDateInputs(document.getElementById('modalFixedChargeForm'));
+        // Booking mới → bỏ dữ liệu của booking trước (Tran.Code, giá, ngày, lưới, footer)
+        fcReservation = null;
+        fcRows = [];
+        initializeDataGridFixedCharges([]);
+        fcShowFooter(null);
+        resetFixedChargeForm();
         GetFixedChargesByReservationID(idReservation);
         $('#modalFixedCharges').modal('show');
     }
-    function closeModalFixedCbarges(){
+    function closeModalFixedCbarges() {
         $('#modalFixedCharges').modal('hide');
     }
 
-    function openNewFixedCharges(){
-        $('#arrivalProfileFixedCharge').val(arivalDate.split(' ')[0]);
-        $('#departureFixedCharge').val(departureDate.split(' ')[0]);
-        $('#nameProfileFixedcharge').val(lastname);
-        $('#nightFixedCharge').val(night);
-        document.getElementById('filterFixedChargeWrapper').style.display = 'block';
-
-    }
-    function cancelFixedCharges(){
-        document.getElementById('filterFixedChargeWrapper').style.display = 'none';
-    }
     function GetFixedChargesByReservationID(id) {
         $.ajax({
             url: '/Reservation/GetFixedChargesByReservationID',
             type: 'get',
             dataType: 'json',
-            data: {
-                reservationID: id
-            },
-            crossDomain: false,
+            data: { reservationID: id },
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                initializeDataGridFixedCharges(result.reservationFixedCharge);
-                setInfoNewFixedCharges(result.reservation);
+                if (!result || typeof result !== 'object') { showToast('Error', String(result || 'Cannot load fixed charges.'), false); return; }
+                fcReservation = result.reservation || null;
+                fcRows = result.reservationFixedCharge || [];
+                initializeDataGridFixedCharges(fcRows);
             },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
+            error: function (xhr) {
+                if (xhr.status == 401) sessionTimeout();
             }
         });
     }
+    function fcShowFooter(row) {
+        $('#fcCreateBy').text(row ? row.createBy : '');
+        $('#fcCreateOn').text(row ? row.createDate : '');
+        $('#fcUpdateBy').text(row ? row.updateBy : '');
+        $('#fcUpdateOn').text(row ? row.updateDate : '');
+    }
     function initializeDataGridFixedCharges(data) {
-        var columnWidth = 150;
         $("#gridContainerFixedCharge").dxDataGrid({
-
-        dataSource: data, allowColumnResizing: true,
+            dataSource: data,
+            keyExpr: 'id',
+            allowColumnResizing: true,
             columns: [
-                { dataField: "id", caption: "ID",  visible: false},
-                { dataField: "transactionCode", caption: "Code",width:columnWidth-70},
-                { dataField: "description", caption: "Description",width:columnWidth + 70  },
-                { dataField: "quantity", caption: "Qty",width:columnWidth- 100},
-                { dataField: "amount", caption: "Amount",width:columnWidth- 50},
-                { dataField: "amountAfterTax", caption: "Amount Net",width:columnWidth- 50},
-                { dataField: "currencyID", caption: "Currency",width:columnWidth- 50},
-                { dataField: "beginDate", caption: "Begin Date",width:columnWidth- 20,},
-                { dataField: "endDate", caption: "End Date",width:columnWidth- 20},
-                { dataField: "postingDate", caption: "Posting Date",width:columnWidth- 20},
-                { dataField: "postingDay", caption: "Posting Day",width:columnWidth- 20},
-                { dataField: "articlesCode", caption: "Article Code",width:columnWidth- 50},
+                { dataField: "id", caption: "ID", visible: false },
+                { dataField: "transactionCode", caption: "Code", width: 80 },
+                { dataField: "description", caption: "Description", width: 220 },
+                { dataField: "quantity", caption: "Qty", width: 50 },
+                { dataField: "amount", caption: "Amount", width: 110, alignment: 'right', customizeText: function (c) { return fcMoney(c.value); } },
+                { dataField: "amountAfterTax", caption: "Amount Net", width: 110, alignment: 'right', customizeText: function (c) { return fcMoney(c.value); } },
+                { dataField: "currencyID", caption: "Currency", width: 80 },
+                { dataField: "beginDate", caption: "Begin Date", width: 105, customizeText: function (c) { return fcDmy(c.value); } },
+                { dataField: "endDate", caption: "End Date", width: 105, customizeText: function (c) { return fcDmy(c.value); } },
+                { dataField: "postingDate", caption: "Posting Date", width: 110, customizeText: function (c) { return fcDmy(c.value); } },
+                { dataField: "postingDay", caption: "Posting Day", width: 100 },
+                { dataField: "articlesCode", caption: "Article Code", width: 100 }
             ],
             paging: { pageSize: 15 },
-            scrolling: {
-                rowRenderingMode: 'virtual',
-            },
             pager: {
                 visible: true,
                 allowedPageSizes: [15, 20, 'all'],
@@ -191,152 +241,245 @@
                 showInfo: true,
                 showNavigationButtons: true,
             },
-            filterRow: {
-                    visible: true,
-                    applyFilter: "auto"
+            filterRow: { visible: true, applyFilter: "auto" },
+            selection: { mode: "single" },
+            onSelectionChanged: function (e) {
+                var row = e.selectedRowsData[0] || null;
+                $('#btnEditFixedCharge, #btnDeleteFixedCharge').prop('disabled', !row);
+                fcShowFooter(row);
             },
-            selection: {
-                mode: "single"
+            onContentReady: function (e) {
+                var has = e.component.getSelectedRowKeys().length > 0;
+                $('#btnEditFixedCharge, #btnDeleteFixedCharge').prop('disabled', !has);
+                if (!has) fcShowFooter(null);
             },
-            onRowClick: function(e) {
-            }
+            onRowDblClick: function () { openEditFixedCharges(); }
         });
     }
-    function setInfoNewFixedCharges(reservation){
-        $('#nameProfileFixedcharge').val(reservation.lastName);
-        var arrivalDate = reservation.arrivalDate.split('T')[0];
-        $('#arrivalProfileFixedCharge').val(arrivalDate.split('-')[2] + '/' + arrivalDate.split('-')[1] + '/' + arrivalDate.split('-')[0]);
-        var departureDate = reservation.departureDate.split('T')[0];
-        $('#departureFixedCharge').val(departureDate.split('-')[2] + '/' + departureDate.split('-')[1] + '/' + departureDate.split('-')[0]);
-        $('#nightFixedCharge').val(reservation.noOfNight);
-        $('#beginDateFixedCharge').val(reservation.arrivalDate.slice(0, 10));
-        $('#endDateFixedCharge').val(reservation.departureDate.slice(0, 10));
-        $('#nightFixedChargeAdd').val(reservation.noOfNight);
-        $('#nameProfileFixedcharge').val('');
-        $('#arrivalProfileFixedCharge').val('');
-        $('#departureFixedCharge').val('');
-        $('#nightFixedCharge').val('');
-        $('#priceFixedCharge').val('0');
-        $('#netFixedCharge').val('0');
-        $('#quantityFixedCharge').val('1');
+    function getSelectedFixedCharge() {
+        var grid = $("#gridContainerFixedCharge").dxDataGrid("instance");
+        var rows = grid ? grid.getSelectedRowsData() : [];
+        return rows && rows.length ? rows[0] : null;
     }
-    $('#transCodeFixedCharge').on('change', function() {
+
+    // ----- Popup Fixed Charge -----
+    function fcTransTS() {
+        var el = document.getElementById('transCodeFixedCharge');
+        if (el && !el.tomselect && typeof initTomSelect === 'function') initTomSelect('#transCodeFixedCharge');
+        return el ? el.tomselect : null;
+    }
+    function fcSetTrans(code) {
+        var ts = fcTransTS();
+        if (ts) ts.setValue(code || '0', true); else $('#transCodeFixedCharge').val(code || '0');
+    }
+    function fcGetTrans() {
+        var ts = fcTransTS();
+        return String((ts ? ts.getValue() : $('#transCodeFixedCharge').val()) || '');
+    }
+    function fcFillGuest() {
+        var r = fcReservation || {};
+        $('#nameProfileFixedcharge').val(r.lastName || '');
+        $('#arrivalProfileFixedCharge').val(fcDmy(r.arrivalDate));
+        $('#departureFixedCharge').val(fcDmy(r.departureDate));
+        $('#nightFixedCharge').val(r.noOfNight != null ? r.noOfNight : '');
+    }
+    function fcStayIso() {
+        var r = fcReservation || {};
+        return {
+            arr: r.arrivalDate ? moment(r.arrivalDate).format('YYYY-MM-DD') : '',
+            dep: r.departureDate ? moment(r.departureDate).format('YYYY-MM-DD') : ''
+        };
+    }
+    function fcUpdateNight() {
+        var b = fcDate('fcBeginDate'), e = fcDate('fcEndDate');
+        $('#nightFixedChargeAdd').val(b && e ? Math.max(0, moment(e).diff(moment(b), 'days')) : '');
+    }
+    function handleRadioChange() {
+        var v = $('input[name="optionFixedCharge"]:checked').val();
+        var stay = fcStayIso();
+        // Date: chỉ bật ô Date; Day: bật ô Day; Everyday / Day: nhập Begin–End
+        $('[data-date-input][data-name="fcPostDate"] .date-ui').prop('disabled', v !== '2');
+        $('#dayInput').prop('disabled', v !== '3');
+        var rangeEditable = (v === '1' || v === '3');
+        $('[data-date-input][data-name="fcBeginDate"] .date-ui, [data-date-input][data-name="fcEndDate"] .date-ui').prop('disabled', !rangeEditable);
+        if (v === '4' && stay.arr) { fcSetDate('fcBeginDate', stay.arr); fcSetDate('fcEndDate', moment(stay.arr).add(1, 'day').format('YYYY-MM-DD')); }
+        if (v === '5' && stay.dep) { fcSetDate('fcEndDate', stay.dep); fcSetDate('fcBeginDate', moment(stay.dep).subtract(1, 'day').format('YYYY-MM-DD')); }
+        if (v === '2') {
+            var d = fcDate('fcPostDate') || stay.arr;
+            if (d) { fcSetDate('fcPostDate', d); fcSetDate('fcBeginDate', d); fcSetDate('fcEndDate', moment(d).add(1, 'day').format('YYYY-MM-DD')); }
+        }
+        if (v === '1' && stay.arr && stay.dep && !fcDate('fcBeginDate')) { fcSetDate('fcBeginDate', stay.arr); fcSetDate('fcEndDate', stay.dep); }
+        fcUpdateNight();
+    }
+    function resetFixedChargeForm(keepOpen) {
+        var stay = fcStayIso();
+        $('#fcEditID').val('0');
+        $('#fcFormTitle').text('Fixed Charge');
+        fcFillGuest();
+        $('#everyday').prop('checked', true);
+        $('#dayInput').val('');
+        fcSetDate('fcPostDate', stay.arr);
+        fcSetDate('fcBeginDate', stay.arr);
+        fcSetDate('fcEndDate', stay.dep);
+        fcSetTrans('0');
+        $('#quantityFixedCharge').val('1');
         $('#priceFixedCharge').val('0');
         $('#netFixedCharge').val('0');
-    });
-    $('#priceFixedCharge').blur(function() {
-        CaculateNetFixedCharge($('#transCodeFixedCharge').val(),$('#priceFixedCharge').val());
-    });
+        $('#currencyFixedChargeAdd').val('VND');
+        handleRadioChange();
+    }
+    function openNewFixedCharges() {
+        if (!fcReservation) { showToast('Warning', 'Please wait, loading reservation...', false); return; }
+        if (typeof window.initDateInputs === 'function') window.initDateInputs(document.getElementById('modalFixedChargeForm'));
+        resetFixedChargeForm();
+        $('#modalFixedChargeForm').modal('show');
+    }
+    function openEditFixedCharges() {
+        var row = getSelectedFixedCharge();
+        if (!row) { showToast('Warning', 'Please select a fixed charge.', false); return; }
+        if (typeof window.initDateInputs === 'function') window.initDateInputs(document.getElementById('modalFixedChargeForm'));
+        resetFixedChargeForm();
+        $('#fcEditID').val(row.id);
+        $('#fcFormTitle').text('Fixed Charge - Edit');
+        var r = String(row.postingRhythmID || 1);
+        $('input[name="optionFixedCharge"][value="' + r + '"]').prop('checked', true);
+        if (r === '2') fcSetDate('fcPostDate', row.beginDate);
+        if (r === '3') $('#dayInput').val(row.postingDay || '');
+        handleRadioChange();
+        fcSetDate('fcBeginDate', row.beginDate);
+        fcSetDate('fcEndDate', row.endDate);
+        fcUpdateNight();
+        fcSetTrans(row.transactionCode);
+        $('#quantityFixedCharge').val(row.quantity || 1);
+        $('#priceFixedCharge').val(fcMoney(row.amount));
+        $('#netFixedCharge').val(fcMoney(row.amountAfterTax));
+        $('#currencyFixedChargeAdd').val(row.currencyID || 'VND');
+        $('#modalFixedChargeForm').modal('show');
+    }
+    function closeFixedChargeForm() {
+        $('#modalFixedChargeForm').modal('hide');
+    }
 
     function CaculateNetFixedCharge(transactionCode, price) {
+        if (!transactionCode || transactionCode === '0') { $('#netFixedCharge').val(fcMoney(price)); return; }
         $.ajax({
             url: '/Reservation/CaculateNetFixedCharge',
             type: 'get',
             dataType: 'json',
-            data: {
-                transactionCode: transactionCode,
-                price: price
-            },
-            crossDomain: false,
+            data: { transactionCode: transactionCode, price: price },
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                $('#netFixedCharge').val(result);
+                $('#netFixedCharge').val(fcMoney(parseFloat(result) || 0));
             },
-            error: function (xhr, statusText, err) {
-                if (xhr.status == 401) {
-                    sessionTimeout();
-                }
+            error: function (xhr) {
+                if (xhr.status == 401) sessionTimeout();
             }
         });
     }
-     $radioButtons = $('input[name="optionFixedCharge"]');
-     $dateInput = $('#dateInput');
-     $dayInput = $('#dayInput');
-     $beginDateFixedCharge = $('#beginDateFixedCharge');
-     $endDateFixedCharge = $('#endDateFixedCharge');
 
-    function handleRadioChange() {
-        const selectedValue = $('input[name="optionFixedCharge"]:checked').val();
+    // OK = lưu và đóng; Save = lưu, giữ popup để nhập tiếp (như WinForm)
+    function SaveReservationFixedCharge(closeAfter) {
+        var rhythm = $('input[name="optionFixedCharge"]:checked').val();
+        var code = fcGetTrans();
+        if (!code || code === '0') { showToast('Warning', 'Please select a transcode.', false); var ts = fcTransTS(); if (ts) ts.focus(); return; }
+        if (rhythm === '2' && !fcDate('fcPostDate')) { showToast('Warning', 'Please choose date', false); return; }
+        if ((rhythm === '1' || rhythm === '3') && (!fcDate('fcBeginDate') || !fcDate('fcEndDate'))) { showToast('Warning', 'Please enter Begin Date / End Date', false); return; }
 
-        // Bật/tắt disabled dựa trên giá trị
-        $dateInput.prop('disabled', selectedValue !== '2');
-        $dayInput.prop('disabled', selectedValue !== '3');
-        $beginDateFixedCharge.prop('disabled', selectedValue !== '1');
-        $endDateFixedCharge.prop('disabled', selectedValue !== '1');
-    }
-
-    $radioButtons.on('change', handleRadioChange);
-
-    handleRadioChange();
-
-    function SaveReservationFixedCharge() {
-        const userID = JSON.parse(localStorage.getItem("userID"));
-        var postingRhythmlID = $('input[name="optionFixedCharge"]:checked').val();
-        var beginDate = $('#beginDateFixedCharge').val();
-        var endDate = $('#endDateFixedCharge').val();
-        if(postingRhythmlID == '2'){
-            beginDate = $('#dateInput').val();
-            endDate = $('#dateInput').val();
-        }
-        if(postingRhythmlID == '3'){
-            beginDate = $('#dayInput').val();
-            endDate = $('#dayInput').val();
-        }
         var formData = new FormData();
+        formData.append('id', parseInt($('#fcEditID').val(), 10) || 0);
         formData.append('rsvID', idReservation);
-        formData.append('transCode', $('#transCodeFixedCharge').val());
+        formData.append('transCode', code);
         formData.append('quantity', $('#quantityFixedCharge').val());
-        formData.append('currency', $('#currencyFixedChargeAdd').val());
+        formData.append('currency', $('#currencyFixedChargeAdd').val() || 'VND');
         formData.append('amount', $('#priceFixedCharge').val());
         formData.append('net', $('#netFixedCharge').val());
-        formData.append('postingRhythmlID',postingRhythmlID);
-        formData.append('beignDate',beginDate);
-        formData.append('endDate',endDate);
-
-        formData.append('userID',userID);
+        formData.append('postingRhythmlID', rhythm);
+        formData.append('postDate', fcDate('fcPostDate'));
+        formData.append('postingDay', $('#dayInput').val() || '');
+        formData.append('beignDate', fcDate('fcBeginDate'));
+        formData.append('endDate', fcDate('fcEndDate'));
+        formData.append('userID', fcUser());
 
         $.ajax({
             url: '/Reservation/SaveReservationFixedCharge',
             type: 'POST',
             processData: false,
             contentType: false,
-            // headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             data: formData,
             success: function (data) {
                 if (data.code == 0) {
+                    showToast('Success', data.msg, true);
                     GetFixedChargesByReservationID(idReservation);
+                    if (closeAfter) closeFixedChargeForm();
+                    else resetFixedChargeForm();
                 } else {
-                        showToast('Error', data.msg, false);
+                    showToast('Error', data.msg, false);
                 }
-
             },
-            error: function (xhr, statusText, err) {
-
+            error: function (xhr) {
+                if (xhr.status == 401) { sessionTimeout(); return; }
+                showToast('Error', 'Cannot save fixed charge (HTTP ' + xhr.status + ').', false);
             }
         });
-
     }
-    function AddReservationFixedChargeDefault(keyName){
+
+    function deleteFixedCharge() {
+        var row = getSelectedFixedCharge();
+        if (!row) { showToast('Warning', 'Please select a fixed charge.', false); return; }
+        if (!confirm('Are you sure you want to delete fixed charge "' + (row.transactionCode || '') + ' - ' + (row.description || '') + '"?')) return;
+        $.ajax({
+            url: '/Reservation/DeleteReservationFixedCharge',
+            type: 'POST',
+            data: { id: row.id },
+            success: function (res) {
+                if (res && res.code == 0) {
+                    showToast('Success', res.msg, true);
+                    GetFixedChargesByReservationID(idReservation);
+                } else {
+                    showToast('Error', (res && res.msg) || 'Cannot delete fixed charge.', false);
+                }
+            },
+            error: function (xhr) {
+                if (xhr.status == 401) { sessionTimeout(); return; }
+                showToast('Error', 'Cannot delete fixed charge (HTTP ' + xhr.status + ').', false);
+            }
+        });
+    }
+
+    function AddReservationFixedChargeDefault(keyName) {
         $.ajax({
             url: '/Reservation/SaveReservationFixedChargeDefault',
             type: 'POST',
-
-            // headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-            data: {
-                keyName: keyName,
-                reservationID : idReservation
-            },
+            data: { keyName: keyName, reservationID: idReservation },
             success: function (data) {
                 if (data.code == 0) {
                     GetFixedChargesByReservationID(idReservation);
                 } else {
-                        showToast('Error', data.msg, false);
+                    showToast('Error', data.msg, false);
                 }
-
-            },
-            error: function (xhr, statusText, err) {
-
             }
         });
     }
+
+    // Sự kiện form (namespace để không bị gắn trùng khi trang nạp lại)
+    $(document).off('.fixedCharge')
+        .on('change.fixedCharge', 'input[name="optionFixedCharge"]', handleRadioChange)
+        .on('change.fixedCharge', 'input[type="hidden"][name="fcPostDate"]', function () {
+            if ($('input[name="optionFixedCharge"]:checked').val() === '2') handleRadioChange();
+        })
+        .on('change.fixedCharge', 'input[type="hidden"][name="fcBeginDate"], input[type="hidden"][name="fcEndDate"]', fcUpdateNight)
+        .on('change.fixedCharge', '#transCodeFixedCharge', function () {
+            CaculateNetFixedCharge(fcGetTrans(), fcParseMoney($('#priceFixedCharge').val()));
+        })
+        .on('input.fixedCharge', '#priceFixedCharge', function () {
+            var digits = this.value.replace(/[^0-9]/g, '');
+            this.value = digits ? Number(digits).toLocaleString('vi-VN') : '';
+        })
+        .on('blur.fixedCharge', '#priceFixedCharge', function () {
+            if (!this.value.trim()) this.value = '0';
+            CaculateNetFixedCharge(fcGetTrans(), fcParseMoney(this.value));
+        })
+        .on('input.fixedCharge', '#quantityFixedCharge', function () {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
 </script>

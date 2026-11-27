@@ -1,0 +1,131 @@
+<!-- Folio Option (port từ WinForm frmCshFolioOption): chọn kiểu in folio -->
+<style>
+    #modalFolioOption .modal-dialog { max-width: 460px; }
+    #modalFolioOption .fo-box {
+        border: 1px solid #e3ebe7; border-radius: 8px; padding: 12px 14px; background: #f8faf9;
+    }
+    #modalFolioOption .fo-opt { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 13px; }
+    #modalFolioOption .fo-opt input { margin: 0; cursor: pointer; }
+    #modalFolioOption .fo-opt label { margin: 0; cursor: pointer; }
+    #modalFolioOption .fo-opt.is-disabled label { color: #9ca3af; cursor: default; }
+    #modalFolioOption .fo-row { display: flex; justify-content: space-between; align-items: center; }
+    #modalFolioOption .fo-vn label { color: #b91c1c; }
+    #modalFolioOption .fo-vat { padding: 4px 0 0 22px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; }
+    #modalFolioOption fieldset.fo-print {
+        border: 1px solid #cfd8d3; border-radius: 6px; padding: 2px 12px 8px; margin: 10px 0 0 30px;
+    }
+    #modalFolioOption fieldset.fo-print legend { float: none; width: auto; font-size: 13px; padding: 0 4px; margin: 0; }
+    #modalFolioOption fieldset.fo-print .fo-opt.fo-cur { justify-content: flex-end; padding-right: 30px; }
+    #modalFolioOption .fo-info { font-size: 13px; color: #374151; margin-bottom: 10px; }
+
+    #modalFolioVatInfo .modal-dialog { max-width: 560px; }
+    #modalFolioVatInfo .fv-grid { display: grid; grid-template-columns: 120px 1fr; gap: 8px 10px; align-items: center; font-size: 13px; }
+    #modalFolioVatInfo .fv-grid > span { font-weight: 600; color: #2f5d4a; }
+    #modalFolioVatInfo .fv-grid input { height: 30px; font-size: 13px; }
+    #modalFolioVatInfo .fv-warn { font-size: 12.5px; color: #b45309; background: #fef3c7; border-radius: 6px; padding: 6px 10px; margin-bottom: 10px; }
+
+    #modalFolioPrintHistory .fh-wrap { max-height: 420px; overflow: auto; }
+    #modalFolioPrintHistory table { font-size: 12.5px; }
+    #modalFolioPrintHistory th { white-space: nowrap; background: #f1f5f3; position: sticky; top: 0; }
+</style>
+
+<div class="modal fade managed-modal" id="modalFolioOption" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="folioOptionTitle">Folio Options</h5>
+            </div>
+            <div class="modal-body">
+                <div class="action-buttons py-2 mb-2 border-bottom">
+                    <button type="button" class="mui-button mui-button-search" onclick="folioOptionPreview();">Preview</button>
+                    <button type="button" class="mui-button mui-button-view" onclick="openFolioPrintHistory();">Print History</button>
+                    <button type="button" class="mui-button mui-button-close" onclick="closeModalFolioOption();">Close</button>
+                </div>
+
+                <div class="fo-info" id="folioOptionInfo"></div>
+
+                <div class="fo-box">
+                    <div class="fo-row">
+                        <div class="fo-opt"><input type="radio" name="foStyle" id="foStyle_BILLING_INFOR" value="BILLING_INFOR" checked><label for="foStyle_BILLING_INFOR">Folio Information</label></div>
+                        <div class="fo-opt fo-vn"><input type="checkbox" id="foVietnamese"><label for="foVietnamese">Vietnamese</label></div>
+                    </div>
+                    <div class="fo-opt"><input type="radio" name="foStyle" id="foStyle_BILLING_INFOR_BY_SELECTED" value="BILLING_INFOR_BY_SELECTED"><label for="foStyle_BILLING_INFOR_BY_SELECTED">Folio Information &lt;selected transaction&gt;</label></div>
+                    <div class="fo-opt"><input type="radio" name="foStyle" id="foStyle_FOLIO_BY_DATE" value="FOLIO_BY_DATE"><label for="foStyle_FOLIO_BY_DATE">Folio Information by date</label></div>
+                    <div class="fo-opt"><input type="radio" name="foStyle" id="foStyle_FOLIO_SUMMARY" value="FOLIO_SUMMARY"><label for="foStyle_FOLIO_SUMMARY">Folio Summary</label></div>
+                    <div class="fo-row">
+                        <div class="fo-opt"><input type="radio" name="foStyle" id="foStyle_FOLIO_VAT" value="FOLIO_VAT"><label for="foStyle_FOLIO_VAT">Folio VAT</label></div>
+                        <div class="fo-opt" style="min-width:170px"><input type="radio" name="foStyle" id="foStyle_BILLING_INFOR_QUANTITY" value="BILLING_INFOR_QUANTITY"><label for="foStyle_BILLING_INFOR_QUANTITY">Folio Information (Q)</label></div>
+                    </div>
+
+                    <div id="foVatPanel">
+                        <div class="fo-vat">
+                            <div class="fo-opt"><input type="radio" name="foVat" id="foVat_FOLIO_VAT_GUEST" value="FOLIO_VAT_GUEST" checked><label for="foVat_FOLIO_VAT_GUEST">Guest VAT</label></div>
+                            <div class="fo-opt"><input type="radio" name="foVat" id="foVat_FOLIO_VAT_GUEST_SUMMARY" value="FOLIO_VAT_GUEST_SUMMARY"><label for="foVat_FOLIO_VAT_GUEST_SUMMARY">Guest VAT Summary</label></div>
+                            <div class="fo-opt"><input type="radio" name="foVat" id="foVat_FOLIO_VAT_GUEST_NONAME" value="FOLIO_VAT_GUEST_NONAME"><label for="foVat_FOLIO_VAT_GUEST_NONAME">Guest VAT - No Name</label></div>
+                            <div class="fo-opt"><input type="radio" name="foVat" id="foVat_FOLIO_VAT_GUEST_DETAIL" value="FOLIO_VAT_GUEST_DETAIL"><label for="foVat_FOLIO_VAT_GUEST_DETAIL">Guest VAT Detail</label></div>
+                        </div>
+
+                        <fieldset class="fo-print">
+                            <legend><span class="fo-opt"><input type="radio" name="foPrintFor" id="foPrintForGuest" value="GUEST" checked><label for="foPrintForGuest">Print for Guest</label></span></legend>
+                            <div class="fo-opt fo-cur" id="foGuestPanel"><input type="radio" name="foGuestCur" id="foGuestVND" value="VND" checked><label for="foGuestVND">VND</label></div>
+                        </fieldset>
+                        <fieldset class="fo-print">
+                            <legend><span class="fo-opt"><input type="radio" name="foPrintFor" id="foPrintForLocal" value="LOCAL"><label for="foPrintForLocal">Print for Local</label></span></legend>
+                            <div class="fo-opt fo-cur" id="foLocalPanel"><input type="checkbox" id="foLocalVND" checked><label for="foLocalVND">VND</label></div>
+                        </fieldset>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Thông tin hóa đơn VAT (frmCshVATInfor bên WinForm) -->
+<div class="modal fade managed-modal" id="modalFolioVatInfo" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">VAT Information</h5>
+            </div>
+            <div class="modal-body">
+                <div class="action-buttons py-2 mb-2 border-bottom">
+                    <button type="button" class="mui-button mui-button-search" onclick="folioVatInfoOk();">OK</button>
+                    <button type="button" class="mui-button mui-button-close" onclick="$('#modalFolioVatInfo').modal('hide');">Cancel</button>
+                </div>
+                <div class="fv-warn" id="fvPrintedWarn" style="display:none"></div>
+                <div class="fv-grid">
+                    <span>Folio No</span><input type="text" id="fvFolioNo" class="form-control form-control-sm" readonly>
+                    <span>Arrival</span><input type="date" id="fvArrival" class="form-control form-control-sm">
+                    <span>Departure</span><input type="date" id="fvDeparture" class="form-control form-control-sm">
+                    <span>Adult</span><input type="number" min="0" id="fvAdult" class="form-control form-control-sm">
+                    <span>Guest Name</span><input type="text" id="fvGuestName" class="form-control form-control-sm">
+                    <span>Company</span><input type="text" id="fvCompany" class="form-control form-control-sm">
+                    <span>Tax Number</span><input type="text" id="fvTaxNumber" class="form-control form-control-sm">
+                    <span>Address</span><input type="text" id="fvAddress" class="form-control form-control-sm">
+                    <span>Invoice No</span><input type="text" id="fvInvoiceNo" class="form-control form-control-sm">
+                    <span>Serial No</span><input type="text" id="fvSerialNo" class="form-control form-control-sm">
+                    <span id="fvDescriptionLabel">Description</span><input type="text" id="fvDescription" class="form-control form-control-sm">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Print History (frmPrintVATSearch bên WinForm) -->
+<div class="modal fade managed-modal" id="modalFolioPrintHistory" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="folioPrintHistoryTitle">Print History</h5>
+            </div>
+            <div class="modal-body">
+                <div class="action-buttons py-2 mb-2 border-bottom">
+                    <button type="button" class="mui-button mui-button-close" onclick="$('#modalFolioPrintHistory').modal('hide');">Close</button>
+                </div>
+                <div class="fh-wrap" id="folioPrintHistoryBody"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/billing/folio-option.js" asp-append-version="true"></script>

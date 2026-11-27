@@ -15,34 +15,28 @@
                     <button class="mui-button mui-button-new" onclick="closeModalTraces()">Close</button>
 
                 </div>
-                <div class="row mt-2">
-                    <div class="form-group-new-reservation col-md-3">
-                        <label>Name</label>
-                        <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
-                            <input id="nameTraces" type="text" />
-                        </div>
+                <div class="trc-filter mt-2">
+                    <div class="trc-field">
+                        <label for="nameTraces">Name</label>
+                        <input id="nameTraces" type="text" class="form-control form-control-sm" />
                     </div>
-                    <div class="form-group-new-reservation col-md-3">
+                    <div class="trc-field">
                         <label>Date</label>
-                        <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
-                            <input id="dateTraces" type="date" />
+                        <div data-date-input data-name="dateTraces" business-date>
+                            <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy">
                         </div>
                     </div>
-                    <div class="form-group-new-reservation col-md-3">
-                        <label>Department</label>
-                        <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
-                            <select id="departmentTraces"  ></select>
-                        </div>
+                    <div class="trc-field">
+                        <label for="departmentTraces">Department</label>
+                        <select id="departmentTraces" class="form-select form-select-sm"></select>
                     </div>
-                    <div class="form-group-new-reservation col-md-3">
-                        <label>Resolved</label>
-                        <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
-                            <select id="resolveTraces" type="text">
-                                <option value="" selected>All</option>
-                                <option value="1">Resolved</option>
-                                <option value="0">UnResolved</option>
-                            </select>
-                        </div>
+                    <div class="trc-field">
+                        <label for="resolveTraces">Resolved</label>
+                        <select id="resolveTraces" class="form-select form-select-sm">
+                            <option value="" selected>All</option>
+                            <option value="1">Resolved</option>
+                            <option value="0">UnResolved</option>
+                        </select>
                     </div>
                 </div>
                 <div class="mui-card mt-2">
@@ -52,50 +46,60 @@
         </div>
     </div>
 </div>
-<div class="modal fade modal" id="modalNewTrace" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<!-- New Trace — bố cục theo WinForm: Search / OK / Close; lưới khách; From Date / To Date / Time; Department; Trace Text -->
+<style>
+    /* Search Trace: khối lọc có khoảng cách lề, label cách ô nhập */
+    #modalTraces .modal-body { padding: 12px 16px; }
+    #modalTraces .trc-filter { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px; padding: 10px 12px; border: 1px solid #e3e6ea; border-radius: 6px; background: #fafbfc; }
+    #modalTraces .trc-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    #modalTraces .trc-field > label { margin: 0; font-weight: 500; text-align: left; min-width: 0; }
+    @@media (max-width: 768px) { #modalTraces .trc-filter { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+    #modalNewTrace .modal-dialog { max-width: 620px; }
+    #modalNewTrace #gridTraceGuests { height: 150px; }
+    #modalNewTrace .nt-form { padding: 10px 12px; background: #f6f7f9; border: 1px solid #dee2e6; border-top: 0; border-radius: 0 0 6px 6px; }
+    #modalNewTrace .nt-dates { display: grid; grid-template-columns: 90px 150px auto 150px auto 90px; gap: 6px 8px; align-items: center; margin-bottom: 8px; }
+    #modalNewTrace .nt-row { display: grid; grid-template-columns: 90px 1fr; gap: 8px; align-items: start; margin-bottom: 8px; }
+    #modalNewTrace label { margin: 0; text-align: right; min-width: 0; }
+    #modalNewTrace .nt-row > label { padding-top: 4px; }
+    #modalNewTrace #textAddNewTrace { width: 100%; min-height: 130px; resize: vertical; }
+</style>
+<div class="modal fade modal" id="modalNewTrace" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="newTraceTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border:1px solid #bcbcbc">
 
             <div class="modal-header">
-                <h5 class="modal-title" id="staticBackdropLabel">New Trace</h5>
-                <button type="button" class="btn-close" onclick="closeModalNewTrace()"></button>
+                <h5 class="modal-title" id="newTraceTitle">Traces</h5>
             </div>
             <div class="modal-body">
-                <div>
-                    <button class="submit-button-clear-reservation" onclick="SaveTrace();"> OK</button>
-                    <button class="submit-button-clear-reservation" onclick="closeModalNewTrace();">Close</button>
+                <div class="mb-2">
+                    <button type="button" class="mui-button mui-button-search" onclick="loadTraceGuests();">Search</button>
+                    <button type="button" class="mui-button mui-button-new" onclick="SaveTrace();">OK</button>
+                    <button type="button" class="mui-button mui-button-close" onclick="closeModalNewTrace();">Close</button>
                 </div>
-                <div class="row mt-2">
-                    <div class="form-group-new-reservation col-md-4">
-                        <label>From Date</label>
-                        <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
-                            <input id="fromDateAddNewTrace" type="date" />
-                        </div>
-                    </div>
-                    <div class="form-group-new-reservation col-md-4">
-                        <label>To Date</label>
-                        <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
-                            <input id="toDateAddNewTrace" type="date"  />
-                        </div>
-                    </div>
-                    <div class="form-group-new-reservation col-md-3">
-                        <label>Time</label>
-                        <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
-                            <input id="timeAddNewTrace" type="text"  />
 
+                <div class="mui-card"><div id="gridTraceGuests" class="gridContainer"></div></div>
+
+                <div class="nt-form">
+                    <div class="nt-dates">
+                        <label>From Date</label>
+                        <div data-date-input data-name="fromDateAddNewTrace">
+                            <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy">
                         </div>
+                        <label>To Date</label>
+                        <div data-date-input data-name="toDateAddNewTrace">
+                            <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy">
+                        </div>
+                        <label for="timeAddNewTrace">Time</label>
+                        <input id="timeAddNewTrace" type="time" value="00:00" />
                     </div>
-                    <div class="form-group-new-reservation col-md-6">
-                        <label>Department</label>
-                        <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
-                            <select id="departmentAddNewTraces"></select>
-                        </div>
+                    <div class="nt-row">
+                        <label for="departmentAddNewTraces">Department</label>
+                        <select id="departmentAddNewTraces"></select>
                     </div>
-                    <div class="form-group-new-reservation col-md-6">
-                        <label>Trace text</label>
-                        <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
-                            <input id="textAddNewTrace" type="text" />
-                        </div>
+                    <div class="nt-row">
+                        <label for="textAddNewTrace">Trace Text</label>
+                        <textarea id="textAddNewTrace" maxlength="2000"></textarea>
                     </div>
                 </div>
             </div>
@@ -103,7 +107,19 @@
     </div>
 </div>
 <script>
+    // Ô ngày chuẩn (data-date-input): giá trị ISO yyyy-MM-dd nằm ở input hidden cùng tên
+    function traceDateVal(name) { return $('input[type="hidden"][name="' + name + '"]').val() || ''; }
+    function traceDateSet(name, iso) {
+        if (iso) { if (window.UI && UI.setHiddenDate) UI.setHiddenDate(name, iso); return; }
+        var $w = $('[data-date-input][data-name="' + name + '"]');
+        $w.find('input[type="hidden"]').val(''); $w.find('.date-ui').val('');
+    }
     function openModalTraces(){
+        // Ô ngày chuẩn (có guard, gọi nhiều lần không sao) — cho cả trang ReservationOptionsHost
+        if (typeof window.initDateInputs === 'function') {
+            window.initDateInputs(document.getElementById('modalTraces'));
+            window.initDateInputs(document.getElementById('modalNewTrace'));
+        }
         if(!idReservation || idReservation <=0){
             showToast('Warning', 'Please select a reservation to manage traces.', false);
             return;
@@ -122,8 +138,9 @@
             crossDomain: false,
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                // Clear existing options
+                // Clear existing options (cả combo của New Trace — trước đây mỗi lần mở bị nhân đôi)
                 $('#departmentTraces').empty();
+                $('#departmentAddNewTraces').empty().append('<option value="">Select department</option>');
 
                 // Add a default option (optional)
                 $('#departmentTraces').append('<option value="">Select an department</option>');
@@ -155,7 +172,7 @@
             data: {
                 departmentID :$('#departmentTraces').val(),
                 resolved: $('#resolveTraces').val(),
-                date: $('#dateTraces').val(),
+                date: traceDateVal('dateTraces'),
                 name:$('#nameTraces').val(),
                 reservationID: idReservation
             },
@@ -224,33 +241,84 @@
             }
         });
     }
+    var traceGuestRows = [];
     function openModalNewTrace(){
         clearNewTrace();
         $('#modalNewTrace').modal('show');
+        loadTraceGuests();
     }
     function closeModalNewTrace(){
-        clearNewTrace();
         $('#modalNewTrace').modal('hide');
     }
     function clearNewTrace(){
         $('#timeAddNewTrace').val('00:00');
         $('#departmentAddNewTraces').val('');
         $('#textAddNewTrace').val('');
+        traceDateSet('fromDateAddNewTrace', ''); traceDateSet('toDateAddNewTrace', '');
+    }
+    // Lưới khách (booking hiện tại + room sharer), mặc định chọn booking hiện tại — giống WinForm
+    function loadTraceGuests(){
+        $.ajax({
+            url: '/Reservation/GetTraceGuests',
+            type: 'GET',
+            data: { reservationID: idReservation },
+            success: function (rows) {
+                traceGuestRows = Array.isArray(rows) ? rows : [];
+                $("#gridTraceGuests").dxDataGrid({
+                    dataSource: traceGuestRows,
+                    keyExpr: 'id',
+                    height: 150,
+                    showBorders: true,
+                    paging: { enabled: false },
+                    selection: { mode: 'multiple', showCheckBoxesMode: 'always' },
+                    columns: [
+                        { dataField: 'name', caption: 'Name' },
+                        { dataField: 'roomNo', caption: 'Ro. No', width: 80 },
+                        { dataField: 'arrival', caption: 'Arrival', dataType: 'date', format: 'dd/MM/yy', width: 90 },
+                        { dataField: 'departure', caption: 'Departure', dataType: 'date', format: 'dd/MM/yy', width: 90 },
+                        { dataField: 'status', caption: 'Status', width: 110 }
+                    ],
+                    onContentReady: function (e) {
+                        if (traceGuestRows.length && e.component.getSelectedRowKeys().length === 0) {
+                            e.component.selectRows([traceGuestRows[0].id], false);
+                        }
+                    }
+                });
+                // Ngày mặc định: Business Date nếu nằm trong thời gian lưu trú, không thì ngày đến
+                if (!traceDateVal('fromDateAddNewTrace') && traceGuestRows.length) {
+                    var g = traceGuestRows[0];
+                    var biz = (typeof dateSystem !== 'undefined' && dateSystem) ? moment(dateSystem, ['YYYY-MM-DD', 'DD/MM/YYYY', moment.ISO_8601]).format('YYYY-MM-DD') : '';
+                    var d = (biz && biz >= g.arrival && biz <= g.departure) ? biz : g.arrival;
+                    traceDateSet('fromDateAddNewTrace', d); traceDateSet('toDateAddNewTrace', d);
+                }
+            },
+            error: function (xhr) {
+                if (xhr.status == 401) { sessionTimeout(); return; }
+                showToast('Error', 'Cannot load guests (HTTP ' + xhr.status + ').', false);
+            }
+        });
     }
     function SaveTrace() {
-        const userName = JSON.parse(localStorage.getItem("Loginname"));
-        const userID = JSON.parse(localStorage.getItem("userID"));
+        var grid = $("#gridTraceGuests").dxDataGrid("instance");
+        var ids = grid ? grid.getSelectedRowKeys() : [];
+        if (!ids.length) { showToast('Warning', 'Please choose guest', false); return; }
+        if (!traceDateVal('fromDateAddNewTrace') || !traceDateVal('toDateAddNewTrace')) { showToast('Warning', 'Please enter From Date / To Date', false); return; }
+        if (!$('#departmentAddNewTraces').val()) { showToast('Warning', 'Please choose department', false); return; }
+        if (!$.trim($('#textAddNewTrace').val())) { showToast('Warning', 'Trace text cant not be blank', false); return; }
+
+        var userName = '', userID = 0;
+        try { userName = JSON.parse(localStorage.getItem("Loginname")) || ''; } catch (e) { userName = localStorage.getItem("Loginname") || ''; }
+        try { userID = JSON.parse(localStorage.getItem("userID")) || 0; } catch (e) { userID = 0; }
         var formData = new FormData();
-        formData.append('reservationID',idReservation);
-        formData.append('fromDate', $('#fromDateAddNewTrace').val());
-        formData.append('toDate', $('#toDateAddNewTrace').val());
-        formData.append('time', $('#timeAddNewTrace').val());
+        formData.append('reservationID', idReservation);
+        formData.append('reservationIDs', ids.join(','));
+        formData.append('fromDate', traceDateVal('fromDateAddNewTrace'));
+        formData.append('toDate', traceDateVal('toDateAddNewTrace'));
+        formData.append('time', $('#timeAddNewTrace').val() || '00:00');
         formData.append('department', $('#departmentAddNewTraces').val());
         formData.append('traceText', $('#textAddNewTrace').val());
-        formData.append('profileID', profileID);
-
         formData.append('userName', userName);
-        formData.append('userID',userID);
+        formData.append('userID', userID);
         $.ajax({
             url: '/Reservation/SaveTrace',
             type: 'POST',
@@ -259,18 +327,20 @@
             data: formData,
             success: function (data) {
                 if (data.code == 0) {
+                    showToast('Success', data.msg, true);
                     closeModalNewTrace();
                     searchTrace();
+                    // Cập nhật ngay số Trace trên chuông thông báo
+                    if (typeof loadNotificationCount === 'function') loadNotificationCount();
                 } else {
                     showToast('Error', data.msg, false);
                 }
-
             },
-            error: function (xhr, statusText, err) {
-
+            error: function (xhr) {
+                if (xhr.status == 401) { sessionTimeout(); return; }
+                showToast('Error', 'Cannot save trace (HTTP ' + xhr.status + ').', false);
             }
         });
-
     }
 
     function ResolveTrace(){
@@ -295,6 +365,7 @@
                     closeModalNewTrace();
                     searchTrace();
                     showToast('Success', data.msg, true);
+                    if (typeof loadNotificationCount === 'function') loadNotificationCount();
                 } else {
                     showToast('Error', data.msg, false);
                 }

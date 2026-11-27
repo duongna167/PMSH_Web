@@ -39,14 +39,14 @@
 
     .sticky-header label,
     .sticky-header .form-control-sm {
-        font-size: 0.75rem;
+        font-size: 14px;
         line-height: 1.2;
     }
 
 
     .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
+        padding:  2px 8px;
+        height: 28px;
     }
 
     .sticky-header label[class*="me-"] {
@@ -57,7 +57,7 @@
 
     .sticky-header input[type="date"].form-control-sm {
         font-size: 12px !important; /* đúng 12 px */
-        height: calc(1.1em + .2rem + 2px); /* giữ cùng chiều cao */
+        height: 28px; /* giữ cùng chiều cao */
     }
 
     .report-bar {
@@ -100,7 +100,7 @@
         <!-- From Date -->
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">From Date:</label>
-            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="fromDate">
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="fromDate" style="min-width:140px;">
                 <input type="text" class="date-ui form-control form-control-sm"
                        placeholder="dd/mm/yyyy" autocomplete="off" />
             </div>
@@ -109,7 +109,7 @@
         <!-- To Date -->
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">To Date:</label>
-            <div data-date-input data-format="DD/MM/YYYY" business-date data-name="toDate">
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="toDate" style="min-width:140px;">
                 <input type="text" class="date-ui form-control form-control-sm"
                        placeholder="dd/mm/yyyy" autocomplete="off" />
             </div>
@@ -120,14 +120,15 @@
                 <option value="0">--All--</option>
                 @foreach (var item in rtList)
                 {
-                    <option value="@item.ID">@item.Description</option>
+                    <option value="@item.ID">@item.Code</option>
                 }
             </select>
 
         </div>
         <div class="d-flex align-items-center me-1">
             <label class="me-2 mb-0">Zone:</label>
-            <select id="zone" name="zone" class="tomselect-custom" style="width: 70px;" multiple>
+            <select id="zone" name="zone" class="form-control form-control-sm report-dd">
+                        <option value="">--All--</option>
                 @foreach (var item in zoneList)
                 {
                     <option value="@item.Code">@item.Code</option>
@@ -145,7 +146,7 @@
 
 <div class="mui-card">
 @*     <div style="font-size: 20px;" class="mt-1" id="reportTitle"></div> *@
-    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
+    <div id="gridWrapper" class="mt-2">
         <div class="gridContainer mt-2" id="gridContainer"></div>
     </div>
 </div>
@@ -160,55 +161,36 @@
               window.initDateInputs();
        
 
-        initializeTomSelects();
     });
-      function initializeTomSelects() {
-        const selectors = ["#zone"];
-
-            for (const id of selectors) {
-                const el = document.querySelector(id);
-                if (!el) continue;
-
-                // Nếu đã khởi tạo rồi thì destroy
-                if (el.tomselect) el.tomselect.destroy();
-
-                const ts = new TomSelect(el, {
-                    plugins: ['remove_button'],
-                    create: false,
-                    maxItems: null,
-                    allowEmptyOption: true,
-                    placeholder: '',
-                    persist: false,
-                    render: {
-                        option: function (data, escape) {
-                            return `<div>${escape(data.text)}</div>`;
-                        }
-                    }
-                });
-
-            }
-        }
+    function readNoShowDate(name) {
+        const text = ($('[data-date-input][data-name="' + name + '"] .date-ui').val() || $("#" + name).val() || "").trim();
+        const m = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+        if (!m) return text;
+        let year = parseInt(m[3], 10);
+        if (year < 100) year += 2000;
+        return year + "-" + String(m[2]).padStart(2, "0") + "-" + String(m[1]).padStart(2, "0");
+    }
     $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
         $("#loadingSpinner").show();
         $.ajax({
             url: '/Report/NoShowReportData',
             type: 'GET',
             data: {
-                fromDate: $("#fromDate").val(),
-                toDate: $("#toDate").val(),
-                roomClass: $("#roomClass").val(),
-                zone: $("#zone").val().join(",") 
+                fromDate: readNoShowDate("fromDate"),
+                toDate: readNoShowDate("toDate"),
+                roomClass: $("#roomClass").val() || 0,
+                zone: $("#zone").val() || ""
             },
             traditional: true,
-              crossDomain: false,
-                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
-                // $("#reportViewerContainer").html(result);
-                // $("#loadingSpinner").hide();
-                     console.log(result);
-                    initializeNoShowReportDataGrid(result);
-
+                if (!Array.isArray(result)) {
+                    alert((result && result.error) ? result.error : "Không thể tải báo cáo.");
                     $("#loadingSpinner").hide();
+                    return;
+                }
+                initializeNoShowReportDataGrid(result);
+                $("#loadingSpinner").hide();
             },
             error: function () {
                 alert("Không thể tải báo cáo.");
@@ -216,65 +198,52 @@
             }
         });
     });
- 
 
+    function noShowGridHeight() {
+        var el = document.getElementById("gridContainer");
+        var top = el ? el.getBoundingClientRect().top : 260;
+        return Math.max(480, Math.floor(window.innerHeight - top - 12));
+    }
     function initializeNoShowReportDataGrid(data) {
-        const columnWidth = 180;
-        $("#gridContainer").dxDataGrid({
-    dataSource: data,         height: 500, allowColumnResizing: true,
+        const w = 180;
+        pmshBindDxReportGrid("#gridContainer", {
+            dataSource: Array.isArray(data) ? data : [],
+            height: noShowGridHeight(),
+            allowColumnResizing: true,
+            loadPanel: { enabled: false },
+            headerFilter: { visible: false },
             columns: [
-               { dataField: "confirmationNo", caption: "Conf.No", width:columnWidth-80},
-                 { dataField: "roomNo", caption: "RoomNo", width:columnWidth-70},
-            { dataField: "lastName", caption: "Guest Name", width: columnWidth+120  },
-            {
-                  caption: "Company/Travel Agent/Source",
-                 width: columnWidth+120,
-                  dataType: "string",
-                  calculateCellValue: function (data) {
-                        return data.company || data.agent || data.source || "";
-                  }
-            },
-                { dataField: "arrivalDate", caption: "Arr.Date", width: columnWidth-70, dataType: "date", format: "dd/MM/yyyy" },
-            { dataField: "departureDate", caption: "Dep.Date", width: columnWidth-70 , dataType: "date", format: "dd/MM/yyyy" },
-            { dataField: "roomType", caption: "R.Type", width: columnWidth-80  },
-            { dataField: "businessBlockCode", caption: "Block Code",width: columnWidth-60 },
-            { dataField: "marketCode", caption: "MrkCode",width: columnWidth-70 },
-            { dataField: "paymentMethod", caption: "Pay mth", width:columnWidth-80 },
-             { dataField: "reservationTypeCode", caption: "Rsv.Type",width: columnWidth },
-            { dataField: "creditCardNo", caption: "CC no",width: columnWidth-80 },
-            { dataField: "rateCode", caption: "Rate Code", width:columnWidth-60 },
-             { dataField: "expirationDate", caption: "Exp.Date", width: columnWidth-70, dataType: "date", format: "dd/MM/yyyy" },
-             { dataField: "rateAmount", caption: "Rate Amount",width: columnWidth-60 , dataType: "number", format: "#,##0" },
-            { dataField: "noOfRoom", caption: "Rms",width: columnWidth-80 , dataType: "number", format: "#,##0" },
-            { dataField: "noOfNight", caption: "Nts",width: columnWidth-80, dataType: "number", format: "#,##0" },
-             { dataField: "totalAmount", caption: "Revenue",width: columnWidth-50 , dataType: "number", format: "#,##0" },
-            { dataField: "depositPaid", caption: "DepositPaid",width: columnWidth-50, dataType: "number", format: "#,##0" },
+                { dataField: "confirmationNo", caption: "Conf No", width: w - 80 },
+                { dataField: "roomNo", caption: "Room No", width: w - 70 },
+                { dataField: "guestName", caption: "Guest Name", width: w + 80 },
+                { dataField: "companySource", caption: "Company / Travel Agent / Source", width: w + 120 },
+                { dataField: "arrivalDate", caption: "Arrival", width: 100, dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "departureDate", caption: "Dep", width: 100, dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "roomType", caption: "R.Type", width: w - 80 },
+                { dataField: "businessBlockCode", caption: "Block Code", width: w - 60 },
+                { dataField: "marketCode", caption: "MrkCode", width: w - 70 },
+                { dataField: "paymentMethod", caption: "Pay mth", width: w - 80 },
+                { dataField: "reservationTypeCode", caption: "Rsv.Type", width: w },
+                { dataField: "creditCardNo", caption: "CC no", width: w - 80 },
+                { dataField: "rateCode", caption: "Rate Code", width: w - 60 },
+                { dataField: "expirationDate", caption: "Exp.Date", width: 100, dataType: "date", format: "dd/MM/yyyy" },
+                { dataField: "rateAmount", caption: "Rate Amount", width: w - 50, dataType: "number", format: "#,##0" },
+                { dataField: "noOfRoom", caption: "Rms", width: 56, dataType: "number", format: "#,##0" },
+                { dataField: "noOfNight", caption: "Nts", width: 56, dataType: "number", format: "#,##0" },
+                { dataField: "totalAmount", caption: "Revenue", width: w - 50, dataType: "number", format: "#,##0" },
+                { dataField: "depositPaid", caption: "DepositPaid", width: w - 50, dataType: "number", format: "#,##0" }
             ],
-            paging: { pageSize: 25 },
-             scrolling:  {
-                   
-               useNative: true,
-               showScrollbar: "always"
-               },
-            pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true,
-            },
-             filterRow: {
-                 visible: true,
-                 applyFilter: "auto"
-              },
-               headerFilter: {
-                  visible: true
-              },
-            selection: { mode: "multiple", showCheckBoxesMode: "none" },
+            paging: { enabled: false },
+            pager: { visible: false },
+            selection: { mode: "none" },
+            filterRow: { visible: true, applyFilter: "auto" },
             showBorders: true
-
         });
     }
+    $(window).off("resize.noShowReport").on("resize.noShowReport", function () {
+        var grid = $("#gridContainer").data("dxDataGrid");
+        if (grid) grid.option("height", noShowGridHeight());
+    });
 
 
 

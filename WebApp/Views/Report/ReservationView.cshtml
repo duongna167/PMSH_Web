@@ -1,0 +1,256 @@
+@using BaseBusiness.Model
+@{
+    ViewBag.Title = ViewBag.ReportHeader;
+    var natList = (ViewBag.NationalityList as List<NationalityModel>) ?? new List<NationalityModel>();
+    var cityList = (ViewBag.CityList as List<CityModel>) ?? new List<CityModel>();
+    var countryList = (ViewBag.CountryList as List<CountryModel>) ?? new List<CountryModel>();
+}
+<style>
+    .gridContainer { margin: 0px 8px; }
+    .sticky-header label, .sticky-header .form-control-sm { font-size: 14px; line-height: 1.2; }
+    .sticky-header .form-control-sm { padding: 2px 8px; height: 28px; }
+    .sticky-header label { margin-bottom: 0; white-space: nowrap; }
+    .nrp-grid {
+        display: grid;
+        grid-template-columns: max-content max-content 160px max-content 160px max-content 160px;
+        column-gap: 6px;
+        row-gap: 8px;
+        align-items: center;
+        width: max-content;
+        max-width: 100%;
+    }
+    .nrp-grid > label { margin: 0; white-space: nowrap; }
+    .nrp-grid .pair-gap { margin-left: 10px; }
+    .nrp-grid select, .nrp-grid input { width: 160px; min-width: 128px; max-width: 220px; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection { background-color: #e8e8e8 !important; color: inherit !important; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection * { color: inherit !important; }
+</style>
+<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+    <div>
+        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+        <button id="btnResv" class="mui-button mui-button-new" type="button">Resv</button>
+        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">PDF</button>
+    </div>
+    <div class="mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+        <div class="nrp-grid">
+            <label class="fw-bold">Filter</label>
+            <label>Status:</label>
+            <select id="rvStatus" class="form-control form-control-sm">
+                <option value="0">Reservation</option>
+                <option value="1" selected>In-House</option>
+                <option value="2">Checked-out</option>
+            </select>
+            <span></span><span></span><span></span><span></span>
+            <span></span>
+            <label>Nationality:</label>
+            <select id="rvNationality" class="form-control form-control-sm" data-pmsh-select-down>
+                <option value="">--All--</option>
+                @foreach (var item in natList)
+                {
+                    var code = item.Code;
+                    if (string.IsNullOrWhiteSpace(code)) { continue; }
+                    var label = string.IsNullOrWhiteSpace(item.Name) ? code : item.Name;
+                    <option value="@code">@label</option>
+                }
+            </select>
+            <label class="pair-gap">Country:</label>
+            <select id="rvCountry" class="form-control form-control-sm" data-pmsh-select-down>
+                <option value="">--All--</option>
+                @foreach (var item in countryList)
+                {
+                    var code = item.Code;
+                    if (string.IsNullOrWhiteSpace(code)) { continue; }
+                    var label = string.IsNullOrWhiteSpace(item.Name) ? code : item.Name;
+                    <option value="@code">@label</option>
+                }
+            </select>
+            <label class="pair-gap">City:</label>
+            <select id="rvCity" class="form-control form-control-sm" data-pmsh-select-down>
+                <option value="">--All--</option>
+            </select>
+        </div>
+    </div>
+</div>
+<div class="mui-card">
+    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
+        <div class="gridContainer mt-2" id="gridContainer"></div>
+    </div>
+</div>
+<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+</div>
+<script>
+    (function () {
+        var selectedId = 0;
+        var reportTitle = '@ViewBag.ReportTitle';
+        var countries = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            countryList.Select(x => new { id = x.ID, code = x.Code ?? "", name = x.Name ?? "" })));
+        var cities = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            cityList.Select(x => new { code = x.Code ?? "", name = x.Name ?? "", countryId = x.CountryID })));
+        function countryIdOf(val) {
+            var v = (val || "").trim().toLowerCase();
+            if (!v) return 0;
+            for (var i = 0; i < countries.length; i++) {
+                var c = countries[i];
+                if ((c.code && String(c.code).toLowerCase() === v) || (c.name && String(c.name).toLowerCase() === v))
+                    return c.id;
+            }
+            return -1;
+        }
+        function fillCities() {
+            var cid = countryIdOf($("#rvCountry").val());
+            var cur = ($("#rvCity").val() || "").trim();
+            var $sel = $("#rvCity").empty().append($("<option/>").attr("value", "").text("--All--"));
+            cities.forEach(function (c) {
+                if (cid > 0 && c.countryId !== cid) return;
+                var val = c.code || c.name;
+                if (!val) return;
+                $sel.append($("<option/>").attr("value", val).text(c.name || val));
+            });
+            if (cur) {
+                var ok = $sel.find("option").filter(function () { return $(this).val() === cur; }).length;
+                $sel.val(ok ? cur : "");
+            }
+        }
+        function pick(row, names) {
+            for (var i = 0; i < names.length; i++) {
+                if (row[names[i]] !== undefined && row[names[i]] !== null && row[names[i]] !== "") return row[names[i]];
+            }
+            return "";
+        }
+        function bindGrid(data) {
+            selectedId = 0;
+            var rows = (Array.isArray(data) ? data : []).map(function (r) {
+                return {
+                    status: pick(r, ["Status", "status"]),
+                    confirmationNo: pick(r, ["ConfirmationNo", "confirmationNo"]),
+                    mg: pick(r, ["MG", "mg"]),
+                    nat: pick(r, ["Nationality", "nationality", "Nat"]),
+                    guestName: pick(r, ["ProfileName", "GuestName", "guestName"]),
+                    roomNo: pick(r, ["RoomNo", "roomNo"]),
+                    roomType: pick(r, ["RoomType", "roomType"]),
+                    address: pick(r, ["Address", "address"]),
+                    city: pick(r, ["City", "city"]),
+                    country: pick(r, ["Country", "country"]),
+                    arrival: pick(r, ["ArrivalDate", "arrivalDate"]),
+                    nights: pick(r, ["NoOfNight", "noOfNight", "Nights"]),
+                    departure: pick(r, ["DepartureDate", "departureDate"]),
+                    holder: pick(r, ["ReservationHolder", "reservationHolder"]),
+                    reservationId: pick(r, ["ReservationID", "reservationID", "ID"])
+                };
+            });
+            $("#gridContainer").dxDataGrid({
+                dataSource: rows, height: 500, allowColumnResizing: true,
+                columns: [
+                    { dataField: "status", caption: "Status", width: 110 },
+                    { dataField: "confirmationNo", caption: "Conf.No", width: 90 },
+                    { dataField: "mg", caption: "MG", width: 50 },
+                    { dataField: "nat", caption: "Nat", minWidth: 90 },
+                    { dataField: "guestName", caption: "Guest Name", minWidth: 160 },
+                    { dataField: "roomNo", caption: "Ro.No", width: 80 },
+                    { dataField: "roomType", caption: "Ro.Type", width: 80 },
+                    { dataField: "address", caption: "Address", minWidth: 160 },
+                    { dataField: "city", caption: "City", width: 110 },
+                    { dataField: "country", caption: "Country", minWidth: 110 },
+                    { dataField: "arrival", caption: "Arr.Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                    { dataField: "nights", caption: "Nights", width: 70 },
+                    { dataField: "departure", caption: "Dep.Date", dataType: "date", format: "dd/MM/yyyy", width: 100 },
+                    { dataField: "holder", caption: "Reservation Holder", minWidth: 160 },
+                    { dataField: "reservationId", visible: false }
+                ],
+                paging: { pageSize: 25 },
+                scrolling: { mode: "standard", useNative: false, showScrollbar: "always" },
+                pager: { visible: true, allowedPageSizes: [25, 50, "all"], showPageSizeSelector: true, showInfo: true, showNavigationButtons: true },
+                filterRow: { visible: true, applyFilter: "auto" },
+                headerFilter: { visible: true },
+                showBorders: true,
+                selection: { mode: "single" },
+                onRowClick: function (e) { selectedId = parseInt(e.data && e.data.reservationId, 10) || 0; },
+                onRowDblClick: function (e) {
+                    selectedId = parseInt(e.data && e.data.reservationId, 10) || 0;
+                    openResv();
+                }
+            });
+        }
+        function loadData() {
+            $("#loadingSpinner").show();
+            $.ajax({
+                url: "/Report/ReservationViewData", type: "GET",
+                data: {
+                    status: $("#rvStatus").val(),
+                    nationality: $("#rvNationality").val(),
+                    city: $("#rvCity").val(),
+                    country: $("#rvCountry").val()
+                },
+                success: function (result) {
+                    if (typeof result === "string") { alert(result); $("#loadingSpinner").hide(); return; }
+                    bindGrid(result);
+                    $("#loadingSpinner").hide();
+                },
+                error: function (xhr) {
+                    var msg = xhr.status === 403 ? "Bạn không có quyền xem báo cáo này." : "Không thể tải báo cáo.";
+                    alert(msg);
+                    $("#loadingSpinner").hide();
+                }
+            });
+        }
+        function openResv() {
+            if (!selectedId) {
+                if (window.showToast) showToast("Warning", "Please select a row again to edit.", false);
+                else alert("Please select a row again to edit.");
+                return;
+            }
+            var modal = $("#newReservationModal");
+            var body = modal.find("#newReservationModalBody");
+            if (!body.length) body = modal.find(".modal-body");
+            body.html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-3">Loading reservation...</p></div>');
+            modal.modal("show");
+            $.ajax({
+                url: "/Reservation/EncryptId", type: "POST", data: { id: selectedId },
+                success: function (response) {
+                    if (!response || !response.success) { alert("Failed to encrypt ID."); return; }
+                    $.ajax({
+                        url: "/Reservation/NewReservation", type: "GET",
+                        data: { key: response.encryptedId }, cache: false,
+                        success: function (html) {
+                            body.html(html);
+                            if (typeof window.focusNewReservationFirstField === "function") window.focusNewReservationFirstField();
+                        },
+                        error: function () {
+                            body.html('<div class="alert alert-danger m-4"><strong>Error</strong> Unable to load reservation details.</div>');
+                        }
+                    });
+                },
+                error: function () { alert("Encryption API request failed."); }
+            });
+        }
+        $(document).ready(function () {
+            document.getElementById("reportTitle").innerText = reportTitle;
+            fillCities();
+            $("#rvCountry").on("change", fillCities);
+        });
+        $(document).off("click", "#btnPrint").on("click", "#btnPrint", loadData);
+        $(document).off("click", "#btnResv").on("click", "#btnResv", openResv);
+        $(document).off("click", "#btnExportExcel").on("click", "#btnExportExcel", function () {
+            const grid = $("#gridContainer").dxDataGrid("instance"); if (!grid) return;
+            const workbook = new ExcelJS.Workbook(); const worksheet = workbook.addWorksheet("Report");
+            const selectedReport = reportTitle || "Reservation View";
+            worksheet.addRow([localStorage.getItem("CompanyName") || ""]);
+            DevExpress.excelExporter.exportDataGrid({ component: grid, worksheet: worksheet, autoFilterEnabled: true, topLeftCell: { row: 3, column: 1 } })
+                .then(function () { workbook.xlsx.writeBuffer().then(function (buffer) { saveAs(new Blob([buffer], { type: "application/octet-stream" }), selectedReport + ".xlsx"); }); });
+        });
+        $(document).off("click", "#btnExportPdf").on("click", "#btnExportPdf", function () {
+            const grid = $("#gridContainer").dxDataGrid("instance"); if (!grid) return;
+            const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "A4" });
+            const selectedReport = reportTitle || "Reservation View";
+            grid.getDataSource().load().then(function (data) {
+                const columns = grid.getVisibleColumns().filter(c => c.dataField);
+                doc.text(selectedReport, doc.internal.pageSize.getWidth() / 2, 40, { align: "center" });
+                doc.autoTable({ startY: 56, head: [columns.map(c => c.caption)], body: data.map(row => columns.map(c => row[c.dataField] ?? "")), styles: { fontSize: 8 } });
+                doc.save(selectedReport + ".pdf");
+            });
+        });
+    })();
+</script>

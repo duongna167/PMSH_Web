@@ -62,7 +62,7 @@ namespace Report.Services.Interfaces
         DataTable BookingSummaryByStatusData(DateTime fromDate, DateTime toDate);
         DataTable VacantRoomData(string roomClass, string roomtype, string FromRoom, string ToRoom, string OrderByRoomNo, string OrderByHKPStatus, string OrderByFOStatus, string HKPStatus, string FOStatus, string IsGroupByRoomClass);
         DataTable SummarybyArticle(DateTime fromDate, DateTime toDate, string transaction, string article, string cashierNo, string roomClass, string room, string orderBy, string netDisp, int isShowDeleted);
-        DataTable ManagerReport(DateTime businessDate, string currency);
+        DataTable ManagerReport(DateTime businessDate, string currency, bool recalc);
         DataTable CashierSummary(DateTime dtpFromDate, string cboType); 
         DataTable ArrivalsDetailedData(DateTime fromDate, DateTime toDate, string roomClass, string roomtype, string market, string rateCode, string source, string vip, string viponlycheck, string noPost, int sortOrder,
             string pseudo, string checkedInToday, string cancellations, string zeroRateOnly, int disRoomSharer, int searchCriteria, int ckhArrivalDate);
@@ -96,6 +96,45 @@ namespace Report.Services.Interfaces
         DataTable RoomFacilityForecastData(DateTime fromDate, DateTime toDate, string zone);
         DataTable ReservationSearchRSVDate(DateTime businessDate, int status);
         DataTable RoomAvailableNew(DateTime businessDate, string paraDate, string paraDateConvert, string resvType,string Code);
+        DataTable GuestBirthdayReportData(DateTime fromDate, DateTime toDate, string reservationStatus, string orderBy);
+        DataTable GuestInHousebyCompanyData(string roomClass, string roomType, string companyId, string pseudo, string sortOrder);
+        DataTable GuestInHousebyGroupData(DateTime fromDate, DateTime toDate, string roomClass, string blockCode, string vipOnly, string printRate, string sortOrder);
+        DataTable GuestInHousebyRoomData(string roomClass, string roomType, string payment, string pseudo, string vip, string vipOnly, string individual, string blockCode, int disRoomSharer, string sortOrder, string noPost);
+        DataTable GuestInHouseCashPaymentMethodData(DateTime fromDate);
+        DataTable GuestInHouseSpecialRequestsData(DateTime fromDate, DateTime toDate, DateTime? departure, int sortOrder, string special);
+        DataTable MessagesGuestsINHAndDueArrivalData(string receiveStatus);
+        DataTable GuestInHouseComplimentaryAndHouseUseData(bool vipOnly, string vipIds, bool showComp, bool showHU, bool displayComment, string sort);
+        DataTable GIHComplimentaryData();
+        DataTable HouseKeepingStatusData(string roomClassId, string roomTypeId, string blockCode, DateTime fromDate, DateTime toDate, string orderBy, bool arrivals, bool arrived, bool stayOver, bool dueOut, bool departed, int vipId);
+        DataTable OutOfOrderByPersonData(DateTime fromDate, DateTime toDate, string roomType, string zone, string orderBy, int oooStatus);
+        DataTable DialingInformationData(DateTime fromDate);
+        DataTable ProfileAddressData(string profileType, string nameStart, string vipOnly);
+        DataTable ProfileProductivityData(DateTime fromDate, DateTime toDate, string name);
+        DataTable ComplimentaryGuestReportData(DateTime fromDate);
+        DataTable PaidOutReportData(DateTime fromDate, DateTime toDate);
+        DataTable HistoryAndForecastData(DateTime fromDate, DateTime toDate, string zone);
+        DataTable MarketSegmentDetailData(DateTime fromDate, DateTime toDate, string zone);
+        DataTable GroupBalanceSearch(string confirmationNo);
+        DataTable GroupBalanceDetail(string confirmationNo);
+        (string Holder, string GroupName, int TotalRooms, int InHouse) GroupBalanceSummary(string confirmationNo);
+        DataTable ProfileProductionStatisticsData(DateTime fromDate, DateTime toDate, int profileType, int profileId, string roomClassId, string currencyId, bool includeTax, bool rollupMaster, string metrics);
+        DataTable BookingbyHolderData(DateTime date, string holder, string market);
+        DataTable ReportHolderLookup();
+        DataTable FrequentFlyerData(DateTime fromDate, DateTime toDate, string status, string memberID, int isSortByCardName);
+        DataTable PackageReportbyPersonData(DateTime fromDate, DateTime toDate);
+        DataTable ARTraceData(DateTime fromDate, DateTime toDate, string state);
+        DataTable ReservationWithDiscountData(DateTime fromDate, DateTime toDate, int dateType,
+            string rmClasses, string rmTypes, string rateIDs, string mkIDs, string srcIDs, string statuses, int sort);
+        DataTable AgingbyTypeOnlyData(DateTime date, int accType, string sort);
+        DataTable AgingSummaryByTypeData(DateTime date, string sort);
+        DataTable ARAdjustmentData(DateTime fromDate, DateTime toDate);
+        DataTable ARCreditLimitData(int option1, int option2, int sort);
+        DataTable ARLedgerData(DateTime date);
+        DataTable ARPaymentsData(DateTime date);
+        DataTable ARTransferReportData(DateTime date);
+        DataTable ProfileUpdateReportData(DateTime date, string confirmationNo, string roomNo, string name);
+        DataTable ReservationViewData(int status, string nationality, string city, string country);
+        DataTable ReservationCommentsData(DateTime fromDate, DateTime toDate, string status, int viewBy, int type);
     }
 
 }

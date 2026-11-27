@@ -10,8 +10,8 @@
             <div class="modal-body">
                 <div class="py-2">
                     <button class="mui-button mui-button-new" onclick="openModalNewAlert();">New</button>
-                    <button class="mui-button mui-button-edit" onclick="openModalOption();" id="btnEditAlert">Edit</button>
-                    <button class="mui-button mui-button-delete" onclick="openModalMoreFields();" id="btnDeleteAlert">Delete</button>
+                    <button class="mui-button mui-button-edit" onclick="openEditAlert();" id="btnEditAlert">Edit</button>
+                    <button class="mui-button mui-button-delete" onclick="deleteAlert();" id="btnDeleteAlert">Delete</button>
                     <button class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
                 </div>
                 <div class="mui-divider"></div>
@@ -28,7 +28,7 @@
         <div class="modal-content" style="border:1px solid #bcbcbc">
 
             <div class="modal-header">
-                <h5 class="modal-title" id="staticBackdropLabel">New Alert</h5>
+                <h5 class="modal-title" id="alertFormTitle">New Alert</h5>
                 @* <button type="button" class="btn-close" onclick="closeModalNewAlert()"></button> *@
             </div>
 
@@ -44,7 +44,7 @@
                             <label>Code</label>
                             <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
                                 <input id="codeAlertNew" class="col-md-10" />
-                                <button id="btnSearchAlert" onclick="openModalAlertSetUp()" class="col-md-2" data-tooltip="Search alert setup"><i class="fa-solid fa-arrow-down text-dark"></i></button>
+                                <button type="button" id="btnSearchAlert" onclick="openModalAlertSetUp()" class="col-md-2" data-tooltip="Search alert setup"><i class="fa-solid fa-arrow-down text-dark"></i></button>
 
                             </div>
                         </div>
@@ -61,18 +61,20 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="row mb-3 align-items-center">
-                            <label>
-                                <input id="includeAlert" type="checkbox" />
-                                Include Roomsharer
-                            </label>
+                        <div class="mb-3 alert-check">
+                            <input id="includeAlert" type="checkbox" />
+                            <label for="includeAlert">Include Roomsharer</label>
                         </div>
-                        <div class="row mb-3 align-items-center">
-                            <label>
-                                <input id="activeAlert" type="checkbox" />
-                                Is Active
-                            </label>
+                        <div class="mb-3 alert-check">
+                            <input id="activeAlert" type="checkbox" />
+                            <label for="activeAlert">Is Active</label>
                         </div>
+                        <style>
+                            /* Checkbox và chữ canh giữa trên cùng một hàng */
+                            .alert-check { display: flex; align-items: center; gap: 8px; }
+                            .alert-check input[type=checkbox] { width: 15px; height: 15px; margin: 0; flex: 0 0 auto; cursor: pointer; }
+                            .alert-check label { margin: 0; line-height: 1; cursor: pointer; }
+                        </style>
                         <div class="row mb-3 align-items-center">
                             <label>Warning Day</label>
                             <div class="row" style="margin-left:1px;margin-right:2px;justify-content:space-between">
@@ -85,7 +87,7 @@
                                 <input id="descriptionAlert" type="text" />
                             </div>
                         </div>
-                        <input type="hidden" id="id" name="id" value="0" />
+                        <input type="hidden" id="alertEditID" value="0" />
                     </div>
                 </form>
             </div>
@@ -117,10 +119,102 @@
     </div>
 </div>
 <script>
-    
+    // Xếp lớp popup: ModalManager (_Layout) đánh z-index theo THỨ TỰ DOM của các .modal.show.
+    // Popup Alerts nằm sẵn trong trang (trước New Reservation / Reservation Options) nên phải chuyển
+    // xuống cuối <body> mỗi lần mở → thứ tự DOM = thứ tự mở → popup mở sau luôn nằm trên.
+    function restackOpenModals() {
+        $('.modal.show').each(function (i) { $(this).css('z-index', 1050 + 10 * i); });
+        $('.modal-backdrop').each(function (i) { $(this).css('z-index', 1049 + 10 * i); });
+    }
+    $(document).off('.alertFront')
+        .on('show.bs.modal.alertFront', '#modalAlerts, #modalNewAlert, #modalAlertSetUp', function () {
+            document.body.appendChild(this);
+        })
+        .on('shown.bs.modal.alertFront', '#modalAlerts, #modalNewAlert, #modalAlertSetUp', function () {
+            restackOpenModals();
+            $(this).find('.modal-content').removeClass('modal-blur');
+        })
+        .on('hidden.bs.modal.alertFront', '#modalNewAlert, #modalAlertSetUp', function () {
+            // Đóng popup con (vd Search Alert Setup) → popup bên dưới (New Alert) vẫn ở trên New Reservation
+            restackOpenModals();
+            $('.modal.show').last().find('.modal-content').removeClass('modal-blur');
+            if ($('.modal.show').length) $('body').addClass('modal-open');
+        });
+
     function openModalNewAlert(){
         clearAlert();
+        $('#alertFormTitle').text('New Alert');
         $('#modalNewAlert').modal('show');
+    }
+    function getSelectedAlertRow(){
+        var grid = $("#gridContainerAlerts").dxDataGrid("instance");
+        var rows = grid ? grid.getSelectedRowsData() : [];
+        return rows && rows.length ? rows[0] : null;
+    }
+    // Edit: nạp alert đang chọn vào form, lưu sẽ UPDATE theo ID
+    function openEditAlert(){
+        var row = getSelectedAlertRow();
+        var aid = row ? (parseInt(row.ID || row.id, 10) || 0) : 0;
+        if (!aid) {
+            showToast("Warning", "Please select an alert.", false);
+            return;
+        }
+        $.ajax({
+            url: '/Reservation/GetAlertByID',
+            type: 'GET',
+            data: { id: aid },
+            success: function (res) {
+                if (!res || res.code != 0) {
+                    showToast('Error', (res && res.msg) || 'Cannot load alert.', false);
+                    return;
+                }
+                var a = res.alert || {};
+                clearAlert();
+                $('#alertEditID').val(aid);
+                $('#codeAlertNew').val(a.code || '');
+                $('#areaNewAlert').val(a.area || 'Reservation');
+                $('#descriptionAlert').val(a.description || '');
+                $('#warningDayAlert').val(a.warningDay != null ? a.warningDay : 0);
+                $('#activeAlert').prop('checked', a.isActive == 1);
+                $('#includeAlert').prop('checked', res.includeRoomsharer === true);
+                $('#alertFormTitle').text('Edit Alert');
+                $('#modalNewAlert').modal('show');
+            },
+            error: function (xhr) {
+                if (xhr.status == 401) { sessionTimeout(); return; }
+                showToast('Error', 'Cannot load alert (HTTP ' + xhr.status + ').', false);
+            }
+        });
+    }
+    function deleteAlert(){
+        var row = getSelectedAlertRow();
+        var aid = row ? (parseInt(row.ID || row.id, 10) || 0) : 0;
+        if (!aid) {
+            showToast("Warning", "Please select an alert.", false);
+            return;
+        }
+        if (!confirm('Are you sure you want to delete alert "' + (row.Code || '') + '"?')) return;
+        var userName = '', userID = 0;
+        try { userName = JSON.parse(localStorage.getItem("Loginname")) || ''; } catch (e) { userName = localStorage.getItem("Loginname") || ''; }
+        try { userID = JSON.parse(localStorage.getItem("userID")) || 0; } catch (e) { userID = 0; }
+        $.ajax({
+            url: '/Reservation/DeleteAlert',
+            type: 'POST',
+            data: { id: aid, userID: userID, userName: userName },
+            success: function (res) {
+                if (res && res.code == 0) {
+                    showToast('Success', res.msg, true);
+                    setHideButtonAlerts();
+                    GetAlertsByReservationID();
+                } else {
+                    showToast('Error', (res && res.msg) || 'Cannot delete alert.', false);
+                }
+            },
+            error: function (xhr) {
+                if (xhr.status == 401) { sessionTimeout(); return; }
+                showToast('Error', 'Cannot delete alert (HTTP ' + xhr.status + ').', false);
+            }
+        });
     }
     function closeModalNewAlert(){
         $('#modalNewAlert').modal('hide');
@@ -220,6 +314,8 @@
         const userID = JSON.parse(localStorage.getItem("userID"));
         var formData = new FormData();
         formData.append('reservationID',idReservation);
+        formData.append('id', parseInt($('#alertEditID').val(), 10) || 0);
+        formData.append('includeRoomsharer', $('#includeAlert').is(':checked') ? 1 : 0);
         formData.append('code', $('#codeAlertNew').val());
         formData.append('area', $('#areaNewAlert').val());
         formData.append('description', $('#descriptionAlert').val());
@@ -251,6 +347,9 @@
 
     }
     function clearAlert(){
+         $('#alertEditID').val('0');
+         $('#activeAlert').prop('checked', false);
+         $('#includeAlert').prop('checked', false);
          $('#codeAlertNew').val('');
          $('#areaNewAlert').val('Reservation');
          $('#descriptionAlert').val('');

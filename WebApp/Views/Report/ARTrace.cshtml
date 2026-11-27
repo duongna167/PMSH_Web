@@ -1,0 +1,219 @@
+@{
+    ViewBag.Title = ViewBag.ReportHeader;
+}
+
+<style>
+    .sticky-header label, .sticky-header .form-control-sm { font-size: 14px; line-height: 1.2; }
+    .sticky-header .form-control-sm { padding: 2px 8px; height: 28px; }
+    .sticky-header label { margin-bottom: 0; white-space: nowrap; }
+    .art-grid {
+        display: grid;
+        grid-template-columns: 96px 58px 160px 8px 58px 160px;
+        column-gap: 6px;
+        row-gap: 8px;
+        align-items: center;
+        width: max-content;
+        max-width: 100%;
+    }
+    .art-grid > .fw-bold {
+        margin: 0 !important;
+        white-space: nowrap;
+    }
+    .art-grid > label {
+        margin: 0 !important;
+        white-space: nowrap;
+    }
+    .sticky-header .art-grid [data-date-input] {
+        width: 160px !important;
+        min-width: 160px !important;
+        max-width: 160px !important;
+        margin-right: 0 !important;
+    }
+    #reportContainer .sticky-header #artStatus,
+    .sticky-header #artStatus {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: 160px !important;
+        min-width: 160px !important;
+        max-width: 160px !important;
+        height: 28px !important;
+        flex: 0 0 160px !important;
+        font-size: 14px;
+        color: #212529;
+        padding: 2px 1.85rem 2px 8px !important;
+        box-sizing: border-box !important;
+        border: 1px solid #ced4da !important;
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        background-color: #fff !important;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+        background-repeat: no-repeat !important;
+        background-position: right 0.5rem center !important;
+        background-size: 12px 10px !important;
+    }
+    .mui-card, #gridContainer { width: 100%; max-width: 100%; }
+    #gridContainer .dx-datagrid,
+    #gridContainer .dx-datagrid-headers,
+    #gridContainer .dx-datagrid-rowsview { width: 100% !important; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection { background-color: #01579b !important; color: white !important; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection * { color: white !important; }
+</style>
+
+<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+    <div>
+        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">PDF</button>
+    </div>
+    <div class="mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px; overflow: visible;">
+        <div class="art-grid">
+            <label class="fw-bold">Date Range:</label>
+            <label>From:</label>
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="fromDate">
+                <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
+            <span></span>
+            <label>To:</label>
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="toDate">
+                <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
+
+            <label class="fw-bold">Filter:</label>
+            <label for="artStatus">Status:</label>
+            <select id="artStatus" class="form-control form-control-sm report-dd">
+                <option value="All" selected>All</option>
+                <option value="Unresolved">Unresolved</option>
+                <option value="Resolved">Resolved</option>
+            </select>
+        </div>
+    </div>
+</div>
+<div class="mui-card p-2">
+    <div id="gridContainer" class="gridContainer"></div>
+</div>
+<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+</div>
+<script>
+    (function () {
+        $(document).ready(function () {
+            document.getElementById("reportTitle").innerText = '@Html.Raw(ViewBag.ReportTitle)';
+            if (typeof window.initDateInputs === "function") window.initDateInputs();
+        });
+
+        $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+            $("#loadingSpinner").show();
+            $.ajax({
+                url: "/Report/ARTraceData",
+                type: "GET",
+                data: {
+                    fromDate: $("#fromDate").val(),
+                    toDate: $("#toDate").val(),
+                    state: $("#artStatus").val() || "All"
+                },
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (result) {
+                    if (typeof result === "string") {
+                        alert(result);
+                        $("#loadingSpinner").hide();
+                        return;
+                    }
+                    initializeDataGrid(result);
+                    $("#loadingSpinner").hide();
+                },
+                error: function (xhr) {
+                    alert(xhr.status === 403 ? "Bạn không có quyền xem báo cáo này." : "Không thể tải báo cáo.");
+                    $("#loadingSpinner").hide();
+                }
+            });
+        });
+
+        function initializeDataGrid(data) {
+            $("#gridContainer").dxDataGrid({
+                dataSource: data,
+                height: 500,
+                width: "100%",
+                allowColumnResizing: true,
+                columnAutoWidth: false,
+                showBorders: true,
+                columns: [
+                    { dataField: "accountName", caption: "Account Name", width: "22%", minWidth: 140 },
+                    { dataField: "acctNo", caption: "Acct. No", width: "14%", minWidth: 100 },
+                    { dataField: "time", caption: "Time", width: "16%", minWidth: 130 },
+                    { dataField: "resolvedAt", caption: "Resolved At", width: "16%", minWidth: 130 },
+                    { dataField: "resolvedBy", caption: "Resolved By", width: "16%", minWidth: 110 },
+                    { dataField: "createdBy", caption: "Created By", width: "16%", minWidth: 110 }
+                ],
+                paging: { pageSize: 25 },
+                scrolling: { mode: "standard", useNative: false, showScrollbar: "always" },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [25, 50, "all"],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: { visible: true, applyFilter: "auto" },
+                headerFilter: { visible: true }
+            });
+        }
+
+        $(document).off("click", "#btnExportExcel").on("click", "#btnExportExcel", function () {
+            const grid = $("#gridContainer").dxDataGrid("instance");
+            if (!grid) { alert("Vui lòng View báo cáo trước khi xuất Excel."); return; }
+            const selectedReport = '@Html.Raw(ViewBag.ReportTitle)';
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "";
+            const worksheet = workbook.addWorksheet("Sheet 1");
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells("A1:E1");
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.addRow([]);
+            const reportRow = worksheet.addRow(["", "", selectedReport]);
+            worksheet.mergeCells("C3:F3");
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { horizontal: "center" };
+            worksheet.addRow([]);
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 5, column: 1 }
+            }).then(function () {
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), selectedReport + ".xlsx");
+                });
+            });
+        });
+
+        $(document).off("click", "#btnExportPdf").on("click", "#btnExportPdf", function () {
+            const grid = $("#gridContainer").dxDataGrid("instance");
+            if (!grid) { alert("Vui lòng View báo cáo trước khi xuất PDF."); return; }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "A4" });
+            const selectedReport = '@Html.Raw(ViewBag.ReportTitle)';
+            const companyName = localStorage.getItem("CompanyName") || "";
+            grid.getDataSource().load().then(function (data) {
+                const columns = grid.getVisibleColumns();
+                const head = [columns.map(col => col.caption)];
+                const body = data.map(row => columns.map(col => row[col.dataField]));
+                doc.setFontSize(14);
+                doc.setFont("Helvetica", "bold");
+                doc.text(companyName, doc.internal.pageSize.getWidth() / 2, 40, { align: "center" });
+                doc.setFontSize(12);
+                doc.text(selectedReport, doc.internal.pageSize.getWidth() / 2, 60, { align: "center" });
+                doc.autoTable({
+                    startY: 80,
+                    head: head,
+                    body: body,
+                    styles: { fontSize: 9, cellPadding: 4, lineWidth: 0.5, lineColor: [0, 0, 0] },
+                    headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+                    margin: { left: 20, right: 20 }
+                });
+                doc.save(selectedReport + ".pdf");
+            });
+        });
+    })();
+</script>

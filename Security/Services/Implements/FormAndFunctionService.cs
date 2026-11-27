@@ -178,6 +178,22 @@ namespace Security.Services.Implements
             var pt = new ProcessTransactions();
             try
             {
+                if (id <= 0)
+                {
+                    if (isDataRight == 1)
+                    {
+                        var dg = DataGroups().FirstOrDefault(g => g.ID == groupId);
+                        if (groupId <= 0 || dg == null || dg.ParentID == 0)
+                            return OpResult.Fail("Please select a function.");
+                    }
+                    else
+                    {
+                        var fg = FunctionGroups().FirstOrDefault(g => g.ID == groupId);
+                        if (groupId <= 0 || fg == null || fg.ParentID == 0)
+                            return OpResult.Fail("Please select a function.");
+                    }
+                }
+
                 pt.OpenConnection();
                 pt.BeginTransaction();
                 var now = TextUtils.GetSystemDate();

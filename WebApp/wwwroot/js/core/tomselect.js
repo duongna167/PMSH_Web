@@ -32,6 +32,7 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
         labelField: 'text',
         searchField: ['text'],
         placeholder: 'Enter or select...',
+        closeAfterSelect: true,
         render: {
             option(data, escape) {
                 return `<div class="p-2">${escape(data.text)}</div>`;
@@ -71,9 +72,11 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
                 }
             }
 
+            const hostModal = el.closest('.modal');
             const tsOptions = {
                 ...baseOptions,
                 ...options,
+                dropdownParent: options.dropdownParent || hostModal || document.body,
                 plugins: {
                     ...baseOptions.plugins,
                     ...(options.plugins || {}),
@@ -110,6 +113,7 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
             try {
                 if (el.value === undefined) el.value = '';
                 const ts = new TomSelect(el, tsOptions);
+                bindTomSelectDropdown(ts);
 
                 // ---- SYNC DISABLED STATE (IMPORTANT) ----
                 const shouldBeDisabled =
@@ -160,6 +164,42 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
     });
 }
 
+function pinTomSelectDropdown(ts) {
+    if (!ts || !ts.dropdown || !ts.control) return;
+    const r = ts.control.getBoundingClientRect();
+    const dd = ts.dropdown;
+    const space = Math.max(120, window.innerHeight - r.bottom - 8);
+    dd.style.position = 'fixed';
+    dd.style.top = r.bottom + 2 + 'px';
+    dd.style.left = Math.max(8, r.left) + 'px';
+    dd.style.width = r.width + 'px';
+    dd.style.minWidth = r.width + 'px';
+    dd.style.maxHeight = space + 'px';
+    dd.style.overflowY = 'auto';
+    dd.style.zIndex = '10650';
+    dd.style.pointerEvents = 'auto';
+}
+
+function bindTomSelectDropdown(ts) {
+    if (!ts || ts._pmshDdBound) return;
+    ts._pmshDdBound = true;
+    if (ts.dropdown) {
+        ts.dropdown.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        ts.dropdown.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+    }
+    ts.on('dropdown_open', function () {
+        pinTomSelectDropdown(ts);
+        requestAnimationFrame(function () {
+            pinTomSelectDropdown(ts);
+        });
+    });
+}
+
 /* ================= GET VALUE ================= */
 /*  Usage:
     const owners = getTomSelectValue("#ownerCode");
@@ -173,6 +213,70 @@ function initTomSelect(selectors, options = {}, apiUrl = null) {
 function getTomSelect(selector) {
     const el = document.querySelector(selector);
     return el && el.tomselect ? el.tomselect : null;
+}
+
+/**
+ * City list follows Country. Catalog cities are stored per CountryID
+ * (typically VN provinces). Foreign countries get an empty list; typing
+ * a city name is allowed (create).
+ */
+function bindCitySelectToCountry(countrySelector, citySelector) {
+    const countryTs = getTomSelect(countrySelector);
+    const cityTs = getTomSelect(citySelector);
+    if (!countryTs || !cityTs) {
+        return { load: function () {} };
+    }
+
+    cityTs.settings.create = true;
+
+    const mapCity = (item) => ({
+        value: String(item.id || item.ID || ''),
+        text: (item.code || item.Code) + '-' + (item.name || item.Name),
+        data: item
+    });
+
+    const applyCityValue = (cityValue) => {
+        if (cityValue == null || cityValue === '' || cityValue === 0 || cityValue === '0') return;
+        const v = String(cityValue);
+        if (cityTs.options[v]) {
+            cityTs.setValue(v, true);
+            return;
+        }
+        const match = Object.values(cityTs.options).find((o) => {
+            const d = o.data || {};
+            return String(d.code || d.Code || '') === v
+                || String(d.id || d.ID || '') === v
+                || String(o.text || '') === v;
+        });
+        if (match) {
+            cityTs.setValue(match.value, true);
+            return;
+        }
+        cityTs.addOption({ value: v, text: v });
+        cityTs.setValue(v, true);
+    };
+
+    const load = (countryId, cityValue) => {
+        const id = parseInt(countryId, 10) || 0;
+        if (id <= 0) {
+            cityTs.clear(true);
+            cityTs.clearOptions();
+            return;
+        }
+        loadDataToTomSelect(citySelector, '/Profile/GetAllCity?countryId=' + id, mapCity, function () {
+            if (cityValue != null && cityValue !== '') applyCityValue(cityValue);
+        });
+    };
+
+    if (!countryTs._cityCountryBound) {
+        countryTs._cityCountryBound = true;
+        countryTs.on('change', function (val) {
+            if (countryTs._suspendCityReload) return;
+            load(val);
+        });
+    }
+
+    return { load };
 }
 
 function getTomSelectData(selector) {

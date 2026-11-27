@@ -184,7 +184,7 @@
                     <a href="#" class="font-semibold col-md-4 mb-1 text-start" onclick="openConfirmRoomUnAssign();"
                         id="unAssign">UnAssign</a>
                     <a href="#" class="font-semibold col-md-4 mb-1 text-start" id="btnSearchRessAdvance">Advance</a>
-                    <a href="#" class="font-semibold col-md-4 mb-1 text-start">Clear</a>
+                    <a href="#" onclick="clearSearchReservationFilter(); return false;" class="font-semibold col-md-4 mb-1 text-start">Clear</a>
                     <a href="#" onclick="editBooking();" class="font-semibold col-md-4 mb-1 text-start">Edit</a>
                     <a href="#" onclick="openModalCancel()" class="font-semibold col-md-4 mb-1 text-start">Cancel</a>
                     <a href="#" onclick="openConfirmReinstate();"
@@ -194,6 +194,7 @@
                         class="font-semibold col-md-4 mb-1 text-start">Individual</a>
                     <a href="#" id="groupAdmin" class="font-semibold col-md-4 mb-1 text-start"
                         onclick="openGroupAdmin();">Grp Admin</a>
+                    <a href="#" onclick="exportExcel(); return false;" class="font-semibold col-md-4 mb-1 text-start">Export</a>
                     <a href="#" onclick="openModalSplit();" class="font-semibold col-md-4 mb-1 text-start">Split</a>
                     <a href="#" onclick="openModalAccompanying();"
                         class="font-semibold col-md-4 mb-1 text-start">Accompany</a>
@@ -433,6 +434,18 @@
         if (type && typeMapping[type]) {
             $("#searchType").val(typeMapping[type]).trigger("change");
         }
+
+        // Menu FRONTDESK: preset bộ lọc theo nút
+        const business = window.dateSystem;
+        if (type === "arrivals" && business) {
+            // Arrivals: ngày đến = Business Date (Arr.From = Arr.To)
+            UI.setHiddenDate("arrivalForm", business);
+            UI.setHiddenDate("departureForm", business);
+            window.__srExactArrivalRange = true;
+        } else if (type === "checkedOutToday" || type === "guestInHouse") {
+            // Khách đến từ trước Business Date → bỏ lọc ngày đến để không bị sót
+            $('#chooseFromDate, #chooseToDate').prop('checked', false);
+        }
         await searchReservation(isInitial = true);
         $('#listFunction').hide();
         $('#searchType, #name, #firstName, #resvHolder, #confirmationNo, #crsNo, #roomNo, #roomType, #package, #zone, #arrivalForm, #departureForm, #roomShare, #owner').on('keypress', async function (e) {
@@ -475,6 +488,40 @@
         }
     }
 
+    /**
+     * Nút Clear (Functions & Options): đưa bộ lọc về mặc định rồi tìm lại.
+     * Arr.From = Business Date, Arr.To = +7 ngày, các ô chữ rỗng, combo về giá trị đầu, Room Sharer bật, Rsv Online tắt.
+     */
+    function clearSearchReservationFilter() {
+        $('#name, #firstName, #confirmationNo, #resvHolder, #crsNo, #package, #roomNo').val('');
+
+        // Combo về lựa chọn đầu tiên (Owner = --All--, Search Type = General, Zone / Room Type = trống)
+        ['#owner', '#searchType', '#zone', '#roomType'].forEach(function (sel) {
+            const el = document.querySelector(sel);
+            if (!el) return;
+            const first = el.options && el.options.length ? el.options[0].value : '';
+            if (el.tomselect) {
+                el.tomselect.setValue(first, true);
+            } else {
+                $(el).val(first).trigger('change');
+            }
+        });
+
+        $('#chooseFromDate, #chooseToDate').prop('checked', true);
+        window.__srExactArrivalRange = false;
+        $('#reservationOnline').prop('checked', false);
+        $('#roomShare').prop('checked', true);
+
+        const business = (typeof window.dateSystem !== 'undefined' && window.dateSystem) ? window.dateSystem : '';
+        if (business && typeof UI !== 'undefined' && UI.setHiddenDate) {
+            UI.setHiddenDate('arrivalForm', business);
+            if (UI.addDaysIso) UI.setHiddenDate('departureForm', UI.addDaysIso(business, 7));
+        }
+
+        if (typeof searchReservation === 'function') searchReservation();
+    }
+    window.clearSearchReservationFilter = clearSearchReservationFilter;
+
     /** Arr.To mặc định = Arr.From + 7 ngày (ISO yyyy-MM-dd). */
     function normalizeSearchArrivalRange() {
         var fromIso = ($('#arrivalForm').val() || '').split('T')[0] || (typeof window.dateSystem !== 'undefined' ? window.dateSystem : '');
@@ -487,7 +534,7 @@
             if (!toIso && fromIso) {
                 toIso = UI.addDaysIso(fromIso, 7);
                 UI.setHiddenDate('departureForm', toIso);
-            } else if (fromIso && toIso && fromIso === toIso) {
+            } else if (fromIso && toIso && fromIso === toIso && !window.__srExactArrivalRange) {
                 toIso = UI.addDaysIso(fromIso, 7);
                 UI.setHiddenDate('departureForm', toIso);
             }
@@ -496,6 +543,7 @@
     }
 
     $(document).on('change', 'input[name="arrivalForm"]', function () {
+        window.__srExactArrivalRange = false;
         var v = ($(this).val() || '').split('T')[0];
         if (!v || typeof UI === 'undefined' || !UI.addDaysIso || !UI.setHiddenDate) return;
         var next = UI.addDaysIso(v, 7);
@@ -647,28 +695,58 @@
 
     /** New Profile → Individual modal (/Profile/Individual); load guest from selected booking when profileID is set. */
     function openIndividualFromSearchReservation() {
-        var pid = parseInt(profileID, 10) || 0;
-        if (!pid) {
-            if (typeof openModalIndividual === 'function') {
-                openModalIndividual();
-            } else {
-                showToast('Warning', 'Individual profile form is not available.', false);
-            }
-            return;
-        }
         if (typeof ModalManager === 'undefined' || typeof waitForFunction === 'undefined') {
             showToast('Warning', 'Please open this page from the main layout.', false);
             return;
         }
-        ModalManager.load('/Profile/Individual', 'modalIndividual', function () {
-            waitForFunction('pro_ind_Module', function () {
-                window.pro_ind_Module.init();
-                if (typeof window.pro_ind_Module.loadProfileByID === 'function') {
-                    setTimeout(function () {
-                        window.pro_ind_Module.loadProfileByID(pid);
-                    }, 300);
-                }
+
+        // Lấy profile trực tiếp từ dòng đang chọn trên grid (biến toàn cục profileID có thể bị popup khác ghi đè)
+        var selectedRow = null;
+        try {
+            var gridInst = $("#gridContainer").dxDataGrid("instance");
+            selectedRow = gridInst ? gridInst.getSelectedRowsData()[0] : null;
+        } catch (e) { selectedRow = null; }
+
+        var rid = selectedRow ? (parseInt(selectedRow.ID || selectedRow.id, 10) || 0) : (parseInt(idReservation, 10) || 0);
+        var pid = selectedRow ? (parseInt(selectedRow.ProfileIndividualID, 10) || 0) : 0;
+
+        // Chưa chọn booking → mở form Individual trống (tạo mới) như cũ
+        if (!rid) {
+            if (typeof openModalIndividual === 'function') openModalIndividual();
+            else showToast('Warning', 'Individual profile form is not available.', false);
+            return;
+        }
+
+        var openWithProfile = function (profileId) {
+            if (!profileId) {
+                showToast('Warning', 'This reservation has no individual profile.', false);
+                return;
+            }
+            profileID = profileId;
+            // Gọi lấy profile ngay, chạy song song với việc tải/mở modal
+            var profileRequest = $.ajax({ url: '/Profile/GetProfileByID/', type: 'GET', data: { id: profileId } });
+            ModalManager.load('/Profile/Individual', 'modalIndividual', function () {
+                waitForFunction('pro_ind_Module', function () {
+                    window.pro_ind_Module.init();
+                    if (typeof window.pro_ind_Module.loadProfileByID === 'function') {
+                        window.pro_ind_Module.loadProfileByID(profileId, profileRequest);
+                    }
+                });
             });
+        };
+
+        if (pid) { openWithProfile(pid); return; }
+
+        // Dòng grid không có ProfileIndividualID → lấy từ server
+        $.ajax({
+            url: '/Reservation/GetReservationByID',
+            type: 'GET',
+            data: { ID: rid },
+            success: function (r) {
+                var p = r && typeof r === 'object' ? (r.profileIndividualId ?? r.ProfileIndividualId ?? r.profileIndividualID ?? 0) : 0;
+                openWithProfile(parseInt(p, 10) || 0);
+            },
+            error: function () { showToast('Error', 'Cannot load reservation.', false); }
         });
     }
 
@@ -1173,10 +1251,12 @@
 
                 const $btns = $('#resv_checkoutSingle, #btnSearchResCheckoutAll, #btnSearchResCheckoutZero, #btnSearchResCheckoutSingle');
 
-                const status = Number(reservationStatus);
+                // Không đặt tên "status": const cùng tên trong hàm này che biến toàn cục status
+                // → dòng "status = e.data.Status" phía trên báo lỗi TDZ và dừng cả onRowClick.
+                const rsvStatusNum = Number(reservationStatus);
 
                 // disable nếu reservationStatus = 0,1,2,3,4,5
-                setDisabled($btns, [0, 1, 2, 3, 4, 5].includes(status));
+                setDisabled($btns, [0, 1, 2, 3, 4, 5].includes(rsvStatusNum));
             },
             onRowPrepared: function (e) {
                 if (e.rowType === "data") {

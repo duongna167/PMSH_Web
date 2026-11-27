@@ -1,0 +1,395 @@
+@using BaseBusiness.Model
+@using System.Linq
+@{
+    ViewBag.Title = ViewBag.ReportHeader;
+    var typeList = (ViewBag.MemberTypeList as List<MemberTypeModel>) ?? new List<MemberTypeModel>();
+    var cards = typeList
+        .GroupBy(t => t.ID)
+        .Select(g => g.First())
+        .OrderBy(t => string.IsNullOrWhiteSpace(t.Name) ? t.Code : t.Name)
+        .ToList();
+}
+
+<style>
+    .sticky-header label, .sticky-header .form-control-sm { font-size: 14px; line-height: 1.2; }
+    .sticky-header .form-control-sm { padding: 2px 8px; height: 28px; }
+    .sticky-header label { margin-bottom: 0; white-space: nowrap; }
+    .ff-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        column-gap: 8px;
+        row-gap: 8px;
+        min-height: 28px;
+    }
+    .ff-row + .ff-row { margin-top: 8px; }
+    .sticky-header .ff-row > .fw-bold {
+        margin: 0 !important;
+        min-width: 148px;
+        white-space: nowrap;
+    }
+    .ff-pair {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .ff-pair > label {
+        margin: 0 !important;
+        white-space: nowrap;
+        min-width: 76px;
+        text-align: right;
+    }
+    .ff-to-wrap { margin-left: 8px; }
+    .sticky-header .ff-row [data-date-input],
+    .sticky-header .ff-row [data-name="fromDate"] {
+        width: 160px !important;
+        min-width: 128px;
+        max-width: 220px;
+        margin-right: 0 !important;
+    }
+    .ff-card-field {
+        flex: 0 0 260px;
+        width: 260px;
+        min-width: 260px;
+        max-width: 260px;
+        overflow: visible;
+        position: relative;
+        z-index: 5;
+        justify-self: start;
+    }
+    .ff-card-field .ts-wrapper {
+        overflow: hidden !important;
+        width: 260px !important;
+        max-width: 260px !important;
+        min-width: 260px !important;
+        box-sizing: border-box !important;
+    }
+    .ff-card-field .ts-control {
+        flex-wrap: nowrap !important;
+        overflow: hidden !important;
+        min-height: 28px !important;
+        height: 28px !important;
+        max-height: 28px !important;
+        padding: 0 8px !important;
+        width: 260px !important;
+        max-width: 260px !important;
+        box-sizing: border-box !important;
+    }
+    .ff-card-field .ts-control .item {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        width: auto !important;
+        padding: 0 2px 0 4px !important;
+        margin-right: 2px !important;
+    }
+    .ff-card-field .ts-control .item > div,
+    .ff-card-field .ts-control .item .ts-item-text,
+    .ff-card-field .ts-control .item > span {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        display: block !important;
+    }
+    .ff-card-field .ts-control .item .remove {
+        opacity: 1 !important;
+        visibility: visible !important;
+        margin-left: 2px !important;
+        flex-shrink: 0 !important;
+    }
+    .ff-card-field .ts-wrapper.has-items .ts-control input {
+        flex: 0 0 8px !important;
+        width: 8px !important;
+        min-width: 8px !important;
+        max-width: 8px !important;
+    }
+    body > .ts-dropdown {
+        position: fixed !important;
+        min-width: 0 !important;
+        width: var(--ff-dd-w, 260px) !important;
+        max-width: var(--ff-dd-w, 260px) !important;
+        left: var(--ff-dd-x, 0px) !important;
+        top: var(--ff-dd-y, 0px) !important;
+        right: auto !important;
+        z-index: 5000 !important;
+        pointer-events: auto !important;
+    }
+    body > .ts-dropdown .dropdown-input-wrap { display: none !important; }
+    .ff-status-items {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        column-gap: 16px;
+        row-gap: 8px;
+        min-width: 0;
+    }
+    .sticky-header .ff-status-items .form-check { margin: 0 !important; display: flex; align-items: center; gap: 6px; }
+    .ff-status-items .form-check-label { white-space: nowrap; }
+    .mui-card, #gridContainer { width: 100%; max-width: 100%; }
+    #gridContainer .dx-datagrid,
+    #gridContainer .dx-datagrid-headers,
+    #gridContainer .dx-datagrid-rowsview { width: 100% !important; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection { background-color: #01579b !important; color: white !important; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection * { color: white !important; }
+</style>
+
+<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+    <div>
+        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">PDF</button>
+    </div>
+    <div class="mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+        <div class="ff-row">
+            <label class="fw-bold">Date Range:</label>
+            <div class="ff-pair">
+                <label>From:</label>
+                <div data-date-input business-date data-format="DD/MM/YYYY" data-name="fromDate">
+                    <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                </div>
+            </div>
+            <div class="ff-pair ff-to-wrap">
+                <label>To:</label>
+                <div data-date-input business-date data-format="DD/MM/YYYY" data-name="toDate">
+                    <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                </div>
+            </div>
+        </div>
+        <div class="ff-row">
+            <label class="fw-bold">Filter</label>
+            <div class="ff-pair">
+                <label for="ffCardTypeBox">Card Type:</label>
+                <div class="ff-card-field">
+                    <select id="ffCardTypeBox" class="tomselect-custom" data-report-keep-tomselect multiple>
+                        @foreach (var card in cards)
+                        {
+                            <option value="@card.ID">@(string.IsNullOrWhiteSpace(card.Name) ? card.Code : card.Name)</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="ff-row">
+            <label class="fw-bold">Reservation Status</label>
+            <div class="ff-status-items">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="ff_stAll" value="999" checked />
+                    <label class="form-check-label" for="ff_stAll">All</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input ff-st" type="checkbox" id="ff_stInHouse" value="1','6" disabled />
+                    <label class="form-check-label" for="ff_stInHouse">In House</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input ff-st" type="checkbox" id="ff_stReservation" value="0','5" disabled />
+                    <label class="form-check-label" for="ff_stReservation">Reservation</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input ff-st" type="checkbox" id="ff_stCheckOut" value="2" disabled />
+                    <label class="form-check-label" for="ff_stCheckOut">Check Out</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="mui-card">
+    <div id="gridContainer" class="gridContainer mt-2"></div>
+</div>
+<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+</div>
+<script>
+    (function () {
+        function setStatusAll(isAll) {
+            $("#ff_stAll").prop("checked", isAll);
+            $(".ff-st").prop("checked", false).prop("disabled", isAll);
+        }
+
+        function pinFfDropdown(ts) {
+            if (!ts || !ts.control) return;
+            var box = ts.control.getBoundingClientRect();
+            var root = document.documentElement;
+            root.style.setProperty("--ff-dd-w", "260px");
+            root.style.setProperty("--ff-dd-x", Math.round(box.left) + "px");
+            root.style.setProperty("--ff-dd-y", Math.round(box.bottom + 1) + "px");
+        }
+
+        $(document).ready(function () {
+            document.getElementById("reportTitle").innerText = '@Html.Raw(ViewBag.ReportTitle)';
+            if (typeof window.initDateInputs === "function") window.initDateInputs();
+            setStatusAll(true);
+            var cardEl = document.getElementById("ffCardTypeBox");
+            if (!cardEl) return;
+            if (cardEl.dataset.ffTs === "1" && cardEl.tomselect) return;
+            if (cardEl.tomselect) {
+                try { cardEl.tomselect.destroy(); } catch (e) { }
+            }
+            initTomSelect("#ffCardTypeBox", {
+                placeholder: "Select...",
+                dropdownParent: "body",
+                hidePlaceholder: false,
+                hideSelected: true,
+                duplicates: false,
+                render: {
+                    option: function (data, escape) { return "<div>" + escape(data.text) + "</div>"; },
+                    item: function (data, escape) { return "<div class=\"ts-item-text\">" + escape(data.text) + "</div>"; }
+                }
+            });
+            var ts = cardEl.tomselect;
+            if (ts) {
+                cardEl.dataset.ffTs = "1";
+                ts.clear(true);
+                ts.off("dropdown_open");
+                pinFfDropdown(ts);
+                ts.on("dropdown_open", function () { pinFfDropdown(ts); });
+            }
+        });
+
+        $(document).off("change.ff", "#ff_stAll").on("change.ff", "#ff_stAll", function () {
+            setStatusAll($(this).is(":checked"));
+        });
+
+        $(document).off("change.ff", ".ff-st").on("change.ff", ".ff-st", function () {
+            var allOn = $(".ff-st").length === $(".ff-st:checked").length;
+            if (allOn) setStatusAll(true);
+        });
+
+        function collectStatus() {
+            if ($("#ff_stAll").is(":checked")) return "999";
+            var vals = $(".ff-st:checked").map(function () { return this.value; }).get();
+            return vals.length ? vals.join(",") : "999";
+        }
+
+        function collectMembers() {
+            var raw = $("#ffCardTypeBox").val();
+            var vals = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+            return vals.join("','");
+        }
+
+        $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+            var memberID = collectMembers();
+            if (!memberID) {
+                alert("Please select at least one Card Type.");
+                return;
+            }
+            $("#loadingSpinner").show();
+            $.ajax({
+                url: "/Report/FrequentFlyerData",
+                type: "GET",
+                data: {
+                    fromDate: $("#fromDate").val(),
+                    toDate: $("#toDate").val(),
+                    status: collectStatus(),
+                    memberID: memberID,
+                    isSortByCardName: 0
+                },
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (result) {
+                    if (typeof result === "string") {
+                        alert(result);
+                        $("#loadingSpinner").hide();
+                        return;
+                    }
+                    initializeDataGrid(result);
+                    $("#loadingSpinner").hide();
+                },
+                error: function (xhr) {
+                    alert(xhr.status === 403 ? "Bạn không có quyền xem báo cáo này." : "Không thể tải báo cáo.");
+                    $("#loadingSpinner").hide();
+                }
+            });
+        });
+
+        function initializeDataGrid(data) {
+            $("#gridContainer").dxDataGrid({
+                dataSource: data,
+                height: 500,
+                width: "100%",
+                allowColumnResizing: true,
+                columnAutoWidth: false,
+                showBorders: true,
+                columns: [
+                    { dataField: "roNo", caption: "Ro No", width: "8%", minWidth: 70 },
+                    { dataField: "name", caption: "Name", width: "22%", minWidth: 160 },
+                    { dataField: "cardNumber", caption: "Card Number", width: "14%", minWidth: 120 },
+                    { dataField: "arrival", caption: "Arrival", dataType: "date", format: "dd/MM/yyyy", width: "10%", minWidth: 100 },
+                    { dataField: "depart", caption: "Departure", dataType: "date", format: "dd/MM/yyyy", width: "10%", minWidth: 100 },
+                    { dataField: "nights", caption: "Nights", dataType: "number", width: "7%", minWidth: 64 },
+                    { dataField: "marketCode", caption: "Market Code", width: "10%", minWidth: 90 },
+                    { dataField: "rateCode", caption: "Rate Code", width: "10%", minWidth: 90 },
+                    { dataField: "status", caption: "Status", width: "9%", minWidth: 80 }
+                ],
+                paging: { pageSize: 25 },
+                scrolling: { mode: "standard", useNative: false, showScrollbar: "always" },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [25, 50, "all"],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: { visible: true, applyFilter: "auto" },
+                headerFilter: { visible: true }
+            });
+        }
+
+        $(document).off("click", "#btnExportExcel").on("click", "#btnExportExcel", function () {
+            const grid = $("#gridContainer").dxDataGrid("instance");
+            if (!grid) { alert("Vui lòng View báo cáo trước khi xuất Excel."); return; }
+            const selectedReport = '@Html.Raw(ViewBag.ReportTitle)';
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "";
+            const worksheet = workbook.addWorksheet("Sheet 1");
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells("A1:E1");
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.addRow([]);
+            const reportRow = worksheet.addRow(["", "", selectedReport]);
+            worksheet.mergeCells("C3:F3");
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { horizontal: "center" };
+            worksheet.addRow([]);
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 5, column: 1 }
+            }).then(function () {
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), selectedReport + ".xlsx");
+                });
+            });
+        });
+
+        $(document).off("click", "#btnExportPdf").on("click", "#btnExportPdf", function () {
+            const grid = $("#gridContainer").dxDataGrid("instance");
+            if (!grid) { alert("Vui lòng View báo cáo trước khi xuất PDF."); return; }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "A4" });
+            const selectedReport = '@Html.Raw(ViewBag.ReportTitle)';
+            const companyName = localStorage.getItem("CompanyName") || "";
+            grid.getDataSource().load().then(function (data) {
+                const columns = grid.getVisibleColumns();
+                const head = [columns.map(col => col.caption)];
+                const body = data.map(row => columns.map(col => row[col.dataField]));
+                doc.setFontSize(14);
+                doc.setFont("Helvetica", "bold");
+                doc.text(companyName, doc.internal.pageSize.getWidth() / 2, 40, { align: "center" });
+                doc.setFontSize(12);
+                doc.text(selectedReport, doc.internal.pageSize.getWidth() / 2, 60, { align: "center" });
+                doc.autoTable({
+                    startY: 80,
+                    head: head,
+                    body: body,
+                    styles: { fontSize: 9, cellPadding: 4, lineWidth: 0.5, lineColor: [0, 0, 0] },
+                    headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+                    margin: { left: 20, right: 20 }
+                });
+                doc.save(selectedReport + ".pdf");
+            });
+        });
+    })();
+</script>

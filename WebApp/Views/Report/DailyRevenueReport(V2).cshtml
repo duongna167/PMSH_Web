@@ -1,4 +1,4 @@
-﻿@using DevExpress.XtraReports.UI
+@using DevExpress.XtraReports.UI
 @{
     ViewBag.Title = ViewBag.ReportHeader;
     var report = ViewBag.ReportName as XtraReport;
@@ -57,16 +57,14 @@
     }
 
     .sticky-header .form-control-sm {
-        padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
+        padding:  2px 8px;
+        height: 28px;
     }
 
     .sticky-header label[class*="me-"] {
         margin-right: .5rem !important;
     }
-
-    .filter-panel {
-        font-size: 12px;
+    .filter-panel {`r`n        font-size: 14px;
     }
 
     .filter-row {
@@ -92,7 +90,7 @@
     .filter-panel .ts-control {
         font-size: 12px;
         padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
+        height: 28px;
     }
 
 </style>
@@ -102,7 +100,9 @@
         <div class="d-flex flex-wrap align-items-center gap-2 mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
         <div class="d-flex align-items-center me-3">
             <label class="me-2 mb-0">Date:</label>
-            <input type="date" id="dateView" name="dateView" class="form-control form-control-sm w-auto" />
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="dateView">
+                <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
         </div>
     </div>
    
@@ -136,15 +136,11 @@
     }
 
     $(document).ready(function () {
-        const today = new Date();
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-
-        $('#dateView').val(formatDate(firstDayOfMonth));
-
+        if (typeof window.initDateInputs === "function") window.initDateInputs();
         document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
     });
 
-    $('#btnPrint').click(function () {
+    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
         $('#loadingSpinner').show();
         $.ajax({
             url: '/Report/DailyRevenueReportsV2',
@@ -154,12 +150,16 @@
                 dateView: $('#dateView').val(),
             },
             success: function (result) {
-                console.log(result);
-                initializeDataGrid(result);
+                if (result && result.error) {
+                    alert(result.error);
+                    $('#loadingSpinner').hide();
+                    return;
+                }
+                initializeDataGrid(Array.isArray(result) ? result : []);
                 $('#loadingSpinner').hide();
             },
-            error: function () {
-                alert("Không thể tải báo cáo.");
+            error: function (xhr) {
+                alert(xhr.status === 400 ? "Ngày không hợp lệ." : "Không thể tải báo cáo.");
                 $('#loadingSpinner').hide();
             }
         });

@@ -318,6 +318,17 @@ function focusElement($el) {
             return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         }
 
+        hideOtherPickers() {
+            const current = this.$ui[0];
+            $('.date-ui').each(function () {
+                if (this === current) return;
+                const inst = $(this).data('datepicker');
+                if (inst && inst.shown) {
+                    $(this).datepicker('hide');
+                }
+            });
+        }
+
         initCalendar() {
             const self = this;
 
@@ -326,9 +337,11 @@ function focusElement($el) {
                 autoHide: true,
                 format: self.format,
                 zIndex: 2048,
+                container: 'body',
 
                 // Thêm class tạm thời vào CHA khi đang mở lịch
                 show: function () {
+                    self.hideOtherPickers();
                     self.$root.addClass('datepicker-active');
                 },
                 hide: function () {
@@ -360,6 +373,7 @@ function focusElement($el) {
 
             // Chống đóng lịch khi click vào input (nổi bọt)
             this.$ui.on('click', (e) => e.stopPropagation());
+            // Ngày gõ tay được ghi vào hidden ở bindTyping()
         }
 
         setupResponsive() {
@@ -387,6 +401,14 @@ function focusElement($el) {
                             autoHide: true,
                             format: targetFormat,
                             zIndex: 2048,
+                            container: 'body',
+                            show: function () {
+                                self.hideOtherPickers();
+                                self.$root.addClass('datepicker-active');
+                            },
+                            hide: function () {
+                                self.$root.removeClass('datepicker-active');
+                            },
                             pick: function (e) {
                                 const date = e.date;
                                 const y = date.getFullYear();
@@ -468,7 +490,8 @@ function focusElement($el) {
  * @param {string|null} name - name của date input (hidden input)
  */
 window.reloadBusinessDate = async function (name = null) {
-    const $targets = name ? $(`[data-date-input][data-name="${name}"]`) : $('[data-date-input]');
+    let $targets = $('[data-date-input][business-date]');
+    if (name) $targets = $targets.filter(`[data-name="${name}"]`);
 
     if (!$targets.length) {
         console.warn('[reloadBusinessDate] Không tìm thấy date input');
@@ -777,6 +800,9 @@ window.showAccessDenied = function () {
     alert("Access Denied");
 };
 
+window.PMSH_SERVER_CONNECTION_MSG =
+    "Unable to connect server. Please check connection or server";
+
 $(document).ajaxError(function (_event, jqxhr) {
     if (!jqxhr) return;
     if (jqxhr.status === 401) {
@@ -812,4 +838,112 @@ window.applyPopupRights = function (code, selectors) {
             }
         });
     });
+};
+
+(function () {
+    var menu = null;
+    var owner = null;
+
+    function closePmshSelectMenu() {
+        if (menu) menu.remove();
+        menu = null;
+        owner = null;
+    }
+
+    function openPmshSelectMenu(select) {
+        closePmshSelectMenu();
+        var rect = select.getBoundingClientRect();
+        menu = document.createElement('div');
+        menu.className = 'pmsh-select-menu';
+        var space = Math.max(80, window.innerHeight - rect.bottom - 8);
+        menu.style.top = (rect.bottom + 1) + 'px';
+        menu.style.left = rect.left + 'px';
+        menu.style.minWidth = rect.width + 'px';
+        menu.style.maxWidth = Math.min(420, window.innerWidth - 16) + 'px';
+        menu.style.maxHeight = space + 'px';
+
+        Array.prototype.forEach.call(select.options, function (opt) {
+            if (opt.hidden || opt.disabled) return;
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = opt.text;
+            if (opt.selected) btn.classList.add('is-active');
+            btn.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                select.selectedIndex = opt.index;
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+                closePmshSelectMenu();
+            });
+            menu.appendChild(btn);
+        });
+
+        document.body.appendChild(menu);
+        owner = select;
+        var box = menu.getBoundingClientRect();
+        if (box.right > window.innerWidth - 8) {
+            menu.style.left = Math.max(8, window.innerWidth - box.width - 8) + 'px';
+        }
+    }
+
+    document.addEventListener('mousedown', function (e) {
+        var select = e.target && e.target.closest
+            ? e.target.closest('#reportContainer .sticky-header select, select[data-pmsh-select-down]')
+            : null;
+        if (select && (select.hasAttribute('data-report-keep-tomselect') || select.classList.contains('tomselect-custom') || select.tomselect)) {
+            return;
+        }
+        if (select && e.button === 0) {
+            e.preventDefault();
+            if (owner === select) {
+                closePmshSelectMenu();
+                return;
+            }
+            if (select.hasAttribute('data-pmsh-select-down')) select.focus();
+            openPmshSelectMenu(select);
+            return;
+        }
+        if (menu && owner.hasAttribute('data-pmsh-select-down') && menu.contains(e.target)) {
+            e.preventDefault();
+            return;
+        }
+        if (menu && !menu.contains(e.target)) closePmshSelectMenu();
+    }, true);
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape' || !owner || !owner.hasAttribute('data-pmsh-select-down')) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        closePmshSelectMenu();
+    }, true);
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closePmshSelectMenu();
+    });
+    document.addEventListener('hide.bs.modal', function (e) {
+        if (owner && e.target.contains(owner)) closePmshSelectMenu();
+    });
+    window.addEventListener('scroll', function (e) {
+        if (menu && e.target && (e.target === menu || menu.contains(e.target))) return;
+        closePmshSelectMenu();
+    }, true);
+    window.addEventListener('resize', closePmshSelectMenu);
+})();
+
+window.pmshBindDxReportGrid = function (selector, options) {
+    var $el = $(selector);
+    if ($el.data("dxDataGrid")) {
+        try { $el.dxDataGrid("dispose"); } catch (e) { }
+        $el.empty();
+    }
+    var cols = options && options.columns;
+    var hasGroup = !!(options && options.grouping) ||
+        (cols && cols.some(function (c) { return c && c.groupIndex != null; }));
+    var defaults = {
+        renderAsync: true,
+        twoWayBindingEnabled: false,
+        headerFilter: { visible: false },
+        scrolling: hasGroup
+            ? { mode: "standard", useNative: false, showScrollbar: "onHover", columnRenderingMode: "virtual" }
+            : { mode: "virtual", useNative: false, showScrollbar: "onHover", rowRenderingMode: "virtual", columnRenderingMode: "virtual" }
+    };
+    $el.dxDataGrid($.extend(true, {}, defaults, options));
 };

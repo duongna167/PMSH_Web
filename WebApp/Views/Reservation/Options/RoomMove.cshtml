@@ -146,12 +146,24 @@
     </div>
 </div>
 <script>
+    // Khách đang ở (in-house) mới được đổi phòng: CHECKED IN (mã 1) hoặc DUE OUT (mã 6 - khách đã check-in, hôm nay trả phòng).
+    // Kiểm tra cả mã số lẫn chữ trạng thái vì grid có trường hợp mã = 1 nhưng chữ hiển thị là "DUE OUT".
+    function isRoomMoveAllowedStatus() {
+        const code = parseInt(typeof reservationStatus !== 'undefined' ? reservationStatus : '', 10);
+        const text = String(typeof status !== 'undefined' && status != null ? status : '').trim().toUpperCase();
+        return code === 1 || code === 6 || text === 'CHECKED IN' || text === 'DUE OUT';
+    }
+
     function openRoomMove(){
-        if (idReservation === 0) {
+        // Lấy lại thông tin dòng đang chọn trên grid (tránh biến dùng chung bị cũ / bị reset)
+        if (typeof syncReservationSelectionFromGrid === 'function') {
+            try { syncReservationSelectionFromGrid(); } catch (e) { }
+        }
+        if (!idReservation || idReservation === 0) {
             showToast('Warning', 'Please choose booking', false);
             return;
         }
-        if(status != "CHECKED IN"){
+        if (!isRoomMoveAllowedStatus()) {
             showToast('Warning', 'Select guest checked in to room move', false);
             return;
         }

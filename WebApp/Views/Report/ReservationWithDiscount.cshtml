@@ -1,0 +1,456 @@
+@{
+    ViewBag.Title = ViewBag.ReportHeader;
+    var roomClassList = ViewBag.RoomClassList;
+    var roomTypeList = ViewBag.RoomTypeList;
+    var rateCodeList = ViewBag.RateCodeList;
+    var marketList = ViewBag.MarketList;
+    var sourceList = ViewBag.SourceList;
+    var statuses = new[] { "Reserved", "Checked In", "Checked Out", "Cancel Rsv", "Wait list", "Due In", "Due Out", "No Show", "Day Use" };
+}
+
+<style>
+    .sticky-header label, .sticky-header .form-control-sm { font-size: 14px; line-height: 1.2; }
+    .sticky-header .form-control-sm { padding: 2px 8px; height: 28px; }
+    .sticky-header label { margin-bottom: 0; white-space: nowrap; }
+    .rwd-wrap { display: flex; flex-direction: column; gap: 8px; width: max-content; max-width: 100%; }
+    .rwd-dates { display: flex; align-items: center; }
+    .rwd-to {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: 20px;
+    }
+    #reportContainer .sticky-header .rwd-wrap [data-name="fromDate"] {
+        margin-right: 0 !important;
+    }
+    #reportContainer .sticky-header .rwd-col-left > label {
+        margin-right: 0 !important;
+    }
+    .rwd-body { display: flex; align-items: flex-start; }
+    .rwd-col-left {
+        display: grid;
+        grid-template-columns: 96px 92px 220px;
+        column-gap: 6px;
+        row-gap: 8px;
+        align-items: center;
+    }
+    .rwd-col-right {
+        display: grid;
+        grid-template-columns: 96px 220px;
+        column-gap: 6px;
+        row-gap: 8px;
+        align-items: center;
+        margin-left: 72px;
+    }
+    .rwd-col-left > label, .rwd-col-right > label { margin: 0 !important; white-space: nowrap; }
+    .sticky-header .rwd-wrap [data-date-input] {
+        width: 160px !important;
+        min-width: 160px !important;
+        max-width: 160px !important;
+        margin-right: 0 !important;
+    }
+    .rwd-radios {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-left: 16px;
+        white-space: nowrap;
+    }
+    .rwd-radios .form-check {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        min-height: 0;
+        padding-left: 0;
+    }
+    .rwd-radios .form-check-input { margin: 0; float: none; }
+    .rwd-ts {
+        width: 220px;
+        min-width: 180px;
+        max-width: 260px;
+        overflow: visible;
+        position: relative;
+        z-index: 5;
+    }
+    .rwd-ts .ts-wrapper { overflow: visible !important; width: 100% !important; }
+    .rwd-ts .ts-control {
+        flex-wrap: nowrap !important;
+        overflow: hidden !important;
+        min-height: 28px !important;
+        height: 28px !important;
+        padding: 1px 8px !important;
+    }
+    .rwd-ts .ts-control .item {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        padding: 0 2px 0 4px !important;
+        margin-right: 2px !important;
+    }
+    .rwd-ts .ts-control .item > div,
+    .rwd-ts .ts-control .item .ts-item-text,
+    .rwd-ts .ts-control .item > span {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        display: block !important;
+    }
+    .rwd-ts .ts-control .item .remove {
+        opacity: 1 !important;
+        visibility: visible !important;
+        margin-left: 2px !important;
+        flex-shrink: 0 !important;
+    }
+    .rwd-ts .ts-wrapper.has-items .ts-control input {
+        flex: 0 0 8px !important;
+        width: 8px !important;
+        min-width: 8px !important;
+        max-width: 8px !important;
+    }
+    body > .ts-dropdown {
+        position: fixed !important;
+        min-width: 0 !important;
+        width: var(--rwd-dd-w, 220px) !important;
+        max-width: var(--rwd-dd-w, 220px) !important;
+        left: var(--rwd-dd-x, 0px) !important;
+        top: var(--rwd-dd-y, 0px) !important;
+        right: auto !important;
+        z-index: 5000 !important;
+    }
+    #rwdSort {
+        display: inline-block !important;
+        width: 160px !important;
+        min-width: 128px !important;
+        max-width: 220px !important;
+        height: 28px !important;
+        font-size: 14px;
+        padding: 2px 1.85rem 2px 8px !important;
+        box-sizing: border-box !important;
+    }
+    #gridContainer .dx-datagrid-rowsview .dx-selection { background-color: #01579b !important; color: white !important; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection * { color: white !important; }
+    #gridContainer .dx-datagrid-headers .dx-header-row .dx-datagrid-text-content {
+        overflow: visible !important;
+        text-overflow: clip !important;
+        white-space: nowrap !important;
+        max-width: none !important;
+    }
+</style>
+
+<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+    <div>
+        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">PDF</button>
+    </div>
+    <div class="mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px; overflow: visible;">
+        <div class="rwd-wrap">
+            <div class="rwd-dates">
+                <div class="rwd-col-left">
+                    <label class="fw-bold">Date Range:</label>
+                    <label>From:</label>
+                    <div data-date-input business-date data-format="DD/MM/YYYY" data-name="fromDate">
+                        <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                    </div>
+                </div>
+                <div class="rwd-to">
+                    <label>To:</label>
+                    <div data-date-input business-date data-format="DD/MM/YYYY" data-name="toDate">
+                        <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+                    </div>
+                </div>
+                <div class="rwd-radios">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="rwdDateType" id="rwdArrival" value="0" checked />
+                        <label class="form-check-label" for="rwdArrival">Arrival Dates</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="rwdDateType" id="rwdStay" value="1" />
+                        <label class="form-check-label" for="rwdStay">Stay Dates</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="rwdDateType" id="rwdBooking" value="2" />
+                        <label class="form-check-label" for="rwdBooking">Booking Dates</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rwd-body">
+                <div class="rwd-col-left">
+                    <label class="fw-bold">Filter:</label>
+                    <label for="rwdRoomClass">Room Class:</label>
+                    <div class="rwd-ts">
+                        <select id="rwdRoomClass" class="tomselect-custom" data-report-keep-tomselect multiple>
+                            @if (roomClassList != null)
+                            {
+                                foreach (dynamic item in roomClassList)
+                                {
+                                    <option value="@item.ID">@(item.Code ?? item.Name)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <span></span>
+                    <label for="rwdRateCode">Rate Code:</label>
+                    <div class="rwd-ts">
+                        <select id="rwdRateCode" class="tomselect-custom" data-report-keep-tomselect multiple>
+                            @if (rateCodeList != null)
+                            {
+                                foreach (dynamic item in rateCodeList)
+                                {
+                                    <option value="@item.ID">@item.RateCode</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <span></span>
+                    <label for="rwdSource">Source Code:</label>
+                    <div class="rwd-ts">
+                        <select id="rwdSource" class="tomselect-custom" data-report-keep-tomselect multiple>
+                            @if (sourceList != null)
+                            {
+                                foreach (dynamic item in sourceList)
+                                {
+                                    <option value="@item.ID">@(item.Code ?? item.Name)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <label class="fw-bold">Sort:</label>
+                    <label for="rwdSort">Order:</label>
+                    <select id="rwdSort" class="form-control form-control-sm report-dd">
+                        <option value="0" selected>Room No.</option>
+                        <option value="1">Conf. No.</option>
+                        <option value="2">Arrival</option>
+                        <option value="3">Name</option>
+                    </select>
+                </div>
+
+                <div class="rwd-col-right">
+                    <label for="rwdRoomType">Room Type:</label>
+                    <div class="rwd-ts">
+                        <select id="rwdRoomType" class="tomselect-custom" data-report-keep-tomselect multiple>
+                            @if (roomTypeList != null)
+                            {
+                                foreach (dynamic item in roomTypeList)
+                                {
+                                    <option value="@item.ID">@(item.Code ?? item.Name)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <label for="rwdMarket">Market Code:</label>
+                    <div class="rwd-ts">
+                        <select id="rwdMarket" class="tomselect-custom" data-report-keep-tomselect multiple>
+                            @if (marketList != null)
+                            {
+                                foreach (dynamic item in marketList)
+                                {
+                                    <option value="@item.ID">@(item.Code ?? item.Name)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <label for="rwdStatus">Resv. Status:</label>
+                    <div class="rwd-ts">
+                        <select id="rwdStatus" class="tomselect-custom" data-report-keep-tomselect multiple>
+                            @for (var index = 0; index < statuses.Length; index++)
+                            {
+                                <option value="@index">@statuses[index]</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="mui-card p-2">
+    <div id="gridContainer" class="gridContainer"></div>
+</div>
+<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+</div>
+<script>
+    (function () {
+        function tsCsv(sel) {
+            var v = $(sel).val();
+            if (!v || (Array.isArray(v) && v.length === 0)) return "";
+            return Array.isArray(v) ? v.join(",") : v;
+        }
+
+        function pinRwdDropdown(ts) {
+            if (!ts || !ts.control) return;
+            var box = ts.control.getBoundingClientRect();
+            var root = document.documentElement;
+            root.style.setProperty("--rwd-dd-w", Math.round(box.width) + "px");
+            root.style.setProperty("--rwd-dd-x", Math.round(box.left) + "px");
+            root.style.setProperty("--rwd-dd-y", Math.round(box.bottom + 1) + "px");
+        }
+
+        function initRwdTomSelect(selector) {
+            var el = document.querySelector(selector);
+            if (!el) return;
+            if (el.tomselect) {
+                try { el.tomselect.destroy(); } catch (e) { }
+            }
+            initTomSelect(selector, {
+                placeholder: "Select...",
+                dropdownParent: "body",
+                hidePlaceholder: false
+            });
+            var ts = el.tomselect;
+            if (ts) {
+                ts.clear(true);
+                ts.on("dropdown_open", function () { pinRwdDropdown(ts); });
+            }
+        }
+
+        $(document).ready(function () {
+            document.getElementById("reportTitle").innerText = '@Html.Raw(ViewBag.ReportTitle)';
+            if (typeof window.initDateInputs === "function") window.initDateInputs();
+            initRwdTomSelect("#rwdRoomClass");
+            initRwdTomSelect("#rwdRoomType");
+            initRwdTomSelect("#rwdRateCode");
+            initRwdTomSelect("#rwdMarket");
+            initRwdTomSelect("#rwdSource");
+            initRwdTomSelect("#rwdStatus");
+        });
+
+        $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+            $("#loadingSpinner").show();
+            $.ajax({
+                url: "/Report/ReservationWithDiscountData",
+                type: "GET",
+                data: {
+                    fromDate: $("#fromDate").val(),
+                    toDate: $("#toDate").val(),
+                    dateType: $("input[name='rwdDateType']:checked").val() || 0,
+                    rmClasses: tsCsv("#rwdRoomClass"),
+                    rmTypes: tsCsv("#rwdRoomType"),
+                    rateIDs: tsCsv("#rwdRateCode"),
+                    mkIDs: tsCsv("#rwdMarket"),
+                    srcIDs: tsCsv("#rwdSource"),
+                    statuses: tsCsv("#rwdStatus"),
+                    sort: $("#rwdSort").val() || 0
+                },
+                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+                success: function (result) {
+                    if (typeof result === "string") {
+                        alert(result);
+                        $("#loadingSpinner").hide();
+                        return;
+                    }
+                    initializeDataGrid(result);
+                    $("#loadingSpinner").hide();
+                },
+                error: function (xhr) {
+                    alert(xhr.status === 403 ? "Bạn không có quyền xem báo cáo này." : "Không thể tải báo cáo.");
+                    $("#loadingSpinner").hide();
+                }
+            });
+        });
+
+        function initializeDataGrid(data) {
+            $("#gridContainer").dxDataGrid({
+                dataSource: data,
+                height: 500,
+                width: "100%",
+                allowColumnResizing: true,
+                columnAutoWidth: false,
+                columnHidingEnabled: false,
+                showBorders: true,
+                columns: [
+                    { dataField: "name", caption: "Name", width: 280, minWidth: 220 },
+                    { dataField: "arrival", caption: "Arrival", width: 120, minWidth: 110 },
+                    { dataField: "departure", caption: "Departure", width: 130, minWidth: 120 },
+                    { dataField: "confNo", caption: "Conf. No.", width: 130, minWidth: 120 },
+                    { dataField: "rms", caption: "Rms.", width: 90, minWidth: 80, dataType: "number", format: "#,##0" },
+                    { dataField: "rmNo", caption: "Rm No.", width: 120, minWidth: 110 },
+                    { dataField: "rmType", caption: "Rm Type", width: 130, minWidth: 120 },
+                    { dataField: "rateCode", caption: "Rate Code", width: 140, minWidth: 130 },
+                    { dataField: "cur", caption: "Cur.", width: 90, minWidth: 80 },
+                    { dataField: "originalRate", caption: "Original Rate", width: 150, minWidth: 140, dataType: "number", format: "#,##0.00" },
+                    { dataField: "discountAmt", caption: "Discount Amt.", width: 160, minWidth: 150, dataType: "number", format: "#,##0.00" },
+                    { dataField: "discountPct", caption: "Discount %", width: 140, minWidth: 130, dataType: "number", format: "#,##0.00" },
+                    { dataField: "discountRate", caption: "Discount Rate", width: 160, minWidth: 150, dataType: "number", format: "#,##0.00" },
+                    { dataField: "discountReason", caption: "Discount Reason", width: 260, minWidth: 200 }
+                ],
+                paging: { pageSize: 25 },
+                scrolling: { mode: "standard", useNative: false, showScrollbar: "always" },
+                pager: {
+                    visible: true,
+                    allowedPageSizes: [25, 50, "all"],
+                    showPageSizeSelector: true,
+                    showInfo: true,
+                    showNavigationButtons: true
+                },
+                filterRow: { visible: true, applyFilter: "auto" },
+                headerFilter: { visible: true }
+            });
+        }
+
+        $(document).off("click", "#btnExportExcel").on("click", "#btnExportExcel", function () {
+            const grid = $("#gridContainer").dxDataGrid("instance");
+            if (!grid) { alert("Vui lòng View báo cáo trước khi xuất Excel."); return; }
+            const selectedReport = '@Html.Raw(ViewBag.ReportTitle)';
+            const workbook = new ExcelJS.Workbook();
+            const companyName = localStorage.getItem("CompanyName") || "";
+            const worksheet = workbook.addWorksheet("Sheet 1");
+            worksheet.addRow([companyName]);
+            worksheet.mergeCells("A1:E1");
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.addRow([]);
+            const reportRow = worksheet.addRow(["", "", selectedReport]);
+            worksheet.mergeCells("C3:F3");
+            reportRow.font = { bold: true, size: 14 };
+            reportRow.alignment = { horizontal: "center" };
+            worksheet.addRow([]);
+            DevExpress.excelExporter.exportDataGrid({
+                component: grid,
+                worksheet: worksheet,
+                autoFilterEnabled: true,
+                topLeftCell: { row: 5, column: 1 }
+            }).then(function () {
+                workbook.xlsx.writeBuffer().then(function (buffer) {
+                    saveAs(new Blob([buffer], { type: "application/octet-stream" }), selectedReport + ".xlsx");
+                });
+            });
+        });
+
+        $(document).off("click", "#btnExportPdf").on("click", "#btnExportPdf", function () {
+            const grid = $("#gridContainer").dxDataGrid("instance");
+            if (!grid) { alert("Vui lòng View báo cáo trước khi xuất PDF."); return; }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "A4" });
+            const selectedReport = '@Html.Raw(ViewBag.ReportTitle)';
+            const companyName = localStorage.getItem("CompanyName") || "";
+            grid.getDataSource().load().then(function (data) {
+                const columns = grid.getVisibleColumns();
+                const head = [columns.map(col => col.caption)];
+                const body = data.map(row => columns.map(col => row[col.dataField]));
+                doc.setFontSize(14);
+                doc.setFont("Helvetica", "bold");
+                doc.text(companyName, doc.internal.pageSize.getWidth() / 2, 40, { align: "center" });
+                doc.setFontSize(12);
+                doc.text(selectedReport, doc.internal.pageSize.getWidth() / 2, 60, { align: "center" });
+                doc.autoTable({
+                    startY: 80,
+                    head: head,
+                    body: body,
+                    styles: { fontSize: 7, cellPadding: 3, lineWidth: 0.5, lineColor: [0, 0, 0] },
+                    headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+                    margin: { left: 16, right: 16 }
+                });
+                doc.save(selectedReport + ".pdf");
+            });
+        });
+    })();
+</script>

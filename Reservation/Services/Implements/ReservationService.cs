@@ -501,7 +501,7 @@ namespace Reservation.Services.Implements
 
                     new SqlParameter("@ArrivalFrom", searchType != 1 ? arrivalFrom : ""),
                     new SqlParameter("@ArrivalTo", searchType !=1 ? arrivalTo: ""),
-                    new SqlParameter("@RoomSharer", roomSharer),
+                    new SqlParameter("@RoomSharer", roomSharer ?? ""), // bỏ tick Room Sharer → null → SP báo thiếu tham số
                     new SqlParameter("@CreateDate", ""),
                     new SqlParameter("@CreateBy", ""),
                     new SqlParameter("@Departure", ""),
@@ -1889,7 +1889,26 @@ namespace Reservation.Services.Implements
 
         }
 
-        //Split 
+        /// <summary>
+        /// Nhóm share-room (cùng ShareRoom) chỉ giữ booking CÙNG Conf.No và chưa Cancel (3) / No Show (7).
+        /// ShareRoom từng được đoán trước = GetTopID()+1 nên có nhóm bị trùng với booking khác Conf.No
+        /// (vd ShareRoom 250873 chứa 4 Conf.No) → Split / Split All copy nhầm các dòng đó, ra thừa booking.
+        /// </summary>
+        private static ArrayList FilterShareGroup(ArrayList rows, string confirmationNo)
+        {
+            var result = new ArrayList();
+            if (rows == null) return result;
+            foreach (ReservationModel r in rows)
+            {
+                if (r == null) continue;
+                if (!string.Equals((r.ConfirmationNo ?? "").Trim(), (confirmationNo ?? "").Trim(), StringComparison.OrdinalIgnoreCase)) continue;
+                if (r.Status == 3 || r.Status == 7) continue;
+                result.Add(r);
+            }
+            return result;
+        }
+
+        //Split
         public int Split(int reservationID, int pNoOfRoom, int userID, string partyGuest, int roomID)
         {
             // ID của reservation mới được tạo ra sau khi split.
@@ -1914,7 +1933,7 @@ namespace Reservation.Services.Implements
                 // Tìm tất cả reservation có cùng ShareRoom với reservation gốc.
                 // Đây chính là tập các reservation đang thuộc cùng một nhóm share-room.
                 Expression eRsv = new("ShareRoom", m.ShareRoom, "=");
-                ArrayList aRsv = ReservationBO.Instance.FindByExpression(eRsv);
+                ArrayList aRsv = FilterShareGroup(ReservationBO.Instance.FindByExpression(eRsv), m.ConfirmationNo);
 
                 // Mở transaction để đảm bảo toàn bộ quá trình split là một đơn vị xử lý.
                 ProcessTransactions pt = new();
@@ -2339,7 +2358,7 @@ namespace Reservation.Services.Implements
                 //Kiểm tra xem Booking này có RoomShare hay không?
                 ReservationModel m = (ReservationModel)ReservationBO.Instance.FindByPrimaryKey(pReservationID);
                 Expression eRsv = new Expression("ShareRoom", m.ShareRoom, "=");
-                ArrayList aRsv = ReservationBO.Instance.FindByExpression(eRsv);
+                ArrayList aRsv = FilterShareGroup(ReservationBO.Instance.FindByExpression(eRsv), m.ConfirmationNo);
                 //Chỉ tách 5 Rms 1 lần
                 int MaxpNoOfRoom = pNoOfRoom;
                 if (pNoOfRoom > 6)
@@ -2677,7 +2696,7 @@ namespace Reservation.Services.Implements
                 // Kiểm tra xem Booking này có RoomShare hay không?
                 Expression eRsv = new("ShareRoom", _ShareRoom, "=");
                 eRsv = eRsv.And(new Expression("MainGuest", 0, "="));
-                ArrayList aRsv = ReservationBO.Instance.FindByExpression(eRsv);
+                ArrayList aRsv = FilterShareGroup(ReservationBO.Instance.FindByExpression(eRsv), m.ConfirmationNo);
 
                 if (aRsv.Count == 0)
                 {
@@ -2714,12 +2733,12 @@ namespace Reservation.Services.Implements
 
                 // Kiểm tra xem số RS vượt quá số lượng cho phép không cho Share nữa
                 if (ReservationUtil.CheckShareRoom(_ShareRoom) >= ReservationUtil.CheckShareRoomTotal(_ShareRoom))
-                    throw new Exception("RoomSharer exceed number person.");
+                    throw new Exception("RoomSharer exceed number person");
 
                 // Kiểm tra xem Booking này có RoomShare hay không?
                 Expression eRsv = new Expression("ShareRoom", _ShareRoom, "=");
                 eRsv = eRsv.And(new Expression("MainGuest", 0, "="));
-                ArrayList aRsv = ReservationBO.Instance.FindByExpression(eRsv);
+                ArrayList aRsv = FilterShareGroup(ReservationBO.Instance.FindByExpression(eRsv), m.ConfirmationNo);
 
                 // Nếu không có Rs mới tạo RS - đi số RS đã tạo
                 int Person = _NoOfAdult + _NoOfChild + _NoOfChild1 + _NoOfChild2 - aRsv.Count;
@@ -2759,7 +2778,7 @@ namespace Reservation.Services.Implements
                 // Kiểm tra xem Booking này có RoomShare hay không?
                 Expression eRsv = new("ShareRoom", _ShareRoom, "=");
                 eRsv = eRsv.And(new Expression("MainGuest", 0, "="));
-                ArrayList aRsv = ReservationBO.Instance.FindByExpression(eRsv);
+                ArrayList aRsv = FilterShareGroup(ReservationBO.Instance.FindByExpression(eRsv), m.ConfirmationNo);
 
                 //Tách alll
                 int splitLimit = Math.Min(pNoOfRoom, 5); // hoặc 4 nếu đúng nghiệp vụ là 4
@@ -2822,7 +2841,7 @@ namespace Reservation.Services.Implements
                 eRsv = eRsv.And(new Expression("Status", 4, "<>"));
                 eRsv = eRsv.And(new Expression("Status", 7, "<>"));
 
-                ArrayList aRsv = ReservationBO.Instance.FindByExpression(eRsv);
+                ArrayList aRsv = FilterShareGroup(ReservationBO.Instance.FindByExpression(eRsv), reservation.ConfirmationNo);
 
                 if (reservation.NoOfRoom == 1)
                 {
@@ -2871,6 +2890,29 @@ namespace Reservation.Services.Implements
             {
                 throw new Exception($"ERROR: {ex.Message}", ex);
             }
+        }
+
+        public DataTable GetRecalculateRoomRevenueSource(DateTime fromDate, DateTime toDate, bool rateOnly)
+        {
+            string from = fromDate.ToString("yyyy-MM-dd");
+            string to = toDate.ToString("yyyy-MM-dd");
+            string rateFilter = rateOnly
+                ? "AND b.Rate <> 0 and b.RoomRevenueBeforeTax = 0 "
+                : "";
+            string sql = "SELECT DISTINCT a.ID AS ReservationID " +
+                         "FROM dbo.Reservation a WITH (NOLOCK), dbo.ReservationRate b WITH (NOLOCK) " +
+                         "WHERE a.ID = b.ReservationID AND a.Status NOT IN (3,4,7) AND a.ReservationNo > 0 " +
+                         rateFilter +
+                         "AND a.RoomType <> 'H8' " +
+                         "AND DATEDIFF(day, b.RateDate, '" + from + "') <= 0 " +
+                         "AND DATEDIFF(day, b.RateDate, '" + to + "') >= 0";
+            return TextUtils.Select(sql);
+        }
+
+        public void RecalculateRoomRevenue(int reservationId)
+        {
+            if (reservationId <= 0) return;
+            GetRoomRevenue(reservationId);
         }
     }
 }

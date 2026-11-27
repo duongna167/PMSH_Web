@@ -37,12 +37,7 @@
         background-color: #4CAF50; /* Màu xanh */
         color: white;
     }
-
- 
-    
-
-    .filter-panel {
-        font-size: 12px;
+    .filter-panel {`r`n        font-size: 14px;
     }
 
     .filter-row {
@@ -68,9 +63,24 @@
     .filter-panel .ts-control {
         font-size: 12px;
         padding: .1rem .35rem;
-        height: calc(1.1em + .2rem + 2px);
+        height: 28px;
     }
 
+
+    #gridContainer .dx-datagrid-rowsview .dx-row.dx-group-row td,
+    #gridContainer .dx-datagrid-rowsview .dx-row.dx-group-row.dx-selection td {
+        background: #eeeeee !important;
+        font-weight: 600;
+        color: #212529 !important;
+    }
+    #gridContainer .dx-datagrid-rowsview .dx-row.dx-group-row.dx-selection * {
+        color: #212529 !important;
+    }
+    #gridContainer .dx-datagrid-group-footer td {
+        font-weight: 600;
+        background: #f5f5f5 !important;
+        color: #212529 !important;
+    }
 
     .report-bar {
         position: relative;
@@ -106,14 +116,15 @@
                 <label class="fw-bold me-3">Filter:</label>
                     <div class="d-flex align-items-center me-3">
                         <label class="me-2 mb-0">Date:</label>
-                    <div data-date-input data-format="DD/MM/YYYY" business-date data-name="date">
+                    <div data-date-input business-date data-format="DD/MM/YYYY" data-name="date" style="min-width:140px;">
                         <input type="text" class="date-ui form-control form-control-sm"
                                placeholder="dd/mm/yyyy" autocomplete="off" />
                     </div>
                     </div>
                 <div class="d-flex align-items-center me-3" style=" width: 250px; ">
                     <label class="me-2 mb-0">Cashier:</label>
-                    <select id="user" name="user" class="tomselect-custom"  multiple>
+                    <select id="user" name="user" class="form-control form-control-sm report-dd">
+                        <option value="">--All--</option>
                             @foreach (var item in usersList)
                             {
                             <option value="@item.ID">@item.LoginName</option>
@@ -123,7 +134,8 @@
 
                 <div class="d-flex align-items-center me-3"style=" width: 250px; ">
                     <label class="me-2 mb-0">TransCode:</label>
-                    <select id="transactions" name="transactions" class="tomselect-custom" multiple>
+                    <select id="transactions" name="transactions" class="form-control form-control-sm report-dd">
+                        <option value="">--All--</option>
                             @foreach (var item in transactionsList)
                             {
                             <option value="@item.Code">@item.Code</option>
@@ -168,8 +180,7 @@
     $(document).ready(function () {
 
         document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
-        window.initDateInputs();
-        initTomSelect(".tomselect-custom");      
+        window.initDateInputs();      
     });
           
 
@@ -179,219 +190,140 @@
         $.ajax({
             url: '/Report/CashierAudit',
             type: 'GET',
-            data: { 
+            data: {
                 date: $("#date").val(),
-                user: $("#user").val().map(r => r.replace( "''")).join("','") + "",
-                transactions: $("#transactions").val().map(r => r.replace( "''")).join("','") + "",
-                groupBy: $("#groupBy").val(),               
+                cashierList: ($("#user").val() || ""),
+                transactionCodeList: ($("#transactions").val() || ""),
+                type: "0"
             },
             traditional: true,
-              crossDomain: false,
-                headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
-                success: function (result) {
-                const prepared = prepareCashierData(result);
-                initializReveunueByGrid(prepared);
+            crossDomain: false,
+            headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
+            success: function (result) {
+                if (!Array.isArray(result)) {
+                    alert((result && result.error) ? result.error : "Không thể tải báo cáo.");
+                    $("#loadingSpinner").hide();
+                    return;
+                }
+                initializReveunueByGrid(prepareCashierRows(result), $("#groupBy").val());
                 $("#loadingSpinner").hide();
             },
-
-                    error: function () {
+            error: function () {
                 alert("Không thể tải báo cáo.");
                 $("#loadingSpinner").hide();
             }
         });
     });
 
-    function prepareCashierData(data) {
-        const grouped = {};
-        const result = [];
-
-        data.forEach(item => {
-            const key = item.transactionCode || "Unknown";
-            if (!grouped[key]) grouped[key] = [];
-            grouped[key].push(item);
-        });
-
-        Object.entries(grouped).forEach(([code, items]) => {
-            // Header dòng "Transaction Code: ... - Mô tả"
-            result.push({
-                isGroupHeader: true,
-                transactionCode: code,
-                description: items[0].description
-            });
-
-            // Dòng chi tiết từng giao dịch
-            result.push(...items.map(x => ({
-                ...x,
-                isGroupHeader: false,
-                isSubtotal: false,
-                isGrandTotal: false
-            })));
-
-            // Dòng SubTotal
-            result.push({
-                isSubtotal: true,
-                amount: items.reduce((sum, x) => sum + (x.amount || 0), 0)
+    function prepareCashierRows(data) {
+        return (data || []).map(function (x) {
+            var amt = Number(x.amount);
+            if (!isFinite(amt)) amt = 0;
+            var code = x.transactionCode || "";
+            var desc = x.description || "";
+            var cashierNo = x.cashierNo || "";
+            var userName = x.userName || "";
+            var cashierLabel = cashierNo
+                ? ("Cashier: " + cashierNo + (userName ? " - " + userName : ""))
+                : ("Cashier: " + (userName || "(none)"));
+            return Object.assign({}, x, {
+                amount: amt,
+                cashierGroup: cashierLabel,
+                transGroup: "Transaction Code: " + code + (desc ? " (" + desc + ")" : "")
             });
         });
-
-        // Dòng Grand Total
-        result.push({
-            isGrandTotal: true,
-            amount: data.reduce((sum, x) => sum + (x.amount || 0), 0)
-        });
-
-        return result;
-    }
-        function prepareCashierData(data) {
-        const groupedByGroup = {};
-        const result = [];
-        let grandTotal = 0;
-
-        // Nhóm đầu tiên: theo Group
-        data.forEach(item => {
-            const groupName = item.groupName || "Unknown Group";
-            if (!groupedByGroup[groupName]) groupedByGroup[groupName] = [];
-            groupedByGroup[groupName].push(item);
-        });
-
-        // Xử lý từng nhóm Group
-        Object.entries(groupedByGroup).forEach(([groupName, groupItems]) => {
-           
-
-            const groupedByCashier = {};
-            let groupTotal = 0;
-
-            // Nhóm theo Cashier trong mỗi Group
-            groupItems.forEach(item => {
-                const cashierNo = item.cashierNo || "Unknown";
-                if (!groupedByCashier[cashierNo]) groupedByCashier[cashierNo] = [];
-                groupedByCashier[cashierNo].push(item);
-            });
-
-            Object.entries(groupedByCashier).forEach(([cashierNo, cashierItems]) => {
-                const cashierDisplay = `${cashierNo} - ${cashierItems[0].userName || ''}`;
-                result.push({ account: `Cashier No: ${cashierDisplay}`, cssClass: "bold group-header" });
-
-                const groupedByTran = {};
-                let cashierTotal = 0;
-
-                cashierItems.forEach(item => {
-                    const transactionCode = item.transactionCode || "Unknown";
-                    if (!groupedByTran[transactionCode]) groupedByTran[transactionCode] = [];
-                    groupedByTran[transactionCode].push(item);
-                });
-
-                Object.entries(groupedByTran).forEach(([tranCode, items]) => {
-                    result.push({
-                        account: `Transaction Code: ${tranCode} - ${items[0].description || ''}`,
-
-                       cssClass: "bold group-header"
-                    });
-
-                    result.push(...items);
-
-                    const groupTotalByTran = sum(items, "amount");
-                    cashierTotal += groupTotalByTran;
-
-                    result.push({
-                        reference: "Sub Total by Trans.Code:",
-                        currencyID: "VND",
-                        amount: groupTotalByTran,
-                        cssClass: "bold group-total"
-                    });
-                });
-
-                result.push({
-                    reference: "Sub Total by Cashier:",
-                    currencyID: "VND",
-                    amount: cashierTotal,
-                    cssClass: "bold cashier-total"
-                });
-
-                groupTotal += cashierTotal;
-            });
-
-            // 🟨 Sub Total by Group
-            result.push({
-                reference: "Sub Total by Group:",
-                currencyID: "VND",
-                amount: groupTotal,
-                cssClass: "bold group-summary"
-            });
-
-            grandTotal += groupTotal;
-        });
-
-        result.push({
-            reference: "Grand Total:",
-            currencyID: "VND",
-            amount: grandTotal,
-            cssClass: "bold grandtotal"
-        });
-
-        return result;
     }
 
-
-    function sum(arr, field) {
-        return arr.reduce((total, item) => total + (item[field] || 0), 0);
-    }
-
-
-    function initializReveunueByGrid(data) {
-        const columnWidth = 180;
-        $("#gridContainer").dxDataGrid({
-       dataSource: data,         height: 500, allowColumnResizing: true,
-            columns: [
-
-            { dataField: "account", caption: "Name", width: columnWidth+20, 
-             cellTemplate: function (container, options) {
-                            container.append($("<div>").text(options.text).css({
-                            "white-space": "normal",
-                            "word-wrap": "break-word",
-                            "line-height": "1.2"
+    function cashierAuditColumns(groupBy, columnWidth) {
+        function groupLabelTemplate() {
+            return function (container, options) {
+                $("<span>").text(options.value ?? "").appendTo(container);
+            };
+        }
+        var cols = [
+            { dataField: "account", caption: "Account", width: columnWidth + 20,
+                cellTemplate: function (container, options) {
+                    container.append($("<div>").text(options.text).css({
+                        "white-space": "normal",
+                        "word-wrap": "break-word",
+                        "line-height": "1.2"
                     }));
                 }
             },
-            { dataField: "roomNo", caption: "Room No", width: columnWidth-50 },
-            { dataField: "supplement", caption: "Supplement / Credit Card No", width:columnWidth+50},       
-            { dataField: "user", caption: "Exp. Date", width: columnWidth-50 },
+            { dataField: "roomNo", caption: "Room No.", width: columnWidth - 50 },
+            { dataField: "supplement", caption: "Supplement", width: columnWidth + 50 },
             { dataField: "reference", caption: "Reference", width: columnWidth },
-            { dataField: "amount", caption: "Amount", width: columnWidth-70, dataType: "number", format: "#,##0"},
-            { dataField: "currencyID", caption: "Curr.", width:columnWidth-60 },
-            { dataField: "folioID", caption: "Folio No", width: columnWidth-50},
-            { dataField: "confirmationNo", caption: "Conf. No", width: columnWidth-80 },
-            { dataField: "transactionDate", caption: "Time", width: columnWidth-90,dataType: "date",format: "HH:MM" },
-            { dataField: "userName", caption: "User Login", width: columnWidth-70},        
-            ],
-    paging: { pageSize: 25 },
-              scrolling: {
-
-                  useNative: true,
-                  showScrollbar: "always"
-              },
-        pager: {
-                visible: true,
-                allowedPageSizes: [25, 50, 'all'],
-                showPageSizeSelector: true,
-                showInfo: true,
-                showNavigationButtons: true,
-        },
-        selection: { mode: "multiple", showCheckBoxesMode: "none" },
-        filterRow: {
-        visible: true,
-        applyFilter: "auto"
-    },
-         headerFilter: {
-        visible: true
-    },
-            showBorders: true,
-            onRowPrepared: function (e) {
-        if (e.rowType === "data" && e.data && e.data.cssClass) {
-            $(e.rowElement).addClass(e.data.cssClass);
+            { dataField: "amount", caption: "Amount", width: columnWidth - 50, dataType: "number", format: "#,##0" },
+            { dataField: "currencyID", caption: "Curr.", width: columnWidth - 80 },
+            { dataField: "folioID", caption: "Folio No.", width: columnWidth - 50 },
+            { dataField: "confirmationNo", caption: "Conf. No", width: columnWidth - 80 },
+            { dataField: "transactionDate", caption: "Trans. Date", width: columnWidth - 40, dataType: "date", format: "dd/MM/yyyy HH:mm" },
+            { dataField: "userName", caption: "User Name", width: columnWidth - 50 },
+            { dataField: "cashierNo", caption: "Cashier No.", width: columnWidth - 70 },
+            { dataField: "transactionCode", caption: "Trans. Code", width: columnWidth - 70 }
+        ];
+        if (groupBy === "1") {
+            cols.unshift({ dataField: "cashierGroup", caption: "Cashier", groupIndex: 0, visible: false, groupCellTemplate: groupLabelTemplate() });
+        } else if (groupBy === "2") {
+            cols.unshift({ dataField: "transGroup", caption: "Transaction Code", groupIndex: 0, visible: false, groupCellTemplate: groupLabelTemplate() });
+        } else {
+            cols.unshift(
+                { dataField: "cashierGroup", caption: "Cashier", groupIndex: 0, visible: false, groupCellTemplate: groupLabelTemplate() },
+                { dataField: "transGroup", caption: "Transaction Code", groupIndex: 1, visible: false, groupCellTemplate: groupLabelTemplate() }
+            );
         }
+        return cols;
     }
-                
+
+    function initializReveunueByGrid(data, groupBy) {
+        const columnWidth = 180;
+        pmshBindDxReportGrid("#gridContainer", {
+            dataSource: Array.isArray(data) ? data : [],
+            height: Math.max(360, window.innerHeight - 420),
+            allowColumnResizing: true,
+            loadPanel: { enabled: false },
+            headerFilter: { visible: false },
+            grouping: { autoExpandAll: true, allowCollapsing: true, contextMenuEnabled: false },
+            groupPanel: { visible: false },
+            columns: cashierAuditColumns(groupBy, columnWidth),
+            summary: {
+                groupItems: [
+                    {
+                        column: "account",
+                        summaryType: "count",
+                        displayFormat: "Sub Total =",
+                        showInGroupFooter: true,
+                        alignByColumn: true
+                    },
+                    {
+                        column: "amount",
+                        summaryType: "sum",
+                        displayFormat: "{0}",
+                        valueFormat: "#,##0",
+                        showInGroupFooter: true,
+                        alignByColumn: true
+                    }
+                ],
+                totalItems: [
+                    {
+                        column: "account",
+                        summaryType: "count",
+                        displayFormat: "Grand Total ="
+                    },
+                    {
+                        column: "amount",
+                        summaryType: "sum",
+                        displayFormat: "{0}",
+                        valueFormat: "#,##0"
+                    }
+                ]
+            },
+            paging: { enabled: false },
+            pager: { visible: false },
+            selection: { mode: "none" },
+            focusedRowEnabled: false,
+            filterRow: { visible: true, applyFilter: "auto" },
+            showBorders: true
         });
     }
 

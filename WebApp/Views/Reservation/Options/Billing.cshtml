@@ -30,6 +30,7 @@
                         <div class="dropdown-menu">
                             <a class="dropdown-item" href="#" onclick="PrintAndPreview(1);">Style: Billing Information</a>
                             <a class="dropdown-item" href="#" onclick="PrintAndPreview(2);">Style: Billing Information (Selection)</a>
+                            <a class="dropdown-item" href="#" onclick="openFolioOptionFromBilling();">Folio Option...</a>
                         </div>
                     </div>
 
@@ -820,6 +821,23 @@
             error: function (xhr, statusText, err) { }
         });
     }
+    /** Mở Folio Option cho cửa sổ folio đang chọn; các dòng đang tick sẽ dùng cho kiểu "Selected transaction". */
+    function openFolioOptionFromBilling() {
+        if (typeof openModalFolioOption !== 'function') {
+            showToast('Error', 'Folio Option is not available on this page.', false);
+            return;
+        }
+        let invoiceNos = [];
+        try {
+            const grid = $("#gridContainerBilling").dxDataGrid("instance");
+            invoiceNos = (grid ? grid.getSelectedRowsData() : [])
+                .map(function (r) { return r.invoiceNo; })
+                .filter(function (x) { return x !== null && x !== undefined && String(x) !== '' && String(x) !== '0'; });
+            invoiceNos = invoiceNos.filter(function (x, i) { return invoiceNos.indexOf(x) === i; });
+        } catch (e) { }
+        openModalFolioOption(folioNoID, invoiceNos);
+    }
+
     function openModalBilling() {
         if (reservationStatus == 0 || reservationStatus == 3) {
             showToast('Warning', 'Booking status must not be Reservation or Cancel', false);

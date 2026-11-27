@@ -1,0 +1,146 @@
+<style>
+    #nft_modal .mui-card { min-height: 0; }
+    #nft_grid { flex: 1 1 auto; height: 100%; min-height: 0; }
+    #nft_grid .nft-done { opacity: 0.45; }
+    #nft_detail_modal .nft-detail-row { margin-bottom: 12px; font-size: 16px; line-height: 1.4; }
+    #nft_detail_modal .nft-detail-row label { font-weight: 600; margin-right: 8px; }
+    #nft_detail_text { white-space: pre-wrap; word-break: break-word; min-height: 80px; margin-top: 6px; }
+    #nft_detail_modal .modal-dialog { max-width: 640px; width: 92vw; }
+    #nft_detail_modal .modal-content { min-height: 360px; }
+</style>
+<div class="modal fade" id="nft_modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg-4by3 modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Trace</h5>
+            </div>
+            <div class="modal-body">
+                <div class="search-filter">
+                    <div>
+                        <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+                <div class="mui-card">
+                    <div id="nft_grid" class="gridContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="nft_detail_modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Trace</h5>
+            </div>
+            <div class="modal-body">
+                <div class="search-filter">
+                    <div>
+                        <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+                <div class="nft-detail-row"><label>Department:</label><span id="nft_detail_dept"></span></div>
+                <div class="nft-detail-row"><label>Guest Name:</label><span id="nft_detail_guest"></span></div>
+                <div class="nft-detail-row"><label>Time:</label><span id="nft_detail_time"></span></div>
+                <div class="nft-detail-row"><label>From Date:</label><span id="nft_detail_from"></span></div>
+                <div class="nft-detail-row"><label>To Date:</label><span id="nft_detail_to"></span></div>
+                <div class="nft-detail-row"><label>Trace Text:</label><div id="nft_detail_text"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function nft_fmtDate(v) {
+        if (!v) return "";
+        var d = new Date(v);
+        if (isNaN(d.getTime())) return "";
+        var p = function (n) { return String(n).padStart(2, "0"); };
+        return p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear()
+            + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+    }
+    function nft_mark(id) {
+        $.ajax({
+            url: "/Notification/ResolveTraces",
+            type: "POST",
+            data: { selectedIds: [id] },
+            traditional: true,
+            success: function (res) {
+                if (!res || res.code !== 0) {
+                    if (window.showToast) showToast("Error", (res && res.msg) || "Resolve failed.", false);
+                    nft_load();
+                    return;
+                }
+                nft_load();
+                if (typeof loadNotificationCount === "function") loadNotificationCount();
+            },
+            error: function (xhr) {
+                if (window.showToast) showToast("Error", xhr.responseText || "Resolve failed.", false);
+                nft_load();
+            }
+        });
+    }
+    function nft_load() {
+        $.get("/Notification/TraceData", function (result) {
+            if (typeof result === "string") {
+                if (window.showToast) showToast("Error", result, false);
+                return;
+            }
+            $("#nft_grid").dxDataGrid({
+                dataSource: result || [],
+                height: "100%",
+                keyExpr: "id",
+                paging: { enabled: false },
+                pager: { visible: false },
+                scrolling: { mode: "standard", showScrollbar: "always" },
+                hoverStateEnabled: true,
+                columns: [
+                    { dataField: "department", caption: "Department", width: 140 },
+                    { dataField: "tracesTime", caption: "Time", width: 90 },
+                    { dataField: "tracesText", caption: "Trace Text", minWidth: 180 },
+                    { dataField: "guestName", caption: "Guest Name", minWidth: 140 },
+                    {
+                        dataField: "resolved",
+                        caption: "Resolve",
+                        width: 80,
+                        alignment: "center",
+                        allowSorting: false,
+                        cellTemplate: function (container, options) {
+                            var $cb = $("<input type='checkbox'>")
+                                .prop("checked", !!options.value)
+                                .prop("disabled", !!options.value);
+                            $cb.on("click", function (e) { e.stopPropagation(); });
+                            $cb.on("change", function () {
+                                if (this.checked) nft_mark(options.data.id);
+                            });
+                            $cb.appendTo(container);
+                        }
+                    },
+                    { dataField: "fromDate", caption: "From Date", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 145 },
+                    { dataField: "toDate", caption: "To Date", dataType: "datetime", format: "dd/MM/yyyy HH:mm", width: 145 }
+                ],
+                onRowPrepared: function (e) {
+                    if (e.rowType === "data" && e.data && e.data.resolved)
+                        e.rowElement.addClass("nft-done");
+                },
+                onRowClick: function (e) {
+                    if (!e.event) return;
+                    if ($(e.event.target).is("input,label")) return;
+                    var row = e.data || {};
+                    $("#nft_detail_dept").text(row.department || "");
+                    $("#nft_detail_guest").text(row.guestName || "");
+                    $("#nft_detail_time").text(row.tracesTime || "");
+                    $("#nft_detail_from").text(nft_fmtDate(row.fromDate));
+                    $("#nft_detail_to").text(nft_fmtDate(row.toDate));
+                    $("#nft_detail_text").text(row.tracesText || "");
+                    $("#nft_detail_modal").modal("show");
+                },
+                showBorders: true
+            });
+            var grid = $("#nft_grid").dxDataGrid("instance");
+            if (grid) grid.updateDimensions();
+        });
+    }
+    window.openModalNotificationTrace = function () {
+        nft_load();
+    };
+</script>

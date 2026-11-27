@@ -1,0 +1,179 @@
+@{
+    int form = (ViewBag.Form as int?) ?? 1;
+}
+<!-- Report of staying — port WinForm frmSearchStaying (form1), _V2 (form2), _NN (form3), V4 (form4), V5 (form5). Prefix ros_ -->
+<style>
+    #ros_modal .ros-filter { display: flex; gap: 8px; align-items: center; padding: 6px 4px; font-size: 12px; flex-wrap: wrap; }
+    #ros_modal .ros-filter label { margin: 0; }
+    #ros_modal .ros-filter .ros-date { width: 130px; }
+    #ros_modal .ros-title { font-size: 12px; margin: 2px 4px; }
+    #ros_modal .mui-card { min-height: 0; }
+    #ros_grid { flex: 1 1 auto; height: 100%; min-height: 0; }
+</style>
+
+<div class="modal fade" id="ros_modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-4by3">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title">Report of staying - form@(form)</h5>
+            </div>
+            <div class="modal-body">
+                <div class="search-filter">
+                    <div>
+                        <button type="button" class="mui-button mui-button-new" id="ros_btnSearch">Search</button>
+                        <button type="button" class="mui-button mui-button-new" id="ros_btnExport">Export</button>
+                        <button type="button" class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
+                    </div>
+                    <div class="ros-filter">
+                        <label>From Date</label>
+                        <div class="ros-date" data-date-input data-format="DD/MM/YYYY" data-name="ros_fromDate" business-date>
+                            <input type="text" class="date-ui form-control form-control-sm" autocomplete="off" />
+                        </div>
+                        <label>To Date</label>
+                        <div class="ros-date" data-date-input data-format="DD/MM/YYYY" data-name="ros_toDate" business-date>
+                            <input type="text" class="date-ui form-control form-control-sm" autocomplete="off" />
+                        </div>
+                        @if (form == 3)
+                        {
+                            <label class="ms-3"><input type="radio" name="ros_country" value="ALL" checked /> All</label>
+                            <label><input type="radio" name="ros_country" value="VNM" /> Việt Nam</label>
+                            <label><input type="radio" name="ros_country" value="NG" /> Nước ngoài</label>
+                        }
+                    </div>
+                    <div class="ros-title">Reservation List</div>
+                </div>
+                <div class="mui-card">
+                    <div id="ros_grid" class="gridContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var ros_Module = {
+        form: @form,
+        grid: null,
+
+        // Cột theo lưới WinForm (Conf.No, Guest, Title, Country, Arr., Dept, A, C, C1, C2, Rms, R.Type, R.No, RN, Code, Resv. Holder)
+        knownCols: [
+            { f: ['ConfirmationNo'], caption: 'Conf.No' },
+            { f: ['Lastname', 'LastName', 'FullName', 'Guest'], caption: 'Guest', count: true },
+            { f: ['Title'], caption: 'Title' },
+            { f: ['Country'], caption: 'Country' },
+            { f: ['ArrivalDate'], caption: 'Arr.' },
+            { f: ['DepartureDate'], caption: 'Dept' },
+            { f: ['NoOfAdult'], caption: 'A', sum: true },
+            { f: ['NoOfChild'], caption: 'C', sum: true },
+            { f: ['NoOfChild1'], caption: 'C1', sum: true },
+            { f: ['NoOfChild2'], caption: 'C2', sum: true },
+            { f: ['NoOfRoom'], caption: 'Rms', sum: true },
+            { f: ['RoomType'], caption: 'R.Type' },
+            { f: ['RoomNo'], caption: 'R.No' },
+            { f: ['RoomNight'], caption: 'RN', sum: true },
+            { f: ['Code', 'RateCode'], caption: 'Code' },
+            { f: ['ReservationHolder'], caption: 'Resv. Holder' }
+        ],
+
+        init: function () {
+            this.bindEvents();
+            this.renderGrid([], []);
+            const self = this;
+            const start = function () { self.search(); };
+            if (typeof waitForBusinessDate === 'function') waitForBusinessDate('ros_toDate', 5000).then(start).catch(start);
+            else setTimeout(start, 300);
+        },
+
+        destroy: function () {
+            try { if (this.grid) this.grid.dispose(); } catch (e) { }
+            $('#ros_grid').empty();
+            this.grid = null;
+        },
+
+        dateVal: function (name) { return ($('input[type="hidden"][name="' + name + '"]').val() || '').split('T')[0]; },
+
+        search: function () {
+            const self = this;
+            $.get('/FrontDesk/ReportOfStayingData', {
+                form: self.form,
+                fromDate: self.dateVal('ros_fromDate'),
+                toDate: self.dateVal('ros_toDate'),
+                country: $('input[name="ros_country"]:checked').val() || 'ALL'
+            }, function (r) {
+                if (!r || r.code !== 0) { showToast('Error', (r && r.msg) || 'Load Data Error', false); return; }
+                self.renderGrid(r.columns || [], r.rows || []);
+            }).fail(function (xhr) { if (xhr.status == 401) sessionTimeout(); else showToast('Error', 'Load Data Error', false); });
+        },
+
+        buildColumns: function (cols) {
+            const lower = {};
+            cols.forEach(function (c) { lower[c.toLowerCase()] = c; });
+            const mapped = [], totals = [];
+            this.knownCols.forEach(function (k) {
+                const name = k.f.map(function (x) { return lower[x.toLowerCase()]; }).find(Boolean);
+                if (!name) return;
+                mapped.push({ dataField: name, caption: k.caption, alignment: k.sum ? 'right' : undefined });
+                if (k.count) totals.push({ column: name, summaryType: 'count', displayFormat: '{0}' });
+                if (k.sum) totals.push({ column: name, summaryType: 'sum', displayFormat: '{0}' });
+            });
+            // SP khác cấu trúc (V4 / V5 ...) → hiện đủ các cột SP trả về
+            if (mapped.length < 5) {
+                return {
+                    columns: cols.filter(function (c) { return c.toLowerCase() !== 'id'; }).map(function (c) { return { dataField: c, caption: c }; }),
+                    totals: []
+                };
+            }
+            return { columns: mapped, totals: totals };
+        },
+
+        renderGrid: function (cols, rows) {
+            const b = this.buildColumns(cols);
+            $('#ros_grid').dxDataGrid({
+                dataSource: rows,
+                height: '100%',
+                showBorders: true,
+                columnAutoWidth: true,
+                allowColumnResizing: true,
+                columnResizingMode: 'widget',
+                focusedRowEnabled: false,
+                paging: { enabled: false },
+                scrolling: { mode: 'virtual', showScrollbar: 'always' },
+                columns: b.columns,
+                summary: { totalItems: b.totals }
+            });
+            this.grid = $('#ros_grid').dxDataGrid('instance');
+        },
+
+        exportExcel: function () {
+            const grid = this.grid;
+            if (!grid) return;
+            const title = 'Report of staying';
+            const workbook = new ExcelJS.Workbook();
+            const ws = workbook.addWorksheet('Sheet 1');
+            ws.addRow([localStorage.getItem('CompanyName') || '']);
+            const t = ws.addRow([title]); t.font = { bold: true, size: 14 };
+            ws.addRow(['From ' + moment(this.dateVal('ros_fromDate')).format('DD/MM/YYYY') + ' to ' + moment(this.dateVal('ros_toDate')).format('DD/MM/YYYY')]);
+            DevExpress.excelExporter.exportDataGrid({ component: grid, worksheet: ws, autoFilterEnabled: true, topLeftCell: { row: 5, column: 1 } })
+                .then(function () {
+                    workbook.xlsx.writeBuffer().then(function (buffer) {
+                        saveAs(new Blob([buffer], { type: 'application/octet-stream' }), title + '_' + moment().format('D_M_YYYY') + '.xlsx');
+                    });
+                });
+        },
+
+        bindEvents: function () {
+            const self = this;
+            $('#ros_btnSearch').off('click').on('click', function () { self.search(); });
+            $('#ros_btnExport').off('click').on('click', function () { self.exportExcel(); });
+        }
+    };
+
+    window.openModalROS = function () {
+        ros_Module.init();
+        $('#ros_modal').modal('show');
+    };
+
+    $(document).off('hidden.bs.modal.ros_cleanup').on('hidden.bs.modal.ros_cleanup', '#ros_modal', function () {
+        ros_Module.destroy();
+    });
+</script>

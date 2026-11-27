@@ -1,0 +1,302 @@
+@{
+    ViewBag.Title = ViewBag.ReportHeader;
+    var roomClassList = ViewBag.RoomClassList as IEnumerable<dynamic>;
+    var currList = ViewBag.CurrencyList as IEnumerable<dynamic>;
+}
+<style>
+    .gridContainer { margin: 0px 8px; }
+    .sticky-header label, .sticky-header .form-control-sm { font-size: 14px; line-height: 1.2; }
+    .sticky-header .form-control-sm { padding: 2px 8px; height: 28px; }
+    .sticky-header label { margin-bottom: 0; white-space: nowrap; }
+    .nrp-grid {
+        display: grid;
+        grid-template-columns: max-content max-content 160px max-content 160px;
+        column-gap: 6px;
+        row-gap: 8px;
+        align-items: center;
+        width: max-content;
+        max-width: 100%;
+    }
+    .nrp-grid > label { margin: 0; white-space: nowrap; }
+    .nrp-grid .pair-gap { margin-left: 10px; }
+    .nrp-grid select, .nrp-grid [data-date-input] { width: 160px; min-width: 128px; max-width: 220px; }
+    .pps-block {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        column-gap: 10px;
+        row-gap: 8px;
+        align-items: start;
+        margin-top: 8px;
+        width: 100%;
+    }
+    .pps-block > .fw-bold {
+        margin: 0;
+        white-space: nowrap;
+        min-height: 28px;
+        display: flex;
+        align-items: center;
+    }
+    .pps-items {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        column-gap: 16px;
+        row-gap: 8px;
+        min-width: 0;
+    }
+    .pps-items .form-check { margin: 0 !important; display: flex; align-items: center; gap: 6px; }
+    .pps-items .form-check-label { white-space: nowrap; }
+    .pps-metrics {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        column-gap: 16px;
+        row-gap: 8px;
+        align-items: center;
+        min-width: 0;
+        width: 100%;
+    }
+    .pps-metrics .form-check { margin: 0 !important; display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .pps-metrics .form-check-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #profileBox { width: 220px; min-width: 128px; max-width: 220px; }
+    #ppsFilter { font-size: 12px; margin: 8px 12px 0; color: #444; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection { background-color: #01579b !important; color: white !important; }
+    #gridContainer .dx-datagrid-rowsview .dx-selection * { color: white !important; }
+</style>
+<div class="text-center" id="reportTitle" style="font-size: 20px"></div>
+<div class="sticky-header bg-white p-2 shadow-sm z-3">
+    <div class="">
+        <button id="btnPrint" class="mui-button mui-button-new">View</button>
+        <button id="btnExportExcel" class="mui-button mui-button-new" type="button">Excel</button>
+        <button id="btnExportPdf" class="mui-button mui-button-new" type="button">PDF</button>
+    </div>
+    <div class="mb-1" style="border: 1px solid #ced4da; border-radius: 6px; padding: 8px;">
+        <div class="nrp-grid">
+            <label class="fw-bold">Date Range:</label>
+            <label>From:</label>
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="fromDate">
+                <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
+            <label class="pair-gap">To:</label>
+            <div data-date-input business-date data-format="DD/MM/YYYY" data-name="toDate">
+                <input type="text" class="date-ui form-control form-control-sm" placeholder="dd/mm/yyyy" autocomplete="off" />
+            </div>
+            <label class="fw-bold">Filter</label>
+            <label>Room Class:</label>
+            <select id="roomClass" class="form-control form-control-sm">
+                <option value="">--All--</option>
+                @if (roomClassList != null)
+                {
+                    foreach (var item in roomClassList)
+                    {
+                        <option value="@item.ID">@item.Code</option>
+                    }
+                }
+            </select>
+            <label class="pair-gap">Currency:</label>
+            <select id="currency" class="form-control form-control-sm">
+                @if (currList != null)
+                {
+                    foreach (var item in currList)
+                    {
+                        if (item.MasterStatus == true)
+                        {
+                            <option value="@item.ID" selected>@item.ID</option>
+                        }
+                        else
+                        {
+                            <option value="@item.ID">@item.ID</option>
+                        }
+                    }
+                }
+            </select>
+        </div>
+        <div class="pps-block">
+            <label class="fw-bold">Profile Category</label>
+            <div class="pps-items">
+                <div class="form-check"><input class="form-check-input" type="radio" name="profileCat" id="catCo" value="2" checked /><label class="form-check-label" for="catCo">Companies</label></div>
+                <div class="form-check"><input class="form-check-input" type="radio" name="profileCat" id="catTa" value="1" /><label class="form-check-label" for="catTa">Travel Agents</label></div>
+                <div class="form-check"><input class="form-check-input" type="radio" name="profileCat" id="catInd" value="0" /><label class="form-check-label" for="catInd">Individuals</label></div>
+                <div class="form-check"><input class="form-check-input" type="radio" name="profileCat" id="catSel" value="-1" /><label class="form-check-label" for="catSel">Select Profiles</label></div>
+                <select id="profileBox" class="form-control form-control-sm" data-pmsh-select-down disabled>
+                    <option value="">--All--</option>
+                </select>
+            </div>
+            <span></span>
+            <div class="pps-items">
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="chkRollup" disabled /><label class="form-check-label" for="chkRollup">Rollup Master Statistics</label></div>
+                <div class="form-check"><input class="form-check-input" type="radio" name="netGross" id="rdbNet" value="net" checked /><label class="form-check-label" for="rdbNet">Net</label></div>
+                <div class="form-check"><input class="form-check-input" type="radio" name="netGross" id="rdbGross" value="gross" /><label class="form-check-label" for="rdbGross">Gross</label></div>
+            </div>
+            <label class="fw-bold">Display on Report</label>
+            <div class="pps-metrics">
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="roomNights" id="mRn" /><label class="form-check-label" for="mRn">Room Nights</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="revPerGuest" id="mRpg" /><label class="form-check-label" for="mRpg">Total Revenue Per Guest</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="arrivalRooms" id="mAr" /><label class="form-check-label" for="mAr">Arrival Rooms</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="roomRevPerGuest" id="mRrpg" /><label class="form-check-label" for="mRrpg">Room Revenue Per Guest</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="cancelledRooms" id="mCr" /><label class="form-check-label" for="mCr">Cancelled Rooms</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="fbPerGuest" id="mFpg" /><label class="form-check-label" for="mFpg">F&amp;B Revenue Per Guest</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="noShowRooms" id="mNsr" /><label class="form-check-label" for="mNsr">No Show Rooms</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="extraPerGuest" id="mEpg" /><label class="form-check-label" for="mEpg">Extra Revenue Per Guest</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="dayUseRooms" id="mDur" /><label class="form-check-label" for="mDur">Day Use Rooms</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="nonPerGuest" id="mNpg" /><label class="form-check-label" for="mNpg">Non Revenue Per Guest</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="adr" id="mAdr" /><label class="form-check-label" for="mAdr">ADR</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="reservationNights" id="mRsn" /><label class="form-check-label" for="mRsn">Reservation Nights</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="totalRevenue" id="mTr" /><label class="form-check-label" for="mTr">Total Revenue</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="reservationArrivals" id="mRa" /><label class="form-check-label" for="mRa">Reservation Arrivals</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="roomRevenue" id="mRr" /><label class="form-check-label" for="mRr">Room Revenue</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="cancelledReservations" id="mCrs" /><label class="form-check-label" for="mCrs">Cancelled Reservations</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="fbRevenue" id="mFb" /><label class="form-check-label" for="mFb">F&amp;B Revenue</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="noShowReservations" id="mNsrs" /><label class="form-check-label" for="mNsrs">No Show Reservations</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="extraRevenue" id="mEr" /><label class="form-check-label" for="mEr">Extra Revenue</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="dayUseReservations" id="mDurs" /><label class="form-check-label" for="mDurs">Day Use Reservations</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="nonRevenue" id="mNr" /><label class="form-check-label" for="mNr">Non Revenue</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="blockBreakdown" id="mBb" /><label class="form-check-label" for="mBb">Block Breakdown</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="adults" id="mAd" /><label class="form-check-label" for="mAd">Adults</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="individualBreakdown" id="mIb" /><label class="form-check-label" for="mIb">Individual Breakdown</label></div>
+                <div class="form-check"><input class="form-check-input met" type="checkbox" value="children" id="mCh" /><label class="form-check-label" for="mCh">Children</label></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="mui-card">
+    <div id="gridWrapper" class="mt-2" style="max-height: 500px;">
+        <div class="gridContainer mt-2" id="gridContainer"></div>
+    </div>
+    <div id="ppsFilter"></div>
+</div>
+<div id="loadingSpinner" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1000;">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+</div>
+<script>
+    var ppsHoldersLoaded = false;
+    var ppsColumns = null;
+    function pick(row, names) {
+        for (var i = 0; i < names.length; i++) {
+            if (row[names[i]] !== undefined && row[names[i]] !== null && row[names[i]] !== "") return row[names[i]];
+        }
+        return "";
+    }
+    function loadHolders() {
+        if (ppsHoldersLoaded) return;
+        ppsHoldersLoaded = true;
+        $.get("/Report/ReportHolderLookup", function (list) {
+            if (!Array.isArray(list)) return;
+            var $h = $("#profileBox");
+            list.forEach(function (r) {
+                var id = r.ID ?? r.id;
+                var acc = r.Account ?? r.account;
+                var typ = r.Type ?? r.type;
+                if (!id || !acc) return;
+                $h.append($("<option/>").val(id).attr("data-type", typ).text(acc));
+            });
+        });
+    }
+    function syncProfileUi() {
+        var sel = $("input[name='profileCat']:checked").val() === "-1";
+        $("#profileBox").prop("disabled", !sel);
+        $("#chkRollup").prop("disabled", !sel);
+        if (!sel) { $("#chkRollup").prop("checked", false); $("#profileBox").val(""); }
+        else loadHolders();
+    }
+    $(document).ready(function () {
+        document.getElementById("reportTitle").innerText = '@ViewBag.ReportTitle';
+        if (typeof window.initDateInputs === "function") window.initDateInputs();
+        $("input[name='profileCat']").on("change", syncProfileUi);
+        syncProfileUi();
+    });
+    function bindGrid(data) {
+        var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        var rows = (Array.isArray(data) ? data : []).map(function (r) {
+            var o = {
+                profileName: pick(r, ["ProfileName", "profileName"]),
+                address: pick(r, ["Address", "address"]),
+                rptName: pick(r, ["RptName", "rptName"]),
+                year: pick(r, ["YEAR", "Year", "year"])
+            };
+            months.forEach(function (m) { o[m] = pick(r, [m]); });
+            return o;
+        });
+        if (!ppsColumns) {
+            ppsColumns = [
+                { dataField: "profileName", caption: "Profile", groupIndex: 0, visible: false },
+                { dataField: "address", caption: "Address", minWidth: 180 },
+                { dataField: "rptName", caption: "Potential Room Revenue / Potential Room Nights", minWidth: 220 }
+            ];
+            months.forEach(function (m) {
+                ppsColumns.push({ dataField: m, caption: m, width: 70, dataType: "number", format: "#,##0.##" });
+            });
+            ppsColumns.push({ dataField: "year", caption: "Total", width: 80, dataType: "number", format: "#,##0.##" });
+        }
+        var inst = $("#gridContainer").data("dxDataGrid");
+        if (inst) {
+            inst.option("dataSource", rows);
+            return;
+        }
+        $("#gridContainer").dxDataGrid({
+            dataSource: rows, height: 500, allowColumnResizing: true, columns: ppsColumns,
+            grouping: { autoExpandAll: true },
+            paging: { pageSize: 50 },
+            scrolling: { mode: "standard", useNative: false, showScrollbar: "always" },
+            pager: { visible: true, allowedPageSizes: [25, 50, "all"], showPageSizeSelector: true, showInfo: true, showNavigationButtons: true },
+            filterRow: { visible: true, applyFilter: "auto" },
+            showBorders: true
+        });
+    }
+    $(document).off("click", "#btnPrint").on("click", "#btnPrint", function () {
+        var metrics = $(".met:checked").map(function () { return this.value; }).get().join(",");
+        if (!metrics) { alert("Select at least one display item."); return; }
+        var cat = $("input[name='profileCat']:checked").val();
+        var profileId = 0, profileType = parseInt(cat, 10);
+        if (cat === "-1") {
+            profileId = parseInt($("#profileBox").val() || "0", 10) || 0;
+            var opt = $("#profileBox option:selected");
+            profileType = parseInt(opt.attr("data-type") || "-1", 10);
+            if (!profileId) { alert("Select a profile."); return; }
+        }
+        var roomText = $("#roomClass option:selected").text();
+        var catLabel = $("#catCo").is(":checked") ? "Companies" : $("#catTa").is(":checked") ? "Travel Agents" : $("#catInd").is(":checked") ? "Individuals" : ("Select profile: " + ($("#profileBox option:selected").text() || ""));
+        $("#loadingSpinner").show();
+        $.ajax({
+            url: "/Report/ProfileProductionStatisticsData", type: "GET",
+            data: {
+                fromDate: $("#fromDate").val(), toDate: $("#toDate").val(),
+                profileType: profileType, profileId: profileId,
+                roomClassId: $("#roomClass").val(), currencyId: $("#currency").val(),
+                includeTax: $("#rdbGross").is(":checked"),
+                rollupMaster: $("#chkRollup").is(":checked"),
+                metrics: metrics
+            },
+            success: function (result) {
+                if (typeof result === "string") { alert(result); $("#loadingSpinner").hide(); return; }
+                bindGrid(result);
+                $("#ppsFilter").text("Filter  From date: " + $("#fromDate").val() + "  To date: " + $("#toDate").val()
+                    + " | Room class: " + (roomText && roomText !== "--All--" ? roomText : "All")
+                    + " | Currency: " + ($("#currency").val() || "")
+                    + " Rollup master: " + ($("#chkRollup").is(":checked") ? "Y" : "N")
+                    + " NetRevenue: " + ($("#rdbNet").is(":checked") ? "Y" : "N")
+                    + " | Profile category: " + catLabel);
+                $("#loadingSpinner").hide();
+            },
+            error: function () { alert("Không thể tải báo cáo."); $("#loadingSpinner").hide(); }
+        });
+    });
+    $(document).off("click", "#btnExportExcel").on("click", "#btnExportExcel", function () {
+        const grid = $("#gridContainer").dxDataGrid("instance"); if (!grid) return;
+        const workbook = new ExcelJS.Workbook(); const worksheet = workbook.addWorksheet("Report");
+        const selectedReport = '@ViewBag.ReportTitle';
+        worksheet.addRow([localStorage.getItem("CompanyName") || ""]);
+        DevExpress.excelExporter.exportDataGrid({ component: grid, worksheet: worksheet, autoFilterEnabled: true, topLeftCell: { row: 3, column: 1 } })
+            .then(function () { workbook.xlsx.writeBuffer().then(function (buffer) { saveAs(new Blob([buffer], { type: "application/octet-stream" }), selectedReport + ".xlsx"); }); });
+    });
+    $(document).off("click", "#btnExportPdf").on("click", "#btnExportPdf", function () {
+        const grid = $("#gridContainer").dxDataGrid("instance"); if (!grid) return;
+        const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "A4" });
+        const selectedReport = '@ViewBag.ReportTitle';
+        grid.getDataSource().load().then(data => {
+            const columns = grid.getVisibleColumns().filter(c => c.dataField);
+            doc.text(selectedReport, doc.internal.pageSize.getWidth() / 2, 40, { align: "center" });
+            doc.autoTable({ startY: 56, head: [columns.map(c => c.caption)], body: data.map(row => columns.map(c => row[c.dataField] ?? "")), styles: { fontSize: 7 } });
+            doc.save(selectedReport + ".pdf");
+        });
+    });
+</script>

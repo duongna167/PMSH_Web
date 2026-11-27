@@ -69,6 +69,7 @@ namespace Profile.Services.Implements
             string? keyWord, string? city, string? type, bool showSaleInCharge)
         {
             var columns = GetColumns(type ?? "");
+            var cityMap = Profile.Commons.Helpers.CityNameHelper.GetCityMap();
             int rowCount = 0;
 
             using var connection = new SqlConnection(DBUtils.GetDBConnectionString());
@@ -156,6 +157,7 @@ namespace Profile.Services.Implements
                             if (reader.IsDBNull(ordinal)) continue;
                             string value = Convert.ToString(reader.GetValue(ordinal)) ?? "";
                             if (columns[i].Source == "DateOfBirth") value = value.Replace('.', '/'); // dd.MM.yyyy -> dd/MM/yyyy
+                            else if (columns[i].Source == "City") value = Profile.Commons.Helpers.CityNameHelper.Resolve(cityMap, value); // ID -> tên
                             values[i] = value;
                         }
                         rowCount++;
