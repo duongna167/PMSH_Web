@@ -13,6 +13,11 @@ namespace Miscellaneous.Services.Interfaces
     public interface IMiscellaneousService
     {
         DataTable Cards(string? id = null);
+        DataTable ComputerCardReaders(string cardReaderIds);
+        DataTable CardReaders();
+        DataTable Computers();
+        bool SaveComputerCardReader(int cardReaderId, IReadOnlyList<int> computerIds);
+        int DeleteComputerCardReaders(IReadOnlyList<int> ids);
         bool InsertCard(string id, int cardTypeId, int status, string userName);
         bool UpdateCard(string id, int cardTypeId, int status, string userName);
         CardDeleteResult DeleteCard(string id);

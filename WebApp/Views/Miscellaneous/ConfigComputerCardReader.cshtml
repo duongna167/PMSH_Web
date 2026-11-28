@@ -1,0 +1,186 @@
+<style>
+    #ccr_main .modal-body { font-size: 13px; padding: 10px; }
+    #ccr_main .mui-card { margin: 0 0 8px; padding: 8px; min-width: 0; }
+    .ccr-toolbar { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+    .ccr-toolbar .mui-button { min-width: 80px; margin: 0; }
+    .ccr-title { display: flex; align-items: center; gap: 8px; padding-bottom: 5px; margin-bottom: 8px; border-bottom: 2px solid #ececec; font-size: 14px; font-weight: 600; color: #000; }
+    .ccr-title i { background: #027C75; color: #fff; padding: 4px; font-size: 12px; }
+    .ccr-field { display: flex; align-items: center; gap: 8px; }
+    .ccr-field > label { margin: 0; white-space: nowrap; min-width: 80px; }
+    .ccr-select { width: 320px; max-width: 100%; }
+    #ccr_modal .ccr-field + .ccr-field { margin-top: 8px; }
+    #ccr_modal .ccr-select { flex: 1; width: auto; min-width: 0; }
+</style>
+<div class="modal fade" id="ccr_main" tabindex="-1" aria-labelledby="ccr_mainTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="height:auto !important; max-height:95vh !important;">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ccr_mainTitle">Card Reader Head Management</h5>
+            </div>
+            <div class="modal-body">
+                @Html.AntiForgeryToken()
+                <div class="ccr-toolbar">
+                    <button type="button" class="mui-button mui-button-search" id="ccr_search">Search</button>
+                    <button type="button" class="mui-button mui-button-new" id="ccr_new">New</button>
+                    <button type="button" class="mui-button button-report-delete" id="ccr_delete">Delete</button>
+                    <button type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+
+                <div class="mui-card">
+                    <div class="ccr-title"><i class="fa-solid fa-sliders"></i> Info search</div>
+                    <div class="ccr-field">
+                        <label>CardReader</label>
+                        <div class="ccr-select">
+                            <select id="ccr_filter" class="tomselect-custom" multiple></select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mui-card">
+                    <div id="ccr_grid" class="gridContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="ccr_modal" tabindex="-1" aria-labelledby="ccr_modalTitle" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
+        <div class="modal-content" style="height:auto !important; max-height:none !important;">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ccr_modalTitle">Computer With Card Reader</h5>
+            </div>
+            <div class="modal-body" style="overflow:visible; padding:12px;">
+                <div class="mb-3">
+                    <button type="button" class="mui-button mui-button-save" id="ccr_ok">OK</button>
+                    <button type="button" class="mui-button mui-button-close" data-bs-dismiss="modal">Close</button>
+                </div>
+                <div class="ccr-field">
+                    <label>CardReader</label>
+                    <div class="ccr-select">
+                        <select id="ccr_reader" class="tomselect-custom" data-single-choice data-placeholder="Select..." multiple></select>
+                    </div>
+                </div>
+                <div class="ccr-field">
+                    <label>Computer</label>
+                    <div class="ccr-select">
+                        <select id="ccr_computers" class="tomselect-custom" multiple></select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var ccr_Module = (function () {
+        let grid, saving = false;
+
+        const warn = message => showToast('Warning', message, false);
+        const errorText = (xhr, fallback) => xhr.responseJSON?.message || xhr.responseJSON?.msg || fallback;
+        const select = id => document.getElementById(id).tomselect;
+        // initTomSelect cho phép chọn nhiều nên giá trị luôn là mảng
+        const values = id => [].concat(select(id).getValue() || []).filter(Boolean);
+
+        function post(url, data) {
+            data.__RequestVerificationToken = $('#ccr_main input[name="__RequestVerificationToken"]').val();
+            return $.ajax({ url: url, type: 'POST', data: data, traditional: true });
+        }
+
+        function fill(id, rows, text) {
+            const control = select(id);
+            control.addOptions(rows.map(row => ({ value: String(row.id), text: text(row) })));
+            control.refreshOptions(false);
+            control.close();
+        }
+
+        function search() {
+            grid.beginCustomLoading('Loading...');
+            $.get('/Miscellaneous/GetComputerCardReaders', { cardReaderIds: values('ccr_filter').join(',') })
+                .done(rows => {
+                    grid.clearSelection();
+                    grid.option('dataSource', rows);
+                })
+                .fail(xhr => warn(errorText(xhr, 'Cannot load data.')))
+                .always(() => grid.endCustomLoading());
+        }
+
+        function openNew() {
+            select('ccr_reader').clear();
+            select('ccr_computers').clear();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('ccr_modal')).show();
+        }
+
+        function save() {
+            if (saving) return;
+            const reader = values('ccr_reader')[0];
+            const computers = values('ccr_computers');
+            const missing = [];
+            if (!reader) missing.push('CardReader can not be blank.');
+            if (!computers.length) missing.push('Computer can not be blank.');
+            if (missing.length) return warn(missing.join(' '));
+
+            saving = true;
+            post('/Miscellaneous/SaveComputerCardReader', { cardReaderId: reader, computerIds: computers })
+                .done(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('ccr_modal')).hide();
+                    showToast('Success', 'Saved successfully!', true);
+                    search();
+                })
+                .fail(xhr => warn(errorText(xhr, 'Cannot save.')))
+                .always(() => { saving = false; });
+        }
+
+        async function remove() {
+            const ids = grid.getSelectedRowsData().map(row => row.id);
+            if (!ids.length) return warn('Please select a config to delete.');
+
+            const answer = await Swal.fire({
+                title: 'Confirm', text: 'Are you sure you want to delete this config?', icon: 'warning',
+                showCancelButton: true, confirmButtonText: 'Yes', cancelButtonText: 'No'
+            });
+            if (!answer.isConfirmed) return;
+
+            post('/Miscellaneous/DeleteComputerCardReaders', { ids: ids })
+                .done(() => { showToast('Success', 'Deleted successfully!', true); search(); })
+                .fail(xhr => warn(errorText(xhr, 'Cannot delete.')));
+        }
+
+        function init() {
+            initTomSelect('#ccr_main .tomselect-custom');
+            initTomSelect('#ccr_modal .tomselect-custom');
+
+            grid = $('#ccr_grid').dxDataGrid({
+                dataSource: [], keyExpr: 'id', height: 360, showBorders: true, showRowLines: true,
+                allowColumnResizing: true, columnResizingMode: 'widget', paging: { enabled: false },
+                scrolling: { mode: 'standard' }, filterRow: { visible: true },
+                selection: { mode: 'multiple', showCheckBoxesMode: 'always', selectAllMode: 'allPages' },
+                grouping: { autoExpandAll: true },
+                columns: [
+                    { dataField: 'cardreader', caption: 'CardReader', groupIndex: 0 },
+                    { dataField: 'computername', caption: 'Computer Name', width: 220 },
+                    { dataField: 'computerdescription', caption: 'Description' }
+                ]
+            }).dxDataGrid('instance');
+
+            $('#ccr_search').on('click', search);
+            $('#ccr_new').on('click', openNew);
+            $('#ccr_ok').on('click', save);
+            $('#ccr_delete').on('click', remove);
+
+            $.get('/Miscellaneous/GetCardReaderLookups')
+                .done(data => {
+                    fill('ccr_filter', data.readers, row => row.cardreader);
+                    fill('ccr_reader', data.readers, row => row.cardreader);
+                    fill('ccr_computers', data.computers, row => row.name);
+                })
+                .fail(xhr => warn(errorText(xhr, 'Cannot load lists.')));
+            search();
+        }
+
+        return { init: init };
+    })();
+
+    // ModalManager gọi khi popup đã hiện
+    window.openModalCardReaderConfig = function () { ccr_Module.init(); };
+</script>
