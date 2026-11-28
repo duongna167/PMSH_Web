@@ -4451,12 +4451,12 @@ namespace Reservation.Controllers
                 return Json(ex.Message);
             }
         }
-        public async Task<IActionResult> SearchGroupReservationTest(DateTime fromDate, DateTime toDate, int noOfNight, int skip = 0, int take = 20)
+        public async Task<IActionResult> SearchGroupReservationTest(DateTime fromDate, DateTime toDate, int noOfRoom, int skip = 0, int take = 20)
         {
             try
             {
 
-                (DataTable myData, int totalCount) = _iGroupReservationService.GetGroupReservationTest(fromDate, toDate, noOfNight, skip, take);
+                (DataTable myData, int totalCount) = _iGroupReservationService.GetGroupReservationTest(fromDate, toDate, noOfRoom, skip, take);
 
                 var result = (from d in myData.AsEnumerable()
 
@@ -6525,7 +6525,7 @@ namespace Reservation.Controllers
                     overBooking.OverbookLevel = quantity + obLevel;
                     overBooking.Type = type == "Number" ? 0 : 1;
                     overBooking.UpdateBy = userName;
-                    overBooking.UpdateDate = businessDates![0].BusinessDate;
+                    overBooking.UpdateDate = DateTime.Now;
 
                     OverbookingBO.Instance.Update(overBooking);
 
@@ -6535,7 +6535,7 @@ namespace Reservation.Controllers
                         ObjectID = id,
                         UserID = userID,
                         UserName = userName,
-                        ChangeDate = businessDates![0].BusinessDate,
+                        ChangeDate = DateTime.Now,
                         Change = "Update",
                         OldValue = "",
                         NewValue = $"Ro.Type: {roomTypeModel?.Code} - Qty: {quantity} - On: {overBooking.Date:dd/MM/yyyy}"
@@ -6567,8 +6567,8 @@ namespace Reservation.Controllers
                                 Type = type == "Number" ? 0 : 1,
                                 CreateBy = userName,
                                 UpdateBy = userName,
-                                CreateDate = businessDates![0].BusinessDate,
-                                UpdateDate = businessDates![0].BusinessDate
+                                CreateDate = DateTime.Now,
+                                UpdateDate = DateTime.Now
                             };
 
                             OverbookingBO.Instance.Insert(overBooking);

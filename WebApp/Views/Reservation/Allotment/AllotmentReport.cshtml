@@ -16,7 +16,6 @@
             <div class="modal-body d-flex flex-column">
                 <div class="py-2">
                     <button id="allot_report_btnView" class="mui-button mui-button-search"> View</button>
-                    <button id="allot_report_btnExportExcel" class="mui-button mui-button-export"> Excel</button>
                     <button class="mui-button mui-button-new" data-bs-dismiss="modal"> Close </button>
                 </div>
                 <div class="mui-card mb-2 bg-light border-0 d-flex flex-column flex-grow-1 overflow-hidden">
@@ -208,9 +207,6 @@
                 self.reloadData();
             });
 
-            $("#allot_report_btnExportExcel").off("click").on("click", function () {
-                self.exportExcel();
-            });
 
              $(".mui-button-close").off("click").on("click", function () {
                 const grid = $("#allot_report_grid").dxDataGrid("instance");
@@ -542,8 +538,16 @@
                     };
                 }
 
+                // Không có dữ liệu: tránh số item hiển thị -1 rồi về 0 → luôn là mảng, ẩn dòng "Page x of y (n items)"
+                if (!Array.isArray(data)) data = [];
+                const hasData = data.length > 0;
+                // Tạo lại lưới mới hoàn toàn (đổi loại báo cáo thì cột khác) để pager không tính lại từ trạng thái cũ
+                const oldGrid = DevExpress.ui.dxDataGrid.getInstance(document.getElementById("allot_report_grid"));
+                if (oldGrid) { oldGrid.dispose(); $("#allot_report_grid").empty(); }
+
                     $("#allot_report_grid").dxDataGrid({
                 dataSource: data,
+                noDataText: "No data",
                 height: "100%",
                 width: "100%",
                 allowColumnResizing: true,
@@ -559,7 +563,7 @@
                     visible: true,
                     allowedPageSizes: [20, 50, 100],
                     showPageSizeSelector: true,
-                    showInfo: true,
+                    showInfo: hasData,
                     showNavigationButtons: true
                 },
                 scrolling: { mode: "standard", showScrollbar: "always" },

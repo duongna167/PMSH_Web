@@ -1,5 +1,5 @@
 ﻿<!-- Modal search profile-->
-<div class="modal fade modal-xl" id="modalProfile" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+<div class="modal fade modal-xl" id="ngrpModalProfile" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
     aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -10,11 +10,11 @@
             <div class="modal-body">
                 <div class="search-filter">
                     <div>
-                        <button class="mui-button mui-button-new" onclick="getAllProfiles(3);">Search</button>
-                        <button type="button" class="mui-button mui-button-new" onclick="clearSearch()">Clear</button>
+                        <button class="mui-button mui-button-new" onclick="ngrpGetProfiles(0);">Search</button>
+                        <button type="button" class="mui-button mui-button-new" onclick="ngrpClearSearch()">Clear</button>
 
                         <button type="button" class="mui-button mui-button-new"
-                            onclick="closeModalSearchProfle()">Close</button>
+                            onclick="ngrpCloseSearchProfile()">Close</button>
 
                     </div>
                     <div class="row mt-1">
@@ -26,7 +26,7 @@
                                     Full Name
                                 </label>
                                 <div class="col-12 col-md-8">
-                                    <input class="form-control" id="nameProfileSearch" placeholder="Enter name">
+                                    <input class="form-control" id="ngrpName" placeholder="Enter name">
                                 </div>
                             </div>
                         </div>
@@ -38,7 +38,7 @@
                                     First Name
                                 </label>
                                 <div class="col-12 col-md-8">
-                                    <input class="form-control" id="firstNameProfileSearch"
+                                    <input class="form-control" id="ngrpFirstName"
                                         placeholder="Enter first name">
                                 </div>
                             </div>
@@ -51,8 +51,8 @@
                                     View By
                                 </label>
                                 <div class="col-12 col-md-8">
-                                    <select id="viewByProfileSearch" disabled>
-                                        <option selected value="3">Individual</option>
+                                    <select id="ngrpViewBy" disabled>
+                                        <option selected value="0">Individual</option>
                                     </select>
                                 </div>
                             </div>
@@ -65,7 +65,7 @@
                                     City
                                 </label>
                                 <div class="col-12 col-md-8">
-                                    <select id="cityProfileSearch" asp-items="ViewBag.cboCity">
+                                    <select id="ngrpCity" asp-items="ViewBag.cboCity">
                                     </select>
                                 </div>
                             </div>
@@ -78,7 +78,7 @@
                                     Key word
                                 </label>
                                 <div class="col-12 col-md-8">
-                                    <input class="form-control" id="keywordProfileSearch">
+                                    <input class="form-control" id="ngrpKeyword">
                                 </div>
                             </div>
                         </div>
@@ -90,7 +90,7 @@
                                     Code
                                 </label>
                                 <div class="col-12 col-md-8">
-                                    <input class="form-control" id="codeProfileSearch">
+                                    <input class="form-control" id="ngrpCode">
                                 </div>
                             </div>
                         </div>
@@ -102,7 +102,7 @@
                                     Property
                                 </label>
                                 <div class="col-12 col-md-8">
-                                    <select id="propertyProfileSearch" disabled>
+                                    <select id="ngrpProperty" disabled>
                                         <option selected>PMSh TheArena</option>
                                     </select>
                                 </div>
@@ -116,7 +116,7 @@
                                     Sale in charge
                                 </label>
                                 <div class="col-12 col-md-6 d-flex align-items-center">
-                                    <input type="checkbox">
+                                    <input type="checkbox" id="ngrpSale">
                                 </div>
                             </div>
                         </div>
@@ -125,7 +125,7 @@
 
                 </div>
                 <div class="mui-card">
-                    <div id="gridContainerSearchProfile" class="mt-2 gridContainer"></div>
+                    <div id="ngrpGridProfile" class="mt-2 gridContainer"></div>
                 </div>
             </div>
 
@@ -134,36 +134,45 @@
 </div>
 <script>
 
-    function openModalSearchProfile() {
-        getAllProfiles(0);
-        $('#modalProfile').modal('show');
+    // Popup chọn Name cho New Group Reservation — ID / tên hàm riêng (prefix ngrp) để không đè lên popup profile của New Reservation
+    function ngrpOpenSearchProfile() {
+        var el = document.getElementById('ngrpModalProfile');
+        if (el && el.parentElement !== document.body) document.body.appendChild(el);
+        ngrpGetProfiles(0);
+        $('#ngrpModalProfile').modal('show');
     }
-    function closeModalSearchProfle() {
-        $('#nameProfileSearch').val('');
-        $('#firstNameProfileSearch').val('');
-        $('#cityProfileSearch').val(0);
+    function ngrpClearSearch() {
+        $('#ngrpName, #ngrpFirstName, #ngrpKeyword, #ngrpCode').val('');
+        $('#ngrpCity').val(0);
+        $('#ngrpSale').prop('checked', false);
+        ngrpGetProfiles(0);
+    }
+    function ngrpCloseSearchProfile() {
+        $('#ngrpName').val('');
+        $('#ngrpFirstName').val('');
+        $('#ngrpCity').val(0);
 
-        $('#modalProfile').modal('hide');
+        $('#ngrpModalProfile').modal('hide');
 
     }
-    function getAllProfiles(type) {
-        $('#viewByProfileSearch').val(type || 0); // Đặt giá trị mặc định nếu không có type
-        initializeDataGridSearchProfile();
+    function ngrpGetProfiles(type) {
+        $('#ngrpViewBy').val(type || 0); // Đặt giá trị mặc định nếu không có type
+        ngrpInitGrid();
     }
 
-    function initializeDataGridSearchProfile() {
-        $("#gridContainerSearchProfile").dxDataGrid({
+    function ngrpInitGrid() {
+        $("#ngrpGridProfile").dxDataGrid({
             dataSource: {
                 load: function (loadOptions) {
                     var d = $.Deferred();
                     var params = {
-                        code: $('#codeProfileSearch').val(),
-                        account: $('#nameProfileSearch').val(),
-                        firstName: $('#firstNameProfileSearch').val(),
-                        keyWord: $('#keywordProfileSearch').val(),
-                        city: $('#cityProfileSearch').val(),
-                        type: $('#viewByProfileSearch').val(),
-                        showSaleInCharge: $("#sale").is(":checked"),
+                        code: $('#ngrpCode').val(),
+                        account: $('#ngrpName').val(),
+                        firstName: $('#ngrpFirstName').val(),
+                        keyWord: $('#ngrpKeyword').val(),
+                        city: $('#ngrpCity').val(),
+                        type: $('#ngrpViewBy').val(),
+                        showSaleInCharge: $("#ngrpSale").is(":checked"),
                         page: loadOptions.skip / loadOptions.take + 1, // Tính số trang
                         pageSize: loadOptions.take // Kích thước trang
                     };
@@ -233,12 +242,12 @@
                 mode: "single"
             },
             onRowDblClick: function (e) {
-                getInfoByProfileID(e.data.id);
-                $('#modalProfile').modal('hide');
+                ngrpPickProfile(e.data.id);
+                $('#ngrpModalProfile').modal('hide');
             }
         });
     }
-    function getInfoByProfileID(id) {
+    function ngrpPickProfile(id) {
         $.ajax({
             url: '/Reservation/GetInfoProfile',
             type: 'get',
@@ -250,7 +259,9 @@
             headers: { "X-CSRF-TOKEN-HEADERNAME": jQuery("input[name='__RequestVerificationToken']").val() },
             success: function (result) {
                 $('#ngrRes_profileGRIndividualID').val(result.id);
-                $('#ngrRes_nameText').val(result.account);
+                $('#ngrRes_nameText').val(result.account).data('picked', String(result.account || '').trim())
+                    .removeClass('is-invalid').addClass('is-valid');
+                $('#ngrRes_errorMessage').addClass('d-none');
 
 
 
