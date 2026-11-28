@@ -21,6 +21,31 @@
     /* Dòng tổng: một dòng, gọn */
     #ooos_gridContainer .dx-datagrid-total-footer .dx-datagrid-content .dx-row > td { padding: 4px 6px !important; }
     #ooos_gridContainer .dx-datagrid-total-footer .dx-datagrid-summary-item { white-space: nowrap; font-size: 12px; line-height: 18px; margin: 0; }
+    /* Dữ liệu cách đường kẻ cột 5px (mặc định chung là 2px) */
+    #ooos_gridContainer .dx-datagrid-rowsview .dx-row > td, #ooos_historyGrid .dx-datagrid-rowsview .dx-row > td { padding-left: 5px !important; padding-right: 5px !important; }
+    /* Popup History: bộ lọc một hàng, ô cao 28px như màn chính */
+    #ooos_historyModal .ooos-field { display: flex; align-items: center; gap: 6px; }
+    #ooos_historyModal .ooos-field > label { margin: 0; white-space: nowrap; }
+    #ooos_historyModal [data-date-input] { width: 120px; }
+    #ooos_historyModal .ooos-history-filter input.form-control { height: 28px; min-height: 28px; padding-top: 0; padding-bottom: 0; }
+    /* Popup New/Edit: mọi dòng cao bằng nhau để hai cột thẳng hàng */
+    #ooos_formContainer .col-lg-7 > .row, #ooos_formContainer .col-lg-5 > .row { min-height: 28px; margin-bottom: 10px !important; }
+    #ooos_formContainer .col-lg-7 > .row:last-child, #ooos_formContainer .col-lg-5 > .row:last-child { margin-bottom: 0 !important; }
+    /* Cột nhãn hẹp, ô nhập nằm sát nhãn */
+    #ooos_formContainer .col-lg-7 > .row, #ooos_formContainer .col-lg-5 > .row { display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; column-gap: 8px; margin-left: 0; margin-right: 0; }
+    #ooos_formContainer .col-lg-5 > .row { grid-template-columns: 40px minmax(0, 1fr); }
+    #ooos_formContainer .col-lg-7 > .row > *, #ooos_formContainer .col-lg-5 > .row > * { width: auto; max-width: none; margin: 0 !important; padding: 0; }
+    #ooos_itemModal .modal-body { padding-bottom: 14px !important; }
+    /* Ô nhập ngắn lại; From/To bắt đầu ngang hàng ô nhập đầu tiên (Return Status) */
+    @@media (min-width: 992px) {
+        #ooos_itemModal .modal-dialog { width: 620px !important; max-width: 620px !important; }
+        #ooos_formContainer .col-lg-7 { flex: 0 0 auto; width: 348px; }
+        #ooos_formContainer .col-lg-5 { flex: 0 0 auto; width: 222px; padding-top: 38px; }
+    }
+    #ooos_formContainer input.form-control { height: 28px; min-height: 28px; padding-top: 0; padding-bottom: 0; }
+    #ooos_formContainer .form-check { display: flex; align-items: center; gap: 4px; min-height: 28px; padding-left: 0; }
+    #ooos_formContainer .form-check input { float: none; margin: 0; }
+    #ooos_formContainer .form-check label { margin: 0; }
 </style>
 
 <div class="modal fade" id="ooos_modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
@@ -325,7 +350,7 @@
                     <button class="mui-button mui-button-new" id="ooos_btnHistorySearch">Search</button>
                     <button class="mui-button mui-button-new" data-bs-dismiss="modal">Close</button>
                 </div>
-                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2 ooos-history-filter">
 
                     <div class="d-flex align-items-center me-2">
                         <label class="me-2 mb-0">Room:</label>
@@ -336,13 +361,14 @@
                         <input type="text" id="ooos_historyUser" class="form-control form-control-sm w-auto" />
                     </div>
                     <div class="ooos-field">
+                        <label>Date:</label>
                         <div data-date-input data-format="DD/MM/YYYY" business-date
-                             data-name="ooos_historyFromDate" style="width: 130px;">
+                             data-name="ooos_historyFromDate">
                             <input type="text" class="date-ui form-control form-control-sm"
                                    placeholder="dd/mm/yyyy" autocomplete="off" />
                         </div>
                         <div data-date-input data-format="DD/MM/YYYY" business-date
-                             data-name="ooos_historyToDate" style="width: 130px;">
+                             data-name="ooos_historyToDate">
                             <input type="text" class="date-ui form-control form-control-sm"
                                    placeholder="dd/mm/yyyy" autocomplete="off" />
                         </div>
@@ -482,24 +508,26 @@
             const self = this;
             self.initGrid("#ooos_gridContainer",{
                 dataSource: data,
+                // Không xuống dòng, cột tự rộng theo dữ liệu (thiếu chỗ thì cuộn ngang)
+                wordWrapEnabled: false,
                 columns: [
                     { dataField: "id", visible:false},
                     { dataField: "roomID", visible:false},
                     { dataField: "reasonID", visible:false},
-                    { dataField: "code", caption: "Code", width: 110 },
-                    { dataField: "roomNo", caption: "Room No", alignment: "right" , width: 60 },
-                    { dataField: "roomType", caption: "Room Type", width: 70 },
-                    { dataField: "floor", caption: "Floor", alignment: "right",width: 50 },
-                    { dataField: "zone", caption: "Zone", width: 50 },
-                    { dataField: "fromDate", caption: "From Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
-                    { dataField: "toDate", caption: "To Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
-                    { dataField: "noOfNights", caption: "Nights", width: 50 },
-                    { dataField: "reason", caption: "Reason", width: 150 },
-                    { dataField: "status", caption: "Status", width: 50 },
-                    { dataField: "userCreate", caption: "User Create", width: 100 },
-                    { dataField: "createdDate", caption: "Create Date", width: 80, dataType: "date", format: "dd/MM/yyyy" },
-                    { dataField: "userUpdate", caption: "User Update", width: 100 },
-                    { dataField: "updatedDate", caption: "Update Date", width: 80, dataType: "date", format: "dd/MM/yyyy" }
+                    { dataField: "code", caption: "Code", minWidth: 130 },
+                    { dataField: "roomNo", caption: "Room No", alignment: "right"  },
+                    { dataField: "roomType", caption: "Room Type" },
+                    { dataField: "floor", caption: "Floor", alignment: "right" },
+                    { dataField: "zone", caption: "Zone" },
+                    { dataField: "fromDate", caption: "From Date", minWidth: 105, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "toDate", caption: "To Date", minWidth: 105, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "noOfNights", caption: "Nights", minWidth: 110 },
+                    { dataField: "reason", caption: "Reason" },
+                    { dataField: "status", caption: "Status" },
+                    { dataField: "userCreate", caption: "User Create" },
+                    { dataField: "createdDate", caption: "Create Date", minWidth: 105, dataType: "date", format: "dd/MM/yyyy" },
+                    { dataField: "userUpdate", caption: "User Update" },
+                    { dataField: "updatedDate", caption: "Update Date", minWidth: 105, dataType: "date", format: "dd/MM/yyyy" }
                 ],
                 summary: {
                     totalItems: [
@@ -513,10 +541,10 @@
 
                         // NIGHTS → giữ cách tính custom
                         {
-                            showInColumn: "reason",
+                            showInColumn: "noOfNights",
                             summaryType: "custom",
                             name: "TotalNights",
-                            displayFormat: "Total Nights: {0}",
+                            displayFormat: "Total: {0}",
                             alignment: "right"
                         }
                     ],

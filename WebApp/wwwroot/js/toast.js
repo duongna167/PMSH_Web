@@ -27,10 +27,11 @@ const ToastUI = (function () {
             .pmsh-msg-center {
                 z-index: 20000;
                 position: fixed;
-                inset: 0;
+                top: 20px;
+                right: 20px;
                 display: flex;
-                align-items: center;
-                justify-content: center;
+                flex-direction: column;
+                align-items: flex-end;
                 pointer-events: none;
             }
             .pmsh-msg-center .minimal-toast {
